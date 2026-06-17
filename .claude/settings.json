@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/favour-nwachukwu/Desktop/Jalla/**)",
+      "Bash(npx --yes create-react-router@latest groundwork1-tmp --no-git-init --template remix-run/react-router-templates/templates/default)",
+      "Bash(rm -rf groundwork1-tmp)",
+      "Bash(npx --yes create-react-router@latest groundwork1-tmp --no-git-init)",
+      "Bash(rm -rf groundwork1-tmp/node_modules groundwork1-tmp/Dockerfile)",
+      "Bash(mv groundwork1-tmp/app groundwork1-tmp/package.json groundwork1-tmp/package-lock.json groundwork1-tmp/public groundwork1-tmp/react-router.config.ts groundwork1-tmp/README.md groundwork1-tmp/tsconfig.json groundwork1-tmp/vite.config.ts groundwork1/)",
+      "Bash(rm -f groundwork1/package-lock.json)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm dlx *)",
+      "Bash(pnpm exec *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm dev *)",
+      "Bash(curl -s -o /tmp/landing.html -w \"%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(pkill -f \"react-router dev\")",
+      "Read(//tmp/**)",
+      "Bash(kill -9 67273)",
+      "Bash(nohup pnpm dev)",
+      "Bash(disown)",
+      "Bash(pkill -f \"react-router dev\" 2>/dev/null; sleep 1 *)",
+      "Bash(node -e \"console.log\\(require\\('puppeteer'\\)\\)\")",
+      "Bash(google-chrome --headless --disable-gpu --no-sandbox --window-size=1440,3000 --screenshot=/tmp/landing-desktop.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,4200 --screenshot=/tmp/landing-desktop2.png --enable-logging=stderr --v=1 http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,1000 --screenshot=/tmp/hero-zoom.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=6000 --window-size=1440,1000 --screenshot=/tmp/hero-zoom2.png http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=6000 --window-size=1440,1000 --screenshot=/tmp/hero-zoom3.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,5200 --screenshot=/tmp/full-desktop.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,1200 http://localhost:5173/ --screenshot=/tmp/full-desktop.png)",
+      "Bash(python3 -c ' *)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,7000 --screenshot=/tmp/full-desktop2.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=375,8000 --screenshot=/tmp/mobile-full.png http://localhost:5173/)",
+      "Bash(pnpm build *)",
+      "Bash(kill 7087)",
+      "Bash(git add *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

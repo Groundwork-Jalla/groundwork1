@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+
+  --color-brand-white: #ffffff;
+  --color-brand-near-black: #0a0a0a;
+  --color-brand-rich-black: #1a1a1a;
+  --color-brand-mid-grey: #888888;
+  --color-brand-light-grey: #f5f5f5;
+  --color-brand-black: #000000;
+  --color-brand-muted-grey: #9ca3af;
+  --color-brand-border-grey: #e5e5e5;
+  --color-brand-dark-grey: #2a2a2a;
+  --color-brand-soft-grey: #bbbbbb;
+  --color-brand-off-white: #f8f8f8;
+  --color-brand-pale: #f2f2f2;
+}
+
+html,
+body {
+  @apply bg-white text-brand-near-black;
+}
+
+@layer base {
+  * {
+    @apply border-brand-border-grey;
+  }
+}
+
+@keyframes fill-progress {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 60%;
+  }
+}
+.animate-fill-progress {
+  animation: fill-progress 2s ease-out 0.5s both;
+}
