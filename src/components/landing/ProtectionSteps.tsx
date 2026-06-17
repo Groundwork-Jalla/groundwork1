@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
+import { BarChart3, ClipboardList, Lock, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const steps = [
-  { icon: "📊", title: "Set the Right Budget", desc: "Anchor the project against real costs before a single payment moves." },
-  { icon: "📋", title: "Break Into Clear Steps", desc: "Every build is split into stages and substages, each one verifiable." },
-  { icon: "🔒", title: "Tie Payments to Proof", desc: "Funds release only when a stage is confirmed complete." },
-  { icon: "✅", title: "Check the Work", desc: "Independent verification on every checkpoint, not just your contractor's word." },
-  { icon: "🛡", title: "Fix Problems Early", desc: "Catch deviations while they're cheap to fix, not after the walls are up." },
+  { Icon: BarChart3, title: "Set the Right Budget", desc: "Anchor the project against real costs before a single payment moves." },
+  { Icon: ClipboardList, title: "Break Into Clear Steps", desc: "Every build is split into stages and substages, each one verifiable." },
+  { Icon: Lock, title: "Tie Payments to Proof", desc: "Funds release only when a stage is confirmed complete." },
+  { Icon: ShieldCheck, title: "Check the Work", desc: "Independent verification on every checkpoint, not just your contractor's word." },
+  { Icon: ShieldAlert, title: "Fix Problems Early", desc: "Catch deviations while they're cheap to fix, not after the walls are up." },
 ];
 
 export default function ProtectionSteps() {
@@ -27,7 +28,13 @@ export default function ProtectionSteps() {
                 whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.12)" }}
                 className="bg-white/5 border border-white/[0.08] rounded-xl p-6 text-center h-full"
               >
-                <div className="text-2xl mb-2">{step.icon}</div>
+                <motion.div
+                  animate={{ scale: [1, 1.12, 1] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                  className="inline-flex text-white/70 mb-2"
+                >
+                  <step.Icon className="size-6" />
+                </motion.div>
                 <div className="font-['Playfair_Display'] text-[32px] font-extralight text-white/10 mb-2">
                   0{i + 1}
                 </div>

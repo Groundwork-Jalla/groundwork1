@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { CheckCircle2, Check, Lock, Camera } from "lucide-react";
 
 export default function HeroScene() {
   return (
@@ -87,7 +88,7 @@ export default function HeroScene() {
                     : "h-3.5 w-3.5 rounded-full border border-brand-border-grey bg-white"
               }
             >
-              {done ? "✓" : ""}
+              {done ? <Check className="size-2.5" /> : ""}
             </span>
           ))}
         </div>
@@ -97,25 +98,34 @@ export default function HeroScene() {
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute right-[2%] top-[8%] rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
+        className="absolute right-[2%] top-[8%] flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
       >
-        ✓ Stage 3 Verified
+        <CheckCircle2 className="size-3.5" />
+        Stage 3 Verified
       </motion.div>
 
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        className="absolute left-[24%] top-[60%] -translate-x-1/2 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.18)] px-3 py-1.5 text-[11px] font-medium text-white whitespace-nowrap"
+        className="absolute left-[24%] top-[60%] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.18)] px-3 py-1.5 text-[11px] font-medium text-white whitespace-nowrap"
       >
-        🔒 ₦6.4M Held
+        <Lock className="size-3.5" />
+        ₦6.4M Held
       </motion.div>
 
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute left-[33%] top-[27%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
+        className="absolute left-[33%] top-[27%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
       >
-        📸 Evidence Uploaded
+        <motion.span
+          animate={{ opacity: [1, 0.3, 1] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex"
+        >
+          <Camera className="size-3.5" />
+        </motion.span>
+        Evidence Uploaded
       </motion.div>
     </div>
   );

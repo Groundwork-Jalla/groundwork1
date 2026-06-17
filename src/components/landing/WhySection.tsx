@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+import { Quote } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const tags = [
@@ -12,6 +14,15 @@ const tags = [
 export default function WhySection() {
   return (
     <section className="max-w-[720px] mx-auto px-7 py-20 text-center">
+      <Reveal>
+        <motion.div
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="inline-flex text-brand-border-grey mb-2"
+        >
+          <Quote className="size-6" />
+        </motion.div>
+      </Reveal>
       <Reveal>
         <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHY PEOPLE BUILD</span>
       </Reveal>
@@ -28,12 +39,14 @@ export default function WhySection() {
       <Reveal delay={0.2}>
         <div className="flex flex-wrap justify-center gap-3 mt-9">
           {tags.map((tag) => (
-            <span
+            <motion.span
               key={tag}
-              className="border border-brand-border-grey rounded-full px-4 py-2 text-sm text-brand-dark-grey cursor-pointer transition-all duration-300 hover:bg-brand-near-black hover:text-white hover:border-brand-near-black"
+              whileHover={{ scale: 1.06, y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="border border-brand-border-grey rounded-full px-4 py-2 text-sm text-brand-dark-grey cursor-pointer transition-colors duration-300 hover:bg-brand-near-black hover:text-white hover:border-brand-near-black"
             >
               {tag}
-            </span>
+            </motion.span>
           ))}
         </div>
       </Reveal>

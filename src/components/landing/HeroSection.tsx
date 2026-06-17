@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HeroScene from "./HeroScene";
 
@@ -31,8 +32,11 @@ export default function HeroSection() {
           }}
           transition={{ duration: 2.5, repeat: Infinity }}
         >
-          <Button asChild className="bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black">
-            <a href="#join">Join the Community — Free</a>
+          <Button asChild className="bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
+            <a href="#join" className="flex items-center gap-2">
+              Join the Community — Free
+              <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </a>
           </Button>
         </motion.div>
       </motion.div>

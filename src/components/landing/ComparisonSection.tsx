@@ -1,3 +1,5 @@
+import { motion } from "framer-motion";
+import { Frown, Smile, X, Check } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const without = [
@@ -27,12 +29,18 @@ export default function ComparisonSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Reveal>
             <div className="bg-white rounded-2xl border border-brand-border-grey p-8 h-full">
-              <div className="text-3xl mb-2">😰</div>
+              <motion.div
+                animate={{ rotate: [0, -6, 6, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="inline-flex text-brand-mid-grey mb-2"
+              >
+                <Frown className="size-8" />
+              </motion.div>
               <h3 className="font-['Playfair_Display'] text-xl text-brand-near-black mb-4">Without Structure</h3>
               <ul className="space-y-3">
                 {without.map((item) => (
                   <li key={item} className="flex gap-2 text-sm text-brand-mid-grey">
-                    <span>✗</span>
+                    <X className="size-4 shrink-0 mt-0.5" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -42,12 +50,18 @@ export default function ComparisonSection() {
 
           <Reveal delay={0.2}>
             <div className="bg-brand-near-black rounded-2xl p-8 h-full">
-              <div className="text-3xl mb-2">😌</div>
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                className="inline-flex text-white mb-2"
+              >
+                <Smile className="size-8" />
+              </motion.div>
               <h3 className="font-['Playfair_Display'] text-xl text-white mb-4">With Groundwork</h3>
               <ul className="space-y-3">
                 {withGroundwork.map((item) => (
                   <li key={item} className="flex gap-2 text-sm text-white/70">
-                    <span>✓</span>
+                    <Check className="size-4 shrink-0 mt-0.5" />
                     <span>{item}</span>
                   </li>
                 ))}

@@ -1,3 +1,4 @@
+import { Check, X } from "lucide-react";
 import { Reveal } from "./Reveal";
 
 const fitFor = [
@@ -23,7 +24,7 @@ export default function FitSection() {
           <ul className="space-y-3">
             {fitFor.map((item) => (
               <li key={item} className="flex gap-2 text-sm text-white/80">
-                <span>✓</span>
+                <Check className="size-4 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
@@ -35,7 +36,7 @@ export default function FitSection() {
           <ul className="space-y-3">
             {notFor.map((item) => (
               <li key={item} className="flex gap-2 text-sm text-white/25 line-through">
-                <span>✗</span>
+                <X className="size-4 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
