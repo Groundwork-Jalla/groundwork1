@@ -1,6 +1,7 @@
 import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
 import WhatJallaDoes from "./WhatJallaDoes";
+import ProtectionSteps from "./ProtectionSteps";
 import ComparisonSection from "./ComparisonSection";
 import RiskSection from "./RiskSection";
 import PlatformCarousel from "./PlatformCarousel";
@@ -14,6 +15,7 @@ export default function LandingPage() {
       <LandingNav />
       <HeroSection />
       <WhatJallaDoes />
+      <ProtectionSteps />
       <ComparisonSection />
       <RiskSection />
       <PlatformCarousel />
