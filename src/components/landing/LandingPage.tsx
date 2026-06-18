@@ -1,12 +1,10 @@
 import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
-import StatsBar from "./StatsBar";
-import WhySection from "./WhySection";
-import RiskSection from "./RiskSection";
-import ProtectionSteps from "./ProtectionSteps";
-import PlatformCarousel from "./PlatformCarousel";
+import WhatJallaDoes from "./WhatJallaDoes";
 import ComparisonSection from "./ComparisonSection";
-import FitSection from "./FitSection";
+import RiskSection from "./RiskSection";
+import PlatformCarousel from "./PlatformCarousel";
+import WhyUseJalla from "./WhyUseJalla";
 import CTASection from "./CTASection";
 import FooterSection from "./FooterSection";
 
@@ -15,13 +13,11 @@ export default function LandingPage() {
     <div className="overflow-x-hidden">
       <LandingNav />
       <HeroSection />
-      <StatsBar />
-      <WhySection />
-      <RiskSection />
-      <ProtectionSteps />
-      <PlatformCarousel />
+      <WhatJallaDoes />
       <ComparisonSection />
-      <FitSection />
+      <RiskSection />
+      <PlatformCarousel />
+      <WhyUseJalla />
       <CTASection />
       <FooterSection />
     </div>

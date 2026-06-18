@@ -70,6 +70,15 @@ export default function CTASection() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <div className="mt-4">
+          <a
+            href="/contractor-apply"
+            className="text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black transition-colors"
+          >
+            Are you a contractor? Apply here →
+          </a>
+        </div>
       </div>
     </section>
   );

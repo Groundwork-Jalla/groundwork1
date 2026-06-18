@@ -57,44 +57,51 @@ const risks = [
 
 export default function RiskSection() {
   return (
-    <section className="max-w-[900px] mx-auto px-7 py-20 border-t-2 border-brand-near-black">
-      <Reveal className="text-center mb-10">
-        <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">IT STARTS SMALL</span>
-        <h2 className="font-['Playfair_Display'] text-4xl font-medium text-brand-near-black mt-3">
+    <section className="max-w-[1000px] mx-auto px-7 py-28 border-t-2 border-brand-near-black">
+      <Reveal className="text-center mb-16">
+        <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">HOW JALLA WORKS</span>
+        <h2 className="font-['Playfair_Display'] text-5xl font-medium text-brand-near-black mt-3">
           6 Ways Builds Lose Control.
         </h2>
-        <p className="text-brand-mid-grey mt-3 max-w-[480px] mx-auto">
+        <p className="text-brand-mid-grey mt-4 max-w-[500px] mx-auto text-base">
           None of them look dangerous at first. All of them compound.
         </p>
       </Reveal>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-7">
         {risks.map(({ Scene, title, description, stat, statLabel }, i) => {
           const illustrationFirst = i % 2 === 0;
           return (
             <Reveal key={title} direction={illustrationFirst ? "left" : "right"} delay={i * 0.1}>
               <motion.div
-                whileHover={{ y: -2 }}
-                className={`bg-white rounded-xl border border-brand-border-grey overflow-hidden flex flex-col hover:shadow-lg transition-shadow ${
+                whileHover={{ y: -4 }}
+                className={`group bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-shadow duration-300 ${
                   illustrationFirst ? "md:flex-row" : "md:flex-row-reverse"
                 }`}
               >
-                <div className="bg-brand-off-white p-6 flex items-center justify-center md:w-[280px] shrink-0">
-                  <div className="w-full max-w-[240px]">
+                <div className="relative bg-brand-off-white p-9 flex items-center justify-center md:w-[320px] shrink-0 overflow-hidden">
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      backgroundImage: "radial-gradient(circle, rgba(10,10,10,0.07) 1px, transparent 1px)",
+                      backgroundSize: "14px 14px",
+                    }}
+                  />
+                  <div className="relative w-full max-w-[260px]">
                     <Scene />
                   </div>
                 </div>
-                <div className="flex-1 p-6 flex flex-col justify-center">
-                  <div className="flex items-baseline gap-3">
-                    <span className="font-['Playfair_Display'] text-[28px] text-brand-border-grey">
+                <div className="flex-1 p-9 flex flex-col justify-center">
+                  <div className="flex items-baseline gap-4">
+                    <span className="font-['Playfair_Display'] text-5xl text-brand-border-grey leading-none">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <h3 className="text-[15px] font-bold text-brand-near-black">{title}</h3>
+                    <h3 className="text-lg font-bold text-brand-near-black">{title}</h3>
                   </div>
-                  <p className="text-sm text-brand-mid-grey mt-1">{description}</p>
-                  <div className="inline-flex items-center gap-2 bg-brand-pale rounded-full px-3 py-1 mt-3 self-start">
-                    <span className="font-['Playfair_Display'] text-base font-bold text-brand-near-black">{stat}</span>
-                    <span className="text-[11px] text-brand-mid-grey">{statLabel}</span>
+                  <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{description}</p>
+                  <div className="inline-flex items-center gap-2.5 bg-brand-near-black rounded-full px-4 py-2 mt-4 self-start">
+                    <span className="font-['Playfair_Display'] text-xl font-bold text-white">{stat}</span>
+                    <span className="text-xs text-white/60">{statLabel}</span>
                   </div>
                 </div>
               </motion.div>
@@ -103,7 +110,7 @@ export default function RiskSection() {
         })}
       </div>
 
-      <p className="italic text-center text-brand-mid-grey mt-10">
+      <p className="italic text-center text-brand-mid-grey mt-12 text-lg">
         Once control is lost, it is hard to get back.
       </p>
       <LossCounter />

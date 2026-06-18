@@ -3,6 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HeroScene from "./HeroScene";
 
+// TODO: Update font-family to SFR font once Philip confirms the exact
+// web font. Currently using Playfair Display as placeholder.
 export default function HeroSection() {
   return (
     <section className="max-w-[1100px] mx-auto px-7 py-16 lg:py-24 flex flex-col lg:flex-row items-center gap-12">
