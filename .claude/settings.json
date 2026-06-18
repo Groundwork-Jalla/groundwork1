@@ -63,7 +63,13 @@
       "Bash(timeout 20 google-chrome --headless=new --disable-gpu --no-sandbox --enable-logging=stderr --v=1 --virtual-time-budget=6000 --window-size=1440,900 --dump-dom http://localhost:5173/)",
       "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,7400 --screenshot=/tmp/rebuild-full2.png http://localhost:5173/)",
       "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,7400 --screenshot=/tmp/rebuild-full3.png http://localhost:5173/)",
-      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=375,9000 --screenshot=/tmp/mobile-rebuild.png http://localhost:5173/)"
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=375,9000 --screenshot=/tmp/mobile-rebuild.png http://localhost:5173/)",
+      "Bash(kill 18069)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://groundwork1-phi.vercel.app/)",
+      "Bash(curl -s https://groundwork1-phi.vercel.app/assets/*.js)",
+      "Bash(curl -s https://groundwork1-phi.vercel.app/ -o /tmp/check.html)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,3700 --screenshot=/tmp/vercel-verify.png https://groundwork1-phi.vercel.app/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,1500 --screenshot=/tmp/vercel-latest.png https://groundwork1-r8a1n21l1-groundwork-jallas-projects.vercel.app/)"
     ],
     "additionalDirectories": [
       "/tmp"

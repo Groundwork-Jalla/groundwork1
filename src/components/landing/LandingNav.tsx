@@ -15,21 +15,12 @@ export default function LandingNav() {
           <span className="font-['Playfair_Display'] text-[26px] font-semibold text-brand-near-black">Jalla</span>
           <span className="text-[10px] text-brand-mid-grey tracking-[0.12em]">THE FIRM</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            asChild
-            variant="ghost"
-            className="hidden sm:inline-flex text-brand-near-black hover:bg-brand-light-grey text-xs font-semibold px-4 rounded-md"
-          >
-            <a href="/contractor-apply">For Contractors</a>
-          </Button>
-          <Button asChild className="bg-brand-near-black text-white hover:bg-brand-black text-xs font-semibold px-6 rounded-md group">
-            <a href="#join" className="flex items-center gap-1.5">
-              Join Free
-              <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-            </a>
-          </Button>
-        </div>
+        <Button asChild className="bg-brand-near-black text-white hover:bg-brand-black text-xs font-semibold px-6 rounded-md group">
+          <a href="#join" className="flex items-center gap-1.5">
+            Join Free
+            <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </a>
+        </Button>
       </div>
     </motion.nav>
   );
