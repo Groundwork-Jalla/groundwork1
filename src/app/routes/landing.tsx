@@ -1,14 +1,17 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import LandingPage from "@/components/landing/LandingPage";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { session, loading } = useAuth();
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dashboard", { replace: true });
-    });
-  }, [navigate]);
+    if (!loading && session) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [loading, session, navigate]);
+
   return <LandingPage />;
 }
