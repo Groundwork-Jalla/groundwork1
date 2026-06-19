@@ -8,6 +8,10 @@ function ProtectedIcon() {
         <animate attributeName="r" values="55;63;55" dur="2.6s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0.3;0;0.3" dur="2.6s" repeatCount="indefinite" />
       </circle>
+      <circle cx="70" cy="70" r="55" fill="none" stroke="white" strokeOpacity="0.1" strokeWidth="1.5">
+        <animate attributeName="r" values="40;55;40" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.25;0;0.25" dur="2.6s" begin="1.3s" repeatCount="indefinite" />
+      </circle>
       <path
         d="M70,15 L115,32 V70 C115,100 95,118 70,128 C45,118 25,100 25,70 V32 Z"
         fill="none"
@@ -17,6 +21,13 @@ function ProtectedIcon() {
       />
       <rect x="58" y="68" width="24" height="18" rx="3" fill="white" />
       <path d="M62,68 v-7 a8,8 0 1,1 16,0 v7" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
+      <circle r="3" fill="white">
+        <animateMotion
+          path="M70,15 L115,32 V70 C115,100 95,118 70,128 C45,118 25,100 25,70 V32 Z"
+          dur="4s"
+          repeatCount="indefinite"
+        />
+      </circle>
     </svg>
   );
 }
@@ -35,6 +46,11 @@ function CheckedIcon() {
         <animate attributeName="y2" values="20;120;20" dur="3.4s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0.4;0" dur="3.4s" repeatCount="indefinite" />
       </line>
+      {[0, 1, 2].map((i) => (
+        <circle key={i} cx={20 + i * 14} cy="112" r="2" fill="white" opacity="0.5">
+          <animate attributeName="opacity" values="0.2;0.8;0.2" dur="1.8s" begin={`${i * 0.25}s`} repeatCount="indefinite" />
+        </circle>
+      ))}
     </svg>
   );
 }
@@ -45,6 +61,9 @@ function VisibilityIcon() {
       <rect x="40" y="20" width="40" height="72" rx="8" fill="none" stroke="white" strokeOpacity="0.8" strokeWidth="2" />
       <line x1="50" y1="62" x2="70" y2="62" stroke="white" strokeOpacity="0.4" strokeWidth="2" />
       <line x1="50" y1="70" x2="64" y2="70" stroke="white" strokeOpacity="0.4" strokeWidth="2" />
+      <circle cx="60" cy="40" r="3" fill="white">
+        <animate attributeName="opacity" values="1;0.2;1" dur="1.6s" repeatCount="indefinite" />
+      </circle>
       {[28, 38, 48].map((r, i) => (
         <path
           key={i}
@@ -71,16 +90,19 @@ const reasons = [
     Icon: ProtectedIcon,
     title: "Your money stays protected",
     desc: "Funds don't move without verified proof, every time.",
+    badge: "₦0 Lost",
   },
   {
     Icon: CheckedIcon,
     title: "Every stage is independently checked",
     desc: "Not your contractor's word — real, on-site verification.",
+    badge: "60+ Checkpoints",
   },
   {
     Icon: VisibilityIcon,
     title: "Full visibility from anywhere",
     desc: "Track your build from your phone, 6,000 miles away.",
+    badge: "Live Updates",
   },
 ];
 
@@ -100,11 +122,29 @@ export default function WhyUseJalla() {
             <Reveal key={reason.title} delay={i * 0.15}>
               <motion.div
                 whileHover={{ y: -6 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-8 h-full shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:bg-white/[0.08] transition-colors"
+                animate={{
+                  boxShadow: [
+                    "0 8px 30px rgba(0,0,0,0.3)",
+                    "0 8px 30px rgba(255,255,255,0.06)",
+                    "0 8px 30px rgba(0,0,0,0.3)",
+                  ],
+                }}
+                transition={{
+                  boxShadow: { duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 },
+                }}
+                className="relative bg-white/5 border border-white/10 rounded-2xl p-8 h-full hover:bg-white/[0.08] transition-colors overflow-visible"
               >
-                <div className="h-32 mb-6">
+                <motion.div
+                  animate={{ y: [0, -7, 0] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
+                  className="absolute -top-3 right-6 rounded-full bg-white text-brand-near-black text-[10px] font-semibold px-2.5 py-1 shadow-[0_4px_14px_rgba(0,0,0,0.3)] whitespace-nowrap"
+                >
+                  {reason.badge}
+                </motion.div>
+
+                <motion.div whileHover={{ scale: 1.08 }} className="h-32 mb-6">
                   <reason.Icon />
-                </div>
+                </motion.div>
                 <h3 className="text-xl font-bold text-white leading-snug">{reason.title}</h3>
                 <p className="text-sm text-white/55 mt-3 leading-relaxed">{reason.desc}</p>
               </motion.div>
