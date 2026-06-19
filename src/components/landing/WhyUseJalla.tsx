@@ -132,7 +132,7 @@ export default function WhyUseJalla() {
                 transition={{
                   boxShadow: { duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 },
                 }}
-                className="relative bg-white/5 border border-white/10 rounded-2xl p-8 h-full hover:bg-white/[0.08] transition-colors overflow-visible"
+                className="relative bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 h-full hover:bg-white/[0.08] transition-colors overflow-visible"
               >
                 <motion.div
                   animate={{ y: [0, -7, 0] }}
@@ -142,10 +142,10 @@ export default function WhyUseJalla() {
                   {reason.badge}
                 </motion.div>
 
-                <motion.div whileHover={{ scale: 1.08 }} className="h-32 mb-6">
+                <motion.div whileHover={{ scale: 1.08 }} className="h-24 md:h-32 mb-6">
                   <reason.Icon />
                 </motion.div>
-                <h3 className="text-xl font-bold text-white leading-snug">{reason.title}</h3>
+                <h3 className="text-lg md:text-xl font-bold text-white leading-snug">{reason.title}</h3>
                 <p className="text-sm text-white/55 mt-3 leading-relaxed">{reason.desc}</p>
               </motion.div>
             </Reveal>

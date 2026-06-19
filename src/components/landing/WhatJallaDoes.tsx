@@ -130,7 +130,7 @@ export default function WhatJallaDoes() {
       <div className="max-w-[1100px] mx-auto">
         <Reveal className="text-center mb-14">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHAT JALLA DOES</span>
-          <h2 className="font-['Playfair_Display'] text-4xl font-medium text-brand-near-black mt-3">
+          <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black mt-3">
             Four Words. One System.
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[480px] mx-auto">

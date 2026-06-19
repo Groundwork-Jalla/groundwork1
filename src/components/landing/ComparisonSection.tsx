@@ -25,7 +25,7 @@ export default function ComparisonSection() {
       <div className="max-w-[1040px] mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE DIFFERENCE</span>
-          <h2 className="font-['Playfair_Display'] text-5xl font-medium text-brand-near-black mt-3">
+          <h2 className="font-['Playfair_Display'] text-2xl sm:text-3xl lg:text-5xl font-medium text-brand-near-black mt-3">
             Without Structure vs. With Groundwork
           </h2>
           <p className="text-brand-mid-grey mt-4 text-base">The same build. Two very different outcomes.</p>

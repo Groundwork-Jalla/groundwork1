@@ -24,7 +24,7 @@ export default function CTASection() {
         >
           <Home className="size-9" />
         </motion.div>
-        <h2 className="font-['Playfair_Display'] text-4xl font-medium text-brand-near-black">
+        <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
           Protect Your Build Before It Starts.
         </h2>
         <p className="text-brand-mid-grey mt-4">
@@ -49,7 +49,7 @@ export default function CTASection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex max-w-[380px] mx-auto rounded-lg overflow-hidden border-2 border-brand-near-black mt-8"
+              className="flex flex-col sm:flex-row max-w-[380px] mx-auto rounded-lg overflow-hidden border-2 border-brand-near-black mt-8"
             >
               <Input
                 type="email"
@@ -60,7 +60,7 @@ export default function CTASection() {
               />
               <Button
                 onClick={handleJoin}
-                className="rounded-none bg-brand-near-black text-white font-bold text-sm px-6 h-auto hover:bg-brand-black group"
+                className="w-full sm:w-auto rounded-none bg-brand-near-black text-white font-bold text-sm px-6 h-auto hover:bg-brand-black group"
               >
                 <span className="flex items-center gap-1.5">
                   Join Free
@@ -74,7 +74,7 @@ export default function CTASection() {
         <div className="mt-4">
           <a
             href="/contractor-apply"
-            className="text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black transition-colors"
+            className="text-xs sm:text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black transition-colors"
           >
             Are you a contractor? Apply here →
           </a>

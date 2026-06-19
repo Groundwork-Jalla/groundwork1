@@ -3,7 +3,7 @@ import { CheckCircle2, Check, Lock, Camera } from "lucide-react";
 
 export default function HeroScene() {
   return (
-    <div className="relative w-full max-w-[560px] mx-auto">
+    <div className="relative w-full max-w-[320px] lg:max-w-[560px] mx-auto">
       <svg viewBox="0 0 560 400" className="w-full h-auto" aria-hidden="true">
         <defs>
           <style>{`.dim-line { stroke: #E5E5E5; }`}</style>
@@ -98,7 +98,7 @@ export default function HeroScene() {
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute right-[2%] top-[8%] flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
+        className="absolute right-[2%] top-[8%] flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-brand-near-black whitespace-nowrap"
       >
         <CheckCircle2 className="size-3.5" />
         Stage 3 Verified
@@ -107,7 +107,7 @@ export default function HeroScene() {
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        className="absolute left-[24%] top-[60%] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.18)] px-3 py-1.5 text-[11px] font-medium text-white whitespace-nowrap"
+        className="absolute left-[24%] top-[60%] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.18)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-white whitespace-nowrap"
       >
         <Lock className="size-3.5" />
         ₦6.4M Held
@@ -116,7 +116,7 @@ export default function HeroScene() {
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute left-[33%] top-[27%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-3 py-1.5 text-[11px] font-medium text-brand-near-black whitespace-nowrap"
+        className="absolute left-[33%] top-[27%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full bg-white shadow-[0_4px_18px_rgba(0,0,0,0.12)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-brand-near-black whitespace-nowrap"
       >
         <motion.span
           animate={{ opacity: [1, 0.3, 1] }}

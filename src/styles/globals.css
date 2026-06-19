@@ -21,7 +21,7 @@
 
 html,
 body {
-  @apply bg-white text-brand-near-black;
+  @apply bg-white text-brand-near-black overflow-x-hidden;
 }
 
 @layer base {
