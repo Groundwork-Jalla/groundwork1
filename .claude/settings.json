@@ -69,7 +69,10 @@
       "Bash(curl -s https://groundwork1-phi.vercel.app/assets/*.js)",
       "Bash(curl -s https://groundwork1-phi.vercel.app/ -o /tmp/check.html)",
       "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,3700 --screenshot=/tmp/vercel-verify.png https://groundwork1-phi.vercel.app/)",
-      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,1500 --screenshot=/tmp/vercel-latest.png https://groundwork1-r8a1n21l1-groundwork-jallas-projects.vercel.app/)"
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=8000 --window-size=1440,1500 --screenshot=/tmp/vercel-latest.png https://groundwork1-r8a1n21l1-groundwork-jallas-projects.vercel.app/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=9000 --window-size=1440,8000 --screenshot=/tmp/debug-full.png http://localhost:5173/)",
+      "Bash(timeout 30 google-chrome --headless=new --disable-gpu --no-sandbox --virtual-time-budget=9000 --window-size=1440,8000 --screenshot=/tmp/debug-full2.png http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/ --max-time 5)"
     ],
     "additionalDirectories": [
       "/tmp"

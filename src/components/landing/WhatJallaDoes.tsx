@@ -162,12 +162,13 @@ export default function WhatJallaDoes() {
           ))}
         </div>
 
+        {/* Hidden for now until the video is ready. Video embed will go here.
         <Reveal delay={0.3} className="mt-14">
-          {/* Video embed will go here */}
           <div className="rounded-2xl border border-dashed border-brand-border-grey bg-brand-off-white h-[280px] flex items-center justify-center">
             <span className="text-sm text-brand-mid-grey">Video coming soon</span>
           </div>
         </Reveal>
+        */}
       </div>
     </section>
   );
