@@ -4,6 +4,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 export default [
   // Public landing page
   route("/", "routes/landing.tsx"),
+  route("contractor-apply", "routes/contractor-apply.tsx"),
 
   // Auth routes (public)
   layout("routes/_auth-layout.tsx", [
