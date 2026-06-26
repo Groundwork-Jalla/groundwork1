@@ -14,14 +14,14 @@ export default function HeroSection() {
         transition={{ duration: 0.7, ease: "easeOut" }}
         className="flex-1 max-w-[580px] w-full"
       >
-        <h1 className="font-['Playfair_Display'] text-3xl lg:text-5xl font-medium leading-[1.1] lg:whitespace-nowrap">
-          <span className="text-brand-near-black">Build Back Home.</span>
-          <br />
+        <h1 className="font-['Playfair_Display'] text-3xl lg:text-5xl font-medium leading-[1.1]">
+          <span className="text-brand-near-black">Introducing the New Way of Building Back Home</span>{" "}
           <span className="text-brand-mid-grey italic font-normal">Without Losing Control.</span>
         </h1>
-        <p className="mt-6 text-sm lg:text-base leading-relaxed text-brand-mid-grey max-w-[420px]">
-          Jalla gives diaspora builders a structured way to fund, verify, and track
-          construction back home — so every payment is tied to proof, not promises.
+        <p className="mt-6 text-sm lg:text-base leading-relaxed text-brand-mid-grey max-w-[460px]">
+          Groundwork by Jalla gives diaspora builders a structured and transparent way to fund, verify, and track
+          construction back home. Every payment is tied to proof, every stage is independently verified for
+          quality, and every penny is properly accounted for.
         </p>
         <motion.div
           className="mt-8 w-full sm:inline-block sm:w-auto rounded-lg"

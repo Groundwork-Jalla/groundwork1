@@ -118,10 +118,10 @@ function PayScene() {
 }
 
 const items = [
-  { Scene: PlanScene, word: "Plan", desc: "Set the budget and break the build into clear, verifiable stages.", badge: "Floor Plan Set" },
-  { Scene: TrackScene, word: "Track", desc: "Watch progress move through every stage and substage in real time.", badge: "Stage 3 of 10" },
+  { Scene: PlanScene, word: "Plan", desc: "Set the right budget and break the build into clear, verifiable stages.", badge: "Floor Plan Set" },
+  { Scene: TrackScene, word: "Track", desc: "Watch progress move through every stage with a clear record of stage cost and quality.", badge: "Stage 3 of 10" },
   { Scene: VerifyScene, word: "Verify", desc: "An independent check confirms the work before anything moves.", badge: "Verified" },
-  { Scene: PayScene, word: "Pay", desc: "Funds release only once proof clears — never before.", badge: "₦ Released" },
+  { Scene: PayScene, word: "Pay", desc: "Funds release only once proof verification clears and the next stage is unlocked.", badge: "₦ Released" },
 ];
 
 export default function WhatJallaDoes() {
@@ -131,10 +131,10 @@ export default function WhatJallaDoes() {
         <Reveal className="text-center mb-14">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHAT JALLA DOES</span>
           <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black mt-3">
-            Four Words. One System.
+            A System Built on Accountability and Transparency
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[480px] mx-auto">
-            Everything Jalla does for your build, distilled.
+            Groundwork helps you;
           </p>
         </Reveal>
 

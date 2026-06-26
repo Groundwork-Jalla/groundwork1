@@ -4,19 +4,25 @@ import { Reveal } from "./Reveal";
 import { WithoutStructureScene, WithGroundworkScene } from "./ComparisonScenes";
 
 const without = [
-  "Payments made on trust, not proof",
-  "No clear record of progress",
-  "Disputes with no evidence to settle them",
-  "Delays discovered too late",
-  "Budget overruns nobody saw coming",
+  "Hard to know what is happening on-site",
+  "Updates come late, or not at all",
+  "Disputes over what was actually completed",
+  "Money can get stuck, or paid too early",
+  "You rely on trust and scattered updates",
+  "You spend time chasing information",
+  "You risk paying for work you cannot confirm",
+  "Problems show up late, when they cost more",
 ];
 
 const withGroundwork = [
-  "Payments tied to verified milestones",
-  "Photo and video proof at every stage",
-  "An independent record everyone can see",
-  "Deviations caught while they're cheap",
-  "A budget that holds, stage by stage",
+  "Clear milestones and expectations from day one",
+  "Evidence-based updates you can review anytime",
+  "Independent verification before payment",
+  "Payments tied to each stage's progress",
+  "You get a clear project record in one place",
+  "You see progress with proof, not promises",
+  "You reduce payment risk with verification",
+  "Problems are discovered and fixed before the next stage unlocks",
 ];
 
 export default function ComparisonSection() {
@@ -26,7 +32,7 @@ export default function ComparisonSection() {
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE DIFFERENCE</span>
           <h2 className="font-['Playfair_Display'] text-2xl sm:text-3xl lg:text-5xl font-medium text-brand-near-black mt-3">
-            Without Structure vs. With Groundwork
+            Building Back Home: Without Structure vs. With Groundwork
           </h2>
           <p className="text-brand-mid-grey mt-4 text-base">The same build. Two very different outcomes.</p>
         </Reveal>
@@ -51,7 +57,7 @@ export default function ComparisonSection() {
                 <p className="text-xs text-brand-mid-grey mb-5">What happens by default</p>
                 <ul className="divide-y divide-brand-border-grey">
                   {without.map((item) => (
-                    <li key={item} className="flex items-center gap-3 py-3">
+                    <li key={item} className="flex items-center gap-3 py-2.5">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full border border-brand-border-grey text-brand-mid-grey shrink-0">
                         <X className="size-3.5" />
                       </span>
@@ -82,7 +88,7 @@ export default function ComparisonSection() {
                 <p className="text-xs text-white/40 mb-5">What happens by design</p>
                 <ul className="divide-y divide-white/10">
                   {withGroundwork.map((item) => (
-                    <li key={item} className="flex items-center gap-3 py-3">
+                    <li key={item} className="flex items-center gap-3 py-2.5">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-brand-near-black shrink-0">
                         <Check className="size-3.5" />
                       </span>

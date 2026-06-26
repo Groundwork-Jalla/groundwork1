@@ -112,8 +112,8 @@ export default function WhyUseJalla() {
       <div className="max-w-[1000px] mx-auto">
         <Reveal className="text-center mb-14">
           <span className="text-xs font-semibold tracking-[0.12em] text-white/40">WHY JALLA</span>
-          <h2 className="font-['Playfair_Display'] text-4xl font-medium text-white mt-3">
-            Built to Be Trusted.
+          <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-white mt-3 max-w-[600px] mx-auto">
+            A System of Trust through Accountability and Guardrails
           </h2>
         </Reveal>
 

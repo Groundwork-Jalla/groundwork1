@@ -61,7 +61,7 @@ export default function RiskSection() {
       <Reveal className="text-center mb-16">
         <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">HOW JALLA WORKS</span>
         <h2 className="font-['Playfair_Display'] text-5xl font-medium text-brand-near-black mt-3">
-          6 Ways Builds Lose Control.
+          6 Ways To Lose Control Of Your Construction Project
         </h2>
         <p className="text-brand-mid-grey mt-4 max-w-[500px] mx-auto text-base">
           None of them look dangerous at first. All of them compound.

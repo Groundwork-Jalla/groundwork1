@@ -16,7 +16,7 @@ export default function CTASection() {
 
   return (
     <section id="join" className="bg-white py-20 text-center px-7">
-      <div className="max-w-[460px] mx-auto">
+      <div className="max-w-[560px] mx-auto">
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -25,10 +25,10 @@ export default function CTASection() {
           <Home className="size-9" />
         </motion.div>
         <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
-          Protect Your Build Before It Starts.
+          The New Way of Building in Africa Launches in X Days
         </h2>
         <p className="text-brand-mid-grey mt-4">
-          Join the community of diaspora builders who never lost track of their money.
+          Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.
         </p>
 
         <AnimatePresence mode="wait">
@@ -63,7 +63,7 @@ export default function CTASection() {
                 className="w-full sm:w-auto rounded-none bg-brand-near-black text-white font-bold text-sm px-6 h-auto hover:bg-brand-black group"
               >
                 <span className="flex items-center gap-1.5">
-                  Join Free
+                  Join Community - Free
                   <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
               </Button>
@@ -76,7 +76,7 @@ export default function CTASection() {
             href="/contractor-apply"
             className="text-xs sm:text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black transition-colors"
           >
-            Are you a contractor? Apply here →
+            Are you a Construction Professional?
           </a>
         </div>
       </div>

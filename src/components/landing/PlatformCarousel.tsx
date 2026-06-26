@@ -6,23 +6,23 @@ import { CreateProjectSlide, UploadProofSlide, VerifySlide, PaymentSlide } from 
 const slides = [
   {
     Illustration: CreateProjectSlide,
-    title: "You create a project",
-    description: "Tell us what you're building. We break it into stages and substages from day one.",
+    title: "Create a project",
+    description: "Tell us what you're building. We break it into stages, substages, and set the budget from day one.",
   },
   {
     Illustration: UploadProofSlide,
-    title: "Contractor uploads proof",
+    title: "Contractor submits evidence",
     description: "Photo and video evidence for every substage, captured directly on site.",
   },
   {
     Illustration: VerifySlide,
     title: "Jalla verifies the work",
-    description: "An independent check confirms the stage is actually complete before anything moves.",
+    description: "An independent check confirms the stage's completion and quality before anything moves.",
   },
   {
     Illustration: PaymentSlide,
-    title: "Payment releases after proof",
-    description: "Funds release only once verification clears. No proof, no payment — every time.",
+    title: "Payment gets sent out",
+    description: "Funds release only once verification clears. No verification, no payment goes out.",
   },
 ];
 
@@ -34,9 +34,9 @@ export default function PlatformCarousel() {
     <section className="py-20 max-w-[900px] mx-auto px-7">
       <Reveal className="text-center mb-10">
         <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
-          How Groundwork Works
+          How Groundwork Keeps You in Control
         </h2>
-        <p className="text-brand-mid-grey mt-3">Every step, illustrated.</p>
+        <p className="text-brand-mid-grey mt-3">Step by Step</p>
       </Reveal>
 
       <div className="bg-brand-pale rounded-[20px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
