@@ -1,55 +1,52 @@
-import { useEffect } from "react";
 import { Link } from "react-router";
+import ContractorHero from "@/components/contractor/ContractorHero";
+import RealitySection from "@/components/contractor/RealitySection";
+import IntroducingJalla from "@/components/contractor/IntroducingJalla";
+import FoundingAdvantage from "@/components/contractor/FoundingAdvantage";
+import ValueStack from "@/components/contractor/ValueStack";
+import RolesPipeline from "@/components/contractor/RolesPipeline";
+import FitSection from "@/components/contractor/FitSection";
+import HowItWorks from "@/components/contractor/HowItWorks";
+import ContractorComparison from "@/components/contractor/ContractorComparison";
+import SocialProof from "@/components/contractor/SocialProof";
+import ContractorCTA from "@/components/contractor/ContractorCTA";
 
 export default function ContractorApply() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://link.msgsndr.com/js/form_embed.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      try { document.body.removeChild(script); } catch {}
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen bg-white">
-      <nav className="border-b border-brand-border-grey px-7 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-baseline gap-2">
-          <span className="font-['Playfair_Display'] text-[26px] font-semibold text-brand-near-black">Jalla</span>
-          <span className="text-[10px] text-brand-mid-grey tracking-[0.12em]">THE FIRM</span>
-        </Link>
-        <Link to="/" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
-          ← Back to Home
-        </Link>
+    <div className="bg-white overflow-x-hidden">
+      <nav className="sticky top-0 z-50 bg-brand-near-black/95 backdrop-blur-lg border-b border-white/10 px-7 py-3.5">
+        <div className="max-w-[1100px] mx-auto flex items-center justify-between">
+          <span className="font-['Playfair_Display'] text-xl font-semibold text-white">
+            Jalla<span className="ml-2 text-[9px] font-sans font-normal text-white/40 tracking-[0.12em]">THE FIRM</span>
+          </span>
+          <Link to="/" className="text-xs text-white/50 hover:text-white transition-colors">
+            ← Back to Home
+          </Link>
+        </div>
       </nav>
 
-      <div className="max-w-[640px] mx-auto px-6 py-12">
-        <h1 className="font-['Playfair_Display'] text-3xl md:text-4xl font-medium text-brand-near-black mb-2">
-          Build With Jalla
-        </h1>
-        <p className="text-brand-mid-grey mb-8 text-sm md:text-base leading-relaxed">
-          Apply to join our verified contractor network. We review applications weekly.
-        </p>
+      <ContractorHero />
+      <RealitySection />
+      <IntroducingJalla />
+      <FoundingAdvantage />
+      <ValueStack />
+      <RolesPipeline />
+      <FitSection />
+      <HowItWorks />
+      <ContractorComparison />
+      <SocialProof />
+      <ContractorCTA />
 
-        <iframe
-          src="https://api.leadconnectorhq.com/widget/form/v5Ezo83OmYTlfxka9UAK"
-          style={{ width: "100%", border: "none", borderRadius: "8px", minHeight: "1078px" }}
-          id="inline-v5Ezo83OmYTlfxka9UAK"
-          data-layout="{'id':'INLINE'}"
-          data-trigger-type="alwaysShow"
-          data-trigger-value=""
-          data-activation-type="alwaysActivated"
-          data-activation-value=""
-          data-deactivation-type="neverDeactivate"
-          data-deactivation-value=""
-          data-form-name="Contractor Form"
-          data-height="1078"
-          data-layout-iframe-id="inline-v5Ezo83OmYTlfxka9UAK"
-          data-form-id="v5Ezo83OmYTlfxka9UAK"
-          title="Contractor Form"
-        />
-      </div>
+      <footer className="border-t border-brand-border-grey py-7 text-center">
+        <span className="font-['Playfair_Display'] text-[15px] font-semibold text-brand-near-black">Jalla</span>
+        <span className="text-[8px] text-brand-mid-grey tracking-[0.12em] ml-1.5">THE FIRM</span>
+        <p className="text-[11px] text-brand-mid-grey mt-1">
+          © {new Date().getFullYear()} Jalla. ·{" "}
+          <Link to="/" className="underline">
+            Back to Home
+          </Link>
+        </p>
+      </footer>
     </div>
   );
 }
