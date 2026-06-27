@@ -1,5 +1,6 @@
 import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
+import StatsBar from "./StatsBar";
 import WhatJallaDoes from "./WhatJallaDoes";
 import ComparisonSection from "./ComparisonSection";
 import RiskSection from "./RiskSection";
@@ -13,6 +14,7 @@ export default function LandingPage() {
     <div className="overflow-x-hidden">
       <LandingNav />
       <HeroSection />
+      <StatsBar />
       <WhatJallaDoes />
       <ComparisonSection />
       <RiskSection />
