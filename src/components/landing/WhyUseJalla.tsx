@@ -90,7 +90,7 @@ const reasons = [
     Icon: ProtectedIcon,
     title: "Your money stays protected",
     desc: "Funds don't move without verified proof, every time.",
-    badge: "₦0 Lost",
+    badge: "$0 Lost",
   },
   {
     Icon: CheckedIcon,

@@ -7,6 +7,7 @@ import RiskSection from "./RiskSection";
 import PlatformCarousel from "./PlatformCarousel";
 import WhyUseJalla from "./WhyUseJalla";
 import CTASection from "./CTASection";
+import SocialProofFeed from "./SocialProofFeed";
 import FooterSection from "./FooterSection";
 
 export default function LandingPage() {
@@ -21,6 +22,7 @@ export default function LandingPage() {
       <PlatformCarousel />
       <WhyUseJalla />
       <CTASection />
+      <SocialProofFeed />
       <FooterSection />
     </div>
   );

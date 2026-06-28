@@ -33,7 +33,7 @@ function AnimatedStat({ value }: { value: string }) {
   if (!match) return <span ref={ref}>{value}</span>;
 
   return (
-    <span ref={ref}>
+    <span ref={ref} className="tabular-nums">
       {match[1]}
       {count}
       {match[3]}

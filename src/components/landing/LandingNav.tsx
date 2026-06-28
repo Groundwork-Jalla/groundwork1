@@ -24,14 +24,8 @@ export default function LandingNav() {
           >
             <a href="/contractor-apply">For Contractors</a>
           </Button>
-          <Link
-            to="/auth/login"
-            className="text-[11px] sm:text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors font-medium"
-          >
-            Log In
-          </Link>
           <Button asChild className="bg-brand-near-black text-white hover:bg-brand-black text-[11px] sm:text-xs font-semibold px-4 py-2 sm:px-6 rounded-md group">
-            <Link to="/auth/signup" className="flex items-center gap-1.5">
+            <Link to="/community" className="flex items-center gap-1.5">
               Join Free
               <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>

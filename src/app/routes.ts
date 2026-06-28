@@ -5,6 +5,7 @@ export default [
   // Public landing page
   route("/", "routes/landing.tsx"),
   route("contractor-apply", "routes/contractor-apply.tsx"),
+  route("community", "routes/community.tsx"),
 
   // Auth routes (public)
   layout("routes/_auth-layout.tsx", [

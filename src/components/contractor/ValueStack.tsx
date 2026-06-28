@@ -16,7 +16,7 @@ function FundedScene() {
       <rect x="60" y="20" width="100" height="80" rx="6" fill="white" stroke={DARK} strokeWidth="1.5" />
       <circle cx="135" cy="35" r="11" fill={DARK} />
       <path d="M130 35 L134 39 L141 31" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="80" y="40" fontSize="14" fontWeight="700" fill={DARK}>₦</text>
+      <text x="80" y="40" fontSize="14" fontWeight="700" fill={DARK}>$</text>
       {[55, 67, 79].map((y, i) => (
         <line key={i} x1="72" y1={y} x2={72 + 50 - i * 8} y2={y} stroke={DARK} strokeOpacity="0.4" strokeWidth="1.5" />
       ))}

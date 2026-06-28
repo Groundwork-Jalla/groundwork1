@@ -7,7 +7,12 @@ export default function HeroScene() {
       <svg viewBox="0 0 560 400" className="w-full h-auto" aria-hidden="true">
         <defs>
           <style>{`.dim-line { stroke: #E5E5E5; }`}</style>
+          <pattern id="blueprint-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#0A0A0A" strokeWidth="0.5" strokeOpacity="0.05" />
+          </pattern>
         </defs>
+
+        <rect x="0" y="0" width="560" height="400" fill="url(#blueprint-grid)" />
 
         {/* Connection line between person and house */}
         <line x1="100" y1="190" x2="220" y2="190" stroke="#E5E5E5" strokeWidth="2" strokeDasharray="6 6" />
@@ -66,6 +71,19 @@ export default function HeroScene() {
 
             <path d="M-14 120 V90 a14 14 0 0 1 28 0 v30 Z" fill="white" stroke="#0A0A0A" strokeWidth="2" />
             <circle cx="8" cy="105" r="2" fill="#0A0A0A" />
+
+            {/* Blueprint dimension annotations */}
+            <g opacity="0.55">
+              <line x1="-80" y1="138" x2="80" y2="138" stroke="#888888" strokeWidth="1" />
+              <line x1="-80" y1="134" x2="-80" y2="142" stroke="#888888" strokeWidth="1" />
+              <line x1="80" y1="134" x2="80" y2="142" stroke="#888888" strokeWidth="1" />
+              <text x="0" y="150" textAnchor="middle" fontSize="9" fill="#888888">12m</text>
+
+              <line x1="112" y1="-50" x2="112" y2="130" stroke="#888888" strokeWidth="1" />
+              <line x1="108" y1="-50" x2="116" y2="-50" stroke="#888888" strokeWidth="1" />
+              <line x1="108" y1="130" x2="116" y2="130" stroke="#888888" strokeWidth="1" />
+              <text x="124" y="43" textAnchor="middle" fontSize="9" fill="#888888" transform="rotate(90 124 43)">8m</text>
+            </g>
           </motion.g>
         </g>
       </svg>
@@ -110,7 +128,7 @@ export default function HeroScene() {
         className="absolute left-[24%] top-[60%] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.18)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-white whitespace-nowrap"
       >
         <Lock className="size-3.5" />
-        ₦6.4M Held
+        $4K Held
       </motion.div>
 
       <motion.div

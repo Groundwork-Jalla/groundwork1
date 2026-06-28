@@ -1,21 +1,12 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Home, ArrowRight, CheckCircle2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
+import { Link } from "react-router";
+import { Home, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CountdownClock from "./CountdownClock";
 
 export default function CTASection() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleJoin() {
-    if (!email) return;
-    console.log("join request:", email);
-    setSubmitted(true);
-  }
-
   return (
-    <section id="join" className="bg-white py-20 text-center px-7">
+    <section id="join" className="bg-white py-20 text-center px-5 sm:px-7">
       <div className="max-w-[560px] mx-auto">
         <motion.div
           animate={{ y: [0, -6, 0] }}
@@ -25,51 +16,22 @@ export default function CTASection() {
           <Home className="size-9" />
         </motion.div>
         <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
-          The New Way of Building in Africa Launches in X Days
+          The New Way of Building in Africa Launches In
         </h2>
         <p className="text-brand-mid-grey mt-4">
           Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.
         </p>
 
-        <AnimatePresence mode="wait">
-          {submitted ? (
-            <motion.div
-              key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: "backOut" }}
-              className="mt-8 inline-flex items-center gap-2 bg-brand-light-grey text-brand-near-black text-sm font-medium rounded-full px-5 py-2.5"
-            >
-              <CheckCircle2 className="size-4" />
-              You're in. Welcome.
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col sm:flex-row max-w-[380px] mx-auto rounded-lg overflow-hidden border-2 border-brand-near-black mt-8"
-            >
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1 border-none rounded-none focus-visible:ring-0"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Button
-                onClick={handleJoin}
-                className="w-full sm:w-auto rounded-none bg-brand-near-black text-white font-bold text-sm px-6 h-auto hover:bg-brand-black group"
-              >
-                <span className="flex items-center gap-1.5">
-                  Join Community - Free
-                  <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                </span>
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="mt-8">
+          <CountdownClock />
+        </div>
+
+        <Button asChild className="mt-8 bg-brand-near-black text-white font-bold text-sm px-8 h-auto py-4 hover:bg-brand-black group">
+          <Link to="/community" className="flex items-center justify-center gap-1.5">
+            Join Community - Free
+            <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </Link>
+        </Button>
 
         <div className="mt-4">
           <a

@@ -88,7 +88,7 @@ export function DelaysScene() {
       </line>
       <rect x="20" y="85" width="160" height="10" rx="5" fill="none" stroke={STROKE} strokeWidth="1" />
       <rect x="20" y="85" width="16" height="10" rx="5" fill={STROKE} />
-      <text x="190" y="93" fontSize="11" fontWeight="700" fill={STROKE}>₦2.4M</text>
+      <text x="190" y="93" fontSize="11" fontWeight="700" fill={STROKE}>$1.5K</text>
       {[
         { x: 140, dur: "2.4s" },
         { x: 160, dur: "2.8s" },

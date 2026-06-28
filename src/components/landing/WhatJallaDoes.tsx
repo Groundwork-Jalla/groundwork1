@@ -121,7 +121,7 @@ const items = [
   { Scene: PlanScene, word: "Plan", desc: "Set the right budget and break the build into clear, verifiable stages.", badge: "Floor Plan Set" },
   { Scene: TrackScene, word: "Track", desc: "Watch progress move through every stage with a clear record of stage cost and quality.", badge: "Stage 3 of 10" },
   { Scene: VerifyScene, word: "Verify", desc: "An independent check confirms the work before anything moves.", badge: "Verified" },
-  { Scene: PayScene, word: "Pay", desc: "Funds release only once proof verification clears and the next stage is unlocked.", badge: "₦ Released" },
+  { Scene: PayScene, word: "Pay", desc: "Funds release only once proof verification clears and the next stage is unlocked.", badge: "$ Released" },
 ];
 
 export default function WhatJallaDoes() {

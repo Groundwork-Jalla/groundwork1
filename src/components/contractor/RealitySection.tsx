@@ -24,7 +24,7 @@ function PaymentDelayIcon() {
       </line>
       <line x1="28" y1="30" x2="36" y2="30" stroke={DARK} strokeWidth="2" strokeLinecap="round" />
       <circle cx="46" cy="46" r="10" fill="white" stroke={DARK} strokeWidth="1.5" />
-      <text x="46" y="50" textAnchor="middle" fontSize="11" fontWeight="700" fill={DARK}>₦</text>
+      <text x="46" y="50" textAnchor="middle" fontSize="11" fontWeight="700" fill={DARK}>$</text>
     </svg>
   );
 }
