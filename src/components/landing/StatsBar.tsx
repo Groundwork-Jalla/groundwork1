@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useInView } from "framer-motion";
 import { Reveal } from "./Reveal";
 
@@ -12,7 +12,7 @@ const stats = [
 function AnimatedStat({ value }: { value: string }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-50px" });
-  const match = value.match(/^(\D*)(\d+)(.*)$/);
+  const match = useMemo(() => value.match(/^(\D*)(\d+)(.*)$/), [value]);
   const target = match ? parseInt(match[2], 10) : 0;
   const [count, setCount] = useState(0);
 
