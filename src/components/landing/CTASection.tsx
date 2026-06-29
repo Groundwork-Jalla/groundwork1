@@ -21,6 +21,9 @@ export default function CTASection() {
         <p className="text-brand-mid-grey mt-4">
           Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.
         </p>
+        <p className="text-sm text-brand-mid-grey mt-2 italic">
+          Be the first to know when Groundwork is ready for full launch.
+        </p>
 
         <div className="mt-8">
           <CountdownClock />

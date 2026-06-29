@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,9 +11,9 @@ export default function LandingNav() {
       className="sticky top-0 z-50 bg-white/92 backdrop-blur-lg border-b border-brand-border-grey"
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-7 py-3.5 flex justify-between items-center">
-        <div className="flex items-baseline gap-2">
-          <span className="font-['Playfair_Display'] text-xl sm:text-[26px] font-semibold text-brand-near-black">Jalla</span>
-          <span className="text-[10px] text-brand-mid-grey tracking-[0.12em]">THE FIRM</span>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-['Playfair_Display'] text-xl sm:text-[22px] font-semibold text-brand-near-black">Groundwork</span>
+          <span className="text-[11px] sm:text-sm text-brand-mid-grey">by Jalla</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
@@ -25,10 +24,10 @@ export default function LandingNav() {
             <a href="/contractor-apply">For Contractors</a>
           </Button>
           <Button asChild className="bg-brand-near-black text-white hover:bg-brand-black text-[11px] sm:text-xs font-semibold px-4 py-2 sm:px-6 rounded-md group">
-            <Link to="/community" className="flex items-center gap-1.5">
-              Join Free
+            <a href="#join" className="flex items-center gap-1.5">
+              Join Community
               <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
+            </a>
           </Button>
         </div>
       </div>

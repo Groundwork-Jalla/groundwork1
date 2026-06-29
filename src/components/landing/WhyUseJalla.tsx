@@ -108,7 +108,7 @@ const reasons = [
 
 export default function WhyUseJalla() {
   return (
-    <section className="bg-brand-near-black py-24 px-7">
+    <section className="bg-brand-near-black py-16 px-7 border-t border-white/10">
       <div className="max-w-[1000px] mx-auto">
         <Reveal className="text-center mb-14">
           <span className="text-xs font-semibold tracking-[0.12em] text-white/40">WHY JALLA</span>

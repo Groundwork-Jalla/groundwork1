@@ -27,7 +27,7 @@ const withGroundwork = [
 
 export default function ComparisonSection() {
   return (
-    <section className="bg-brand-off-white border-y border-brand-border-grey py-24 px-7">
+    <section className="bg-brand-off-white border-y border-brand-border-grey py-20 px-7">
       <div className="max-w-[1040px] mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE DIFFERENCE</span>

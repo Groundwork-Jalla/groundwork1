@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const LAUNCH_DATE = new Date("2026-08-28T00:00:00Z");
+export const LAUNCH_DATE = new Date("2026-09-03T00:00:00Z");
 
 function getTimeLeft() {
   const diff = Math.max(0, LAUNCH_DATE.getTime() - Date.now());

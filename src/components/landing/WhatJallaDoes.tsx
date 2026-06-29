@@ -126,7 +126,7 @@ const items = [
 
 export default function WhatJallaDoes() {
   return (
-    <section className="bg-white py-24 px-7">
+    <section className="bg-white py-16 px-7">
       <div className="max-w-[1100px] mx-auto">
         <Reveal className="text-center mb-14">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHAT JALLA DOES</span>
@@ -145,7 +145,7 @@ export default function WhatJallaDoes() {
                 whileHover={{ y: -6 }}
                 className="bg-white rounded-2xl p-7 h-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)] transition-shadow"
               >
-                <div className="relative h-36 mb-5">
+                <div className="relative h-36 mb-5 flex items-center justify-center">
                   <item.Scene />
                   <motion.div
                     animate={{ y: [0, -6, 0] }}

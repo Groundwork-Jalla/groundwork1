@@ -57,7 +57,8 @@ const risks = [
 
 export default function RiskSection() {
   return (
-    <section className="max-w-[1000px] mx-auto px-7 py-28 border-t-2 border-brand-near-black">
+    <section className="bg-[#F5F5F5] px-7 py-16 border-t-2 border-brand-near-black">
+      <div className="max-w-[1000px] mx-auto">
       <Reveal className="text-center mb-16">
         <h2 className="font-['Playfair_Display'] text-5xl font-medium text-brand-near-black">
           6 Ways To Lose Control Of Your Construction Project
@@ -113,6 +114,7 @@ export default function RiskSection() {
         Once control is lost, it is hard to get back.
       </p>
       <LossCounter />
+      </div>
     </section>
   );
 }

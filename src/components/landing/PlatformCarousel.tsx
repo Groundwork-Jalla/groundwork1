@@ -31,13 +31,13 @@ export default function PlatformCarousel() {
   const slide = slides[index];
 
   return (
-    <section className="bg-brand-off-white py-20">
+    <section className="bg-brand-near-black py-20">
       <div className="max-w-[900px] mx-auto px-7">
         <Reveal className="text-center mb-10">
-          <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
+          <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-white">
             How Groundwork Keeps You in Control
           </h2>
-          <p className="text-brand-mid-grey mt-3">Step by Step</p>
+          <p className="text-white/50 mt-3">Step by Step</p>
         </Reveal>
 
         <div className="bg-white rounded-[20px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
@@ -72,7 +72,7 @@ export default function PlatformCarousel() {
               onClick={() => goTo(i)}
               aria-label={`Go to slide ${i + 1}`}
               className={`h-[10px] rounded-[5px] transition-all duration-300 ${
-                i === index ? "w-[36px] bg-brand-near-black" : "w-[10px] bg-brand-border-grey"
+                i === index ? "w-[36px] bg-white" : "w-[10px] bg-white/25"
               }`}
             />
           ))}
