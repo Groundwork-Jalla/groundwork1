@@ -35,7 +35,9 @@ function AnimatedStat({ value }: { value: string }) {
   return (
     <span ref={ref} className="tabular-nums">
       {match[1]}
-      {count}
+      <span className="inline-block text-right" style={{ minWidth: `${String(target).length}ch` }}>
+        {count}
+      </span>
       {match[3]}
     </span>
   );

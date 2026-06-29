@@ -27,7 +27,9 @@ export default function LossCounter() {
         AVERAGE LOSS ON AN UNSTRUCTURED BUILD
       </div>
       <div className="font-['Playfair_Display'] text-5xl font-bold text-white mt-2 tabular-nums">
-        ${value.toLocaleString()}
+        $<span className="inline-block text-left" style={{ minWidth: `${(48000).toLocaleString().length}ch` }}>
+          {value.toLocaleString()}
+        </span>
       </div>
       <p className="text-sm text-white/40 mt-3">
         That's years of savings. Retirement delayed. Trust broken.
