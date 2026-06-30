@@ -7,7 +7,7 @@ import CountdownClock from "./CountdownClock";
 export default function CTASection() {
   return (
     <section id="join" className="bg-brand-near-black py-20 text-center px-5 sm:px-7">
-      <div className="max-w-[560px] mx-auto">
+      <div className="max-w-140 mx-auto">
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -32,7 +32,7 @@ export default function CTASection() {
 
         <Button asChild className="mt-8 bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
           <Link to="/community" className="flex items-center justify-center gap-1.5">
-            Join Community - Free
+            Join for Free
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </Button>
