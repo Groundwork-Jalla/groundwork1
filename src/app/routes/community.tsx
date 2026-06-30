@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // Replace this with your actual Skool community URL
-const SKOOL_URL = "https://www.skool.com/groundwork-by-jalla";
+const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
 function BlueprintPanel() {
   return (
