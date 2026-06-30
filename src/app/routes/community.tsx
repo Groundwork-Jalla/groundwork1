@@ -7,91 +7,101 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Replace this with your actual Skool community URL
 const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
 function BlueprintPanel() {
   return (
-    <div className="relative w-full h-full flex flex-col justify-between p-10 overflow-hidden bg-[#0B1526]">
-      {/* Blueprint SVG — top-down floor plan */}
-      <div className="absolute inset-0 opacity-80">
-        <svg
-          viewBox="0 0 520 580"
-          className="w-full h-full object-cover"
-          aria-hidden="true"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          {/* Grid */}
-          <defs>
-            <pattern id="bp-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 30 0 L 0 0 0 30" fill="none" stroke="white" strokeWidth="0.3" strokeOpacity="0.07" />
-            </pattern>
-          </defs>
-          <rect width="520" height="580" fill="url(#bp-grid)" />
+    <div className="relative w-full h-full flex flex-col justify-between p-10" style={{ backgroundColor: "#0B1526" }}>
+      {/* Blueprint SVG fills entire background */}
+      <svg
+        viewBox="0 0 600 800"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+      >
+        {/* Grid background */}
+        <defs>
+          <pattern id="bp-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.4" strokeOpacity="0.06" />
+          </pattern>
+        </defs>
+        <rect width="600" height="800" fill="url(#bp-grid)" />
 
-          {/* Outer walls */}
-          <rect x="60" y="60" width="400" height="420" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.55" />
+        {/* ── OUTER WALLS ── */}
+        <rect x="80" y="100" width="440" height="580" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.5" />
 
-          {/* Horizontal dividers */}
-          <line x1="60" y1="210" x2="340" y2="210" stroke="white" strokeWidth="1.8" strokeOpacity="0.45" />
-          <line x1="60" y1="360" x2="460" y2="360" stroke="white" strokeWidth="1.8" strokeOpacity="0.45" />
+        {/* ── INTERIOR HORIZONTAL WALLS ── */}
+        <line x1="80"  y1="280" x2="380" y2="280" stroke="white" strokeWidth="1.8" strokeOpacity="0.4" />
+        <line x1="80"  y1="460" x2="520" y2="460" stroke="white" strokeWidth="1.8" strokeOpacity="0.4" />
+        <line x1="240" y1="460" x2="240" y2="680" stroke="white" strokeWidth="1.8" strokeOpacity="0.4" />
 
-          {/* Vertical dividers */}
-          <line x1="250" y1="60" x2="250" y2="360" stroke="white" strokeWidth="1.8" strokeOpacity="0.45" />
-          <line x1="340" y1="60" x2="340" y2="480" stroke="white" strokeWidth="1.8" strokeOpacity="0.45" />
+        {/* ── INTERIOR VERTICAL WALLS ── */}
+        <line x1="280" y1="100" x2="280" y2="460" stroke="white" strokeWidth="1.8" strokeOpacity="0.4" />
+        <line x1="380" y1="100" x2="380" y2="460" stroke="white" strokeWidth="1.8" strokeOpacity="0.4" />
 
-          {/* Door arcs */}
-          <path d="M250 210 A30 30 0 0 0 220 180" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3" />
-          <path d="M340 360 A30 30 0 0 1 370 330" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3" />
+        {/* ── ROOM FILLS (very subtle) ── */}
+        <rect x="81"  y="101" width="198" height="178" fill="white" fillOpacity="0.018" />
+        <rect x="281" y="101" width="98"  height="178" fill="white" fillOpacity="0.022" />
+        <rect x="381" y="101" width="138" height="358" fill="white" fillOpacity="0.014" />
+        <rect x="81"  y="281" width="458" height="178" fill="white" fillOpacity="0.016" />
+        <rect x="81"  y="461" width="158" height="218" fill="white" fillOpacity="0.018" />
+        <rect x="241" y="461" width="278" height="218" fill="white" fillOpacity="0.014" />
 
-          {/* Dimension lines — top */}
-          <line x1="60" y1="34" x2="250" y2="34" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="250" y1="34" x2="340" y2="34" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="340" y1="34" x2="460" y2="34" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="60" y1="28" x2="60" y2="40" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="250" y1="28" x2="250" y2="40" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="340" y1="28" x2="340" y2="40" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="460" y1="28" x2="460" y2="40" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <text x="152" y="26" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif">7,200</text>
-          <text x="293" y="26" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif">2,500</text>
-          <text x="398" y="26" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif">4,400</text>
+        {/* ── DOOR ARCS ── */}
+        <path d="M280 280 A40 40 0 0 0 240 240" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="4 3" />
+        <path d="M380 460 A36 36 0 0 1 416 424" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="4 3" />
+        <path d="M240 461 A36 36 0 0 0 204 497" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.25" strokeDasharray="4 3" />
 
-          {/* Dimension lines — left */}
-          <line x1="34" y1="60" x2="34" y2="210" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="34" y1="210" x2="34" y2="360" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="34" y1="360" x2="34" y2="480" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="28" y1="60" x2="40" y2="60" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="28" y1="210" x2="40" y2="210" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="28" y1="360" x2="40" y2="360" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <line x1="28" y1="480" x2="40" y2="480" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
-          <text x="22" y="138" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif" transform="rotate(-90 22 138)">3,600</text>
-          <text x="22" y="288" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif" transform="rotate(-90 22 288)">5,400</text>
-          <text x="22" y="422" textAnchor="middle" fontSize="9" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif" transform="rotate(-90 22 422)">3,600</text>
+        {/* ── TOP DIMENSION LINE ── */}
+        <line x1="80"  y1="68" x2="280" y2="68" stroke="white" strokeWidth="1"   strokeOpacity="0.35" />
+        <line x1="280" y1="68" x2="380" y2="68" stroke="white" strokeWidth="1"   strokeOpacity="0.35" />
+        <line x1="380" y1="68" x2="520" y2="68" stroke="white" strokeWidth="1"   strokeOpacity="0.35" />
+        {[80, 280, 380, 520].map((x) => (
+          <line key={x} x1={x} y1="62" x2={x} y2="74" stroke="white" strokeWidth="1" strokeOpacity="0.35" />
+        ))}
+        <text x="180" y="58" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif">7,200</text>
+        <text x="330" y="58" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif">2,500</text>
+        <text x="450" y="58" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif">4,400</text>
 
-          {/* Room number circles */}
-          {[
-            { cx: 152, cy: 135, n: "1" },
-            { cx: 294, cy: 135, n: "2" },
-            { cx: 152, cy: 285, n: "3" },
-            { cx: 398, cy: 420, n: "4" },
-          ].map(({ cx, cy, n }) => (
-            <g key={n}>
-              <circle cx={cx} cy={cy} r="14" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.35" />
-              <text x={cx} y={cy + 4} textAnchor="middle" fontSize="11" fill="white" fillOpacity="0.5" fontFamily="Satoshi, sans-serif">{n}</text>
-            </g>
-          ))}
+        {/* ── LEFT DIMENSION LINE ── */}
+        <line x1="44" y1="100" x2="44" y2="280" stroke="white" strokeWidth="1" strokeOpacity="0.35" />
+        <line x1="44" y1="280" x2="44" y2="460" stroke="white" strokeWidth="1" strokeOpacity="0.35" />
+        <line x1="44" y1="460" x2="44" y2="680" stroke="white" strokeWidth="1" strokeOpacity="0.35" />
+        {[100, 280, 460, 680].map((y) => (
+          <line key={y} x1="38" y1={y} x2="50" y2={y} stroke="white" strokeWidth="1" strokeOpacity="0.35" />
+        ))}
+        <text x="28" y="195" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif" transform="rotate(-90 28 195)">3,600</text>
+        <text x="28" y="375" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif" transform="rotate(-90 28 375)">5,400</text>
+        <text x="28" y="575" textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif" transform="rotate(-90 28 575)">1,800</text>
 
-          {/* Subtle fill for rooms */}
-          <rect x="61" y="61" width="188" height="148" fill="white" fillOpacity="0.02" />
-          <rect x="251" y="61" width="88" height="148" fill="white" fillOpacity="0.025" />
-          <rect x="341" y="61" width="118" height="148" fill="white" fillOpacity="0.015" />
-          <rect x="61" y="211" width="278" height="148" fill="white" fillOpacity="0.02" />
-          <rect x="61" y="361" width="278" height="118" fill="white" fillOpacity="0.018" />
-          <rect x="341" y="211" width="118" height="268" fill="white" fillOpacity="0.015" />
-        </svg>
-      </div>
+        {/* ── ROOM NUMBER CIRCLES ── */}
+        {[
+          { cx: 180, cy: 190, n: "1" },
+          { cx: 330, cy: 190, n: "2" },
+          { cx: 450, cy: 280, n: "3" },
+          { cx: 300, cy: 370, n: "4" },
+          { cx: 160, cy: 570, n: "5" },
+          { cx: 380, cy: 570, n: "6" },
+        ].map(({ cx, cy, n }) => (
+          <g key={n}>
+            <circle cx={cx} cy={cy} r="16" fill="none" stroke="white" strokeWidth="1.2" strokeOpacity="0.3" />
+            <text x={cx} y={cy + 5} textAnchor="middle" fontSize="12" fill="white" fillOpacity="0.45" fontFamily="Satoshi, sans-serif">{n}</text>
+          </g>
+        ))}
 
-      {/* Branding top-left */}
+        {/* ── WINDOW MARKS ── */}
+        {[
+          { x1: 120, y1: 100, x2: 200, y2: 100 },
+          { x1: 320, y1: 100, x2: 370, y2: 100 },
+          { x1: 420, y1: 100, x2: 480, y2: 100 },
+          { x1: 80,  y1: 160, x2: 80,  y2: 220 },
+          { x1: 520, y1: 200, x2: 520, y2: 340 },
+        ].map((l, i) => (
+          <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="white" strokeWidth="4" strokeOpacity="0.3" strokeLinecap="square" />
+        ))}
+      </svg>
+
+      {/* Branding — top left, above SVG */}
       <div className="relative z-10">
         <div className="flex items-baseline gap-1.5">
           <span className="font-sans text-lg font-semibold text-white">Groundwork</span>
@@ -99,16 +109,16 @@ function BlueprintPanel() {
         </div>
       </div>
 
-      {/* Testimonial bottom */}
+      {/* Testimonial — bottom, above SVG */}
       <div className="relative z-10">
-        <div className="text-white/30 text-4xl font-serif leading-none mb-3">"</div>
-        <p className="text-white/80 text-sm leading-relaxed max-w-75">
+        <div className="text-white/30 text-5xl font-serif leading-none mb-3 select-none">"</div>
+        <p className="text-white/80 text-sm sm:text-base leading-relaxed max-w-75">
           Groundwork has become the single source of truth across our projects.
           It keeps our teams aligned, our docs organized, and our builds on track.
         </p>
-        <div className="mt-4 h-px w-8 bg-white/25 mb-3" />
+        <div className="mt-5 h-px w-8 bg-white/25 mb-4" />
         <p className="text-sm font-semibold text-white">Michael Rivera</p>
-        <p className="text-xs text-white/45">Project Executive, BuildCore</p>
+        <p className="text-xs text-white/45 mt-0.5">Project Executive, BuildCore</p>
       </div>
     </div>
   );
@@ -141,15 +151,17 @@ export default function Community() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* LEFT — dark blueprint panel */}
-      <div className="hidden lg:block lg:w-[44%] xl:w-[46%] min-h-screen sticky top-0 self-start">
+    /* Full viewport, no scroll on the outer shell — left panel is pinned, right scrolls */
+    <div className="flex h-screen overflow-hidden">
+
+      {/* LEFT — dark blueprint panel, pinned full height */}
+      <div className="hidden lg:flex lg:w-[44%] xl:w-[46%] h-full shrink-0">
         <BlueprintPanel />
       </div>
 
-      {/* RIGHT — form panel */}
-      <div className="flex-1 bg-white flex flex-col min-h-screen">
-        {/* Mobile branding strip */}
+      {/* RIGHT — scrollable form panel */}
+      <div className="flex-1 bg-white overflow-y-auto">
+        {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-brand-border-grey">
           <div className="flex items-baseline gap-1.5">
             <span className="font-sans text-lg font-semibold text-brand-near-black">Groundwork</span>
@@ -160,7 +172,8 @@ export default function Community() {
           </Link>
         </div>
 
-        <div className="flex-1 flex items-center justify-center px-6 py-14">
+        {/* Form centred vertically */}
+        <div className="flex items-center justify-center min-h-full px-8 py-16">
           <div className="w-full max-w-sm">
             <AnimatePresence mode="wait">
               {submitted ? (
@@ -180,8 +193,8 @@ export default function Community() {
                     <CheckCircle2 className="size-6" />
                   </motion.div>
                   <h1 className="font-sans text-2xl font-bold text-brand-near-black">You're in.</h1>
-                  <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">
-                    You'll be among the first to know when Groundwork launches. In the meantime, join our community.
+                  <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed max-w-xs mx-auto">
+                    You'll be among the first to know when Groundwork launches. In the meantime, join the community.
                   </p>
                   <a
                     href={SKOOL_URL}
@@ -205,7 +218,6 @@ export default function Community() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                 >
-                  {/* Back link — desktop only */}
                   <Link
                     to="/"
                     className="hidden lg:inline-flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors mb-8"
