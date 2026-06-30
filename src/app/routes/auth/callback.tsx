@@ -29,7 +29,7 @@ export default function AuthCallback() {
   if (error) {
     return (
       <div className="text-center">
-        <h1 className="font-['Playfair_Display'] text-2xl font-medium text-brand-near-black">
+        <h1 className="font-sans text-2xl font-bold text-brand-near-black">
           Something went wrong
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{error}</p>

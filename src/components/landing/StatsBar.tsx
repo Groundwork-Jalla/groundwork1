@@ -49,7 +49,7 @@ export default function StatsBar() {
       <div className="max-w-[1100px] mx-auto px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
         {stats.map((stat, i) => (
           <Reveal key={stat.label} delay={i * 0.15} className="text-center">
-            <div className="font-['Playfair_Display'] text-4xl lg:text-5xl font-bold text-brand-near-black">
+            <div className="font-sans text-4xl lg:text-5xl font-bold text-brand-near-black">
               <AnimatedStat value={stat.value} />
             </div>
             <div className="text-xs text-brand-mid-grey mt-1">{stat.label}</div>

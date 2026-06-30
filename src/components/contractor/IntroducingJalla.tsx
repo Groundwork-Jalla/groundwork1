@@ -59,7 +59,7 @@ export default function IntroducingJalla() {
       <div className="max-w-[800px] mx-auto text-center">
         <Reveal>
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE SOLUTION</span>
-          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-medium text-brand-near-black mt-3">
+          <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black mt-3">
             Jalla is the controlled system that makes diaspora projects run properly.
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[520px] mx-auto">
@@ -72,7 +72,7 @@ export default function IntroducingJalla() {
         </Reveal>
 
         <Reveal delay={0.4}>
-          <p className="font-['Playfair_Display'] text-lg font-semibold text-brand-near-black max-w-[560px] mx-auto mt-6 leading-relaxed">
+          <p className="font-sans text-lg font-semibold text-brand-near-black max-w-[560px] mx-auto mt-6 leading-relaxed">
             Jalla controls the process — so the scope is clear, the roles are defined, the sequence is respected,
             and the payments are structured.
           </p>

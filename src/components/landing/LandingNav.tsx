@@ -12,7 +12,7 @@ export default function LandingNav() {
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-7 py-3.5 flex justify-between items-center">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-['Playfair_Display'] text-xl sm:text-[22px] font-semibold text-brand-near-black">Groundwork</span>
+          <span className="font-sans text-xl sm:text-[22px] font-semibold text-brand-near-black">Groundwork</span>
           <span className="text-[11px] sm:text-sm text-brand-mid-grey">by Jalla</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">

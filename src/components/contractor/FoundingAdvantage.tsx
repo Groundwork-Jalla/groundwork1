@@ -41,7 +41,7 @@ export default function FoundingAdvantage() {
     <section className="bg-brand-near-black px-7 py-18">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-10">
-          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-medium text-white">
+          <h2 className="font-sans text-3xl md:text-4xl font-bold text-white">
             First in gets the best position.
           </h2>
           <p className="text-sm text-white/50 mt-3">We're onboarding a limited number of partners per trade, per region.</p>
@@ -65,7 +65,7 @@ export default function FoundingAdvantage() {
         </div>
 
         <Reveal delay={0.5}>
-          <p className="font-['Playfair_Display'] italic text-white/40 text-center mt-8 max-w-[480px] mx-auto">
+          <p className="font-sans italic text-white/40 text-center mt-8 max-w-[480px] mx-auto">
             If you're accepted as a Founding Partner, you're positioned for early access and priority placement as
             demand ramps.
           </p>

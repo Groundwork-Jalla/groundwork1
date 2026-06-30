@@ -12,7 +12,7 @@ export default function AuthLayout() {
           className="flex items-baseline gap-2 md:flex-col md:items-center md:gap-3 md:text-center"
         >
           <div className="flex items-baseline gap-2">
-            <span className="font-['Playfair_Display'] text-xl md:text-3xl font-semibold">Jalla</span>
+            <span className="font-sans text-xl md:text-3xl font-semibold">Jalla</span>
             <span className="text-[9px] md:text-[10px] text-white/40 tracking-[0.12em]">THE FIRM</span>
           </div>
           <p className="hidden md:block text-sm text-white/50 italic mt-2 max-w-[260px]">

@@ -19,7 +19,7 @@ export default function RolesPipeline() {
     <section className="bg-brand-off-white px-7 py-20">
       <div className="max-w-[900px] mx-auto text-center">
         <Reveal>
-          <h2 className="font-['Playfair_Display'] text-2xl md:text-3xl font-medium text-brand-near-black">
+          <h2 className="font-sans text-2xl md:text-3xl font-bold text-brand-near-black">
             One system. One sequence. No isolation.
           </h2>
           <p className="text-sm text-brand-mid-grey mt-3 mb-12">Jalla is not random leads. It's coordinated execution.</p>

@@ -234,7 +234,7 @@ export default function ValueStack() {
     <section className="bg-white px-7 py-20">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
-          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-medium text-brand-near-black">
+          <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black">
             What you get.
           </h2>
         </Reveal>
@@ -256,7 +256,7 @@ export default function ValueStack() {
                   </div>
                   <div className="flex-1 p-7 flex flex-col justify-center">
                     <div className="flex items-baseline gap-3">
-                      <span className="font-['Playfair_Display'] text-3xl text-brand-border-grey leading-none">{item.n}</span>
+                      <span className="font-sans text-3xl text-brand-border-grey leading-none">{item.n}</span>
                       <h3 className="text-lg font-bold text-brand-near-black">{item.title}</h3>
                     </div>
                     <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{item.desc}</p>

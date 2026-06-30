@@ -18,7 +18,7 @@ export default function ContractorCTA() {
     <>
       <section id="apply" className="bg-brand-near-black px-7 py-20 text-center">
         <Reveal>
-          <h2 className="font-['Playfair_Display'] text-3xl font-medium text-white">Ready to be one of the first?</h2>
+          <h2 className="font-sans text-3xl font-bold text-white">Ready to be one of the first?</h2>
           <p className="text-sm text-white/50 mt-3 mb-10">
             Apply to become a Founding Partner in Jalla's Verified Build Network.
           </p>

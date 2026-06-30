@@ -34,7 +34,7 @@ export default function CountdownClock() {
           key={unit.label}
           className="flex flex-col items-center justify-center bg-brand-near-black rounded-xl w-16 sm:w-20 py-3"
         >
-          <span className="font-['Playfair_Display'] text-2xl sm:text-3xl font-bold text-white tabular-nums">
+          <span className="font-sans text-2xl sm:text-3xl font-bold text-white tabular-nums">
             {String(unit.value).padStart(2, "0")}
           </span>
           <span className="text-[10px] sm:text-xs text-white/50 mt-0.5">{unit.label}</span>

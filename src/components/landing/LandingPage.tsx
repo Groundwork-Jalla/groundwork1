@@ -1,7 +1,6 @@
-// TODO: Philip requested fonts match tryjalla.com exactly.
-// Currently using Playfair Display + Inter.
-// Need to confirm the exact font families from the production site.
-// Previously referenced as "SFR" — awaiting font files or family name.
+// TODO: Confirm tryjalla.com production font matches Satoshi.
+// Currently using Satoshi via Fontshare CDN (fontshare.com).
+// Philip referenced "SFR" — verify once production site is accessible.
 import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
 import StatsBar from "./StatsBar";

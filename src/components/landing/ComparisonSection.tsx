@@ -31,7 +31,7 @@ export default function ComparisonSection() {
       <div className="max-w-[1040px] mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE DIFFERENCE</span>
-          <h2 className="font-['Playfair_Display'] text-2xl sm:text-3xl lg:text-5xl font-medium text-brand-near-black mt-3">
+          <h2 className="font-sans text-2xl sm:text-3xl lg:text-5xl font-bold text-brand-near-black mt-3">
             Building Back Home: Without Structure vs. With Groundwork
           </h2>
           <p className="text-brand-mid-grey mt-4 text-base">The same build. Two very different outcomes.</p>
@@ -40,7 +40,7 @@ export default function ComparisonSection() {
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-0">
           <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 items-center justify-center">
             <div className="h-16 w-16 rounded-full bg-brand-near-black border-4 border-brand-off-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] flex items-center justify-center">
-              <span className="font-['Playfair_Display'] text-white text-sm font-bold tracking-wide">VS</span>
+              <span className="font-sans text-white text-sm font-bold tracking-wide">VS</span>
             </div>
           </div>
 
@@ -53,7 +53,7 @@ export default function ComparisonSection() {
                 <WithoutStructureScene />
               </div>
               <div className="p-8">
-                <h3 className="font-['Playfair_Display'] text-2xl text-brand-near-black mb-1">Without Structure</h3>
+                <h3 className="font-sans text-2xl text-brand-near-black mb-1">Without Structure</h3>
                 <p className="text-xs text-brand-mid-grey mb-5">What happens by default</p>
                 <ul className="divide-y divide-brand-border-grey">
                   {without.map((item) => (
@@ -67,7 +67,7 @@ export default function ComparisonSection() {
                 </ul>
                 <div className="mt-6 pt-5 border-t border-brand-border-grey">
                   <span className="inline-flex items-center gap-2 bg-brand-pale rounded-full px-4 py-2">
-                    <span className="font-['Playfair_Display'] text-lg font-bold text-brand-near-black">$48,000</span>
+                    <span className="font-sans text-lg font-bold text-brand-near-black">$48,000</span>
                     <span className="text-xs text-brand-mid-grey">average loss</span>
                   </span>
                 </div>
@@ -84,7 +84,7 @@ export default function ComparisonSection() {
                 <WithGroundworkScene />
               </div>
               <div className="p-8">
-                <h3 className="font-['Playfair_Display'] text-2xl text-white mb-1">With Groundwork</h3>
+                <h3 className="font-sans text-2xl text-white mb-1">With Groundwork</h3>
                 <p className="text-xs text-white/40 mb-5">What happens by design</p>
                 <ul className="divide-y divide-white/10">
                   {withGroundwork.map((item) => (
@@ -98,7 +98,7 @@ export default function ComparisonSection() {
                 </ul>
                 <div className="mt-6 pt-5 border-t border-white/10">
                   <span className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-                    <span className="font-['Playfair_Display'] text-lg font-bold text-white">100%</span>
+                    <span className="font-sans text-lg font-bold text-white">100%</span>
                     <span className="text-xs text-white/50">payments verified</span>
                   </span>
                 </div>

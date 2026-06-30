@@ -16,7 +16,7 @@ export default function ContractorApply() {
     <div className="bg-white overflow-x-hidden">
       <nav className="sticky top-0 z-50 bg-brand-near-black/95 backdrop-blur-lg border-b border-white/10 px-7 py-3.5">
         <div className="max-w-[1100px] mx-auto flex items-center justify-between">
-          <span className="font-['Playfair_Display'] text-xl font-semibold text-white">
+          <span className="font-sans text-xl font-semibold text-white">
             Jalla<span className="ml-2 text-[9px] font-sans font-normal text-white/40 tracking-[0.12em]">THE FIRM</span>
           </span>
           <Link to="/" className="text-xs text-white/50 hover:text-white transition-colors">
@@ -38,7 +38,7 @@ export default function ContractorApply() {
       <ContractorCTA />
 
       <footer className="border-t border-brand-border-grey py-7 text-center">
-        <span className="font-['Playfair_Display'] text-[15px] font-semibold text-brand-near-black">Jalla</span>
+        <span className="font-sans text-[15px] font-semibold text-brand-near-black">Jalla</span>
         <span className="text-[8px] text-brand-mid-grey tracking-[0.12em] ml-1.5">THE FIRM</span>
         <p className="text-[11px] text-brand-mid-grey mt-1">
           © {new Date().getFullYear()} Jalla. ·{" "}

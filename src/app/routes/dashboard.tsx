@@ -16,7 +16,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-white">
       <nav className="border-b border-brand-border-grey px-7 py-4 flex items-center justify-between">
-        <span className="font-['Playfair_Display'] text-xl font-semibold text-brand-near-black">Jalla</span>
+        <span className="font-sans text-xl font-semibold text-brand-near-black">Jalla</span>
         <Button variant="outline" onClick={handleLogout} className="text-sm">
           Log out
         </Button>
@@ -24,7 +24,7 @@ export default function Dashboard() {
 
       <div className="max-w-[640px] mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <h1 className="font-['Playfair_Display'] text-3xl font-medium text-brand-near-black">
+          <h1 className="font-sans text-3xl font-bold text-brand-near-black">
             Welcome to Groundwork, {user?.email}
           </h1>
 

@@ -59,7 +59,7 @@ export default function SocialProofFeed() {
           <div className="inline-flex items-center justify-center size-10 rounded-full bg-brand-near-black text-white mb-3">
             <Users className="size-4" />
           </div>
-          <h2 className="font-['Playfair_Display'] text-2xl font-medium text-brand-near-black">
+          <h2 className="font-sans text-2xl font-bold text-brand-near-black">
             Builders Are Already Joining
           </h2>
           <p className="text-brand-mid-grey mt-2 text-sm">Real people getting notified the moment we launch.</p>

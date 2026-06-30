@@ -26,7 +26,7 @@ export default function LossCounter() {
       <div className="text-[11px] text-brand-mid-grey tracking-widest">
         AVERAGE LOSS ON AN UNSTRUCTURED BUILD
       </div>
-      <div className="font-['Playfair_Display'] text-5xl font-bold text-white mt-2 tabular-nums">
+      <div className="font-sans text-5xl font-bold text-white mt-2 tabular-nums">
         $<span className="inline-block text-left" style={{ minWidth: `${(48000).toLocaleString().length}ch` }}>
           {value.toLocaleString()}
         </span>

@@ -10,7 +10,7 @@ export default function ContractorComparison() {
     <section className="bg-brand-off-white px-7 py-18">
       <div className="max-w-[750px] mx-auto">
         <Reveal className="text-center mb-9">
-          <h2 className="font-['Playfair_Display'] text-2xl md:text-3xl font-medium text-brand-near-black">
+          <h2 className="font-sans text-2xl md:text-3xl font-bold text-brand-near-black">
             Without Jalla vs. With Jalla
           </h2>
         </Reveal>

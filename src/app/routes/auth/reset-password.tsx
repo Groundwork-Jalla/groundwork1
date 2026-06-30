@@ -34,7 +34,7 @@ export default function ResetPassword() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-light-grey">
           <Mail className="size-5 text-brand-near-black" />
         </div>
-        <h1 className="font-['Playfair_Display'] text-2xl font-medium text-brand-near-black">Check your email</h1>
+        <h1 className="font-sans text-2xl font-bold text-brand-near-black">Check your email</h1>
         <p className="text-sm text-brand-mid-grey mt-2">
           We sent a reset link to <span className="text-brand-near-black">{email}</span>.
         </p>
@@ -47,7 +47,7 @@ export default function ResetPassword() {
 
   return (
     <div>
-      <h1 className="font-['Playfair_Display'] text-3xl font-medium text-brand-near-black">Reset password</h1>
+      <h1 className="font-sans text-3xl font-bold text-brand-near-black">Reset password</h1>
       <p className="text-sm text-brand-mid-grey mt-2">We'll email you a link to get back in.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">

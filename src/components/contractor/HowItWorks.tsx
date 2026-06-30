@@ -14,7 +14,7 @@ export default function HowItWorks() {
     <section className="bg-white px-7 py-18">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
-          <h2 className="font-['Playfair_Display'] text-2xl md:text-3xl font-medium text-brand-near-black">
+          <h2 className="font-sans text-2xl md:text-3xl font-bold text-brand-near-black">
             How it works.
           </h2>
         </Reveal>
@@ -23,7 +23,7 @@ export default function HowItWorks() {
           <div className="hidden md:block absolute top-[26px] left-[12%] right-[12%] h-px border-t border-dashed border-brand-border-grey" />
           {steps.map((s, i) => (
             <Reveal key={s.title} delay={i * 0.12} className="text-center relative">
-              <div className="font-['Playfair_Display'] text-4xl font-light text-brand-border-grey mb-1">0{i + 1}</div>
+              <div className="font-sans text-4xl font-light text-brand-border-grey mb-1">0{i + 1}</div>
               <motion.div
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}

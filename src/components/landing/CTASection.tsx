@@ -15,7 +15,7 @@ export default function CTASection() {
         >
           <Home className="size-9" />
         </motion.div>
-        <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
+        <h2 className="font-sans text-3xl sm:text-4xl font-bold text-brand-near-black">
           The New Way of Building in Africa Launches In
         </h2>
         <p className="text-brand-mid-grey mt-4">

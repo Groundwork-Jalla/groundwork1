@@ -87,7 +87,7 @@ export default function RealitySection() {
     <section className="bg-white px-7 py-20">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
-          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-medium text-brand-near-black leading-snug">
+          <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black leading-snug">
             You're great at what you do.
             <br />
             <span className="text-brand-mid-grey">The system around you is broken.</span>
@@ -108,7 +108,7 @@ export default function RealitySection() {
         </div>
 
         <Reveal delay={0.3}>
-          <p className="font-['Playfair_Display'] italic text-xl text-brand-mid-grey text-center mt-10">
+          <p className="font-sans italic text-xl text-brand-mid-grey text-center mt-10">
             You are not the problem. The system is.
           </p>
         </Reveal>

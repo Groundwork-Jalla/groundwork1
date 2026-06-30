@@ -34,7 +34,7 @@ export default function PlatformCarousel() {
     <section className="bg-brand-near-black py-20">
       <div className="max-w-[900px] mx-auto px-7">
         <Reveal className="text-center mb-10">
-          <h2 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-white">
+          <h2 className="font-sans text-3xl sm:text-4xl font-bold text-white">
             How Groundwork Keeps You in Control
           </h2>
           <p className="text-white/50 mt-3">Step by Step</p>
@@ -58,7 +58,7 @@ export default function PlatformCarousel() {
                   {index + 1}
                 </div>
                 <span className="block text-xs text-brand-mid-grey mt-3">Step {index + 1} of {slides.length}</span>
-                <h3 className="font-['Playfair_Display'] text-[26px] text-brand-near-black mt-1">{slide.title}</h3>
+                <h3 className="font-sans text-[26px] text-brand-near-black mt-1">{slide.title}</h3>
                 <p className="text-sm text-brand-mid-grey mt-3 leading-relaxed">{slide.description}</p>
               </div>
             </motion.div>

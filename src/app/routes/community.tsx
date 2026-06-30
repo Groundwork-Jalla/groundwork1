@@ -53,7 +53,7 @@ export default function Community() {
             <Home className="size-8" />
           </motion.div>
 
-          <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl font-medium text-brand-near-black">
+          <h1 className="font-sans text-3xl sm:text-4xl font-bold text-brand-near-black">
             Groundwork is almost ready.
           </h1>
           <p className="text-brand-mid-grey mt-3 text-sm sm:text-base">
@@ -111,7 +111,7 @@ export default function Community() {
       <SocialProofFeed />
 
       <footer className="border-t border-brand-border-grey py-7 text-center">
-        <span className="font-['Playfair_Display'] text-[15px] font-semibold text-brand-near-black">Jalla</span>
+        <span className="font-sans text-[15px] font-semibold text-brand-near-black">Jalla</span>
         <span className="text-[8px] text-brand-mid-grey tracking-[0.12em] ml-1.5">THE FIRM</span>
         <p className="text-[11px] text-brand-mid-grey mt-1">© {new Date().getFullYear()} Jalla. All rights reserved.</p>
       </footer>

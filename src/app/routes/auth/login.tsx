@@ -29,7 +29,7 @@ export default function Login() {
 
   return (
     <div>
-      <h1 className="font-['Playfair_Display'] text-3xl font-medium text-brand-near-black">Log in</h1>
+      <h1 className="font-sans text-3xl font-bold text-brand-near-black">Log in</h1>
       <p className="text-sm text-brand-mid-grey mt-2">Welcome back. Pick up where you left off.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">

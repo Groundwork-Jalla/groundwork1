@@ -41,7 +41,7 @@ function NetworkScene() {
       </svg>
 
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-        <div className="font-['Playfair_Display'] text-sm font-bold text-white">JALLA</div>
+        <div className="font-sans text-sm font-bold text-white">JALLA</div>
         <div className="text-[7px] text-white/50 tracking-[0.1em] mt-0.5">THE NETWORK</div>
       </div>
 
@@ -87,7 +87,7 @@ export default function ContractorHero() {
             <span className="inline-block text-[10px] font-semibold text-white/60 bg-white/10 px-3.5 py-1.5 rounded-full tracking-[0.06em] mb-5">
               LIMITED SPOTS · FOUNDING PARTNERS
             </span>
-            <h1 className="font-['Playfair_Display'] text-4xl md:text-5xl font-medium text-white leading-[1.12]">
+            <h1 className="font-sans text-4xl md:text-5xl font-black text-white leading-[1.12]">
               Become a Founding Partner in Jalla's Verified Build Network
             </h1>
             <p className="text-white/60 text-base md:text-lg leading-relaxed mt-4 max-w-[440px]">

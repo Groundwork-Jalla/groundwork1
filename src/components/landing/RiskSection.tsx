@@ -60,7 +60,7 @@ export default function RiskSection() {
     <section className="bg-[#F5F5F5] px-7 py-16 border-t-2 border-brand-near-black">
       <div className="max-w-[1000px] mx-auto">
       <Reveal className="text-center mb-16">
-        <h2 className="font-['Playfair_Display'] text-5xl font-medium text-brand-near-black">
+        <h2 className="font-sans text-5xl font-bold text-brand-near-black">
           6 Ways To Lose Control Of Your Construction Project
         </h2>
         <p className="text-brand-mid-grey mt-4 max-w-[500px] mx-auto text-base">
@@ -93,14 +93,14 @@ export default function RiskSection() {
                 </div>
                 <div className="flex-1 p-9 flex flex-col justify-center">
                   <div className="flex items-baseline gap-4">
-                    <span className="font-['Playfair_Display'] text-5xl text-brand-border-grey leading-none">
+                    <span className="font-sans text-5xl text-brand-border-grey leading-none">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <h3 className="text-lg font-bold text-brand-near-black">{title}</h3>
                   </div>
                   <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{description}</p>
                   <div className="inline-flex items-center gap-2.5 bg-brand-near-black rounded-full px-4 py-2 mt-4 self-start">
-                    <span className="font-['Playfair_Display'] text-xl font-bold text-white">{stat}</span>
+                    <span className="font-sans text-xl font-bold text-white">{stat}</span>
                     <span className="text-xs text-white/60">{statLabel}</span>
                   </div>
                 </div>
