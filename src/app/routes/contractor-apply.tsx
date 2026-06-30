@@ -14,12 +14,13 @@ import ContractorCTA from "@/components/contractor/ContractorCTA";
 export default function ContractorApply() {
   return (
     <div className="bg-white overflow-x-hidden">
-      <nav className="sticky top-0 z-50 bg-brand-near-black/95 backdrop-blur-lg border-b border-white/10 px-7 py-3.5">
+      <nav className="sticky top-0 z-50 bg-[#F5F5F5]/95 backdrop-blur-lg border-b border-brand-border-grey px-7 py-3.5">
         <div className="max-w-[1100px] mx-auto flex items-center justify-between">
-          <span className="font-sans text-xl font-semibold text-white">
-            Jalla<span className="ml-2 text-[9px] font-sans font-normal text-white/40 tracking-[0.12em]">THE FIRM</span>
-          </span>
-          <Link to="/" className="text-xs text-white/50 hover:text-white transition-colors">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-sans text-xl font-semibold text-brand-near-black">Groundwork</span>
+            <span className="text-[11px] text-brand-mid-grey">by Jalla</span>
+          </div>
+          <Link to="/" className="text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors">
             ← Back to Home
           </Link>
         </div>

@@ -27,27 +27,28 @@ const withGroundwork = [
 
 export default function ComparisonSection() {
   return (
-    <section className="bg-brand-off-white border-y border-brand-border-grey py-20 px-7">
+    <section className="bg-brand-near-black py-20 px-7">
       <div className="max-w-[1040px] mx-auto">
         <Reveal className="text-center mb-16">
-          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE DIFFERENCE</span>
-          <h2 className="font-sans text-2xl sm:text-3xl lg:text-5xl font-bold text-brand-near-black mt-3">
+          <span className="text-xs font-semibold tracking-[0.12em] text-white/40">THE DIFFERENCE</span>
+          <h2 className="font-sans text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3">
             Building Back Home: Without Structure vs. With Groundwork
           </h2>
-          <p className="text-brand-mid-grey mt-4 text-base">The same build. Two very different outcomes.</p>
+          <p className="text-white/50 mt-4 text-base">The same build. Two very different outcomes.</p>
         </Reveal>
 
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-0">
           <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 items-center justify-center">
-            <div className="h-16 w-16 rounded-full bg-brand-near-black border-4 border-brand-off-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] flex items-center justify-center">
-              <span className="font-sans text-white text-sm font-bold tracking-wide">VS</span>
+            <div className="h-16 w-16 rounded-full bg-white border-4 border-brand-near-black shadow-[0_4px_16px_rgba(0,0,0,0.3)] flex items-center justify-center">
+              <span className="font-sans text-brand-near-black text-sm font-bold tracking-wide">VS</span>
             </div>
           </div>
 
+          {/* Without Structure — white card on dark section */}
           <Reveal direction="left">
             <motion.div
               whileHover={{ y: -4 }}
-              className="bg-white rounded-2xl lg:rounded-r-none border border-brand-border-grey overflow-hidden h-full shadow-[0_4px_20px_rgba(0,0,0,0.04)]"
+              className="bg-white rounded-2xl lg:rounded-r-none border border-white/10 overflow-hidden h-full shadow-[0_4px_20px_rgba(0,0,0,0.25)]"
             >
               <div className="bg-brand-pale h-52 flex items-center justify-center p-5">
                 <WithoutStructureScene />
@@ -75,10 +76,11 @@ export default function ComparisonSection() {
             </motion.div>
           </Reveal>
 
+          {/* With Groundwork — slightly lifted dark card */}
           <Reveal direction="right" delay={0.15}>
             <motion.div
               whileHover={{ y: -4 }}
-              className="bg-brand-near-black rounded-2xl lg:rounded-l-none overflow-hidden h-full shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
+              className="bg-white/[0.07] border border-white/[0.14] rounded-2xl lg:rounded-l-none overflow-hidden h-full shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
             >
               <div className="bg-white/5 h-52 flex items-center justify-center p-5">
                 <WithGroundworkScene />

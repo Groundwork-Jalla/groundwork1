@@ -53,8 +53,8 @@ export default function SocialProofFeed() {
   }, []);
 
   return (
-    <section className="bg-brand-off-white border-t border-brand-border-grey py-16 px-7">
-      <div className="max-w-[600px] mx-auto">
+    <section className="bg-white border-t border-brand-border-grey py-16 px-7">
+      <div className="max-w-150 mx-auto">
         <Reveal className="text-center mb-8">
           <div className="inline-flex items-center justify-center size-10 rounded-full bg-brand-near-black text-white mb-3">
             <Users className="size-4" />

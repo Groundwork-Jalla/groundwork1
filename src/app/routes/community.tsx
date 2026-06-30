@@ -37,8 +37,12 @@ export default function Community() {
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      <nav className="px-5 sm:px-7 py-5">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
+      <nav className="sticky top-0 z-50 bg-[#F5F5F5]/95 backdrop-blur-lg border-b border-brand-border-grey px-5 sm:px-7 py-4 flex items-center justify-between">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-sans text-[17px] font-semibold text-brand-near-black">Groundwork</span>
+          <span className="text-[11px] text-brand-mid-grey">by Jalla</span>
+        </div>
+        <Link to="/" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
           ← Back to Home
         </Link>
       </nav>

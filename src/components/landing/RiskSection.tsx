@@ -57,7 +57,7 @@ const risks = [
 
 export default function RiskSection() {
   return (
-    <section className="bg-[#F5F5F5] px-7 py-16 border-t-2 border-brand-near-black">
+    <section className="bg-white px-7 py-16 border-t border-brand-border-grey">
       <div className="max-w-[1000px] mx-auto">
       <Reveal className="text-center mb-16">
         <h2 className="font-sans text-5xl font-bold text-brand-near-black">
