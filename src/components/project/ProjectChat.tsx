@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback, KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import type { KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Send } from 'lucide-react';
 
