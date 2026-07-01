@@ -60,7 +60,7 @@ export default function RiskSection() {
     <section className="bg-white px-7 py-16 border-t border-brand-border-grey">
       <div className="max-w-[1000px] mx-auto">
       <Reveal className="text-center mb-16">
-        <h2 className="font-sans text-5xl font-bold text-brand-near-black">
+        <h2 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-bold text-brand-near-black">
           6 Ways To Lose Control Of Your Construction Project
         </h2>
         <p className="text-brand-mid-grey mt-4 max-w-[500px] mx-auto text-base">
@@ -79,7 +79,7 @@ export default function RiskSection() {
                   illustrationFirst ? "md:flex-row" : "md:flex-row-reverse"
                 }`}
               >
-                <div className="relative bg-brand-off-white p-9 flex items-center justify-center md:w-[320px] shrink-0 overflow-hidden">
+                <div className="relative bg-brand-off-white p-6 sm:p-9 flex items-center justify-center md:w-[320px] shrink-0 overflow-hidden">
                   <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                     style={{
@@ -91,9 +91,9 @@ export default function RiskSection() {
                     <Scene />
                   </div>
                 </div>
-                <div className="flex-1 p-9 flex flex-col justify-center">
+                <div className="flex-1 p-6 sm:p-9 flex flex-col justify-center">
                   <div className="flex items-baseline gap-4">
-                    <span className="font-sans text-5xl text-brand-border-grey leading-none">
+                    <span className="font-sans text-3xl sm:text-5xl text-brand-border-grey leading-none">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <h3 className="text-lg font-bold text-brand-near-black">{title}</h3>

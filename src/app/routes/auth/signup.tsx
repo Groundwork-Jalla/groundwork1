@@ -38,7 +38,7 @@ export default function Signup() {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
@@ -46,6 +46,12 @@ export default function Signup() {
     setSubmitting(false);
     if (error) {
       setError(error.message);
+      return;
+    }
+    // If email confirmation is disabled (instant sign-in), go to onboarding.
+    // Otherwise show the "check your email" state.
+    if (data.session) {
+      window.location.href = '/onboarding';
       return;
     }
     setSubmitted(true);

@@ -15,10 +15,15 @@ export default [
     route("auth/callback", "routes/auth/callback.tsx"),
   ]),
 
+  // Onboarding (post-signup, pre-dashboard)
+  route("onboarding", "routes/onboarding.tsx"),
+
   // Protected app routes
   layout("routes/_layout.tsx", [
     route("dashboard",       "routes/dashboard.tsx"),
+    route("profile",         "routes/profile.tsx"),
     route("projects/new",    "routes/projects/new.tsx"),
     route("projects/:id",    "routes/projects/detail.tsx"),
+    route("contractors",     "routes/contractors.tsx"),
   ]),
 ] satisfies RouteConfig;

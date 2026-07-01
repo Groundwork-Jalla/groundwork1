@@ -11,12 +11,14 @@ export default function AuthCallback() {
       const code = new URLSearchParams(window.location.search).get("code");
 
       if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setError(error.message);
           return;
         }
-        navigate("/dashboard", { replace: true });
+        // Send new users (no onboarding_complete flag) to onboarding
+        const isNew = !sessionData.user?.user_metadata?.onboarding_complete;
+        navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
         return;
       }
 
