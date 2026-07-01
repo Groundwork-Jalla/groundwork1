@@ -17,6 +17,8 @@ export default [
 
   // Protected app routes
   layout("routes/_layout.tsx", [
-    route("dashboard", "routes/dashboard.tsx"),
+    route("dashboard",       "routes/dashboard.tsx"),
+    route("projects/new",    "routes/projects/new.tsx"),
+    route("projects/:id",    "routes/projects/detail.tsx"),
   ]),
 ] satisfies RouteConfig;
