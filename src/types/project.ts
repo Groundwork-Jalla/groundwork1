@@ -30,13 +30,13 @@ export type RoofType = 'long_span_aluminum' | 'clay_tiles' | 'concrete_flat' | '
 
 export type FinishLevel = 'standard' | 'premium' | 'luxury';
 
-export type ProjectTier = 'self_verify' | 'jalla_verify' | 'jalla_management';
+export type ProjectTier = 'starter' | 'pro' | 'enterprise';
 
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
 
 export type StageStatus = 'locked' | 'active' | 'pending_review' | 'complete';
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
-export type SubstageStatus = 'locked' | 'pending' | 'in_progress' | 'complete';
+export type SubstageStatus = 'locked' | 'pending' | 'in_progress' | 'complete' | 'pending_review';
 
 // -------------------------------------------------------
 // Wizard form data — accumulated across all 9 steps
@@ -97,7 +97,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   sqm: 0,
   finishLevel: 'standard',
   targetStartDate: '',
-  tier: 'self_verify',
+  tier: 'starter',
 };
 
 // -------------------------------------------------------
@@ -162,7 +162,54 @@ export interface ProjectSubstageRow {
   substage_number: number;
   name: string;
   status: SubstageStatus;
+  evidence_urls: string[];
+  approved_by: string | null;
+  approved_at: string | null;
   completed_at: string | null;
+  created_at: string;
+}
+
+// -------------------------------------------------------
+// Phase 3 tables
+// -------------------------------------------------------
+export interface ProjectDocumentRow {
+  id: string;
+  project_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface ProjectMessageRow {
+  id: string;
+  project_id: string;
+  sender_id: string;
+  sender_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface ContractorInviteRow {
+  id: string;
+  project_id: string;
+  invited_by: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export interface ProjectAuditLogRow {
+  id: string;
+  project_id: string;
+  stage_id: string | null;
+  action: string;
+  actor_id: string;
+  details: Record<string, unknown>;
   created_at: string;
 }
 

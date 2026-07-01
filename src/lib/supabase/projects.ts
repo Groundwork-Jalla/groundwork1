@@ -34,7 +34,7 @@ export async function createProject(
       kitchens:          formData.kitchens,
       budget_usd:        budget.total,
       tier:              formData.tier,
-      status:            'active',
+      status:            'active' as const,
       current_stage:     1,
       target_start:      formData.targetStartDate || null,
     })
