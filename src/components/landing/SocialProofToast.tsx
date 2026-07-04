@@ -34,7 +34,6 @@ export default function SocialProofToast() {
       }, delay);
     }
 
-    // First toast appears after a short initial pause
     const initial = setTimeout(() => cycle(), 4000);
 
     return () => {
@@ -55,17 +54,16 @@ export default function SocialProofToast() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex items-center gap-3 bg-white rounded-lg shadow-lg border border-brand-border-grey px-3 py-2.5 min-w-[220px] max-w-[280px]"
+            className="flex flex-col items-center bg-white rounded-xl shadow-lg border border-brand-border-grey px-4 py-4 text-center w-45"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-near-black text-white text-xs font-semibold shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-near-black text-white text-sm font-semibold">
               {entry.name[0]}
             </div>
-            <div>
-              <p className="text-xs font-medium text-brand-near-black leading-snug">
-                {entry.name} from {entry.location} {entry.msg}
-              </p>
-              <p className="text-[10px] text-brand-mid-grey mt-0.5">just now</p>
-            </div>
+            <p className="text-[12px] font-semibold text-brand-near-black mt-2.5 leading-snug">
+              {entry.name} from {entry.location}
+            </p>
+            <p className="text-[11px] text-brand-mid-grey mt-0.5">{entry.msg}</p>
+            <p className="text-[10px] text-brand-mid-grey/60 mt-1">just now</p>
           </motion.div>
         )}
       </AnimatePresence>

@@ -18,13 +18,14 @@ function AnimatedStat({ value }: { value: string }) {
 
   useEffect(() => {
     if (!inView || !match) return;
-    const duration = 900;
+    const duration = 1200;
     const start = performance.now();
     let frame: number;
     const tick = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1);
-      setCount(Math.round(progress * target));
-      if (progress < 1) frame = requestAnimationFrame(tick);
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setCount(Math.round(eased * target));
+      if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -46,7 +47,7 @@ function AnimatedStat({ value }: { value: string }) {
 export default function StatsBar() {
   return (
     <section className="bg-brand-near-black py-10">
-      <div className="max-w-[1100px] mx-auto px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
+      <div className="max-w-275 mx-auto px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
         {stats.map((stat, i) => (
           <Reveal key={stat.label} delay={i * 0.15} className="text-center">
             <div className="font-sans text-4xl lg:text-5xl font-bold text-white">

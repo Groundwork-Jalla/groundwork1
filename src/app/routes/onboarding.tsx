@@ -114,9 +114,10 @@ function WelcomeStep({
     <div className="min-h-screen bg-brand-near-black flex flex-col">
       {/* Wordmark */}
       <header className="px-8 py-6">
-        <span className="font-sans text-lg font-bold text-white tracking-tight">
-          Groundwork
-        </span>
+        <div className="flex flex-col leading-none">
+          <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
+          <span className="text-[10px] text-white/40 font-normal mt-0.5">by Jalla</span>
+        </div>
       </header>
 
       {/* Centered content */}
@@ -277,9 +278,10 @@ function PlanStep({ onSelect }: { onSelect: (tier: Tier) => Promise<void> }) {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Wordmark */}
       <header className="px-8 py-6 border-b border-brand-border-grey">
-        <span className="font-sans text-lg font-bold text-brand-near-black tracking-tight">
-          Groundwork
-        </span>
+        <div className="flex flex-col leading-none">
+          <span className="font-sans text-lg font-black text-brand-near-black tracking-tight">Groundwork</span>
+          <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
+        </div>
       </header>
 
       <div className="flex-1 flex items-start justify-center px-4 sm:px-6 py-12">

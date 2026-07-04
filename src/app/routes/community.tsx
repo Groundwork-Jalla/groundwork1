@@ -6,12 +6,13 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import CountdownClock from "@/components/landing/CountdownClock";
 
 const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
 function BlueprintPanel() {
   return (
-    <div className="relative w-full h-full overflow-hidden" style={{ backgroundColor: "#0B1526" }}>
+    <div className="relative w-full h-full overflow-hidden" style={{ backgroundColor: "#0a0a0a" }}>
       {/* Blueprint — faint watermark, no bounding box, extends to edges */}
       <svg
         viewBox="0 0 520 700"
@@ -95,23 +96,10 @@ function BlueprintPanel() {
       </svg>
 
       {/* Content layer */}
-      <div className="relative z-10 flex flex-col justify-between h-full p-10">
-        {/* Branding */}
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-sans text-lg font-semibold text-white">Groundwork</span>
-          <span className="text-[11px] text-white/40">by Jalla</span>
-        </div>
-
-        {/* Testimonial — centred vertically */}
-        <div>
-          <div className="text-white/25 text-6xl font-serif leading-none mb-4 select-none">"</div>
-          <p className="text-white/75 text-sm sm:text-[15px] leading-relaxed max-w-72">
-            Groundwork has become the single source of truth across our projects.
-            It keeps our teams aligned, our docs organized, and our builds on track.
-          </p>
-          <div className="mt-5 h-px w-8 bg-white/20 mb-4" />
-          <p className="text-sm font-semibold text-white">Michael Rivera</p>
-          <p className="text-xs text-white/40 mt-0.5">Project Executive, BuildCore</p>
+      <div className="relative z-10 flex flex-col h-full p-10">
+        <div className="flex flex-col leading-none">
+          <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
+          <span className="text-[10px] text-white/40 font-normal mt-0.5">by Jalla</span>
         </div>
       </div>
     </div>
@@ -157,9 +145,9 @@ export default function Community() {
       <div className="flex-1 bg-white overflow-y-auto">
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-brand-border-grey">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-sans text-lg font-semibold text-brand-near-black">Groundwork</span>
-            <span className="text-[11px] text-brand-mid-grey">by Jalla</span>
+          <div className="flex flex-col leading-none">
+            <span className="font-sans text-lg font-black text-brand-near-black tracking-tight">Groundwork</span>
+            <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
           </div>
           <Link to="/" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
             ← Home
@@ -219,11 +207,15 @@ export default function Community() {
                     ← Back to Home
                   </Link>
 
+                  <div className="mb-7">
+                    <CountdownClock variant="dark" />
+                  </div>
+
                   <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
                     Join the Community
                   </h1>
                   <p className="text-sm text-brand-mid-grey mt-2 mb-8 leading-relaxed">
-                    Be among the first Africans to build with Groundwork — and get notified the moment we launch.
+                    We're putting on the finishing touches. Join the community and be one of the first to access Groundwork when we launch.
                   </p>
 
                   <form onSubmit={handleSubmit} className="space-y-4">

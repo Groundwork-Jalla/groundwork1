@@ -11,9 +11,9 @@ export default function LandingNav() {
       className="sticky top-0 z-50 bg-[#D4D4D4]/95 backdrop-blur-lg border-b border-brand-border-grey"
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-7 py-3.5 flex justify-between items-center">
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-sans text-xl sm:text-[22px] font-semibold text-brand-near-black">Groundwork</span>
-          <span className="text-[11px] sm:text-sm text-brand-mid-grey">by Jalla</span>
+        <div className="flex flex-col leading-none">
+          <span className="font-sans text-xl sm:text-[22px] font-black text-brand-near-black tracking-tight">Groundwork</span>
+          <span className="text-[10px] sm:text-[11px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
