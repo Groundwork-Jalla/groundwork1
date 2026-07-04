@@ -51,7 +51,7 @@ export default function HeroScene() {
             <rect x="21" y="1" width="6" height="3" rx="1.5" fill={D} fillOpacity="0.5" />
             <rect x="21" y="7" width="10" height="3" rx="1.5" fill={D} fillOpacity="0.18" />
           </motion.g>
-          <text x="0" y="62" textAnchor="middle" fontSize="11" fill={D} fillOpacity="0.45" fontFamily="Satoshi, sans-serif">You, Abroad</text>
+          <text x="0" y="62" textAnchor="middle" fontSize="11" fill={D} fillOpacity="0.45" fontFamily="'Plus Jakarta Sans', sans-serif">You, Abroad</text>
         </g>
 
         {/* House — floats on 6s cycle */}
@@ -84,11 +84,11 @@ export default function HeroScene() {
               <line x1="-80" y1="138" x2="80" y2="138" stroke={D} strokeWidth="1" />
               <line x1="-80" y1="134" x2="-80" y2="142" stroke={D} strokeWidth="1" />
               <line x1="80" y1="134" x2="80" y2="142" stroke={D} strokeWidth="1" />
-              <text x="0" y="150" textAnchor="middle" fontSize="9" fill={D} fontFamily="Satoshi, sans-serif">12m</text>
+              <text x="0" y="150" textAnchor="middle" fontSize="9" fill={D} fontFamily="'Plus Jakarta Sans', sans-serif">12m</text>
               <line x1="112" y1="-50" x2="112" y2="130" stroke={D} strokeWidth="1" />
               <line x1="108" y1="-50" x2="116" y2="-50" stroke={D} strokeWidth="1" />
               <line x1="108" y1="130" x2="116" y2="130" stroke={D} strokeWidth="1" />
-              <text x="124" y="43" textAnchor="middle" fontSize="9" fill={D} fontFamily="Satoshi, sans-serif" transform="rotate(90 124 43)">8m</text>
+              <text x="124" y="43" textAnchor="middle" fontSize="9" fill={D} fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(90 124 43)">8m</text>
             </g>
           </motion.g>
         </g>

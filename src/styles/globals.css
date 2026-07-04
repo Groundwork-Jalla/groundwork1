@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   --color-brand-white: #ffffff;
@@ -26,6 +28,9 @@ body {
 @layer base {
   * {
     @apply border-brand-border-grey;
+  }
+  p, input, textarea, select {
+    font-family: var(--font-body);
   }
 }
 

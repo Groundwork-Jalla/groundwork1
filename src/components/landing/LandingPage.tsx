@@ -1,6 +1,3 @@
-// TODO: Confirm tryjalla.com production font matches Satoshi.
-// Currently using Satoshi via Fontshare CDN (fontshare.com).
-// Philip referenced "SFR" — verify once production site is accessible.
 import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
 import StatsBar from "./StatsBar";

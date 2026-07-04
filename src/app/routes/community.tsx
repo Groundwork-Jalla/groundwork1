@@ -56,9 +56,9 @@ function BlueprintPanel() {
         {[0, 240, 360, 520].map((x) => (
           <line key={x} x1={x} y1="8" x2={x} y2="20" stroke="white" strokeWidth="0.8" strokeOpacity="0.2" />
         ))}
-        <text x="118"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif">7,200</text>
-        <text x="300"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif">2,500</text>
-        <text x="440"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif">4,400</text>
+        <text x="118"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif">7,200</text>
+        <text x="300"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif">2,500</text>
+        <text x="440"  y="9" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif">4,400</text>
 
         {/* Left dimension line */}
         <line x1="14" y1="-20"  x2="14" y2="200"  stroke="white" strokeWidth="0.8" strokeOpacity="0.2" />
@@ -68,10 +68,10 @@ function BlueprintPanel() {
         {[0, 200, 390, 560, 700].map((y) => (
           <line key={y} x1="8" y1={y} x2="20" y2={y} stroke="white" strokeWidth="0.8" strokeOpacity="0.2" />
         ))}
-        <text x="8" y="106" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif" transform="rotate(-90 8 106)">3,600</text>
-        <text x="8" y="298" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif" transform="rotate(-90 8 298)">7,200</text>
-        <text x="8" y="480" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif" transform="rotate(-90 8 480)">5,400</text>
-        <text x="8" y="636" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="Satoshi, sans-serif" transform="rotate(-90 8 636)">1,800</text>
+        <text x="8" y="106" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 8 106)">3,600</text>
+        <text x="8" y="298" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 8 298)">7,200</text>
+        <text x="8" y="480" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 8 480)">5,400</text>
+        <text x="8" y="636" textAnchor="middle" fontSize="8.5" fill="white" fillOpacity="0.3" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 8 636)">1,800</text>
 
         {/* Room number circles */}
         {[
@@ -82,7 +82,7 @@ function BlueprintPanel() {
         ].map(({ cx, cy, n }) => (
           <g key={n}>
             <circle cx={cx} cy={cy} r="14" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.18" />
-            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.25" fontFamily="Satoshi, sans-serif">{n}</text>
+            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="white" fillOpacity="0.25" fontFamily="'Plus Jakarta Sans', sans-serif">{n}</text>
           </g>
         ))}
 
