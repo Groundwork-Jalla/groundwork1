@@ -30,7 +30,31 @@ body {
   * {
     @apply border-brand-border-grey;
   }
-  p, input, textarea, select {
+
+  /* Heading scale — Plus Jakarta Sans across all pages */
+  h1 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  h2 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  h4 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* Body — Inter for prose and form elements */
+  p, input, textarea, select, label {
     font-family: var(--font-body);
   }
 }

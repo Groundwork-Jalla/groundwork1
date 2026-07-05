@@ -9,13 +9,13 @@ export default function AuthLayout() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex items-baseline gap-2 md:flex-col md:items-center md:gap-3 md:text-center"
+          className="flex flex-col items-center text-center"
         >
-          <div className="flex items-baseline gap-2">
-            <span className="font-sans text-xl md:text-3xl font-semibold">Jalla</span>
-            <span className="text-[9px] md:text-[10px] text-white/40 tracking-[0.12em]">THE FIRM</span>
+          <div className="flex flex-col leading-none items-center">
+            <span className="font-sans text-2xl md:text-3xl font-black text-white tracking-tight">Groundwork</span>
+            <span className="text-[11px] text-white/40 font-normal mt-1">by Jalla</span>
           </div>
-          <p className="hidden md:block text-sm text-white/50 italic mt-2 max-w-[260px]">
+          <p className="hidden md:block text-sm text-white/50 italic mt-4 max-w-[260px]">
             Protect your build. From anywhere.
           </p>
         </motion.div>

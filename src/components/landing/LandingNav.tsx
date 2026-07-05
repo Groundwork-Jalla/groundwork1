@@ -8,22 +8,22 @@ export default function LandingNav() {
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="sticky top-0 z-50 bg-[#D4D4D4]/95 backdrop-blur-lg border-b border-brand-border-grey"
+      className="sticky top-0 z-50 bg-brand-near-black backdrop-blur-lg border-b border-white/10"
     >
       <div className="max-w-[1100px] mx-auto px-4 sm:px-7 py-3.5 flex justify-between items-center">
         <div className="flex flex-col leading-none">
-          <span className="font-sans text-xl sm:text-[22px] font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[10px] sm:text-[11px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
+          <span className="font-sans text-xl sm:text-[22px] font-black text-white tracking-tight">Groundwork</span>
+          <span className="text-[10px] sm:text-[11px] text-white/50 font-normal mt-0.5">by Jalla</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             asChild
             variant="ghost"
-            className="hidden sm:inline-flex text-brand-near-black hover:bg-brand-light-grey text-xs font-semibold px-4 rounded-md"
+            className="hidden sm:inline-flex text-white/80 hover:text-white hover:bg-white/10 text-xs font-semibold px-4 rounded-md"
           >
             <a href="/contractor-apply">For Contractors</a>
           </Button>
-          <Button asChild className="bg-brand-near-black text-white hover:bg-brand-black text-[11px] sm:text-xs font-semibold px-4 py-2 sm:px-6 rounded-md group">
+          <Button asChild className="bg-white text-brand-near-black hover:bg-brand-off-white text-[11px] sm:text-xs font-semibold px-4 py-2 sm:px-6 rounded-md group">
             <a href="/community" className="flex items-center gap-1.5">
               Join for Free
               <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />

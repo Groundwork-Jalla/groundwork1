@@ -207,13 +207,14 @@ export default function Community() {
                     ← Back to Home
                   </Link>
 
+                  <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight mb-6">
+                    Join the Community
+                  </h1>
+
                   <div className="mb-7">
                     <CountdownClock variant="dark" />
                   </div>
 
-                  <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-                    Join the Community
-                  </h1>
                   <p className="text-sm text-brand-mid-grey mt-2 mb-8 leading-relaxed">
                     We're putting on the finishing touches. Join the community and be one of the first to access Groundwork when we launch.
                   </p>
