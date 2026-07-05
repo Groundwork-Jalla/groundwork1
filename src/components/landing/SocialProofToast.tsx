@@ -46,23 +46,34 @@ export default function SocialProofToast() {
   const entry = ENTRIES[current];
 
   return (
-    <div className="fixed bottom-4 left-4 z-40 pointer-events-none">
+    <div className="fixed bottom-6 left-6 z-40 pointer-events-none">
       <AnimatePresence>
         {visible && (
           <motion.div
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex flex-col items-center bg-white rounded-xl shadow-lg border border-brand-border-grey px-4 py-4 text-center w-45"
+            initial={{ y: 60, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 60, opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="flex flex-col items-center text-center bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-brand-border-grey p-6 w-52"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-near-black text-white text-sm font-semibold">
+            {/* Avatar */}
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-near-black text-white text-base font-semibold">
               {entry.name[0]}
             </div>
-            <p className="text-[12px] font-semibold text-brand-near-black mt-2.5 leading-snug">
-              {entry.name} from {entry.location}
+
+            {/* Name + location */}
+            <p className="text-[13px] font-semibold text-brand-near-black mt-3 leading-snug">
+              {entry.name}
             </p>
-            <p className="text-[11px] text-brand-mid-grey mt-0.5">{entry.msg}</p>
+            <p className="text-[11px] text-brand-mid-grey mt-0.5">
+              from {entry.location}
+            </p>
+
+            {/* Divider */}
+            <div className="w-8 h-px bg-brand-border-grey my-3" />
+
+            {/* Action */}
+            <p className="text-[12px] text-brand-near-black font-medium">{entry.msg}</p>
             <p className="text-[10px] text-brand-mid-grey/60 mt-1">just now</p>
           </motion.div>
         )}
