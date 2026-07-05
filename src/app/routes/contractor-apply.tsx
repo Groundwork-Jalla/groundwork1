@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import BackToTop from "@/components/ui/BackToTop";
 import ContractorHero from "@/components/contractor/ContractorHero";
 import RealitySection from "@/components/contractor/RealitySection";
 import IntroducingJalla from "@/components/contractor/IntroducingJalla";
@@ -13,8 +14,8 @@ import ContractorCTA from "@/components/contractor/ContractorCTA";
 
 export default function ContractorApply() {
   return (
-    <div className="bg-white overflow-x-hidden">
-      <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-7 py-3.5">
+    <div className="bg-white overflow-x-clip">
+      <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-4 sm:px-7 py-3.5">
         <div className="max-w-275 mx-auto flex items-center justify-between">
           <div className="flex flex-col leading-none">
             <span className="font-sans text-xl font-black text-white tracking-tight">Groundwork</span>
@@ -38,6 +39,7 @@ export default function ContractorApply() {
       <SocialProof />
       <ContractorCTA />
 
+      <BackToTop />
       <footer className="border-t border-brand-border-grey py-7 text-center">
         <span className="font-sans text-[15px] font-semibold text-brand-near-black">Jalla</span>
         <span className="text-[8px] text-brand-mid-grey tracking-[0.12em] ml-1.5">THE FIRM</span>

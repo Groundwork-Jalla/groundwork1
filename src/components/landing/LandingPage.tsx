@@ -9,10 +9,11 @@ import WhyUseJalla from "./WhyUseJalla";
 import CTASection from "./CTASection";
 import FooterSection from "./FooterSection";
 import SocialProofToast from "./SocialProofToast";
+import BackToTop from "@/components/ui/BackToTop";
 
 export default function LandingPage() {
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-clip">
       <LandingNav />
       <HeroSection />
       <StatsBar />
@@ -24,6 +25,7 @@ export default function LandingPage() {
       <CTASection />
       <FooterSection />
       <SocialProofToast />
+      <BackToTop />
     </div>
   );
 }

@@ -23,14 +23,14 @@ export default function CTASection() {
           <CountdownClock variant="light" />
         </div>
 
-        <p className="text-white/60 mt-8">
+        <p className="text-sm sm:text-base text-white/60 mt-8">
           Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.
         </p>
         <p className="text-sm text-white/40 mt-2 italic">
           Be the first to know when Groundwork is ready for full launch.
         </p>
 
-        <Button asChild className="mt-8 bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
+        <Button asChild className="mt-8 w-full sm:w-auto bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
           <Link to="/community" className="flex items-center justify-center gap-1.5">
             Join for Free
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />

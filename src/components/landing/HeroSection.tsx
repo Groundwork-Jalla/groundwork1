@@ -6,14 +6,14 @@ import HeroScene from "./HeroScene";
 export default function HeroSection() {
   return (
     <section className="bg-white">
-      <div className="max-w-275 mx-auto px-7 py-16 lg:py-24 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+      <div className="max-w-275 mx-auto px-4 sm:px-7 py-12 lg:py-24 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="flex-1 max-w-145 w-full"
         >
-          <h1 className="font-sans text-3xl lg:text-5xl font-black leading-[1.1]">
+          <h1 className="font-sans text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.1]">
             <span className="text-brand-near-black">Introducing the New Way of Building Back Home</span>{" "}
             <span className="text-brand-near-black/40 italic font-bold">Without Losing Control.</span>
           </h1>

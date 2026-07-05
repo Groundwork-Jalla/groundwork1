@@ -46,14 +46,17 @@ const SOCIAL_LINKS = [
 
 export default function FooterSection() {
   return (
-    <footer className="border-t border-brand-border-grey py-8 text-center px-7">
-      <Reveal>
-        <div className="flex flex-col items-center leading-none mb-5">
-          <span className="font-sans text-[17px] font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[11px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
+    <footer className="border-t border-brand-border-grey py-4 px-4 sm:px-6 lg:px-10">
+      <div className="max-w-275 mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+
+        {/* Logo — bottom left */}
+        <div className="flex flex-col leading-none">
+          <span className="font-sans text-[15px] font-black text-brand-near-black tracking-tight">Groundwork</span>
+          <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
         </div>
 
-        <div className="flex items-center justify-center gap-5 mb-5">
+        {/* Social icons — right */}
+        <div className="flex items-center gap-4">
           {SOCIAL_LINKS.map(({ label, href, icon }) => (
             <a
               key={label}
@@ -68,10 +71,7 @@ export default function FooterSection() {
           ))}
         </div>
 
-        <p className="text-[11px] text-brand-mid-grey">
-          © {new Date().getFullYear()} Groundwork by Jalla. All rights reserved.
-        </p>
-      </Reveal>
+      </div>
     </footer>
   );
 }

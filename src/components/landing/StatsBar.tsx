@@ -47,10 +47,10 @@ function AnimatedStat({ value }: { value: string }) {
 export default function StatsBar() {
   return (
     <section className="bg-brand-near-black py-10">
-      <div className="max-w-275 mx-auto px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
+      <div className="max-w-275 mx-auto px-4 sm:px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
         {stats.map((stat, i) => (
           <Reveal key={stat.label} delay={i * 0.15} className="text-center">
-            <div className="font-sans text-4xl lg:text-5xl font-bold text-white">
+            <div className="font-sans text-3xl sm:text-4xl lg:text-5xl font-bold text-white">
               <AnimatedStat value={stat.value} />
             </div>
             <div className="text-xs text-white/50 mt-1">{stat.label}</div>

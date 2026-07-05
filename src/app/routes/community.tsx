@@ -96,10 +96,10 @@ function BlueprintPanel() {
       </svg>
 
       {/* Content layer */}
-      <div className="relative z-10 flex flex-col h-full p-10">
-        <div className="flex flex-col leading-none">
-          <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-white/40 font-normal mt-0.5">by Jalla</span>
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <div className="flex flex-col leading-none items-start">
+          <span className="font-sans text-2xl sm:text-3xl font-black text-white tracking-tight">Groundwork</span>
+          <span className="text-[11px] sm:text-sm text-white/50 font-normal mt-0.5">by Jalla</span>
         </div>
       </div>
     </div>
@@ -134,15 +134,15 @@ export default function Community() {
 
   return (
     /* Full viewport, no scroll on the outer shell — left panel is pinned, right scrolls */
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
 
       {/* LEFT — dark blueprint panel, pinned full height */}
       <div className="hidden lg:flex lg:w-[44%] xl:w-[46%] h-full shrink-0">
         <BlueprintPanel />
       </div>
 
-      {/* RIGHT — scrollable form panel */}
-      <div className="flex-1 bg-white overflow-y-auto">
+      {/* RIGHT — locked on desktop; scrollable within panel on small screens */}
+      <div className="flex-1 bg-white overflow-y-auto flex flex-col">
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-brand-border-grey">
           <div className="flex flex-col leading-none">
@@ -155,7 +155,7 @@ export default function Community() {
         </div>
 
         {/* Form centred vertically */}
-        <div className="flex items-center justify-center min-h-full px-8 py-16">
+        <div className="flex-1 flex items-center justify-center px-5 sm:px-8 py-6">
           <div className="w-full max-w-sm">
             <AnimatePresence mode="wait">
               {submitted ? (
@@ -207,19 +207,19 @@ export default function Community() {
                     ← Back to Home
                   </Link>
 
-                  <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight mb-6">
+                  <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight mb-4">
                     Join the Community
                   </h1>
 
-                  <div className="mb-7">
+                  <div className="mb-4">
                     <CountdownClock variant="dark" />
                   </div>
 
-                  <p className="text-sm text-brand-mid-grey mt-2 mb-8 leading-relaxed">
+                  <p className="text-sm text-brand-mid-grey mt-1 mb-5 leading-relaxed">
                     We're putting on the finishing touches. Join the community and be one of the first to access Groundwork when we launch.
                   </p>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSubmit} className="space-y-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="name">Full name</Label>
                       <Input
@@ -282,7 +282,7 @@ export default function Community() {
                     </Button>
                   </form>
 
-                  <p className="text-xs text-brand-mid-grey text-center mt-6 leading-relaxed">
+                  <p className="text-xs text-brand-mid-grey text-center mt-3 leading-relaxed">
                     No spam. Just early access and launch updates.
                   </p>
                 </motion.div>

@@ -27,8 +27,8 @@ const withGroundwork = [
 
 export default function ComparisonSection() {
   return (
-    <section className="bg-brand-near-black py-20 px-7">
-      <div className="max-w-[1040px] mx-auto">
+    <section className="bg-brand-near-black py-20 px-4 sm:px-7">
+      <div className="max-w-260 mx-auto">
         <Reveal className="text-center mb-16">
           <span className="text-xs font-semibold tracking-[0.12em] text-white/40">THE DIFFERENCE</span>
           <h2 className="font-sans text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3">
@@ -53,7 +53,7 @@ export default function ComparisonSection() {
               <div className="bg-brand-pale h-52 flex items-center justify-center p-5">
                 <WithoutStructureScene />
               </div>
-              <div className="p-8">
+              <div className="p-5 sm:p-8">
                 <h3 className="font-sans text-2xl text-brand-near-black mb-1">Without Structure</h3>
                 <p className="text-xs text-brand-mid-grey mb-5">What happens by default</p>
                 <ul className="divide-y divide-brand-border-grey">
@@ -76,6 +76,13 @@ export default function ComparisonSection() {
             </motion.div>
           </Reveal>
 
+          {/* Mobile VS divider — between cards in single-column layout */}
+          <div className="lg:hidden flex items-center justify-center py-1">
+            <div className="h-9 w-9 rounded-full bg-white border-2 border-brand-near-black flex items-center justify-center">
+              <span className="font-sans text-brand-near-black text-xs font-bold">VS</span>
+            </div>
+          </div>
+
           {/* With Groundwork — slightly lifted dark card */}
           <Reveal direction="right" delay={0.15}>
             <motion.div
@@ -85,7 +92,7 @@ export default function ComparisonSection() {
               <div className="bg-white/5 h-52 flex items-center justify-center p-5">
                 <WithGroundworkScene />
               </div>
-              <div className="p-8">
+              <div className="p-5 sm:p-8">
                 <h3 className="font-sans text-2xl text-white mb-1">With Groundwork</h3>
                 <p className="text-xs text-white/40 mb-5">What happens by design</p>
                 <ul className="divide-y divide-white/10">
