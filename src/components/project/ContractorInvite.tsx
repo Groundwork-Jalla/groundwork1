@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchInvites,
   inviteContractor,
@@ -13,11 +14,10 @@ import {
 } from '@/lib/supabase/invites';
 import type { ContractorInviteRow } from '@/types/project';
 
-// TODO: Wire email sending via Resend when integration is ready
-
 interface ContractorInviteProps {
   projectId: string;
   userId: string;
+  projectName: string;
 }
 
 function isValidEmail(value: string): boolean {
@@ -82,7 +82,10 @@ function InviteSkeleton() {
   );
 }
 
-export function ContractorInvite({ projectId, userId }: ContractorInviteProps) {
+export function ContractorInvite({ projectId, userId, projectName }: ContractorInviteProps) {
+  const { user } = useAuth();
+  const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
+
   const [invites, setInvites] = useState<ContractorInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,13 +152,10 @@ export function ContractorInvite({ projectId, userId }: ContractorInviteProps) {
     setSubmitting(true);
 
     try {
-      const confirmed = await inviteContractor(projectId, userId, trimmed);
-      // Replace optimistic record with real one
+      const confirmed = await inviteContractor(projectId, userId, trimmed, projectName, inviterName);
       setInvites((prev) =>
         prev.map((inv) => (inv.id === optimistic.id ? confirmed : inv)),
       );
-      // TODO: Wire Resend email integration
-      console.log('Invite sent to', trimmed);
       setEmail('');
       setShowForm(false);
     } catch (err) {

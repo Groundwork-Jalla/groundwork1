@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -11,131 +11,31 @@ import {
   CheckCircle2,
   Lock,
   ChevronRight,
-  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase/client';
+import BackToTop from '@/components/ui/BackToTop';
 
 // ── Types ─────────────────────────────────────────────────
 
 type Plan = 'starter' | 'pro' | 'enterprise';
 
 interface Contractor {
-  id: number;
+  id: string;
   name: string;
   trade: string;
   location: string;
   rating: number;
-  reviews: number;
+  review_count: number;
   verified: boolean;
-  yearsExp: number;
-  completedProjects: number;
+  years_exp: number;
+  completed_projects: number;
   specialties: string[];
-  bio: string;
-  phone: string;
-  email: string;
-  avatar: string;
+  bio: string | null;
+  phone: string | null;
+  email: string | null;
+  avatar_initials: string;
 }
-
-// ── Static data ────────────────────────────────────────────
-
-const CONTRACTORS: Contractor[] = [
-  {
-    id: 1,
-    name: 'Emeka Okafor',
-    trade: 'General Contractor',
-    location: 'Lagos, Nigeria',
-    rating: 4.9,
-    reviews: 23,
-    verified: true,
-    yearsExp: 12,
-    completedProjects: 47,
-    specialties: ['Residential', 'Multi-Family'],
-    bio: 'Specialises in diaspora-funded residential builds. On-time delivery record.',
-    phone: '+234 801 234 5678',
-    email: 'emeka@buildng.com',
-    avatar: 'EO',
-  },
-  {
-    id: 2,
-    name: 'Aisha Conteh',
-    trade: 'Structural Engineer',
-    location: 'Accra, Ghana',
-    rating: 4.8,
-    reviews: 18,
-    verified: true,
-    yearsExp: 9,
-    completedProjects: 31,
-    specialties: ['Commercial', 'Mixed Use'],
-    bio: 'PE-certified structural engineer with diaspora project experience.',
-    phone: '+233 20 456 7890',
-    email: 'aisha@struct.gh',
-    avatar: 'AC',
-  },
-  {
-    id: 3,
-    name: 'Chidi Nwosu',
-    trade: 'Land Surveyor',
-    location: 'Abuja, Nigeria',
-    rating: 4.7,
-    reviews: 12,
-    verified: true,
-    yearsExp: 15,
-    completedProjects: 62,
-    specialties: ['Residential', 'Land Boundary'],
-    bio: 'Registered surveyor handling complex urban and peri-urban sites.',
-    phone: '+234 803 345 6789',
-    email: 'chidi@survey.ng',
-    avatar: 'CN',
-  },
-  {
-    id: 4,
-    name: 'Fatou Diallo',
-    trade: 'Interior Designer',
-    location: 'Dakar, Senegal',
-    rating: 4.9,
-    reviews: 31,
-    verified: true,
-    yearsExp: 7,
-    completedProjects: 28,
-    specialties: ['Luxury', 'Premium'],
-    bio: 'High-end interiors for premium diaspora builds.',
-    phone: '+221 77 234 5678',
-    email: 'fatou@intdesign.sn',
-    avatar: 'FD',
-  },
-  {
-    id: 5,
-    name: 'Kwame Asante',
-    trade: 'Electrical Engineer',
-    location: 'Kumasi, Ghana',
-    rating: 4.6,
-    reviews: 9,
-    verified: false,
-    yearsExp: 8,
-    completedProjects: 19,
-    specialties: ['Commercial', 'Industrial'],
-    bio: 'Certified electrician for commercial and industrial projects.',
-    phone: '+233 24 567 8901',
-    email: 'kwame@elec.gh',
-    avatar: 'KA',
-  },
-  {
-    id: 6,
-    name: 'Ngozi Obi',
-    trade: 'Quantity Surveyor',
-    location: 'Port Harcourt, Nigeria',
-    rating: 4.8,
-    reviews: 14,
-    verified: true,
-    yearsExp: 11,
-    completedProjects: 39,
-    specialties: ['Residential', 'Commercial'],
-    bio: 'Expert in cost estimation and budget control for all project types.',
-    phone: '+234 805 456 7890',
-    email: 'ngozi@qs.ng',
-    avatar: 'NO',
-  },
-];
 
 // ── Filter categories ──────────────────────────────────────
 
@@ -175,7 +75,7 @@ function SpecialtyPill({ label }: { label: string }) {
 function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Plan }) {
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
-  if (isUnlocked) {
+  if (isUnlocked && contractor.phone) {
     return (
       <div className="flex flex-wrap gap-2 pt-3 border-t border-brand-border-grey mt-3">
         <a
@@ -185,30 +85,33 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
           <Phone className="size-3 shrink-0" />
           {contractor.phone}
         </a>
-        <a
-          href={`mailto:${contractor.email}`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
-        >
-          <Mail className="size-3 shrink-0" />
-          {contractor.email}
-        </a>
-        <a
-          href={`https://wa.me/${contractor.phone.replace(/\s+/g, '').replace('+', '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
-        >
-          <MessageCircle className="size-3 shrink-0" />
-          WhatsApp
-        </a>
+        {contractor.email && (
+          <a
+            href={`mailto:${contractor.email}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
+          >
+            <Mail className="size-3 shrink-0" />
+            {contractor.email}
+          </a>
+        )}
+        {contractor.phone && (
+          <a
+            href={`https://wa.me/${contractor.phone.replace(/\s+/g, '').replace('+', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
+          >
+            <MessageCircle className="size-3 shrink-0" />
+            WhatsApp
+          </a>
+        )}
       </div>
     );
   }
 
-  // Starter — blurred contact with upgrade overlay
+  // Starter — blurred contact with upgrade prompt
   return (
     <div className="relative pt-3 border-t border-brand-border-grey mt-3">
-      {/* Blurred placeholder */}
       <div className="blur-sm select-none pointer-events-none flex flex-wrap gap-2" aria-hidden="true">
         <span className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black">
           <Phone className="size-3 shrink-0" />
@@ -219,7 +122,6 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
           hidden@example.com
         </span>
       </div>
-      {/* Overlay badge */}
       <div className="absolute inset-0 flex items-center justify-start pl-0.5">
         <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
           <Lock className="size-3 shrink-0" />
@@ -240,7 +142,7 @@ function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Pl
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-near-black text-white text-sm font-bold tracking-wide select-none">
-            {contractor.avatar}
+            {contractor.avatar_initials || contractor.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
             <p className="font-bold text-brand-near-black text-base leading-snug truncate">
@@ -264,32 +166,38 @@ function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Pl
           <MapPin className="size-3 shrink-0" />
           {contractor.location}
         </span>
-        <StarRating rating={contractor.rating} reviews={contractor.reviews} />
+        {contractor.review_count > 0 && (
+          <StarRating rating={contractor.rating} reviews={contractor.review_count} />
+        )}
       </div>
 
       {/* Bio */}
-      <p className="text-xs text-brand-mid-grey leading-relaxed line-clamp-2 mb-3">
-        {contractor.bio}
-      </p>
+      {contractor.bio && (
+        <p className="text-xs text-brand-mid-grey leading-relaxed line-clamp-2 mb-3">
+          {contractor.bio}
+        </p>
+      )}
 
       {/* Stats row */}
       <div className="flex gap-4 mb-3">
         <div>
           <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">Experience</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.yearsExp} yrs</p>
+          <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.years_exp} yrs</p>
         </div>
         <div>
           <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">Projects</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.completedProjects}</p>
+          <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.completed_projects}</p>
         </div>
       </div>
 
       {/* Specialties */}
-      <div className="flex flex-wrap gap-1.5 mb-auto">
-        {contractor.specialties.map((s) => (
-          <SpecialtyPill key={s} label={s} />
-        ))}
-      </div>
+      {contractor.specialties.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-auto">
+          {contractor.specialties.map((s) => (
+            <SpecialtyPill key={s} label={s} />
+          ))}
+        </div>
+      )}
 
       {/* Contact section (tier-gated) */}
       <ContactSection contractor={contractor} plan={plan} />
@@ -320,31 +228,22 @@ function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Pl
   );
 }
 
-// ── Plan toggle bar ────────────────────────────────────────
+// ── Skeleton loader ────────────────────────────────────────
 
-function PlanToggleBar({ plan, onChange }: { plan: Plan; onChange: (p: Plan) => void }) {
+function CardSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-brand-off-white border border-brand-border-grey px-4 py-2.5 text-xs text-brand-mid-grey">
-      <span className="flex items-center gap-1.5 shrink-0">
-        <ShieldCheck className="size-3.5 text-brand-mid-grey" />
-        <span className="font-medium">Simulating plan:</span>
-      </span>
-      <div className="flex items-center gap-1">
-        {(['starter', 'pro', 'enterprise'] as Plan[]).map((p) => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => onChange(p)}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-colors ${
-              plan === p
-                ? 'bg-brand-near-black text-white'
-                : 'text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-light-grey'
-            }`}
-          >
-            {p.charAt(0).toUpperCase() + p.slice(1)}
-          </button>
-        ))}
+    <div className="flex flex-col rounded-2xl border border-brand-border-grey bg-white p-5 gap-3 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="size-11 rounded-full bg-brand-light-grey shrink-0" />
+        <div className="flex flex-col gap-1.5 flex-1">
+          <div className="h-4 w-32 rounded bg-brand-light-grey" />
+          <div className="h-3 w-24 rounded bg-brand-light-grey" />
+        </div>
       </div>
+      <div className="h-3 w-40 rounded bg-brand-light-grey" />
+      <div className="h-3 w-full rounded bg-brand-light-grey" />
+      <div className="h-3 w-3/4 rounded bg-brand-light-grey" />
+      <div className="h-8 w-full rounded-xl bg-brand-light-grey mt-2" />
     </div>
   );
 }
@@ -352,16 +251,36 @@ function PlanToggleBar({ plan, onChange }: { plan: Plan; onChange: (p: Plan) => 
 // ── Main page ──────────────────────────────────────────────
 
 export default function ContractorsPage() {
-  useAuth(); // ensures auth context is available
+  const { user } = useAuth();
 
-  const [searchParams] = useSearchParams();
-  const initialPlan = (searchParams.get('plan') as Plan) ?? 'starter';
-  const validPlans: Plan[] = ['starter', 'pro', 'enterprise'];
-  const [plan, setPlan] = useState<Plan>(validPlans.includes(initialPlan) ? initialPlan : 'starter');
+  // Derive plan from onboarding-saved user metadata
+  const rawTier = user?.user_metadata?.tier ?? 'starter';
+  const plan: Plan = (['starter', 'pro', 'enterprise'] as Plan[]).includes(rawTier as Plan)
+    ? (rawTier as Plan)
+    : 'starter';
 
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
 
-  const visible = CONTRACTORS.filter((c) => matchesFilter(c, activeFilter));
+  useEffect(() => {
+    supabase
+      .from('contractors')
+      .select('*')
+      .eq('active', true)
+      .order('verified', { ascending: false })
+      .order('rating', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          setFetchState('error');
+        } else {
+          setContractors((data ?? []) as Contractor[]);
+          setFetchState('ready');
+        }
+      });
+  }, []);
+
+  const visible = contractors.filter((c) => matchesFilter(c, activeFilter));
 
   return (
     <div className="min-h-screen bg-white">
@@ -399,58 +318,84 @@ export default function ContractorsPage() {
           </p>
         </motion.div>
 
-        {/* Demo plan toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.05 }}
-          className="mb-5"
-        >
-          <PlanToggleBar plan={plan} onChange={setPlan} />
-        </motion.div>
-
         {/* Filter bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.1 }}
-          className="flex flex-wrap gap-2 mb-7"
-        >
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setActiveFilter(f)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                activeFilter === f
-                  ? 'bg-brand-near-black text-white'
-                  : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey hover:border-brand-near-black hover:text-brand-near-black'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </motion.div>
+        {fetchState === 'ready' && contractors.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
+            className="flex flex-wrap gap-2 mb-7"
+          >
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setActiveFilter(f)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  activeFilter === f
+                    ? 'bg-brand-near-black text-white'
+                    : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey hover:border-brand-near-black hover:text-brand-near-black'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Loading */}
+        {fetchState === 'loading' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[0, 1, 2, 3, 4, 5].map((i) => <CardSkeleton key={i} />)}
+          </div>
+        )}
+
+        {/* Error */}
+        {fetchState === 'error' && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-sm font-medium text-brand-near-black">Could not load contractors.</p>
+            <p className="text-xs text-brand-mid-grey mt-1">Please refresh and try again.</p>
+          </div>
+        )}
+
+        {/* Empty — no contractors onboarded yet */}
+        {fetchState === 'ready' && contractors.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-full border-2 border-dashed border-brand-border-grey">
+              <CheckCircle2 className="size-6 text-brand-mid-grey" />
+            </div>
+            <p className="text-sm font-semibold text-brand-near-black">No contractors listed yet</p>
+            <p className="text-xs text-brand-mid-grey mt-1 max-w-xs">
+              The Jalla team is vetting professionals. Check back soon, or{' '}
+              <Link to="/contractor-apply" className="underline underline-offset-2 hover:text-brand-near-black transition-colors">
+                apply to join
+              </Link>.
+            </p>
+          </div>
+        )}
 
         {/* Grid */}
-        <AnimatePresence mode="popLayout">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visible.map((contractor, i) => (
-              <motion.div
-                key={contractor.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: 0.28, delay: i * 0.04 }}
-              >
-                <ContractorCard contractor={contractor} plan={plan} />
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
+        {fetchState === 'ready' && contractors.length > 0 && (
+          <AnimatePresence mode="popLayout">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {visible.map((contractor, i) => (
+                <motion.div
+                  key={contractor.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.28, delay: i * 0.04 }}
+                >
+                  <ContractorCard contractor={contractor} plan={plan} />
+                </motion.div>
+              ))}
+            </div>
+          </AnimatePresence>
+        )}
 
-        {visible.length === 0 && (
+        {/* Filtered empty */}
+        {fetchState === 'ready' && contractors.length > 0 && visible.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-sm font-medium text-brand-near-black">No professionals in this category yet.</p>
             <p className="text-xs text-brand-mid-grey mt-1">Try a different filter.</p>
@@ -458,16 +403,20 @@ export default function ContractorsPage() {
         )}
 
         {/* Footer note */}
-        <p className="mt-10 text-center text-xs text-brand-mid-grey">
-          All listed professionals are screened by the Jalla team.{' '}
-          <Link
-            to="/contractor-apply"
-            className="underline underline-offset-4 hover:text-brand-near-black transition-colors"
-          >
-            Apply to join the directory
-          </Link>
-        </p>
+        {fetchState === 'ready' && contractors.length > 0 && (
+          <p className="mt-10 text-center text-xs text-brand-mid-grey">
+            All listed professionals are screened by the Jalla team.{' '}
+            <Link
+              to="/contractor-apply"
+              className="underline underline-offset-4 hover:text-brand-near-black transition-colors"
+            >
+              Apply to join the directory
+            </Link>
+          </p>
+        )}
       </div>
+
+      <BackToTop />
     </div>
   );
 }

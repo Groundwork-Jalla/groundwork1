@@ -340,6 +340,7 @@ export default function ProjectDetail() {
                 <ContractorInvite
                   projectId={project.id}
                   userId={user?.id ?? ''}
+                  projectName={project.name}
                 />
               </div>
             </div>

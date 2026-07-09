@@ -2,13 +2,14 @@ import { supabase } from './client';
 import type { ContractorInviteRow } from '@/types/project';
 
 // =========================================================
-// inviteContractor — insert invite record
-// TODO: Wire email sending via Resend when integration is ready
+// inviteContractor — insert invite record + send invite email
 // =========================================================
 export async function inviteContractor(
   projectId: string,
   invitedBy: string,
   email: string,
+  projectName: string,
+  inviterName: string,
 ): Promise<ContractorInviteRow> {
   const { data, error } = await supabase
     .from('contractor_invites')
@@ -23,6 +24,17 @@ export async function inviteContractor(
     .single<ContractorInviteRow>();
 
   if (error) throw error;
+
+  // Fire-and-forget email — invite is already saved to DB.
+  // Email will succeed once mail.tryjalla.com DNS is verified.
+  fetch('/api/send-invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ toEmail: email.toLowerCase().trim(), projectName, inviterName }),
+  }).catch(() => {
+    // Non-blocking — DB invite is the source of truth
+  });
+
   return data;
 }
 
