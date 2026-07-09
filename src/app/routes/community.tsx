@@ -144,12 +144,12 @@ export default function Community() {
       {/* RIGHT — locked on desktop; scrollable within panel on small screens */}
       <div className="flex-1 bg-white overflow-y-auto flex flex-col">
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-brand-border-grey">
+        <div className="lg:hidden flex items-center justify-between bg-brand-near-black px-6 py-3.5 border-b border-white/10">
           <div className="flex flex-col leading-none">
-            <span className="font-sans text-lg font-black text-brand-near-black tracking-tight">Groundwork</span>
-            <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
+            <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
+            <span className="text-[10px] text-white/50 font-normal mt-0.5">by Jalla</span>
           </div>
-          <Link to="/" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
+          <Link to="/" className="text-sm text-white/60 hover:text-white transition-colors">
             ← Home
           </Link>
         </div>

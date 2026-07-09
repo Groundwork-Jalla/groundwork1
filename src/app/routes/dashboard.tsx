@@ -272,7 +272,91 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="relative min-h-screen bg-white overflow-x-clip">
+
+      {/* Architectural watermark background */}
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 w-full h-full"
+        viewBox="0 0 1200 900"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <pattern id="dash-grid" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#0a0a0a" strokeWidth="0.5" strokeOpacity="0.08" />
+          </pattern>
+        </defs>
+
+        {/* Base grid */}
+        <rect width="1200" height="900" fill="url(#dash-grid)" />
+
+        {/* Floor plan walls */}
+        <line x1="160"  y1="120" x2="760"  y2="120" stroke="#0a0a0a" strokeWidth="2" strokeOpacity="0.13" />
+        <line x1="160"  y1="120" x2="160"  y2="720" stroke="#0a0a0a" strokeWidth="2" strokeOpacity="0.13" />
+        <line x1="760"  y1="120" x2="760"  y2="720" stroke="#0a0a0a" strokeWidth="2" strokeOpacity="0.13" />
+        <line x1="160"  y1="720" x2="760"  y2="720" stroke="#0a0a0a" strokeWidth="2" strokeOpacity="0.13" />
+
+        {/* Interior partitions */}
+        <line x1="160"  y1="380" x2="520"  y2="380" stroke="#0a0a0a" strokeWidth="1.4" strokeOpacity="0.11" />
+        <line x1="520"  y1="120" x2="520"  y2="560" stroke="#0a0a0a" strokeWidth="1.4" strokeOpacity="0.11" />
+        <line x1="340"  y1="380" x2="340"  y2="720" stroke="#0a0a0a" strokeWidth="1.4" strokeOpacity="0.11" />
+        <line x1="340"  y1="560" x2="760"  y2="560" stroke="#0a0a0a" strokeWidth="1.4" strokeOpacity="0.11" />
+
+        {/* Extended plan (right wing) */}
+        <line x1="760"  y1="200" x2="1040" y2="200" stroke="#0a0a0a" strokeWidth="1.6" strokeOpacity="0.10" />
+        <line x1="1040" y1="200" x2="1040" y2="620" stroke="#0a0a0a" strokeWidth="1.6" strokeOpacity="0.10" />
+        <line x1="760"  y1="620" x2="1040" y2="620" stroke="#0a0a0a" strokeWidth="1.6" strokeOpacity="0.10" />
+        <line x1="760"  y1="400" x2="1040" y2="400" stroke="#0a0a0a" strokeWidth="1.2" strokeOpacity="0.09" />
+        <line x1="900"  y1="200" x2="900"  y2="620" stroke="#0a0a0a" strokeWidth="1.2" strokeOpacity="0.09" />
+
+        {/* Door arcs */}
+        <path d="M520 380 A48 48 0 0 0 472 332" fill="none" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.11" strokeDasharray="5 4" />
+        <path d="M340 380 A44 44 0 0 1 296 336" fill="none" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.11" strokeDasharray="5 4" />
+        <path d="M340 560 A44 44 0 0 0 384 516" fill="none" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.11" strokeDasharray="5 4" />
+        <path d="M900 400 A44 44 0 0 1 856 444" fill="none" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.11" strokeDasharray="5 4" />
+
+        {/* Window notches */}
+        <line x1="300" y1="120" x2="420" y2="120" stroke="#0a0a0a" strokeWidth="5" strokeOpacity="0.12" strokeLinecap="square" />
+        <line x1="580" y1="120" x2="700" y2="120" stroke="#0a0a0a" strokeWidth="5" strokeOpacity="0.12" strokeLinecap="square" />
+        <line x1="160" y1="200" x2="160" y2="320" stroke="#0a0a0a" strokeWidth="5" strokeOpacity="0.12" strokeLinecap="square" />
+        <line x1="160" y1="460" x2="160" y2="580" stroke="#0a0a0a" strokeWidth="5" strokeOpacity="0.12" strokeLinecap="square" />
+        <line x1="960" y1="200" x2="1040" y2="200" stroke="#0a0a0a" strokeWidth="5" strokeOpacity="0.12" strokeLinecap="square" />
+
+        {/* Dimension lines — top */}
+        <line x1="160" y1="88" x2="520"  y2="88" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        <line x1="520" y1="88" x2="760"  y2="88" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        {[160, 520, 760].map(x => (
+          <line key={x} x1={x} y1="82" x2={x} y2="94" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        ))}
+        <text x="340"  y="82" textAnchor="middle" fontSize="9" fill="#0a0a0a" fillOpacity="0.22" fontFamily="'Plus Jakarta Sans', sans-serif">7,200</text>
+        <text x="640"  y="82" textAnchor="middle" fontSize="9" fill="#0a0a0a" fillOpacity="0.22" fontFamily="'Plus Jakarta Sans', sans-serif">4,400</text>
+
+        {/* Dimension lines — left */}
+        <line x1="122" y1="120" x2="122" y2="380" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        <line x1="122" y1="380" x2="122" y2="720" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        {[120, 380, 720].map(y => (
+          <line key={y} x1="116" y1={y} x2="128" y2={y} stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.14" />
+        ))}
+        <text x="116" y="258" textAnchor="middle" fontSize="9" fill="#0a0a0a" fillOpacity="0.22" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 116 258)">5,400</text>
+        <text x="116" y="556" textAnchor="middle" fontSize="9" fill="#0a0a0a" fillOpacity="0.22" fontFamily="'Plus Jakarta Sans', sans-serif" transform="rotate(-90 116 556)">5,400</text>
+
+        {/* Room number circles */}
+        {[
+          { cx: 336, cy: 248, n: '1' },
+          { cx: 636, cy: 248, n: '2' },
+          { cx: 248, cy: 548, n: '3' },
+          { cx: 540, cy: 640, n: '4' },
+          { cx: 830, cy: 304, n: '5' },
+          { cx: 970, cy: 304, n: '6' },
+        ].map(({ cx, cy, n }) => (
+          <g key={n}>
+            <circle cx={cx} cy={cy} r="16" fill="none" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.14" />
+            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="#0a0a0a" fillOpacity="0.2" fontFamily="'Plus Jakarta Sans', sans-serif">{n}</text>
+          </g>
+        ))}
+      </svg>
+
+      <div className="relative z-10">
       <DashboardNav displayName={displayName} onLogout={handleLogout} />
 
       <div className="max-w-215 mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -367,6 +451,7 @@ export default function Dashboard() {
           )}
 
         </motion.div>
+      </div>
       </div>
     </div>
   );

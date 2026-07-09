@@ -18,13 +18,14 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
       setError(error.message);
       return;
     }
-    navigate("/dashboard", { replace: true });
+    const isNew = !data.user?.user_metadata?.onboarding_complete;
+    navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
   }
 
   return (
