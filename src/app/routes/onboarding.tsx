@@ -51,7 +51,7 @@ const TIERS: TierConfig[] = [
     id: 'pro',
     icon: <ShieldCheck className="size-5" />,
     name: 'Pro',
-    price: '$19',
+    price: '$199',
     priceNote: '/ mo',
     badge: 'Most popular',
     features: [
