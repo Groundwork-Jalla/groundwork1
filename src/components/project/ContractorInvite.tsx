@@ -18,6 +18,7 @@ interface ContractorInviteProps {
   projectId: string;
   userId: string;
   projectName: string;
+  projectTier: string;
 }
 
 function isValidEmail(value: string): boolean {
@@ -82,7 +83,7 @@ function InviteSkeleton() {
   );
 }
 
-export function ContractorInvite({ projectId, userId, projectName }: ContractorInviteProps) {
+export function ContractorInvite({ projectId, userId, projectName, projectTier }: ContractorInviteProps) {
   const { user } = useAuth();
   const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
 
@@ -146,6 +147,8 @@ export function ContractorInvite({ projectId, userId, projectName }: ContractorI
       status: 'pending',
       accepted_at: null,
       created_at: new Date().toISOString(),
+      token: '',
+      contractor_user_id: null,
     };
 
     setInvites((prev) => [optimistic, ...prev]);
@@ -183,6 +186,10 @@ export function ContractorInvite({ projectId, userId, projectName }: ContractorI
     }
   }
 
+  const isStarterAtLimit = (projectTier === 'self_verify' || projectTier === 'starter') && invites.filter(
+    (inv) => inv.status === 'pending' || inv.status === 'accepted',
+  ).length >= 1;
+
   return (
     <section className="w-full font-sans">
       {/* Section header */}
@@ -190,16 +197,30 @@ export function ContractorInvite({ projectId, userId, projectName }: ContractorI
         <h2 className="text-sm font-medium text-brand-near-black">
           Contractor Access
         </h2>
-        <Button
-          type="button"
-          variant={showForm ? 'outline' : 'default'}
-          size="sm"
-          onClick={handleToggleForm}
-          className="shrink-0"
-        >
-          {showForm ? 'Cancel' : 'Invite Contractor'}
-        </Button>
+        {isStarterAtLimit ? (
+          <span className="text-xs text-brand-mid-grey">
+            1 contractor limit on Self Verify
+          </span>
+        ) : (
+          <Button
+            type="button"
+            variant={showForm ? 'outline' : 'default'}
+            size="sm"
+            onClick={handleToggleForm}
+            className="shrink-0"
+          >
+            {showForm ? 'Cancel' : 'Invite Contractor'}
+          </Button>
+        )}
       </div>
+
+      {/* Starter limit notice */}
+      {isStarterAtLimit && (
+        <p className="text-xs text-brand-mid-grey mb-4 leading-relaxed">
+          Self Verify plan allows 1 contractor per project.{' '}
+          <span className="text-brand-near-black">Upgrade to Jalla Verify for unlimited contractors.</span>
+        </p>
+      )}
 
       {/* Invite form */}
       <AnimatePresence>

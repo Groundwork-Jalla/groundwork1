@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase/client";
+import { acceptInvite } from "@/lib/supabase/invites";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -12,11 +13,21 @@ export default function AuthCallback() {
 
       if (code) {
         const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          setError(error.message);
-          return;
+        if (error) { setError(error.message); return; }
+
+        // Process any pending invite (stored in localStorage before signup)
+        const token = localStorage.getItem("pendingInvite");
+        if (token) {
+          localStorage.removeItem("pendingInvite");
+          try {
+            const projectId = await acceptInvite(token);
+            navigate(`/projects/${projectId}`, { replace: true });
+            return;
+          } catch {
+            // Invalid/used token — fall through to normal routing
+          }
         }
-        // Send new users (no onboarding_complete flag) to onboarding
+
         const isNew = !sessionData.user?.user_metadata?.onboarding_complete;
         navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
         return;
@@ -25,6 +36,7 @@ export default function AuthCallback() {
       const { data: { session } } = await supabase.auth.getSession();
       navigate(session ? "/dashboard" : "/auth/login", { replace: true });
     }
+
     run();
   }, [navigate]);
 
@@ -35,7 +47,10 @@ export default function AuthCallback() {
           Something went wrong
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{error}</p>
-        <Link to="/auth/login" className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4">
+        <Link
+          to="/auth/login"
+          className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"
+        >
           Back to login
         </Link>
       </div>

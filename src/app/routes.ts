@@ -6,6 +6,7 @@ export default [
   route("/", "routes/landing.tsx"),
   route("contractor-apply", "routes/contractor-apply.tsx"),
   route("community", "routes/community.tsx"),
+  route("invite/:token", "routes/invite.tsx"),
 
   // Auth routes (public)
   layout("routes/_auth-layout.tsx", [

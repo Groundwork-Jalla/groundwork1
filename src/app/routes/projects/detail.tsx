@@ -50,27 +50,43 @@ const ROOF_LABELS: Record<string, string> = {
 const FINISH_LABELS: Record<FinishLevel, string> = {
   standard: 'Standard', premium: 'Premium', luxury: 'Luxury',
 };
-const TIER_META: Record<ProjectTier, { label: string; icon: React.ReactNode }> = {
-  starter:    { label: 'Starter',    icon: <BadgeCheck className="size-3.5" />  },
-  pro:        { label: 'Pro',        icon: <ShieldCheck className="size-3.5" /> },
-  enterprise: { label: 'Enterprise', icon: <Briefcase className="size-3.5" />   },
+const TIER_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
+  jalla_verify:     { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
+  jalla_management: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
+  // legacy values
+  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
+  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
+  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
 };
 
 // ── Tab bar ───────────────────────────────────────────────
 
 type Tab = 'stages' | 'budget' | 'documents' | 'messages';
 
-const TABS: { id: Tab; label: string }[] = [
+const OWNER_TABS: { id: Tab; label: string }[] = [
   { id: 'stages',    label: 'Stages'    },
   { id: 'budget',    label: 'Budget'    },
   { id: 'documents', label: 'Documents' },
   { id: 'messages',  label: 'Messages'  },
 ];
 
-function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+const CONTRACTOR_TABS: { id: Tab; label: string }[] = [
+  { id: 'stages',   label: 'Stages'   },
+  { id: 'messages', label: 'Messages' },
+];
+
+function TabBar({
+  active, onChange, isContractor,
+}: {
+  active: Tab;
+  onChange: (t: Tab) => void;
+  isContractor: boolean;
+}) {
+  const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
   return (
     <div className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-brand-border-grey mb-6">
-      {TABS.map(tab => (
+      {tabs.map(tab => (
         <button
           key={tab.id}
           type="button"
@@ -142,14 +158,14 @@ export default function ProjectDetail() {
   const handleMarkSubstageComplete = useCallback(async (substageId: string) => {
     if (!user || !project) return;
     await markSubstageComplete(substageId, project.tier, user.id);
-    // Optimistic local update
+    const isSelfVerify = project.tier === 'self_verify' || (project.tier as string) === 'starter';
     setSubstages(prev => prev.map(s =>
       s.id === substageId
         ? {
             ...s,
-            status:      project.tier === 'starter' ? 'complete' : 'pending_review',
-            approved_by: project.tier === 'starter' ? user.id : null,
-            approved_at: project.tier === 'starter' ? new Date().toISOString() : null,
+            status:      isSelfVerify ? 'complete' : 'pending_review',
+            approved_by: isSelfVerify ? user.id : null,
+            approved_at: isSelfVerify ? new Date().toISOString() : null,
           }
         : s,
     ));
@@ -241,6 +257,8 @@ export default function ProjectDetail() {
     ? Math.round((stages.filter(s => s.status === 'complete').length / stages.length) * 100)
     : 0;
 
+  const isContractor = user?.user_metadata?.role === 'contractor';
+
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
     ?? 'You';
@@ -301,25 +319,27 @@ export default function ProjectDetail() {
             )}
           </div>
 
-          {/* Budget headline */}
-          <div className="flex items-center justify-between rounded-xl border border-brand-border-grey px-5 py-4 mb-6">
-            <div>
-              <p className="text-xs text-brand-mid-grey mb-0.5">Budget Estimate</p>
-              <p className="text-2xl font-black text-brand-near-black tabular-nums">
-                {formatUSDFull(budget.total)}
-              </p>
+          {/* Budget headline — hidden for contractors */}
+          {!isContractor && (
+            <div className="flex items-center justify-between rounded-xl border border-brand-border-grey px-5 py-4 mb-6">
+              <div>
+                <p className="text-xs text-brand-mid-grey mb-0.5">Budget Estimate</p>
+                <p className="text-2xl font-black text-brand-near-black tabular-nums">
+                  {formatUSDFull(budget.total)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('budget')}
+                className="text-xs font-medium text-brand-near-black underline underline-offset-4 hover:opacity-70 transition-opacity"
+              >
+                View breakdown
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab('budget')}
-              className="text-xs font-medium text-brand-near-black underline underline-offset-4 hover:opacity-70 transition-opacity"
-            >
-              View breakdown
-            </button>
-          </div>
+          )}
 
           {/* Tabs */}
-          <TabBar active={activeTab} onChange={setActiveTab} />
+          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} />
 
           {/* Tab: Stages */}
           {activeTab === 'stages' && (
@@ -329,20 +349,24 @@ export default function ProjectDetail() {
                 substages={substages}
                 tier={project.tier}
                 userId={user?.id ?? ''}
+                isContractor={isContractor}
                 onMarkSubstageComplete={handleMarkSubstageComplete}
                 onEvidenceUploaded={handleEvidenceUploaded}
                 onApproveStage={handleApproveStage}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
 
-              {/* Contractor invite (at the bottom of stages tab) */}
-              <div className="rounded-xl border border-brand-border-grey p-5">
-                <ContractorInvite
-                  projectId={project.id}
-                  userId={user?.id ?? ''}
-                  projectName={project.name}
-                />
-              </div>
+              {/* Contractor invite — visible to project owner only */}
+              {!isContractor && (
+                <div className="rounded-xl border border-brand-border-grey p-5">
+                  <ContractorInvite
+                    projectId={project.id}
+                    userId={user?.id ?? ''}
+                    projectName={project.name}
+                    projectTier={project.tier}
+                  />
+                </div>
+              )}
             </div>
           )}
 

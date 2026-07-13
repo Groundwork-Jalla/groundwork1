@@ -60,7 +60,7 @@ interface ApproveButtonProps {
 }
 
 function ApproveButton({ tier, stageNumber, onApprove, loading }: ApproveButtonProps) {
-  if (tier === 'enterprise') {
+  if (tier === 'jalla_management' || tier === 'enterprise') {
     return (
       <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
         This stage is managed by Jalla. Progress will be updated by your project manager.
@@ -68,7 +68,7 @@ function ApproveButton({ tier, stageNumber, onApprove, loading }: ApproveButtonP
     );
   }
 
-  const label = tier === 'starter'
+  const label = (tier === 'self_verify' || tier === 'starter')
     ? `Approve Stage ${stageNumber}`
     : `Request Verification`;
 
@@ -95,6 +95,7 @@ interface StageRowProps {
   onToggle: () => void;
   tier: string;
   userId: string;
+  isContractor?: boolean;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -107,7 +108,7 @@ interface StageRowProps {
 
 function StageRow({
   stage, substages, isLast, isOpen, onToggle,
-  tier, userId,
+  tier, userId, isContractor,
   onMarkSubstageComplete, onEvidenceUploaded, onApproveStage,
   renderEvidenceUpload,
 }: StageRowProps) {
@@ -117,14 +118,16 @@ function StageRow({
   const isInteractive = stage.status !== 'locked';
 
   const allSubstagesReady = substages.length > 0 && substages.every(sub =>
-    tier === 'starter'
+    (tier === 'self_verify' || tier === 'starter')
       ? sub.status === 'complete'
       : sub.status === 'pending_review' || sub.status === 'complete',
   );
 
   const showApproveButton =
+    !isContractor &&
     stage.status === 'active' &&
     allSubstagesReady &&
+    tier !== 'jalla_management' &&
     tier !== 'enterprise';
 
   async function handleApprove() {
@@ -209,7 +212,7 @@ function StageRow({
                     tier={tier}
                     userId={userId}
                     isStageActive={stage.status === 'active'}
-                    onMarkComplete={onMarkSubstageComplete}
+                    onMarkComplete={isContractor ? undefined : onMarkSubstageComplete}
                     onEvidenceUploaded={onEvidenceUploaded}
                     renderEvidenceUpload={renderEvidenceUpload}
                   />
@@ -225,7 +228,7 @@ function StageRow({
                 />
               )}
 
-              {tier === 'enterprise' && stage.status === 'active' && (
+              {(tier === 'jalla_management' || tier === 'enterprise') && stage.status === 'active' && (
                 <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
                   This stage is managed by Jalla. Progress will be updated by your project manager.
                 </p>
@@ -237,13 +240,13 @@ function StageRow({
 
       <ConfirmModal
         open={confirmOpen}
-        title={tier === 'starter' ? 'Approve this stage?' : 'Request verification?'}
+        title={(tier === 'self_verify' || tier === 'starter') ? 'Approve this stage?' : 'Request verification?'}
         description={
-          tier === 'starter'
+          (tier === 'self_verify' || tier === 'starter')
             ? 'This will mark the stage complete, release the milestone payment, and unlock the next stage.'
             : 'This will submit all your evidence for Jalla review. You\'ll be notified once approved or if changes are needed.'
         }
-        confirmLabel={tier === 'starter' ? 'Approve Stage' : 'Submit for Review'}
+        confirmLabel={(tier === 'self_verify' || tier === 'starter') ? 'Approve Stage' : 'Submit for Review'}
         loading={approving}
         onConfirm={handleApprove}
         onCancel={() => setConfirmOpen(false)}
@@ -259,6 +262,7 @@ interface StageTrackerProps {
   substages: ProjectSubstageRow[];
   tier: string;
   userId: string;
+  isContractor?: boolean;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -270,7 +274,7 @@ interface StageTrackerProps {
 }
 
 export function StageTracker({
-  stages, substages, tier, userId,
+  stages, substages, tier, userId, isContractor,
   onMarkSubstageComplete, onEvidenceUploaded, onApproveStage,
   renderEvidenceUpload,
 }: StageTrackerProps) {
@@ -304,6 +308,7 @@ export function StageTracker({
               )}
               tier={tier}
               userId={userId}
+              isContractor={isContractor}
               onMarkSubstageComplete={onMarkSubstageComplete}
               onEvidenceUploaded={onEvidenceUploaded}
               onApproveStage={onApproveStage}

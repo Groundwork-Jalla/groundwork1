@@ -5,20 +5,25 @@ import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
   MapPin, Building2, ChevronRight, User,
 } from 'lucide-react';
-import { useAuth }           from '@/contexts/AuthContext';
-import { fetchProjects }     from '@/lib/supabase/projects';
-import { formatUSDFull }     from '@/lib/budget';
-import { findCountry }       from '@/lib/countries';
-import type { ProjectRow, ProjectTier } from '@/types/project';
+import { useAuth }                          from '@/contexts/AuthContext';
+import { fetchProjects }                   from '@/lib/supabase/projects';
+import { fetchContractorProjects }         from '@/lib/supabase/invites';
+import { formatUSDFull }                   from '@/lib/budget';
+import { findCountry }                     from '@/lib/countries';
+import type { ProjectRow, ProjectTier }    from '@/types/project';
 
 // ── Constants ─────────────────────────────────────────────
 
 const STARTER_LIMIT = 3;
 
-const TIER_META: Record<ProjectTier, { label: string; icon: React.ReactNode; color: string }> = {
-  starter:    { label: 'Starter',    icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
-  pro:        { label: 'Pro',        icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
-  enterprise: { label: 'Enterprise', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  self_verify:       { label: 'Self Verify',       icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
+  jalla_verify:      { label: 'Jalla Verify',      icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
+  jalla_management:  { label: 'Jalla Management',  icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  // legacy values — kept until all DB rows are backfilled
+  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
+  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
+  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
 };
 
 const BT_LABELS: Record<string, string> = {
@@ -197,12 +202,12 @@ function StarterLimitBanner({ count }: { count: number }) {
         : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey'
     }`}>
       <span>
-        <span className="font-medium">{count} / {STARTER_LIMIT}</span> Starter projects used
+        <span className="font-medium">{count} / {STARTER_LIMIT}</span> Self Verify projects used
         {atLimit && ' — limit reached'}
       </span>
       {atLimit && (
         <span className="text-xs font-semibold text-amber-700 underline underline-offset-2 cursor-pointer">
-          Upgrade to Pro
+          Upgrade to Jalla Verify
         </span>
       )}
     </div>
@@ -245,8 +250,10 @@ function DashboardNav({ displayName, onLogout }: { displayName: string; onLogout
 // ── Main ──────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const navigate       = useNavigate();
+  const navigate          = useNavigate();
   const { user, signOut } = useAuth();
+
+  const isContractor = user?.user_metadata?.role === 'contractor';
 
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -255,16 +262,19 @@ export default function Dashboard() {
     ?? user?.email?.split('@')[0]
     ?? 'You';
 
-  const starterProjects = projects.filter(p => p.tier === 'starter');
+  const starterProjects = projects.filter(p => p.tier === 'self_verify' || (p.tier as string) === 'starter');
   const atStarterLimit  = starterProjects.length >= STARTER_LIMIT;
 
   useEffect(() => {
     if (!user) return;
-    fetchProjects(user.id)
+    const loader = isContractor
+      ? fetchContractorProjects(user.id)
+      : fetchProjects(user.id);
+    loader
       .then(setProjects)
-      .catch(() => {/* RLS will return empty on error */})
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, isContractor]);
 
   async function handleLogout() {
     await signOut();
@@ -366,7 +376,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black">
-                Your Projects
+                {isContractor ? 'Assigned Projects' : 'Your Projects'}
               </h1>
               {!loading && projects.length > 0 && (
                 <p className="mt-1 text-sm text-brand-mid-grey">
@@ -375,29 +385,31 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* New project button — disabled at Starter limit */}
-            {atStarterLimit ? (
-              <button
-                type="button"
-                title="Starter plan limited to 3 projects"
-                className="flex items-center gap-2 rounded-xl bg-brand-light-grey text-brand-mid-grey text-sm font-semibold px-4 py-2.5 cursor-not-allowed opacity-70"
-              >
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">New Project</span>
-              </button>
-            ) : (
-              <Link
-                to="/projects/new"
-                className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2.5 hover:bg-black transition-colors"
-              >
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">New Project</span>
-              </Link>
+            {/* New project button — hidden for contractors */}
+            {!isContractor && (
+              atStarterLimit ? (
+                <button
+                  type="button"
+                  title="Self Verify plan limited to 3 projects"
+                  className="flex items-center gap-2 rounded-xl bg-brand-light-grey text-brand-mid-grey text-sm font-semibold px-4 py-2.5 cursor-not-allowed opacity-70"
+                >
+                  <Plus className="size-4" />
+                  <span className="hidden sm:inline">New Project</span>
+                </button>
+              ) : (
+                <Link
+                  to="/projects/new"
+                  className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2.5 hover:bg-black transition-colors"
+                >
+                  <Plus className="size-4" />
+                  <span className="hidden sm:inline">New Project</span>
+                </Link>
+              )
             )}
           </div>
 
-          {/* Starter limit banner (only if user has Starter projects) */}
-          {!loading && starterProjects.length > 0 && (
+          {/* Starter limit banner — hidden for contractors */}
+          {!isContractor && !loading && starterProjects.length > 0 && (
             <div className="mb-5">
               <StarterLimitBanner count={starterProjects.length} />
             </div>
@@ -411,7 +423,13 @@ export default function Dashboard() {
               <SkeletonCard />
             </div>
           ) : projects.length === 0 ? (
-            <EmptyProjects />
+            isContractor ? (
+              <div className="flex items-center gap-4 rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">
+                No assigned projects yet. Check back after your invite is confirmed.
+              </div>
+            ) : (
+              <EmptyProjects />
+            )
           ) : (
             <AnimatePresence>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -426,8 +444,8 @@ export default function Dashboard() {
                   </motion.div>
                 ))}
 
-                {/* New project card — always last, disabled at Starter limit */}
-                {!atStarterLimit && (
+                {/* New project card — hidden for contractors */}
+                {!isContractor && !atStarterLimit && (
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}

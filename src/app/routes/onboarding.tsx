@@ -14,7 +14,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────
 
-type Tier = 'starter' | 'pro' | 'enterprise';
+type Tier = 'self_verify' | 'jalla_verify' | 'jalla_management';
 type Step = 1 | 2;
 
 // ── Tier config ───────────────────────────────────────────
@@ -33,9 +33,9 @@ interface TierConfig {
 
 const TIERS: TierConfig[] = [
   {
-    id: 'starter',
+    id: 'self_verify',
     icon: <BadgeCheck className="size-5" />,
-    name: 'Starter',
+    name: 'Self Verify',
     price: 'Free',
     features: [
       'Up to 3 projects',
@@ -48,25 +48,25 @@ const TIERS: TierConfig[] = [
     highlighted: false,
   },
   {
-    id: 'pro',
+    id: 'jalla_verify',
     icon: <ShieldCheck className="size-5" />,
-    name: 'Pro',
+    name: 'Jalla Verify',
     price: '$199',
     priceNote: '/ mo',
     badge: 'Most popular',
     features: [
       'Unlimited projects',
-      'Admin stage review',
-      'Everything in Starter',
+      'Jalla-verified stages',
+      'Everything in Self Verify',
       'Priority support',
     ],
-    cta: 'Choose Pro',
+    cta: 'Choose Jalla Verify',
     highlighted: true,
   },
   {
-    id: 'enterprise',
+    id: 'jalla_management',
     icon: <Briefcase className="size-5" />,
-    name: 'Enterprise',
+    name: 'Jalla Management',
     price: 'Custom',
     features: [
       'Jalla manages everything',
@@ -348,7 +348,7 @@ export default function OnboardingPage() {
   }
 
   async function handleTierSelect(tier: Tier) {
-    if (tier === 'enterprise') {
+    if (tier === 'jalla_management') {
       // Open mailto and still complete onboarding
       window.open('mailto:hello@jalla.build', '_blank');
     }

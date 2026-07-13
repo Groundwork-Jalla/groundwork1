@@ -74,7 +74,7 @@ interface SubstageRowProps {
   tier: string;
   userId: string;
   isStageActive: boolean;
-  onMarkComplete: (substageId: string) => Promise<void>;
+  onMarkComplete?: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   /** Render the EvidenceUpload component lazily — passed as a render prop to avoid circular deps */
   renderEvidenceUpload: (props: {
@@ -100,13 +100,13 @@ export function SubstageRow({
   const isLocked    = substage.status === 'locked';
   const isComplete  = substage.status === 'complete';
   const isPendingReview = substage.status === 'pending_review';
-  const canMarkComplete = hasEvidence && !isComplete && !isPendingReview && isStageActive;
+  const canMarkComplete = !!onMarkComplete && hasEvidence && !isComplete && !isPendingReview && isStageActive;
 
   async function handleMarkComplete() {
     setError(null);
     setMarking(true);
     try {
-      await onMarkComplete(substage.id);
+      await onMarkComplete!(substage.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update.');
     } finally {

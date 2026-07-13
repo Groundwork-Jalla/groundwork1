@@ -153,3 +153,29 @@ export async function fetchProjects(userId: string): Promise<ProjectRow[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+
+// =========================================================
+// fetchContractorProjects — projects a contractor is invited to
+// =========================================================
+export async function fetchContractorProjects(userId: string): Promise<ProjectRow[]> {
+  const { data: invites, error: inviteError } = await supabase
+    .from('contractor_invites')
+    .select('project_id')
+    .eq('contractor_user_id', userId)
+    .eq('status', 'accepted');
+
+  if (inviteError) throw inviteError;
+  if (!invites?.length) return [];
+
+  const projectIds = invites.map((i) => i.project_id as string);
+
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .in('id', projectIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}

@@ -1,29 +1,49 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
+import { acceptInvite } from "@/lib/supabase/invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function Login() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const navigate        = useNavigate();
+  const [searchParams]  = useSearchParams();
+  const inviteToken     = searchParams.get("invite") ?? "";
+
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
+
     if (error) {
       setError(error.message);
       return;
     }
+
+    // Process any pending invite (from URL param or localStorage)
+    const token = inviteToken || localStorage.getItem("pendingInvite") || "";
+    if (token) {
+      localStorage.removeItem("pendingInvite");
+      try {
+        const projectId = await acceptInvite(token);
+        navigate(`/projects/${projectId}`, { replace: true });
+        return;
+      } catch {
+        // Invite may be invalid or already used — fall through to normal routing
+      }
+    }
+
     const isNew = !data.user?.user_metadata?.onboarding_complete;
     navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
   }
@@ -36,12 +56,22 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link to="/auth/reset-password" className="text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors">
+            <Link
+              to="/auth/reset-password"
+              className="text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors"
+            >
               Forgot password?
             </Link>
           </div>

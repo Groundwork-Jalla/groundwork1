@@ -30,7 +30,7 @@ export type RoofType = 'long_span_aluminum' | 'clay_tiles' | 'concrete_flat' | '
 
 export type FinishLevel = 'standard' | 'premium' | 'luxury';
 
-export type ProjectTier = 'starter' | 'pro' | 'enterprise';
+export type ProjectTier = 'self_verify' | 'jalla_verify' | 'jalla_management';
 
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
 
@@ -97,7 +97,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   sqm: 0,
   finishLevel: 'standard',
   targetStartDate: '',
-  tier: 'starter',
+  tier: 'self_verify',
 };
 
 // -------------------------------------------------------
@@ -201,6 +201,8 @@ export interface ContractorInviteRow {
   status: 'pending' | 'accepted' | 'rejected';
   accepted_at: string | null;
   created_at: string;
+  token: string;
+  contractor_user_id: string | null;
 }
 
 export interface ProjectAuditLogRow {

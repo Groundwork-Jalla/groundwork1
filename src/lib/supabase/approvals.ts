@@ -10,7 +10,7 @@ export async function markSubstageComplete(
   tier: string,
   userId: string,
 ): Promise<void> {
-  const isStarterTier = tier === 'starter';
+  const isStarterTier = tier === 'self_verify' || tier === 'starter';
   const newStatus = isStarterTier ? 'complete' : 'pending_review';
 
   const { error } = await supabase
@@ -26,12 +26,9 @@ export async function markSubstageComplete(
 }
 
 // =========================================================
-// approveStage
-// 1. Verify all substages are ready
-// 2. Mark current stage complete
-// 3. Unlock + activate next stage and its substages
-// 4. Update project.current_stage (and status if final stage)
-// 5. Log to audit trail
+// approveStage (homeowner action)
+// self_verify  → immediately marks stage complete, unlocks next
+// jalla_verify → submits stage for Jalla admin review
 // =========================================================
 export async function approveStage(
   projectId: string,
@@ -40,6 +37,8 @@ export async function approveStage(
   userId: string,
   tier: string,
 ): Promise<void> {
+  const isSelfVerify = tier === 'self_verify' || tier === 'starter';
+
   // 1. Verify all substages ready
   const { data: substages, error: subFetchErr } = await supabase
     .from('project_substages')
@@ -49,14 +48,29 @@ export async function approveStage(
   if (subFetchErr) throw subFetchErr;
 
   const allReady = (substages ?? []).every(s =>
-    tier === 'starter'
+    isSelfVerify
       ? s.status === 'complete'
       : s.status === 'pending_review' || s.status === 'complete',
   );
 
   if (!allReady) throw new Error('Not all substages are ready for approval.');
 
-  // 2. Mark current stage complete
+  if (!isSelfVerify) {
+    // jalla_verify: submit stage for admin review
+    const { error } = await supabase
+      .from('project_stages')
+      .update({ status: 'pending_review' })
+      .eq('id', stageId);
+    if (error) throw error;
+    await supabase.from('project_audit_log').insert({
+      project_id: projectId, stage_id: stageId,
+      action: 'stage_submitted_for_review', actor_id: userId,
+      details: { tier, stage_number: stageNumber },
+    });
+    return;
+  }
+
+  // self_verify: approve immediately
   const { error: stageErr } = await supabase
     .from('project_stages')
     .update({ status: 'complete', completed_at: new Date().toISOString() })
@@ -64,7 +78,7 @@ export async function approveStage(
 
   if (stageErr) throw stageErr;
 
-  // 3. Unlock + activate next stage
+  // Unlock + activate next stage
   const nextStageNumber = stageNumber + 1;
   const isFinalStage = nextStageNumber > 10;
 
@@ -80,23 +94,15 @@ export async function approveStage(
 
     if (nextStage) {
       const { error: activateErr } = await supabase
-        .from('project_stages')
-        .update({ status: 'active' })
-        .eq('id', nextStage.id);
-
+        .from('project_stages').update({ status: 'active' }).eq('id', nextStage.id);
       if (activateErr) throw activateErr;
 
-      // Unlock substages of next stage
       const { error: subUnlockErr } = await supabase
-        .from('project_substages')
-        .update({ status: 'pending' })
-        .eq('stage_id', nextStage.id);
-
+        .from('project_substages').update({ status: 'pending' }).eq('stage_id', nextStage.id);
       if (subUnlockErr) throw subUnlockErr;
     }
   }
 
-  // 4. Update project lifecycle
   const { error: projectErr } = await supabase
     .from('projects')
     .update({
@@ -107,16 +113,116 @@ export async function approveStage(
 
   if (projectErr) throw projectErr;
 
-  // 5. Audit log
+  await supabase.from('project_audit_log').insert({
+    project_id: projectId, stage_id: stageId,
+    action: 'stage_approved', actor_id: userId,
+    details: { tier, stage_number: stageNumber },
+  });
+}
+
+// =========================================================
+// adminApproveStage — called by Jalla admin
+// Marks stage complete, approves all substages, unlocks next
+// =========================================================
+export async function adminApproveStage(
+  projectId: string,
+  stageId: string,
+  stageNumber: number,
+  adminId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  // Mark all pending substages approved
   await supabase
-    .from('project_audit_log')
-    .insert({
-      project_id: projectId,
-      stage_id:   stageId,
-      action:     'stage_approved',
-      actor_id:   userId,
-      details:    { tier, stage_number: stageNumber },
+    .from('project_substages')
+    .update({ status: 'complete', approved_by: adminId, approved_at: now })
+    .eq('stage_id', stageId)
+    .neq('status', 'complete');
+
+  // Mark stage complete
+  const { error: stageErr } = await supabase
+    .from('project_stages')
+    .update({ status: 'complete', completed_at: now })
+    .eq('id', stageId);
+  if (stageErr) throw stageErr;
+
+  // Unlock next stage
+  const nextStageNumber = stageNumber + 1;
+  const isFinalStage = nextStageNumber > 10;
+
+  if (!isFinalStage) {
+    const { data: nextStage } = await supabase
+      .from('project_stages').select('id')
+      .eq('project_id', projectId).eq('stage_number', nextStageNumber).single();
+
+    if (nextStage) {
+      await supabase.from('project_stages').update({ status: 'active' }).eq('id', nextStage.id);
+      await supabase.from('project_substages').update({ status: 'pending' }).eq('stage_id', nextStage.id);
+    }
+  }
+
+  // Update project
+  await supabase.from('projects').update({
+    current_stage: isFinalStage ? stageNumber : nextStageNumber,
+    status:        isFinalStage ? 'completed' : 'active',
+  }).eq('id', projectId);
+
+  // Notify homeowner
+  const { data: proj } = await supabase.from('projects').select('user_id, name').eq('id', projectId).single();
+  if (proj) {
+    await supabase.from('notifications').insert({
+      user_id: proj.user_id,
+      type: 'stage_approved',
+      title: 'Stage approved',
+      body: `Stage ${stageNumber} of "${proj.name}" has been approved by Jalla.`,
+      data: { project_id: projectId, stage_number: stageNumber },
     });
+  }
+
+  await supabase.from('project_audit_log').insert({
+    project_id: projectId, stage_id: stageId,
+    action: 'stage_approved_by_admin', actor_id: adminId,
+    details: { stage_number: stageNumber },
+  });
+}
+
+// =========================================================
+// adminRequestRework — called by Jalla admin
+// Sends stage back to homeowner with a reason
+// =========================================================
+export async function adminRequestRework(
+  projectId: string,
+  stageId: string,
+  stageNumber: number,
+  adminId: string,
+  reason: string,
+): Promise<void> {
+  // Reset stage to active
+  await supabase.from('project_stages').update({ status: 'active' }).eq('id', stageId);
+
+  // Reset pending_review substages to in_progress
+  await supabase.from('project_substages')
+    .update({ status: 'in_progress', approved_by: null, approved_at: null })
+    .eq('stage_id', stageId)
+    .eq('status', 'pending_review');
+
+  // Notify homeowner
+  const { data: proj } = await supabase.from('projects').select('user_id, name').eq('id', projectId).single();
+  if (proj) {
+    await supabase.from('notifications').insert({
+      user_id: proj.user_id,
+      type: 'stage_rework_requested',
+      title: 'Changes requested',
+      body: `Jalla has requested changes for Stage ${stageNumber} of "${proj.name}": ${reason}`,
+      data: { project_id: projectId, stage_number: stageNumber, reason },
+    });
+  }
+
+  await supabase.from('project_audit_log').insert({
+    project_id: projectId, stage_id: stageId,
+    action: 'rework_requested', actor_id: adminId,
+    details: { stage_number: stageNumber, reason },
+  });
 }
 
 // =========================================================

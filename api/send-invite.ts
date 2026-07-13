@@ -7,7 +7,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { toEmail, projectName, inviterName } = req.body ?? {};
+  const { toEmail, projectName, inviterName, inviteToken } = req.body ?? {};
 
   if (!toEmail || !projectName || !inviterName) {
     res.status(400).json({ error: 'Missing required fields: toEmail, projectName, inviterName' });
@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
             <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
               <tr>
                 <td style="background:#1a1a1a;border-radius:8px;">
-                  <a href="https://groundwork1-phi.vercel.app/auth/signup"
+                  <a href="https://tryjalla.com/invite/${inviteToken || ''}"
                      style="display:inline-block;padding:13px 28px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:-0.1px;">
                     Accept Invite &rarr;
                   </a>
@@ -74,7 +74,7 @@ export default async function handler(req: any, res: any) {
           <td style="padding:16px 32px;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:11px;color:#bbb;">
               Groundwork by Jalla &middot;
-              <a href="https://groundwork1-phi.vercel.app" style="color:#bbb;">groundwork1-phi.vercel.app</a>
+              <a href="https://tryjalla.com" style="color:#bbb;">tryjalla.com</a>
             </p>
           </td>
         </tr>
