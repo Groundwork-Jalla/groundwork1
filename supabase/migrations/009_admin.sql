@@ -93,7 +93,7 @@ CREATE POLICY "admin_insert_notifications"
 
 CREATE POLICY "admin_insert_audit_log"
   ON public.project_audit_log FOR INSERT
-  WITH CHECK (public.is_admin() OR user_id = auth.uid());
+  WITH CHECK (public.is_admin() OR actor_id = auth.uid());
 
 -- ── Admin can send messages on any project ────────────────
 
