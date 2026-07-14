@@ -175,13 +175,13 @@ export default function Step9Summary() {
       popular:     true,
     },
     {
-      value:       'enterprise_custom',
-      title:       'Enterprise Custom',
+      value:       'jalla_management',
+      title:       'Jalla Management',
       price:       'Custom',
       description: 'Jalla manages everything on your behalf. Full-service, dedicated project manager.',
       features:    ['Everything in Jalla Verify', 'Dedicated project manager', 'Procurement oversight', 'On-site representation'],
-      selected:    data.tier === 'enterprise_custom',
-      onSelect:    () => update({ tier: 'enterprise_custom' }),
+      selected:    data.tier === 'jalla_management',
+      onSelect:    () => update({ tier: 'jalla_management' }),
     },
   ];
 

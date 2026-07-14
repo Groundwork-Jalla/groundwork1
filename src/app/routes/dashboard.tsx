@@ -20,12 +20,11 @@ const STARTER_LIMIT = 3;
 const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   self_verify:       { label: 'Self Verify',       icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
   jalla_verify:      { label: 'Jalla Verify',      icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
-  enterprise_custom: { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  jalla_management:  { label: 'Jalla Management',  icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
   // legacy values — kept until all DB rows are backfilled
-  starter:          { label: 'Self Verify',       icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
-  pro:              { label: 'Jalla Verify',      icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
-  enterprise:       { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
-  jalla_management: { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
+  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
+  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
 };
 
 const BT_LABELS: Record<string, string> = {

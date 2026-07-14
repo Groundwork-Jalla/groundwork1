@@ -60,7 +60,7 @@ interface ApproveButtonProps {
 }
 
 function ApproveButton({ tier, stageNumber, onApprove, loading }: ApproveButtonProps) {
-  if (tier === 'enterprise_custom' || tier === 'jalla_management' || tier === 'enterprise') {
+  if (tier === 'jalla_management' || tier === 'enterprise') {
     return (
       <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
         This stage is managed by Jalla. Progress will be updated by your project manager.
@@ -127,7 +127,6 @@ function StageRow({
     !isContractor &&
     stage.status === 'active' &&
     allSubstagesReady &&
-    tier !== 'enterprise_custom' &&
     tier !== 'jalla_management' &&
     tier !== 'enterprise';
 
@@ -229,7 +228,7 @@ function StageRow({
                 />
               )}
 
-              {(tier === 'enterprise_custom' || tier === 'jalla_management' || tier === 'enterprise') && stage.status === 'active' && (
+              {(tier === 'jalla_management' || tier === 'enterprise') && stage.status === 'active' && (
                 <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
                   This stage is managed by Jalla. Progress will be updated by your project manager.
                 </p>

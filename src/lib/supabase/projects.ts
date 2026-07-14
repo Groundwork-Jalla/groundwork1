@@ -12,7 +12,7 @@ import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, Proj
 const TIER_DB_MAP: Record<string, string> = {
   self_verify:      'starter',
   jalla_verify:     'pro',
-  enterprise_custom: 'enterprise',
+  jalla_management: 'enterprise',
 };
 
 function toDBTier(tier: string): string {

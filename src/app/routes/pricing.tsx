@@ -69,7 +69,7 @@ const PLANS: Plan[] = [
   },
   {
     icon: <Briefcase className="size-5" />,
-    name: 'Enterprise Custom',
+    name: 'Jalla Management',
     tagline: 'Full-service. Jalla manages your project end-to-end.',
     price: 'Custom',
     cta: 'Contact us',

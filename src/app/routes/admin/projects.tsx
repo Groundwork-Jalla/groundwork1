@@ -16,8 +16,8 @@ interface AdminProject {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', enterprise_custom: 'Enterprise Custom',
-  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Enterprise Custom', jalla_management: 'Enterprise Custom',
+  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', jalla_management: 'Jalla Management',
+  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Jalla Management',
 };
 
 const STATUS_STYLES: Record<string, string> = {

@@ -3,19 +3,19 @@
 -- Rename tier values:
 --   starter    → self_verify
 --   pro        → jalla_verify
---   enterprise → enterprise_custom
+--   enterprise → jalla_management
 -- =========================================================
 
 -- 1. Loosen CHECK constraint to accept both old and new values during backfill
 ALTER TABLE public.projects DROP CONSTRAINT IF EXISTS projects_tier_check;
 ALTER TABLE public.projects ADD CONSTRAINT projects_tier_check CHECK (
-  tier IN ('starter', 'pro', 'enterprise', 'self_verify', 'jalla_verify', 'enterprise_custom', 'jalla_management')
+  tier IN ('starter', 'pro', 'enterprise', 'self_verify', 'jalla_verify', 'jalla_management')
 );
 
 -- 2. Backfill existing projects (safe to run multiple times — WHERE guards idempotency)
 UPDATE public.projects SET tier = 'self_verify'      WHERE tier = 'starter';
 UPDATE public.projects SET tier = 'jalla_verify'     WHERE tier = 'pro';
-UPDATE public.projects SET tier = 'enterprise_custom' WHERE tier IN ('enterprise', 'jalla_management');
+UPDATE public.projects SET tier = 'jalla_management' WHERE tier = 'enterprise';
 
 -- NOTE: We intentionally keep the constraint accepting BOTH old and new values.
 -- The code already maps new names → old DB values (TIER_DB_MAP in projects.ts)
