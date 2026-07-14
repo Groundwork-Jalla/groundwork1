@@ -12,8 +12,8 @@ interface AdminUser {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', jalla_management: 'Jalla Management',
-  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Jalla Management',
+  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', enterprise_custom: 'Enterprise Custom',
+  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Enterprise Custom', jalla_management: 'Enterprise Custom',
 };
 
 const ROLE_STYLES: Record<string, string> = {
@@ -28,11 +28,12 @@ export default function AdminUsers() {
   const [query, setQuery]     = useState('');
 
   useEffect(() => {
-    supabase
-      .from('profiles')
-      .select('id, email, full_name, tier, role, created_at')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+    async function load() {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, tier, role, created_at')
+          .order('created_at', { ascending: false });
         setUsers((data ?? []).map((u: Record<string, unknown>) => ({
           id:        u.id as string,
           email:     u.email as string ?? '',
@@ -41,8 +42,11 @@ export default function AdminUsers() {
           role:      u.role as string ?? 'homeowner',
           createdAt: u.created_at as string,
         })));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   const filtered = query

@@ -16,8 +16,8 @@ interface AdminProject {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', jalla_management: 'Jalla Management',
-  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Jalla Management',
+  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', enterprise_custom: 'Enterprise Custom',
+  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Enterprise Custom', jalla_management: 'Enterprise Custom',
 };
 
 const STATUS_STYLES: Record<string, string> = {
@@ -33,12 +33,13 @@ export default function AdminProjects() {
   const [query, setQuery]       = useState('');
 
   useEffect(() => {
-    supabase
-      .from('projects')
-      .select(`id, name, tier, status, current_stage, country, created_at,
-               profiles!inner(full_name, email)`)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+    async function load() {
+      try {
+        const { data } = await supabase
+          .from('projects')
+          .select(`id, name, tier, status, current_stage, country, created_at,
+                   profiles!inner(full_name, email)`)
+          .order('created_at', { ascending: false });
         setProjects((data ?? []).map((p: Record<string, unknown>) => {
           const profile = p.profiles as Record<string, unknown>;
           return {
@@ -53,8 +54,11 @@ export default function AdminProjects() {
             createdAt:    p.created_at as string,
           };
         }));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   const filtered = query

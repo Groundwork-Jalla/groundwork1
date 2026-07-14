@@ -27,11 +27,12 @@ export default function AdminContractors() {
   const [actioning, setActioning] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('contractors')
-      .select('id, full_name, email, trade, years_experience, city, country, status, created_at')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+    async function load() {
+      try {
+        const { data } = await supabase
+          .from('contractors')
+          .select('id, full_name, email, trade, years_experience, city, country, status, created_at')
+          .order('created_at', { ascending: false });
         setApps((data ?? []).map((c: Record<string, unknown>) => ({
           id:              c.id as string,
           fullName:        c.full_name as string ?? '',
@@ -43,8 +44,11 @@ export default function AdminContractors() {
           status:          c.status as string ?? 'pending',
           createdAt:       c.created_at as string,
         })));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   async function handleAction(id: string, status: 'approved' | 'rejected') {

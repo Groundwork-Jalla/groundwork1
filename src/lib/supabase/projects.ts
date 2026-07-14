@@ -7,6 +7,18 @@ import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, Proj
 // Inserts: project → stages (per project type) → substages
 // Rolls back by deleting the project (CASCADE) on any failure.
 // =========================================================
+// Maps new tier display-names to DB-safe values for environments
+// where migration 008 hasn't run yet (still has old CHECK constraint).
+const TIER_DB_MAP: Record<string, string> = {
+  self_verify:      'starter',
+  jalla_verify:     'pro',
+  enterprise_custom: 'enterprise',
+};
+
+function toDBTier(tier: string): string {
+  return TIER_DB_MAP[tier] ?? tier;
+}
+
 export async function createProject(
   userId: string,
   formData: WizardFormData,
@@ -33,7 +45,7 @@ export async function createProject(
       living_rooms:      formData.livingRooms,
       kitchens:          formData.kitchens,
       budget_usd:        budget.total,
-      tier:              formData.tier,
+      tier:              toDBTier(formData.tier),
       status:            'active' as const,
       current_stage:     1,
       target_start:      formData.targetStartDate || null,

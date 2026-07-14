@@ -39,18 +39,26 @@ export default function AdminOverview() {
 
   useEffect(() => {
     async function load() {
-      const [projects, reviews, users, contractors] = await Promise.all([
+      const [projects, reviews, users] = await Promise.all([
         supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('project_stages').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('contractors').select('id', { count: 'exact', head: true }).eq('status', 'pending').catch(() => ({ count: 0 })),
       ]);
 
+      let pendingContractors = 0;
+      try {
+        const { count } = await supabase
+          .from('contractors')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        pendingContractors = count ?? 0;
+      } catch { /* contractors table may not exist */ }
+
       setStats({
-        totalProjects:      projects.count ?? 0,
-        pendingReviews:     reviews.count ?? 0,
-        totalUsers:         users.count ?? 0,
-        pendingContractors: (contractors as { count: number | null }).count ?? 0,
+        totalProjects:   projects.count ?? 0,
+        pendingReviews:  reviews.count  ?? 0,
+        totalUsers:      users.count    ?? 0,
+        pendingContractors,
       });
     }
     load();

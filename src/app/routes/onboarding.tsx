@@ -14,7 +14,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────
 
-type Tier = 'self_verify' | 'jalla_verify' | 'jalla_management';
+type Tier = 'self_verify' | 'jalla_verify' | 'enterprise_custom';
 type Step = 1 | 2;
 
 // ── Tier config ───────────────────────────────────────────
@@ -64,9 +64,9 @@ const TIERS: TierConfig[] = [
     highlighted: true,
   },
   {
-    id: 'jalla_management',
+    id: 'enterprise_custom',
     icon: <Briefcase className="size-5" />,
-    name: 'Jalla Management',
+    name: 'Enterprise Custom',
     price: 'Custom',
     features: [
       'Jalla manages everything',
@@ -348,7 +348,7 @@ export default function OnboardingPage() {
   }
 
   async function handleTierSelect(tier: Tier) {
-    if (tier === 'jalla_management') {
+    if (tier === 'enterprise_custom') {
       // Open mailto and still complete onboarding
       window.open('mailto:hello@jalla.build', '_blank');
     }

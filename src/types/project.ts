@@ -30,7 +30,7 @@ export type RoofType = 'long_span_aluminum' | 'clay_tiles' | 'concrete_flat' | '
 
 export type FinishLevel = 'standard' | 'premium' | 'luxury';
 
-export type ProjectTier = 'self_verify' | 'jalla_verify' | 'jalla_management';
+export type ProjectTier = 'self_verify' | 'jalla_verify' | 'enterprise_custom';
 
 export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived';
 

@@ -53,11 +53,12 @@ const FINISH_LABELS: Record<FinishLevel, string> = {
 const TIER_META: Record<string, { label: string; icon: React.ReactNode }> = {
   self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
   jalla_verify:     { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
-  jalla_management: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
+  enterprise_custom: { label: 'Enterprise Custom', icon: <Briefcase className="size-3.5" />   },
   // legacy values
-  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
-  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
-  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
+  starter:          { label: 'Self Verify',       icon: <BadgeCheck className="size-3.5" />  },
+  pro:              { label: 'Jalla Verify',       icon: <ShieldCheck className="size-3.5" /> },
+  enterprise:       { label: 'Enterprise Custom',  icon: <Briefcase className="size-3.5" />   },
+  jalla_management: { label: 'Enterprise Custom',  icon: <Briefcase className="size-3.5" />   },
 };
 
 // ── Tab bar ───────────────────────────────────────────────

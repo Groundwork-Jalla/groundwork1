@@ -5,6 +5,7 @@ import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
   MapPin, Building2, ChevronRight, User,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 import { useAuth }                          from '@/contexts/AuthContext';
 import { fetchProjects }                   from '@/lib/supabase/projects';
 import { fetchContractorProjects }         from '@/lib/supabase/invites';
@@ -19,11 +20,12 @@ const STARTER_LIMIT = 3;
 const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   self_verify:       { label: 'Self Verify',       icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
   jalla_verify:      { label: 'Jalla Verify',      icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
-  jalla_management:  { label: 'Jalla Management',  icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  enterprise_custom: { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
   // legacy values — kept until all DB rows are backfilled
-  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
-  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
-  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  starter:          { label: 'Self Verify',       icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey'  },
+  pro:              { label: 'Jalla Verify',      icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'        },
+  enterprise:       { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
+  jalla_management: { label: 'Enterprise Custom', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'      },
 };
 
 const BT_LABELS: Record<string, string> = {
@@ -216,7 +218,11 @@ function StarterLimitBanner({ count }: { count: number }) {
 
 // ── Nav ───────────────────────────────────────────────────
 
-function DashboardNav({ displayName, onLogout }: { displayName: string; onLogout: () => void }) {
+function DashboardNav({
+  displayName, userId, onLogout,
+}: {
+  displayName: string; userId: string; onLogout: () => void;
+}) {
   const initials = getInitials(displayName);
 
   return (
@@ -226,6 +232,7 @@ function DashboardNav({ displayName, onLogout }: { displayName: string; onLogout
       </span>
 
       <div className="flex items-center gap-3">
+        <NotificationBell userId={userId} />
         <Link
           to="/profile"
           className="flex items-center gap-2 text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
@@ -367,7 +374,7 @@ export default function Dashboard() {
       </svg>
 
       <div className="relative z-10">
-      <DashboardNav displayName={displayName} onLogout={handleLogout} />
+      <DashboardNav displayName={displayName} userId={user?.id ?? ''} onLogout={handleLogout} />
 
       <div className="max-w-215 mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
