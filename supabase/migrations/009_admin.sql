@@ -73,9 +73,8 @@ CREATE POLICY "admin_select_all_profiles"
   ON public.profiles FOR SELECT
   USING (public.is_admin());
 
-CREATE POLICY "admin_select_all_user_roles"
-  ON public.user_roles FOR SELECT
-  USING (public.is_admin());
+-- NOTE: No admin SELECT policy on user_roles — is_admin() queries user_roles internally,
+-- so a policy calling is_admin() on that table would cause infinite recursion.
 
 -- ── Admin UPDATE/INSERT policies ──────────────────────────
 
