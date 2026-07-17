@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 
 export default function LandingNav() {
   return (
@@ -11,10 +12,7 @@ export default function LandingNav() {
       className="sticky top-0 z-50 bg-brand-near-black backdrop-blur-lg border-b border-white/10"
     >
       <div className="max-w-275 mx-auto px-4 sm:px-7 py-3.5 flex justify-between items-center">
-        <div className="flex flex-col leading-none">
-          <span className="font-sans text-xl sm:text-[22px] font-black text-white tracking-tight">Groundwork</span>
-          <span className="text-[10px] sm:text-[11px] text-white/50 font-normal mt-0.5">by Jalla</span>
-        </div>
+        <GroundworkLogo variant="light" size="xl" linkTo="/" />
         <div className="flex items-center gap-2 sm:gap-3">
           <Button
             asChild

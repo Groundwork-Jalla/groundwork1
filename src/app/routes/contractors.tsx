@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import {
   ArrowLeft,
   MapPin,
@@ -295,9 +296,7 @@ export default function ContractorsPage() {
           <span className="hidden sm:inline">Dashboard</span>
         </Link>
         <div className="h-4 w-px bg-brand-border-grey" />
-        <span className="font-sans text-lg font-bold text-brand-near-black tracking-tight">
-          Groundwork
-        </span>
+        <GroundworkLogo showByline={false} size="lg" />
       </nav>
 
       {/* Main content */}

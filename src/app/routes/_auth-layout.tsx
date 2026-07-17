@@ -1,5 +1,6 @@
 import { Outlet } from "react-router";
 import { motion } from "framer-motion";
+import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 
 export default function AuthLayout() {
   return (
@@ -12,10 +13,7 @@ export default function AuthLayout() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="flex flex-col items-center text-center"
         >
-          <div className="flex flex-col leading-none items-center">
-            <span className="font-sans text-2xl md:text-3xl font-black text-white tracking-tight">Groundwork</span>
-            <span className="text-[11px] text-white/40 font-normal mt-0.5">by Jalla</span>
-          </div>
+          <GroundworkLogo variant="light" size="xl" />
           <p className="hidden md:block text-sm text-white/50 italic mt-4 max-w-[260px]">
             Protect your build. From anywhere.
           </p>

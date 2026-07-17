@@ -1,3 +1,5 @@
+import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
+
 const SOCIAL_LINKS = [
   {
     label: "LinkedIn",
@@ -38,10 +40,7 @@ export default function FooterSection() {
       <div className="max-w-275 mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
 
         {/* Logo — bottom left */}
-        <div className="flex flex-col leading-none">
-          <span className="font-sans text-[15px] font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
-        </div>
+        <GroundworkLogo linkTo="/" />
 
         {/* Social icons — right */}
         <div className="flex items-center gap-4">

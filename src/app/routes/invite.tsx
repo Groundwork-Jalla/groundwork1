@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { Loader2, Building2, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInviteByToken, acceptInvite } from '@/lib/supabase/invites';
@@ -116,9 +117,8 @@ export default function InvitePage() {
         className="max-w-sm w-full"
       >
         {/* Wordmark */}
-        <div className="flex flex-col leading-none mb-10">
-          <span className="font-sans text-lg font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
+        <div className="mb-10">
+          <GroundworkLogo size="lg" />
         </div>
 
         {/* Project badge */}

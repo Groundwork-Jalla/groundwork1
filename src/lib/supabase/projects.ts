@@ -32,6 +32,7 @@ export async function createProject(
       bathrooms:         formData.bathrooms,
       living_rooms:      formData.livingRooms,
       kitchens:          formData.kitchens,
+      floor_rooms:       formData.floorRooms.length ? formData.floorRooms : null,
       budget_usd:        budget.total,
       tier:              formData.tier,
       status:            'active' as const,

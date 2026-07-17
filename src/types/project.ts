@@ -39,6 +39,17 @@ export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
 export type SubstageStatus = 'locked' | 'pending' | 'in_progress' | 'complete' | 'pending_review';
 
 // -------------------------------------------------------
+// Per-floor room breakdown (Step 5)
+// -------------------------------------------------------
+export interface FloorRoom {
+  floor: number;       // 0 = Ground Floor, 1 = Floor 1, …
+  bedrooms: number;
+  bathrooms: number;
+  livingRooms: number;
+  kitchens: number;
+}
+
+// -------------------------------------------------------
 // Wizard form data — accumulated across all 9 steps
 // -------------------------------------------------------
 export interface WizardFormData {
@@ -55,11 +66,12 @@ export interface WizardFormData {
   // Step 4 — Floors
   floors: number;
 
-  // Step 5 — Room composition
+  // Step 5 — Room composition (flat totals + per-floor breakdown)
   bedrooms: number;
   bathrooms: number;
   livingRooms: number;
   kitchens: number;
+  floorRooms: FloorRoom[];
 
   // Step 6 — Boys' quarters
   hasBoysQuarters: boolean;
@@ -77,6 +89,9 @@ export interface WizardFormData {
 
   // Step 9 — Tier selection
   tier: ProjectTier;
+
+  // UI-only: which floor tab is active in Step 5 (for building preview sync)
+  previewActiveFloor: number;
 }
 
 export const WIZARD_DEFAULT_DATA: WizardFormData = {
@@ -89,6 +104,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   bathrooms: 0,
   livingRooms: 0,
   kitchens: 0,
+  floorRooms: [],
   hasBoysQuarters: false,
   bqRooms: 1,
   roofType: null,
@@ -98,6 +114,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   finishLevel: 'standard',
   targetStartDate: '',
   tier: 'self_verify',
+  previewActiveFloor: 0,
 };
 
 // -------------------------------------------------------
@@ -133,6 +150,7 @@ export interface ProjectRow {
   bathrooms: number;
   living_rooms: number;
   kitchens: number;
+  floor_rooms: FloorRoom[] | null;
   budget_usd: number | null;
   tier: ProjectTier;
   status: ProjectStatus;

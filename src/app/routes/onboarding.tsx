@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import {
   BadgeCheck,
   ShieldCheck,
@@ -111,17 +112,45 @@ function WelcomeStep({
   onNext: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-brand-near-black flex flex-col">
+    <div className="min-h-screen bg-brand-near-black flex flex-col relative overflow-hidden">
+      {/* Faint animated skyline */}
+      <motion.svg
+        viewBox="0 0 800 120"
+        className="absolute bottom-0 left-0 w-full pointer-events-none select-none"
+        aria-hidden="true"
+        animate={{ x: [0, -30, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ opacity: 0.06 }}
+      >
+        {/* Skyline buildings */}
+        <rect x="0"   y="60"  width="50"  height="60" fill="white" />
+        <rect x="55"  y="40"  width="30"  height="80" fill="white" />
+        <rect x="90"  y="20"  width="40"  height="100" fill="white" />
+        <rect x="135" y="50"  width="25"  height="70" fill="white" />
+        <rect x="165" y="30"  width="55"  height="90" fill="white" />
+        <rect x="225" y="55"  width="35"  height="65" fill="white" />
+        <rect x="265" y="10"  width="30"  height="110" fill="white" />
+        <rect x="300" y="45"  width="50"  height="75" fill="white" />
+        <rect x="355" y="25"  width="40"  height="95" fill="white" />
+        <rect x="400" y="60"  width="28"  height="60" fill="white" />
+        <rect x="433" y="35"  width="45"  height="85" fill="white" />
+        <rect x="483" y="50"  width="30"  height="70" fill="white" />
+        <rect x="518" y="15"  width="35"  height="105" fill="white" />
+        <rect x="558" y="42"  width="50"  height="78" fill="white" />
+        <rect x="613" y="28"  width="28"  height="92" fill="white" />
+        <rect x="646" y="55"  width="40"  height="65" fill="white" />
+        <rect x="691" y="18"  width="35"  height="102" fill="white" />
+        <rect x="731" y="45"  width="30"  height="75" fill="white" />
+        <rect x="766" y="32"  width="34"  height="88" fill="white" />
+      </motion.svg>
+
       {/* Wordmark */}
-      <header className="px-8 py-6">
-        <div className="flex flex-col leading-none">
-          <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-white/40 font-normal mt-0.5">by Jalla</span>
-        </div>
+      <header className="px-8 py-6 relative z-10">
+        <GroundworkLogo variant="light" size="lg" />
       </header>
 
       {/* Centered content */}
-      <div className="flex-1 flex items-center justify-center px-6">
+      <div className="flex-1 flex items-center justify-center px-6 relative z-10">
         <div className="max-w-lg w-full text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -278,10 +307,7 @@ function PlanStep({ onSelect }: { onSelect: (tier: Tier) => Promise<void> }) {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Wordmark */}
       <header className="px-8 py-6 border-b border-brand-border-grey">
-        <div className="flex flex-col leading-none">
-          <span className="font-sans text-lg font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-brand-mid-grey font-normal mt-0.5">by Jalla</span>
-        </div>
+        <GroundworkLogo size="lg" />
       </header>
 
       <div className="flex-1 flex items-start justify-center px-4 sm:px-6 py-12">

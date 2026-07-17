@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-react';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -190,10 +191,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-white font-sans">
       {/* Nav */}
       <nav className="border-b border-brand-border-grey px-5 sm:px-8 py-4 flex items-center justify-between">
-        <Link to="/" className="flex flex-col leading-none">
-          <span className="text-base font-black text-brand-near-black tracking-tight">Groundwork</span>
-          <span className="text-[10px] text-brand-mid-grey">by Jalla</span>
-        </Link>
+        <GroundworkLogo linkTo="/" />
         <div className="flex items-center gap-4">
           <Link to="/auth/login" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
             Log in

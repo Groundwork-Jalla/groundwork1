@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -97,10 +98,7 @@ function BlueprintPanel() {
 
       {/* Content layer */}
       <div className="relative z-10 flex items-center justify-center h-full">
-        <div className="flex flex-col leading-none items-start">
-          <span className="font-sans text-2xl sm:text-3xl font-black text-white tracking-tight">Groundwork</span>
-          <span className="text-[11px] sm:text-sm text-white/50 font-normal mt-0.5">by Jalla</span>
-        </div>
+        <GroundworkLogo variant="light" size="xl" />
       </div>
     </div>
   );
@@ -145,10 +143,7 @@ export default function Community() {
       <div className="flex-1 bg-white overflow-y-auto flex flex-col">
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between bg-brand-near-black px-6 py-3.5 border-b border-white/10">
-          <div className="flex flex-col leading-none">
-            <span className="font-sans text-lg font-black text-white tracking-tight">Groundwork</span>
-            <span className="text-[10px] text-white/50 font-normal mt-0.5">by Jalla</span>
-          </div>
+          <GroundworkLogo variant="light" size="lg" />
           <Link to="/" className="text-sm text-white/60 hover:text-white transition-colors">
             ← Home
           </Link>

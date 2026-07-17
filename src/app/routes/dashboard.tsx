@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
   MapPin, Building2, ChevronRight, User,
@@ -171,15 +172,47 @@ function ProjectCard({ project }: { project: ProjectRow }) {
 
 // ── Empty state ───────────────────────────────────────────
 
+function CraneIllustration() {
+  return (
+    <motion.svg
+      viewBox="0 0 120 100"
+      className="w-24 h-20"
+      fill="none"
+      aria-hidden="true"
+      animate={{ y: [0, -5, 0] }}
+      transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      {/* Mast */}
+      <rect x="54" y="30" width="6" height="65" rx="1" fill="#0a0a0a" fillOpacity="0.15" />
+      {/* Jib (horizontal arm) */}
+      <rect x="20" y="28" width="80" height="5" rx="1" fill="#0a0a0a" fillOpacity="0.18" />
+      {/* Counter-jib */}
+      <rect x="54" y="28" width="30" height="4" rx="1" fill="#0a0a0a" fillOpacity="0.12" />
+      {/* Counterweight */}
+      <rect x="79" y="22" width="14" height="10" rx="1.5" fill="#0a0a0a" fillOpacity="0.2" />
+      {/* Cab */}
+      <rect x="50" y="22" width="16" height="12" rx="1.5" fill="#0a0a0a" fillOpacity="0.22" />
+      {/* Hook cable */}
+      <line x1="38" y1="33" x2="38" y2="55" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.3" />
+      {/* Hook */}
+      <path d="M34 55 Q34 62 38 62 Q42 62 42 55" stroke="#0a0a0a" strokeWidth="1.2" strokeOpacity="0.35" fill="none" />
+      {/* Ground */}
+      <line x1="10" y1="95" x2="110" y2="95" stroke="#0a0a0a" strokeWidth="1.2" strokeOpacity="0.12" />
+      {/* Building being built */}
+      <rect x="15" y="70" width="30" height="25" rx="1" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.2" fill="none" />
+      <rect x="20" y="75" width="6" height="5" rx="0.5" stroke="#0a0a0a" strokeWidth="0.7" strokeOpacity="0.18" fill="none" />
+      <rect x="30" y="75" width="6" height="5" rx="0.5" stroke="#0a0a0a" strokeWidth="0.7" strokeOpacity="0.18" fill="none" />
+    </motion.svg>
+  );
+}
+
 function EmptyProjects() {
   return (
     <Link
       to="/projects/new"
-      className="flex items-center gap-4 rounded-2xl border border-dashed border-brand-border-grey p-6 hover:border-brand-near-black hover:bg-brand-off-white transition-colors group"
+      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-brand-border-grey p-10 hover:border-brand-near-black hover:bg-brand-off-white transition-colors group text-center"
     >
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-light-grey group-hover:bg-brand-near-black transition-colors">
-        <Plus className="size-5 text-brand-near-black group-hover:text-white transition-colors" />
-      </span>
+      <CraneIllustration />
       <span>
         <span className="block text-sm font-semibold text-brand-near-black">
           No projects yet
@@ -226,9 +259,7 @@ function DashboardNav({
 
   return (
     <nav className="border-b border-brand-border-grey px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
-      <span className="font-sans text-lg font-bold text-brand-near-black tracking-tight">
-        Groundwork
-      </span>
+      <GroundworkLogo showByline={false} size="lg" />
 
       <div className="flex items-center gap-3">
         <NotificationBell userId={userId} />

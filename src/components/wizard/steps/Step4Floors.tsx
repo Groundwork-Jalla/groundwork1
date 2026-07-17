@@ -1,38 +1,52 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { cn } from '@/lib/utils';
 
-const FLOOR_OPTIONS = [
-  { value: 1, label: '1 Floor',  sublabel: 'Single storey'    },
-  { value: 2, label: '2 Floors', sublabel: 'Two storey'       },
-  { value: 3, label: '3 Floors', sublabel: 'Three storey'     },
-  { value: 4, label: '4 Floors', sublabel: 'Four storey'      },
-  { value: 5, label: '5+',       sublabel: 'High rise / Multi'},
-];
+const FLOOR_LABELS: Record<number, string> = {
+  1: 'Single storey',
+  2: 'Two storeys',
+  3: 'Three storeys',
+  4: 'Four storeys',
+  5: 'Five storeys',
+  6: 'Six storeys',
+  7: 'Seven storeys',
+  8: 'Eight storeys',
+};
 
-// Floor counter visual
-function FloorVisual({ floors }: { floors: number }) {
+function getLabel(n: number) {
+  return FLOOR_LABELS[n] ?? `${n} storeys`;
+}
+
+// Stacked floor bars visual (compact version for the step panel)
+function FloorStack({ floors }: { floors: number }) {
+  const count = Math.min(floors, 8);
   return (
-    <div className="relative flex items-end justify-center gap-0.5 h-16">
-      {Array.from({ length: Math.min(floors, 5) }).map((_, i) => (
-        <motion.div
-          key={i}
-          layoutId={`floor-bar-${i}`}
-          className="w-9 rounded-t-sm bg-brand-near-black"
-          style={{ height: `${(i + 1) * 11}px` }}
-          initial={{ scaleY: 0, originY: 1 }}
-          animate={{ scaleY: 1, originY: 1 }}
-          transition={{ duration: 0.22, delay: i * 0.05 }}
-        />
+    <div className="flex items-end justify-center gap-0.5 h-20 mt-4">
+      {Array.from({ length: count }, (_, i) => (
+        <AnimatePresence key={i} mode="wait">
+          <motion.div
+            key={`bar-${i}-${count}`}
+            className="w-8 rounded-t-sm bg-brand-near-black"
+            style={{ height: `${(i + 1) * 9}%` }}
+            initial={{ scaleY: 0, originY: 1 }}
+            animate={{ scaleY: 1 }}
+            transition={{ duration: 0.2, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </AnimatePresence>
       ))}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-brand-border-grey" />
+      <div className="absolute bottom-0 left-0 right-0" />
     </div>
   );
 }
 
 export default function Step4Floors() {
   const { data, update, next } = useWizard();
+
+  function setFloors(n: number) {
+    const clamped = Math.max(1, Math.min(20, n));
+    // Reset floorRooms so Step5 re-initialises tabs for the new count
+    update({ floors: clamped, floorRooms: [] });
+  }
 
   return (
     <WizardShell canContinue={data.floors >= 1} onContinue={next}>
@@ -44,52 +58,56 @@ export default function Step4Floors() {
           Include the ground floor. This affects structural estimates and staircase planning.
         </p>
 
-        {/* Visual */}
-        <div className="mt-7 mb-6 px-4">
-          <FloorVisual floors={data.floors} />
+        {/* Floor stack visual */}
+        <div className="relative mt-8 mb-2 px-4">
+          <FloorStack floors={data.floors} />
+          <div className="h-px w-full bg-brand-border-grey mt-1" />
         </div>
 
-        {/* Options grid */}
-        <div className="grid grid-cols-5 gap-2">
-          {FLOOR_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => update({ floors: opt.value })}
-              className={cn(
-                'flex flex-col items-center justify-center rounded-xl border-2 py-4 px-1 transition-all duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
-                data.floors === opt.value
-                  ? 'border-brand-near-black bg-brand-off-white'
-                  : 'border-brand-border-grey hover:border-brand-dark-grey',
-              )}
-            >
-              <span className="text-base font-bold text-brand-near-black">{opt.label}</span>
-              <span className="text-[10px] text-brand-mid-grey mt-0.5 text-center leading-tight">
-                {opt.sublabel}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Manual input for 5+ */}
-        {data.floors >= 5 && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 flex items-center gap-3"
+        {/* +/– Stepper */}
+        <div className="mt-7 flex items-center justify-center gap-0">
+          <button
+            type="button"
+            onClick={() => setFloors(data.floors - 1)}
+            disabled={data.floors <= 1}
+            className="flex items-center justify-center size-14 rounded-l-xl border-2 border-brand-border-grey text-brand-near-black text-2xl font-light transition-all hover:border-brand-dark-grey hover:bg-brand-off-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2"
+            aria-label="Decrease floors"
           >
-            <span className="text-sm text-brand-mid-grey">Exact number:</span>
-            <input
-              type="number"
-              min={5}
-              max={50}
-              value={data.floors}
-              onChange={e => update({ floors: Math.max(5, parseInt(e.target.value) || 5) })}
-              className="w-20 rounded-lg border border-brand-border-grey px-3 py-1.5 text-sm text-brand-near-black focus:outline-none focus:ring-2 focus:ring-brand-near-black/30 focus:border-brand-near-black"
-            />
-          </motion.div>
-        )}
+            −
+          </button>
+
+          <div className="flex flex-col items-center justify-center border-y-2 border-brand-near-black bg-brand-near-black text-white min-w-30 h-14 px-4">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={data.floors}
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 10, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="text-2xl font-bold tabular-nums leading-none"
+              >
+                {data.floors}
+              </motion.span>
+            </AnimatePresence>
+            <span className="text-[10px] text-white/60 mt-0.5">
+              {data.floors === 1 ? 'floor' : 'floors'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setFloors(data.floors + 1)}
+            disabled={data.floors >= 20}
+            className="flex items-center justify-center size-14 rounded-r-xl border-2 border-brand-border-grey text-brand-near-black text-2xl font-light transition-all hover:border-brand-dark-grey hover:bg-brand-off-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2"
+            aria-label="Increase floors"
+          >
+            +
+          </button>
+        </div>
+
+        <p className="mt-3 text-center text-xs text-brand-mid-grey">
+          {getLabel(data.floors)}
+        </p>
       </div>
     </WizardShell>
   );

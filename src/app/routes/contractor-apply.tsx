@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import BackToTop from "@/components/ui/BackToTop";
+import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import ContractorHero from "@/components/contractor/ContractorHero";
 import RealitySection from "@/components/contractor/RealitySection";
 import IntroducingJalla from "@/components/contractor/IntroducingJalla";
@@ -17,10 +18,7 @@ export default function ContractorApply() {
     <div className="bg-white overflow-x-clip">
       <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-4 sm:px-7 py-3.5">
         <div className="max-w-275 mx-auto flex items-center justify-between">
-          <div className="flex flex-col leading-none">
-            <span className="font-sans text-xl font-black text-white tracking-tight">Groundwork</span>
-            <span className="text-[10px] text-white/50 font-normal mt-0.5">by Jalla</span>
-          </div>
+          <GroundworkLogo variant="light" size="lg" linkTo="/" />
           <Link to="/" className="text-xs text-white/60 hover:text-white transition-colors">
             ← Back to Home
           </Link>
