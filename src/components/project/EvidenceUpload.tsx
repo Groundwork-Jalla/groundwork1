@@ -193,6 +193,7 @@ export function EvidenceUpload({
         stopAnimation();
 
         if (error) {
+          console.error('[evidence upload] error:', error);
           updateFileProgress(entry.id, {
             progress: 0,
             error: error.message ?? 'Upload failed.',
