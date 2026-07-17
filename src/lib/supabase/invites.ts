@@ -2,15 +2,20 @@ import { supabase } from './client';
 import type { ContractorInviteRow } from '@/types/project';
 
 // =========================================================
-// inviteContractor — insert invite + fire-and-forget email
+// inviteContractor — insert invite + send email
 // =========================================================
+export interface InviteResult {
+  invite: ContractorInviteRow;
+  emailSent: boolean;
+}
+
 export async function inviteContractor(
   projectId: string,
   invitedBy: string,
   email: string,
   projectName: string,
   inviterName: string,
-): Promise<ContractorInviteRow> {
+): Promise<InviteResult> {
   const { data, error } = await supabase
     .from('contractor_invites')
     .insert({
@@ -30,19 +35,29 @@ export async function inviteContractor(
     throw error;
   }
 
-  // Fire-and-forget email — invite record is the source of truth.
-  fetch('/api/send-invite', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      toEmail:     email.toLowerCase().trim(),
-      projectName,
-      inviterName,
-      inviteToken: data.token,
-    }),
-  }).catch(() => {});
+  // Attempt to send email — always resolve, never block the invite from being shown.
+  let emailSent = false;
+  try {
+    const r = await fetch('/api/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        toEmail:     email.toLowerCase().trim(),
+        projectName,
+        inviterName,
+        inviteToken: data.token,
+      }),
+    });
+    emailSent = r.ok;
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      console.error('[invite] email send failed:', body);
+    }
+  } catch (err) {
+    console.error('[invite] email fetch error:', err);
+  }
 
-  return data;
+  return { invite: data, emailSent };
 }
 
 // =========================================================

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, X } from 'lucide-react';
+import { AlertTriangle, UserPlus, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -96,6 +96,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
   const [emailError, setEmailError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [emailWarning, setEmailWarning] = useState('');
 
   // Revoke modal state
   const [revokeTarget, setRevokeTarget] = useState<ContractorInviteRow | null>(null);
@@ -124,6 +125,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
     setEmail('');
     setEmailError('');
     setSubmitError('');
+    setEmailWarning('');
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -155,12 +157,17 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
     setSubmitting(true);
 
     try {
-      const confirmed = await inviteContractor(projectId, userId, trimmed, projectName, inviterName);
+      const { invite, emailSent } = await inviteContractor(projectId, userId, trimmed, projectName, inviterName);
       setInvites((prev) =>
-        prev.map((inv) => (inv.id === optimistic.id ? confirmed : inv)),
+        prev.map((inv) => (inv.id === optimistic.id ? invite : inv)),
       );
       setEmail('');
       setShowForm(false);
+      if (!emailSent) {
+        setEmailWarning(
+          `Invite created, but the notification email to ${trimmed} couldn't be sent. Share this project's invite link with them directly.`,
+        );
+      }
     } catch (err) {
       // Roll back optimistic insert
       setInvites((prev) => prev.filter((inv) => inv.id !== optimistic.id));
@@ -213,6 +220,34 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
           </Button>
         )}
       </div>
+
+      {/* Email delivery warning */}
+      <AnimatePresence>
+        {emailWarning && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-amber-800 leading-relaxed">{emailWarning}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailWarning('')}
+                className="shrink-0 text-amber-500 hover:text-amber-700 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Starter limit notice */}
       {isStarterAtLimit && (
