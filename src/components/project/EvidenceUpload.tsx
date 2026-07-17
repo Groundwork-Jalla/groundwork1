@@ -50,7 +50,7 @@ function buildStoragePath(
   substageId: string,
   fileName: string
 ): string {
-  return `evidence/${projectId}/${stageId}/${substageId}/${Date.now()}_${fileName}`;
+  return `${projectId}/${stageId}/${substageId}/${Date.now()}_${fileName}`;
 }
 
 function useThumbnails(paths: string[]) {
