@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
+import { notifyAdmins } from './notifications';
 import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow } from '@/types/project';
 
 // =========================================================
@@ -87,6 +88,14 @@ export async function createProject(
       .insert(substageRows);
 
     if (substageError) throw substageError;
+
+    // Notify admins (fire-and-forget — never block the wizard redirect)
+    notifyAdmins(
+      'project_created',
+      'New Project Created',
+      `"${formData.projectName}" was created`,
+      { project_id: project.id },
+    ).catch(() => {});
 
     return project;
   } catch (err) {

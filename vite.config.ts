@@ -10,6 +10,61 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       reactRouter(),
+      // ── Dev-only: serve /api/send-email (generic email) ─────────────────────
+      {
+        name: "send-email-dev",
+        apply: "serve" as const,
+        configureServer(server) {
+          server.middlewares.use("/api/send-email", (req: any, res: any) => {
+            if (req.method !== "POST") {
+              res.writeHead(405, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "Method not allowed" }));
+              return;
+            }
+            const chunks: Buffer[] = [];
+            req.on("data", (c: Buffer) => chunks.push(c));
+            req.on("end", async () => {
+              try {
+                const { to, subject, html } = JSON.parse(
+                  Buffer.concat(chunks).toString("utf8")
+                );
+                const apiKey = env.RESEND_API_KEY;
+                if (!apiKey) {
+                  res.writeHead(200, { "Content-Type": "application/json" });
+                  res.end(JSON.stringify({ success: true, note: "no-api-key" }));
+                  return;
+                }
+                const r = await fetch("https://api.resend.com/emails", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    from: "Groundwork by Jalla <noreply@mail.tryjalla.com>",
+                    to: [to],
+                    subject,
+                    html,
+                  }),
+                });
+                const json = await r.json().catch(() => ({}));
+                if (r.ok) {
+                  console.log(`\x1b[32m[email] sent → ${to}: ${subject}\x1b[0m`);
+                  res.writeHead(200, { "Content-Type": "application/json" });
+                  res.end(JSON.stringify({ success: true }));
+                } else {
+                  console.error("[email] Resend error:", json);
+                  res.writeHead(500, { "Content-Type": "application/json" });
+                  res.end(JSON.stringify({ error: "Resend API error", details: json }));
+                }
+              } catch (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: String(err) }));
+              }
+            });
+          });
+        },
+      },
       // ── Dev-only: serve /api/send-invite so invite emails work in local dev ──
       {
         name: "send-invite-dev",

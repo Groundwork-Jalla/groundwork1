@@ -6,6 +6,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { supabase } from '@/lib/supabase/client';
+import { notifyAdmins } from '@/lib/supabase/notifications';
+import {
+  getStorageLimit,
+  getProjectStorageUsed,
+  formatBytes,
+} from '@/lib/storage-limits';
 import { cn } from '@/lib/utils';
 
 interface EvidenceUploadProps {
@@ -14,6 +20,10 @@ interface EvidenceUploadProps {
   substageId: string;
   existingUrls: string[];
   onUploadComplete: (newUrls: string[]) => void;
+  tier: string;
+  projectName?: string;
+  stageName?: string;
+  substageName?: string;
 }
 
 interface UploadingFile {
@@ -104,6 +114,10 @@ export function EvidenceUpload({
   substageId,
   existingUrls,
   onUploadComplete,
+  tier,
+  projectName,
+  stageName,
+  substageName,
 }: EvidenceUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -112,6 +126,16 @@ export function EvidenceUpload({
   const [sizeErrors, setSizeErrors] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [storageUsed, setStorageUsed] = useState<number | null>(null);
+
+  const storageLimit = getStorageLimit(tier);
+  const hasStorageLimit = storageLimit !== Infinity;
+
+  // Fetch storage usage for limited tiers
+  useEffect(() => {
+    if (!hasStorageLimit) return;
+    getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
+  }, [projectId, hasStorageLimit]);
 
   const thumbnails = useThumbnails(existingUrls);
 
@@ -165,6 +189,18 @@ export function EvidenceUpload({
       if (inputRef.current) inputRef.current.value = '';
 
       if (validFiles.length === 0) return;
+
+      // Check storage limit for capped tiers
+      if (hasStorageLimit) {
+        const used = storageUsed ?? await getProjectStorageUsed(supabase, projectId);
+        const totalFileSize = validFiles.reduce((sum, f) => sum + f.size, 0);
+        if (used + totalFileSize > storageLimit) {
+          setGlobalError(
+            `Storage limit reached (${formatBytes(storageLimit)} for Self Verify). Upgrade to Jalla Verify for unlimited storage.`
+          );
+          return;
+        }
+      }
 
       const entries: UploadingFile[] = validFiles.map((file) => ({
         id: `${Date.now()}_${file.name}`,
@@ -220,6 +256,21 @@ export function EvidenceUpload({
           );
         } else {
           onUploadComplete(newUrls);
+
+          // Refresh storage usage
+          if (hasStorageLimit) {
+            getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
+          }
+
+          // Notify admins for jalla_verify projects (fire-and-forget)
+          if (tier === 'jalla_verify' || tier === 'pro') {
+            notifyAdmins(
+              'evidence_uploaded',
+              'New Evidence Uploaded',
+              [projectName, stageName, substageName].filter(Boolean).join(' › '),
+              { project_id: projectId, substage_id: substageId },
+            ).catch(() => {});
+          }
         }
       }
 
@@ -237,6 +288,13 @@ export function EvidenceUpload({
       onUploadComplete,
       animateProgress,
       updateFileProgress,
+      hasStorageLimit,
+      storageLimit,
+      storageUsed,
+      tier,
+      projectName,
+      stageName,
+      substageName,
     ]
   );
 
@@ -255,11 +313,14 @@ export function EvidenceUpload({
       setGlobalError('Could not remove file. Please try again.');
     } else {
       onUploadComplete(newUrls);
+      if (hasStorageLimit) {
+        getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
+      }
     }
 
     setDeleting(false);
     setDeleteTarget(null);
-  }, [deleteTarget, existingUrls, substageId, onUploadComplete]);
+  }, [deleteTarget, existingUrls, substageId, onUploadComplete, hasStorageLimit, projectId]);
 
   const handleRetry = useCallback(() => {
     setGlobalError(null);
@@ -282,22 +343,46 @@ export function EvidenceUpload({
         tabIndex={-1}
       />
 
-      {/* Upload button */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full sm:w-auto gap-2"
-        disabled={uploading}
-        onClick={() => inputRef.current?.click()}
-        aria-label="Upload evidence files"
-      >
-        {uploading ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Camera className="size-4" aria-hidden="true" />
+      {/* Upload button + storage usage */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto gap-2"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+          aria-label="Upload evidence files"
+        >
+          {uploading ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Camera className="size-4" aria-hidden="true" />
+          )}
+          <span>{uploading ? 'Uploading…' : 'Upload Evidence'}</span>
+        </Button>
+
+        {/* Storage usage bar (Self Verify only) */}
+        {hasStorageLimit && storageUsed !== null && (
+          <div className="flex items-center gap-2 text-xs text-brand-mid-grey">
+            <div className="w-24 h-1.5 rounded-full bg-brand-border-grey overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all',
+                  storageUsed / storageLimit > 0.9
+                    ? 'bg-red-500'
+                    : storageUsed / storageLimit > 0.7
+                    ? 'bg-amber-400'
+                    : 'bg-brand-near-black'
+                )}
+                style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
+              />
+            </div>
+            <span>
+              {formatBytes(storageUsed)} / {formatBytes(storageLimit)}
+            </span>
+          </div>
         )}
-        <span>{uploading ? 'Uploading…' : 'Upload Evidence'}</span>
-      </Button>
+      </div>
 
       {/* Size validation errors */}
       <AnimatePresence>

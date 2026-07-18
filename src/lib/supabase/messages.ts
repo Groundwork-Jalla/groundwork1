@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { notifyProjectMembers } from './notifications';
 import type { ProjectMessageRow } from '@/types/project';
 
 // =========================================================
@@ -29,6 +30,16 @@ export async function sendMessage(
     .insert({ project_id: projectId, sender_id: senderId, sender_name: senderName, content });
 
   if (error) throw error;
+
+  // Notify other project members (fire-and-forget)
+  notifyProjectMembers(
+    projectId,
+    senderId,
+    'message_received',
+    'New message',
+    `${senderName} sent a message`,
+    { project_id: projectId },
+  ).catch(() => {});
 }
 
 // =========================================================

@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { supabase } from '@/lib/supabase/client';
+import {
+  getStorageLimit,
+  getProjectStorageUsed,
+  formatBytes,
+} from '@/lib/storage-limits';
 
 import {
   fetchDocuments,
@@ -217,9 +223,10 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
 export interface DocumentVaultProps {
   projectId: string;
   userId: string;
+  tier: string;
 }
 
-export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
+export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
   // ---- state ----
   const [docs, setDocs] = useState<ProjectDocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -235,7 +242,12 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [storageUsed, setStorageUsed] = useState<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const storageLimit = getStorageLimit(tier);
+  const hasStorageLimit = storageLimit !== Infinity;
 
   // ---- fetch on mount ----
   useEffect(() => {
@@ -262,6 +274,12 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
     return () => { cancelled = true; };
   }, [projectId]);
 
+  // ---- storage usage (limited tiers only) ----
+  useEffect(() => {
+    if (!hasStorageLimit) return;
+    getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
+  }, [projectId, hasStorageLimit]);
+
   // ---- upload ----
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,6 +294,17 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
         return;
       }
 
+      // Check storage limit for capped tiers
+      if (hasStorageLimit) {
+        const used = storageUsed ?? await getProjectStorageUsed(supabase, projectId);
+        if (used + file.size > storageLimit) {
+          setUploadError(
+            `Storage limit reached (${formatBytes(storageLimit)} for Self Verify). Upgrade to Jalla Verify for unlimited storage.`
+          );
+          return;
+        }
+      }
+
       setUploading(true);
       setUploadProgress(0);
       setUploadError(null);
@@ -286,6 +315,10 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
         });
         // Prepend — newest first
         setDocs((prev) => [newDoc, ...prev]);
+        // Refresh usage for capped tiers
+        if (hasStorageLimit) {
+          getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
+        }
       } catch (err) {
         setUploadError(
           err instanceof Error ? err.message : 'Upload failed. Please try again.'
@@ -295,7 +328,7 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
         setUploadProgress(0);
       }
     },
-    [projectId, userId]
+    [projectId, userId, hasStorageLimit, storageLimit, storageUsed]
   );
 
   // ---- download ----
@@ -345,7 +378,27 @@ export function DocumentVault({ projectId, userId }: DocumentVaultProps) {
 
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <h2 className="text-sm font-medium text-brand-near-black">Documents</h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-sm font-medium text-brand-near-black">Documents</h2>
+          {hasStorageLimit && storageUsed !== null && (
+            <div className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
+              <div className="w-16 h-1 rounded-full bg-brand-border-grey overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full',
+                    storageUsed / storageLimit > 0.9
+                      ? 'bg-red-500'
+                      : storageUsed / storageLimit > 0.7
+                      ? 'bg-amber-400'
+                      : 'bg-brand-near-black'
+                  )}
+                  style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
+                />
+              </div>
+              <span>{formatBytes(storageUsed)} / {formatBytes(storageLimit)}</span>
+            </div>
+          )}
+        </div>
         <Button
           type="button"
           size="default"

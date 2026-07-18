@@ -192,6 +192,8 @@ export default function ProjectDetail() {
   }) => {
     if (!project) return null;
     const stageId = substages.find(sub => sub.id === props.substageId)?.stage_id ?? '';
+    const stageName = stages.find(s => s.id === stageId)?.name;
+    const substageName = substages.find(sub => sub.id === props.substageId)?.name;
     return (
       <EvidenceUpload
         projectId={project.id}
@@ -199,6 +201,10 @@ export default function ProjectDetail() {
         substageId={props.substageId}
         existingUrls={props.existingUrls}
         onUploadComplete={props.onUploadComplete}
+        tier={project.tier}
+        projectName={project.name}
+        stageName={stageName}
+        substageName={substageName}
       />
     );
   }, [project, stages, substages]);
@@ -380,6 +386,7 @@ export default function ProjectDetail() {
             <DocumentVault
               projectId={project.id}
               userId={user?.id ?? ''}
+              tier={project.tier}
             />
           )}
 
