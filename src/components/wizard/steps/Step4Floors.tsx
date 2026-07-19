@@ -59,13 +59,13 @@ export default function Step4Floors() {
         </p>
 
         {/* Floor stack visual */}
-        <div className="relative mt-8 mb-2 px-4">
+        <div className="relative mt-10 mb-2 px-4">
           <FloorStack floors={data.floors} />
           <div className="h-px w-full bg-brand-border-grey mt-1" />
         </div>
 
         {/* +/– Stepper */}
-        <div className="mt-7 flex items-center justify-center gap-0">
+        <div className="mt-10 flex items-center justify-center gap-0">
           <button
             type="button"
             onClick={() => setFloors(data.floors - 1)}

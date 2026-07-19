@@ -13,11 +13,12 @@ export interface BudgetViewProps {
 // ── Constants ────────────────────────────────────────────────
 
 const BUDGET_SLICES = [
-  { label: 'Materials',   pct: 45, key: 'materials'   as const },
-  { label: 'Labor',       pct: 25, key: 'labor'       as const },
-  { label: 'Engineering', pct: 18, key: 'engineering' as const },
-  { label: 'Permits',     pct: 2,  key: 'permits'     as const },
-  { label: 'Contingency', pct: 10, key: 'contingency' as const },
+  { label: 'Materials',          pct: 41, key: 'materials'   as const },
+  { label: 'Labor',              pct: 23, key: 'labor'       as const },
+  { label: 'Engineering',        pct: 16, key: 'engineering' as const },
+  { label: 'Proj. Management',   pct: 10, key: 'management'  as const },
+  { label: 'Contingency',        pct: 8,  key: 'contingency' as const },
+  { label: 'Permits',            pct: 2,  key: 'permits'     as const },
 ] as const;
 
 // ── Helpers ──────────────────────────────────────────────────

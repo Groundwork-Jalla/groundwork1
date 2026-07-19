@@ -187,7 +187,7 @@ export default function Step9Summary() {
 
   return (
     <WizardShell
-      canContinue={true}
+      canContinue={!!data.tier}
       onContinue={handleSubmit}
       continueLabel="Create Project"
       isSubmitting={submitting}
@@ -229,11 +229,12 @@ export default function Step9Summary() {
             </span>
           </div>
           <div>
-            <BudgetBar label="Materials"   pct={45} amount={budget.materials}   />
-            <BudgetBar label="Labor"       pct={25} amount={budget.labor}       />
-            <BudgetBar label="Engineering" pct={18} amount={budget.engineering} />
-            <BudgetBar label="Permits"     pct={2}  amount={budget.permits}     />
-            <BudgetBar label="Contingency" pct={10} amount={budget.contingency} />
+            <BudgetBar label="Materials"       pct={41} amount={budget.materials}   />
+            <BudgetBar label="Labor"           pct={23} amount={budget.labor}       />
+            <BudgetBar label="Engineering"     pct={16} amount={budget.engineering} />
+            <BudgetBar label="Proj. Mgmt"      pct={10} amount={budget.management}  />
+            <BudgetBar label="Contingency"     pct={8}  amount={budget.contingency} />
+            <BudgetBar label="Permits"         pct={2}  amount={budget.permits}     />
           </div>
           <p className="mt-3 text-[11px] text-brand-mid-grey leading-relaxed">
             This is an indicative range based on your inputs. Final costs depend on local market conditions, site specifics, and contractor negotiations.

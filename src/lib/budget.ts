@@ -34,13 +34,14 @@ const ROOF_MULTIPLIER: Record<string, number> = {
 // Fixed USD cost per boys'-quarters room
 const BQ_ROOM_COST_USD = 8_000;
 
-// Budget slice percentages
+// Budget slice percentages (must sum to 1.00)
 const SLICES = {
-  materials:   0.45,
-  labor:       0.25,
-  engineering: 0.18,
+  materials:   0.41,
+  labor:       0.23,
+  engineering: 0.16,
   permits:     0.02,
-  contingency: 0.10,
+  contingency: 0.08,
+  management:  0.10,
 } as const;
 
 export function calculateBudget(data: Partial<WizardFormData>): BudgetBreakdown {
@@ -79,6 +80,7 @@ export function calculateBudget(data: Partial<WizardFormData>): BudgetBreakdown 
     engineering: Math.round(total * SLICES.engineering),
     permits:     Math.round(total * SLICES.permits),
     contingency: Math.round(total * SLICES.contingency),
+    management:  Math.round(total * SLICES.management),
   };
 }
 

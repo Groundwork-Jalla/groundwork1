@@ -87,8 +87,8 @@ export interface WizardFormData {
   finishLevel: FinishLevel;
   targetStartDate: string;
 
-  // Step 9 — Tier selection
-  tier: ProjectTier;
+  // Step 9 — Tier selection ('' means not yet chosen)
+  tier: ProjectTier | '';
 
   // UI-only: which floor tab is active in Step 5 (for building preview sync)
   previewActiveFloor: number;
@@ -113,7 +113,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   sqm: 0,
   finishLevel: 'standard',
   targetStartDate: '',
-  tier: 'self_verify',
+  tier: '',
   previewActiveFloor: 0,
 };
 
@@ -122,11 +122,12 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
 // -------------------------------------------------------
 export interface BudgetBreakdown {
   total: number;
-  materials: number;     // 45 %
-  labor: number;         // 25 %
-  engineering: number;   // 18 %
-  permits: number;       //  2 %
-  contingency: number;   // 10 %
+  materials: number;   // 41 %
+  labor: number;       // 23 %
+  engineering: number; // 16 %
+  permits: number;     //  2 %
+  contingency: number; //  8 %
+  management: number;  // 10 %
 }
 
 // -------------------------------------------------------
@@ -244,4 +245,5 @@ export interface CountryOption {
   rateStandard: number;  // USD / sqm
   ratePremium: number;
   rateLuxury: number;
+  recommended?: boolean;
 }

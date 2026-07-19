@@ -2,7 +2,7 @@ import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
 import { trackEvent } from '@/lib/analytics';
-import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow } from '@/types/project';
+import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier } from '@/types/project';
 
 // =========================================================
 // createProject
@@ -36,7 +36,7 @@ export async function createProject(
       kitchens:          formData.kitchens,
       floor_rooms:       formData.floorRooms.length ? formData.floorRooms : null,
       budget_usd:        budget.total,
-      tier:              formData.tier,
+      tier:              formData.tier as ProjectTier,
       status:            'active' as const,
       current_stage:     1,
       target_start:      formData.targetStartDate || null,

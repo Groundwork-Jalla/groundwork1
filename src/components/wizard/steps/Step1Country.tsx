@@ -87,13 +87,18 @@ export default function Step1Country() {
                   type="button"
                   onClick={() => selectCountry(c.code, c.name)}
                   className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 px-2 transition-all duration-150',
+                    'relative flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 px-2 transition-all duration-150',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
                     data.country === c.code
                       ? 'border-brand-near-black bg-brand-off-white'
                       : 'border-brand-border-grey hover:border-brand-dark-grey',
                   )}
                 >
+                  {c.recommended && (
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
+                      Recommended
+                    </span>
+                  )}
                   <span className="text-2xl leading-none">{c.flag}</span>
                   <span className="text-xs font-semibold text-brand-near-black text-center leading-tight">
                     {c.name}

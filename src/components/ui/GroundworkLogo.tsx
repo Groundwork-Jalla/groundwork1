@@ -10,10 +10,10 @@ interface GroundworkLogoProps {
 }
 
 const sizeMap = {
-  sm: { wordmark: 'text-sm',           byline: 'text-[10px]' },
-  md: { wordmark: 'text-base',         byline: 'text-[11px]' },
-  lg: { wordmark: 'text-lg',           byline: 'text-xs' },
-  xl: { wordmark: 'text-xl sm:text-2xl', byline: 'text-[11px] sm:text-sm' },
+  sm: { jalla: 'text-[10px]', wordmark: 'text-sm',            divider: 'h-3.5' },
+  md: { jalla: 'text-[11px]', wordmark: 'text-base',          divider: 'h-4'   },
+  lg: { jalla: 'text-xs',     wordmark: 'text-lg',            divider: 'h-5'   },
+  xl: { jalla: 'text-xs sm:text-sm', wordmark: 'text-xl sm:text-2xl', divider: 'h-5 sm:h-6' },
 };
 
 export function GroundworkLogo({
@@ -23,26 +23,25 @@ export function GroundworkLogo({
   showByline = true,
   className,
 }: GroundworkLogoProps) {
-  const { wordmark, byline } = sizeMap[size];
+  const { jalla, wordmark, divider } = sizeMap[size];
 
-  const wordmarkColor = variant === 'light'
-    ? 'text-white'
-    : 'text-brand-near-black';
-
-  const bylineColor = variant === 'light'
-    ? 'text-white/50'
-    : 'text-brand-mid-grey';
+  const primaryColor  = variant === 'light' ? 'text-white'      : 'text-brand-near-black';
+  const secondaryColor = variant === 'light' ? 'text-white/60'  : 'text-brand-mid-grey';
+  const dividerColor  = variant === 'light' ? 'bg-white/30'     : 'bg-brand-border-grey';
 
   const inner = (
-    <span className={cn('flex flex-col leading-none', className)}>
-      <span className={cn('font-sans font-black tracking-tight', wordmark, wordmarkColor)}>
-        Groundwork
-      </span>
+    <span className={cn('inline-flex items-center gap-2', className)}>
       {showByline && (
-        <span className={cn('font-normal mt-0.5', byline, bylineColor)}>
+        <span className={cn('font-sans font-semibold tracking-wide uppercase', jalla, secondaryColor)}>
           by Jalla
         </span>
       )}
+      {showByline && (
+        <span className={cn('w-px self-stretch my-0.5 rounded-full', divider, dividerColor)} />
+      )}
+      <span className={cn('font-sans font-black tracking-tight leading-none', wordmark, primaryColor)}>
+        Groundwork
+      </span>
     </span>
   );
 

@@ -350,18 +350,6 @@ export default function ProjectDetail() {
           {/* Tab: Stages */}
           {activeTab === 'stages' && (
             <div className="space-y-6">
-              <StageTracker
-                stages={stages}
-                substages={substages}
-                tier={project.tier}
-                userId={user?.id ?? ''}
-                isContractor={isContractor}
-                onMarkSubstageComplete={handleMarkSubstageComplete}
-                onEvidenceUploaded={handleEvidenceUploaded}
-                onApproveStage={handleApproveStage}
-                renderEvidenceUpload={renderEvidenceUpload}
-              />
-
               {/* Contractor invite — visible to project owner only */}
               {!isContractor && (
                 <div className="rounded-xl border border-brand-border-grey p-5">
@@ -373,6 +361,18 @@ export default function ProjectDetail() {
                   />
                 </div>
               )}
+
+              <StageTracker
+                stages={stages}
+                substages={substages}
+                tier={project.tier}
+                userId={user?.id ?? ''}
+                isContractor={isContractor}
+                onMarkSubstageComplete={handleMarkSubstageComplete}
+                onEvidenceUploaded={handleEvidenceUploaded}
+                onApproveStage={handleApproveStage}
+                renderEvidenceUpload={renderEvidenceUpload}
+              />
             </div>
           )}
 
