@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/analytics';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import {
@@ -382,6 +383,8 @@ export default function OnboardingPage() {
     await supabase.auth.updateUser({
       data: { tier, onboarding_complete: true },
     });
+
+    trackEvent('tier_selected', { tier });
 
     navigate('/dashboard', { replace: true });
   }

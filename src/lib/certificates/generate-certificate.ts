@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-
 export interface CertificateOptions {
   projectName: string;
   stageName: string;
@@ -21,6 +19,7 @@ function formatDate(d: Date): string {
 
 export async function generateCertificate(opts: CertificateOptions): Promise<Blob> {
   const { projectName, stageName, stageNumber, ownerName, issuedAt, certificateId } = opts;
+  const { jsPDF } = await import('jspdf');
 
   const doc = new jsPDF({
     orientation: 'landscape',

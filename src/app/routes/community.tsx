@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -127,6 +128,7 @@ export default function Community() {
     await supabase.from("waitlist_members").insert({ name: name || null, location: location || null });
 
     setSubmitting(false);
+    trackEvent('waitlist_joined');
     setSubmitted(true);
   }
 

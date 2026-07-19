@@ -29,6 +29,13 @@ export default function Signup() {
 
   const passwordValid = checks.every((c) => c.test(password));
 
+  async function handleGoogleSignUp() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -207,6 +214,19 @@ export default function Signup() {
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
+
+      {!isInviteFlow && (
+        <>
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1 bg-brand-border-grey" />
+            <span className="text-xs text-brand-mid-grey">OR</span>
+            <div className="h-px flex-1 bg-brand-border-grey" />
+          </div>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
+            Continue with Google
+          </Button>
+        </>
+      )}
 
       <p className="text-center text-sm text-brand-mid-grey mt-8">
         Already have an account?{" "}

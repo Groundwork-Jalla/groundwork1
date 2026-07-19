@@ -4,6 +4,7 @@ import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml } from '../email/stage-approved-html';
 import { buildReworkHtml } from '../email/rework-requested-html';
 import { issueCertificate } from './certificates';
+import { trackEvent } from '@/lib/analytics';
 
 // =========================================================
 // markSubstageComplete
@@ -133,6 +134,8 @@ export async function approveStage(
 
   if (projectErr) throw projectErr;
 
+  trackEvent('stage_approved', { stage_number: stageNumber, tier });
+
   await supabase.from('project_audit_log').insert({
     project_id: projectId, stage_id: stageId,
     action: 'stage_approved', actor_id: userId,
@@ -245,6 +248,8 @@ export async function adminApproveStage(
       }
     }).catch(() => {});
   }
+
+  trackEvent('stage_approved', { stage_number: stageNumber, tier: 'jalla_verify', approved_by: 'admin' });
 
   await supabase.from('project_audit_log').insert({
     project_id: projectId, stage_id: stageId,

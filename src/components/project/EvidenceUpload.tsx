@@ -7,6 +7,7 @@ import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { supabase } from '@/lib/supabase/client';
 import { notifyAdmins } from '@/lib/supabase/notifications';
+import { trackEvent } from '@/lib/analytics';
 import {
   getStorageLimit,
   getProjectStorageUsed,
@@ -261,6 +262,8 @@ export function EvidenceUpload({
           if (hasStorageLimit) {
             getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
           }
+
+          trackEvent('evidence_uploaded', { tier });
 
           // Notify admins for jalla_verify projects (fire-and-forget)
           if (tier === 'jalla_verify' || tier === 'pro') {

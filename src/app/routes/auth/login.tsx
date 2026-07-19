@@ -6,7 +6,6 @@ import { acceptInvite } from "@/lib/supabase/invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function Login() {
   const navigate        = useNavigate();
@@ -17,6 +16,13 @@ export default function Login() {
   const [password,   setPassword]   = useState("");
   const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -106,16 +112,9 @@ export default function Login() {
         <div className="h-px flex-1 bg-brand-border-grey" />
       </div>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="block">
-            <Button variant="outline" disabled className="w-full cursor-not-allowed opacity-60">
-              Continue with Google
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>Coming soon</TooltipContent>
-      </Tooltip>
+      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+        Continue with Google
+      </Button>
 
       <p className="text-center text-sm text-brand-mid-grey mt-8">
         Don't have an account?{" "}

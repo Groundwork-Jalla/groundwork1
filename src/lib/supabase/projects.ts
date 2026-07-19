@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
+import { trackEvent } from '@/lib/analytics';
 import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow } from '@/types/project';
 
 // =========================================================
@@ -96,6 +97,12 @@ export async function createProject(
       `"${formData.projectName}" was created`,
       { project_id: project.id },
     ).catch(() => {});
+
+    trackEvent('project_created', {
+      project_type: formData.projectType,
+      country: formData.country,
+      tier: formData.tier,
+    });
 
     return project;
   } catch (err) {

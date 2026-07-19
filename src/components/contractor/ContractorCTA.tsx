@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CheckCircle2, Clock, Users, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/landing/Reveal";
+import { trackEvent } from "@/lib/analytics";
 
 const PERKS = [
   { Icon: CheckCircle2, text: "First access to funded diaspora projects" },
@@ -31,6 +32,7 @@ export default function ContractorCTA() {
   useGHLScript(open);
 
   function handleOpen() {
+    trackEvent('contractor_applied');
     setOpen(true);
     // scroll to form after it renders
     setTimeout(() => {
