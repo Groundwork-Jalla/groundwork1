@@ -8,6 +8,7 @@ export default [
   route("community",           "routes/community.tsx"),
   route("invite/:token",       "routes/invite.tsx"),
   route("pricing",             "routes/pricing.tsx"),
+  route("verify/:id",          "routes/verify.tsx"),
 
   // Auth routes (public)
   layout("routes/_auth-layout.tsx", [

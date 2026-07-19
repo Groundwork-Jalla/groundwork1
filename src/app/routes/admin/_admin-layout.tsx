@@ -5,6 +5,7 @@ import {
   Users, HardHat, LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -42,7 +43,7 @@ export default function AdminLayout() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-brand-border-grey">
           <div className="flex flex-col leading-none">
-            <span className="text-base font-black text-brand-near-black tracking-tight">Groundwork</span>
+            <GroundworkLogo size="md" showByline={false} />
             <span className="text-[10px] text-brand-mid-grey mt-0.5">Admin</span>
           </div>
         </div>

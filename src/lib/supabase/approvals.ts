@@ -3,6 +3,7 @@ import { notifyAdmins } from './notifications';
 import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml } from '../email/stage-approved-html';
 import { buildReworkHtml } from '../email/rework-requested-html';
+import { issueCertificate } from './certificates';
 
 // =========================================================
 // markSubstageComplete
@@ -207,22 +208,41 @@ export async function adminApproveStage(
       data: { project_id: projectId, stage_number: stageNumber },
     });
 
-    // Send email (fire-and-forget — never block the approval)
+    // Send email + issue certificate (fire-and-forget — never block the approval)
     Promise.resolve(
       supabase.from('profiles').select('full_name, email').eq('id', proj.user_id).single()
-    ).then(({ data: profile }) => {
-      if (!profile?.email) return;
-      sendEmail(
-        profile.email,
-        `Stage Approved: ${stageName}`,
-        buildStageApprovedHtml(
-          profile.full_name ?? 'there',
-          proj.name,
-          stageName,
-          nextStageName,
+    ).then(async ({ data: profile }) => {
+      const ownerName = profile?.full_name ?? 'there';
+
+      // Issue certificate first so we can include the verify link in the email
+      let certId: string | undefined;
+      try {
+        const certUrl = await issueCertificate({
           projectId,
-        ),
-      ).catch(() => {});
+          stageId,
+          stageNumber,
+          ownerName,
+          projectName: proj.name,
+          stageName,
+        });
+        // Extract the UUID from the end of the storage path via the cert record
+        const certRecord = await supabase
+          .from('certificates')
+          .select('id')
+          .eq('stage_id', stageId)
+          .maybeSingle();
+        certId = certRecord.data?.id;
+        void certUrl;
+      } catch { /* non-fatal */ }
+
+      // Email
+      if (profile?.email) {
+        sendEmail(
+          profile.email,
+          `Stage Approved: ${stageName}`,
+          buildStageApprovedHtml(ownerName, proj.name, stageName, nextStageName, projectId, certId),
+        ).catch(() => {});
+      }
     }).catch(() => {});
   }
 

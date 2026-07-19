@@ -4,8 +4,10 @@ export function buildStageApprovedHtml(
   stageName: string,
   nextStageName: string,
   projectId: string,
+  certificateId?: string,
 ): string {
   const link = `https://tryjalla.com/projects/${projectId}`;
+  const certLink = certificateId ? `https://tryjalla.com/verify/${certificateId}` : null;
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -27,12 +29,17 @@ export function buildStageApprovedHtml(
             <strong>${nextStageName}</strong> is now active. Your contractor
             can begin uploading evidence for the next phase.
           </p>
-          <table cellpadding="0" cellspacing="0">
+          <table cellpadding="0" cellspacing="0" style="border-spacing:0 8px;">
             <tr><td style="background:#1a1a1a;border-radius:8px;">
               <a href="${link}" style="display:inline-block;padding:13px 28px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;font-family:-apple-system,sans-serif;">
                 View Project →
               </a>
             </td></tr>
+            ${certLink ? `<tr><td style="border-radius:8px;border:1px solid #e5e5e5;">
+              <a href="${certLink}" style="display:inline-block;padding:11px 28px;color:#1a1a1a;font-size:13px;font-weight:500;text-decoration:none;font-family:-apple-system,sans-serif;">
+                View Certificate →
+              </a>
+            </td></tr>` : ''}
           </table>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #f0f0f0;">
