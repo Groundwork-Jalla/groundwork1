@@ -43,7 +43,7 @@ export default function AdminLayout() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-brand-border-grey">
           <div className="flex flex-col leading-none">
-            <GroundworkLogo size="md" showByline={false} />
+            <GroundworkLogo size="sm" />
             <span className="text-[10px] text-brand-mid-grey mt-0.5">Admin</span>
           </div>
         </div>

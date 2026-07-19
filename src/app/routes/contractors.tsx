@@ -296,7 +296,7 @@ export default function ContractorsPage() {
           <span className="hidden sm:inline">Dashboard</span>
         </Link>
         <div className="h-4 w-px bg-brand-border-grey" />
-        <GroundworkLogo showByline={false} size="lg" />
+        <GroundworkLogo size="md" />
       </nav>
 
       {/* Main content */}

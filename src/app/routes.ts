@@ -6,20 +6,18 @@ export default [
   route("/",                   "routes/landing.tsx"),
   route("contractor-apply",    "routes/contractor-apply.tsx"),
   route("community",           "routes/community.tsx"),
-  route("invite/:token",       "routes/invite.tsx"),
   route("pricing",             "routes/pricing.tsx"),
   route("verify/:id",          "routes/verify.tsx"),
 
-  // Auth routes (public)
+  // Auth routes (public) — shared architectural layout
   layout("routes/_auth-layout.tsx", [
     route("auth/login",          "routes/auth/login.tsx"),
     route("auth/signup",         "routes/auth/signup.tsx"),
     route("auth/reset-password", "routes/auth/reset-password.tsx"),
     route("auth/callback",       "routes/auth/callback.tsx"),
+    route("onboarding",          "routes/onboarding.tsx"),
+    route("invite/:token",       "routes/invite.tsx"),
   ]),
-
-  // Onboarding (post-signup, pre-dashboard)
-  route("onboarding", "routes/onboarding.tsx"),
 
   // Protected app routes
   layout("routes/_layout.tsx", [
