@@ -3,10 +3,12 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from 'react';
-import type { WizardFormData } from '@/types/project';
+import type { WizardFormData, ConstructionRate } from '@/types/project';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
+import { getConstructionRate } from '@/lib/supabase/construction-rates';
 
 // =========================================================
 // Types
@@ -18,6 +20,8 @@ interface WizardContextValue {
   totalSteps: number;
   direction: WizardDirection;
   data: WizardFormData;
+  constructionRate: ConstructionRate | null;
+  rateLoading: boolean;
   update: (patch: Partial<WizardFormData>) => void;
   next: () => void;
   back: () => void;
@@ -39,6 +43,26 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [step, setStep]           = useState(1);
   const [direction, setDirection] = useState<WizardDirection>('forward');
   const [data, setData]           = useState<WizardFormData>(WIZARD_DEFAULT_DATA);
+
+  const [constructionRate, setConstructionRate] = useState<ConstructionRate | null>(null);
+  const [rateLoading, setRateLoading]           = useState(false);
+
+  // Fetch rate once whenever the selected country changes
+  useEffect(() => {
+    if (!data.country) {
+      setConstructionRate(null);
+      return;
+    }
+    let cancelled = false;
+    setRateLoading(true);
+    getConstructionRate(data.country).then(rate => {
+      if (!cancelled) {
+        setConstructionRate(rate);
+        setRateLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [data.country]);
 
   const update = useCallback((patch: Partial<WizardFormData>) => {
     setData(prev => ({ ...prev, ...patch }));
@@ -63,11 +87,16 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setStep(1);
     setDirection('forward');
     setData(WIZARD_DEFAULT_DATA);
+    setConstructionRate(null);
   }, []);
 
   return (
     <WizardContext.Provider
-      value={{ step, totalSteps: TOTAL_STEPS, direction, data, update, next, back, goTo, reset }}
+      value={{
+        step, totalSteps: TOTAL_STEPS, direction, data,
+        constructionRate, rateLoading,
+        update, next, back, goTo, reset,
+      }}
     >
       {children}
     </WizardContext.Provider>

@@ -23,6 +23,7 @@ import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
 import ProjectChat               from '@/components/project/ProjectChat';
 import ContractorInvite          from '@/components/project/ContractorInvite';
+import { WeatherWidget }         from '@/components/ui/WeatherWidget';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier,
@@ -323,6 +324,11 @@ export default function ProjectDetail() {
             {startDate && (
               <DetailRow icon={<CalendarDays className="size-3.5" />} label="Target start" value={startDate} />
             )}
+          </div>
+
+          {/* Site weather — specific to this project's country */}
+          <div className="mb-6">
+            <WeatherWidget countryCode={project.country} />
           </div>
 
           {/* Budget headline — hidden for contractors */}

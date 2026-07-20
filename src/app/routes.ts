@@ -19,13 +19,18 @@ export default [
     route("invite/:token",       "routes/invite.tsx"),
   ]),
 
-  // Protected app routes
+  // Protected app routes — all share the sidebar shell
   layout("routes/_layout.tsx", [
     route("dashboard",           "routes/dashboard.tsx"),
-    route("profile",             "routes/profile.tsx"),
+    route("documents",           "routes/documents.tsx"),
+    route("projects",            "routes/projects/index.tsx"),
     route("projects/new",        "routes/projects/new.tsx"),
     route("projects/:id",        "routes/projects/detail.tsx"),
+    route("resources",           "routes/resources.tsx"),
     route("contractors",         "routes/contractors.tsx"),
+    route("payments",            "routes/payments.tsx"),
+    route("notifications",       "routes/notifications.tsx"),
+    route("profile",             "routes/profile.tsx"),
   ]),
 
   // Admin panel (role-guarded inside its own layout)

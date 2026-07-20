@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import {
-  ArrowLeft,
   MapPin,
   Star,
   Phone,
@@ -284,23 +282,8 @@ export default function ContractorsPage() {
   const visible = contractors.filter((c) => matchesFilter(c, activeFilter));
 
   return (
-    <div className="min-h-screen bg-white">
-
-      {/* Top nav */}
-      <nav className="border-b border-brand-border-grey px-5 sm:px-8 py-3.5 flex items-center gap-4">
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">Dashboard</span>
-        </Link>
-        <div className="h-4 w-px bg-brand-border-grey" />
-        <GroundworkLogo size="md" />
-      </nav>
-
-      {/* Main content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+    <div className="bg-brand-off-white min-h-full">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
 
         {/* Page header */}
         <motion.div

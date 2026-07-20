@@ -122,12 +122,62 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
 // -------------------------------------------------------
 export interface BudgetBreakdown {
   total: number;
-  materials: number;   // 41 %
-  labor: number;       // 23 %
-  engineering: number; // 16 %
-  permits: number;     //  2 %
-  contingency: number; //  8 %
-  management: number;  // 10 %
+  materials: number;
+  labor: number;
+  engineering: number;
+  permits: number;
+  contingency: number;
+  management: number;
+}
+
+// -------------------------------------------------------
+// Construction rates (fetched from DB, one row per country)
+// -------------------------------------------------------
+export interface ConstructionRateSections {
+  preliminary: number;
+  foundation: number;
+  ground_floor: number;
+  roof: number;
+  joinery: number;
+  electrical: number;
+  plumbing: number;
+  finishing: number;
+}
+
+export interface ConstructionRate {
+  country_code: string;
+  base_rate_usd: number;
+  upper_floor_addition_pct: number;
+  sections: ConstructionRateSections;
+  finish_multipliers: Record<string, number>;
+  building_type_multipliers: Record<string, number>;
+  roof_type_multipliers: Record<string, number>;
+  currency_code: string;
+  approx_fx_rate: number;
+  data_source: 'real_bq' | 'estimated_index';
+  notes?: string | null;
+  updated_at?: string;
+}
+
+// -------------------------------------------------------
+// Trade-section budget detail (shown in wizard + dashboard)
+// -------------------------------------------------------
+export interface TradeSection {
+  key: string;
+  label: string;
+  pct: number;         // % of total (display only)
+  amountUSD: number;
+  amountLocal: number;
+  color: string;
+}
+
+export interface BudgetCalcDetail {
+  sections: TradeSection[];
+  total: number;
+  totalLocal: number;
+  currencyCode: string;
+  approxFxRate: number;
+  dataSource: 'real_bq' | 'estimated_index';
 }
 
 // -------------------------------------------------------

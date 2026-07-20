@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — applies when <html class="dark"> */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -69,4 +72,70 @@ body {
 }
 .animate-fill-progress {
   animation: fill-progress 2s ease-out 0.5s both;
+}
+
+/* ── Dark mode ─────────────────────────────────────────── */
+/* Non-layered CSS overrides @layer utilities, so these win */
+
+html.dark {
+  color-scheme: dark;
+  /* Brand token overrides — background-type colors flip to dark */
+  --color-brand-off-white: #141414;
+  --color-brand-light-grey: #1e1e1e;
+  --color-brand-border-grey: #2c2c2c;
+  --color-brand-mid-grey: #909090;
+  /* brand-near-black intentionally NOT overridden: bg-brand-near-black
+     (hero panel, inverted buttons) must stay dark in dark mode */
+}
+
+html.dark body {
+  background-color: #141414;
+  color: #f0f0f0;
+}
+
+/* Cards and surfaces using bg-white (not a CSS variable, override directly) */
+html.dark .bg-white {
+  background-color: #1e1e1e;
+}
+
+/* Primary text — flip to near-white */
+html.dark .text-brand-near-black {
+  color: #f0f0f0;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4 {
+  color: #f0f0f0;
+}
+
+/* Hover surfaces */
+html.dark .hover\:bg-brand-off-white:hover {
+  background-color: #2a2a2a;
+}
+
+html.dark .hover\:bg-white:hover {
+  background-color: #2a2a2a;
+}
+
+/* Active nav item stays dark-on-white look but inverted */
+html.dark .bg-brand-near-black.text-white {
+  /* Already dark background + white text — looks fine in both modes */
+  background-color: #f0f0f0;
+  color: #0a0a0a;
+}
+
+/* Input / select / textarea */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1e1e1e;
+  color: #f0f0f0;
+  border-color: #2c2c2c;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #666666;
 }

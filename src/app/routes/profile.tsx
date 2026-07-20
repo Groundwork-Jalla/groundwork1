@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft,
+
   User,
   Phone,
   Globe,
@@ -293,24 +293,8 @@ export default function ProfilePage() {
 
   // ── Render ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
-
-      {/* Nav */}
-      <nav className="border-b border-brand-border-grey px-4 sm:px-6 py-3 flex items-center gap-3">
-        <Link
-          to="/dashboard"
-          className="flex items-center justify-center size-8 rounded-lg hover:bg-brand-light-grey transition-colors text-brand-mid-grey hover:text-brand-near-black"
-          aria-label="Back to dashboard"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <h1 className="font-sans text-base font-semibold text-brand-near-black">
-          Profile
-        </h1>
-      </nav>
-
-      {/* Page body */}
-      <div className="max-w-[560px] mx-auto px-4 py-8">
+    <div className="bg-brand-off-white min-h-full">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
