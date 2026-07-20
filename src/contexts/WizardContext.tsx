@@ -34,7 +34,7 @@ interface WizardContextValue {
 // =========================================================
 const WizardContext = createContext<WizardContextValue | null>(null);
 
-export const TOTAL_STEPS = 9;
+export const TOTAL_STEPS = 10;
 
 // =========================================================
 // Provider

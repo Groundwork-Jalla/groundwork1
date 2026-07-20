@@ -123,9 +123,8 @@ html.dark .hover\:bg-white:hover {
   background-color: #2a2a2a;
 }
 
-/* Active nav item stays dark-on-white look but inverted */
-html.dark .bg-brand-near-black.text-white {
-  /* Already dark background + white text — looks fine in both modes */
+/* Active nav item chip — only flip the small rounded-xl chip, not full-bleed panels */
+html.dark .bg-brand-near-black.text-white.rounded-xl {
   background-color: #f0f0f0;
   color: #0a0a0a;
 }
@@ -161,3 +160,30 @@ html.dark .bg-blue-50\/30       { background-color: rgba(59, 130, 246, 0.07); }
 /* SVG donut chart — center hole and value label */
 html.dark .donut-bg             { fill: #1e1e1e; }
 html.dark .donut-text-value     { fill: #f0f0f0; }
+
+/* Wizard shell right panel */
+html.dark .bg-brand-off-white   { background-color: #1a1a1a; }
+
+/* Auth layout — right panel and misc surfaces */
+html.dark .divide-brand-border-grey > * + * { border-color: #2c2c2c; }
+html.dark .divide-y > * + *                  { border-color: #2c2c2c; }
+
+/* Borders that use brand-off-white as a subtle divider */
+html.dark .border-brand-off-white            { border-color: #252525; }
+
+/* Text muted/secondary that needs to stay readable */
+html.dark .text-brand-dark-grey              { color: #c0c0c0; }
+
+/* Focused ring on inputs in dark mode */
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  outline-color: #f0f0f0;
+  border-color: #555555;
+}
+
+/* Auth panel left side stays near-black regardless of mode */
+html.dark .auth-panel-left {
+  background-color: #0a0a0a;
+  color: #ffffff;
+}

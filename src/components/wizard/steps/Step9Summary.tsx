@@ -1,16 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import {
-  CheckCircle2, MapPin, Building2, Layers, Home, Wrench, Check,
-  ShieldCheck, BadgeCheck, Info,
+  MapPin, Building2, Layers, Home, Wrench,
+  ShieldCheck, Info,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { calculateBudget, calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
-import { createProject } from '@/lib/supabase/projects';
-import { useAuth } from '@/contexts/AuthContext';
-import type { ProjectTier } from '@/types/project';
+import { calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 
 // ── Label helpers ─────────────────────────────────────────
@@ -40,50 +35,6 @@ const ROOF_LABELS: Record<string, string> = {
 const FINISH_LABELS: Record<string, string> = {
   standard: 'Standard Finish', premium: 'Premium Finish', luxury: 'Luxury Finish',
 };
-
-// ── Tier card ─────────────────────────────────────────────
-
-interface TierCardProps {
-  value: ProjectTier; title: string; price: string;
-  description: string; features: string[]; selected: boolean;
-  onSelect: () => void; popular?: boolean;
-}
-
-function TierCard({ title, price, description, features, selected, onSelect, popular }: TierCardProps) {
-  return (
-    <button type="button" onClick={onSelect}
-      className={cn(
-        'relative w-full text-left rounded-xl border-2 p-4 transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
-        selected ? 'border-brand-near-black bg-brand-off-white' : 'border-brand-border-grey hover:border-brand-dark-grey',
-      )}
-    >
-      {popular && (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
-          Most popular
-        </span>
-      )}
-      {selected && (
-        <span className="absolute top-3 right-3 flex size-4 items-center justify-center rounded-full bg-brand-near-black">
-          <Check className="size-2.5 text-white" strokeWidth={3} />
-        </span>
-      )}
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-sm font-bold text-brand-near-black">{title}</span>
-      </div>
-      <div className="text-xs font-semibold text-brand-near-black mb-1">{price}</div>
-      <p className="text-xs text-brand-mid-grey mb-3 leading-relaxed">{description}</p>
-      <ul className="space-y-1">
-        {features.map(f => (
-          <li key={f} className="flex items-start gap-1.5 text-xs text-brand-mid-grey">
-            <Check className="size-3 text-brand-near-black mt-0.5 shrink-0" strokeWidth={2.5} />
-            {f}
-          </li>
-        ))}
-      </ul>
-    </button>
-  );
-}
 
 // ── Budget breakdown display ───────────────────────────────
 
@@ -214,72 +165,19 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 // ── Page component ─────────────────────────────────────────
 
 export default function Step9Summary() {
-  const { data, update, reset, constructionRate } = useWizard();
-  const { user } = useAuth();
-  const navigate  = useNavigate();
-
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-
-  async function handleSubmit() {
-    if (!user) return;
-    setError(null);
-    setSubmitting(true);
-    try {
-      const budget  = calculateBudget(data, constructionRate);
-      const project = await createProject(user.id, data, budget);
-      reset();
-      navigate(`/projects/${project.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-      setSubmitting(false);
-    }
-  }
-
-  const tiers: TierCardProps[] = [
-    {
-      value:       'self_verify',
-      title:       'Self Verify',
-      price:       'Free',
-      description: 'Self-manage your build with the full Groundwork toolkit. Up to 3 projects.',
-      features:    ['Up to 3 projects', 'Budget & stage tracking', 'Document vault', 'Self-verify stages'],
-      selected:    data.tier === 'self_verify',
-      onSelect:    () => update({ tier: 'self_verify' }),
-    },
-    {
-      value:       'jalla_verify',
-      title:       'Jalla Verify',
-      price:       '$199 / mo',
-      description: 'Unlimited projects, full contractor access, and Jalla-verified stages.',
-      features:    ['Unlimited projects', 'Full contractor directory', 'Jalla-verified stages', 'Priority support'],
-      selected:    data.tier === 'jalla_verify',
-      onSelect:    () => update({ tier: 'jalla_verify' }),
-      popular:     true,
-    },
-    {
-      value:       'jalla_management',
-      title:       'Jalla Management',
-      price:       'Custom',
-      description: 'Jalla manages everything on your behalf. Full-service, dedicated project manager.',
-      features:    ['Everything in Jalla Verify', 'Dedicated project manager', 'Procurement oversight', 'On-site representation'],
-      selected:    data.tier === 'jalla_management',
-      onSelect:    () => update({ tier: 'jalla_management' }),
-    },
-  ];
+  const { data } = useWizard();
 
   return (
     <WizardShell
-      canContinue={!!data.tier}
-      onContinue={handleSubmit}
-      continueLabel="Create Project"
-      isSubmitting={submitting}
+      canContinue={true}
+      continueLabel="Continue"
     >
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           Your project at a glance
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Review your choices, pick a plan, and create your project.
+          Review your project details and estimated budget before choosing a plan.
         </p>
 
         {/* Summary grid */}
@@ -308,26 +206,6 @@ export default function Step9Summary() {
           <BudgetBreakdownCard />
         </div>
 
-        {/* Tier selection */}
-        <div className="mt-7">
-          <div className="flex items-center gap-2 mb-4">
-            <BadgeCheck className="size-4 text-brand-mid-grey" />
-            <p className="text-sm font-semibold text-brand-near-black">Choose your plan</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
-            {tiers.map(tier => <TierCard key={tier.value} {...tier} />)}
-          </div>
-        </div>
-
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 rounded-lg bg-brand-off-white border border-brand-border-grey px-4 py-3 text-sm text-brand-near-black"
-          >
-            {error}
-          </motion.p>
-        )}
       </div>
     </WizardShell>
   );

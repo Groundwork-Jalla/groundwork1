@@ -1,6 +1,7 @@
 import { Outlet } from "react-router";
 import { motion } from "framer-motion";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 function ArchDrawing() {
   return (
@@ -138,7 +139,10 @@ export default function AuthLayout() {
       </div>
 
       {/* Right — form panel */}
-      <div className="flex-1 md:w-1/2 bg-white overflow-y-auto">
+      <div className="flex-1 md:w-1/2 bg-white overflow-y-auto relative">
+        <div className="absolute top-4 right-4 z-10">
+          <ThemeToggle compact />
+        </div>
         <div className="min-h-full flex items-center justify-center px-6 py-8">
           <motion.div
             initial={{ opacity: 0, y: 16 }}

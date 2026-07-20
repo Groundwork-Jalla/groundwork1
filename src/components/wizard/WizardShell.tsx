@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import ProgressBar from './ProgressBar';
 import { BuildingPreview } from './BuildingPreview';
 import { useWizard } from '@/contexts/WizardContext';
@@ -60,24 +61,27 @@ export default function WizardShell({
           <div className="flex-1 mx-6 md:hidden">
             <ProgressBar />
           </div>
-          {!isFirst ? (
-            <button
-              type="button"
-              onClick={back}
-              disabled={isSubmitting}
-              className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors disabled:opacity-40 flex items-center gap-1"
-            >
-              <ArrowLeft className="size-3.5" />
-              Back
-            </button>
-          ) : (
-            <Link
-              to="/dashboard"
-              className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
-            >
-              ← Cancel
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            <ThemeToggle compact />
+            {!isFirst ? (
+              <button
+                type="button"
+                onClick={back}
+                disabled={isSubmitting}
+                className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors disabled:opacity-40 flex items-center gap-1"
+              >
+                <ArrowLeft className="size-3.5" />
+                Back
+              </button>
+            ) : (
+              <Link
+                to="/dashboard"
+                className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
+              >
+                ← Cancel
+              </Link>
+            )}
+          </div>
         </header>
 
         {/* Step content */}

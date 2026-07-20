@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
   MapPin, Building2, ChevronRight, FolderOpen,
-  Wallet, HardHat, CheckCircle2, Shield,
+  Wallet, HardHat, CheckCircle2,
   UserCircle, Check, ArrowRight, TrendingUp,
   Lock, CircleDot, Info,
 } from 'lucide-react';
@@ -593,17 +593,49 @@ function BudgetCalculation({ project }: { project: ProjectRow }) {
   );
 }
 
-// ── Jalla badge ────────────────────────────────────────────
+// ── Platform newsfeed ──────────────────────────────────────
 
-function JallaBadge() {
+const FEED_ITEMS = [
+  {
+    id: 1,
+    icon: '🏗️',
+    title: 'Budget Breakdown v2 live',
+    body: 'Accurate construction rates now calibrated from real Cameroonian BQ data.',
+    age: '2d ago',
+  },
+  {
+    id: 2,
+    icon: '📋',
+    title: 'Stage certificates coming',
+    body: 'Auto-generated PDF certificates issued on every approved stage.',
+    age: '1w ago',
+  },
+  {
+    id: 3,
+    icon: '🌍',
+    title: '27 African markets',
+    body: 'Country coverage expanded — Cameroon, Nigeria, Kenya, South Africa and more.',
+    age: '2w ago',
+  },
+];
+
+function NewsfeedCard() {
   return (
-    <div className="bg-white rounded-2xl border border-brand-border-grey px-5 py-4 flex items-center gap-3">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-near-black">
-        <Shield className="size-4 text-white" />
+    <div className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col">
+      <div className="px-5 py-3.5 border-b border-brand-off-white">
+        <p className="text-sm font-semibold text-brand-near-black">Platform Updates</p>
       </div>
-      <div>
-        <p className="text-xs font-semibold text-brand-near-black">Jalla project</p>
-        <p className="text-[10px] text-brand-mid-grey">Tracked end-to-end on the Jalla platform</p>
+      <div className="flex-1 divide-y divide-brand-off-white">
+        {FEED_ITEMS.map(item => (
+          <div key={item.id} className="flex items-start gap-3 px-5 py-3.5">
+            <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-brand-near-black leading-snug">{item.title}</p>
+              <p className="text-[10px] text-brand-mid-grey leading-relaxed mt-0.5">{item.body}</p>
+            </div>
+            <span className="text-[9px] text-brand-mid-grey shrink-0 mt-0.5 tabular-nums">{item.age}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -825,7 +857,7 @@ export default function Dashboard() {
             </div>
             <div className="lg:col-span-2 flex flex-col gap-4">
               <CostingDonut project={activeProject} stages={activeStages} />
-              <JallaBadge />
+              <NewsfeedCard />
             </div>
           </div>
 
