@@ -298,7 +298,7 @@ export default function ProjectDetail() {
       </nav>
 
       {/* Main — wider for overview, narrow for detail tabs */}
-      <div className={`mx-auto px-4 sm:px-6 py-8 sm:py-10 transition-all ${isWideTab ? 'max-w-5xl' : 'max-w-180'}`}>
+      <div className="mx-auto px-4 sm:px-6 py-8 sm:py-10 max-w-5xl">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}
