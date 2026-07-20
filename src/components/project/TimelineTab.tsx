@@ -135,21 +135,30 @@ function ListView({
             </div>
 
             {/* Progress bar */}
-            <div className="h-1 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
+            <div className="h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
               {stage.status === 'complete' && (
                 <motion.div
-                  className="h-full bg-brand-near-black dark:bg-white rounded-full"
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: '#22c55e' }}
                   initial={{ width: 0 }}
                   animate={{ width: '100%' }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
               )}
-              {(stage.status === 'active' || stage.status === 'pending_review') && (
+              {stage.status === 'active' && (
                 <motion.div
-                  className="h-full bg-brand-near-black dark:bg-white rounded-full"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: '#3b82f6', width: '50%' }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{ width: '50%' }}
+                />
+              )}
+              {stage.status === 'pending_review' && (
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: '#f59e0b', width: '75%' }}
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                 />
               )}
             </div>
@@ -236,18 +245,26 @@ function GanttView({
         </div>
 
         {/* Stage rows */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           {computed.map(({ stage, start, end, durationDays }) => {
             const leftPct  = (dateDiffDays(projStart, start) / totalDays) * 100;
             const widthPct = Math.max((durationDays / totalDays) * 100, 1);
             const isComplete = stage.status === 'complete';
-            const isActive   = stage.status === 'active' || stage.status === 'pending_review';
+            const isActive   = stage.status === 'active';
+            const isReview   = stage.status === 'pending_review';
+
+            const barColor = isComplete ? '#22c55e'
+              : isActive   ? '#3b82f6'
+              : isReview   ? '#f59e0b'
+              : '#d1d5db';
+
+            const textColor = (isComplete || isActive || isReview) ? '#fff' : '#6b7280';
 
             return (
-              <div key={stage.id} className="flex items-center gap-2 h-8">
+              <div key={stage.id} className="flex items-center gap-2 h-9">
                 {/* Stage label */}
                 <div
-                  className="shrink-0 text-xs text-brand-near-black dark:text-white truncate"
+                  className="shrink-0 text-xs font-medium text-brand-near-black dark:text-white truncate"
                   style={{ width: 116 }}
                   title={stage.name}
                 >
@@ -255,12 +272,12 @@ function GanttView({
                 </div>
 
                 {/* Bar track */}
-                <div className="relative flex-1 h-5 bg-brand-light-grey dark:bg-[#282828] rounded-md overflow-hidden">
+                <div className="relative flex-1 h-7 bg-brand-light-grey dark:bg-[#282828] rounded-lg overflow-hidden">
                   {/* Today line */}
                   {todayPct > 0 && todayPct < 100 && (
                     <div
-                      className="absolute top-0 bottom-0 w-px bg-brand-near-black dark:bg-white z-10 opacity-40"
-                      style={{ left: `${todayPct}%` }}
+                      className="absolute top-0 bottom-0 w-0.5 z-10 opacity-70"
+                      style={{ left: `${todayPct}%`, backgroundColor: '#ef4444' }}
                     />
                   )}
 
@@ -268,31 +285,26 @@ function GanttView({
                   <motion.div
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    transition={{ duration: 0.45, ease: 'easeOut' }}
                     style={{
                       position: 'absolute',
-                      top: 2, bottom: 2,
+                      top: 3, bottom: 3,
                       left: `${Math.max(0, leftPct)}%`,
                       width: `${Math.min(widthPct, 100 - Math.max(0, leftPct))}%`,
                       originX: 0,
-                      borderRadius: 4,
-                      backgroundColor: isComplete
-                        ? '#0a0a0a'
-                        : isActive
-                          ? '#3d3d3d'
-                          : '#c0c0c0',
+                      borderRadius: 5,
+                      backgroundColor: barColor,
                     }}
-                    className={cn('dark:bg-white', isActive && 'dark:!bg-[#555]')}
                     onClick={onGoToStages}
                     title={`${stage.name} · ${durationDays}d`}
                     role="button"
                     tabIndex={0}
                   >
-                    {durationDays > totalDays * 0.12 && (
-                      <span className={cn(
-                        'absolute inset-0 flex items-center justify-center text-[9px] font-medium',
-                        isComplete ? 'text-white' : isActive ? 'text-white' : 'text-brand-near-black dark:text-white',
-                      )}>
+                    {durationDays > totalDays * 0.1 && (
+                      <span
+                        className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold"
+                        style={{ color: textColor }}
+                      >
                         {durationDays}d
                       </span>
                     )}
@@ -304,16 +316,16 @@ function GanttView({
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-5 mt-5 pt-4 border-t border-brand-off-white dark:border-[#2c2c2c]">
+        <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-brand-off-white dark:border-[#2c2c2c]">
           {[
-            { color: 'bg-brand-near-black dark:bg-white',       label: 'Completed' },
-            { color: 'bg-[#3d3d3d] dark:bg-[#555]',            label: 'In progress' },
-            { color: 'bg-[#c0c0c0] dark:bg-[#c0c0c0]',         label: 'Awaiting approval' },
-            { color: 'bg-brand-light-grey dark:bg-[#282828] border border-brand-border-grey', label: 'Upcoming' },
+            { color: '#22c55e', label: 'Completed' },
+            { color: '#3b82f6', label: 'In progress' },
+            { color: '#f59e0b', label: 'Awaiting approval' },
+            { color: '#d1d5db', label: 'Upcoming' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
-              <span className={cn('size-2.5 rounded-sm shrink-0', item.color)} />
-              <span className="text-[9px] text-brand-mid-grey">{item.label}</span>
+              <span className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+              <span className="text-[10px] text-brand-mid-grey">{item.label}</span>
             </div>
           ))}
         </div>

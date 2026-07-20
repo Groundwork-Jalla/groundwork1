@@ -1,12 +1,24 @@
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
-  ShieldCheck, Info,
+  ShieldCheck, Info, CalendarDays,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { cn } from '@/lib/utils';
+
+const PREDICTED_DAYS = 196;
+
+function addDays(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function fmtDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 // ── Label helpers ─────────────────────────────────────────
 
@@ -204,6 +216,41 @@ export default function Step9Summary() {
         {/* Budget estimate with trade sections */}
         <div className="mt-6">
           <BudgetBreakdownCard />
+        </div>
+
+        {/* Predicted build timeline */}
+        <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
+            <CalendarDays className="size-4 text-brand-mid-grey shrink-0" />
+            <p className="text-sm font-semibold text-brand-near-black">Predicted Build Timeline</p>
+          </div>
+
+          {(() => {
+            const startDate = data.targetStartDate ? new Date(data.targetStartDate) : new Date();
+            const endDate = addDays(startDate, PREDICTED_DAYS);
+            const months = Math.round(PREDICTED_DAYS / 30);
+            const rows = [
+              { label: 'Estimated start', value: fmtDate(startDate) },
+              { label: 'Projected completion', value: fmtDate(endDate) },
+              { label: 'Total duration', value: `~${PREDICTED_DAYS} days (${months} months)` },
+            ];
+            return (
+              <div className="divide-y divide-brand-off-white">
+                {rows.map(r => (
+                  <div key={r.label} className="flex items-center justify-between px-5 py-3">
+                    <span className="text-xs text-brand-mid-grey">{r.label}</span>
+                    <span className="text-sm font-medium text-brand-near-black tabular-nums">{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          <div className="px-5 py-3 bg-brand-off-white/50 border-t border-brand-off-white">
+            <p className="text-[10px] text-brand-mid-grey leading-relaxed">
+              Based on standard 10-stage residential construction. Actual duration depends on contractor pace, weather, approvals, and material availability.
+            </p>
+          </div>
         </div>
 
       </div>

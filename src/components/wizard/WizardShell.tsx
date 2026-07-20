@@ -85,8 +85,8 @@ export default function WizardShell({
         </header>
 
         {/* Step content */}
-        <main className="flex-1 overflow-y-auto px-6 sm:px-10 py-8">
-          <div className="w-full max-w-lg mx-auto">
+        <main className="flex-1 overflow-y-auto px-6 sm:px-10">
+          <div className="w-full max-w-lg mx-auto min-h-full flex flex-col justify-center py-8">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}

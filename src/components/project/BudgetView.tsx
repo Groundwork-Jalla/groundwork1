@@ -75,6 +75,8 @@ function StatusBadge({ status }: { status: StageStatus }) {
   );
 }
 
+const SLICE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#06b6d4'] as const;
+
 // ── Overview budget bar (animated) ───────────────────────────
 
 function OverviewBar({
@@ -88,19 +90,23 @@ function OverviewBar({
   amount: number;
   index: number;
 }) {
+  const color = SLICE_COLORS[index % SLICE_COLORS.length];
   return (
     <div className="flex items-center gap-3 py-1.5">
-      <span className="w-24 shrink-0 text-xs text-brand-mid-grey">{label}</span>
-      <div className="relative flex-1 h-1.5 rounded-full bg-brand-light-grey overflow-hidden">
+      <div className="flex items-center gap-1.5 w-28 shrink-0">
+        <span className="size-2 rounded-sm shrink-0" style={{ backgroundColor: color }} />
+        <span className="text-xs text-brand-mid-grey truncate">{label}</span>
+      </div>
+      <div className="relative flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 0.55, ease: 'easeOut', delay: 0.12 + index * 0.07 }}
-          style={{ originX: 0, width: `${pct}%` }}
-          className="absolute inset-y-0 left-0 bg-brand-near-black rounded-full"
+          style={{ originX: 0, width: `${pct}%`, backgroundColor: color }}
+          className="absolute inset-y-0 left-0 rounded-full"
         />
       </div>
-      <span className="w-20 shrink-0 text-right text-xs font-medium text-brand-near-black tabular-nums">
+      <span className="w-20 shrink-0 text-right text-xs font-medium text-brand-near-black dark:text-white tabular-nums">
         {formatUSD(amount)}
       </span>
       <span className="w-7 shrink-0 text-right text-[10px] text-brand-mid-grey tabular-nums">
@@ -114,7 +120,10 @@ function OverviewBar({
 
 function StageBar({ stage }: { stage: ProjectStageRow }) {
   const isComplete = stage.status === 'complete';
-  const isActive   = stage.status === 'active' || stage.status === 'pending_review';
+  const isActive   = stage.status === 'active';
+  const isReview   = stage.status === 'pending_review';
+
+  const barColor = isComplete ? '#22c55e' : isActive ? '#3b82f6' : isReview ? '#f59e0b' : undefined;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -123,7 +132,7 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
           <span
             className={cn(
               'text-sm font-medium truncate',
-              stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black',
+              stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white',
             )}
           >
             {stage.name}
@@ -137,21 +146,22 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
       </div>
 
       {/* Bar track */}
-      <div className="relative h-1.5 w-full rounded-full bg-brand-light-grey overflow-hidden">
+      <div className="relative h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
         {isComplete && (
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{ originX: 0 }}
-            className="absolute inset-0 bg-brand-near-black rounded-full"
+            style={{ originX: 0, backgroundColor: barColor }}
+            className="absolute inset-0 rounded-full"
           />
         )}
-        {isActive && (
+        {(isActive || isReview) && (
           <motion.div
-            animate={{ opacity: [0.4, 1, 0.4] }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute inset-0 bg-brand-near-black rounded-full"
+            style={{ backgroundColor: barColor }}
+            className="absolute inset-0 rounded-full"
           />
         )}
         {/* locked: no fill, grey track only */}
@@ -164,26 +174,26 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
 
 function TimelineDot({ status }: { status: StageStatus }) {
   if (status === 'complete') {
-    return (
-      <span className="flex size-3 rounded-full bg-brand-near-black shrink-0" />
-    );
+    return <span className="flex size-3 rounded-full shrink-0" style={{ backgroundColor: '#22c55e' }} />;
   }
-  if (status === 'active' || status === 'pending_review') {
+  if (status === 'active') {
     return (
       <span className="relative flex size-3 shrink-0 items-center justify-center">
         <motion.span
           animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute inline-flex size-3 rounded-full bg-brand-near-black"
+          className="absolute inline-flex size-3 rounded-full"
+          style={{ backgroundColor: '#3b82f6' }}
         />
-        <span className="relative inline-flex size-3 rounded-full bg-brand-near-black" />
+        <span className="relative inline-flex size-3 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
       </span>
     );
   }
+  if (status === 'pending_review') {
+    return <span className="flex size-3 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />;
+  }
   // locked
-  return (
-    <span className="flex size-3 rounded-full border-2 border-brand-border-grey bg-white shrink-0" />
-  );
+  return <span className="flex size-3 rounded-full border-2 border-brand-border-grey dark:border-[#444] bg-white dark:bg-[#1e1e1e] shrink-0" />;
 }
 
 // ── Metric box ───────────────────────────────────────────────
@@ -314,58 +324,70 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
 
       {/* ── Section 4: Payment Timeline ────────────────────── */}
       {sortedStages.length > 0 && (
-        <div className="rounded-xl border border-brand-border-grey p-5">
-          <p className="text-sm font-medium text-brand-near-black mb-5">Payment Timeline</p>
+        <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
+          <p className="text-sm font-medium text-brand-near-black dark:text-white mb-5">Payment Timeline</p>
 
-          {/* Vertical timeline: left border line + dots */}
-          <div className="relative pl-5 border-l border-brand-border-grey flex flex-col gap-0">
+          <div className="flex flex-col">
             {sortedStages.map((stage, i) => {
               const isLast = i === sortedStages.length - 1;
+              const isComplete = stage.status === 'complete';
+              const isActive   = stage.status === 'active';
+              const isReview   = stage.status === 'pending_review';
 
               return (
-                <div
-                  key={stage.id}
-                  className={cn(
-                    'relative flex flex-col gap-0.5',
-                    !isLast && 'pb-6',
-                  )}
-                >
-                  {/* Dot — sits on the left border line */}
-                  <div className="absolute -left-[calc(0.375rem+1px)] top-0.5 flex items-center justify-center">
-                    <TimelineDot status={stage.status} />
+                <div key={stage.id} className="flex gap-4">
+                  {/* Left: dot + connector line */}
+                  <div className="flex flex-col items-center">
+                    <div className="pt-0.5">
+                      <TimelineDot status={stage.status} />
+                    </div>
+                    {!isLast && (
+                      <div className="w-px flex-1 mt-1.5 mb-1" style={{
+                        backgroundColor: isComplete ? '#22c55e' : '#e5e7eb',
+                        minHeight: 28,
+                      }} />
+                    )}
                   </div>
 
-                  {/* Content */}
-                  {stage.status === 'complete' ? (
-                    <>
-                      <p className="text-sm font-medium text-brand-near-black tabular-nums">
-                        {formatUSDFull(stage.payment_milestone_usd ?? 0)}{' '}
-                        <span className="font-normal text-brand-mid-grey">released</span>
-                      </p>
-                      <p className="text-xs text-brand-mid-grey">{stage.name}</p>
-                      {stage.completed_at && (
-                        <p className="text-[10px] text-brand-mid-grey mt-0.5">
-                          {formatDate(stage.completed_at)}
+                  {/* Right: content */}
+                  <div className={cn('flex-1 pb-5', isLast && 'pb-0')}>
+                    {isComplete ? (
+                      <>
+                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#22c55e' }}>
+                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">released</span>
                         </p>
-                      )}
-                    </>
-                  ) : stage.status === 'active' || stage.status === 'pending_review' ? (
-                    <>
-                      <p className="text-sm font-medium text-brand-near-black tabular-nums">
-                        {formatUSDFull(stage.payment_milestone_usd ?? 0)}{' '}
-                        <span className="font-normal text-brand-mid-grey">held — in progress</span>
-                      </p>
-                      <p className="text-xs text-brand-mid-grey">{stage.name}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-brand-mid-grey tabular-nums">
-                        {formatUSDFull(stage.payment_milestone_usd ?? 0)}{' '}
-                        <span className="font-normal">— locked</span>
-                      </p>
-                      <p className="text-xs text-brand-border-grey">{stage.name}</p>
-                    </>
-                  )}
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                        {stage.completed_at && (
+                          <p className="text-[10px] text-brand-mid-grey mt-0.5">{formatDate(stage.completed_at)}</p>
+                        )}
+                      </>
+                    ) : isActive ? (
+                      <>
+                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#3b82f6' }}>
+                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">held · in progress</span>
+                        </p>
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                      </>
+                    ) : isReview ? (
+                      <>
+                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
+                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">awaiting approval</span>
+                        </p>
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium tabular-nums text-brand-mid-grey leading-none">
+                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          <span className="text-xs font-normal ml-1.5">locked</span>
+                        </p>
+                        <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stage.name}</p>
+                      </>
+                    )}
+                  </div>
                 </div>
               );
             })}
