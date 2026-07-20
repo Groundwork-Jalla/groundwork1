@@ -77,15 +77,19 @@ body {
 /* ── Dark mode ─────────────────────────────────────────── */
 /* Non-layered CSS overrides @layer utilities, so these win */
 
+html {
+  --color-progress-bar-default: #0a0a0a;
+}
+
 html.dark {
   color-scheme: dark;
-  /* Brand token overrides — background-type colors flip to dark */
-  --color-brand-off-white: #141414;
-  --color-brand-light-grey: #1e1e1e;
+  /* Brand token overrides — background-type colors flip to dark.
+     Layering: page=#141414 → inset=#1a1a1a → card=#1e1e1e → elements=#282828 → borders=#2c2c2c */
+  --color-brand-off-white: #1a1a1a;  /* inset sections within cards — slightly darker than card */
+  --color-brand-light-grey: #282828; /* progress tracks, skeletons — slightly lighter than card */
   --color-brand-border-grey: #2c2c2c;
   --color-brand-mid-grey: #909090;
-  /* brand-near-black intentionally NOT overridden: bg-brand-near-black
-     (hero panel, inverted buttons) must stay dark in dark mode */
+  --color-progress-bar-default: #e8e8e8; /* default bar fill flips light in dark mode */
 }
 
 html.dark body {
@@ -139,3 +143,21 @@ html.dark input::placeholder,
 html.dark textarea::placeholder {
   color: #666666;
 }
+
+/* Tailwind semantic chips designed for light backgrounds — invert for dark */
+html.dark .bg-green-50          { background-color: rgba(20, 83, 45, 0.4);  }
+html.dark .bg-blue-50           { background-color: rgba(30, 64, 175, 0.3); }
+html.dark .bg-amber-50          { background-color: rgba(120, 53, 15, 0.4); }
+html.dark .text-green-700       { color: #86efac; }
+html.dark .text-blue-700        { color: #93c5fd; }
+html.dark .text-amber-700       { color: #fcd34d; }
+html.dark .border-green-200     { border-color: rgba(34, 197, 94, 0.25); }
+html.dark .border-blue-200      { border-color: rgba(59, 130, 246, 0.25); }
+html.dark .border-amber-200     { border-color: rgba(245, 158, 11, 0.25); }
+
+/* Active stage row — subtle tint instead of the baked-in light-blue */
+html.dark .bg-blue-50\/30       { background-color: rgba(59, 130, 246, 0.07); }
+
+/* SVG donut chart — center hole and value label */
+html.dark .donut-bg             { fill: #1e1e1e; }
+html.dark .donut-text-value     { fill: #f0f0f0; }

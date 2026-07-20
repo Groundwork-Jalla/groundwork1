@@ -106,7 +106,7 @@ function pctToDollars(pct: number | null, total: number): number {
 
 // ── Shared progress bar ────────────────────────────────────
 
-function HorizBar({ pct, color = '#0a0a0a' }: { pct: number; color?: string }) {
+function HorizBar({ pct, color = 'var(--color-progress-bar-default)' }: { pct: number; color?: string }) {
   return (
     <div className="h-1.5 w-full rounded-full bg-brand-light-grey overflow-hidden">
       <motion.div
@@ -408,11 +408,11 @@ function CostingDonut({ project, stages }: {
               );
             })}
           </g>
-          <circle cx={cx} cy={cy} r="57" fill="white" />
+          <circle cx={cx} cy={cy} r="57" fill="white" className="donut-bg" />
           {total > 0 ? (
             <>
               <text x={cx} y={cy - 7} textAnchor="middle" style={{ fontSize: '10px', fill: '#9ca3af' }}>Total</text>
-              <text x={cx} y={cy + 9} textAnchor="middle" style={{ fontSize: '14px', fontWeight: 700, fill: '#0a0a0a' }}>
+              <text x={cx} y={cy + 9} textAnchor="middle" className="donut-text-value" style={{ fontSize: '14px', fontWeight: 700 }}>
                 {fmtShort(total)}
               </text>
             </>
