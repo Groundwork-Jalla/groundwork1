@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
+import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus } from '@/types/project';
 
 // ── Types ────────────────────────────────────────────────────
@@ -212,6 +215,17 @@ function MetricBox({
 // ── Main component ───────────────────────────────────────────
 
 export default function BudgetView({ project, stages }: BudgetViewProps) {
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportPDF() {
+    setExporting(true);
+    try {
+      await exportBudgetPDF(project, stages);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const budget = calculateBudget({
     country:         project.country,
     floors:          project.num_floors,
@@ -239,9 +253,20 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
     >
       {/* ── Section 1: Budget Overview Card ────────────────── */}
       <div className="rounded-xl border border-brand-border-grey p-5">
-        <div className="flex items-baseline justify-between mb-1">
+        <div className="flex items-center justify-between mb-1 gap-3">
           <p className="text-sm font-medium text-brand-near-black">Budget Estimate</p>
-          <p className="text-xs text-brand-mid-grey">USD · indicative</p>
+          <div className="flex items-center gap-3 shrink-0">
+            <p className="text-xs text-brand-mid-grey">USD · indicative</p>
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black border border-brand-border-grey rounded-lg px-2.5 py-1 hover:bg-brand-off-white transition-colors disabled:opacity-50"
+            >
+              <Download className="size-3" />
+              {exporting ? 'Exporting…' : 'PDF'}
+            </button>
+          </div>
         </div>
 
         <div className="mb-5">

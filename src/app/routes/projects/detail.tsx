@@ -23,7 +23,9 @@ import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
 import ProjectChat               from '@/components/project/ProjectChat';
 import ContractorInvite          from '@/components/project/ContractorInvite';
-import { WeatherWidget }         from '@/components/ui/WeatherWidget';
+import OverviewTab               from '@/components/project/OverviewTab';
+import TimelineTab               from '@/components/project/TimelineTab';
+import PaymentsTab               from '@/components/project/PaymentsTab';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier,
@@ -63,13 +65,16 @@ const TIER_META: Record<string, { label: string; icon: React.ReactNode }> = {
 
 // ── Tab bar ───────────────────────────────────────────────
 
-type Tab = 'stages' | 'budget' | 'documents' | 'messages';
+type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
 
 const OWNER_TABS: { id: Tab; label: string }[] = [
-  { id: 'stages',    label: 'Stages'    },
-  { id: 'budget',    label: 'Budget'    },
-  { id: 'documents', label: 'Documents' },
-  { id: 'messages',  label: 'Messages'  },
+  { id: 'overview',   label: 'Overview'   },
+  { id: 'stages',     label: 'Stages'     },
+  { id: 'costing',    label: 'Costing'    },
+  { id: 'timeline',   label: 'Timeline'   },
+  { id: 'payments',   label: 'Payments'   },
+  { id: 'documents',  label: 'Documents'  },
+  { id: 'messages',   label: 'Messages'   },
 ];
 
 const CONTRACTOR_TABS: { id: Tab; label: string }[] = [
@@ -129,7 +134,7 @@ export default function ProjectDetail() {
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('stages');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   // ── Data fetching ──────────────────────────────────────
 
@@ -181,9 +186,12 @@ export default function ProjectDetail() {
   const handleApproveStage = useCallback(async (stageId: string, stageNumber: number) => {
     if (!user || !project) return;
     await approveStage(project.id, stageId, stageNumber, user.id, project.tier);
-    // Re-fetch to get fully updated stage/substage states
     await loadAll();
   }, [user, project, loadAll]);
+
+  const handleStagePaymentUpdate = useCallback((stageId: string, status: import('@/types/project').PaymentStatus) => {
+    setStages(prev => prev.map(s => s.id === stageId ? { ...s, payment_status: status } : s));
+  }, []);
 
   // Render prop — passes EvidenceUpload down without creating circular imports
   const renderEvidenceUpload = useCallback((props: {
@@ -270,40 +278,53 @@ export default function ProjectDetail() {
     ?? user?.email?.split('@')[0]
     ?? 'You';
 
+  // Overview tab uses wider layout; others stay narrow
+  const isWideTab = activeTab === 'overview';
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-[#141414]">
       {/* Nav */}
-      <nav className="border-b border-brand-border-grey px-4 sm:px-8 py-4 flex items-center gap-3">
+      <nav className="border-b border-brand-border-grey dark:border-[#2c2c2c] px-4 sm:px-8 py-4 flex items-center gap-3">
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors shrink-0"
         >
           <ArrowLeft className="size-4" />
           <span className="hidden sm:inline">Dashboard</span>
         </button>
         <span className="text-brand-border-grey hidden sm:inline">/</span>
-        <span className="text-sm font-medium text-brand-near-black truncate">{project.name}</span>
+        <span className="text-sm font-medium text-brand-near-black dark:text-white truncate">{project.name}</span>
       </nav>
 
-      {/* Main */}
-      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      {/* Main — wider for overview, narrow for detail tabs */}
+      <div className={`mx-auto px-4 sm:px-6 py-8 sm:py-10 transition-all ${isWideTab ? 'max-w-5xl' : 'max-w-180'}`}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="min-w-0">
-              <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight truncate">
+              <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
+                {BT_LABELS[project.building_type]} · {country?.name ?? project.country}
+              </p>
+              <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight truncate">
                 {project.name}
               </h1>
-              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-mid-grey">
-                <MapPin className="size-3.5 shrink-0" />
-                {project.city && <span>{project.city},</span>}
-                <span>{country?.name ?? project.country}</span>
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-brand-mid-grey">
+                {project.bedrooms > 0 && <span>{project.bedrooms} bed</span>}
+                {project.bedrooms > 0 && project.num_floors > 0 && <span>·</span>}
+                <span>{project.num_floors} floor{project.num_floors !== 1 ? 's' : ''}</span>
+                {ROOF_LABELS[project.roof_type] && <><span>·</span><span>{ROOF_LABELS[project.roof_type]}</span></>}
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">
+                  <span className="size-1.5 rounded-full bg-green-500 inline-block" />
+                  Live
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black dark:text-white">
                 {tier.icon}
                 {tier.label}
               </div>
@@ -315,50 +336,26 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* Project spec (collapsed summary) */}
-          <div className="rounded-xl border border-brand-border-grey divide-y divide-brand-border-grey overflow-hidden mb-6">
-            <DetailRow icon={<Building2 className="size-3.5" />} label="Type"   value={`${PT_LABELS[project.project_type]} · ${BT_LABELS[project.building_type]}`} />
-            <DetailRow icon={<Layers className="size-3.5" />}    label="Scale"  value={scaleStr} />
-            <DetailRow icon={<Home className="size-3.5" />}      label="Roof"   value={ROOF_LABELS[project.roof_type]} />
-            <DetailRow icon={<Wrench className="size-3.5" />}    label="Finish" value={FINISH_LABELS[project.finish_level]} />
-            {startDate && (
-              <DetailRow icon={<CalendarDays className="size-3.5" />} label="Target start" value={startDate} />
-            )}
-          </div>
-
-          {/* Site weather — specific to this project's country */}
-          <div className="mb-6">
-            <WeatherWidget countryCode={project.country} />
-          </div>
-
-          {/* Budget headline — hidden for contractors */}
-          {!isContractor && (
-            <div className="flex items-center justify-between rounded-xl border border-brand-border-grey px-5 py-4 mb-6">
-              <div>
-                <p className="text-xs text-brand-mid-grey mb-0.5">Budget Estimate</p>
-                <p className="text-2xl font-black text-brand-near-black tabular-nums">
-                  {formatUSDFull(budget.total)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('budget')}
-                className="text-xs font-medium text-brand-near-black underline underline-offset-4 hover:opacity-70 transition-opacity"
-              >
-                View breakdown
-              </button>
-            </div>
-          )}
-
           {/* Tabs */}
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} />
+
+          {/* Tab: Overview */}
+          {activeTab === 'overview' && (
+            <OverviewTab
+              project={project}
+              stages={stages}
+              substages={substages}
+              budget={budget}
+              onViewCosting={() => setActiveTab('costing')}
+              onViewStage={() => setActiveTab('stages')}
+            />
+          )}
 
           {/* Tab: Stages */}
           {activeTab === 'stages' && (
             <div className="space-y-6">
-              {/* Contractor invite — visible to project owner only */}
               {!isContractor && (
-                <div className="rounded-xl border border-brand-border-grey p-5">
+                <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
                   <ContractorInvite
                     projectId={project.id}
                     userId={user?.id ?? ''}
@@ -367,7 +364,6 @@ export default function ProjectDetail() {
                   />
                 </div>
               )}
-
               <StageTracker
                 stages={stages}
                 substages={substages}
@@ -382,9 +378,27 @@ export default function ProjectDetail() {
             </div>
           )}
 
-          {/* Tab: Budget */}
-          {activeTab === 'budget' && (
+          {/* Tab: Costing */}
+          {activeTab === 'costing' && (
             <BudgetView project={project} stages={stages} />
+          )}
+
+          {/* Tab: Timeline */}
+          {activeTab === 'timeline' && (
+            <TimelineTab
+              project={project}
+              stages={stages}
+              onGoToStages={() => setActiveTab('stages')}
+            />
+          )}
+
+          {/* Tab: Payments */}
+          {activeTab === 'payments' && (
+            <PaymentsTab
+              project={project}
+              stages={stages}
+              onPaymentUpdated={handleStagePaymentUpdate}
+            />
           )}
 
           {/* Tab: Documents */}

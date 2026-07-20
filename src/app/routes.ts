@@ -33,6 +33,15 @@ export default [
     route("profile",             "routes/profile.tsx"),
   ]),
 
+  // Free public planning tools — no auth, no sidebar
+  layout("routes/tools/_tools-layout.tsx", [
+    route("tools",              "routes/tools/index.tsx"),
+    route("tools/budget",       "routes/tools/budget.tsx"),
+    route("tools/stages",       "routes/tools/stages.tsx"),
+    route("tools/milestones",   "routes/tools/milestones.tsx"),
+    route("tools/tracker",      "routes/tools/tracker.tsx"),
+  ]),
+
   // Admin panel (role-guarded inside its own layout)
   layout("routes/admin/_admin-layout.tsx", [
     route("admin",               "routes/admin/index.tsx"),

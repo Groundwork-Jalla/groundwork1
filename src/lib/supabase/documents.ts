@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import type { ProjectDocumentRow } from '@/types/project';
+import type { ProjectDocumentRow, DocumentCategory } from '@/types/project';
 
 // =========================================================
 // uploadDocument
@@ -10,6 +10,7 @@ export async function uploadDocument(
   userId: string,
   file: File,
   onProgress?: (pct: number) => void,
+  category: DocumentCategory = 'other',
 ): Promise<ProjectDocumentRow> {
   const timestamp = Date.now();
   const safeName  = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -45,6 +46,7 @@ export async function uploadDocument(
       file_size:   file.size,
       mime_type:   file.type || null,
       uploaded_by: userId,
+      category,
     })
     .select()
     .single<ProjectDocumentRow>();

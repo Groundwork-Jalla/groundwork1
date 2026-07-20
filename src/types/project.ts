@@ -221,6 +221,9 @@ export interface ProjectStageRow {
   payment_milestone_usd: number | null;
   payment_status: PaymentStatus;
   completed_at: string | null;
+  planned_start: string | null;
+  planned_end: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -241,6 +244,8 @@ export interface ProjectSubstageRow {
 // -------------------------------------------------------
 // Phase 3 tables
 // -------------------------------------------------------
+export type DocumentCategory = 'contract' | 'permit' | 'receipt' | 'invoice' | 'report' | 'site_photo' | 'other';
+
 export interface ProjectDocumentRow {
   id: string;
   project_id: string;
@@ -249,6 +254,8 @@ export interface ProjectDocumentRow {
   file_size: number | null;
   mime_type: string | null;
   uploaded_by: string;
+  category: DocumentCategory;
+  stage_id: string | null;
   created_at: string;
 }
 

@@ -2,7 +2,7 @@ import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
 import { trackEvent } from '@/lib/analytics';
-import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier } from '@/types/project';
+import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
 
 // =========================================================
 // createProject
@@ -195,4 +195,20 @@ export async function fetchContractorProjects(userId: string): Promise<ProjectRo
 
   if (error) throw error;
   return data ?? [];
+}
+
+// =========================================================
+// updatePaymentStatus
+// Updates payment_status on a single project_stage row
+// =========================================================
+export async function updatePaymentStatus(
+  stageId: string,
+  status: PaymentStatus,
+): Promise<void> {
+  const { error } = await supabase
+    .from('project_stages')
+    .update({ payment_status: status })
+    .eq('id', stageId);
+
+  if (error) throw error;
 }
