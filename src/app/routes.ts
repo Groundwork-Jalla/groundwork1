@@ -19,12 +19,14 @@ export default [
     route("invite/:token",       "routes/invite.tsx"),
   ]),
 
+  // Project wizard — full-screen, no sidebar (WizardShell owns the viewport)
+  route("projects/new",          "routes/projects/new.tsx"),
+
   // Protected app routes — all share the sidebar shell
   layout("routes/_layout.tsx", [
     route("dashboard",           "routes/dashboard.tsx"),
     route("documents",           "routes/documents.tsx"),
     route("projects",            "routes/projects/index.tsx"),
-    route("projects/new",        "routes/projects/new.tsx"),
     route("projects/:id",        "routes/projects/detail.tsx"),
     route("resources",           "routes/resources.tsx"),
     route("contractors",         "routes/contractors.tsx"),

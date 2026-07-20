@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { WizardProvider, useWizard } from '@/contexts/WizardContext';
 import Step1Country        from '@/components/wizard/steps/Step1Country';
 import Step2ProjectType    from '@/components/wizard/steps/Step2ProjectType';
@@ -35,6 +38,21 @@ function WizardRouter() {
 // ── Route ─────────────────────────────────────────────────
 
 export default function NewProjectPage() {
+  const navigate = useNavigate();
+  const { session, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !session) navigate('/auth/login', { replace: true });
+  }, [loading, session, navigate]);
+
+  if (loading || !session) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white dark:bg-brand-near-black">
+        <div className="h-8 w-8 rounded-full border-2 border-brand-border-grey border-t-brand-near-black animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <WizardProvider>
       <WizardRouter />
