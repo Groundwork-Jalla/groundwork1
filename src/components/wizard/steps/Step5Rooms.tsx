@@ -76,17 +76,17 @@ export default function Step5Rooms() {
         </p>
 
         {/* Floor tabs */}
-        <div className="mt-7 flex gap-1 overflow-x-auto pb-1">
+        <div className="mt-8 flex gap-2 overflow-x-auto pb-1">
           {floors.map((f, i) => (
             <button
               key={f.floor}
               type="button"
               onClick={() => handleTabChange(i)}
               className={cn(
-                'shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-1',
+                'shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-1',
                 activeTab === i
-                  ? 'bg-brand-near-black text-white'
-                  : 'bg-brand-off-white text-brand-mid-grey hover:text-brand-near-black',
+                  ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                  : 'bg-brand-off-white dark:bg-[#282828] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >
               {floorLabel(i)}
@@ -95,7 +95,7 @@ export default function Step5Rooms() {
         </div>
 
         {/* Active floor label */}
-        <p className="mt-3 text-xs font-medium text-brand-mid-grey">
+        <p className="mt-4 text-sm font-semibold text-brand-near-black dark:text-white">
           {floorLongLabel(activeTab)}
         </p>
 
@@ -109,7 +109,7 @@ export default function Step5Rooms() {
             transition={{ duration: 0.18 }}
           >
             {current && (
-              <div className="mt-2 rounded-xl border border-brand-border-grey divide-y divide-brand-border-grey overflow-hidden">
+              <div className="mt-3 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] divide-y divide-brand-border-grey dark:divide-[#2c2c2c] overflow-hidden">
                 <Stepper
                   label="Bedrooms"
                   sublabel="Including master bedroom"

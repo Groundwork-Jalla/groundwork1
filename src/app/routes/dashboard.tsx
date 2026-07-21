@@ -6,16 +6,15 @@ import {
   MapPin, Building2, ChevronRight, FolderOpen,
   Wallet, HardHat, CheckCircle2,
   UserCircle, Check, ArrowRight, TrendingUp,
-  Lock, CircleDot, Info,
+  Lock, CircleDot,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
-import { formatUSDFull, formatLocalCurrency, calculateBudgetDetail } from '@/lib/budget';
-import { getConstructionRate }        from '@/lib/supabase/construction-rates';
-import { findCountry }                from '@/lib/countries';
-import type { ProjectRow, ConstructionRate } from '@/types/project';
+import { formatUSDFull } from '@/lib/budget';
+import { findCountry }   from '@/lib/countries';
+import type { ProjectRow } from '@/types/project';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -52,8 +51,9 @@ function stageBarColor(status: StageStatus): string {
 
 // ── Constants ──────────────────────────────────────────────
 
-const STARTER_LIMIT = 3;
-const TOTAL_STAGES  = 10;
+const STARTER_LIMIT  = 3;
+const TOTAL_STAGES   = 10;
+const PREDICTED_DAYS = 196;
 
 const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
@@ -190,6 +190,182 @@ function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Funnel guidance card ───────────────────────────────────
+
+function FunnelCard({ projects, activeProject, completedCount }: {
+  projects: ProjectRow[];
+  activeProject: ProjectRow | undefined;
+  completedCount: number;
+}) {
+  const hasProjects = projects.length > 0;
+  const hasActive   = !!activeProject;
+
+  let stage: string;
+  let action: string;
+  let href: string;
+  let pillCls: string;
+
+  if (!hasProjects) {
+    stage   = 'Planning';
+    action  = 'Create your first project';
+    href    = '/projects/new';
+    pillCls = 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey';
+  } else if (!hasActive) {
+    stage   = 'Onboarding';
+    action  = 'Open a project and add your contractor';
+    href    = '/projects';
+    pillCls = 'bg-blue-50 text-blue-700 border-blue-200';
+  } else if (completedCount >= TOTAL_STAGES) {
+    stage   = 'Completed';
+    action  = 'Download your project summary';
+    href    = `/projects/${activeProject.id}`;
+    pillCls = 'bg-green-50 text-green-700 border-green-200';
+  } else if (completedCount > 7) {
+    stage   = 'Finishing';
+    action  = 'Your build is nearly done — prepare for handover';
+    href    = `/projects/${activeProject.id}`;
+    pillCls = 'bg-green-50 text-green-700 border-green-200';
+  } else if (completedCount >= 3) {
+    stage   = 'Active build';
+    action  = 'Check your current stage and approve progress';
+    href    = `/projects/${activeProject.id}`;
+    pillCls = 'bg-blue-50 text-blue-700 border-blue-200';
+  } else {
+    stage   = 'Early build';
+    action  = 'Review evidence uploaded by your contractor';
+    href    = `/projects/${activeProject.id}`;
+    pillCls = 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+
+  return (
+    <div className="bg-white dark:bg-[#1e1e1e] border border-brand-border-grey dark:border-[#2c2c2c] rounded-2xl px-5 py-4 flex items-center gap-5">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1.5">
+          <p className="text-[11px] font-medium text-brand-mid-grey">Your build journey</p>
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${pillCls}`}>
+            {stage}
+          </span>
+        </div>
+        <p className="text-base font-bold text-brand-near-black leading-tight">{stage}</p>
+        <p className="text-xs text-brand-mid-grey mt-0.5 leading-snug">{action}</p>
+      </div>
+      <Link to={href}
+        className="shrink-0 flex size-9 items-center justify-center rounded-xl bg-brand-off-white dark:bg-[#2c2c2c] hover:bg-brand-near-black dark:hover:bg-white group transition-colors">
+        <ArrowRight className="size-4 text-brand-mid-grey group-hover:text-white dark:group-hover:text-brand-near-black transition-colors" />
+      </Link>
+    </div>
+  );
+}
+
+// ── Progress velocity chart ────────────────────────────────
+
+function VelocityChart({ project, completedCount }: {
+  project: ProjectRow;
+  completedCount: number;
+}) {
+  const start = new Date(project.created_at).getTime();
+  const now   = Date.now();
+  const span  = Math.max(now - start, 1);
+
+  // 8 data points from project start → today
+  const N   = 8;
+  const pts = Array.from({ length: N }, (_, k) => {
+    const frac  = k / (N - 1);
+    const t     = start + frac * span;
+    const count = k === 0       ? 0
+                : k === N - 1   ? completedCount
+                : Math.round(frac * completedCount);
+    return { t, count };
+  });
+
+  // SVG coordinate system
+  const PAD_L = 24, PAD_R = 10, PAD_T = 10, PAD_B = 22;
+  const W = 400, H = 120;
+  const cw = W - PAD_L - PAD_R;
+  const ch = H - PAD_T - PAD_B;
+
+  const toX = (t: number) => PAD_L + ((t - start) / span) * cw;
+  const toY = (c: number) => PAD_T + ((TOTAL_STAGES - c) / TOTAL_STAGES) * ch;
+
+  const svgPts = pts.map(p => ({ x: toX(p.t), y: toY(p.count) }));
+
+  const polylinePoints = svgPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPoints     = [
+    ...svgPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    `${svgPts[N - 1].x.toFixed(1)},${(PAD_T + ch).toFixed(1)}`,
+    `${svgPts[0].x.toFixed(1)},${(PAD_T + ch).toFixed(1)}`,
+  ].join(' ');
+
+  const fmtDate = (t: number) =>
+    new Date(t).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+
+  const gridCounts = [10, 5, 0];
+  const xLabels    = [pts[0], pts[Math.floor((N - 1) / 2)], pts[N - 1]];
+
+  // Suppress lint warning — PREDICTED_DAYS is the canonical project duration reference
+  void PREDICTED_DAYS;
+
+  return (
+    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
+      <div className="flex items-baseline gap-2 mb-3">
+        <p className="text-sm font-medium text-brand-near-black">Progress Velocity</p>
+        <p className="text-xs text-brand-mid-grey">Stage completions over time</p>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+        <style>{`
+          .vc-grid { stroke: #e5e7eb; }
+          @media (prefers-color-scheme: dark) { .vc-grid { stroke: #2c2c2c; } }
+        `}</style>
+
+        {/* Horizontal grid lines */}
+        {gridCounts.map(c => (
+          <line key={c}
+            className="vc-grid"
+            x1={PAD_L} y1={toY(c)} x2={W - PAD_R} y2={toY(c)}
+            strokeWidth="0.75" strokeDasharray="3,3"
+          />
+        ))}
+
+        {/* Area fill */}
+        <polygon points={areaPoints} fill="rgba(59,130,246,0.15)" />
+
+        {/* Line */}
+        <polyline
+          points={polylinePoints}
+          fill="none" stroke="#3b82f6" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round"
+        />
+
+        {/* Dots — last point (today) gets a larger outlined dot */}
+        {svgPts.map((p, i) =>
+          i === N - 1 ? (
+            <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={4}
+              fill="#3b82f6" stroke="white" strokeWidth="1.5" />
+          ) : (
+            <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5}
+              fill="#3b82f6" />
+          )
+        )}
+
+        {/* Y-axis labels */}
+        <text x={PAD_L - 4} y={toY(10) + 3} textAnchor="end" fontSize="9" fill="#9ca3af">10</text>
+        <text x={PAD_L - 4} y={toY(0) + 3}  textAnchor="end" fontSize="9" fill="#9ca3af">0</text>
+
+        {/* X-axis labels */}
+        {xLabels.map((p, i) => (
+          <text key={i}
+            x={toX(p.t).toFixed(1)}
+            y={H - 4}
+            textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
+            fontSize="9" fill="#9ca3af">
+            {fmtDate(p.t)}
+          </text>
+        ))}
+      </svg>
     </div>
   );
 }
@@ -446,153 +622,6 @@ function CostingDonut({ project, stages }: {
   );
 }
 
-// ── How Your Budget Was Calculated ─────────────────────────
-
-function BudgetCalculation({ project }: { project: ProjectRow }) {
-  const [rate, setRate]           = useState<ConstructionRate | null>(null);
-  const [rateLoading, setRateLoading] = useState(true);
-
-  useEffect(() => {
-    if (!project.country) return;
-    setRateLoading(true);
-    getConstructionRate(project.country).then(r => {
-      setRate(r);
-      setRateLoading(false);
-    });
-  }, [project.country]);
-
-  const detail = calculateBudgetDetail({
-    country:         project.country,
-    finishLevel:     project.finish_level,
-    sqm:             Number(project.sqm),
-    floors:          project.num_floors,
-    buildingType:    project.building_type,
-    roofType:        project.roof_type,
-    hasBoysQuarters: project.has_boys_quarters,
-    bqRooms:         project.bq_rooms,
-  }, rate);
-
-  const isVerified = detail.dataSource === 'real_bq';
-  const maxAmount  = Math.max(...detail.sections.map(s => s.amountUSD), 1);
-  const country    = findCountry(project.country);
-
-  if (rateLoading) {
-    return (
-      <div className="bg-white rounded-2xl border border-brand-border-grey p-6 animate-pulse">
-        <div className="h-4 w-60 bg-brand-light-grey rounded mb-2" />
-        <div className="h-3 w-40 bg-brand-light-grey rounded mb-6" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="h-2.5 w-32 bg-brand-light-grey rounded" />
-                <div className="flex-1 h-1.5 bg-brand-light-grey rounded-full" />
-                <div className="h-2.5 w-16 bg-brand-light-grey rounded" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden">
-
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-brand-off-white">
-        <div className="flex items-start gap-3 flex-wrap">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-near-black">
-            <Info className="size-4 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-semibold text-brand-near-black">Budget Breakdown</h3>
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide border ${
-                isVerified
-                  ? 'bg-green-50 text-green-700 border-green-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
-              }`}>
-                {isVerified ? 'Verified data' : 'Regional estimate'}
-              </span>
-            </div>
-            <p className="text-xs text-brand-mid-grey mt-0.5">
-              {isVerified
-                ? `Calibrated from real BQ data for ${country?.name ?? project.country}`
-                : `Indexed from comparable markets — no verified BQ for ${country?.name ?? project.country} yet`}
-            </p>
-          </div>
-          <div className="text-right shrink-0">
-            <span className="text-xl font-black tabular-nums text-brand-near-black">
-              {formatUSDFull(detail.total)}
-            </span>
-            {detail.currencyCode !== 'USD' && (
-              <p className="text-[10px] text-brand-mid-grey tabular-nums mt-0.5">
-                ~{formatLocalCurrency(detail.totalLocal, detail.currencyCode)}{' '}
-                <span className="text-[9px]">(approx.)</span>
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Trade sections */}
-      <div className="px-6 py-5">
-        <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest mb-4">
-          Construction Cost Breakdown by Trade
-        </p>
-        <div className="space-y-3">
-          {detail.sections.map((section, i) => {
-            const barW = (section.amountUSD / maxAmount) * 100;
-            return (
-              <div key={section.key}>
-                <div className="flex items-baseline justify-between mb-1 flex-wrap gap-x-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: section.color }} />
-                    <span className="text-xs font-semibold text-brand-near-black">{section.label}</span>
-                  </div>
-                  <div className="flex items-baseline gap-2 shrink-0">
-                    <span className="text-[10px] text-brand-mid-grey tabular-nums">{section.pct}%</span>
-                    <span className="text-sm font-black tabular-nums text-brand-near-black">
-                      {formatUSDFull(section.amountUSD)}
-                    </span>
-                    {detail.currencyCode !== 'USD' && (
-                      <span className="text-[10px] tabular-nums text-brand-mid-grey hidden sm:block">
-                        ~{formatLocalCurrency(section.amountLocal, detail.currencyCode)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="h-2 w-full rounded-full bg-brand-light-grey overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: section.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${barW}%` }}
-                    transition={{ duration: 0.7, delay: i * 0.05, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Context note */}
-        <div className="mt-5 rounded-xl bg-brand-off-white border border-brand-border-grey p-3">
-          <p className="text-[10px] text-brand-mid-grey leading-relaxed">
-            <strong className="text-brand-near-black">How this is calculated:</strong>{' '}
-            {project.sqm} sqm × ${rate?.base_rate_usd ?? '—'}/sqm (
-            {country?.name ?? project.country}, {project.finish_level} finish),
-            adjusted for building type, {project.num_floors > 1 ? `${project.num_floors} floors, ` : ''}and roof.
-            Actual costs vary by city, contractor, and current material prices.
-            Confirm with a certified quantity surveyor.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Platform newsfeed ──────────────────────────────────────
 
 const FEED_ITEMS = [
@@ -770,6 +799,8 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime())[0]
     ?? projects[0];
 
+  const completedStageCount = activeStages.filter(s => s.status === 'complete').length;
+
   useEffect(() => {
     if (!user) return;
     const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
@@ -834,6 +865,11 @@ export default function Dashboard() {
         <ProfileCompletion nameSet={nameSet} idUploaded={idUploaded} hasProject={projects.length > 0} />
       )}
 
+      {/* Funnel guidance */}
+      {!loading && !isContractor && (
+        <FunnelCard projects={projects} activeProject={activeProject} completedCount={completedStageCount} />
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Projects"      value={loading ? '—' : String(projects.length)}    sub={`${activeCount} active`}           icon={FolderOpen}   accent />
@@ -846,6 +882,8 @@ export default function Dashboard() {
       {/* Analytics — active project */}
       {!loading && activeProject ? (
         <>
+          <VelocityChart project={activeProject} completedCount={completedStageCount} />
+
           {/* Two-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
             <div className="lg:col-span-3">
@@ -861,8 +899,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* How your budget was calculated */}
-          <BudgetCalculation project={activeProject} />
         </>
       ) : !loading && projects.length === 0 && !isContractor ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

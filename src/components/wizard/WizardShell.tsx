@@ -128,7 +128,7 @@ export default function WizardShell({
       </div>
 
       {/* ─── Right panel (preview) ─────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-[42%] xl:w-[40%] shrink-0 border-l border-brand-border-grey bg-brand-off-white h-screen">
+      <aside className="hidden md:flex flex-col w-1/2 shrink-0 border-l border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#111] h-screen">
         {/* Progress bar */}
         <div className="shrink-0 px-8 pt-6 pb-4 border-b border-brand-border-grey">
           <ProgressBar />

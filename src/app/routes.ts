@@ -29,6 +29,7 @@ export default [
     route("projects",            "routes/projects/index.tsx"),
     route("projects/:id",        "routes/projects/detail.tsx"),
     route("resources",           "routes/resources.tsx"),
+    route("resources/:slug",     "routes/resources.detail.tsx"),
     route("contractors",         "routes/contractors.tsx"),
     route("payments",            "routes/payments.tsx"),
     route("notifications",       "routes/notifications.tsx"),

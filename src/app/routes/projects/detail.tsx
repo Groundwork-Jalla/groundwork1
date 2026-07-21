@@ -370,6 +370,12 @@ export default function ProjectDetail() {
                 tier={project.tier}
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
+                projectName={project.name}
+                projectCountry={project.country}
+                projectCity={project.city ?? null}
+                ownerName={
+                  user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner'
+                }
                 onMarkSubstageComplete={handleMarkSubstageComplete}
                 onEvidenceUploaded={handleEvidenceUploaded}
                 onApproveStage={handleApproveStage}

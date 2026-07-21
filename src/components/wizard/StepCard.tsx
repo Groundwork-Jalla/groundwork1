@@ -29,10 +29,10 @@ export default function StepCard({
       whileTap={{ scale: 0.98 }}
       className={cn(
         'relative w-full rounded-xl border-2 text-left transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black dark:focus-visible:ring-white focus-visible:ring-offset-2',
         selected
-          ? 'border-brand-near-black bg-brand-off-white'
-          : 'border-brand-border-grey bg-white hover:border-brand-dark-grey',
+          ? 'border-brand-near-black dark:border-white bg-brand-off-white dark:bg-brand-dark-grey'
+          : 'border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1c1c1c] hover:border-brand-dark-grey dark:hover:border-[#555]',
         disabled && 'opacity-40 cursor-not-allowed',
         className,
       )}
@@ -43,9 +43,9 @@ export default function StepCard({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.18, ease: 'backOut' }}
-          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-brand-near-black"
+          className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-brand-near-black dark:bg-white"
         >
-          <Check className="size-3 text-white" strokeWidth={3} />
+          <Check className="size-3 text-white dark:text-brand-near-black" strokeWidth={3} />
         </motion.span>
       )}
 
@@ -55,7 +55,7 @@ export default function StepCard({
             {icon}
           </div>
         )}
-        <p className="font-semibold text-sm text-brand-near-black leading-tight">{label}</p>
+        <p className="font-semibold text-sm text-brand-near-black dark:text-white leading-tight">{label}</p>
         {description && (
           <p className="mt-1 text-xs text-brand-mid-grey leading-relaxed">{description}</p>
         )}

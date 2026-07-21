@@ -24,26 +24,26 @@ export default function Stepper({
   const increment = () => onChange(Math.min(max, value + 1));
 
   return (
-    <div className={cn('flex items-center justify-between py-3.5 border-b border-brand-border-grey last:border-0', className)}>
+    <div className={cn('flex items-center justify-between px-5 py-5 border-b border-brand-border-grey last:border-0', className)}>
       <div>
-        <p className="text-sm font-medium text-brand-near-black">{label}</p>
+        <p className="text-sm font-semibold text-brand-near-black dark:text-white">{label}</p>
         {sublabel && (
-          <p className="text-xs text-brand-mid-grey mt-0.5">{sublabel}</p>
+          <p className="text-xs text-brand-mid-grey mt-1">{sublabel}</p>
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4 shrink-0">
         <button
           type="button"
           onClick={decrement}
           disabled={value <= min}
-          className="flex size-8 items-center justify-center rounded-full border border-brand-border-grey text-brand-near-black hover:border-brand-near-black disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="flex size-10 items-center justify-center rounded-full border-2 border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white hover:border-brand-near-black dark:hover:border-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           aria-label={`Decrease ${label}`}
         >
-          <Minus className="size-3.5" strokeWidth={2.5} />
+          <Minus className="size-4" strokeWidth={2.5} />
         </button>
 
-        <span className="w-5 text-center font-semibold text-brand-near-black tabular-nums select-none">
+        <span className="w-8 text-center text-lg font-bold text-brand-near-black dark:text-white tabular-nums select-none">
           {value}
         </span>
 
@@ -51,10 +51,10 @@ export default function Stepper({
           type="button"
           onClick={increment}
           disabled={value >= max}
-          className="flex size-8 items-center justify-center rounded-full border border-brand-border-grey text-brand-near-black hover:border-brand-near-black disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="flex size-10 items-center justify-center rounded-full border-2 border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white hover:border-brand-near-black dark:hover:border-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           aria-label={`Increase ${label}`}
         >
-          <Plus className="size-3.5" strokeWidth={2.5} />
+          <Plus className="size-4" strokeWidth={2.5} />
         </button>
       </div>
     </div>

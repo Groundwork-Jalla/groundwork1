@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Lock,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
@@ -131,7 +132,15 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
   );
 }
 
-function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Plan }) {
+function ContractorCard({
+  contractor,
+  plan,
+  onRequestQuote,
+}: {
+  contractor: Contractor;
+  plan: Plan;
+  onRequestQuote: (c: Contractor) => void;
+}) {
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
   return (
@@ -206,6 +215,7 @@ function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Pl
         {isUnlocked ? (
           <button
             type="button"
+            onClick={() => onRequestQuote(contractor)}
             className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors group/btn"
           >
             Request Quote
@@ -223,6 +233,182 @@ function ContractorCard({ contractor, plan }: { contractor: Contractor; plan: Pl
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Quote Request Dialog ───────────────────────────────────
+
+function QuoteRequestDialog({
+  contractor,
+  onClose,
+}: {
+  contractor: Contractor;
+  onClose: () => void;
+}) {
+  const [submitted, setSubmitted] = useState(false);
+
+  const inputCls =
+    'w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] px-3 py-2.5 text-sm text-brand-near-black dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white';
+  const labelCls = 'block text-xs font-medium text-brand-mid-grey mb-1';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ duration: 0.18 }}
+        className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1e1e1e] shadow-xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-brand-border-grey dark:border-[#2c2c2c]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-near-black text-white text-sm font-bold tracking-wide select-none">
+              {contractor.avatar_initials ||
+                contractor.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-brand-near-black dark:text-white text-sm leading-snug truncate">
+                {contractor.name}
+              </p>
+              <p className="text-xs text-brand-mid-grey truncate">{contractor.trade}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 flex items-center justify-center size-8 rounded-full text-brand-mid-grey hover:bg-brand-pale dark:hover:bg-[#282828] hover:text-brand-near-black dark:hover:text-white transition-colors"
+            aria-label="Close dialog"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-5">
+          {submitted ? (
+            /* Success state */
+            <div className="flex flex-col items-center text-center py-6 gap-4">
+              <div className="flex size-14 items-center justify-center rounded-full bg-green-50 border border-green-200">
+                <CheckCircle2 className="size-7 text-green-600" />
+              </div>
+              <div>
+                <p className="font-bold text-brand-near-black dark:text-white text-base">
+                  Inquiry sent!
+                </p>
+                <p className="mt-1 text-sm text-brand-mid-grey max-w-xs">
+                  Your inquiry has been sent.{' '}
+                  <span className="text-brand-near-black dark:text-white font-medium">
+                    {contractor.name}
+                  </span>{' '}
+                  will contact you within 48 hours.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-2.5 hover:bg-black transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          ) : (
+            /* Form */
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSubmitted(true);
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div>
+                <label className={labelCls} htmlFor="qr-name">
+                  Your name
+                </label>
+                <input
+                  id="qr-name"
+                  type="text"
+                  required
+                  placeholder="e.g. David Okafor"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="qr-location">
+                  Project location
+                </label>
+                <input
+                  id="qr-location"
+                  type="text"
+                  required
+                  placeholder="e.g. Douala, Cameroon"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="qr-build-type">
+                  Build type
+                </label>
+                <select id="qr-build-type" required className={inputCls}>
+                  <option value="">Select a build type</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="mixed-use">Mixed Use</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="qr-message">
+                  Message
+                </label>
+                <textarea
+                  id="qr-message"
+                  rows={3}
+                  required
+                  placeholder="Describe your project — size, timeline, and any specific requirements"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls} htmlFor="qr-contact-pref">
+                  Preferred contact
+                </label>
+                <select id="qr-contact-pref" required className={inputCls}>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone call</option>
+                </select>
+              </div>
+
+              <p className="text-[11px] text-brand-mid-grey leading-relaxed">
+                Your contact details from your Groundwork profile will be shared with this
+                professional.
+              </p>
+
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors"
+              >
+                Send Inquiry
+              </button>
+            </form>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -261,6 +447,7 @@ export default function ContractorsPage() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
+  const [quoteTarget, setQuoteTarget] = useState<Contractor | null>(null);
 
   useEffect(() => {
     supabase
@@ -283,6 +470,14 @@ export default function ContractorsPage() {
 
   return (
     <div className="bg-brand-off-white min-h-full">
+      <AnimatePresence>
+        {quoteTarget && (
+          <QuoteRequestDialog
+            contractor={quoteTarget}
+            onClose={() => setQuoteTarget(null)}
+          />
+        )}
+      </AnimatePresence>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
 
         {/* Page header */}
@@ -369,7 +564,11 @@ export default function ContractorsPage() {
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.28, delay: i * 0.04 }}
                 >
-                  <ContractorCard contractor={contractor} plan={plan} />
+                  <ContractorCard
+                    contractor={contractor}
+                    plan={plan}
+                    onRequestQuote={(c) => setQuoteTarget(c)}
+                  />
                 </motion.div>
               ))}
             </div>

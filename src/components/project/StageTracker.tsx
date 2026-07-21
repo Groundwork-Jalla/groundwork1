@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { formatUSD } from '@/lib/budget';
+
+// Lazy-loaded so the certificate HTML is not bundled into the main chunk
+const StageCertificateModal = lazy(() =>
+  import('./StageCertificateModal').then(m => ({ default: m.StageCertificateModal })),
+);
 
 // ── Stage circle (horizontal pipeline) ───────────────────
 
@@ -269,6 +274,10 @@ export interface StageTrackerProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  projectName: string;
+  projectCountry: string;
+  projectCity: string | null;
+  ownerName: string;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -291,6 +300,10 @@ export function StageTracker({
   tier,
   userId,
   isContractor,
+  projectName,
+  projectCountry,
+  projectCity,
+  ownerName,
   onMarkSubstageComplete,
   onEvidenceUploaded,
   onApproveStage,
@@ -302,6 +315,7 @@ export function StageTracker({
   const [selectedNum, setSelectedNum] = useState<number>(
     activeStage?.stage_number ?? stages[0]?.stage_number ?? 1,
   );
+  const [certStage, setCertStage] = useState<ProjectStageRow | null>(null);
 
   const selectedStage = stages.find(s => s.stage_number === selectedNum);
   const completedCount = stages.filter(s => s.status === 'complete').length;
@@ -331,32 +345,44 @@ export function StageTracker({
                   </div>
                 )}
 
-                {/* Stage node button */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedNum(stage.stage_number)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-lg px-2 py-1 transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-1',
-                    'hover:bg-white/70',
-                  )}
-                >
-                  <StageCircle
-                    status={stage.status}
-                    number={stage.stage_number}
-                    selected={selectedNum === stage.stage_number}
-                  />
-                  <span
+                {/* Stage node + optional cert button */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedNum(stage.stage_number)}
                     className={cn(
-                      'text-[9px] leading-tight text-center w-14',
-                      selectedNum === stage.stage_number
-                        ? 'text-brand-near-black font-semibold'
-                        : 'text-brand-mid-grey',
+                      'flex flex-col items-center gap-1.5 rounded-lg px-2 py-1 transition-colors',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-1',
+                      'hover:bg-white/70',
                     )}
                   >
-                    {shortLabel(stage.name)}
-                  </span>
-                </button>
+                    <StageCircle
+                      status={stage.status}
+                      number={stage.stage_number}
+                      selected={selectedNum === stage.stage_number}
+                    />
+                    <span
+                      className={cn(
+                        'text-[9px] leading-tight text-center w-14',
+                        selectedNum === stage.stage_number
+                          ? 'text-brand-near-black font-semibold'
+                          : 'text-brand-mid-grey',
+                      )}
+                    >
+                      {shortLabel(stage.name)}
+                    </span>
+                  </button>
+
+                  {stage.status === 'complete' && (
+                    <button
+                      type="button"
+                      onClick={() => setCertStage(stage)}
+                      className="inline-flex items-center gap-1 text-[10px] font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors mt-0.5"
+                    >
+                      <Download className="size-3" /> Certificate
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -382,6 +408,25 @@ export function StageTracker({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Stage certificate modal */}
+      <AnimatePresence>
+        {certStage && (
+          <Suspense fallback={null}>
+            <StageCertificateModal
+              stage={certStage}
+              project={{
+                name: projectName,
+                country: projectCountry,
+                city: projectCity,
+                tier,
+              }}
+              ownerName={ownerName}
+              onClose={() => setCertStage(null)}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

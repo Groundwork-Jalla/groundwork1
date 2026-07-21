@@ -6,6 +6,158 @@ import { calculateBudget, formatUSD } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom } from '@/types/project';
 
+// ── Photo image map (step 2 / 3 / 7) ──────────────────────────
+const BUILDING_IMAGES: Record<string, string> = {
+  residential: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
+  commercial:  'https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=900&q=80',
+  industrial:  'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80',
+  mixed_use:   'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
+  single_family:        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
+  bungalow:             'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=900&q=80',
+  villa:                'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80',
+  apartment:            'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80',
+  duplex:               'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=900&q=80',
+  townhouse:            'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=900&q=80',
+  semi_detached:        'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=900&q=80',
+  multi_family:         'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80',
+  guest_house:          'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=900&q=80',
+  office:               'https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=900&q=80',
+  retail:               'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=900&q=80',
+  hotel:                'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+  warehouse_commercial: 'https://images.unsplash.com/photo-1565183997392-2f6f122e5912?auto=format&fit=crop&w=900&q=80',
+  factory:              'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80',
+  warehouse_industrial: 'https://images.unsplash.com/photo-1565183997392-2f6f122e5912?auto=format&fit=crop&w=900&q=80',
+  industrial_complex:   'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80',
+  distribution_centre:  'https://images.unsplash.com/photo-1565183997392-2f6f122e5912?auto=format&fit=crop&w=900&q=80',
+  mixed_residential_commercial: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
+  live_work:            'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
+  mixed_retail_residential: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
+  transit_oriented:     'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
+  long_span_aluminum:   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=80',
+  clay_tiles:           'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?auto=format&fit=crop&w=900&q=80',
+  concrete_flat:        'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=900&q=80',
+  shingle:              'https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=900&q=80',
+};
+
+const IMAGE_LABELS: Record<string, { title: string; sub: string }> = {
+  residential:  { title: 'Residential Build',            sub: 'Project type' },
+  commercial:   { title: 'Commercial Development',       sub: 'Project type' },
+  industrial:   { title: 'Industrial Facility',          sub: 'Project type' },
+  mixed_use:    { title: 'Mixed-Use Development',        sub: 'Project type' },
+  single_family:{ title: 'Single Family Home',           sub: 'Building type' },
+  bungalow:     { title: 'Bungalow',                     sub: 'Building type' },
+  villa:        { title: 'Villa',                        sub: 'Building type' },
+  apartment:    { title: 'Apartment Block',              sub: 'Building type' },
+  duplex:       { title: 'Duplex',                       sub: 'Building type' },
+  townhouse:    { title: 'Townhouse',                    sub: 'Building type' },
+  semi_detached:{ title: 'Semi-Detached',                sub: 'Building type' },
+  multi_family: { title: 'Multi-Family',                 sub: 'Building type' },
+  guest_house:  { title: 'Guest House',                  sub: 'Building type' },
+  office:       { title: 'Office Building',              sub: 'Building type' },
+  retail:       { title: 'Retail Space',                 sub: 'Building type' },
+  hotel:        { title: 'Hotel',                        sub: 'Building type' },
+  warehouse_commercial: { title: 'Warehouse',            sub: 'Building type' },
+  factory:      { title: 'Factory / Plant',              sub: 'Building type' },
+  warehouse_industrial: { title: 'Industrial Warehouse', sub: 'Building type' },
+  industrial_complex:   { title: 'Industrial Complex',   sub: 'Building type' },
+  distribution_centre:  { title: 'Distribution Centre',  sub: 'Building type' },
+  mixed_residential_commercial: { title: 'Residential + Commercial', sub: 'Building type' },
+  live_work:    { title: 'Live / Work Space',            sub: 'Building type' },
+  mixed_retail_residential: { title: 'Retail + Residential', sub: 'Building type' },
+  transit_oriented: { title: 'Transit-Oriented',        sub: 'Building type' },
+  long_span_aluminum: { title: 'Metal Sheet Roofing',   sub: 'Roof type' },
+  clay_tiles:   { title: 'Clay Tile Roof',               sub: 'Roof type' },
+  concrete_flat:{ title: 'Concrete Flat Roof',           sub: 'Roof type' },
+  shingle:      { title: 'Shingle Roof',                 sub: 'Roof type' },
+};
+
+// ── Image panel (steps 2, 3, 7) ────────────────────────────────
+
+function ImagePanel({ imageKey }: { imageKey: string | null }) {
+  const meta = imageKey ? IMAGE_LABELS[imageKey] : null;
+  const src  = imageKey ? BUILDING_IMAGES[imageKey] : null;
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={imageKey ?? 'empty'}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4 }}
+        className="absolute inset-0 overflow-hidden"
+      >
+        {src ? (
+          /* Ken Burns — slow continuous zoom + drift */
+          <motion.img
+            src={src}
+            alt={meta?.title ?? 'Building'}
+            className="absolute inset-0 w-full h-full object-cover origin-center"
+            style={{ willChange: 'transform' }}
+            animate={{ scale: [1.05, 1.12, 1.05], x: [-6, 6, -6] }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+            onError={e => {
+              (e.target as HTMLImageElement).src =
+                `https://picsum.photos/seed/${imageKey ?? 'building'}/900/700`;
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[#111]" />
+        )}
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-black/10" />
+
+        {/* Floating pill — top right */}
+        <AnimatePresence mode="wait">
+          {meta && (
+            <motion.div
+              key={`pill-${imageKey}`}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.35, delay: 0.25 }}
+              className="absolute top-5 right-5 z-20"
+            >
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 text-[11px] font-medium"
+              >
+                <span className="size-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+                {meta.sub}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bottom label */}
+        <AnimatePresence mode="wait">
+          {meta && (
+            <motion.div
+              key={imageKey}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="absolute bottom-0 left-0 right-0 p-7"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">{meta.sub}</p>
+              <p className="text-2xl font-black text-white leading-tight">{meta.title}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!imageKey && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-sm text-white/30 font-medium">Select an option to preview</p>
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 // ── Constants ─────────────────────────────────────────────────
 const D     = '#0a0a0a';
 const CX    = 188;          // building centre X
@@ -140,7 +292,7 @@ function Crane({ visible, step }: { visible: boolean; step: number }) {
             {/* Hook cable */}
             <motion.line
               x1="254" y1="92"
-              x2="254"
+              x2="254" y2={130}
               animate={{ y2: [130, 110, 140, 120, 130] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
               stroke={D} strokeWidth="1" strokeOpacity="0.25"
@@ -818,15 +970,25 @@ export function BuildingPreview() {
   const { step, data } = useWizard();
 
   const isMapStep      = step === 1;
-  const showCrane      = step >= 2 && step <= 4;
-  const showFoundation = step >= 2;
+  const isImageStep    = step === 2 || step === 3 || step === 7;
+  const showCrane      = step >= 4 && step <= 5;
+  const showFoundation = step >= 4;
   const totalRooms     = data.bedrooms + data.bathrooms + data.livingRooms + data.kitchens;
-  const showBody       = step >= 3;
+  const showBody       = step >= 4;
   const showWindows    = step >= 5;
   const showBQ         = step >= 6 && data.hasBoysQuarters;
-  const showRoof       = step >= 7 && !!data.roofType;
+  const showRoof       = step >= 8 && !!data.roofType;
   const showSign       = step >= 8;
   const showComplete   = step >= 9;
+
+  // Which image key to show per step
+  const imageKey = step === 2
+    ? (data.projectType ?? null)
+    : step === 3
+      ? (data.buildingType ?? data.projectType ?? null)
+      : step === 7
+        ? (data.roofType ?? null)
+        : null;
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
@@ -843,10 +1005,7 @@ export function BuildingPreview() {
             className="absolute inset-0 z-0"
           >
             {data.country ? (
-              <CountryMap
-                countryCode={data.country}
-                countryName={data.countryName}
-              />
+              <CountryMap countryCode={data.country} countryName={data.countryName} />
             ) : (
               <MapEmptyState />
             )}
@@ -854,20 +1013,55 @@ export function BuildingPreview() {
         )}
       </AnimatePresence>
 
-      {/* ── Steps 2-9: Building illustration ────────────────── */}
+      {/* ── Steps 2, 3, 7: Photo image panel ────────────────── */}
       <AnimatePresence>
-        {!isMapStep && (
+        {isImageStep && (
           <motion.div
-            key="building"
+            key={`image-${step}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 z-0"
+          >
+            <ImagePanel imageKey={imageKey} />
+            {/* Hint label top-left */}
+            <div className="absolute top-0 left-0 right-0 z-20 px-6 pt-5 pointer-events-none">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={step}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-[11px] font-semibold text-white/60 uppercase tracking-wider drop-shadow-sm"
+                >
+                  {getHint(step, data)}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+            {/* Floating badges on top of image */}
+            <div className="absolute inset-0 z-20 pointer-events-none">
+              <StepBadges step={step} data={data} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Steps 4-9: Blueprint SVG animation ──────────────── */}
+      <AnimatePresence>
+        {!isMapStep && !isImageStep && (
+          <motion.div
+            key="blueprint"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* Blueprint dot-grid background */}
+            {/* Dot-grid background — dark-mode aware */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 pointer-events-none dark:opacity-25"
               style={{
                 backgroundImage: 'radial-gradient(circle, rgba(10,10,10,0.18) 1px, transparent 1px)',
                 backgroundSize: '28px 28px',
@@ -883,7 +1077,7 @@ export function BuildingPreview() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.25 }}
-                  className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wider"
+                  className="text-[11px] font-semibold text-brand-mid-grey dark:text-white/40 uppercase tracking-wider"
                 >
                   {getHint(step, data)}
                 </motion.p>
@@ -892,41 +1086,26 @@ export function BuildingPreview() {
 
             {/* Main visual area */}
             <div className="relative flex-1 flex items-end justify-center overflow-hidden">
-              {/* Room change burst particle */}
               <RoomChangeBurst totalRooms={totalRooms} step={step} />
-
-              {/* Floating badges */}
               <StepBadges step={step} data={data} />
 
-              {/* SVG building illustration — fills the full area */}
+              {/* SVG — dark:invert so blueprint lines show on dark background */}
               <svg
                 viewBox="0 0 380 470"
-                className="w-full h-full"
+                className="w-full h-full dark:filter-[invert(0.88)]"
                 preserveAspectRatio="xMidYMax meet"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 aria-hidden="true"
               >
                 <BlueprintGrid />
-
-                {/* Crane (steps 2-4) */}
                 <Crane visible={showCrane} step={step} />
-
-                {/* Foundation (step 2+) */}
                 <Foundation visible={showFoundation} />
-
-                {/* Building body (step 3+) */}
                 <AnimatePresence>
                   {showBody && (
-                    <BuildingBody
-                      visible={showBody}
-                      floors={data.floors}
-                      buildingType={data.buildingType}
-                    />
+                    <BuildingBody visible={showBody} floors={data.floors} buildingType={data.buildingType} />
                   )}
                 </AnimatePresence>
-
-                {/* Windows (step 5+) */}
                 {showWindows && (
                   <Windows
                     visible={showWindows}
@@ -935,22 +1114,12 @@ export function BuildingPreview() {
                     activeFloor={data.previewActiveFloor ?? 0}
                   />
                 )}
-
-                {/* BQ annex (step 6+) */}
                 <AnimatePresence>
                   {showBQ && <BQAnnex visible={showBQ} floors={data.floors} />}
                 </AnimatePresence>
-
-                {/* Roof (step 7+) */}
                 <Roof visible={showRoof} roofType={data.roofType} floors={data.floors} />
-
-                {/* Signpost (step 8+) */}
                 <Signpost visible={showSign} name={data.projectName} />
-
-                {/* Ground */}
                 <Ground />
-
-                {/* Completion celebration (step 9) */}
                 <CompletionCelebration visible={showComplete} floors={data.floors} />
               </svg>
             </div>
