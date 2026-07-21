@@ -34,6 +34,7 @@ export default [
     route("payments",            "routes/payments.tsx"),
     route("notifications",       "routes/notifications.tsx"),
     route("profile",             "routes/profile.tsx"),
+    route("help",                "routes/help.tsx"),
   ]),
 
   // Free public planning tools — no auth, no sidebar

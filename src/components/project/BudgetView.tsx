@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
-import type { ProjectRow, ProjectStageRow, StageStatus } from '@/types/project';
+import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -222,6 +222,132 @@ function MetricBox({
   );
 }
 
+// ── Per-floor cost distribution ────────────────────────────────
+
+interface FloorCost {
+  floor: number;
+  label: string;
+  amount: number;
+  pct: number;
+  rooms: FloorRoom | null;
+}
+
+function computeFloorCosts(total: number, numFloors: number, floorRooms: FloorRoom[] | null): FloorCost[] {
+  if (numFloors <= 1) return [];
+
+  // Base weights: GF heavier (carries foundation + substructure cost),
+  // top floor slightly heavier (roofing), middle floors equal.
+  const weights: number[] = Array.from({ length: numFloors }, (_, i) => {
+    if (i === 0) return 1.45;
+    if (i === numFloors - 1) return 1.1;
+    return 1.0;
+  });
+
+  // Refine by room count per floor when wizard data is present.
+  if (floorRooms && floorRooms.length > 0) {
+    floorRooms.forEach(fr => {
+      const roomCount = fr.bedrooms + fr.bathrooms + fr.livingRooms + fr.kitchens;
+      const delta = (roomCount - 4) * 0.04; // 4 rooms = baseline
+      if (weights[fr.floor] !== undefined) {
+        weights[fr.floor] = Math.max(0.5, weights[fr.floor] + delta);
+      }
+    });
+  }
+
+  const totalWeight = weights.reduce((s, w) => s + w, 0);
+
+  return weights.map((w, i) => {
+    const roomData = floorRooms?.find(fr => fr.floor === i) ?? null;
+    return {
+      floor: i,
+      label: i === 0 ? 'Ground Floor' : `Floor ${i}`,
+      amount: Math.round(total * w / totalWeight),
+      pct: Math.round((w / totalWeight) * 100),
+      rooms: roomData,
+    };
+  });
+}
+
+function roomSummary(rooms: FloorRoom | null): string {
+  if (!rooms) return '';
+  const parts: string[] = [];
+  if (rooms.bedrooms > 0)    parts.push(`${rooms.bedrooms} bed`);
+  if (rooms.bathrooms > 0)   parts.push(`${rooms.bathrooms} bath`);
+  if (rooms.livingRooms > 0) parts.push(`${rooms.livingRooms} living`);
+  if (rooms.kitchens > 0)    parts.push(`${rooms.kitchens} kitchen`);
+  return parts.join(' · ');
+}
+
+function FloorBreakdownSection({ total, numFloors, floorRooms }: {
+  total: number;
+  numFloors: number;
+  floorRooms: FloorRoom[] | null;
+}) {
+  const floors = computeFloorCosts(total, numFloors, floorRooms);
+  if (floors.length === 0) return null;
+
+  const maxAmount = Math.max(...floors.map(f => f.amount));
+
+  return (
+    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Layers className="size-4 text-brand-mid-grey" />
+        <p className="text-sm font-medium text-brand-near-black dark:text-white">Per-Floor Cost Breakdown</p>
+        <span className="ml-auto text-[10px] text-brand-mid-grey">{numFloors} floors</span>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {floors.map((fc, i) => (
+          <div key={fc.floor}>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-brand-off-white dark:bg-[#282828] text-[9px] font-bold text-brand-near-black dark:text-white tabular-nums">
+                  {fc.floor === 0 ? 'GF' : `F${fc.floor}`}
+                </span>
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-brand-near-black dark:text-white">{fc.label}</span>
+                  {fc.rooms && (
+                    <span className="ml-2 text-[10px] text-brand-mid-grey">{roomSummary(fc.rooms)}</span>
+                  )}
+                  {fc.floor === 0 && (
+                    <span className="ml-2 text-[10px] text-brand-mid-grey">incl. foundation</span>
+                  )}
+                  {fc.floor === numFloors - 1 && numFloors > 1 && (
+                    <span className="ml-2 text-[10px] text-brand-mid-grey">incl. roofing</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1.5 shrink-0">
+                <span className="text-xs font-bold text-brand-near-black dark:text-white tabular-nums">{formatUSDFull(fc.amount)}</span>
+                <span className="text-[10px] text-brand-mid-grey tabular-nums">{fc.pct}%</span>
+              </div>
+            </div>
+
+            <div className="relative h-2 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
+              <motion.div
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.55, ease: 'easeOut', delay: 0.08 + i * 0.06 }}
+                style={{
+                  originX: 0,
+                  width: `${(fc.amount / maxAmount) * 100}%`,
+                  backgroundColor: fc.floor === 0 ? '#3b82f6' : fc.floor === numFloors - 1 ? '#f59e0b' : '#60a5fa',
+                }}
+                className="absolute inset-y-0 left-0 rounded-full"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-4 text-[10px] text-brand-mid-grey leading-relaxed">
+        Estimated by floor. Ground floor carries foundation and substructure costs; top floor includes roofing.
+        Actual figures depend on your contractor's pricing.
+      </p>
+    </div>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────
 
 export default function BudgetView({ project, stages }: BudgetViewProps) {
@@ -310,7 +436,16 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
         <MetricBox label="Remaining"    value={remaining} dimmed={remaining === 0} />
       </div>
 
-      {/* ── Section 3: Per-Stage Budget Bars ───────────────── */}
+      {/* ── Section 3: Per-Floor Breakdown (multi-floor only) ── */}
+      {(project.num_floors ?? 1) > 1 && (
+        <FloorBreakdownSection
+          total={totalBudget}
+          numFloors={project.num_floors ?? 1}
+          floorRooms={project.floor_rooms ?? null}
+        />
+      )}
+
+      {/* ── Section 4: Per-Stage Budget Bars ───────────────── */}
       {sortedStages.length > 0 && (
         <div className="rounded-xl border border-brand-border-grey p-5">
           <p className="text-sm font-medium text-brand-near-black mb-4">Stage Breakdown</p>
@@ -322,7 +457,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
         </div>
       )}
 
-      {/* ── Section 4: Payment Timeline ────────────────────── */}
+      {/* ── Section 5: Payment Timeline ────────────────────── */}
       {sortedStages.length > 0 && (
         <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
           <p className="text-sm font-medium text-brand-near-black dark:text-white mb-5">Payment Timeline</p>

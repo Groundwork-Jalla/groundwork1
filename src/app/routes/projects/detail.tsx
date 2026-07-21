@@ -26,6 +26,7 @@ import ContractorInvite          from '@/components/project/ContractorInvite';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import PaymentsTab               from '@/components/project/PaymentsTab';
+import RelatedGuides             from '@/components/project/RelatedGuides';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier,
@@ -273,6 +274,7 @@ export default function ProjectDetail() {
     : 0;
 
   const isContractor = user?.user_metadata?.role === 'contractor';
+  const activeStageNum = stages.find(s => s.status === 'active' || s.status === 'pending_review')?.stage_number;
 
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
@@ -381,48 +383,64 @@ export default function ProjectDetail() {
                 onApproveStage={handleApproveStage}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
+              <RelatedGuides tab="stages" currentStage={activeStageNum} />
             </div>
           )}
 
           {/* Tab: Costing */}
           {activeTab === 'costing' && (
-            <BudgetView project={project} stages={stages} />
+            <div>
+              <BudgetView project={project} stages={stages} />
+              <RelatedGuides tab="costing" />
+            </div>
           )}
 
           {/* Tab: Timeline */}
           {activeTab === 'timeline' && (
-            <TimelineTab
-              project={project}
-              stages={stages}
-              onGoToStages={() => setActiveTab('stages')}
-            />
+            <div>
+              <TimelineTab
+                project={project}
+                stages={stages}
+                onGoToStages={() => setActiveTab('stages')}
+              />
+              <RelatedGuides tab="timeline" />
+            </div>
           )}
 
           {/* Tab: Payments */}
           {activeTab === 'payments' && (
-            <PaymentsTab
-              project={project}
-              stages={stages}
-              onPaymentUpdated={handleStagePaymentUpdate}
-            />
+            <div>
+              <PaymentsTab
+                project={project}
+                stages={stages}
+                onPaymentUpdated={handleStagePaymentUpdate}
+              />
+              <RelatedGuides tab="payments" />
+            </div>
           )}
 
           {/* Tab: Documents */}
           {activeTab === 'documents' && (
-            <DocumentVault
-              projectId={project.id}
-              userId={user?.id ?? ''}
-              tier={project.tier}
-            />
+            <div>
+              <DocumentVault
+                projectId={project.id}
+                userId={user?.id ?? ''}
+                tier={project.tier}
+              />
+              <RelatedGuides tab="documents" />
+            </div>
           )}
 
           {/* Tab: Messages */}
           {activeTab === 'messages' && user && (
-            <ProjectChat
-              projectId={project.id}
-              currentUserId={user.id}
-              currentUserName={displayName}
-            />
+            <div>
+              <ProjectChat
+                projectId={project.id}
+                currentUserId={user.id}
+                currentUserName={displayName}
+              />
+              <RelatedGuides tab="messages" />
+            </div>
           )}
 
         </motion.div>
