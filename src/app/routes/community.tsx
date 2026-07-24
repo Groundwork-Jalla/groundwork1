@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForceLight } from "@/hooks/useForceLight";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
@@ -106,6 +107,7 @@ function BlueprintPanel() {
 }
 
 export default function Community() {
+  useForceLight();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");

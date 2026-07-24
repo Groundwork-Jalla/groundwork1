@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useForceLight } from "@/hooks/useForceLight";
 import BackToTop from "@/components/ui/BackToTop";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import ContractorHero from "@/components/contractor/ContractorHero";
@@ -14,6 +15,7 @@ import SocialProof from "@/components/contractor/SocialProof";
 import ContractorCTA from "@/components/contractor/ContractorCTA";
 
 export default function ContractorApply() {
+  useForceLight();
   return (
     <div className="bg-white overflow-x-clip">
       <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-4 sm:px-7 py-3.5">

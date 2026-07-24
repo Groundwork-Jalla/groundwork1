@@ -758,12 +758,47 @@ function StageProgressModal({
 
 // ── Stat card ─────────────────────────────────────────────
 
-function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
+function StatCard({
+  label, value, sub, icon, valueSize = 'text-2xl',
+}: {
+  label: string; value: string; sub?: string; icon?: React.ReactNode; valueSize?: string;
+}) {
   return (
-    <div className="flex-1 min-w-0 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5 flex flex-col gap-2">
-      <p className="text-xs text-brand-mid-grey">{label}</p>
-      <p className={cn('text-2xl font-bold tabular-nums leading-tight', accent ?? 'text-brand-near-black dark:text-white')}>{value}</p>
-      {sub && <p className="text-[11px] text-brand-mid-grey">{sub}</p>}
+    <div className="flex-1 min-w-0 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4 flex flex-col">
+      {icon && (
+        <div className="size-8 rounded-lg bg-brand-off-white dark:bg-[#252525] flex items-center justify-center mb-3 shrink-0">
+          {icon}
+        </div>
+      )}
+      <p className={cn('font-black tabular-nums leading-tight text-brand-near-black dark:text-white', valueSize)}>{value}</p>
+      <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest mt-1">{label}</p>
+      {sub && <p className="text-[11px] text-brand-mid-grey mt-1 leading-snug">{sub}</p>}
+    </div>
+  );
+}
+
+function CompletionCard({ pct, count, total }: { pct: number; count: number; total: number }) {
+  const R = 32;
+  const circ = 2 * Math.PI * R;
+  const arc = circ * 0.75;
+  const filled = arc * Math.min(pct / 100, 1);
+  return (
+    <div className="flex-1 min-w-0 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4 flex flex-col items-center justify-center">
+      <div className="relative w-21 h-21">
+        <svg viewBox="0 0 88 88" className="w-full h-full" style={{ transform: 'rotate(-225deg)' }}>
+          <circle cx="44" cy="44" r={R} fill="none" strokeWidth="5.5" strokeLinecap="round"
+            stroke="currentColor" className="text-brand-border-grey dark:text-[#2c2c2c]"
+            strokeDasharray={`${arc} ${circ}`} />
+          <circle cx="44" cy="44" r={R} fill="none" strokeWidth="5.5" strokeLinecap="round"
+            stroke="currentColor" className="text-brand-near-black dark:text-white transition-all duration-700"
+            strokeDasharray={`${filled} ${circ}`} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pb-1">
+          <span className="text-xl font-black text-brand-near-black dark:text-white tabular-nums leading-none">{pct}%</span>
+          <span className="text-[8px] font-bold text-brand-mid-grey uppercase tracking-widest">COMPLETE</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-brand-mid-grey mt-2">{count} of {total} stages</p>
     </div>
   );
 }
@@ -812,6 +847,7 @@ function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
 
   if (imagePaths.length === 0) return null;
 
+  const colClass = imagePaths.length === 1 ? 'grid-cols-1' : imagePaths.length === 2 ? 'grid-cols-2' : imagePaths.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
   return (
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
       <div className="flex items-center justify-between mb-3">
@@ -819,27 +855,24 @@ function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
         <span className="text-[10px] text-brand-mid-grey">{imagePaths.length} photo{imagePaths.length !== 1 ? 's' : ''}</span>
       </div>
       {signing ? (
-        <div className={cn('gap-1.5', imagePaths.length === 1 ? 'block' : 'grid grid-cols-2')}>
+        <div className={cn('grid gap-2', colClass)}>
           {imagePaths.map((_, i) => (
-            <div key={i} className="w-full aspect-square rounded-lg bg-brand-light-grey dark:bg-[#282828] animate-pulse" />
+            <div key={i} className="w-full aspect-video rounded-lg bg-brand-light-grey dark:bg-[#282828] animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className={cn('gap-1.5', signedUrls.length === 1 ? 'block' : 'grid grid-cols-2')}>
+        <div className={cn('grid gap-2', colClass)}>
           {signedUrls.map((url, i) => (
             <a key={url} href={url} target="_blank" rel="noopener noreferrer">
               <img
                 src={url}
                 alt={`Site photo ${i + 1}`}
-                className="w-full aspect-square object-cover rounded-lg"
+                className="w-full aspect-video object-cover rounded-lg hover:opacity-90 transition-opacity"
                 loading="lazy"
               />
             </a>
           ))}
         </div>
-      )}
-      {signedUrls.length > 0 && (
-        <p className="text-[10px] text-brand-mid-grey mt-2">{signedUrls.length} new site photo{signedUrls.length !== 1 ? 's' : ''} above.</p>
       )}
     </div>
   );
@@ -917,26 +950,39 @@ export default function OverviewTab({
         )}
       </AnimatePresence>
 
+      {/* Stat cards — full-width row, alone */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <StatCard
+          label="Days Active"
+          value={String(daysActive)}
+          sub="since project created"
+          valueSize="text-3xl"
+          icon={<Clock className="size-4 text-brand-near-black dark:text-white" />}
+        />
+        <CompletionCard pct={completedPct} count={completedCount} total={sortedStages.length} />
+        <StatCard
+          label="Active Stage"
+          value={activeStage ? 'In Progress' : completedCount === sortedStages.length ? 'Complete' : 'Starting'}
+          sub={activeStage?.name ?? nextStage?.name ?? ''}
+          valueSize="text-xl"
+          icon={<CheckCircle2 className="size-4 text-brand-near-black dark:text-white" />}
+        />
+        <StatCard
+          label="Next Milestone"
+          value={nextStage ? formatUSDFull(nextStage.payment_milestone_usd ?? 0) : '—'}
+          sub={nextStage ? `starts ~${fmtDate(projStart)}` : 'All done'}
+          valueSize="text-lg"
+          icon={<Landmark className="size-4 text-brand-near-black dark:text-white" />}
+        />
+      </div>
+
+      {/* Latest from Site — full-width, alone below the stat cards */}
+      <LatestFromSite substages={substages} />
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
 
         {/* ── Left column ────────────────────────────────── */}
         <div className="flex flex-col gap-6">
-
-          {/* Stat cards — flex so they stretch equally across the full width */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <StatCard label="Days Active"    value={String(daysActive)}    sub="since project created" />
-            <StatCard label="Complete"        value={`${completedPct}%`}   sub={`${completedCount} of ${sortedStages.length} stages`} />
-            <StatCard
-              label="Now"
-              value={activeStage ? 'In Progress' : completedCount === sortedStages.length ? 'Complete' : 'Starting'}
-              sub={activeStage?.name ?? nextStage?.name ?? ''}
-            />
-            <StatCard
-              label="Next Milestone"
-              value={nextStage ? formatUSDFull(nextStage.payment_milestone_usd ?? 0) : '—'}
-              sub={nextStage ? `starts ~${fmtDate(projStart)}` : 'All done'}
-            />
-          </div>
 
           {/* Costing allocation donut */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
@@ -1023,9 +1069,6 @@ export default function OverviewTab({
 
         {/* ── Right sidebar ─────────────────────────────── */}
         <div className="flex flex-col gap-4">
-
-          {/* Latest from Site — hidden when no images */}
-          <LatestFromSite substages={substages} />
 
           {/* Stage Progress circles (compact) */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">

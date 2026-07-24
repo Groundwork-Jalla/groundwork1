@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useForceLight } from '@/hooks/useForceLight';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-react';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
@@ -187,6 +188,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 // ── Page ───────────────────────────────────────────────────
 
 export default function PricingPage() {
+  useForceLight();
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Nav */}
