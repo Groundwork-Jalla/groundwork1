@@ -45,6 +45,17 @@ export async function approveStage(
 ): Promise<void> {
   const isSelfVerify = tier === 'self_verify' || tier === 'starter';
 
+  // 0. Verify stage has been paid for
+  const { data: stageRow, error: stageFetchErr } = await supabase
+    .from('project_stages')
+    .select('payment_status')
+    .eq('id', stageId)
+    .single();
+  if (stageFetchErr) throw stageFetchErr;
+  if (stageRow.payment_status !== 'paid') {
+    throw new Error('This stage has not been paid for. Record payment in the Payments tab before approving.');
+  }
+
   // 1. Verify all substages ready
   const { data: substages, error: subFetchErr } = await supabase
     .from('project_substages')

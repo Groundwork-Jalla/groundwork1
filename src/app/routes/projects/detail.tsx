@@ -6,6 +6,7 @@ import {
   CalendarDays, BadgeCheck, ShieldCheck, Briefcase,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
+import { supabase }              from '@/lib/supabase/client';
 import {
   fetchProject,
   fetchProjectStages,
@@ -29,7 +30,7 @@ import PaymentsTab               from '@/components/project/PaymentsTab';
 import RelatedGuides             from '@/components/project/RelatedGuides';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
-  FinishLevel, ProjectTier,
+  FinishLevel, ProjectTier, PaymentStatus,
 }                                from '@/types/project';
 
 // ── Label maps ────────────────────────────────────────────
@@ -160,6 +161,25 @@ export default function ProjectDetail() {
     loadAll().finally(() => setLoading(false));
   }, [loadAll]);
 
+  // Real-time: update stage payment_status when it changes in Supabase
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`project-stages-${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'project_stages', filter: `project_id=eq.${id}` },
+        (payload) => {
+          const updated = payload.new as { id: string; payment_status: PaymentStatus };
+          setStages(prev =>
+            prev.map(s => s.id === updated.id ? { ...s, payment_status: updated.payment_status } : s),
+          );
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
   // ── Event handlers ─────────────────────────────────────
 
   const handleMarkSubstageComplete = useCallback(async (substageId: string) => {
@@ -190,7 +210,7 @@ export default function ProjectDetail() {
     await loadAll();
   }, [user, project, loadAll]);
 
-  const handleStagePaymentUpdate = useCallback((stageId: string, status: import('@/types/project').PaymentStatus) => {
+  const handleStagePaymentUpdate = useCallback((stageId: string, status: PaymentStatus) => {
     setStages(prev => prev.map(s => s.id === stageId ? { ...s, payment_status: status } : s));
   }, []);
 

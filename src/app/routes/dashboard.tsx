@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
   MapPin, Building2, ChevronRight, FolderOpen,
-  Wallet, HardHat, CheckCircle2,
+  Wallet, CreditCard, CheckCircle2, HardHat,
   UserCircle, Check, ArrowRight, TrendingUp,
   Lock, CircleDot,
 } from 'lucide-react';
@@ -26,6 +26,7 @@ interface ProjectStage {
   name: string;
   status: StageStatus;
   budget_pct: number | null;
+  completed_at: string | null;
 }
 
 // ── Stage status helpers ───────────────────────────────────
@@ -194,9 +195,9 @@ function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
   );
 }
 
-// ── Funnel guidance card ───────────────────────────────────
+// ── Journey card (Your Journey) ────────────────────────────
 
-function FunnelCard({ projects, activeProject, completedCount }: {
+function JourneyCard({ projects, activeProject, completedCount }: {
   projects: ProjectRow[];
   activeProject: ProjectRow | undefined;
   completedCount: number;
@@ -204,168 +205,333 @@ function FunnelCard({ projects, activeProject, completedCount }: {
   const hasProjects = projects.length > 0;
   const hasActive   = !!activeProject;
 
-  let stage: string;
-  let action: string;
+  let status: string;
+  let statusCls: string;
+  let title: string;
+  let desc: string;
   let href: string;
-  let pillCls: string;
+  let btnLabel: string;
 
   if (!hasProjects) {
-    stage   = 'Planning';
-    action  = 'Create your first project';
-    href    = '/projects/new';
-    pillCls = 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey';
+    status    = 'Planning';
+    statusCls = 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey';
+    title     = "Let's get building";
+    desc      = 'Create your first project to start tracking your build from day one.';
+    href      = '/projects/new';
+    btnLabel  = 'Create project';
   } else if (!hasActive) {
-    stage   = 'Onboarding';
-    action  = 'Open a project and add your contractor';
-    href    = '/projects';
-    pillCls = 'bg-blue-50 text-blue-700 border-blue-200';
+    status    = 'Onboarding';
+    statusCls = 'bg-blue-50 text-blue-700 border-blue-200';
+    title     = 'Almost there';
+    desc      = 'Open a project and add your contractor to begin stage tracking.';
+    href      = '/projects';
+    btnLabel  = 'Open projects';
   } else if (completedCount >= TOTAL_STAGES) {
-    stage   = 'Completed';
-    action  = 'Download your project summary';
-    href    = `/projects/${activeProject.id}`;
-    pillCls = 'bg-green-50 text-green-700 border-green-200';
+    status    = 'Completed';
+    statusCls = 'bg-green-50 text-green-700 border-green-200';
+    title     = 'Build complete';
+    desc      = 'All stages are done. Download your project summary and certificate.';
+    href      = `/projects/${activeProject.id}`;
+    btnLabel  = 'View project';
   } else if (completedCount > 7) {
-    stage   = 'Finishing';
-    action  = 'Your build is nearly done — prepare for handover';
-    href    = `/projects/${activeProject.id}`;
-    pillCls = 'bg-green-50 text-green-700 border-green-200';
-  } else if (completedCount >= 3) {
-    stage   = 'Active build';
-    action  = 'Check your current stage and approve progress';
-    href    = `/projects/${activeProject.id}`;
-    pillCls = 'bg-blue-50 text-blue-700 border-blue-200';
+    status    = 'Finishing';
+    statusCls = 'bg-green-50 text-green-700 border-green-200';
+    title     = 'Nearly there';
+    desc      = `${completedCount} of ${TOTAL_STAGES} stages done — prepare for handover on ${activeProject.name}.`;
+    href      = `/projects/${activeProject.id}`;
+    btnLabel  = 'View project';
+  } else if (completedCount >= 1) {
+    status    = 'Active';
+    statusCls = 'bg-blue-50 text-blue-700 border-blue-200';
+    title     = 'Build in progress';
+    desc      = `${completedCount} of ${TOTAL_STAGES} stages complete on ${activeProject.name}. Check your current stage and approve progress.`;
+    href      = `/projects/${activeProject.id}`;
+    btnLabel  = 'Open project';
   } else {
-    stage   = 'Early build';
-    action  = 'Review evidence uploaded by your contractor';
-    href    = `/projects/${activeProject.id}`;
-    pillCls = 'bg-amber-50 text-amber-700 border-amber-200';
+    // project exists but no stages done — could be dormant
+    const lastUpdated = activeProject.updated_at ? new Date(activeProject.updated_at) : null;
+    const daysSince   = lastUpdated ? Math.floor((Date.now() - lastUpdated.getTime()) / 86400000) : 999;
+    status    = daysSince > 7 ? 'Dormant' : 'Active';
+    statusCls = daysSince > 7
+      ? 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey'
+      : 'bg-blue-50 text-blue-700 border-blue-200';
+    title     = daysSince > 7 ? "We're still here" : 'Ready to build';
+    desc      = daysSince > 7
+      ? "It's been a while — pick up where you left off in a few clicks."
+      : `${activeProject.name} is set up and ready. Upload your first evidence to get started.`;
+    href      = `/projects/${activeProject.id}`;
+    btnLabel  = 'Open project';
   }
 
+  const lastActivity = activeProject?.updated_at
+    ? new Date(activeProject.updated_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+    : null;
+
   return (
-    <div className="bg-white dark:bg-[#1e1e1e] border border-brand-border-grey dark:border-[#2c2c2c] rounded-2xl px-5 py-4 flex items-center gap-5">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1.5">
-          <p className="text-[11px] font-medium text-brand-mid-grey">Your build journey</p>
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${pillCls}`}>
-            {stage}
+    <div className="bg-white dark:bg-[#1e1e1e] border border-brand-border-grey dark:border-[#2c2c2c] rounded-2xl px-5 py-4">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest">Your Journey</p>
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusCls}`}>
+            {status}
           </span>
         </div>
-        <p className="text-base font-bold text-brand-near-black leading-tight">{stage}</p>
-        <p className="text-xs text-brand-mid-grey mt-0.5 leading-snug">{action}</p>
       </div>
-      <Link to={href}
-        className="shrink-0 flex size-9 items-center justify-center rounded-xl bg-brand-off-white dark:bg-[#2c2c2c] hover:bg-brand-near-black dark:hover:bg-white group transition-colors">
-        <ArrowRight className="size-4 text-brand-mid-grey group-hover:text-white dark:group-hover:text-brand-near-black transition-colors" />
-      </Link>
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-brand-near-black dark:text-white leading-snug">{title}</p>
+          <p className="text-xs text-brand-mid-grey mt-1 leading-relaxed max-w-sm">{desc}</p>
+          {lastActivity && (
+            <p className="text-[10px] text-brand-mid-grey mt-2">Last activity: {lastActivity}</p>
+          )}
+        </div>
+        <Link to={href}
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-xs font-semibold px-4 py-2.5 hover:opacity-90 transition-opacity whitespace-nowrap">
+          {btnLabel} <ArrowRight className="size-3" />
+        </Link>
+      </div>
     </div>
   );
 }
 
 // ── Progress velocity chart ────────────────────────────────
 
-function VelocityChart({ project, completedCount }: {
+function VelocityChart({ project, stages }: {
   project: ProjectRow;
-  completedCount: number;
+  stages: ProjectStage[];
 }) {
-  const start = new Date(project.created_at).getTime();
-  const now   = Date.now();
-  const span  = Math.max(now - start, 1);
+  const [hoverX, setHoverX] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  // 8 data points from project start → today
-  const N   = 8;
-  const pts = Array.from({ length: N }, (_, k) => {
-    const frac  = k / (N - 1);
-    const t     = start + frac * span;
-    const count = k === 0       ? 0
-                : k === N - 1   ? completedCount
-                : Math.round(frac * completedCount);
-    return { t, count };
+  const start      = new Date(project.created_at).getTime();
+  const now        = Date.now();
+  const plannedEnd = start + PREDICTED_DAYS * 86400000;
+  const chartEnd   = Math.max(now, plannedEnd) + 20 * 86400000;
+  const xSpan      = chartEnd - start;
+
+  const W = 460, H = 186;
+  const PL = 36, PR = 14, PT = 16, PB = 38;
+  const cw = W - PL - PR;
+  const ch = H - PT - PB;
+
+  const toX   = (t: number) => PL + ((t - start) / xSpan) * cw;
+  const toY   = (c: number) => PT + ((TOTAL_STAGES - c) / TOTAL_STAGES) * ch;
+  const fromX = (px: number) => start + ((px - PL) / cw) * xSpan;
+  const nowX  = toX(now);
+
+  // Planned line: steady linear from (start,0) → (plannedEnd, 10)
+  const plannedPts = [
+    { x: toX(start),      y: toY(0),            t: start,      c: 0 },
+    { x: toX(plannedEnd), y: toY(TOTAL_STAGES),  t: plannedEnd, c: TOTAL_STAGES },
+  ];
+
+  // Actual line: step-wise using real completed_at timestamps
+  const doneByDate = stages
+    .filter(s => s.status === 'complete' && s.completed_at)
+    .sort((a, b) => +new Date(a.completed_at!) - +new Date(b.completed_at!));
+
+  const actualPts: { x: number; y: number; t: number; c: number; name?: string }[] = [
+    { x: toX(start), y: toY(0), t: start, c: 0 },
+  ];
+  doneByDate.forEach((s, i) => {
+    const t = +new Date(s.completed_at!);
+    actualPts.push({ x: toX(t), y: toY(i + 1), t, c: i + 1, name: s.name });
   });
+  const totalDone = stages.filter(s => s.status === 'complete').length;
+  // Extend to today (plateau at current count)
+  actualPts.push({ x: toX(now), y: toY(totalDone), t: now, c: totalDone });
 
-  // SVG coordinate system
-  const PAD_L = 24, PAD_R = 10, PAD_T = 10, PAD_B = 22;
-  const W = 400, H = 120;
-  const cw = W - PAD_L - PAD_R;
-  const ch = H - PAD_T - PAD_B;
+  // Monthly X ticks
+  const allMonths: { t: number; label: string }[] = [];
+  const md = new Date(project.created_at);
+  md.setDate(1);
+  md.setMonth(md.getMonth() + 1);
+  while (md.getTime() <= chartEnd) {
+    allMonths.push({ t: md.getTime(), label: md.toLocaleDateString('en-US', { month: 'short' }) });
+    md.setMonth(md.getMonth() + 1);
+  }
+  const tickStep = allMonths.length <= 8 ? 1 : Math.ceil(allMonths.length / 8);
+  const months   = allMonths.filter((_, i) => i % tickStep === 0);
 
-  const toX = (t: number) => PAD_L + ((t - start) / span) * cw;
-  const toY = (c: number) => PAD_T + ((TOTAL_STAGES - c) / TOTAL_STAGES) * ch;
+  const yTicks = [0, 2, 4, 6, 8, 10];
 
-  const svgPts = pts.map(p => ({ x: toX(p.t), y: toY(p.count) }));
+  // Hover helpers
+  const hoverT       = hoverX !== null ? fromX(hoverX) : null;
+  const hoverActual  = hoverT !== null
+    ? actualPts.reduce((b, p) => Math.abs(p.t - hoverT) < Math.abs(b.t - hoverT) ? p : b)
+    : null;
+  const hoverPlanned = hoverT !== null
+    ? Math.min(10, Math.max(0, ((hoverT - start) / (plannedEnd - start)) * 10))
+    : null;
 
-  const polylinePoints = svgPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const areaPoints     = [
-    ...svgPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`),
-    `${svgPts[N - 1].x.toFixed(1)},${(PAD_T + ch).toFixed(1)}`,
-    `${svgPts[0].x.toFixed(1)},${(PAD_T + ch).toFixed(1)}`,
+  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const px   = (e.clientX - rect.left) * (W / rect.width);
+    setHoverX(px >= PL && px <= W - PR ? px : null);
+  };
+
+  const polyStr = (pts: { x: number; y: number }[]) =>
+    pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  const areaStr = [
+    ...actualPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`),
+    `${actualPts.at(-1)!.x.toFixed(1)},${(PT + ch).toFixed(1)}`,
+    `${actualPts[0].x.toFixed(1)},${(PT + ch).toFixed(1)}`,
   ].join(' ');
 
-  const fmtDate = (t: number) =>
-    new Date(t).toLocaleDateString('en', { month: 'short', day: 'numeric' });
-
-  const gridCounts = [10, 5, 0];
-  const xLabels    = [pts[0], pts[Math.floor((N - 1) / 2)], pts[N - 1]];
-
-  // Suppress lint warning — PREDICTED_DAYS is the canonical project duration reference
-  void PREDICTED_DAYS;
+  const fmtD = (t: number) =>
+    new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
-    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-      <div className="flex items-baseline gap-2 mb-3">
-        <p className="text-sm font-medium text-brand-near-black">Progress Velocity</p>
-        <p className="text-xs text-brand-mid-grey">Stage completions over time</p>
+    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
+      {/* Header + legend */}
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white">Build Progress</p>
+          <p className="text-xs text-brand-mid-grey mt-0.5">Stages completed vs. planned schedule</p>
+        </div>
+        <div className="flex items-center gap-5">
+          <span className="flex items-center gap-1.5 text-[10px] font-medium text-brand-mid-grey">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
+              <line x1="0" y1="5" x2="22" y2="5" stroke="#9ca3af" strokeWidth="2" strokeDasharray="4,3" />
+            </svg>
+            Planned
+          </span>
+          <span className="flex items-center gap-1.5 text-[10px] font-medium text-blue-500">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
+              <line x1="0" y1="5" x2="22" y2="5" stroke="#3b82f6" strokeWidth="2" />
+              <circle cx="11" cy="5" r="3" fill="#3b82f6" stroke="white" strokeWidth="1.5" />
+            </svg>
+            Actual
+          </span>
+        </div>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-        <style>{`
-          .vc-grid { stroke: #e5e7eb; }
-          @media (prefers-color-scheme: dark) { .vc-grid { stroke: #2c2c2c; } }
-        `}</style>
 
-        {/* Horizontal grid lines */}
-        {gridCounts.map(c => (
-          <line key={c}
-            className="vc-grid"
-            x1={PAD_L} y1={toY(c)} x2={W - PAD_R} y2={toY(c)}
-            strokeWidth="0.75" strokeDasharray="3,3"
-          />
-        ))}
+      {/* Chart */}
+      <div className="relative">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          preserveAspectRatio="none"
+          style={{ overflow: 'visible', height: '130px' }}
+          onMouseMove={handleMove}
+          onMouseLeave={() => setHoverX(null)}
+        >
+          {/* Y grid + labels */}
+          {yTicks.map(c => (
+            <g key={c}>
+              <line x1={PL} y1={toY(c)} x2={W - PR} y2={toY(c)}
+                stroke="var(--color-brand-border-grey)"
+                strokeWidth={c === 0 ? 1.2 : 0.6}
+                strokeDasharray={c === 0 ? undefined : '4,4'} />
+              <text x={PL - 5} y={toY(c) + 3.5} textAnchor="end" fontSize="9"
+                style={{ fill: 'var(--color-brand-mid-grey)', fontVariantNumeric: 'tabular-nums' }}>
+                {c}
+              </text>
+            </g>
+          ))}
 
-        {/* Area fill */}
-        <polygon points={areaPoints} fill="rgba(59,130,246,0.15)" />
-
-        {/* Line */}
-        <polyline
-          points={polylinePoints}
-          fill="none" stroke="#3b82f6" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round"
-        />
-
-        {/* Dots — last point (today) gets a larger outlined dot */}
-        {svgPts.map((p, i) =>
-          i === N - 1 ? (
-            <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={4}
-              fill="#3b82f6" stroke="white" strokeWidth="1.5" />
-          ) : (
-            <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r={2.5}
-              fill="#3b82f6" />
-          )
-        )}
-
-        {/* Y-axis labels */}
-        <text x={PAD_L - 4} y={toY(10) + 3} textAnchor="end" fontSize="9" fill="#9ca3af">10</text>
-        <text x={PAD_L - 4} y={toY(0) + 3}  textAnchor="end" fontSize="9" fill="#9ca3af">0</text>
-
-        {/* X-axis labels */}
-        {xLabels.map((p, i) => (
-          <text key={i}
-            x={toX(p.t).toFixed(1)}
-            y={H - 4}
-            textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
-            fontSize="9" fill="#9ca3af">
-            {fmtDate(p.t)}
+          {/* Y-axis title */}
+          <text x={9} y={PT + ch / 2} textAnchor="middle" fontSize="9"
+            transform={`rotate(-90, 9, ${PT + ch / 2})`}
+            style={{ fill: 'var(--color-brand-mid-grey)' }}>
+            Stages
           </text>
-        ))}
-      </svg>
+
+          {/* X baseline */}
+          <line x1={PL} y1={PT + ch} x2={W - PR} y2={PT + ch}
+            stroke="var(--color-brand-border-grey)" strokeWidth="1.2" />
+
+          {/* Month ticks + labels */}
+          {months.map((m, i) => {
+            const x = toX(m.t);
+            if (x < PL || x > W - PR) return null;
+            return (
+              <g key={i}>
+                <line x1={x} y1={PT + ch} x2={x} y2={PT + ch + 4}
+                  stroke="var(--color-brand-border-grey)" strokeWidth="1" />
+                <text x={x} y={PT + ch + 15} textAnchor="middle" fontSize="9"
+                  style={{ fill: 'var(--color-brand-mid-grey)' }}>
+                  {m.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* X-axis title */}
+          <text x={PL + cw / 2} y={H - 1} textAnchor="middle" fontSize="9"
+            style={{ fill: 'var(--color-brand-mid-grey)' }}>
+            Month
+          </text>
+
+          {/* TODAY marker */}
+          {nowX >= PL && nowX <= W - PR && (
+            <>
+              <line x1={nowX} y1={PT} x2={nowX} y2={PT + ch}
+                stroke="#ef4444" strokeWidth="1" strokeDasharray="3,3" opacity="0.45" />
+              <text x={nowX + 3} y={PT + 10} fontSize="8"
+                style={{ fill: '#ef4444' }} opacity="0.75">Today</text>
+            </>
+          )}
+
+          {/* Planned line (dashed grey) */}
+          <polyline points={polyStr(plannedPts)}
+            fill="none" stroke="#9ca3af" strokeWidth="1.5"
+            strokeDasharray="5,4" strokeLinecap="round" />
+
+          {/* Actual area fill */}
+          {actualPts.length > 1 && (
+            <polygon points={areaStr} fill="rgba(59,130,246,0.07)" />
+          )}
+
+          {/* Actual line (solid blue) */}
+          <polyline points={polyStr(actualPts)}
+            fill="none" stroke="#3b82f6" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Data dots on actual */}
+          {actualPts.map((p, i) => {
+            if (i === 0) return null;
+            const isLast = i === actualPts.length - 1;
+            return (
+              <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)}
+                r={isLast ? 5 : 3.5}
+                fill="#3b82f6" stroke="white" strokeWidth={isLast ? 2 : 1.5} />
+            );
+          })}
+
+          {/* Hover crosshair ring */}
+          {hoverActual && (
+            <circle cx={hoverActual.x.toFixed(1)} cy={hoverActual.y.toFixed(1)} r={7}
+              fill="white" stroke="#3b82f6" strokeWidth="2" opacity="0.9" />
+          )}
+        </svg>
+
+        {/* Tooltip */}
+        {hoverActual && hoverPlanned !== null && (
+          <div
+            className="pointer-events-none absolute z-20 min-w-36 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#252525] shadow-lg px-3 py-2 text-xs"
+            style={{
+              left:      `${(hoverActual.x / W) * 100}%`,
+              top:       `${(hoverActual.y / H) * 100}%`,
+              transform: 'translate(-50%, calc(-100% - 10px))',
+            }}
+          >
+            <p className="font-semibold text-brand-near-black dark:text-white mb-1">
+              {hoverActual.c} of {TOTAL_STAGES} stages
+            </p>
+            {hoverActual.name && (
+              <p className="text-brand-mid-grey text-[10px] mb-0.5 truncate max-w-40">{hoverActual.name}</p>
+            )}
+            <p className="text-brand-mid-grey text-[10px]">{fmtD(hoverActual.t)}</p>
+            <p className="text-[10px] text-brand-mid-grey mt-1 pt-1 border-t border-brand-border-grey dark:border-[#333]">
+              Planned: {Math.round(hoverPlanned * 10) / 10} stages
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -533,91 +699,81 @@ function StageProgressPanel({
   );
 }
 
-// ── Budget allocation donut ────────────────────────────────
+// ── Costing allocation donut (Materials / Labor / Fees / Permits) ──
 
-function CostingDonut({ project, stages }: {
-  project: ProjectRow;
-  stages: ProjectStage[];
-}) {
-  const total    = project.budget_usd ?? 0;
-  const spent    = stages.filter(isComplete).reduce((acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
-  const activeAmt= stages.filter(isActive).reduce(  (acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
-  const remaining= stages.filter(isLocked).reduce(  (acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
-  const base     = spent + activeAmt + remaining || total || 1;
+const COST_CATS = [
+  { key: 'materials', label: 'Materials',         desc: 'Cement, blocks, rebar, fittings',       color: '#3b82f6', pct: 41 },
+  { key: 'labor',     label: 'Labor',             desc: 'Site workers + supervision',             color: '#22c55e', pct: 23 },
+  { key: 'fees',      label: 'Professional Fees', desc: 'Architects, engineers, project mgmt',    color: '#f59e0b', pct: 34 },
+  { key: 'permits',   label: 'Permits',           desc: 'Government approvals & filings',          color: '#1f2937', pct: 2  },
+];
 
-  const SEGS = [
-    { pct: spent     / base, color: '#22c55e' },
-    { pct: activeAmt / base, color: '#3b82f6' },
-    { pct: remaining / base, color: '#e2e8f0' },
-  ].filter(s => s.pct > 0);
+function CostingDonut({ project }: { project: ProjectRow }) {
+  const total = project.budget_usd ?? 0;
+  const biggest = COST_CATS[0];
 
-  const segs = SEGS.length ? SEGS : [{ pct: 1, color: '#e2e8f0' }];
-  const r = 68, cx = 100, cy = 100, circ = 2 * Math.PI * r, GAP = 4;
+  const r = 68, cx = 100, cy = 100, circ = 2 * Math.PI * r, GAP = 3;
   let acc = 0;
 
-  const spentPct     = total > 0 ? Math.round((spent     / total) * 100) : 0;
-  const activePct    = total > 0 ? Math.round((activeAmt / total) * 100) : 0;
-  const remainingPct = total > 0 ? Math.round((remaining / total) * 100) : 0;
-
   return (
-    <div className="bg-white rounded-2xl border border-brand-border-grey p-5">
-      <h3 className="text-sm font-semibold text-brand-near-black mb-0.5">Budget Allocation</h3>
+    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
+      <h3 className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">Costing Allocation</h3>
       <p className="text-xs text-brand-mid-grey mb-4">
-        {spentPct > 0 ? `${spentPct}% committed to completed stages`
-          : stages.length === 0 ? 'Loading stage data…' : 'No stages completed yet'}
+        {total > 0
+          ? <>Your biggest cost is <strong className="text-brand-near-black dark:text-white">{biggest.label}</strong> at {biggest.pct}% of total budget.</>
+          : 'Budget breakdown by category'}
       </p>
 
       <div className="flex justify-center mb-4">
-        <svg viewBox="0 0 200 200" className="w-36 h-36">
+        <svg viewBox="0 0 200 200" className="w-40 h-40">
           <g transform={`rotate(-90, ${cx}, ${cy})`}>
-            {segs.map((seg, i) => {
-              const vis = seg.pct * circ - (segs.length > 1 ? GAP : 0);
+            {COST_CATS.map((cat) => {
+              const fraction = cat.pct / 100;
+              const vis = fraction * circ - GAP;
               const off = -acc;
-              acc += seg.pct * circ;
+              acc += fraction * circ;
               return (
-                <circle key={i}
+                <circle key={cat.key}
                   cx={cx} cy={cy} r={r} fill="none"
-                  stroke={seg.color} strokeWidth="26"
+                  stroke={cat.color} strokeWidth="26"
                   strokeDasharray={`${Math.max(vis, 0)} ${circ}`}
                   strokeDashoffset={off} strokeLinecap="butt"
                 />
               );
             })}
           </g>
-          <circle cx={cx} cy={cy} r="57" fill="white" className="donut-bg" />
+          <circle cx={cx} cy={cy} r="55" fill="var(--color-donut-bg, white)" />
           {total > 0 ? (
             <>
-              <text x={cx} y={cy - 7} textAnchor="middle" style={{ fontSize: '10px', fill: '#9ca3af' }}>Total</text>
-              <text x={cx} y={cy + 9} textAnchor="middle" className="donut-text-value" style={{ fontSize: '14px', fontWeight: 700 }}>
+              <text x={cx} y={cy - 8} textAnchor="middle" style={{ fontSize: '9px', fill: '#9ca3af' }}>Total budget</text>
+              <text x={cx} y={cy + 9} textAnchor="middle" style={{ fontSize: '13px', fontWeight: 700 }} fill="var(--color-brand-near-black, #111)">
                 {fmtShort(total)}
               </text>
             </>
           ) : (
-            <text x={cx} y={cy + 5} textAnchor="middle" style={{ fontSize: '11px', fill: '#9ca3af' }}>No budget</text>
+            <text x={cx} y={cy + 4} textAnchor="middle" style={{ fontSize: '11px', fill: '#9ca3af' }}>No budget</text>
           )}
         </svg>
       </div>
 
-      <div className="space-y-2">
-        {[
-          { label: 'Spent',     value: spent,      pct: spentPct,     color: '#22c55e', desc: 'Completed stages'      },
-          { label: 'Active',    value: activeAmt,  pct: activePct,    color: '#3b82f6', desc: 'In progress'           },
-          { label: 'Remaining', value: remaining,  pct: remainingPct, color: '#e2e8f0', desc: 'Upcoming stages'       },
-        ].map(row => (
-          <div key={row.label} className="flex items-center gap-2">
-            <span className="size-2.5 shrink-0 rounded-full border border-black/10"
-              style={{ backgroundColor: row.color }} />
+      <div className="space-y-2.5">
+        {COST_CATS.map(cat => (
+          <div key={cat.key} className="flex items-center gap-2">
+            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
             <div className="flex-1 min-w-0">
-              <span className="text-xs text-brand-near-black font-medium">{row.label}</span>
-              <span className="text-[10px] text-brand-mid-grey ml-1">· {row.desc}</span>
+              <span className="text-xs text-brand-near-black dark:text-white font-medium">{cat.label}</span>
+              <span className="text-[10px] text-brand-mid-grey ml-1">· {cat.desc}</span>
             </div>
-            <span className="text-xs font-bold tabular-nums text-brand-near-black">
-              {total > 0 ? fmtShort(row.value) : '—'}
-            </span>
-            <span className="text-[10px] tabular-nums text-brand-mid-grey w-7 text-right">{row.pct}%</span>
+            <span className="text-[10px] tabular-nums text-brand-mid-grey font-semibold">{cat.pct}%</span>
           </div>
         ))}
       </div>
+
+      {total > 0 && (
+        <p className="text-[10px] text-brand-mid-grey mt-4 pt-3 border-t border-brand-border-grey dark:border-[#2c2c2c]">
+          Total estimated cost: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total)}.
+        </p>
+      )}
     </div>
   );
 }
@@ -778,6 +934,7 @@ export default function Dashboard() {
   const [loading,       setLoading]       = useState(true);
   const [activeStages,  setActiveStages]  = useState<ProjectStage[]>([]);
   const [stagesLoading, setStagesLoading] = useState(false);
+  const [totalPaid,     setTotalPaid]     = useState(0);
 
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
@@ -804,7 +961,19 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
-    loader.then(setProjects).catch(() => {}).finally(() => setLoading(false));
+    loader.then(ps => {
+      setProjects(ps);
+      if (ps.length > 0) {
+        supabase
+          .from('project_stages')
+          .select('payment_milestone_usd')
+          .in('project_id', ps.map(p => p.id))
+          .eq('payment_status', 'paid')
+          .then(({ data }) => {
+            setTotalPaid((data ?? []).reduce((s, r) => s + (r.payment_milestone_usd ?? 0), 0));
+          });
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [user, isContractor]);
 
   useEffect(() => {
@@ -812,7 +981,7 @@ export default function Dashboard() {
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, name, status, budget_pct')
+      .select('id, stage_number, name, status, budget_pct, completed_at')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {
@@ -824,40 +993,18 @@ export default function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
 
-      {/* Greeting hero */}
-      <div className="relative rounded-2xl bg-brand-near-black overflow-hidden px-6 sm:px-8 py-7">
-        <svg aria-hidden="true" className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.07]"
-          viewBox="0 0 700 160" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <pattern id="dg" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="700" height="160" fill="url(#dg)" />
-          <line x1="150" y1="0" x2="150" y2="160" stroke="white" strokeWidth="1" />
-          <line x1="380" y1="0" x2="380" y2="160" stroke="white" strokeWidth="1" />
-          <line x1="580" y1="0" x2="580" y2="160" stroke="white" strokeWidth="1" />
-          <line x1="0" y1="60" x2="700" y2="60" stroke="white" strokeWidth="0.8" />
-          <line x1="0" y1="120" x2="700" y2="120" stroke="white" strokeWidth="0.8" />
-        </svg>
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <p className="text-white/45 text-xs font-medium tracking-widest uppercase mb-1">{greeting()}</p>
-            <h1 className="text-white text-2xl sm:text-3xl font-bold mb-1">{displayName.split(' ')[0]}</h1>
-            <p className="text-white/55 text-sm max-w-sm">
-              {loading ? 'Loading your builds…'
-                : projects.length === 0
-                  ? "You haven't started any builds yet. Let's change that."
-                  : `You have ${activeCount} active build${activeCount !== 1 ? 's' : ''} in progress.`}
-            </p>
-          </div>
-          {!isContractor && !atStarterLimit && (
-            <Link to="/projects/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-white text-brand-near-black text-sm font-semibold px-5 py-2.5 hover:bg-brand-off-white transition-colors shrink-0">
-              <Plus className="size-4" /> New Project
-            </Link>
-          )}
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">Dashboard</h1>
+          <p className="text-sm text-brand-mid-grey mt-0.5">Welcome back — your build, verified and protected.</p>
         </div>
+        {!isContractor && !atStarterLimit && (
+          <Link to="/projects/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-5 py-2.5 hover:bg-black transition-colors shrink-0">
+            <Plus className="size-4" /> New Project
+          </Link>
+        )}
       </div>
 
       {/* Profile completion */}
@@ -865,25 +1012,24 @@ export default function Dashboard() {
         <ProfileCompletion nameSet={nameSet} idUploaded={idUploaded} hasProject={projects.length > 0} />
       )}
 
-      {/* Funnel guidance */}
+      {/* Journey card */}
       {!loading && !isContractor && (
-        <FunnelCard projects={projects} activeProject={activeProject} completedCount={completedStageCount} />
+        <JourneyCard projects={projects} activeProject={activeProject} completedCount={completedStageCount} />
       )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard label="Projects"      value={loading ? '—' : String(projects.length)}    sub={`${activeCount} active`}           icon={FolderOpen}   accent />
         <StatCard label="Total Budget"  value={loading ? '—' : fmtShort(totalBudget)}      sub="Across all projects"               icon={Wallet}              />
+        <StatCard label="Total Paid"    value={loading ? '—' : fmtShort(totalPaid)}
+          sub={totalPaid > 0 ? `${fmtShort(totalBudget - totalPaid)} outstanding` : 'No payments yet'} icon={CreditCard} />
         <StatCard label="Stages Done"   value={loading ? '—' : `${totalDone}/${totalPossible || '—'}`}
           sub={totalPossible > 0 ? `${Math.round((totalDone / totalPossible) * 100)}% complete` : 'No stages yet'} icon={CheckCircle2} />
-        <StatCard label="Active Builds" value={loading ? '—' : String(activeCount)}         sub="Currently in progress"            icon={HardHat}             />
       </div>
 
       {/* Analytics — active project */}
       {!loading && activeProject ? (
         <>
-          <VelocityChart project={activeProject} completedCount={completedStageCount} />
-
           {/* Two-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
             <div className="lg:col-span-3">
@@ -894,7 +1040,7 @@ export default function Dashboard() {
               />
             </div>
             <div className="lg:col-span-2 flex flex-col gap-4">
-              <CostingDonut project={activeProject} stages={activeStages} />
+              <CostingDonut project={activeProject} />
               <NewsfeedCard />
             </div>
           </div>

@@ -42,17 +42,19 @@ function StagePayRow({
   onUpdate: (id: string, s: PaymentStatus) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [localStatus, setLocalStatus] = useState<PaymentStatus>(stage.payment_status);
   const amount = stage.payment_milestone_usd ?? 0;
   const localAmount = rate ? amount * rate.approx_fx_rate : null;
-  const barPct = stage.payment_status === 'paid' ? 100 : stage.payment_status === 'partial' ? 50 : 0;
+  const barPct = localStatus === 'paid' ? 100 : localStatus === 'partial' ? 50 : 0;
 
   async function cycle() {
     const next: PaymentStatus =
-      stage.payment_status === 'unpaid' ? 'partial'
-      : stage.payment_status === 'partial' ? 'paid'
+      localStatus === 'unpaid' ? 'partial'
+      : localStatus === 'partial' ? 'paid'
       : 'unpaid';
+    setLocalStatus(next);
     setBusy(true);
-    try { await onUpdate(stage.id, next); } finally { setBusy(false); }
+    try { await onUpdate(stage.id, next); } catch { setLocalStatus(localStatus); } finally { setBusy(false); }
   }
 
   return (
@@ -75,14 +77,14 @@ function StagePayRow({
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <PayPill status={stage.payment_status} />
+          <PayPill status={localStatus} />
           <button
             type="button"
             onClick={cycle}
             disabled={busy}
             className="text-[10px] font-medium text-brand-near-black dark:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-lg px-2 py-1 hover:bg-brand-off-white dark:hover:bg-[#282828] transition-colors disabled:opacity-50 whitespace-nowrap"
           >
-            {busy ? '…' : stage.payment_status === 'paid' ? 'Mark unpaid' : 'Record payment'}
+            {busy ? '…' : localStatus === 'paid' ? 'Mark unpaid' : 'Record payment'}
           </button>
         </div>
       </div>
@@ -92,7 +94,7 @@ function StagePayRow({
         <motion.div
           className={cn(
             'h-full rounded-full',
-            stage.payment_status === 'paid' ? 'bg-green-600 dark:bg-green-500' : 'bg-amber-500',
+            localStatus === 'paid' ? 'bg-green-600 dark:bg-green-500' : 'bg-amber-500',
           )}
           initial={{ width: 0 }}
           animate={{ width: `${barPct}%` }}
@@ -101,7 +103,7 @@ function StagePayRow({
       </div>
 
       {/* Dates if available */}
-      {stage.payment_status === 'paid' && stage.completed_at && (
+      {localStatus === 'paid' && stage.completed_at && (
         <p className="text-[10px] text-green-600 dark:text-green-400">
           Paid · stage completed{' '}
           {new Date(stage.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, Loader2 } from 'lucide-react';
+import { Check, Download, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
@@ -160,10 +160,13 @@ function StageDetail({
         : sub.status === 'pending_review' || sub.status === 'complete',
     );
 
+  const stagePaid = stage.payment_status === 'paid';
+
   const showApproveButton =
     !isContractor &&
     stage.status === 'active' &&
     allSubstagesReady &&
+    stagePaid &&
     tier !== 'jalla_management' &&
     tier !== 'enterprise';
 
@@ -217,12 +220,23 @@ function StageDetail({
                 tier={tier}
                 userId={userId}
                 isStageActive={stage.status === 'active'}
+                stagePaid={stagePaid}
                 onMarkComplete={isContractor ? undefined : onMarkSubstageComplete}
                 onEvidenceUploaded={onEvidenceUploaded}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
             ))}
           </div>
+
+          {stage.status === 'active' && !stagePaid && !isContractor && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-2.5">
+              <Lock className="size-3.5 shrink-0 text-amber-500 mt-0.5" />
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+                Payment required before uploading evidence or approving this stage. Record payment in the{' '}
+                <span className="font-semibold">Payments</span> tab.
+              </p>
+            </div>
+          )}
 
           {showApproveButton && (
             <ApproveButton
