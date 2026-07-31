@@ -27,6 +27,7 @@ import ContractorInvite          from '@/components/project/ContractorInvite';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import PaymentsTab               from '@/components/project/PaymentsTab';
+import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import RelatedGuides             from '@/components/project/RelatedGuides';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
@@ -294,6 +295,7 @@ export default function ProjectDetail() {
     : 0;
 
   const isContractor = user?.user_metadata?.role === 'contractor';
+  const trackingStarted = !!project.tracking_started_at;
   const activeStageNum = stages.find(s => s.status === 'active' || s.status === 'pending_review')?.stage_number;
 
   const displayName = user?.user_metadata?.full_name

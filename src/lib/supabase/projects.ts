@@ -14,32 +14,40 @@ export async function createProject(
   formData: WizardFormData,
   budget: BudgetBreakdown,
 ): Promise<ProjectRow> {
+  // Self Verify / Jalla Verify projects are gated: they stay in "planning" until
+  // the owner confirms their final budget (see start_project_tracking RPC).
+  // Jalla Management / Enterprise bypass the gate for now — tracking starts on creation.
+  const tier  = formData.tier as ProjectTier;
+  const gated = tier === 'self_verify' || (tier as string) === 'starter'
+    || tier === 'jalla_verify' || (tier as string) === 'pro';
+
   // 1. Insert project
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .insert({
-      user_id:           userId,
-      name:              formData.projectName,
-      country:           formData.country,
-      city:              formData.city || null,
-      project_type:      formData.projectType,
-      building_type:     formData.buildingType,
-      num_floors:        formData.floors,
-      sqm:               formData.sqm,
-      finish_level:      formData.finishLevel,
-      has_boys_quarters: formData.hasBoysQuarters,
-      bq_rooms:          formData.bqRooms,
-      roof_type:         formData.roofType,
-      bedrooms:          formData.bedrooms,
-      bathrooms:         formData.bathrooms,
-      living_rooms:      formData.livingRooms,
-      kitchens:          formData.kitchens,
-      floor_rooms:       formData.floorRooms.length ? formData.floorRooms : null,
-      budget_usd:        budget.total,
-      tier:              formData.tier as ProjectTier,
-      status:            'active' as const,
-      current_stage:     1,
-      target_start:      formData.targetStartDate || null,
+      user_id:             userId,
+      name:                formData.projectName,
+      country:             formData.country,
+      city:                formData.city || null,
+      project_type:        formData.projectType,
+      building_type:       formData.buildingType,
+      num_floors:          formData.floors,
+      sqm:                 formData.sqm,
+      finish_level:        formData.finishLevel,
+      has_boys_quarters:   formData.hasBoysQuarters,
+      bq_rooms:            formData.bqRooms,
+      roof_type:           formData.roofType,
+      bedrooms:            formData.bedrooms,
+      bathrooms:           formData.bathrooms,
+      living_rooms:        formData.livingRooms,
+      kitchens:            formData.kitchens,
+      floor_rooms:         formData.floorRooms.length ? formData.floorRooms : null,
+      budget_usd:          budget.total,
+      tier,
+      status:              'active' as const,
+      current_stage:       1,
+      target_start:        formData.targetStartDate || null,
+      tracking_started_at: gated ? null : new Date().toISOString(),
     })
     .select()
     .single<ProjectRow>();
@@ -55,13 +63,15 @@ export async function createProject(
     );
 
     // 3. Insert stages
+    // Gated projects: every stage starts 'locked' until tracking begins (the RPC
+    // activates stage 1 on budget confirmation). Ungated: stage 1 is active now.
     const stageRows = seeds.map(s => ({
       project_id:            project.id,
       stage_number:          s.stage_number,
       name:                  s.name,
       budget_pct:            s.budget_pct,
       payment_milestone_usd: Math.round(budget.total * s.budget_pct / 100),
-      status:                s.stage_number === 1 ? 'active' : 'locked',
+      status:                (!gated && s.stage_number === 1) ? 'active' : 'locked',
       payment_status:        'unpaid',
     }));
 

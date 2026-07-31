@@ -207,6 +207,7 @@ export interface ProjectRow {
   status: ProjectStatus;
   current_stage: number;
   target_start: string | null;
+  tracking_started_at: string | null;
   created_at: string;
   updated_at: string;
 }
