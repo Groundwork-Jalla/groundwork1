@@ -5,8 +5,7 @@ import {
 } from 'lucide-react';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee, stripeProcessing } from '@/lib/payments/config';
-import type { ProjectStageRow, ProjectTier } from '@/types/project';
-import type { ConstructionRate } from '@/types/project';
+import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 
 export default function MilestonePaymentModal({
   open, stage, tier, rate, projectName, contractorLabel, onConfirm, onClose,

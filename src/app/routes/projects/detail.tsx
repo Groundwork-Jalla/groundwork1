@@ -26,7 +26,7 @@ import ProjectChat               from '@/components/project/ProjectChat';
 import ContractorInvite          from '@/components/project/ContractorInvite';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
-import PaymentsTab               from '@/components/project/PaymentsTab';
+import ProjectPayments          from '@/components/project/ProjectPayments';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import RelatedGuides             from '@/components/project/RelatedGuides';
 import type {
@@ -454,7 +454,7 @@ export default function ProjectDetail() {
           {/* Tab: Payments */}
           {activeTab === 'payments' && (
             <div>
-              <PaymentsTab
+              <ProjectPayments
                 project={project}
                 stages={stages}
                 onPaymentUpdated={handleStagePaymentUpdate}

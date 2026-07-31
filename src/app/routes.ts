@@ -32,6 +32,7 @@ export default [
     route("resources/:slug",     "routes/resources.detail.tsx"),
     route("contractors",         "routes/contractors.tsx"),
     route("payments",            "routes/payments.tsx"),
+    route("upgrade",             "routes/upgrade.tsx"),
     route("notifications",       "routes/notifications.tsx"),
     route("profile",             "routes/profile.tsx"),
     route("help",                "routes/help.tsx"),

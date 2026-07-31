@@ -31,6 +31,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/resources"))       return "Resources";
   if (pathname.startsWith("/contractors"))     return "Contractors";
   if (pathname.startsWith("/payments"))        return "Payments";
+  if (pathname.startsWith("/upgrade"))         return "Upgrade Plan";
   if (pathname.startsWith("/notifications"))   return "Notifications";
   if (pathname.startsWith("/profile"))         return "Settings";
   return "Groundwork";
