@@ -4,11 +4,13 @@ import { Loader2, Building2, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getInviteByToken, acceptInvite } from '@/lib/supabase/invites';
 import type { InviteDetails } from '@/lib/supabase/invites';
+import { useT } from '@/lib/i18n';
 
 export default function InvitePage() {
   const { token }    = useParams<{ token: string }>();
   const navigate     = useNavigate();
   const { user }     = useAuth();
+  const t            = useT();
 
   const [invite,    setInvite]    = useState<InviteDetails | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -36,7 +38,7 @@ export default function InvitePage() {
       const projectId = await acceptInvite(token);
       navigate(`/projects/${projectId}`, { replace: true });
     } catch (err) {
-      setAcceptErr(err instanceof Error ? err.message : 'Failed to accept invite.');
+      setAcceptErr(err instanceof Error ? err.message : t('invite.acceptError'));
       setAccepting(false);
     }
   }
@@ -62,16 +64,16 @@ export default function InvitePage() {
           <UserPlus className="size-5 text-brand-mid-grey" />
         </div>
         <h1 className="font-sans text-2xl font-bold text-brand-near-black mb-2">
-          Invite not found
+          {t('invite.notFoundTitle')}
         </h1>
         <p className="text-sm text-brand-mid-grey mb-6 leading-relaxed">
-          This invite link is invalid or has already been used.
+          {t('invite.notFoundBody')}
         </p>
         <Link
           to="/"
           className="text-sm font-medium text-brand-near-black underline underline-offset-4"
         >
-          Go to Groundwork
+          {t('invite.goToGroundwork')}
         </Link>
       </div>
     );
@@ -84,16 +86,16 @@ export default function InvitePage() {
           <UserPlus className="size-5 text-green-600" />
         </div>
         <h1 className="font-sans text-2xl font-bold text-brand-near-black mb-2">
-          Invite already accepted
+          {t('invite.acceptedTitle')}
         </h1>
         <p className="text-sm text-brand-mid-grey mb-6 leading-relaxed">
-          This invite has already been used. Log in to access your project.
+          {t('invite.acceptedBody')}
         </p>
         <Link
           to="/auth/login"
           className="inline-flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 hover:bg-black transition-colors"
         >
-          Log in
+          {t('common.logIn')}
         </Link>
       </div>
     );
@@ -113,26 +115,27 @@ export default function InvitePage() {
       </div>
 
       <h1 className="font-sans text-3xl font-bold text-brand-near-black leading-tight mb-2">
-        You've been invited
+        {t('invite.title')}
       </h1>
       <p className="text-sm text-brand-mid-grey mb-1">
-        <span className="text-brand-near-black font-medium">{invite.inviter_name}</span> invited you to collaborate on{' '}
-        <span className="text-brand-near-black font-medium">{invite.project_name}</span>.
+        {t('invite.invitedBy', {
+          inviter: invite.inviter_name,
+          project: invite.project_name,
+        })}
       </p>
       <p className="text-xs text-brand-mid-grey mb-6">
-        Invite sent to <span className="text-brand-near-black">{invite.invite_email}</span>
+        {t('invite.sentTo', { email: invite.invite_email })}
       </p>
 
       <p className="text-xs text-brand-mid-grey mb-6 leading-relaxed">
-        As a contractor, you'll be able to upload progress evidence and message the project owner
-        directly from the project dashboard.
+        {t('invite.explainer')}
       </p>
 
       {/* CTA — branch on auth state */}
       {user ? (
         <>
           <p className="text-xs text-brand-mid-grey text-center mb-3">
-            Logged in as <span className="text-brand-near-black font-medium">{user.email}</span>
+            {t('invite.loggedInAs', { email: user.email ?? '' })}
           </p>
           <button
             type="button"
@@ -141,7 +144,7 @@ export default function InvitePage() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3.5 hover:bg-black transition-colors disabled:opacity-60"
           >
             {accepting && <Loader2 className="size-4 animate-spin" />}
-            {accepting ? 'Accepting…' : 'Accept Invite'}
+            {accepting ? t('invite.accepting') : t('invite.accept')}
           </button>
           {acceptErr && (
             <p className="mt-3 text-xs text-center text-red-600">{acceptErr}</p>
@@ -154,14 +157,14 @@ export default function InvitePage() {
             onClick={storeToken}
             className="block w-full text-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3.5 hover:bg-black transition-colors mb-3"
           >
-            Create account
+            {t('invite.createAccount')}
           </Link>
           <Link
             to={loginUrl}
             onClick={storeToken}
             className="block w-full text-center rounded-xl border border-brand-border-grey text-sm font-medium text-brand-near-black py-3.5 hover:bg-brand-off-white transition-colors"
           >
-            I already have an account
+            {t('invite.haveAccount')}
           </Link>
         </>
       )}

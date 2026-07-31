@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useT, type TKey } from "@/lib/i18n";
 import {
   LayoutDashboard, FolderOpen, BookOpen, HardHat,
   CreditCard, Bell, Settings, Menu, LogOut, User, FolderArchive,
@@ -13,28 +15,28 @@ import { cn } from "@/lib/utils";
 
 // ── Navigation config ──────────────────────────────────────
 
-const NAV = [
-  { to: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard, exact: true  },
-  { to: "/projects",      label: "My Projects",   icon: FolderOpen,      exact: false },
-  { to: "/documents",     label: "Documents",     icon: FolderArchive,   exact: false },
-  { to: "/resources",     label: "Resources",     icon: BookOpen,        exact: false },
-  { to: "/contractors",   label: "Contractors",   icon: HardHat,         exact: false },
-  { to: "/payments",      label: "Payments",      icon: CreditCard,      exact: false },
-  { to: "/notifications", label: "Notifications", icon: Bell,            exact: false },
-  { to: "/profile",       label: "Settings",      icon: Settings,        exact: true  },
+const NAV: { to: string; labelKey: TKey; shortKey?: TKey; icon: typeof LayoutDashboard; exact: boolean }[] = [
+  { to: "/dashboard",     labelKey: "nav.dashboard",     icon: LayoutDashboard, exact: true  },
+  { to: "/projects",      labelKey: "nav.myProjects", shortKey: "nav.projects", icon: FolderOpen, exact: false },
+  { to: "/documents",     labelKey: "nav.documents",     icon: FolderArchive,   exact: false },
+  { to: "/resources",     labelKey: "nav.resources",     icon: BookOpen,        exact: false },
+  { to: "/contractors",   labelKey: "nav.contractors",   icon: HardHat,         exact: false },
+  { to: "/payments",      labelKey: "nav.payments",      icon: CreditCard,      exact: false },
+  { to: "/notifications", labelKey: "nav.notifications", icon: Bell,            exact: false },
+  { to: "/profile",       labelKey: "nav.settings",      icon: Settings,        exact: true  },
 ];
 
-function getPageTitle(pathname: string): string {
-  if (pathname === "/dashboard")               return "Dashboard";
-  if (pathname.startsWith("/projects"))        return "My Projects";
-  if (pathname.startsWith("/documents"))       return "Documents";
-  if (pathname.startsWith("/resources"))       return "Resources";
-  if (pathname.startsWith("/contractors"))     return "Contractors";
-  if (pathname.startsWith("/payments"))        return "Payments";
-  if (pathname.startsWith("/upgrade"))         return "Upgrade Plan";
-  if (pathname.startsWith("/notifications"))   return "Notifications";
-  if (pathname.startsWith("/profile"))         return "Settings";
-  return "Groundwork";
+function getPageTitleKey(pathname: string): TKey {
+  if (pathname === "/dashboard")               return "nav.dashboard";
+  if (pathname.startsWith("/projects"))        return "nav.myProjects";
+  if (pathname.startsWith("/documents"))       return "nav.documents";
+  if (pathname.startsWith("/resources"))       return "nav.resources";
+  if (pathname.startsWith("/contractors"))     return "nav.contractors";
+  if (pathname.startsWith("/payments"))        return "nav.payments";
+  if (pathname.startsWith("/upgrade"))         return "nav.upgradePlan";
+  if (pathname.startsWith("/notifications"))   return "nav.notifications";
+  if (pathname.startsWith("/profile"))         return "nav.settings";
+  return "nav.groundwork";
 }
 
 function getInitials(name: string) {
@@ -48,6 +50,8 @@ function Sidebar({
 }: {
   displayName: string; onLogout: () => void; onClose?: () => void;
 }) {
+  const t = useT();
+
   return (
     <aside className="w-56 shrink-0 flex flex-col border-r border-brand-border-grey bg-white h-full">
       {/* Logo */}
@@ -57,7 +61,7 @@ function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-        {NAV.map(({ to, label, icon: Icon, exact }) => (
+        {NAV.map(({ to, labelKey, icon: Icon, exact }) => (
           <NavLink
             key={to}
             to={to}
@@ -73,7 +77,7 @@ function Sidebar({
             }
           >
             <Icon className="size-4 shrink-0" />
-            {label}
+            {t(labelKey)}
           </NavLink>
         ))}
       </nav>
@@ -90,9 +94,10 @@ function Sidebar({
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-brand-near-black truncate">{displayName}</p>
-            <p className="text-[10px] text-brand-mid-grey">View profile</p>
+            <p className="text-[10px] text-brand-mid-grey">{t('nav.viewProfile')}</p>
           </div>
         </Link>
+        <LanguageToggle />
         <ThemeToggle />
         <button
           type="button"
@@ -100,7 +105,7 @@ function Sidebar({
           className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
         >
           <LogOut className="size-4 shrink-0" />
-          Log out
+          {t('common.logOut')}
         </button>
       </div>
     </aside>
@@ -114,6 +119,7 @@ export default function ProtectedLayout() {
   const { pathname }     = useLocation();
   const { user, session, loading, signOut } = useAuth();
   const [drawer, setDrawer] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     if (!loading && !session) navigate("/auth/login", { replace: true });
@@ -130,7 +136,7 @@ export default function ProtectedLayout() {
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split("@")[0]
     ?? "You";
-  const pageTitle = getPageTitle(pathname);
+  const pageTitle = t(getPageTitleKey(pathname));
 
   async function handleLogout() {
     await signOut();
@@ -188,6 +194,7 @@ export default function ProtectedLayout() {
             <h1 className="hidden md:block text-sm font-semibold text-brand-near-black">{pageTitle}</h1>
           </div>
           <div className="flex items-center gap-1.5">
+            <LanguageToggle compact />
             <ThemeToggle compact />
             <NotificationBell userId={user?.id ?? ""} />
             <Link
@@ -206,7 +213,7 @@ export default function ProtectedLayout() {
 
         {/* Mobile bottom tab bar */}
         <nav className="md:hidden border-t border-brand-border-grey bg-white flex items-center shrink-0">
-          {NAV.slice(0, 5).map(({ to, label, icon: Icon, exact }) => (
+          {NAV.slice(0, 5).map(({ to, labelKey, shortKey, icon: Icon, exact }) => (
             <NavLink
               key={to}
               to={to}
@@ -221,7 +228,7 @@ export default function ProtectedLayout() {
               {({ isActive }) => (
                 <>
                   <Icon className={cn("size-5", isActive && "stroke-[2.2]")} />
-                  {label === "My Projects" ? "Projects" : label}
+                  {t(shortKey ?? labelKey)}
                 </>
               )}
             </NavLink>

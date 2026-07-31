@@ -11,6 +11,7 @@ import * as Sentry from "@sentry/react";
 
 import type { Route } from "./+types/root";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/lib/i18n";
 import "@/lib/sentry";
 import { GA_ID } from "@/lib/analytics";
 import "../styles/globals.css";
@@ -37,6 +38,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         {/* Apply saved theme class before first paint — prevents flash */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();` }} />
+        {/* Resolve language before first paint so <html lang> is correct for
+            screen readers and browser translate prompts. Mirrors detectLang(). */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var l=localStorage.getItem('lang');if(l!=='en'&&l!=='fr'){var c=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];l='en';for(var i=0;i<c.length;i++){if(typeof c[i]==='string'&&c[i].toLowerCase().indexOf('fr')===0){l='fr';break;}}}document.documentElement.lang=l;}catch(e){}})();` }} />
         <Links />
         {GA_ID && (
           <>
@@ -68,13 +72,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function AppInner() {
   return (
-    <AuthProvider>
-      <Sentry.ErrorBoundary fallback={<p className="p-8 text-sm text-brand-mid-grey">Something went wrong. Please refresh the page.</p>}>
-        <div id="main-content">
-          <Outlet />
-        </div>
-      </Sentry.ErrorBoundary>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Sentry.ErrorBoundary fallback={<p className="p-8 text-sm text-brand-mid-grey">Something went wrong. Please refresh the page.</p>}>
+          <div id="main-content">
+            <Outlet />
+          </div>
+        </Sentry.ErrorBoundary>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

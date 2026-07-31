@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle2, Clock, Users, Star } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Users, Star, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/landing/Reveal";
 import { trackEvent } from "@/lib/analytics";
+import { useLanguage, type TKey } from "@/lib/i18n";
+import {
+  GHL_EMBED_SCRIPT,
+  buildFormUrl,
+  getContractorForm,
+} from "@/lib/i18n/external-forms";
 
-const PERKS = [
-  { Icon: CheckCircle2, text: "First access to funded diaspora projects" },
-  { Icon: Clock, text: "Payments tied to verified milestones — no chasing" },
-  { Icon: Users, text: "Part of a vetted, professional network" },
-  { Icon: Star, text: "Founding Partner badge on your profile" },
+const PERKS: { Icon: typeof CheckCircle2; key: TKey }[] = [
+  { Icon: CheckCircle2, key: "contractorApply.cta.perk1" },
+  { Icon: Clock,        key: "contractorApply.cta.perk2" },
+  { Icon: Users,        key: "contractorApply.cta.perk3" },
+  { Icon: Star,         key: "contractorApply.cta.perk4" },
 ];
 
 function useGHLScript(active: boolean) {
   useEffect(() => {
     if (!active) return;
     const script = document.createElement("script");
-    script.src = "https://link.msgsndr.com/js/form_embed.js";
+    script.src = GHL_EMBED_SCRIPT;
     script.async = true;
     document.body.appendChild(script);
     return () => {
@@ -28,6 +34,10 @@ function useGHLScript(active: boolean) {
 export default function ContractorCTA() {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const { lang, t } = useLanguage();
+
+  const form = getContractorForm(lang);
+  const formUrl = buildFormUrl(lang);
 
   useGHLScript(open);
 
@@ -56,22 +66,22 @@ export default function ContractorCTA() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-50" />
                 <span className="relative inline-flex size-2 rounded-full bg-white" />
               </span>
-              Accepting Founding Partner Applications
+              {t('contractorApply.cta.badge')}
             </motion.div>
             <h2 className="font-sans text-3xl sm:text-4xl font-bold text-white leading-[1.15]">
-              Ready to be one of the first?
+              {t('contractorApply.cta.title')}
             </h2>
             <p className="text-white/50 mt-3 text-sm sm:text-base max-w-120 mx-auto">
-              Apply to join Jalla's Verified Build Network and get matched to funded diaspora projects that pay on time.
+              {t('contractorApply.cta.subtitle')}
             </p>
           </Reveal>
 
           {/* Perks grid */}
           <Reveal delay={0.1}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
-              {PERKS.map(({ Icon, text }, i) => (
+              {PERKS.map(({ Icon, key }, i) => (
                 <motion.div
-                  key={text}
+                  key={key}
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -79,7 +89,7 @@ export default function ContractorCTA() {
                   className="flex items-center gap-3 bg-white/6 border border-white/10 rounded-xl px-4 py-3"
                 >
                   <Icon className="size-4 text-white/60 shrink-0" />
-                  <span className="text-sm text-white/70">{text}</span>
+                  <span className="text-sm text-white/70">{t(key)}</span>
                 </motion.div>
               ))}
             </div>
@@ -109,7 +119,7 @@ export default function ContractorCTA() {
                     onClick={handleOpen}
                     className="bg-white text-brand-near-black hover:bg-brand-pale font-bold text-sm px-10 py-5 h-auto rounded-xl group"
                   >
-                    Apply as a Founding Partner
+                    {t('contractorApply.cta.button')}
                     <ArrowRight className="size-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
                   </Button>
                 </motion.div>
@@ -129,21 +139,40 @@ export default function ContractorCTA() {
               >
                 <div className="flex items-center justify-between mb-5 pb-4 border-b border-brand-border-grey">
                   <div>
-                    <p className="font-sans text-base font-bold text-brand-near-black">Founding Partner Application</p>
-                    <p className="text-xs text-brand-mid-grey mt-0.5">Fill in your details below — takes about 3 minutes.</p>
+                    <p className="font-sans text-base font-bold text-brand-near-black">
+                      {t('contractorApply.cta.formTitle')}
+                    </p>
+                    <p className="text-xs text-brand-mid-grey mt-0.5">
+                      {t('contractorApply.cta.formSubtitle')}
+                    </p>
                   </div>
                   <button
                     onClick={() => setOpen(false)}
                     className="text-brand-mid-grey hover:text-brand-near-black text-xs underline underline-offset-4 transition-colors shrink-0 ml-4"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
 
+                {/* The GHL form lives on another origin, so we cannot translate
+                    its contents. When no localised form exists for this
+                    language yet, say so plainly instead of failing silently. */}
+                {form.fallback && (
+                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-5">
+                    <Info className="size-4 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      {t('contractorApply.cta.formEnglishOnly')}
+                    </p>
+                  </div>
+                )}
+
+                {/* key={lang} forces a fresh iframe when the language changes —
+                    GHL's embed script does not react to src updates in place. */}
                 <iframe
-                  src="https://api.leadconnectorhq.com/widget/form/v5Ezo83OmYTlfxka9UAK"
-                  style={{ width: "100%", border: "none", borderRadius: "8px", minHeight: "1078px" }}
-                  id="inline-v5Ezo83OmYTlfxka9UAK"
+                  key={lang}
+                  src={formUrl}
+                  style={{ width: "100%", border: "none", borderRadius: "8px", minHeight: `${form.height}px` }}
+                  id={`inline-${form.id}`}
                   data-layout="{'id':'INLINE'}"
                   data-trigger-type="alwaysShow"
                   data-trigger-value=""
@@ -151,11 +180,11 @@ export default function ContractorCTA() {
                   data-activation-value=""
                   data-deactivation-type="neverDeactivate"
                   data-deactivation-value=""
-                  data-form-name="Contractor Form"
-                  data-height="1078"
-                  data-layout-iframe-id="inline-v5Ezo83OmYTlfxka9UAK"
-                  data-form-id="v5Ezo83OmYTlfxka9UAK"
-                  title="Contractor Form"
+                  data-form-name={t('contractorApply.cta.formName')}
+                  data-height={form.height}
+                  data-layout-iframe-id={`inline-${form.id}`}
+                  data-form-id={form.id}
+                  title={t('contractorApply.cta.formName')}
                 />
               </motion.div>
             )}
@@ -165,8 +194,7 @@ export default function ContractorCTA() {
 
       <section className="bg-brand-near-black px-7 pb-12 text-center">
         <p className="text-sm italic text-white/40 max-w-[500px] mx-auto leading-relaxed">
-          Jalla is not a job board. It is controlled infrastructure for executing diaspora building projects
-          properly, with the right professionals, in the right sequence, with the right safeguards.
+          {t('contractorApply.cta.footnote')}
         </p>
       </section>
     </>

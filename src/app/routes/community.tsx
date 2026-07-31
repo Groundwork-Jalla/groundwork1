@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CountdownClock from "@/components/landing/CountdownClock";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useT } from "@/lib/i18n";
 
 const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
@@ -108,6 +110,7 @@ function BlueprintPanel() {
 
 export default function Community() {
   useForceLight();
+  const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
@@ -123,7 +126,7 @@ export default function Community() {
     const { error: emailError } = await supabase.from("waitlist_emails").insert({ email });
     if (emailError) {
       setSubmitting(false);
-      setError(emailError.code === "23505" ? "You're already on the list." : emailError.message);
+      setError(emailError.code === "23505" ? t('community.alreadyOnList') : emailError.message);
       return;
     }
 
@@ -148,9 +151,17 @@ export default function Community() {
         {/* Mobile top bar */}
         <div className="lg:hidden flex items-center justify-between bg-brand-near-black px-6 py-3.5 border-b border-white/10">
           <GroundworkLogo variant="light" size="lg" />
-          <Link to="/" className="text-sm text-white/60 hover:text-white transition-colors">
-            ← Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageToggle segmented onDark />
+            <Link to="/" className="text-sm text-white/60 hover:text-white transition-colors">
+              ← {t('community.home')}
+            </Link>
+          </div>
+        </div>
+
+        {/* Desktop language toggle — top-right of the form panel */}
+        <div className="hidden lg:flex justify-end px-8 pt-6">
+          <LanguageToggle segmented />
         </div>
 
         {/* Form centred vertically */}
@@ -173,9 +184,9 @@ export default function Community() {
                   >
                     <CheckCircle2 className="size-6" />
                   </motion.div>
-                  <h1 className="font-sans text-2xl font-bold text-brand-near-black">You're in.</h1>
+                  <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t('community.successTitle')}</h1>
                   <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed max-w-xs mx-auto">
-                    You'll be among the first to know when Groundwork launches. In the meantime, join the community.
+                    {t('community.successBody')}
                   </p>
                   <a
                     href={SKOOL_URL}
@@ -183,12 +194,12 @@ export default function Community() {
                     rel="noopener noreferrer"
                     className="mt-6 inline-flex items-center gap-2 bg-brand-near-black text-white text-sm font-semibold px-6 py-3 rounded-lg hover:bg-brand-black transition-colors group"
                   >
-                    Join the Community
+                    {t('community.joinCommunity')}
                     <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                   </a>
                   <div className="mt-4">
                     <Link to="/" className="text-xs text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black transition-colors">
-                      Back to Home
+                      {t('common.backToHome')}
                     </Link>
                   </div>
                 </motion.div>
@@ -203,11 +214,11 @@ export default function Community() {
                     to="/"
                     className="hidden lg:inline-flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors mb-8"
                   >
-                    ← Back to Home
+                    ← {t('common.backToHome')}
                   </Link>
 
                   <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight mb-4">
-                    Join the Community
+                    {t('community.title')}
                   </h1>
 
                   <div className="mb-4">
@@ -215,29 +226,29 @@ export default function Community() {
                   </div>
 
                   <p className="text-sm text-brand-mid-grey mt-1 mb-5 leading-relaxed">
-                    We're putting on the finishing touches. Join the community and be one of the first to access Groundwork when we launch.
+                    {t('community.body')}
                   </p>
 
                   <form onSubmit={handleSubmit} className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name">Full name</Label>
+                      <Label htmlFor="name">{t('community.fullName')}</Label>
                       <Input
                         id="name"
                         type="text"
                         autoComplete="name"
-                        placeholder="Your name"
+                        placeholder={t('community.namePlaceholder')}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email">Email address</Label>
+                      <Label htmlFor="email">{t('community.email')}</Label>
                       <Input
                         id="email"
                         type="email"
                         autoComplete="email"
-                        placeholder="you@example.com"
+                        placeholder={t('community.emailPlaceholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -245,13 +256,13 @@ export default function Community() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="location">
-                        Where are you building?{" "}
-                        <span className="text-brand-soft-grey font-normal">(optional)</span>
+                        {t('community.whereBuilding')}{" "}
+                        <span className="text-brand-soft-grey font-normal">{t('common.optional')}</span>
                       </Label>
                       <Input
                         id="location"
                         type="text"
-                        placeholder="e.g. Lagos, Nigeria"
+                        placeholder={t('community.wherePlaceholder')}
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                       />
@@ -272,9 +283,9 @@ export default function Community() {
                       disabled={submitting}
                       className="w-full bg-brand-near-black text-white hover:bg-brand-black font-semibold py-3 h-auto group"
                     >
-                      {submitting ? "Joining…" : (
+                      {submitting ? t('community.joining') : (
                         <span className="flex items-center justify-center gap-2">
-                          Join for Free
+                          {t('community.joinFree')}
                           <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
                         </span>
                       )}
@@ -282,7 +293,7 @@ export default function Community() {
                   </form>
 
                   <p className="text-xs text-brand-mid-grey text-center mt-3 leading-relaxed">
-                    No spam. Just early access and launch updates.
+                    {t('community.noSpam')}
                   </p>
                 </motion.div>
               )}

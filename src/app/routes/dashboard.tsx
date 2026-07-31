@@ -14,6 +14,7 @@ import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
 import { formatUSDFull } from '@/lib/budget';
 import { findCountry }   from '@/lib/countries';
+import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 
 // ── Types ──────────────────────────────────────────────────
@@ -56,13 +57,13 @@ const STARTER_LIMIT  = 3;
 const TOTAL_STAGES   = 10;
 const PREDICTED_DAYS = 196;
 
-const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  jalla_management: { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
-  starter:          { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  enterprise:       { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
+  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
+  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
+  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
+  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
+  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
 };
 
 const BT_LABELS: Record<string, string> = {
@@ -75,11 +76,11 @@ const BT_LABELS: Record<string, string> = {
   apartment: 'Apartment',         commercial: 'Commercial',
 };
 
-const PROJECT_STATUS_META = {
-  active:    { label: 'Active',   dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
-  on_hold:   { label: 'On Hold',  dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
-  completed: { label: 'Complete', dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
-  archived:  { label: 'Archived', dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
+const PROJECT_STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
+  active:    { labelKey: 'common.active',   dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
+  on_hold:   { labelKey: 'common.onHold',   dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
+  completed: { labelKey: 'common.complete', dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
+  archived:  { labelKey: 'common.archived', dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
 };
 
 // ── Helpers ────────────────────────────────────────────────
@@ -152,11 +153,12 @@ function StatCard({
 function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
   nameSet: boolean; idUploaded: boolean; hasProject: boolean;
 }) {
-  const items = [
-    { label: 'Account created',      done: true       },
-    { label: 'Display name set',      done: nameSet    },
-    { label: 'ID uploaded',           done: idUploaded },
-    { label: 'First project created', done: hasProject },
+  const t = useT();
+  const items: { label: string; done: boolean }[] = [
+    { label: t('dashboard.profileCompletion.accountCreated'), done: true       },
+    { label: t('dashboard.profileCompletion.nameSet'),        done: nameSet    },
+    { label: t('dashboard.profileCompletion.idUploaded'),     done: idUploaded },
+    { label: t('dashboard.profileCompletion.firstProject'),   done: hasProject },
   ];
   const count = items.filter(i => i.done).length;
   const pct   = Math.round((count / items.length) * 100);
@@ -170,8 +172,8 @@ function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
             <UserCircle className="size-5 text-brand-mid-grey" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-brand-near-black">Complete Your Profile</p>
-            <p className="text-xs text-brand-mid-grey mt-0.5">Unlock full access to Groundwork</p>
+            <p className="text-sm font-semibold text-brand-near-black">{t('dashboard.profileCompletion.title')}</p>
+            <p className="text-xs text-brand-mid-grey mt-0.5">{t('dashboard.profileCompletion.subtitle')}</p>
           </div>
         </div>
         <span className="text-sm font-bold text-brand-near-black tabular-nums">{pct}%</span>
@@ -845,6 +847,7 @@ function SkeletonCard() {
 // ── Project card ───────────────────────────────────────────
 
 function ProjectCard({ project }: { project: ProjectRow }) {
+  const t       = useT();
   const tier    = TIER_META[project.tier] ?? TIER_META.self_verify;
   const status  = PROJECT_STATUS_META[project.status as keyof typeof PROJECT_STATUS_META] ?? PROJECT_STATUS_META.active;
   const country = findCountry(project.country);
@@ -857,11 +860,11 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       className="group block rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-2 mb-3">
         <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${tier.color}`}>
-          {tier.icon} {tier.label}
+          {tier.icon} {t(tier.labelKey)}
         </span>
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
           <span className={`size-1.5 rounded-full ${status.dot}`} />
-          {status.label}
+          {t(status.labelKey)}
         </span>
       </div>
       <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
@@ -879,20 +882,20 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       </div>
       <div className="mb-4">
         <div className="flex items-center justify-between text-[10px] text-brand-mid-grey mb-1.5">
-          <span>{done}/{TOTAL_STAGES} stages</span>
+          <span>{t('dashboard.card.stages', { done, total: TOTAL_STAGES })}</span>
           <span className="font-semibold text-brand-near-black">{pct}%</span>
         </div>
         <HorizBar pct={pct} color="#22c55e" />
       </div>
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[10px] text-brand-mid-grey mb-0.5">Est. budget</p>
+          <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('dashboard.card.estBudget')}</p>
           <p className="text-sm font-bold text-brand-near-black tabular-nums">
             {project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}
           </p>
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
-          Open <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+          {t('dashboard.card.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
         </span>
       </div>
     </Link>
@@ -902,6 +905,8 @@ function ProjectCard({ project }: { project: ProjectRow }) {
 // ── Empty state ────────────────────────────────────────────
 
 function EmptyBuilds() {
+  const t = useT();
+
   return (
     <Link to="/projects/new"
       className="flex flex-col items-center justify-center gap-5 rounded-2xl border-2 border-dashed border-brand-border-grey p-12 hover:border-brand-near-black hover:bg-white transition-all group text-center">
@@ -912,13 +917,13 @@ function EmptyBuilds() {
         <HardHat className="size-8 text-brand-mid-grey group-hover:text-white transition-colors" />
       </motion.div>
       <div>
-        <p className="text-base font-semibold text-brand-near-black mb-1">Start your first build</p>
+        <p className="text-base font-semibold text-brand-near-black mb-1">{t('dashboard.empty.title')}</p>
         <p className="text-sm text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-          Track every stage, manage your budget, and stay connected with your contractor — all in one place.
+          {t('dashboard.empty.body')}
         </p>
       </div>
       <span className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 group-hover:bg-black transition-colors">
-        <Plus className="size-4" /> Create a build
+        <Plus className="size-4" /> {t('dashboard.empty.cta')}
       </span>
     </Link>
   );
@@ -928,6 +933,7 @@ function EmptyBuilds() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const t = useT();
   const isContractor = user?.user_metadata?.role === 'contractor';
 
   const [projects,      setProjects]      = useState<ProjectRow[]>([]);
@@ -996,13 +1002,13 @@ export default function Dashboard() {
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">Dashboard</h1>
-          <p className="text-sm text-brand-mid-grey mt-0.5">Welcome back — your build, verified and protected.</p>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">{t('dashboard.title')}</h1>
+          <p className="text-sm text-brand-mid-grey mt-0.5">{t('dashboard.subtitle')}</p>
         </div>
         {!isContractor && !atStarterLimit && (
           <Link to="/projects/new"
             className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-5 py-2.5 hover:bg-black transition-colors shrink-0">
-            <Plus className="size-4" /> New Project
+            <Plus className="size-4" /> {t('dashboard.newProject')}
           </Link>
         )}
       </div>
@@ -1019,12 +1025,18 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label="Projects"      value={loading ? '—' : String(projects.length)}    sub={`${activeCount} active`}           icon={FolderOpen}   accent />
-        <StatCard label="Total Budget"  value={loading ? '—' : fmtShort(totalBudget)}      sub="Across all projects"               icon={Wallet}              />
-        <StatCard label="Total Paid"    value={loading ? '—' : fmtShort(totalPaid)}
-          sub={totalPaid > 0 ? `${fmtShort(totalBudget - totalPaid)} outstanding` : 'No payments yet'} icon={CreditCard} />
-        <StatCard label="Stages Done"   value={loading ? '—' : `${totalDone}/${totalPossible || '—'}`}
-          sub={totalPossible > 0 ? `${Math.round((totalDone / totalPossible) * 100)}% complete` : 'No stages yet'} icon={CheckCircle2} />
+        <StatCard label={t('dashboard.stats.projects')}    value={loading ? '—' : String(projects.length)}
+          sub={t('dashboard.stats.activeSuffix', { count: activeCount })} icon={FolderOpen} accent />
+        <StatCard label={t('dashboard.stats.totalBudget')} value={loading ? '—' : fmtShort(totalBudget)}
+          sub={t('dashboard.stats.acrossAll')} icon={Wallet} />
+        <StatCard label={t('dashboard.stats.totalPaid')}   value={loading ? '—' : fmtShort(totalPaid)}
+          sub={totalPaid > 0
+            ? t('dashboard.stats.outstanding', { amount: fmtShort(totalBudget - totalPaid) })
+            : t('dashboard.stats.noPayments')} icon={CreditCard} />
+        <StatCard label={t('dashboard.stats.stagesDone')}  value={loading ? '—' : `${totalDone}/${totalPossible || '—'}`}
+          sub={totalPossible > 0
+            ? t('dashboard.stats.percentDone', { pct: Math.round((totalDone / totalPossible) * 100) })
+            : t('dashboard.stats.noStages')} icon={CheckCircle2} />
       </div>
 
       {/* Analytics — active project */}
@@ -1049,9 +1061,9 @@ export default function Dashboard() {
       ) : !loading && projects.length === 0 && !isContractor ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: <Building2 className="size-5 text-brand-mid-grey" />, title: 'Create a build', desc: 'Tell us your project type, location, floors, and rooms.' },
-            { icon: <HardHat   className="size-5 text-brand-mid-grey" />, title: 'Add your contractor', desc: 'Invite your contractor so they can upload site evidence.' },
-            { icon: <CheckCircle2 className="size-5 text-brand-mid-grey" />, title: 'Approve stages', desc: 'Review and approve each build stage as your project progresses.' },
+            { icon: <Building2 className="size-5 text-brand-mid-grey" />,    title: t('dashboard.tips.createTitle'),     desc: t('dashboard.tips.createDesc')     },
+            { icon: <HardHat   className="size-5 text-brand-mid-grey" />,    title: t('dashboard.tips.contractorTitle'), desc: t('dashboard.tips.contractorDesc') },
+            { icon: <CheckCircle2 className="size-5 text-brand-mid-grey" />, title: t('dashboard.tips.approveTitle'),    desc: t('dashboard.tips.approveDesc')    },
           ].map(tip => (
             <div key={tip.title} className="bg-white rounded-2xl border border-brand-border-grey p-5">
               <div className="flex size-9 items-center justify-center rounded-xl bg-brand-off-white mb-3">{tip.icon}</div>
@@ -1065,10 +1077,10 @@ export default function Dashboard() {
       {/* Recent projects */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-brand-near-black">Recent Projects</h2>
+          <h2 className="text-sm font-semibold text-brand-near-black">{t('dashboard.recentProjects')}</h2>
           {projects.length > 0 && (
             <Link to="/projects" className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black transition-colors">
-              View all →
+              {t('common.viewAll')} →
             </Link>
           )}
         </div>
@@ -1079,7 +1091,7 @@ export default function Dashboard() {
         ) : projects.length === 0 ? (
           isContractor
             ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">
-                No assigned builds yet. Check back once your invite is confirmed.
+                {t('dashboard.empty.contractor')}
               </div>
             : <EmptyBuilds />
         ) : (

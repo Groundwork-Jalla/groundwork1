@@ -10,18 +10,19 @@ import { fetchProjects }         from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull }         from '@/lib/budget';
 import { findCountry }           from '@/lib/countries';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 
 const STARTER_LIMIT = 3;
 const TOTAL_STAGES  = 10;
 
-const TIER_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  jalla_management: { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
-  starter:          { label: 'Self Verify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  enterprise:       { label: 'Jalla Management', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
+  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
+  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
+  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
+  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
+  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
 };
 
 const BT_LABELS: Record<string, string> = {
@@ -36,11 +37,11 @@ const BT_LABELS: Record<string, string> = {
   transit_oriented: 'Transit-Oriented',
 };
 
-const STATUS_META = {
-  active:    { label: 'Active',   dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
-  on_hold:   { label: 'On Hold',  dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
-  completed: { label: 'Complete', dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
-  archived:  { label: 'Archived', dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
+const STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
+  active:    { labelKey: 'common.active',    dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
+  on_hold:   { labelKey: 'common.onHold',    dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
+  completed: { labelKey: 'common.complete',  dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
+  archived:  { labelKey: 'common.archived',  dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
 };
 
 function completedStages(p: ProjectRow) {
@@ -69,8 +70,9 @@ function SkeletonCard() {
 }
 
 function ProjectCard({ project }: { project: ProjectRow }) {
+  const t = useT();
   const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
-  const status = STATUS_META[project.status as keyof typeof STATUS_META] ?? STATUS_META.active;
+  const status = STATUS_META[project.status] ?? STATUS_META.active;
   const country = findCountry(project.country);
   const done   = completedStages(project);
   const pct    = Math.round((done / TOTAL_STAGES) * 100);
@@ -80,9 +82,9 @@ function ProjectCard({ project }: { project: ProjectRow }) {
     <Link to={`/projects/${project.id}`}
       className="group block rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${tier.color}`}>{tier.icon} {tier.label}</span>
+        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${tier.color}`}>{tier.icon} {t(tier.labelKey)}</span>
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
-          <span className={`size-1.5 rounded-full ${status.dot}`} />{status.label}
+          <span className={`size-1.5 rounded-full ${status.dot}`} />{t(status.labelKey)}
         </span>
       </div>
       <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
@@ -92,31 +94,34 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       </div>
       <div className="mb-4">
         <div className="flex items-center justify-between text-[10px] text-brand-mid-grey mb-1.5">
-          <span>Stage {done} of {TOTAL_STAGES}</span>
+          <span>{t('projects.stageOf', { done, total: TOTAL_STAGES })}</span>
           <span className="font-semibold text-brand-near-black">{pct}%</span>
         </div>
         <HorizBar pct={pct} />
       </div>
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[10px] text-brand-mid-grey mb-0.5">Est. budget</p>
+          <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('projects.estBudget')}</p>
           <p className="text-sm font-bold text-brand-near-black tabular-nums">{project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}</p>
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
-          Open <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+          {t('common.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
         </span>
       </div>
     </Link>
   );
 }
 
-const FILTERS = [
-  { id: 'all', label: 'All' }, { id: 'active', label: 'Active' },
-  { id: 'on_hold', label: 'On Hold' }, { id: 'completed', label: 'Complete' },
+const FILTERS: { id: string; labelKey: TKey }[] = [
+  { id: 'all',       labelKey: 'projects.filters.all'    },
+  { id: 'active',    labelKey: 'projects.filters.active' },
+  { id: 'on_hold',   labelKey: 'projects.filters.onHold' },
+  { id: 'completed', labelKey: 'projects.filters.completed' },
 ];
 
 export default function ProjectsIndex() {
   const { user } = useAuth();
+  const { t, tPlural } = useLanguage();
   const isContractor = user?.user_metadata?.role === 'contractor';
 
   const [projects, setProjects] = useState<ProjectRow[]>([]);
@@ -140,13 +145,17 @@ export default function ProjectsIndex() {
       {/* Header row */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-brand-near-black">My Builds</h2>
-          {!loading && <p className="text-xs text-brand-mid-grey mt-0.5">{projects.length} build{projects.length !== 1 ? 's' : ''} in total</p>}
+          <h2 className="text-lg font-bold text-brand-near-black">{t('projects.title')}</h2>
+          {!loading && (
+            <p className="text-xs text-brand-mid-grey mt-0.5">
+              {tPlural('projects.count', projects.length)}
+            </p>
+          )}
         </div>
         {!isContractor && !atStarterLimit && (
           <Link to="/projects/new"
             className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2 hover:bg-black transition-colors">
-            <Plus className="size-4" /> New Build
+            <Plus className="size-4" /> {t('projects.newBuild')}
           </Link>
         )}
       </div>
@@ -158,8 +167,11 @@ export default function ProjectsIndex() {
             ? 'bg-amber-50 border border-amber-200 text-amber-800'
             : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey'
         }`}>
-          <span><span className="font-medium">{starterCount} / {STARTER_LIMIT}</span> Self Verify projects used{atStarterLimit && ' — limit reached'}</span>
-          {atStarterLimit && <span className="text-xs font-semibold text-amber-700">Upgrade to Jalla Verify</span>}
+          <span>
+            {t('projects.starterUsed', { used: starterCount, limit: STARTER_LIMIT })}
+            {atStarterLimit && ` ${t('projects.limitReached')}`}
+          </span>
+          {atStarterLimit && <span className="text-xs font-semibold text-amber-700">{t('projects.upgradeNudge')}</span>}
         </div>
       )}
 
@@ -171,7 +183,7 @@ export default function ProjectsIndex() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filter === f.id ? 'bg-brand-near-black text-white' : 'bg-white border border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black hover:border-brand-near-black'
               }`}>
-              {f.label}
+              {t(f.labelKey)}
               {f.id !== 'all' && <span className="ml-1.5 opacity-60">{projects.filter(p => p.status === f.id).length}</span>}
             </button>
           ))}
@@ -185,7 +197,7 @@ export default function ProjectsIndex() {
         </div>
       ) : filtered.length === 0 ? (
         isContractor
-          ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">No builds in this category yet.</div>
+          ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">{t('projects.empty.contractor')}</div>
           : (
             <Link to="/projects/new"
               className="flex flex-col items-center justify-center gap-5 rounded-2xl border-2 border-dashed border-brand-border-grey p-12 hover:border-brand-near-black hover:bg-white transition-all group text-center">
@@ -194,11 +206,11 @@ export default function ProjectsIndex() {
                 <HardHat className="size-8 text-brand-mid-grey group-hover:text-white transition-colors" />
               </motion.div>
               <div>
-                <p className="text-base font-semibold text-brand-near-black mb-1">Start your first build</p>
-                <p className="text-sm text-brand-mid-grey max-w-xs mx-auto leading-relaxed">Track every stage, manage your budget, and stay connected with your contractor.</p>
+                <p className="text-base font-semibold text-brand-near-black mb-1">{t('projects.empty.title')}</p>
+                <p className="text-sm text-brand-mid-grey max-w-xs mx-auto leading-relaxed">{t('projects.empty.body')}</p>
               </div>
               <span className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3">
-                <Plus className="size-4" /> Create a build
+                <Plus className="size-4" /> {t('projects.empty.cta')}
               </span>
             </Link>
           )
@@ -217,7 +229,7 @@ export default function ProjectsIndex() {
                   <span className="flex size-10 items-center justify-center rounded-full bg-brand-light-grey group-hover:bg-brand-near-black transition-colors">
                     <Plus className="size-4 text-brand-near-black group-hover:text-white transition-colors" />
                   </span>
-                  <span className="text-sm font-medium text-brand-mid-grey group-hover:text-brand-near-black transition-colors">New Build</span>
+                  <span className="text-sm font-medium text-brand-mid-grey group-hover:text-brand-near-black transition-colors">{t('projects.newBuild')}</span>
                 </Link>
               </motion.div>
             )}

@@ -1,8 +1,12 @@
 import { Outlet, Link } from 'react-router';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { useT } from '@/lib/i18n';
 
 export default function ToolsLayout() {
+  const t = useT();
+
   return (
     <div className="min-h-screen bg-white dark:bg-brand-rich-black font-sans">
       {/* Slim branded header */}
@@ -14,7 +18,7 @@ export default function ToolsLayout() {
             </Link>
             <span className="text-brand-border-grey dark:text-[#444] select-none">/</span>
             <Link to="/tools" className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors">
-              Free Tools
+              {t('nav.freeTools')}
             </Link>
           </div>
           <div className="flex items-center gap-3">
@@ -22,8 +26,9 @@ export default function ToolsLayout() {
               to="/auth/login"
               className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors hidden sm:block"
             >
-              Sign in
+              {t('common.signIn')}
             </Link>
+            <LanguageToggle segmented />
             <ThemeToggle />
           </div>
         </div>
@@ -40,9 +45,9 @@ export default function ToolsLayout() {
             Groundwork by Jalla · Free planning tools for African construction
           </p>
           <div className="flex items-center gap-4 text-xs text-brand-mid-grey">
-            <Link to="/tools" className="hover:text-brand-near-black dark:hover:text-white transition-colors">Tools</Link>
-            <Link to="/pricing" className="hover:text-brand-near-black dark:hover:text-white transition-colors">Pricing</Link>
-            <Link to="/auth/signup" className="hover:text-brand-near-black dark:hover:text-white transition-colors">Create account</Link>
+            <Link to="/tools" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('nav.tools')}</Link>
+            <Link to="/pricing" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('nav.pricing')}</Link>
+            <Link to="/auth/signup" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('common.createAccount')}</Link>
           </div>
         </div>
       </footer>

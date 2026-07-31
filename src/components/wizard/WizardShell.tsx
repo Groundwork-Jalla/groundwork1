@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { useT } from '@/lib/i18n';
 import ProgressBar from './ProgressBar';
 import { BuildingPreview } from './BuildingPreview';
 import { useWizard } from '@/contexts/WizardContext';
@@ -39,11 +41,12 @@ export default function WizardShell({
   children,
   canContinue = true,
   onContinue,
-  continueLabel = 'Continue',
+  continueLabel,
   isSubmitting = false,
   hideContinue = false,
 }: WizardShellProps) {
   const { step, totalSteps, direction, next, back } = useWizard();
+  const t = useT();
   const isFirst = step === 1;
 
   function handleContinue() {
@@ -62,6 +65,7 @@ export default function WizardShell({
             <ProgressBar />
           </div>
           <div className="flex items-center gap-2">
+            <LanguageToggle compact />
             <ThemeToggle compact />
             {!isFirst ? (
               <button
@@ -71,14 +75,14 @@ export default function WizardShell({
                 className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors disabled:opacity-40 flex items-center gap-1"
               >
                 <ArrowLeft className="size-3.5" />
-                Back
+                {t('common.back')}
               </button>
             ) : (
               <Link
                 to="/dashboard"
                 className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
               >
-                ← Cancel
+                ← {t('common.cancel')}
               </Link>
             )}
           </div>
@@ -117,7 +121,7 @@ export default function WizardShell({
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <>
-                    {continueLabel}
+                    {continueLabel ?? t('common.continue')}
                     <ArrowRight className="size-3.5" />
                   </>
                 )}

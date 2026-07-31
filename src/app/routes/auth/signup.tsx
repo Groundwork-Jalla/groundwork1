@@ -6,11 +6,12 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useT, type TKey } from "@/lib/i18n";
 
-const checks = [
-  { label: "At least 8 characters", test: (pw: string) => pw.length >= 8 },
-  { label: "One uppercase letter",  test: (pw: string) => /[A-Z]/.test(pw) },
-  { label: "One number",            test: (pw: string) => /[0-9]/.test(pw) },
+const checks: { key: TKey; test: (pw: string) => boolean }[] = [
+  { key: "auth.signup.check8",      test: (pw: string) => pw.length >= 8 },
+  { key: "auth.signup.checkUpper",  test: (pw: string) => /[A-Z]/.test(pw) },
+  { key: "auth.signup.checkNumber", test: (pw: string) => /[0-9]/.test(pw) },
 ];
 
 export default function Signup() {
@@ -18,6 +19,7 @@ export default function Signup() {
   const inviteToken    = searchParams.get("invite") ?? "";
   const inviteEmail    = searchParams.get("email")  ?? "";
   const isInviteFlow   = !!inviteToken;
+  const t              = useT();
 
   const [fullName,        setFullName]        = useState("");
   const [email,           setEmail]           = useState(inviteEmail);
@@ -41,11 +43,11 @@ export default function Signup() {
     setError(null);
 
     if (!passwordValid) {
-      setError("Password doesn't meet the requirements below.");
+      setError(t('auth.signup.errRequirements'));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t('auth.signup.errMismatch'));
       return;
     }
 
@@ -69,7 +71,7 @@ export default function Signup() {
       setError(
         error.message && error.message !== "{}"
           ? error.message
-          : "Sign up failed. Please try again or contact support.",
+          : t('auth.signup.errGeneric'),
       );
       return;
     }
@@ -89,21 +91,20 @@ export default function Signup() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-light-grey">
           <Mail className="size-5 text-brand-near-black" />
         </div>
-        <h1 className="font-sans text-2xl font-bold text-brand-near-black">Check your email</h1>
+        <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t('auth.signup.checkEmailTitle')}</h1>
         <p className="text-sm text-brand-mid-grey mt-2">
-          We sent a confirmation link to{" "}
-          <span className="text-brand-near-black">{email}</span>. Click it to activate your account.
+          {t('auth.signup.checkEmailBody', { email })}
         </p>
         {isInviteFlow && (
           <p className="text-xs text-brand-mid-grey mt-3 leading-relaxed">
-            After confirming, you'll be taken directly to your assigned project.
+            {t('auth.signup.checkEmailInvite')}
           </p>
         )}
         <Link
           to="/auth/login"
           className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"
         >
-          Back to login
+          {t('auth.signup.backToLogin')}
         </Link>
       </motion.div>
     );
@@ -112,17 +113,15 @@ export default function Signup() {
   return (
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-        {isInviteFlow ? "Create your account" : "Sign up"}
+        {isInviteFlow ? t('auth.signup.titleInvite') : t('auth.signup.title')}
       </h1>
       <p className="text-sm text-brand-mid-grey mt-2">
-        {isInviteFlow
-          ? "Set a password to accept your project invite."
-          : "Join the diaspora builders who never lost track of their money."}
+        {isInviteFlow ? t('auth.signup.subtitleInvite') : t('auth.signup.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">
-          <Label htmlFor="fullName">Full name</Label>
+          <Label htmlFor="fullName">{t('auth.signup.fullName')}</Label>
           <Input
             id="fullName"
             type="text"
@@ -134,7 +133,7 @@ export default function Signup() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('auth.signup.email')}</Label>
           {isInviteFlow ? (
             <div className="relative">
               <Input
@@ -159,7 +158,7 @@ export default function Signup() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t('auth.signup.password')}</Label>
           <Input
             id="password"
             type="password"
@@ -174,13 +173,13 @@ export default function Signup() {
                 const passed = c.test(password);
                 return (
                   <li
-                    key={c.label}
+                    key={c.key}
                     className={`flex items-center gap-1.5 text-xs ${
                       passed ? "text-brand-near-black" : "text-brand-mid-grey"
                     }`}
                   >
                     {passed ? <Check className="size-3" /> : <X className="size-3" />}
-                    {c.label}
+                    {t(c.key)}
                   </li>
                 );
               })}
@@ -189,7 +188,7 @@ export default function Signup() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Label htmlFor="confirmPassword">{t('auth.signup.confirmPassword')}</Label>
           <Input
             id="confirmPassword"
             type="password"
@@ -211,7 +210,7 @@ export default function Signup() {
         )}
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? "Creating account…" : "Create account"}
+          {submitting ? t('auth.signup.submitting') : t('auth.signup.submit')}
         </Button>
       </form>
 
@@ -219,17 +218,17 @@ export default function Signup() {
         <>
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-brand-border-grey" />
-            <span className="text-xs text-brand-mid-grey">OR</span>
+            <span className="text-xs text-brand-mid-grey">{t('common.or')}</span>
             <div className="h-px flex-1 bg-brand-border-grey" />
           </div>
           <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
-            Continue with Google
+            {t('auth.signup.google')}
           </Button>
         </>
       )}
 
       <p className="text-center text-sm text-brand-mid-grey mt-8">
-        Already have an account?{" "}
+        {t('auth.signup.haveAccount')}{" "}
         <Link
           to={
             isInviteFlow
@@ -238,7 +237,7 @@ export default function Signup() {
           }
           className="text-brand-near-black underline underline-offset-4"
         >
-          Log in
+          {t('auth.signup.logIn')}
         </Link>
       </p>
     </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
+import { useT } from '@/lib/i18n';
 import { ArrowRight, Loader2 } from 'lucide-react';
 
 // ── Welcome screen ─────────────────────────────────────────
@@ -16,19 +17,21 @@ function WelcomeStep({
   loading: boolean;
   onStart: () => void;
 }) {
+  const t = useT();
+
   return (
     <div className="w-full">
       <p className="text-brand-mid-grey text-xs font-medium tracking-widest uppercase mb-5">
-        Account setup
+        {t('onboarding.eyebrow')}
       </p>
 
       <h1 className="font-sans text-3xl font-bold text-brand-near-black leading-tight mb-3">
-        Welcome,{' '}
+        {t('onboarding.welcome')}{' '}
         <span className="block">{firstName}.</span>
       </h1>
 
       <p className="text-brand-mid-grey text-sm leading-relaxed mb-8">
-        Let's get your account ready. It takes 30 seconds.
+        {t('onboarding.body')}
       </p>
 
       <button
@@ -41,7 +44,7 @@ function WelcomeStep({
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <>
-            Get started
+            {t('onboarding.start')}
             <ArrowRight className="size-4" />
           </>
         )}

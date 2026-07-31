@@ -2,6 +2,8 @@ import { Outlet } from "react-router";
 import { motion } from "framer-motion";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useT } from "@/lib/i18n";
 
 function ArchDrawing() {
   return (
@@ -99,6 +101,8 @@ function ArchDrawing() {
 }
 
 export default function AuthLayout() {
+  const t = useT();
+
   return (
     <div className="h-dvh overflow-hidden flex flex-col md:flex-row">
       {/* Left — dark branding panel */}
@@ -134,13 +138,14 @@ export default function AuthLayout() {
 
         {/* Tagline — bottom-right, desktop only */}
         <p className="hidden md:block absolute bottom-8 right-8 z-10 text-sm text-white/50 italic text-right max-w-52 leading-relaxed">
-          Protect your build.<br />From anywhere.
+          {t('auth.tagline')}<br />{t('auth.taglineLine2')}
         </p>
       </div>
 
       {/* Right — form panel */}
       <div className="flex-1 md:w-1/2 bg-white overflow-y-auto relative">
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5">
+          <LanguageToggle segmented />
           <ThemeToggle compact />
         </div>
         <div className="min-h-full flex items-center justify-center px-6 py-8">

@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -19,6 +21,7 @@ const NAV = [
 export default function AdminLayout() {
   const navigate = useNavigate();
   const { user, session, loading, signOut } = useAuth();
+  const t = useT();
 
   const isAdmin = user?.user_metadata?.role === 'admin';
 
@@ -78,13 +81,14 @@ export default function AdminLayout() {
             </p>
             <p className="text-[10px] text-brand-mid-grey">Admin</p>
           </div>
+          <LanguageToggle className="mb-1" />
           <button
             type="button"
             onClick={async () => { await signOut(); navigate('/'); }}
             className="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
           >
             <LogOut className="size-4 shrink-0" />
-            Log out
+            {t('common.logOut')}
           </button>
         </div>
       </aside>

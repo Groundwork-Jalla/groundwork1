@@ -6,11 +6,13 @@ import { acceptInvite } from "@/lib/supabase/invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n";
 
 export default function Login() {
   const navigate        = useNavigate();
   const [searchParams]  = useSearchParams();
   const inviteToken     = searchParams.get("invite") ?? "";
+  const t               = useT();
 
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
@@ -56,12 +58,12 @@ export default function Login() {
 
   return (
     <div>
-      <h1 className="font-sans text-3xl font-bold text-brand-near-black">Log in</h1>
-      <p className="text-sm text-brand-mid-grey mt-2">Welcome back. Pick up where you left off.</p>
+      <h1 className="font-sans text-3xl font-bold text-brand-near-black">{t('auth.login.title')}</h1>
+      <p className="text-sm text-brand-mid-grey mt-2">{t('auth.login.subtitle')}</p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('auth.login.email')}</Label>
           <Input
             id="email"
             type="email"
@@ -73,12 +75,12 @@ export default function Login() {
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('auth.login.password')}</Label>
             <Link
               to="/auth/reset-password"
               className="text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors"
             >
-              Forgot password?
+              {t('auth.login.forgot')}
             </Link>
           </div>
           <Input
@@ -102,24 +104,24 @@ export default function Login() {
         )}
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? "Logging in…" : "Log in"}
+          {submitting ? t('auth.login.submitting') : t('auth.login.submit')}
         </Button>
       </form>
 
       <div className="flex items-center gap-3 my-6">
         <div className="h-px flex-1 bg-brand-border-grey" />
-        <span className="text-xs text-brand-mid-grey">OR</span>
+        <span className="text-xs text-brand-mid-grey">{t('common.or')}</span>
         <div className="h-px flex-1 bg-brand-border-grey" />
       </div>
 
       <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-        Continue with Google
+        {t('auth.login.google')}
       </Button>
 
       <p className="text-center text-sm text-brand-mid-grey mt-8">
-        Don't have an account?{" "}
+        {t('auth.login.noAccount')}{" "}
         <Link to="/auth/signup" className="text-brand-near-black underline underline-offset-4">
-          Sign up
+          {t('auth.login.signUp')}
         </Link>
       </p>
     </div>

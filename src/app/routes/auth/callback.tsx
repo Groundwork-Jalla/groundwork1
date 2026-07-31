@@ -3,9 +3,11 @@ import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { trackEvent } from "@/lib/analytics";
+import { useT } from "@/lib/i18n";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,20 +48,20 @@ export default function AuthCallback() {
     return (
       <div className="text-center">
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">
-          Something went wrong
+          {t('auth.callback.errorTitle')}
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{error}</p>
         <Link
           to="/auth/login"
           className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"
         >
-          Back to login
+          {t('auth.callback.backToLogin')}
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="text-center text-sm text-brand-mid-grey">Signing you in…</div>
+    <div className="text-center text-sm text-brand-mid-grey">{t('auth.callback.signingIn')}</div>
   );
 }
