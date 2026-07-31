@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useT, type TKey } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const D = "#0A0A0A";
@@ -87,41 +88,28 @@ function VisibilityIcon() {
   );
 }
 
-const reasons = [
-  {
-    Icon: ProtectedIcon,
-    title: "Your money stays protected",
-    desc: "Funds don't move without verified proof, every time.",
-    badge: "$0 Lost",
-  },
-  {
-    Icon: CheckedIcon,
-    title: "Every stage is independently checked",
-    desc: "Not your contractor's word — real, on-site verification.",
-    badge: "60+ Checkpoints",
-  },
-  {
-    Icon: VisibilityIcon,
-    title: "Full visibility from anywhere",
-    desc: "Track your build from your phone, 6,000 miles away.",
-    badge: "Live Updates",
-  },
+const reasons: { Icon: () => React.ReactElement; titleKey: TKey; descKey: TKey; badgeKey: TKey }[] = [
+  { Icon: ProtectedIcon,  titleKey: "landing.why.w1Title", descKey: "landing.why.w1Desc", badgeKey: "landing.why.w1Badge" },
+  { Icon: CheckedIcon,    titleKey: "landing.why.w2Title", descKey: "landing.why.w2Desc", badgeKey: "landing.why.w2Badge" },
+  { Icon: VisibilityIcon, titleKey: "landing.why.w3Title", descKey: "landing.why.w3Desc", badgeKey: "landing.why.w3Badge" },
 ];
 
 export default function WhyUseJalla() {
+  const t = useT();
+
   return (
     <section className="bg-white py-16 px-7 border-t border-brand-border-grey">
       <div className="max-w-[1000px] mx-auto">
         <Reveal className="text-center mb-14">
-          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHY JALLA</span>
+          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">{t('landing.why.eyebrow')}</span>
           <h2 className="font-sans text-3xl sm:text-4xl font-bold text-brand-near-black mt-3 max-w-150 mx-auto">
-            A System of Trust through Accountability and Guardrails
+            {t('landing.why.title')}
           </h2>
         </Reveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {reasons.map((reason, i) => (
-            <Reveal key={reason.title} delay={i * 0.15}>
+            <Reveal key={reason.titleKey} delay={i * 0.15}>
               <motion.div
                 whileHover={{ y: -6 }}
                 animate={{
@@ -141,14 +129,14 @@ export default function WhyUseJalla() {
                   transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
                   className="absolute -top-3 right-6 rounded-full bg-brand-near-black text-white text-[10px] font-semibold px-2.5 py-1 shadow-[0_4px_14px_rgba(0,0,0,0.18)] whitespace-nowrap"
                 >
-                  {reason.badge}
+                  {t(reason.badgeKey)}
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.08 }} className="h-24 md:h-32 mb-6">
                   <reason.Icon />
                 </motion.div>
-                <h3 className="text-lg md:text-xl font-bold text-brand-near-black leading-snug">{reason.title}</h3>
-                <p className="text-sm text-brand-mid-grey mt-3 leading-relaxed">{reason.desc}</p>
+                <h3 className="text-lg md:text-xl font-bold text-brand-near-black leading-snug">{t(reason.titleKey)}</h3>
+                <p className="text-sm text-brand-mid-grey mt-3 leading-relaxed">{t(reason.descKey)}</p>
               </motion.div>
             </Reveal>
           ))}

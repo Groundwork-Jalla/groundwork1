@@ -1,12 +1,14 @@
 import { motion } from "framer-motion";
 import { Home, Building, Building2, Camera, Check, HardHat, Lock } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export function CreateProjectSlide() {
+  const t = useT();
   const dots = Array.from({ length: 8 }, (_, i) => i < 3);
   const options = [
-    { Icon: Home, label: "House", selected: true },
-    { Icon: Building, label: "Duplex", selected: false },
-    { Icon: Building2, label: "Apartment", selected: false },
+    { Icon: Home, label: t("landing.scenes.house"), selected: true },
+    { Icon: Building, label: t("landing.scenes.duplex"), selected: false },
+    { Icon: Building2, label: t("landing.scenes.apartment"), selected: false },
   ];
 
   return (
@@ -22,7 +24,7 @@ export function CreateProjectSlide() {
           />
         ))}
       </div>
-      <h4 className="text-sm font-semibold text-brand-near-black mb-4">What type of building?</h4>
+      <h4 className="text-sm font-semibold text-brand-near-black mb-4">{t("landing.scenes.buildingType")}</h4>
       <div className="grid grid-cols-3 gap-2 mb-5">
         {options.map((opt) => (
           <motion.div
@@ -56,6 +58,7 @@ export function CreateProjectSlide() {
 }
 
 export function UploadProofSlide() {
+  const t = useT();
   return (
     <div className="relative w-[200px] mx-auto">
       <div className="rounded-[28px] border-[6px] border-brand-near-black bg-white p-3 shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
@@ -69,7 +72,7 @@ export function UploadProofSlide() {
           />
         </div>
         <div className="flex items-center justify-between bg-brand-off-white rounded-md px-2 py-1.5 mb-2">
-          <span className="text-[10px] text-brand-near-black">Excavation</span>
+          <span className="text-[10px] text-brand-near-black">{t("landing.scenes.excavation")}</span>
           <motion.span
             animate={{ scale: [0, 1, 1, 0] }}
             transition={{ duration: 2.4, repeat: Infinity, times: [0, 0.2, 0.8, 1] }}
@@ -79,7 +82,7 @@ export function UploadProofSlide() {
           </motion.span>
         </div>
         <div className="flex items-center justify-between bg-white border border-brand-border-grey rounded-md px-2 py-1.5">
-          <span className="text-[10px] font-semibold text-brand-near-black">Blinding</span>
+          <span className="text-[10px] font-semibold text-brand-near-black">{t("landing.scenes.blinding")}</span>
           <motion.span
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.4, repeat: Infinity }}
@@ -96,6 +99,7 @@ export function UploadProofSlide() {
 }
 
 export function VerifySlide() {
+  const t = useT();
   return (
     <div className="bg-white rounded-2xl border border-brand-border-grey w-full max-w-[340px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
       <div className="bg-brand-near-black text-white text-center text-xs font-semibold py-3 tracking-widest">
@@ -110,8 +114,8 @@ export function VerifySlide() {
         >
           <Check className="size-6" />
         </motion.div>
-        <p className="text-sm font-semibold text-brand-near-black">Stage 3 — Foundation</p>
-        <p className="text-[11px] text-brand-mid-grey mt-1">Verified on site, 14 Jun 2026</p>
+        <p className="text-sm font-semibold text-brand-near-black">{t("landing.scenes.stageFoundation")}</p>
+        <p className="text-[11px] text-brand-mid-grey mt-1">{t("landing.scenes.verifiedOnSite")}</p>
         <div className="relative w-[68px] h-[68px] mx-auto mt-4 overflow-hidden">
           <div className="grid grid-cols-5 gap-0.5">
             {Array.from({ length: 25 }, (_, i) => (

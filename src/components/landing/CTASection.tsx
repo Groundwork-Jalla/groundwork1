@@ -2,9 +2,12 @@ import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { Home, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 import CountdownClock from "./CountdownClock";
 
 export default function CTASection() {
+  const t = useT();
+
   return (
     <section id="join" className="bg-brand-near-black py-20 text-center px-5 sm:px-7">
       <div className="max-w-140 mx-auto">
@@ -16,7 +19,7 @@ export default function CTASection() {
           <Home className="size-9" />
         </motion.div>
         <h2 className="font-sans text-3xl sm:text-4xl font-bold text-white">
-          The New Way of Building in Africa Launches In
+          {t('landing.cta.title')}
         </h2>
 
         <div className="mt-8">
@@ -24,15 +27,15 @@ export default function CTASection() {
         </div>
 
         <p className="text-sm sm:text-base text-white/60 mt-8">
-          Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.
+          {t('landing.cta.body')}
         </p>
         <p className="text-sm text-white/40 mt-2 italic">
-          Be the first to know when Groundwork is ready for full launch.
+          {t('landing.cta.sub')}
         </p>
 
         <Button asChild className="mt-8 w-full sm:w-auto bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
           <Link to="/community" className="flex items-center justify-center gap-1.5">
-            Join for Free
+            {t('landing.cta.button')}
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </Button>
@@ -42,7 +45,7 @@ export default function CTASection() {
             href="/contractor-apply"
             className="text-xs sm:text-sm text-white/40 underline underline-offset-4 hover:text-white/70 transition-colors"
           >
-            Are you a Construction Professional?
+            {t('landing.cta.contractorLink')}
           </a>
         </div>
       </div>

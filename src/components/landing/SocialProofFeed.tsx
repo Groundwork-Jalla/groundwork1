@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 type Member = {
@@ -20,6 +21,7 @@ function timeAgo(iso: string) {
 }
 
 export default function SocialProofFeed() {
+  const t = useT();
   const [members, setMembers] = useState<Member[]>([]);
   const [, setTick] = useState(0);
 
@@ -60,13 +62,13 @@ export default function SocialProofFeed() {
             <Users className="size-4" />
           </div>
           <h2 className="font-sans text-2xl font-bold text-brand-near-black">
-            Builders Are Already Joining
+            {t('landing.feed.title')}
           </h2>
-          <p className="text-brand-mid-grey mt-2 text-sm">Real people getting notified the moment we launch.</p>
+          <p className="text-brand-mid-grey mt-2 text-sm">{t('landing.feed.subtitle')}</p>
         </Reveal>
 
         {members.length === 0 ? (
-          <p className="text-center text-sm text-brand-mid-grey">Be the first to join the community.</p>
+          <p className="text-center text-sm text-brand-mid-grey">{t('landing.feed.empty')}</p>
         ) : (
           <ul className="space-y-2">
             <AnimatePresence initial={false}>

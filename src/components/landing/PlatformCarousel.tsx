@@ -1,43 +1,29 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCarousel } from "@/hooks/useCarousel";
+import { useT, type TKey } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 import { CreateProjectSlide, UploadProofSlide, VerifySlide, PaymentSlide } from "./CarouselSlides";
 
-const slides = [
-  {
-    Illustration: CreateProjectSlide,
-    title: "Create a project",
-    description: "Tell us what you're building. We break it into stages, substages, and set the budget from day one.",
-  },
-  {
-    Illustration: UploadProofSlide,
-    title: "Contractor submits evidence",
-    description: "Photo and video evidence for every substage, captured directly on site.",
-  },
-  {
-    Illustration: VerifySlide,
-    title: "Jalla verifies the work",
-    description: "An independent check confirms the stage's completion and quality before anything moves.",
-  },
-  {
-    Illustration: PaymentSlide,
-    title: "Payment gets sent out",
-    description: "Funds release only once verification clears. No verification, no payment goes out.",
-  },
+const slides: { Illustration: () => React.ReactElement; titleKey: TKey; descKey: TKey }[] = [
+  { Illustration: CreateProjectSlide, titleKey: "landing.carousel.s1Title", descKey: "landing.carousel.s1Desc" },
+  { Illustration: UploadProofSlide,   titleKey: "landing.carousel.s2Title", descKey: "landing.carousel.s2Desc" },
+  { Illustration: VerifySlide,        titleKey: "landing.carousel.s3Title", descKey: "landing.carousel.s3Desc" },
+  { Illustration: PaymentSlide,       titleKey: "landing.carousel.s4Title", descKey: "landing.carousel.s4Desc" },
 ];
 
 export default function PlatformCarousel() {
   const [index, goTo] = useCarousel(slides.length, 6000);
   const slide = slides[index];
+  const t = useT();
 
   return (
     <section className="bg-brand-near-black py-20">
       <div className="max-w-[900px] mx-auto px-7">
         <Reveal className="text-center mb-10">
           <h2 className="font-sans text-3xl sm:text-4xl font-bold text-white">
-            How Groundwork Keeps You in Control
+            {t('landing.carousel.title')}
           </h2>
-          <p className="text-white/50 mt-3">Step by Step</p>
+          <p className="text-white/50 mt-3">{t('landing.carousel.subtitle')}</p>
         </Reveal>
 
         <div className="bg-white rounded-[20px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.06)]">
@@ -57,9 +43,11 @@ export default function PlatformCarousel() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-near-black text-white text-xs font-semibold">
                   {index + 1}
                 </div>
-                <span className="block text-xs text-brand-mid-grey mt-3">Step {index + 1} of {slides.length}</span>
-                <h3 className="font-sans text-[26px] text-brand-near-black mt-1">{slide.title}</h3>
-                <p className="text-sm text-brand-mid-grey mt-3 leading-relaxed">{slide.description}</p>
+                <span className="block text-xs text-brand-mid-grey mt-3">
+                  {t('landing.carousel.step', { current: index + 1, total: slides.length })}
+                </span>
+                <h3 className="font-sans text-[26px] text-brand-near-black mt-1">{t(slide.titleKey)}</h3>
+                <p className="text-sm text-brand-mid-grey mt-3 leading-relaxed">{t(slide.descKey)}</p>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -70,7 +58,7 @@ export default function PlatformCarousel() {
             <button
               key={i}
               onClick={() => goTo(i)}
-              aria-label={`Go to slide ${i + 1}`}
+              aria-label={t('landing.carousel.goToSlide', { n: i + 1 })}
               className={`h-[10px] rounded-[5px] transition-all duration-300 ${
                 i === index ? "w-[36px] bg-white" : "w-[10px] bg-white/25"
               }`}

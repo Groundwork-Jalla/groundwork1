@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInView } from "framer-motion";
+import { useT, type TKey } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
-const stats = [
-  { value: "1 in 3", label: "Diaspora builds go over budget" },
-  { value: "30%+", label: "Average cost overrun" },
-  { value: "10", label: "Verified construction stages" },
-  { value: "60+", label: "Substage checkpoints" },
+const stats: { valueKey: TKey; labelKey: TKey }[] = [
+  { valueKey: "landing.stats.overBudgetValue", labelKey: "landing.stats.overBudgetLabel" },
+  { valueKey: "landing.stats.overrunValue",    labelKey: "landing.stats.overrunLabel"    },
+  { valueKey: "landing.stats.stagesValue",     labelKey: "landing.stats.stagesLabel"     },
+  { valueKey: "landing.stats.checkpointsValue",labelKey: "landing.stats.checkpointsLabel"},
 ];
 
 function AnimatedStat({ value }: { value: string }) {
@@ -45,15 +46,17 @@ function AnimatedStat({ value }: { value: string }) {
 }
 
 export default function StatsBar() {
+  const t = useT();
+
   return (
     <section className="bg-brand-near-black py-10">
       <div className="max-w-275 mx-auto px-4 sm:px-7 grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6">
         {stats.map((stat, i) => (
-          <Reveal key={stat.label} delay={i * 0.15} className="text-center">
+          <Reveal key={stat.labelKey} delay={i * 0.15} className="text-center">
             <div className="font-sans text-3xl sm:text-4xl lg:text-5xl font-bold text-white">
-              <AnimatedStat value={stat.value} />
+              <AnimatedStat value={t(stat.valueKey)} />
             </div>
-            <div className="text-xs text-white/50 mt-1">{stat.label}</div>
+            <div className="text-xs text-white/50 mt-1">{t(stat.labelKey)}</div>
           </Reveal>
         ))}
       </div>

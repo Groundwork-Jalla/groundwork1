@@ -1,3 +1,5 @@
+import { useT } from "@/lib/i18n";
+
 const STROKE = "#0A0A0A";
 
 export function MoneyLeakScene() {
@@ -58,6 +60,7 @@ export function NoVerificationScene() {
 }
 
 export function NoProofScene() {
+  const t = useT();
   return (
     <svg viewBox="0 0 240 120" className="w-full h-full" aria-hidden="true">
       <g>
@@ -73,7 +76,7 @@ export function NoProofScene() {
       <line x1="144" y1="36" x2="106" y2="66" stroke={STROKE} strokeWidth="2" strokeLinecap="round" />
       <rect x="165" y="25" width="60" height="28" rx="8" fill="none" stroke={STROKE} strokeWidth="1.2" />
       <polygon points="178,53 172,53 178,62" fill="none" stroke={STROKE} strokeWidth="1.2" />
-      <text x="195" y="42" textAnchor="middle" fontSize="9" fontStyle="italic" fill={STROKE}>He said...</text>
+      <text x="195" y="42" textAnchor="middle" fontSize="9" fontStyle="italic" fill={STROKE}>{t('landing.scenes.heSaid')}</text>
     </svg>
   );
 }

@@ -1,46 +1,41 @@
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
+import { useT, type TKey } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 import { WithoutStructureScene, WithGroundworkScene } from "./ComparisonScenes";
 
-const without = [
-  "Hard to know what is happening on-site",
-  "Updates come late, or not at all",
-  "Disputes over what was actually completed",
-  "Money can get stuck, or paid too early",
-  "You rely on trust and scattered updates",
-  "You spend time chasing information",
-  "You risk paying for work you cannot confirm",
-  "Problems show up late, when they cost more",
+const without: TKey[] = [
+  "landing.comparison.without1", "landing.comparison.without2",
+  "landing.comparison.without3", "landing.comparison.without4",
+  "landing.comparison.without5", "landing.comparison.without6",
+  "landing.comparison.without7", "landing.comparison.without8",
 ];
 
-const withGroundwork = [
-  "Clear milestones and expectations from day one",
-  "Evidence-based updates you can review anytime",
-  "Independent verification before payment",
-  "Payments tied to each stage's progress",
-  "You get a clear project record in one place",
-  "You see progress with proof, not promises",
-  "You reduce payment risk with verification",
-  "Problems are discovered and fixed before the next stage unlocks",
+const withGroundwork: TKey[] = [
+  "landing.comparison.with1", "landing.comparison.with2",
+  "landing.comparison.with3", "landing.comparison.with4",
+  "landing.comparison.with5", "landing.comparison.with6",
+  "landing.comparison.with7", "landing.comparison.with8",
 ];
 
 export default function ComparisonSection() {
+  const t = useT();
+
   return (
     <section className="bg-brand-near-black py-20 px-4 sm:px-7">
       <div className="max-w-260 mx-auto">
         <Reveal className="text-center mb-16">
-          <span className="text-xs font-semibold tracking-[0.12em] text-white/40">THE DIFFERENCE</span>
+          <span className="text-xs font-semibold tracking-[0.12em] text-white/40">{t('landing.comparison.eyebrow')}</span>
           <h2 className="font-sans text-2xl sm:text-3xl lg:text-5xl font-bold text-white mt-3">
-            Building Back Home: Without Structure vs. With Groundwork
+            {t('landing.comparison.title')}
           </h2>
-          <p className="text-white/50 mt-4 text-base">The same build. Two very different outcomes.</p>
+          <p className="text-white/50 mt-4 text-base">{t('landing.comparison.subtitle')}</p>
         </Reveal>
 
         <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-0">
           <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 items-center justify-center">
             <div className="h-16 w-16 rounded-full bg-white border-4 border-brand-near-black shadow-[0_4px_16px_rgba(0,0,0,0.3)] flex items-center justify-center">
-              <span className="font-sans text-brand-near-black text-sm font-bold tracking-wide">VS</span>
+              <span className="font-sans text-brand-near-black text-sm font-bold tracking-wide">{t('landing.comparison.vs')}</span>
             </div>
           </div>
 
@@ -54,22 +49,22 @@ export default function ComparisonSection() {
                 <WithoutStructureScene />
               </div>
               <div className="p-5 sm:p-8">
-                <h3 className="font-sans text-2xl text-brand-near-black mb-1">Without Structure</h3>
-                <p className="text-xs text-brand-mid-grey mb-5">What happens by default</p>
+                <h3 className="font-sans text-2xl text-brand-near-black mb-1">{t('landing.comparison.withoutTitle')}</h3>
+                <p className="text-xs text-brand-mid-grey mb-5">{t('landing.comparison.withoutSub')}</p>
                 <ul className="divide-y divide-brand-border-grey">
-                  {without.map((item) => (
-                    <li key={item} className="flex items-center gap-3 py-2.5">
+                  {without.map((key) => (
+                    <li key={key} className="flex items-center gap-3 py-2.5">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full border border-brand-border-grey text-brand-mid-grey shrink-0">
                         <X className="size-3.5" />
                       </span>
-                      <span className="text-sm text-brand-mid-grey">{item}</span>
+                      <span className="text-sm text-brand-mid-grey">{t(key)}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-6 pt-5 border-t border-brand-border-grey">
                   <span className="inline-flex items-center gap-2 bg-brand-pale rounded-full px-4 py-2">
-                    <span className="font-sans text-lg font-bold text-brand-near-black">$48,000</span>
-                    <span className="text-xs text-brand-mid-grey">average loss</span>
+                    <span className="font-sans text-lg font-bold text-brand-near-black">{t('landing.comparison.lossStat')}</span>
+                    <span className="text-xs text-brand-mid-grey">{t('landing.comparison.lossLabel')}</span>
                   </span>
                 </div>
               </div>
@@ -93,22 +88,22 @@ export default function ComparisonSection() {
                 <WithGroundworkScene />
               </div>
               <div className="p-5 sm:p-8">
-                <h3 className="font-sans text-2xl text-white mb-1">With Groundwork</h3>
-                <p className="text-xs text-white/40 mb-5">What happens by design</p>
+                <h3 className="font-sans text-2xl text-white mb-1">{t('landing.comparison.withTitle')}</h3>
+                <p className="text-xs text-white/40 mb-5">{t('landing.comparison.withSub')}</p>
                 <ul className="divide-y divide-white/10">
-                  {withGroundwork.map((item) => (
-                    <li key={item} className="flex items-center gap-3 py-2.5">
+                  {withGroundwork.map((key) => (
+                    <li key={key} className="flex items-center gap-3 py-2.5">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-brand-near-black shrink-0">
                         <Check className="size-3.5" />
                       </span>
-                      <span className="text-sm text-white/80">{item}</span>
+                      <span className="text-sm text-white/80">{t(key)}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-6 pt-5 border-t border-white/10">
                   <span className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-                    <span className="font-sans text-lg font-bold text-white">100%</span>
-                    <span className="text-xs text-white/50">payments verified</span>
+                    <span className="font-sans text-lg font-bold text-white">{t('landing.comparison.verifiedStat')}</span>
+                    <span className="text-xs text-white/50">{t('landing.comparison.verifiedLabel')}</span>
                   </span>
                 </div>
               </div>

@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useT, type TKey } from "@/lib/i18n";
 
-const ENTRIES = [
-  { name: "Sarah", location: "Lagos", msg: "joined the community" },
-  { name: "Michael", location: "London", msg: "joined" },
-  { name: "James", location: "Texas", msg: "just signed up" },
-  { name: "Anna", location: "Nairobi", msg: "is waiting for launch" },
-  { name: "David", location: "Accra", msg: "joined the community" },
-  { name: "Grace", location: "Toronto", msg: "signed up" },
-  { name: "Emmanuel", location: "Douala", msg: "joined" },
-  { name: "Fatima", location: "Dubai", msg: "just signed up" },
+const ENTRIES: { name: string; location: string; msgKey: TKey }[] = [
+  { name: "Sarah",    location: "Lagos",   msgKey: "landing.social.joinedCommunity" },
+  { name: "Michael",  location: "London",  msgKey: "landing.social.joined" },
+  { name: "James",    location: "Texas",   msgKey: "landing.social.justSignedUp" },
+  { name: "Anna",     location: "Nairobi", msgKey: "landing.social.waitingLaunch" },
+  { name: "David",    location: "Accra",   msgKey: "landing.social.joinedCommunity" },
+  { name: "Grace",    location: "Toronto", msgKey: "landing.social.signedUp" },
+  { name: "Emmanuel", location: "Douala",  msgKey: "landing.social.joined" },
+  { name: "Fatima",   location: "Dubai",   msgKey: "landing.social.justSignedUp" },
 ];
 
 export default function SocialProofToast() {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [current, setCurrent] = useState(0);
   const indexRef = useRef(0);
@@ -66,15 +68,15 @@ export default function SocialProofToast() {
               {entry.name}
             </p>
             <p className="text-[11px] text-brand-mid-grey mt-0.5">
-              from {entry.location}
+              {t('landing.social.from', { location: entry.location })}
             </p>
 
             {/* Divider */}
             <div className="w-8 h-px bg-brand-border-grey my-3" />
 
             {/* Action */}
-            <p className="text-[12px] text-brand-near-black font-medium">{entry.msg}</p>
-            <p className="text-[10px] text-brand-mid-grey/60 mt-1">just now</p>
+            <p className="text-[12px] text-brand-near-black font-medium">{t(entry.msgKey)}</p>
+            <p className="text-[10px] text-brand-mid-grey/60 mt-1">{t('landing.social.justNow')}</p>
           </motion.div>
         )}
       </AnimatePresence>

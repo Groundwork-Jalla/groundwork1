@@ -1,9 +1,12 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, Check, Lock, Camera } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 const D = "#0A0A0A";
 
 export default function HeroScene() {
+  const t = useT();
+
   return (
     <div className="relative w-full max-w-[320px] lg:max-w-[560px] mx-auto">
       <svg viewBox="0 0 560 400" className="w-full h-auto" aria-hidden="true">
@@ -51,7 +54,7 @@ export default function HeroScene() {
             <rect x="21" y="1" width="6" height="3" rx="1.5" fill={D} fillOpacity="0.5" />
             <rect x="21" y="7" width="10" height="3" rx="1.5" fill={D} fillOpacity="0.18" />
           </motion.g>
-          <text x="0" y="62" textAnchor="middle" fontSize="11" fill={D} fillOpacity="0.45" fontFamily="'Plus Jakarta Sans', sans-serif">You, Abroad</text>
+          <text x="0" y="62" textAnchor="middle" fontSize="11" fill={D} fillOpacity="0.45" fontFamily="'Plus Jakarta Sans', sans-serif">{t('landing.scenes.youAbroad')}</text>
         </g>
 
         {/* House — floats on 6s cycle */}
@@ -125,7 +128,7 @@ export default function HeroScene() {
         className="absolute right-[2%] top-[8%] flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.15)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-white whitespace-nowrap"
       >
         <CheckCircle2 className="size-3.5" />
-        Stage 3 Verified
+        {t('landing.scenes.stageVerified')}
       </motion.div>
 
       {/* Badge: Funds Held */}
@@ -135,7 +138,7 @@ export default function HeroScene() {
         className="absolute left-[24%] top-[62%] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-brand-near-black shadow-[0_4px_18px_rgba(0,0,0,0.15)] px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-medium text-white whitespace-nowrap"
       >
         <Lock className="size-3.5" />
-        $41K Held
+        {t('landing.scenes.fundsHeld')}
       </motion.div>
 
       {/* Badge: Evidence Uploaded */}
@@ -151,7 +154,7 @@ export default function HeroScene() {
         >
           <Camera className="size-3.5" />
         </motion.span>
-        Evidence Uploaded
+        {t('landing.scenes.evidenceUploaded')}
       </motion.div>
     </div>
   );

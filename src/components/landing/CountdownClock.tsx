@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n";
 
 export const LAUNCH_DATE = new Date("2026-09-03T00:00:00Z");
 
@@ -19,6 +20,7 @@ interface CountdownClockProps {
 
 export default function CountdownClock({ variant = "dark" }: CountdownClockProps) {
   const [time, setTime] = useState(getTimeLeft);
+  const t = useT();
 
   useEffect(() => {
     const interval = setInterval(() => setTime(getTimeLeft()), 1000);
@@ -26,10 +28,10 @@ export default function CountdownClock({ variant = "dark" }: CountdownClockProps
   }, []);
 
   const units = [
-    { value: time.days, label: "Days" },
-    { value: time.hours, label: "Hours" },
-    { value: time.minutes, label: "Mins" },
-    { value: time.seconds, label: "Secs" },
+    { value: time.days,    label: t('landing.countdown.days')  },
+    { value: time.hours,   label: t('landing.countdown.hours') },
+    { value: time.minutes, label: t('landing.countdown.mins')  },
+    { value: time.seconds, label: t('landing.countdown.secs')  },
   ];
 
   const cardClass =

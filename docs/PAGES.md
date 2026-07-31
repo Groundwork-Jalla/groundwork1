@@ -4,7 +4,7 @@ Every route in the app, what it renders, and what each section does.
 
 **Stack:** React 19 · React Router v7 (framework mode, SPA — `ssr: false`) · Tailwind v4 · Supabase · Framer Motion · Vercel
 
-**Route config:** [src/app/routes.ts](src/app/routes.ts) · **App dir:** `src/app` (set in [react-router.config.ts](react-router.config.ts))
+**Route config:** [src/app/routes.ts](../src/app/routes.ts) · **App dir:** `src/app` (set in [react-router.config.ts](../react-router.config.ts))
 
 **34 routes** across 6 groups, wrapped by 4 layouts and one root shell.
 
@@ -23,14 +23,14 @@ Every route in the app, what it renders, and what each section does.
 
 ---
 
-## 0. The Root Shell — [src/app/root.tsx](src/app/root.tsx)
+## 0. The Root Shell — [src/app/root.tsx](../src/app/root.tsx)
 
 Wraps every route in the app. Not a page itself.
 
 **`Layout` export** — the HTML document:
 - `<title>Groundwork by Jalla</title>`, viewport meta, favicon (SVG + ICO + apple-touch)
 - Google Fonts preconnect + stylesheet: **Plus Jakarta Sans** (400–900) and **Inter** (400–600)
-- **Anti-flash theme script** — a blocking inline script reads `localStorage.theme`, falls back to `prefers-color-scheme`, and stamps `.dark` on `<html>` *before first paint* ([root.tsx:39](src/app/root.tsx#L39))
+- **Anti-flash theme script** — a blocking inline script reads `localStorage.theme`, falls back to `prefers-color-scheme`, and stamps `.dark` on `<html>` *before first paint* ([root.tsx:39](../src/app/root.tsx#L39))
 - Google Analytics `gtag` snippet, injected only when `GA_ID` is set
 - **Skip-to-main-content** link — screen-reader-only until focused
 - `<ScrollRestoration />`, `<Scripts />`, Vercel `<Analytics />`
@@ -48,11 +48,11 @@ There is also a **second anti-flash script** that resolves the language before f
 # 1. Public Marketing Routes
 
 ## `/` — Landing Page
-[routes/landing.tsx](src/app/routes/landing.tsx) → [components/landing/LandingPage.tsx](src/components/landing/LandingPage.tsx)
+[routes/landing.tsx](../src/app/routes/landing.tsx) → [components/landing/LandingPage.tsx](../src/components/landing/LandingPage.tsx)
 
 The route file is a small wrapper that does two things: **if a session exists, redirect to `/dashboard`** (logged-in users never see the marketing page), and call **`useForceLight()`**.
 
-> **`useForceLight`** ([src/hooks/useForceLight.ts](src/hooks/useForceLight.ts)) strips `.dark` from `<html>` on mount and restores it on unmount if the user's stored preference was dark. It is applied to **`/`, `/community`, `/contractor-apply`, and `/pricing`** — those four pages are art-directed for a light background and now **always render light, regardless of the theme toggle**. The theme toggle is deliberately absent from their navs; the *language* toggle is present on all four.
+> **`useForceLight`** ([src/hooks/useForceLight.ts](../src/hooks/useForceLight.ts)) strips `.dark` from `<html>` on mount and restores it on unmount if the user's stored preference was dark. It is applied to **`/`, `/community`, `/contractor-apply`, and `/pricing`** — those four pages are art-directed for a light background and now **always render light, regardless of the theme toggle**. The theme toggle is deliberately absent from their navs; the *language* toggle is present on all four.
 
 `LandingPage` composes 12 components top to bottom:
 
@@ -74,11 +74,11 @@ The route file is a small wrapper that does two things: **if a session exists, r
 Wrapper uses `overflow-x-clip` to stop horizontal bleed from the animated scenes.
 
 ## `/contractor-apply` — Contractor Recruitment
-[routes/contractor-apply.tsx](src/app/routes/contractor-apply.tsx)
+[routes/contractor-apply.tsx](../src/app/routes/contractor-apply.tsx)
 
 A separate long-form sales page aimed at construction professionals, not homeowners. Own sticky **dark** nav (`bg-brand-near-black`) with light-variant logo, a segmented **EN|FR** toggle, and a "← Back to Home" link. Calls `useForceLight()`.
 
-Eleven sections from [components/contractor/](src/components/contractor/):
+Eleven sections from [components/contractor/](../src/components/contractor/):
 
 1. `ContractorHero` — "Founding Partner Application"
 2. `RealitySection` — "The system around you is broken." (labelled *THE PROBLEM*)
@@ -94,13 +94,13 @@ Eleven sections from [components/contractor/](src/components/contractor/):
 
 Footer is distinct from the main site: reads **"Jalla — THE FIRM"** rather than Groundwork branding. `BackToTop` included.
 
-### The GHL application form — [ContractorCTA.tsx](src/components/contractor/ContractorCTA.tsx)
+### The GHL application form — [ContractorCTA.tsx](../src/components/contractor/ContractorCTA.tsx)
 
 The only place in the app that embeds third-party content. Section header, a 4-item perks grid, and a pulsing "Apply as a Founding Partner" button that reveals the form on click and smooth-scrolls to it.
 
 The form is a **cross-origin `<iframe>`** served from `api.leadconnectorhq.com`, with GoHighLevel's `form_embed.js` injected into `<body>` only once the form is opened (and removed on unmount). Because it is a different origin, **its contents cannot be read, restyled, or translated by any code in this project** — same-origin policy forbids it.
 
-Language handling therefore works by **swapping which form is embedded**, configured in [src/lib/i18n/external-forms.ts](src/lib/i18n/external-forms.ts):
+Language handling therefore works by **swapping which form is embedded**, configured in [src/lib/i18n/external-forms.ts](../src/lib/i18n/external-forms.ts):
 - `GHL_CONTRACTOR_FORM` maps each language to a `{ id, height, fallback? }` config
 - The iframe is `key={lang}`, forcing a full remount on switch — GHL's embed script does not react to `src` changes in place
 - While a locale still points at another language's form (`fallback: true`), an **amber notice** renders above the iframe stating the form is English-only and that the team speaks French
@@ -108,7 +108,7 @@ Language handling therefore works by **swapping which form is embedded**, config
 Finishing this requires duplicating and translating the form inside the GHL dashboard, then pasting the new form ID into that config. The file carries step-by-step instructions in its header comment.
 
 ## `/community` — Waitlist Signup
-[routes/community.tsx](src/app/routes/community.tsx)
+[routes/community.tsx](../src/app/routes/community.tsx)
 
 **Split-screen, locked to viewport** (`h-dvh overflow-hidden`) — the page itself never scrolls. Calls `useForceLight()`.
 
@@ -127,7 +127,7 @@ Finishing this requires duplicating and translating the form inside the GHL dash
 **Success state** — `AnimatePresence` swap to a spring-scaled check circle, "You're in.", and a primary CTA to the Skool community at `skool.com/jalla-community-1888/about`.
 
 ## `/pricing` — Public Pricing
-[routes/pricing.tsx](src/app/routes/pricing.tsx)
+[routes/pricing.tsx](../src/app/routes/pricing.tsx)
 
 Own nav (logo + EN|FR toggle + "Log in" + "Get started") and own footer (Home / Community links). Calls `useForceLight()`.
 
@@ -148,7 +148,7 @@ CTAs: first two → `/auth/signup`; Management → `mailto:hello@tryjalla.com`.
 **Bottom CTA** — dark rounded panel, "Ready to track your build?" → `/auth/signup`.
 
 ## `/verify/:id` — Public Certificate Verification
-[routes/verify.tsx](src/app/routes/verify.tsx)
+[routes/verify.tsx](../src/app/routes/verify.tsx)
 
 The only page designed to be opened by a **third party** (bank, buyer, family member) with no account. Fetches via `getCertificate(id)` from the `certificates` table.
 
@@ -163,7 +163,7 @@ The only page designed to be opened by a **third party** (bank, buyer, family me
 # 2. Auth Routes — inside `_auth-layout.tsx`
 
 ## The Auth Layout
-[routes/_auth-layout.tsx](src/app/routes/_auth-layout.tsx)
+[routes/_auth-layout.tsx](../src/app/routes/_auth-layout.tsx)
 
 `h-dvh overflow-hidden`, `flex-col` on mobile → `flex-row` on desktop.
 
@@ -174,7 +174,7 @@ On **mobile** the whole left panel collapses to a compact inline header bar — 
 **Right panel** — white, scrollable, `max-w-sm` centred form slot with an **EN|FR toggle and a `ThemeToggle`** pinned top-right. Content fades and slides up on mount.
 
 ## `/auth/login`
-[routes/auth/login.tsx](src/app/routes/auth/login.tsx)
+[routes/auth/login.tsx](../src/app/routes/auth/login.tsx)
 
 H1 "Log in" / "Welcome back. Pick up where you left off."
 
@@ -183,10 +183,10 @@ H1 "Log in" / "Welcome back. Pick up where you left off."
 - "OR" divider → **Continue with Google** (`signInWithOAuth`, redirect `/auth/callback`)
 - Footer link to signup
 
-**Post-login routing logic** ([login.tsx:40-54](src/app/routes/auth/login.tsx#L40-L54)) — reads a pending invite token from either the `?invite=` param **or** `localStorage.pendingInvite`. If found, calls `acceptInvite(token)` and lands the user directly on `/projects/{id}`; a failed invite silently falls through. Otherwise: `onboarding_complete` metadata decides `/onboarding` vs `/dashboard`.
+**Post-login routing logic** ([login.tsx:40-54](../src/app/routes/auth/login.tsx#L40-L54)) — reads a pending invite token from either the `?invite=` param **or** `localStorage.pendingInvite`. If found, calls `acceptInvite(token)` and lands the user directly on `/projects/{id}`; a failed invite silently falls through. Otherwise: `onboarding_complete` metadata decides `/onboarding` vs `/dashboard`.
 
 ## `/auth/signup`
-[routes/auth/signup.tsx](src/app/routes/auth/signup.tsx)
+[routes/auth/signup.tsx](../src/app/routes/auth/signup.tsx)
 
 Two modes, switched by the presence of `?invite=`:
 
@@ -203,12 +203,12 @@ The invite token is written to `localStorage.pendingInvite` **before** `signUp` 
 **Two success paths** — if `data.session` exists (email confirmation disabled) it hard-navigates to `/auth/callback`; otherwise it renders the **"Check your email"** state with a `Mail` icon, the target address, and — in invite mode — an extra line promising direct delivery to the assigned project.
 
 ## `/auth/reset-password`
-[routes/auth/reset-password.tsx](src/app/routes/auth/reset-password.tsx)
+[routes/auth/reset-password.tsx](../src/app/routes/auth/reset-password.tsx)
 
 H1 "Reset password" / "We'll email you a link to get back in." Single email field → `resetPasswordForEmail` with `redirectTo: /auth/callback`. On success, swaps to a "Check your email" panel with the address echoed back and a "Back to login" link.
 
 ## `/auth/callback`
-[routes/auth/callback.tsx](src/app/routes/auth/callback.tsx)
+[routes/auth/callback.tsx](../src/app/routes/auth/callback.tsx)
 
 Not a visual page — a **routing hub**. Renders only "Signing you in…" or an error panel.
 
@@ -221,7 +221,7 @@ Logic:
 Handles three separate inbound flows: email confirmation, Google OAuth return, and password-reset links.
 
 ## `/onboarding`
-[routes/onboarding.tsx](src/app/routes/onboarding.tsx)
+[routes/onboarding.tsx](../src/app/routes/onboarding.tsx)
 
 A **single screen** despite the name. Eyebrow "Account setup", H1 "Welcome, {firstName}." (name on its own line), copy "Let's get your account ready. It takes 30 seconds.", and one "Get started" button.
 
@@ -230,7 +230,7 @@ Redirects straight to `/dashboard` if `onboarding_complete` is already set.
 Pressing the button writes `{ tier: 'self_verify', onboarding_complete: true }` to user metadata, fires `trackEvent('tier_selected')`, and navigates to the dashboard. **There is no plan-selection screen here** — the tier is silently defaulted to free, and the real plan choice happens later, at wizard Step 10.
 
 ## `/invite/:token`
-[routes/invite.tsx](src/app/routes/invite.tsx)
+[routes/invite.tsx](../src/app/routes/invite.tsx)
 
 Contractor invite landing page. Fetches `getInviteByToken(token)`.
 
@@ -247,24 +247,24 @@ Contractor invite landing page. Fetches `getInviteByToken(token)`.
 # 3. Project Creation Wizard
 
 ## `/projects/new`
-[routes/projects/new.tsx](src/app/routes/projects/new.tsx)
+[routes/projects/new.tsx](../src/app/routes/projects/new.tsx)
 
 Registered **outside** the sidebar layout so `WizardShell` owns the whole viewport. Guards on session (spinner, then redirect to login), then mounts `WizardProvider` → `WizardRouter`, which indexes a flat 10-element array of step components by `step - 1`.
 
-### Wizard state — [contexts/WizardContext.tsx](src/contexts/WizardContext.tsx)
+### Wizard state — [contexts/WizardContext.tsx](../src/contexts/WizardContext.tsx)
 
 Holds `step`, `direction` ('forward' | 'back' — drives slide direction), `data` (`WizardFormData`), plus `constructionRate` and `rateLoading`. Exposes `update` (shallow patch), `next`, `back`, `goTo`, `reset`.
 
 A `useEffect` watches `data.country` and refetches `getConstructionRate(country)` whenever it changes, with a `cancelled` flag to drop stale responses. `TOTAL_STEPS = 10`.
 
-### Wizard chrome — [components/wizard/WizardShell.tsx](src/components/wizard/WizardShell.tsx)
+### Wizard chrome — [components/wizard/WizardShell.tsx](../src/components/wizard/WizardShell.tsx)
 
 Full-height two-pane frame reused by all 10 steps:
 
 - **Header** — logo (links to `/dashboard`), mobile-only `ProgressBar`, the compact **`LanguageToggle`**, `ThemeToggle`, and a Back button that becomes "← Cancel" on step 1
 - **Main** — `max-w-lg` centred, with `AnimatePresence mode="wait"` sliding steps ±32px horizontally based on `direction`
 - **Footer** — right-aligned Continue button; label, disabled state, and spinner are all controlled by props (`canContinue`, `continueLabel`, `isSubmitting`, `hideContinue`)
-- **Right aside (desktop only, 50%)** — `ProgressBar` over a live [`BuildingPreview`](src/components/wizard/BuildingPreview.tsx) (1,149 lines) that redraws the building as answers change
+- **Right aside (desktop only, 50%)** — `ProgressBar` over a live [`BuildingPreview`](../src/components/wizard/BuildingPreview.tsx) (1,149 lines) that redraws the building as answers change
 
 ### The 10 steps
 
@@ -281,7 +281,7 @@ Full-height two-pane frame reused by all 10 steps:
 | 9 | `Step9Summary` | "Your project at a glance" | Read-only review. See below. |
 | 10 | `Step10PlanSelection` | "Choose your plan" | Three `TierCard`s (Self Verify free / Jalla Verify $199-mo, "Most popular" / Jalla Management custom) with a selected-plan confirmation strip. **Continue reads "Create Project"** and calls `calculateBudget` → `createProject(user.id, data, budget)` → `reset()` → navigate to `/projects/{id}`. Errors surface inline and re-enable the button. |
 
-**Step 8's sqm estimator** ([Step8Details.tsx:30-67](src/components/wizard/steps/Step8Details.tsx#L30-L67)) — aggregates room counts across floors, applies benchmark areas (bed 14 m², bath 5.5, living 26, kitchen 13), multiplies by **1.22 for circulation** (corridors, landings, stairs, wall thickness), then applies a building-type multiplier (multi-family 0.88 · townhouse 0.92 · semi-detached 0.95 · office 1.40 · retail 1.20). Produces a typical figure rounded to 5 m², plus a −20% / +30% range and a natural-language label like *"4-bedroom 2-storey house"*. Renders as a `Lightbulb` hint card with a range bar, a typical-value marker, a live indicator of the user's own entry, and a one-click **"Use {n} sqm as my estimate"**.
+**Step 8's sqm estimator** ([Step8Details.tsx:30-67](../src/components/wizard/steps/Step8Details.tsx#L30-L67)) — aggregates room counts across floors, applies benchmark areas (bed 14 m², bath 5.5, living 26, kitchen 13), multiplies by **1.22 for circulation** (corridors, landings, stairs, wall thickness), then applies a building-type multiplier (multi-family 0.88 · townhouse 0.92 · semi-detached 0.95 · office 1.40 · retail 1.20). Produces a typical figure rounded to 5 m², plus a −20% / +30% range and a natural-language label like *"4-bedroom 2-storey house"*. Renders as a `Lightbulb` hint card with a range bar, a typical-value marker, a live indicator of the user's own entry, and a one-click **"Use {n} sqm as my estimate"**.
 
 **Step 9's three blocks:**
 1. **Summary grid** — five labelled rows: Location · Type (project · building) · Scale (floors · sqm · beds · baths · BQ count) · Roof · Finish
@@ -293,7 +293,7 @@ Full-height two-pane frame reused by all 10 steps:
 # 4. Protected App — inside `_layout.tsx`
 
 ## The Protected Layout
-[routes/_layout.tsx](src/app/routes/_layout.tsx)
+[routes/_layout.tsx](../src/app/routes/_layout.tsx)
 
 Guards on session — spinner while loading, `navigate('/auth/login')` when absent.
 
@@ -314,7 +314,7 @@ Active items get `bg-brand-near-black text-white`. Footer holds a profile link w
 **Mobile bottom tab bar** — first 5 nav items only, with "My Projects" relabelled to just "Projects" and a thicker stroke on the active icon.
 
 ## `/dashboard`
-[routes/dashboard.tsx](src/app/routes/dashboard.tsx) — ~1,100 lines, the densest page in the app
+[routes/dashboard.tsx](../src/app/routes/dashboard.tsx) — ~1,100 lines, the densest page in the app
 
 **Data** — `fetchProjects(user.id)`, or `fetchContractorProjects(user.id)` when `user_metadata.role === 'contractor'`. Once projects load, a follow-up query sums `payment_milestone_usd` across all stages with `payment_status = 'paid'` to produce **Total Paid**. A separate effect fetches `project_stages` for the single "active project", chosen as the most recently updated `status === 'active'` project, falling back to `projects[0]`.
 
@@ -339,7 +339,7 @@ Sections top to bottom:
 7. **Recent Projects** — up to 4 `ProjectCard`s (`xl:grid-cols-4`) with "View all →". Each card: tier chip, status pill with coloured dot, name, building type + location, stage progress bar, estimated budget, and an "Open" affordance. Loading shows 3 skeletons; empty shows **`EmptyBuilds`**, a dashed dropzone-style panel with a floating `HardHat` (infinite 2.8s y-oscillation) and a "Create a build" CTA. Contractors get a plain "No assigned builds yet" note instead.
 
 ## `/projects`
-[routes/projects/index.tsx](src/app/routes/projects/index.tsx)
+[routes/projects/index.tsx](../src/app/routes/projects/index.tsx)
 
 Header "My Builds" + total count, and a "New Build" button (hidden for contractors and at the Starter cap).
 
@@ -349,7 +349,7 @@ Header "My Builds" + total count, and a "New Build" button (hidden for contracto
 - **Empty state** — the floating-`HardHat` panel; contractors instead get "No builds in this category yet."
 
 ## `/projects/:id` — Project Detail
-[routes/projects/detail.tsx](src/app/routes/projects/detail.tsx) — the deepest page in the app
+[routes/projects/detail.tsx](../src/app/routes/projects/detail.tsx) — the deepest page in the app
 
 **Data** — three parallel fetches: `fetchProject`, `fetchProjectStages`, `fetchProjectSubstages`. Error → "Project not found." with a link back.
 
@@ -357,14 +357,14 @@ Header "My Builds" + total count, and a "New Build" button (hidden for contracto
 
 ### ⚠️ The pre-tracking gate
 
-A project now has **two lifecycle states**, keyed off `project.tracking_started_at` ([migration 018](supabase/migrations/018_project_tracking.sql)):
+A project now has **two lifecycle states**, keyed off `project.tracking_started_at` ([migration 018](../supabase/migrations/018_project_tracking.sql)):
 
 | State | `tracking_started_at` | Header pill | Body |
 |---|---|---|---|
 | **Planning** | `NULL` | amber | `StartTrackingGate` — **the entire tab bar is hidden** |
 | **Tracking** | timestamp | green "Live" | the 7-tab interface below |
 
-**`StartTrackingGate`** ([src/components/project/StartTrackingGate.tsx](src/components/project/StartTrackingGate.tsx)) is a single centred card, "Confirm your budget to start tracking", explaining that the wizard figure was only a planning estimate and the owner should now enter the budget actually agreed with their contractor. It contains:
+**`StartTrackingGate`** ([src/components/project/StartTrackingGate.tsx](../src/components/project/StartTrackingGate.tsx)) is a single centred card, "Confirm your budget to start tracking", explaining that the wizard figure was only a planning estimate and the owner should now enter the budget actually agreed with their contractor. It contains:
 - The **wizard estimate**, read-only, in a muted panel
 - A **final budget** input with a `$` prefix and live thousands-separator formatting
 - A **side-by-side comparison** that animates open only when the figure differs — struck-through estimate vs bordered final, plus an amber (higher) or green (lower) delta strip showing the absolute and percentage difference
@@ -377,11 +377,11 @@ Confirming calls the `start_project_tracking` RPC, which is owner-guarded, idemp
 - **Owner** — Overview · Stages · Costing · Timeline · Payments · Documents · Messages
 - **Contractor** — Stages · Messages only
 
-Mutations are handled optimistically in the page and passed down as callbacks. `renderEvidenceUpload` is a **render prop** used specifically to hand `EvidenceUpload` down to `SubstageRow` without a circular import ([detail.tsx:198-220](src/app/routes/projects/detail.tsx#L198-L220)).
+Mutations are handled optimistically in the page and passed down as callbacks. `renderEvidenceUpload` is a **render prop** used specifically to hand `EvidenceUpload` down to `SubstageRow` without a circular import ([detail.tsx:198-220](../src/app/routes/projects/detail.tsx#L198-L220)).
 
 Every tab except Overview appends a `<RelatedGuides tab="…" />` block.
 
-### Tab: Overview — [OverviewTab.tsx](src/components/project/OverviewTab.tsx) (1,102 lines)
+### Tab: Overview — [OverviewTab.tsx](../src/components/project/OverviewTab.tsx) (1,102 lines)
 
 Two columns (`lg:grid-cols-[1fr_300px]`).
 
@@ -402,7 +402,7 @@ Two columns (`lg:grid-cols-[1fr_300px]`).
 
 **Three explainer modals** (`AnimatePresence`) exist purely to justify the numbers: `BudgetBreakdownModal` (step-by-step with numbered `StepBadge`s and `FormulaBox`es), `PaymentBreakdownModal`, and `StageProgressModal`.
 
-### Tab: Stages — [StageTracker.tsx](src/components/project/StageTracker.tsx)
+### Tab: Stages — [StageTracker.tsx](../src/components/project/StageTracker.tsx)
 
 For owners, a `ContractorInvite` panel sits above the tracker.
 
@@ -419,7 +419,7 @@ For owners, a `ContractorInvite` panel sits above the tracker.
 
 `StageCertificateModal` is `lazy()`-loaded so the certificate HTML stays out of the main bundle.
 
-### Tab: Costing — [BudgetView.tsx](src/components/project/BudgetView.tsx)
+### Tab: Costing — [BudgetView.tsx](../src/components/project/BudgetView.tsx)
 
 Five stacked sections:
 1. **Budget Estimate card** — the total in 3xl black type, an "USD · indicative" note, a **PDF export button** (`exportBudgetPDF` via jsPDF), animated per-trade `OverviewBar`s, and a disclaimer
@@ -428,11 +428,11 @@ Five stacked sections:
 4. **Stage Breakdown** — one `StageBar` per stage
 5. **Payment Timeline** — vertical dot-and-connector timeline; connector turns green behind completed stages. Each entry is colour-coded by state: green *"released"* (with completion date), blue *"held · in progress"*, amber *"awaiting approval"*, grey *"locked"*
 
-### Tab: Timeline — [TimelineTab.tsx](src/components/project/TimelineTab.tsx)
+### Tab: Timeline — [TimelineTab.tsx](../src/components/project/TimelineTab.tsx)
 
 "Project Timeline" with **two switchable views**: `ListView` and `GanttView`. `computeTimeline` derives per-stage start/end dates from the project start plus per-stage durations. Status pills and month/year headers throughout.
 
-### Tab: Payments — [ProjectPayments.tsx](src/components/project/ProjectPayments.tsx)
+### Tab: Payments — [ProjectPayments.tsx](../src/components/project/ProjectPayments.tsx)
 
 > Replaces the older `PaymentsTab`, which still exists in the tree but is **no longer rendered by `detail.tsx`**.
 
@@ -451,16 +451,16 @@ A two-view container with a segmented **Wallet | History** switch and an "Upgrad
 
 All four carry preview disclaimers — see [Payments status](#payments-status-stripe--switchr) below.
 
-### Tab: Documents — [DocumentVault.tsx](src/components/project/DocumentVault.tsx)
+### Tab: Documents — [DocumentVault.tsx](../src/components/project/DocumentVault.tsx)
 
 Per-project file cabinet. **25 MB per-file cap.** Upload flow opens a `CategorySelectModal` to tag the file before it lands. Documents group into ordered categories with counts, filterable by category. Desktop renders table-style rows (`DesktopDocRow`), mobile renders cards (`MobileDocCard`); both offer download and a confirm-gated delete. Includes an upload `ProgressBar`, skeleton rows, and per-filter empty states.
 
-### Tab: Messages — [ProjectChat.tsx](src/components/project/ProjectChat.tsx)
+### Tab: Messages — [ProjectChat.tsx](../src/components/project/ProjectChat.tsx)
 
 Realtime chat between owner and invited contractors. Fetches history on mount, then `subscribeToMessages(projectId, cb)` for live inserts. `MessageBubble` distinguishes own vs other messages and shows the sender name only when it changes between consecutive messages. Has a `MessageSkeleton` loading state.
 
 ## `/documents` — Cross-Project Document Hub
-[routes/documents.tsx](src/app/routes/documents.tsx)
+[routes/documents.tsx](../src/app/routes/documents.tsx)
 
 Distinct from a project's Documents tab: this aggregates across **all** builds. Header "Documents" / "Certificates and evidence across all your builds".
 
@@ -468,14 +468,14 @@ Distinct from a project's Documents tab: this aggregates across **all** builds. 
 
 **Certificates** — queries `certificates` for all owned project IDs. Each `CertCard` shows a black `Award` tile, a green "Verified" badge, `Stage {n}`, the stage name, the project name, "Issued to {name}", the issue date, and a **Download PDF** button plus an external-link button to `/verify/{id}`. When `pdf_url` is null the button becomes a disabled "PDF generating…". If the query errors, an amber banner reads *"Certificates table not yet set up. Apply migration 014 to enable this feature."*
 
-**Evidence** — a two-hop query (`project_stages` → `project_substages`) that counts `evidence_urls` per stage. Renders a black summary banner ("N evidence files across M projects"), then one card per project with a header row and file/stage counts, and inside it one `EvidenceRow` per stage linking into the project. Stage names come from a **hardcoded 10-name array** in this file ([documents.tsx:206-210](src/app/routes/documents.tsx#L206-L210)): Land Secured, Design Completed, Site Preparation, Foundation, Structure & Walls, Roofing, Electrical & Plumbing, Finishing, Exterior Work, Final Handover.
+**Evidence** — a two-hop query (`project_stages` → `project_substages`) that counts `evidence_urls` per stage. Renders a black summary banner ("N evidence files across M projects"), then one card per project with a header row and file/stage counts, and inside it one `EvidenceRow` per stage linking into the project. Stage names come from a **hardcoded 10-name array** in this file ([documents.tsx:206-210](../src/app/routes/documents.tsx#L206-L210)): Land Secured, Design Completed, Site Preparation, Foundation, Structure & Walls, Roofing, Electrical & Plumbing, Finishing, Exterior Work, Final Handover.
 
 Both tabs have dashed-border empty states explaining how the content gets created.
 
 ## `/resources` — Resource Library
-[routes/resources.tsx](src/app/routes/resources.tsx)
+[routes/resources.tsx](../src/app/routes/resources.tsx)
 
-Reads from the **static** [src/lib/resources-data.ts](src/lib/resources-data.ts) — **14 resources**, no database call.
+Reads from the **static** [src/lib/resources-data.ts](../src/lib/resources-data.ts) — **14 resources**, no database call.
 
 **Two rows of filter pills**, both client-side:
 - **Category** — All / Guides / Checklists / Legal & Finance / Videos (each mapped to an icon: `BookOpen`, `CheckSquare`, `Scale`, `Video`)
@@ -490,7 +490,7 @@ Reads from the **static** [src/lib/resources-data.ts](src/lib/resources-data.ts)
 The 14 slugs: `how-to-read-a-bq`, `hiring-a-contractor`, `understanding-build-stages`, `diaspora-builders-checklist`, `site-visit-checklist`, `stage-approval-checklist`, `foundation-inspection-checklist`, `contractor-payment-template`, `title-deed-verification`, `building-permit-process`, `currency-transfer-tips`, `groundwork-walkthrough`, `reading-site-evidence`, `roof-types-explained`.
 
 ## `/resources/:slug` — Resource Article
-[routes/resources.detail.tsx](src/app/routes/resources.detail.tsx)
+[routes/resources.detail.tsx](../src/app/routes/resources.detail.tsx)
 
 Finds the resource in the static array by slug; renders a "Resource not found" panel with a back link if absent.
 
@@ -499,7 +499,7 @@ Layout is `lg:grid-cols-[1fr_272px]`:
 - **Sidebar** (sticky, only when related items exist) — "Related {category}" with up to 3 same-category links
 
 ## `/contractors` — Contractor Directory
-[routes/contractors.tsx](src/app/routes/contractors.tsx)
+[routes/contractors.tsx](../src/app/routes/contractors.tsx)
 
 Header "Contractor Directory" / "Verified professionals for your build". Queries `contractors` where `active = true`, ordered by `verified` then `rating` descending.
 
@@ -507,7 +507,7 @@ Header "Contractor Directory" / "Verified professionals for your build". Queries
 
 **`ContractorCard`** — initials avatar, name, trade, a green "Verified" badge, location, `StarRating` (rating to one decimal + review count), a two-line bio clamp, and a stats row (years Experience / completed Projects).
 
-**Tier gating is the point of this page** ([contractors.tsx:75-133](src/app/routes/contractors.tsx#L75-L133)). Plan comes from `user_metadata.tier`, coerced into `'starter' | 'pro' | 'enterprise'`:
+**Tier gating is the point of this page** ([contractors.tsx:75-133](../src/app/routes/contractors.tsx#L75-L133)). Plan comes from `user_metadata.tier`, coerced into `'starter' | 'pro' | 'enterprise'`:
 - **Pro / Enterprise** — real phone, email, and a WhatsApp deep link (`wa.me/…`)
 - **Starter** — fake contact chips rendered **`blur-sm`, `select-none`, `pointer-events-none`, `aria-hidden`**, with a black **"Unlock with Pro"** lock badge absolutely positioned over them
 
@@ -518,7 +518,7 @@ Header "Contractor Directory" / "Verified professionals for your build". Queries
 > Note: this page still uses the **legacy** `starter`/`pro`/`enterprise` tier vocabulary, not `self_verify`/`jalla_verify`/`jalla_management`.
 
 ## `/payments` — Finances
-[routes/payments.tsx](src/app/routes/payments.tsx)
+[routes/payments.tsx](../src/app/routes/payments.tsx)
 
 Header "Finances" / "Budget overview across all your builds" with an **Export CSV** button (disabled when empty).
 
@@ -528,13 +528,13 @@ Header "Finances" / "Budget overview across all your builds" with an **Export CS
 
 **Per-build breakdown** — one row per project: name (links to the project), location, total budget, a **Record** button, then "Est. spent: $X" with a "Z% used" figure over a nested double bar (outer width = this project's share of the largest budget, inner = spend within it).
 
-**CSV export** is fully client-side ([payments.tsx:263-290](src/app/routes/payments.tsx#L263-L290)) — builds `Project,Location,Total Budget (USD),Est. Spent (USD),Completion %`, escapes commas by quoting, and triggers a Blob download named `groundwork-finances.csv`.
+**CSV export** is fully client-side ([payments.tsx:263-290](../src/app/routes/payments.tsx#L263-L290)) — builds `Project,Location,Total Budget (USD),Est. Spent (USD),Completion %`, escapes commas by quoting, and triggers a Blob download named `groundwork-finances.csv`.
 
 **`RecordPaymentModal`** — amount, method, note; labelled *"Coming soon — this records locally for your tracking."* Success fires a bottom-centred `Toast` that self-dismisses after 3s.
 
 ## `/upgrade` — Plan Selection
 
-[routes/upgrade.tsx](src/app/routes/upgrade.tsx) → [components/payments/UpgradeScreen.tsx](src/components/payments/UpgradeScreen.tsx)
+[routes/upgrade.tsx](../src/app/routes/upgrade.tsx) → [components/payments/UpgradeScreen.tsx](../src/components/payments/UpgradeScreen.tsx)
 
 The route file is a 9-line wrapper; all the substance is in `UpgradeScreen`. Registered inside the protected sidebar layout, but **absent from the sidebar nav** — reached from the "Upgrade plan →" link on a project's Payments tab, or by direct URL. The layout's page title resolves to "Upgrade Plan".
 
@@ -542,7 +542,7 @@ The route file is a 9-line wrapper; all the substance is in `UpgradeScreen`. Reg
 
 **Revealed plan card** — animates on every switch (`AnimatePresence` keyed on selection). Shows an optional "MOST POPULAR" sparkle tag, the price in 5xl black type with its period, the plan name and description, then a green-check feature list. The CTA is disabled and reads **"Your current plan"** when it matches the viewer's tier. Selecting Jalla Verify appends "Cancel anytime. Downgrade at end of billing period."
 
-All copy, pricing, fees, and features come from **[src/lib/payments/config.ts](src/lib/payments/config.ts)** rather than being hardcoded — see below.
+All copy, pricing, fees, and features come from **[src/lib/payments/config.ts](../src/lib/payments/config.ts)** rather than being hardcoded — see below.
 
 ### The billing config
 
@@ -559,7 +559,7 @@ Also exports `STRIPE_PROCESSING_PCT` (2.9%, display-only), `FALLBACK_FX` (XAF @ 
 **`PAYMENTS_ARE_PREVIEW = true`** gates every disclaimer in the payments UI. The file's header comment states plainly that these numbers are placeholders pending confirmation.
 
 ## `/notifications`
-[routes/notifications.tsx](src/app/routes/notifications.tsx)
+[routes/notifications.tsx](../src/app/routes/notifications.tsx)
 
 Header shows "N unread" or "All caught up", plus a **Mark all read** button (bulk update where `read = false`).
 
@@ -574,7 +574,7 @@ Header shows "N unread" or "All caught up", plus a **Mark all read** button (bul
 **States** — 4 skeleton rows; a dashed empty panel whose copy changes between "No notifications yet" (with an explanation of what triggers them) and "Nothing here" for an over-narrow filter.
 
 ## `/profile` — Settings
-[routes/profile.tsx](src/app/routes/profile.tsx) — 1,006 lines
+[routes/profile.tsx](../src/app/routes/profile.tsx) — 1,006 lines
 
 Reached from the sidebar item labelled **"Settings"**. Header is an initials avatar + display name + email. **Five tabs**, animated with `AnimatePresence`; the Danger tab's label turns red on hover and when active.
 
@@ -595,14 +595,14 @@ Five `ToggleSwitch` rows persisted to user metadata via an effect:
 ### Tab: Subscription
 "Your plan" with the current tier resolved for display, then three plan cards. The current plan is marked "Current plan"; the others show an "Upgrade →" link.
 
-> This tab reads tier values `'free'`, `'jalla_verified'`, and `'enterprise'` ([profile.tsx:414](src/app/routes/profile.tsx#L414), 800–910) — a **third** naming scheme, matching neither `ProjectTier` nor the `starter`/`pro` legacy set used on `/contractors`.
+> This tab reads tier values `'free'`, `'jalla_verified'`, and `'enterprise'` ([profile.tsx:414](../src/app/routes/profile.tsx#L414), 800–910) — a **third** naming scheme, matching neither `ProjectTier` nor the `starter`/`pro` legacy set used on `/contractors`.
 
 ### Tab: Danger
 - **Export your data** — `handleDataExport`
 - **Delete account** — two-step: reveals a confirm box requiring the user to type **`DELETE`** before the red destructive button enables
 
 ## `/help` — Help & Support
-[routes/help.tsx](src/app/routes/help.tsx)
+[routes/help.tsx](../src/app/routes/help.tsx)
 
 H1 "Help & Support" / "Everything you need to build with confidence".
 
@@ -630,12 +630,12 @@ H1 "Help & Support" / "Everything you need to build with confidence".
 Ungated lead-generation tools. No auth, no sidebar.
 
 ## The Tools Layout
-[routes/tools/_tools-layout.tsx](src/app/routes/tools/_tools-layout.tsx)
+[routes/tools/_tools-layout.tsx](../src/app/routes/tools/_tools-layout.tsx)
 
 Slim sticky `backdrop-blur` header: logo → `/` , a `/` separator, then "Free Tools" → `/tools`. Right side has a "Sign in" link (hidden on mobile), the segmented **EN|FR toggle**, and the `ThemeToggle`. Footer reads "Groundwork by Jalla · Free planning tools for African construction" with Tools / Pricing / Create account links.
 
 ## `/tools`
-[routes/tools/index.tsx](src/app/routes/tools/index.tsx)
+[routes/tools/index.tsx](../src/app/routes/tools/index.tsx)
 
 Hero: "Free Planning Tools" eyebrow, H1 "Build smarter, / before you break ground.", subtitle "Four free tools for African homebuilders. No account required — just open and use."
 
@@ -648,7 +648,7 @@ Four cards (`sm:grid-cols-2`), each with an icon tile, title, description, and a
 Closing CTA strip: "Want the full picture?" → `/auth/signup`.
 
 ## `/tools/budget` — Build Budget Calculator
-[routes/tools/budget.tsx](src/app/routes/tools/budget.tsx)
+[routes/tools/budget.tsx](../src/app/routes/tools/budget.tsx)
 
 Two-column (`lg:grid-cols-[1fr_360px]`).
 
@@ -657,7 +657,7 @@ Two-column (`lg:grid-cols-[1fr_360px]`).
 **Right — sticky result panel:** the total in 4xl black type, a context line (`{sqm} sqm · {n} floors · {finish}`), then one bar per budget slice with its label, proportional fill, and dollar figure. Disclaimer: "Indicative only. Actual costs vary by site, contractor, and local market." Below it a conversion card → `/auth/signup`.
 
 ## `/tools/stages` — Construction Stage Planner
-[routes/tools/stages.tsx](src/app/routes/tools/stages.tsx)
+[routes/tools/stages.tsx](../src/app/routes/tools/stages.tsx)
 
 Reads the canonical pipeline via `getStageSeed('residential', 'single_family', 1)`.
 
@@ -665,7 +665,7 @@ Reads the canonical pipeline via `getStageSeed('residential', 'single_family', 1
 - **Accordion list** (stage 1 open by default) — numbered badge that inverts when open, stage name, duration from `STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7]` (note stage 5 dominates at 70 days), and expandable substages plus a payment note from `PAYMENT_NOTE` ("Pay before work begins" → "Pay on handover")
 
 ## `/tools/milestones` — Payment Milestone Generator
-[routes/tools/milestones.tsx](src/app/routes/tools/milestones.tsx)
+[routes/tools/milestones.tsx](../src/app/routes/tools/milestones.tsx)
 
 **Inputs** — Total Budget in USD (10,000–5,000,000, step 1,000, default 100,000) and Country.
 
@@ -674,7 +674,7 @@ Splits the budget across the 10 stages by `budget_pct`, attaching each stage's d
 **Print-optimised** — `print:hidden` on the header and inputs, `print:px-0 print:py-4` on the container, and a `window.print()` button, so the generated schedule can be handed to a contractor on paper.
 
 ## `/tools/tracker` — DIY Project Tracker
-[routes/tools/tracker.tsx](src/app/routes/tools/tracker.tsx)
+[routes/tools/tracker.tsx](../src/app/routes/tools/tracker.tsx)
 
 An **offline, account-free** tracker. State (`projectName`, `startDate`, per-stage `notes`, per-substage `checked`) persists to `localStorage` under `gw_tracker`, hydrated in an effect so it stays SSR-safe and saved on every change.
 
@@ -689,14 +689,14 @@ An **offline, account-free** tracker. State (`projectName`, `startDate`, per-sta
 # 6. Admin Panel — inside `admin/_admin-layout.tsx`
 
 ## The Admin Layout
-[routes/admin/_admin-layout.tsx](src/app/routes/admin/_admin-layout.tsx)
+[routes/admin/_admin-layout.tsx](../src/app/routes/admin/_admin-layout.tsx)
 
 **Double-guarded**: no session → `/auth/login`; session but `user_metadata.role !== 'admin'` → `/dashboard`. Renders a spinner until both checks pass, so non-admins never see a frame of admin UI.
 
 Its own `w-56` sidebar (logo with a small "Admin" subtitle) with 5 links — Overview · Reviews · Projects · Users · Contractors — plus a footer showing the admin's name, the **`LanguageToggle`**, and a log-out button. No mobile drawer; this panel is desktop-oriented.
 
 ## `/admin` — Overview
-[routes/admin/index.tsx](src/app/routes/admin/index.tsx)
+[routes/admin/index.tsx](../src/app/routes/admin/index.tsx)
 
 Four clickable `StatCard`s, each a link into the matching section, populated by parallel `count: 'exact', head: true` queries:
 
@@ -710,7 +710,7 @@ Four clickable `StatCard`s, each a link into the matching section, populated by 
 The contractors query is wrapped in `try/catch` with the comment *"contractors table may not exist"*, so the page degrades rather than crashing.
 
 ## `/admin/reviews` — Stage Review Queue
-[routes/admin/reviews.tsx](src/app/routes/admin/reviews.tsx) — the operational heart of the Jalla Verify tier
+[routes/admin/reviews.tsx](../src/app/routes/admin/reviews.tsx) — the operational heart of the Jalla Verify tier
 
 Lists stages in `pending_review`, each carrying its project name, owner name and email, submission time, and its substages with evidence.
 
@@ -719,7 +719,7 @@ Lists stages in `pending_review`, each carrying its project name, owner name and
 - **Request changes** → `ReworkModal`, a textarea ("Describe the required changes...") whose Send button stays disabled until non-empty; calls `adminRequestRework`. Copy: *"Explain what needs to be corrected. The homeowner will be notified."*
 
 ## `/admin/projects` — All Projects
-[routes/admin/projects.tsx](src/app/routes/admin/projects.tsx)
+[routes/admin/projects.tsx](../src/app/routes/admin/projects.tsx)
 
 Header with a total count and a search box filtering on project name, owner email, or owner name.
 
@@ -728,14 +728,14 @@ Table columns: **Project · Owner** (name with email as `title`) **· Tier** (ma
 Empty result shows `No projects match "{query}"`.
 
 ## `/admin/users` — All Users
-[routes/admin/users.tsx](src/app/routes/admin/users.tsx)
+[routes/admin/users.tsx](../src/app/routes/admin/users.tsx)
 
 Reads `profiles` ordered newest first. Search filters on email or full name.
 
 Columns: **Name · Email · Role** (coloured pill — admin purple, contractor blue, homeowner green, defaulting to homeowner) **· Plan** (via `TIER_LABELS`, again dual-vocabulary) **· Joined ·** truncated 8-char monospace user ID.
 
 ## `/admin/contractors` — Contractor Applications
-[routes/admin/contractors.tsx](src/app/routes/admin/contractors.tsx)
+[routes/admin/contractors.tsx](../src/app/routes/admin/contractors.tsx)
 
 Header shows "{n} pending · {m} total". Search filters on name, email, or trade.
 
@@ -747,7 +747,7 @@ The list is **split into pending and everything else** so the actionable queue s
 
 # Appendix: Cross-Cutting Notes
 
-**Auth** — [contexts/AuthContext.tsx](src/contexts/AuthContext.tsx) exposes `{ user, session, loading, signOut }`. Every guard follows the same shape: wait on `loading`, then redirect. Roles live in `user_metadata.role` (`admin` / `contractor` / default homeowner) and tier in `user_metadata.tier`.
+**Auth** — [contexts/AuthContext.tsx](../src/contexts/AuthContext.tsx) exposes `{ user, session, loading, signOut }`. Every guard follows the same shape: wait on `loading`, then redirect. Roles live in `user_metadata.role` (`admin` / `contractor` / default homeowner) and tier in `user_metadata.tier`.
 
 **Contractor view** — not a separate route tree. `/dashboard`, `/projects`, `/payments`, and `/projects/:id` all branch internally on `role === 'contractor'`, swapping the data loader to `fetchContractorProjects` and hiding creation actions. On `/projects/:id` it also cuts the tab bar from 7 tabs to 2.
 
@@ -761,7 +761,7 @@ The list is **split into pending and everything else** so the actionable queue s
 
 **Design system** — greyscale brand tokens (`brand-near-black`, `brand-off-white`, `brand-mid-grey`, `brand-border-grey`, `brand-light-grey`) with semantic colour reserved for status only: green = complete/paid, blue = active, amber = pending review/outstanding, red = destructive. Cards are `rounded-2xl border`; inner cards `rounded-xl`.
 
-**Dark mode** is retrofitted with **229 hardcoded hex values** (`dark:bg-[#1e1e1e]`, `dark:border-[#2c2c2c]`, `dark:bg-[#111]`) across 27 files rather than tokens — heaviest in `OverviewTab` (51), `profile` (25), and `payments` (20). Shades are inconsistent between files.
+**Dark mode** is retrofitted with **~350 hardcoded hex values** (`dark:bg-[#1e1e1e]`, `dark:border-[#2c2c2c]`, `dark:bg-[#111]`) across 27 files rather than tokens — heaviest in `OverviewTab` (51), `profile` (25), and `payments` (20). Shades are inconsistent between files.
 
 **Illustration approach** — no image assets for structural art. Every blueprint, floor plan, building type, and roof type is a hand-authored inline SVG, which is why files like `Step3BuildingType.tsx` (313 lines) and `BuildingPreview.tsx` (1,149 lines) are so large.
 
@@ -778,7 +778,7 @@ The payments **UI is fully built**; the **rails are not connected yet**.
 | **Stripe** | Card charge + escrow hold on the diaspora payer's side | API key almost ready — billing goes live once connected |
 | **Switchr** | Mobile-money payout to contractors on the XAF/FCFA corridor (Cameroon) | Not yet live |
 
-Everything is gated behind **`PAYMENTS_ARE_PREVIEW`** in [config.ts](src/lib/payments/config.ts), and the disclaimers appear in six places:
+Everything is gated behind **`PAYMENTS_ARE_PREVIEW`** in [config.ts](../src/lib/payments/config.ts), and the disclaimers appear in six places:
 
 | Surface | Copy |
 |---|---|
@@ -799,7 +799,7 @@ What is **real** today: the per-stage `payment_status` field (`unpaid` / `partia
 
 The app is **bilingual English / French**, built for the Cameroonian market where most users are francophone.
 
-**Core** — [src/lib/i18n/](src/lib/i18n/): `types.ts` (the `Lang` union, `LANG_META`, and a recursive `DeepKeys` type), `en.ts` (source of truth), `fr.ts`, `index.tsx` (provider + hooks), `external-forms.ts` (GHL config).
+**Core** — [src/lib/i18n/](../src/lib/i18n/): `types.ts` (the `Lang` union, `LANG_META`, and a recursive `DeepKeys` type), `en.ts` (source of truth), `fr.ts`, `index.tsx` (provider + hooks), `external-forms.ts` (GHL config).
 
 **Detection order** — `localStorage.lang` → any `fr-*` entry in `navigator.languages` → English. A Cameroonian visitor with a French browser lands in French without touching the toggle.
 
@@ -807,10 +807,10 @@ The app is **bilingual English / French**, built for the Cameroonian market wher
 
 **Plurals** — `tPlural()` applies French rules (0 and 1 are singular) versus English (only 1), via `{key}` / `{key}_plural` pairs.
 
-**The toggle** — [LanguageToggle.tsx](src/components/ui/LanguageToggle.tsx), three variants: `segmented` (EN|FR, with an `onDark` mode for the black marketing navs), `compact` (icon-sized, for app top bars), and the default full-width row that matches `ThemeToggle` in sidebars. Present on **every** layout and standalone nav.
+**The toggle** — [LanguageToggle.tsx](../src/components/ui/LanguageToggle.tsx), three variants: `segmented` (EN|FR, with an `onDark` mode for the black marketing navs), `compact` (icon-sized, for app top bars), and the default full-width row that matches `ThemeToggle` in sidebars. Present on **every** layout and standalone nav.
 
 **Terminology** — French copy uses Central/West African construction vocabulary, not literal translation: *chantier* (build), *étape* (stage), *sous-étape* (substage), *entrepreneur* (contractor), *justificatifs* (evidence), *maître d'ouvrage* (project owner), *dépendance* (boys' quarters).
 
-**Coverage today** — fully translated: all layouts and navigation, the landing nav, `/pricing`, `/community`, `/contractor-apply`, all six auth routes, `/onboarding`, `/invite/:token`, `/dashboard`, and `/projects`. Still English: the project detail tabs, `/payments`, `/profile`, `/help`, `/resources` (including the 14 long-form articles), the wizard step bodies, the free tools, and the admin panel — roughly 500 of ~870 strings.
+**Coverage today** — fully translated (456 keys): all layouts and navigation; the **complete landing page**, including copy baked into the animated SVG illustrations (`HeroScene`, `RiskScenes`, `CarouselSlides`); `/pricing`, `/community`, `/contractor-apply`; all six auth routes; `/onboarding`; `/invite/:token`; `/dashboard`; and `/projects`. Still English: the project detail tabs, `/payments`, `/profile`, `/help`, `/resources` (including the 14 long-form articles), the wizard step bodies, the free tools, and the admin panel.
 
 **The one thing that cannot be translated from this codebase** — the GoHighLevel application form on `/contractor-apply`. It is a cross-origin iframe; same-origin policy makes its DOM unreachable. The fix is a duplicated French form built inside GHL, then its ID pasted into `external-forms.ts`. Until then French visitors see the English form with an explicit notice.

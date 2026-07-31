@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { useT, type TKey } from "@/lib/i18n";
 import { Reveal } from "./Reveal";
 
 const STROKE = "#0A0A0A";
@@ -117,30 +118,32 @@ function PayScene() {
   );
 }
 
-const items = [
-  { Scene: PlanScene, word: "Plan", desc: "Set the right budget and break the build into clear, verifiable stages.", badge: "Floor Plan Set" },
-  { Scene: TrackScene, word: "Track", desc: "Watch progress move through every stage with a clear record of stage cost and quality.", badge: "Stage 3 of 10" },
-  { Scene: VerifyScene, word: "Verify", desc: "An independent check confirms the work before anything moves.", badge: "Verified" },
-  { Scene: PayScene, word: "Pay", desc: "Funds release only once proof verification clears and the next stage is unlocked.", badge: "$ Released" },
+const items: { Scene: () => React.ReactElement; wordKey: TKey; descKey: TKey; badgeKey: TKey }[] = [
+  { Scene: PlanScene,   wordKey: "landing.whatJalla.planWord",   descKey: "landing.whatJalla.planDesc",   badgeKey: "landing.whatJalla.planBadge"   },
+  { Scene: TrackScene,  wordKey: "landing.whatJalla.trackWord",  descKey: "landing.whatJalla.trackDesc",  badgeKey: "landing.whatJalla.trackBadge"  },
+  { Scene: VerifyScene, wordKey: "landing.whatJalla.verifyWord", descKey: "landing.whatJalla.verifyDesc", badgeKey: "landing.whatJalla.verifyBadge" },
+  { Scene: PayScene,    wordKey: "landing.whatJalla.payWord",    descKey: "landing.whatJalla.payDesc",    badgeKey: "landing.whatJalla.payBadge"    },
 ];
 
 export default function WhatJallaDoes() {
+  const t = useT();
+
   return (
     <section className="bg-white py-16 px-4 sm:px-7">
       <div className="max-w-275 mx-auto">
         <Reveal className="text-center mb-14">
-          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">WHAT JALLA DOES</span>
+          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">{t('landing.whatJalla.eyebrow')}</span>
           <h2 className="font-sans text-3xl sm:text-4xl font-bold text-brand-near-black mt-3">
-            A System Built on Accountability and Transparency
+            {t('landing.whatJalla.title')}
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[480px] mx-auto">
-            Groundwork helps you;
+            {t('landing.whatJalla.subtitle')}
           </p>
         </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {items.map((item, i) => (
-            <Reveal key={item.word} delay={i * 0.12}>
+            <Reveal key={item.wordKey} delay={i * 0.12}>
               <motion.div
                 whileHover={{ y: -6 }}
                 className="bg-white rounded-2xl p-5 sm:p-7 h-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.1)] transition-shadow"
@@ -152,11 +155,11 @@ export default function WhatJallaDoes() {
                     transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.3 }}
                     className="absolute -top-1 right-0 rounded-full bg-brand-near-black text-white text-[10px] font-medium px-2.5 py-1 shadow-[0_4px_14px_rgba(0,0,0,0.18)] whitespace-nowrap"
                   >
-                    {item.badge}
+                    {t(item.badgeKey)}
                   </motion.div>
                 </div>
-                <h3 className="font-sans text-3xl font-bold text-brand-near-black">{item.word}</h3>
-                <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{item.desc}</p>
+                <h3 className="font-sans text-3xl font-bold text-brand-near-black">{t(item.wordKey)}</h3>
+                <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{t(item.descKey)}</p>
               </motion.div>
             </Reveal>
           ))}
