@@ -343,10 +343,17 @@ export default function ProjectDetail() {
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">
-                  <span className="size-1.5 rounded-full bg-green-500 inline-block" />
-                  Live
-                </span>
+                {trackingStarted ? (
+                  <span className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">
+                    <span className="size-1.5 rounded-full bg-green-500 inline-block" />
+                    Live
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                    <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                    Planning
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black dark:text-white">
                 {tier.icon}
@@ -360,7 +367,22 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Pre-tracking gate — confirm budget before stages open */}
+          {!trackingStarted && (
+            isContractor ? (
+              <div className="rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-6 py-8 text-center max-w-2xl mx-auto">
+                <p className="text-sm font-semibold text-brand-near-black dark:text-white">Tracking hasn't started yet</p>
+                <p className="text-xs text-brand-mid-grey mt-1.5 leading-relaxed max-w-sm mx-auto">
+                  The project owner needs to confirm the final budget before stages open. Check back soon.
+                </p>
+              </div>
+            ) : (
+              <StartTrackingGate project={project} userId={user?.id ?? ''} onStarted={loadAll} />
+            )
+          )}
+
+          {/* Tabs (only once tracking has started) */}
+          {trackingStarted && (<>
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} />
 
           {/* Tab: Overview */}
@@ -464,6 +486,7 @@ export default function ProjectDetail() {
               <RelatedGuides tab="messages" />
             </div>
           )}
+          </>)}
 
         </motion.div>
       </div>
