@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { FolderOpen, Users, ClipboardCheck, HardHat, ChevronRight } from 'lucide-react';
+import { FolderOpen, Users, ClipboardCheck, HardHat, ChevronRight, Wallet } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 interface Stats {
   totalProjects: number;
   pendingReviews: number;
+  pendingBudgets: number;
   totalUsers: number;
   pendingContractors: number;
 }
@@ -39,9 +40,11 @@ export default function AdminOverview() {
 
   useEffect(() => {
     async function load() {
-      const [projects, reviews, users] = await Promise.all([
+      const [projects, reviews, budgets, users] = await Promise.all([
         supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('project_stages').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+        supabase.from('projects').select('id', { count: 'exact', head: true })
+          .in('tier', ['jalla_management', 'enterprise']).is('tracking_started_at', null),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
       ]);
 
@@ -57,6 +60,7 @@ export default function AdminOverview() {
       setStats({
         totalProjects:   projects.count ?? 0,
         pendingReviews:  reviews.count  ?? 0,
+        pendingBudgets:  budgets.count  ?? 0,
         totalUsers:      users.count    ?? 0,
         pendingContractors,
       });
@@ -85,6 +89,13 @@ export default function AdminOverview() {
           icon={ClipboardCheck}
           to="/admin/reviews"
           color={stats?.pendingReviews ? 'bg-amber-50 text-amber-600' : 'bg-brand-off-white text-brand-mid-grey'}
+        />
+        <StatCard
+          label="Pending Budgets"
+          value={stats?.pendingBudgets ?? null}
+          icon={Wallet}
+          to="/admin/budgets"
+          color={stats?.pendingBudgets ? 'bg-amber-50 text-amber-600' : 'bg-brand-off-white text-brand-mid-grey'}
         />
         <StatCard
           label="Total Users"

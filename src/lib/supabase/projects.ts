@@ -14,12 +14,11 @@ export async function createProject(
   formData: WizardFormData,
   budget: BudgetBreakdown,
 ): Promise<ProjectRow> {
-  // Self Verify / Jalla Verify projects are gated: they stay in "planning" until
-  // the owner confirms their final budget (see start_project_tracking RPC).
-  // Jalla Management / Enterprise bypass the gate for now — tracking starts on creation.
+  // All projects are gated: they stay in "planning" until their final budget is
+  // confirmed. Self/Jalla Verify owners confirm it themselves (start_project_tracking);
+  // Jalla Management projects are confirmed by a Jalla admin (admin_start_project_tracking).
   const tier  = formData.tier as ProjectTier;
-  const gated = tier === 'self_verify' || (tier as string) === 'starter'
-    || tier === 'jalla_verify' || (tier as string) === 'pro';
+  const gated = true;
 
   // 1. Insert project
   const { data: project, error: projectError } = await supabase

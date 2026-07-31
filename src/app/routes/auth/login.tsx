@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
+import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ export default function Login() {
   const navigate        = useNavigate();
   const [searchParams]  = useSearchParams();
   const inviteToken     = searchParams.get("invite") ?? "";
+  const redirectTo      = searchParams.get("redirect");
   const t               = useT();
 
   const [email,      setEmail]      = useState("");
@@ -52,8 +54,12 @@ export default function Login() {
       }
     }
 
-    const isNew = !data.user?.user_metadata?.onboarding_complete;
-    navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
+    const { data: isAdmin } = await supabase.rpc('is_admin');
+    navigate(postAuthPath({
+      isAdmin: isAdmin === true,
+      onboardingComplete: !!data.user?.user_metadata?.onboarding_complete,
+      redirect: redirectTo,
+    }), { replace: true });
   }
 
   return (

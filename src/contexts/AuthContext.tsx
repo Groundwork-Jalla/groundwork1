@@ -6,6 +6,10 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  /** True when the signed-in user is a platform admin (canonical: user_roles via is_admin RPC). */
+  isAdmin: boolean;
+  /** False until the admin check has resolved for the current session. */
+  adminChecked: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +18,8 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminChecked, setAdminChecked] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -29,12 +35,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
+  // Resolve admin status against user_roles (canonical, RLS-trusted source),
+  // not JWT metadata — so adding an admin is just a user_roles insert.
+  useEffect(() => {
+    let cancelled = false;
+    const uid = session?.user?.id;
+    if (!uid) { setIsAdmin(false); setAdminChecked(true); return; }
+
+    setAdminChecked(false);
+    (async () => {
+      const { data, error } = await supabase.rpc('is_admin');
+      if (cancelled) return;
+      setIsAdmin(!error && data === true);
+      setAdminChecked(true);
+    })();
+
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
+
   async function signOut() {
     await supabase.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
+import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
 
@@ -33,12 +34,18 @@ export default function AuthCallback() {
 
         const isNew = !sessionData.user?.user_metadata?.onboarding_complete;
         if (isNew) trackEvent('signup_complete');
-        navigate(isNew ? "/onboarding" : "/dashboard", { replace: true });
+        const { data: isAdmin } = await supabase.rpc('is_admin');
+        navigate(postAuthPath({ isAdmin: isAdmin === true, onboardingComplete: !isNew }), { replace: true });
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      navigate(session ? "/dashboard" : "/auth/login", { replace: true });
+      if (!session) { navigate("/auth/login", { replace: true }); return; }
+      const { data: isAdmin } = await supabase.rpc('is_admin');
+      navigate(postAuthPath({
+        isAdmin: isAdmin === true,
+        onboardingComplete: !!session.user?.user_metadata?.onboarding_complete,
+      }), { replace: true });
     }
 
     run();

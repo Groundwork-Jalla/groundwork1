@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router';
 import {
   LayoutDashboard, ClipboardCheck, FolderOpen,
-  Users, HardHat, LogOut,
+  Users, HardHat, LogOut, Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 const NAV = [
   { to: '/admin',              label: 'Overview',    icon: LayoutDashboard, end: true },
   { to: '/admin/reviews',      label: 'Reviews',     icon: ClipboardCheck },
+  { to: '/admin/budgets',      label: 'Budgets',     icon: Wallet },
   { to: '/admin/projects',     label: 'Projects',    icon: FolderOpen },
   { to: '/admin/users',        label: 'Users',       icon: Users },
   { to: '/admin/contractors',  label: 'Contractors', icon: HardHat },
@@ -20,18 +21,21 @@ const NAV = [
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const { user, session, loading, signOut } = useAuth();
+  const location = useLocation();
+  const { user, session, loading, isAdmin, adminChecked, signOut } = useAuth();
   const t = useT();
-
-  const isAdmin = user?.user_metadata?.role === 'admin';
 
   useEffect(() => {
     if (loading) return;
-    if (!session) { navigate('/auth/login', { replace: true }); return; }
-    if (!isAdmin) { navigate('/dashboard', { replace: true }); }
-  }, [loading, session, isAdmin, navigate]);
+    if (!session) {
+      // Send them to login, then back to the admin page they were reaching for
+      navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
+      return;
+    }
+    if (adminChecked && !isAdmin) { navigate('/dashboard', { replace: true }); }
+  }, [loading, session, isAdmin, adminChecked, navigate, location.pathname]);
 
-  if (loading || !session || !isAdmin) {
+  if (loading || !session || !adminChecked || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 rounded-full border-2 border-brand-border-grey border-t-brand-near-black animate-spin" />

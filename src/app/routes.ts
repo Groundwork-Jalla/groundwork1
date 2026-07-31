@@ -51,6 +51,7 @@ export default [
   layout("routes/admin/_admin-layout.tsx", [
     route("admin",               "routes/admin/index.tsx"),
     route("admin/reviews",       "routes/admin/reviews.tsx"),
+    route("admin/budgets",       "routes/admin/budgets.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),

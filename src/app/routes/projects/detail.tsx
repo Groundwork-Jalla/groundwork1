@@ -296,6 +296,7 @@ export default function ProjectDetail() {
 
   const isContractor = user?.user_metadata?.role === 'contractor';
   const trackingStarted = !!project.tracking_started_at;
+  const isManaged = project.tier === 'jalla_management' || (project.tier as string) === 'enterprise';
   const activeStageNum = stages.find(s => s.status === 'active' || s.status === 'pending_review')?.stage_number;
 
   const displayName = user?.user_metadata?.full_name
@@ -375,6 +376,32 @@ export default function ProjectDetail() {
                 <p className="text-xs text-brand-mid-grey mt-1.5 leading-relaxed max-w-sm mx-auto">
                   The project owner needs to confirm the final budget before stages open. Check back soon.
                 </p>
+              </div>
+            ) : isManaged ? (
+              <div className="max-w-2xl mx-auto rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] overflow-hidden">
+                <div className="px-6 sm:px-8 py-6 border-b border-brand-border-grey dark:border-[#2c2c2c] flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-off-white dark:bg-[#252525]">
+                    <Briefcase className="size-5 text-brand-near-black dark:text-white" />
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-bold text-brand-near-black dark:text-white leading-snug">
+                      Jalla is confirming your budget
+                    </h2>
+                    <p className="text-sm text-brand-mid-grey mt-1 leading-relaxed">
+                      Your project manager reviews the plan and finalises the budget with your contractor.
+                      Tracking opens automatically once it's confirmed — you'll get a notification.
+                    </p>
+                  </div>
+                </div>
+                <div className="px-6 sm:px-8 py-5 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">Wizard estimate</p>
+                    <p className="text-xs text-brand-mid-grey mt-0.5">Jalla will confirm the final figure</p>
+                  </div>
+                  <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
+                    {project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}
+                  </p>
+                </div>
               </div>
             ) : (
               <StartTrackingGate project={project} userId={user?.id ?? ''} onStarted={loadAll} />
