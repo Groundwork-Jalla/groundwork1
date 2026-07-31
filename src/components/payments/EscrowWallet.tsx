@@ -148,7 +148,7 @@ export default function EscrowWallet({
       </div>
 
       <p className="text-[10px] text-brand-soft-grey text-center mt-4 leading-relaxed">
-        Preview — funds held via Stripe, released on verified completion and paid out through pawaPay. Not yet live.
+        Preview — funds held via Stripe, released on verified completion and paid out through Switchr. Not yet live.
       </p>
     </div>
   );

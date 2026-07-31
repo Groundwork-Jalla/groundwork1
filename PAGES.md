@@ -6,16 +6,20 @@ Every route in the app, what it renders, and what each section does.
 
 **Route config:** [src/app/routes.ts](src/app/routes.ts) · **App dir:** `src/app` (set in [react-router.config.ts](react-router.config.ts))
 
-**33 routes** across 6 groups, wrapped by 4 layouts and one root shell.
+**34 routes** across 6 groups, wrapped by 4 layouts and one root shell.
 
 | Group | Layout | Auth | Routes |
 |---|---|---|---|
 | Public marketing | none (each page owns its nav) | public | 5 |
 | Auth | `_auth-layout.tsx` | public | 6 |
 | Project wizard | none (WizardShell owns viewport) | required | 1 |
-| Protected app | `_layout.tsx` (sidebar) | required | 11 |
+| Protected app | `_layout.tsx` (sidebar) | required | 12 |
 | Free tools | `tools/_tools-layout.tsx` | public | 5 |
 | Admin | `admin/_admin-layout.tsx` | admin role | 5 |
+
+> **Two cross-cutting behaviours added after the initial write-up:**
+> 1. **Bilingual (EN/FR)** — a language toggle appears on every layout and nav. See [Appendix: Internationalisation](#appendix-internationalisation).
+> 2. **Project lifecycle gate** — projects now start in a *planning* state and only expose their tabs once the owner confirms a final budget. See [`/projects/:id`](#projectsid--project-detail).
 
 ---
 
@@ -31,7 +35,11 @@ Wraps every route in the app. Not a page itself.
 - **Skip-to-main-content** link — screen-reader-only until focused
 - `<ScrollRestoration />`, `<Scripts />`, Vercel `<Analytics />`
 
-**`AppInner` (default export)** — `AuthProvider` → `Sentry.ErrorBoundary` → `#main-content` → `<Outlet />`. Exported through `Sentry.withProfiler`.
+There is also a **second anti-flash script** that resolves the language before first paint — reading `localStorage.lang`, falling back to any `fr-*` entry in `navigator.languages`, then stamping `document.documentElement.lang`. It mirrors `detectLang()` exactly so the server-rendered `lang` attribute and the React state never disagree.
+
+**`AppInner` (default export)** — `LanguageProvider` → `AuthProvider` → `Sentry.ErrorBoundary` → `#main-content` → `<Outlet />`. Exported through `Sentry.withProfiler`.
+
+> The skip-to-content link lives in `Layout`, **outside** `LanguageProvider`, so it is the one string in the app that stays English.
 
 **`ErrorBoundary` export** — catches route errors. Shows "404 / The requested page could not be found" for 404s, and in dev mode prints the error message plus a scrollable stack trace.
 
@@ -42,13 +50,15 @@ Wraps every route in the app. Not a page itself.
 ## `/` — Landing Page
 [routes/landing.tsx](src/app/routes/landing.tsx) → [components/landing/LandingPage.tsx](src/components/landing/LandingPage.tsx)
 
-The route file is a 17-line wrapper that does one thing: **if a session exists, redirect to `/dashboard`**. Logged-in users never see the marketing page.
+The route file is a small wrapper that does two things: **if a session exists, redirect to `/dashboard`** (logged-in users never see the marketing page), and call **`useForceLight()`**.
+
+> **`useForceLight`** ([src/hooks/useForceLight.ts](src/hooks/useForceLight.ts)) strips `.dark` from `<html>` on mount and restores it on unmount if the user's stored preference was dark. It is applied to **`/`, `/community`, `/contractor-apply`, and `/pricing`** — those four pages are art-directed for a light background and now **always render light, regardless of the theme toggle**. The theme toggle is deliberately absent from their navs; the *language* toggle is present on all four.
 
 `LandingPage` composes 12 components top to bottom:
 
 | # | Section | Contents |
 |---|---|---|
-| 1 | `LandingNav` | Sticky top nav, logo, links to `/community` ("Join for Free") and `/contractor-apply` |
+| 1 | `LandingNav` | Sticky top nav, logo, a segmented **EN\|FR** language toggle (dark variant), and links to `/community` ("Join for Free") and `/contractor-apply` |
 | 2 | `HeroSection` | Headline "Introducing the New Way of Building Back Home / Without Losing Control", animated `HeroScene` illustration |
 | 3 | `StatsBar` | Scroll-triggered counting numbers: "Diaspora builds go over budget", "Average cost overrun", "Verified construction stages", "Substage checkpoints" |
 | 4 | `WhatJallaDoes` | "WHAT JALLA DOES" eyebrow + explainer; contains a video placeholder still marked *"Video coming soon"* |
@@ -66,7 +76,7 @@ Wrapper uses `overflow-x-clip` to stop horizontal bleed from the animated scenes
 ## `/contractor-apply` — Contractor Recruitment
 [routes/contractor-apply.tsx](src/app/routes/contractor-apply.tsx)
 
-A separate long-form sales page aimed at construction professionals, not homeowners. Own sticky **dark** nav (`bg-brand-near-black`) with light-variant logo and a "← Back to Home" link.
+A separate long-form sales page aimed at construction professionals, not homeowners. Own sticky **dark** nav (`bg-brand-near-black`) with light-variant logo, a segmented **EN|FR** toggle, and a "← Back to Home" link. Calls `useForceLight()`.
 
 Eleven sections from [components/contractor/](src/components/contractor/):
 
@@ -80,20 +90,33 @@ Eleven sections from [components/contractor/](src/components/contractor/):
 8. `HowItWorks` — the onboarding process
 9. `ContractorComparison` — "Without Jalla" vs with
 10. `SocialProof` — "We're onboarding a limited number of partners per trade, per region."
-11. `ContractorCTA` — the application form itself
+11. `ContractorCTA` — the application form itself (see below)
 
 Footer is distinct from the main site: reads **"Jalla — THE FIRM"** rather than Groundwork branding. `BackToTop` included.
+
+### The GHL application form — [ContractorCTA.tsx](src/components/contractor/ContractorCTA.tsx)
+
+The only place in the app that embeds third-party content. Section header, a 4-item perks grid, and a pulsing "Apply as a Founding Partner" button that reveals the form on click and smooth-scrolls to it.
+
+The form is a **cross-origin `<iframe>`** served from `api.leadconnectorhq.com`, with GoHighLevel's `form_embed.js` injected into `<body>` only once the form is opened (and removed on unmount). Because it is a different origin, **its contents cannot be read, restyled, or translated by any code in this project** — same-origin policy forbids it.
+
+Language handling therefore works by **swapping which form is embedded**, configured in [src/lib/i18n/external-forms.ts](src/lib/i18n/external-forms.ts):
+- `GHL_CONTRACTOR_FORM` maps each language to a `{ id, height, fallback? }` config
+- The iframe is `key={lang}`, forcing a full remount on switch — GHL's embed script does not react to `src` changes in place
+- While a locale still points at another language's form (`fallback: true`), an **amber notice** renders above the iframe stating the form is English-only and that the team speaks French
+
+Finishing this requires duplicating and translating the form inside the GHL dashboard, then pasting the new form ID into that config. The file carries step-by-step instructions in its header comment.
 
 ## `/community` — Waitlist Signup
 [routes/community.tsx](src/app/routes/community.tsx)
 
-**Split-screen, locked to viewport** (`h-dvh overflow-hidden`) — the page itself never scrolls.
+**Split-screen, locked to viewport** (`h-dvh overflow-hidden`) — the page itself never scrolls. Calls `useForceLight()`.
 
 **Left panel (44–46% width, desktop only)** — `BlueprintPanel`: a hand-authored 520×700 SVG architectural floor plan on `#0a0a0a`. Deliberately drawn with **no outer bounding box** — walls run off-canvas so the plan bleeds to the edges. Includes a fine grid pattern, interior partitions, dashed door arcs, top and left dimension lines with real measurements (7,200 / 2,500 / 4,400 / 3,600 / 5,400 / 1,800), four numbered room circles, and window notches. Groundwork logo (light, `xl`) centred on top.
 
 **Right panel (white, scrollable within itself)**:
-- Mobile-only dark top bar with logo + "← Home"
-- Desktop-only "← Back to Home" link
+- Mobile-only dark top bar with logo, EN|FR toggle, and "← Home"
+- Desktop-only EN|FR toggle pinned top-right, plus a "← Back to Home" link
 - H1 "Join the Community"
 - `CountdownClock` (dark variant) — live ticking launch countdown, shared with the landing page
 - Copy: "We're putting on the finishing touches…"
@@ -106,7 +129,7 @@ Footer is distinct from the main site: reads **"Jalla — THE FIRM"** rather tha
 ## `/pricing` — Public Pricing
 [routes/pricing.tsx](src/app/routes/pricing.tsx)
 
-Own nav (logo + "Log in" + "Get started") and own footer (Home / Community links).
+Own nav (logo + EN|FR toggle + "Log in" + "Get started") and own footer (Home / Community links). Calls `useForceLight()`.
 
 **Hero** — eyebrow "Simple, transparent pricing", H1 "Build with confidence. / Pay only when work is done."
 
@@ -148,7 +171,7 @@ The only page designed to be opened by a **third party** (bank, buyer, family me
 
 On **mobile** the whole left panel collapses to a compact inline header bar — drawing, vignette, and tagline are all hidden.
 
-**Right panel** — white, scrollable, `max-w-sm` centred form slot with a `ThemeToggle` pinned top-right. Content fades and slides up on mount.
+**Right panel** — white, scrollable, `max-w-sm` centred form slot with an **EN|FR toggle and a `ThemeToggle`** pinned top-right. Content fades and slides up on mount.
 
 ## `/auth/login`
 [routes/auth/login.tsx](src/app/routes/auth/login.tsx)
@@ -238,7 +261,7 @@ A `useEffect` watches `data.country` and refetches `getConstructionRate(country)
 
 Full-height two-pane frame reused by all 10 steps:
 
-- **Header** — logo (links to `/dashboard`), mobile-only `ProgressBar`, `ThemeToggle`, and a Back button that becomes "← Cancel" on step 1
+- **Header** — logo (links to `/dashboard`), mobile-only `ProgressBar`, the compact **`LanguageToggle`**, `ThemeToggle`, and a Back button that becomes "← Cancel" on step 1
 - **Main** — `max-w-lg` centred, with `AnimatePresence mode="wait"` sliding steps ±32px horizontally based on `direction`
 - **Footer** — right-aligned Continue button; label, disabled state, and spinner are all controlled by props (`canContinue`, `continueLabel`, `isSubmitting`, `hideContinue`)
 - **Right aside (desktop only, 50%)** — `ProgressBar` over a live [`BuildingPreview`](src/components/wizard/BuildingPreview.tsx) (1,149 lines) that redraws the building as answers change
@@ -280,38 +303,40 @@ Guards on session — spinner while loading, `navigate('/auth/login')` when abse
 
 (Note the label/route mismatch: the nav item reads "Settings" but points at `/profile`.)
 
-Active items get `bg-brand-near-black text-white`. Footer holds a profile link with generated initials, the `ThemeToggle`, and Log out.
+`/upgrade` is registered inside this layout but **has no sidebar entry** — it is reached only by direct link or an in-app CTA.
+
+Active items get `bg-brand-near-black text-white`. Footer holds a profile link with generated initials, the **`LanguageToggle`**, the `ThemeToggle`, and Log out.
 
 **Mobile** — the sidebar becomes a spring-animated drawer behind a scrim, opened by a hamburger in the top bar.
 
-**Top bar (`h-14`)** — hamburger + logo on mobile, `getPageTitle(pathname)` on desktop; right side has `ThemeToggle` (compact), `NotificationBell`, and an initials avatar linking to `/profile`.
+**Top bar (`h-14`)** — hamburger + logo on mobile, the translated page title on desktop (resolved by `getPageTitleKey(pathname)` → `t()`); right side has the compact **`LanguageToggle`**, `ThemeToggle`, `NotificationBell`, and an initials avatar linking to `/profile`.
 
 **Mobile bottom tab bar** — first 5 nav items only, with "My Projects" relabelled to just "Projects" and a thicker stroke on the active icon.
 
 ## `/dashboard`
-[routes/dashboard.tsx](src/app/routes/dashboard.tsx) — 954 lines, the densest page in the app
+[routes/dashboard.tsx](src/app/routes/dashboard.tsx) — ~1,100 lines, the densest page in the app
 
-**Data** — `fetchProjects(user.id)`, or `fetchContractorProjects(user.id)` when `user_metadata.role === 'contractor'`. A second effect fetches `project_stages` (id, number, name, status, budget_pct) for the single "active project", chosen as the most recently updated `status === 'active'` project, falling back to `projects[0]`.
+**Data** — `fetchProjects(user.id)`, or `fetchContractorProjects(user.id)` when `user_metadata.role === 'contractor'`. Once projects load, a follow-up query sums `payment_milestone_usd` across all stages with `payment_status = 'paid'` to produce **Total Paid**. A separate effect fetches `project_stages` for the single "active project", chosen as the most recently updated `status === 'active'` project, falling back to `projects[0]`.
 
 Sections top to bottom:
 
-1. **Greeting hero** — black rounded panel with a faint blueprint-grid SVG overlay at 7% opacity. Time-aware greeting ("Good morning/afternoon/evening") over the user's first name. Subtitle switches between "Loading your builds…", "You haven't started any builds yet. Let's change that.", and "You have N active builds in progress." A white **New Project** button appears only for non-contractors below the Starter limit.
+1. **Page header** — a plain "Dashboard" title with the subtitle "Welcome back — your build, verified and protected." A **New Project** button appears only for non-contractors below the Starter limit. *(This replaced the earlier time-aware greeting hero with the blueprint-grid overlay.)*
 
 2. **`ProfileCompletion`** — 4-item checklist (Account created / Display name set / ID uploaded / First project created) with a percentage and bar. **Auto-hides at 100%.** Done items render struck-through.
 
-3. **`FunnelCard`** — lifecycle guidance that picks one of six states from project count and completed-stage count, each with its own colour pill and deep link: Planning → Onboarding → Early build (<3) → Active build (3–7) → Finishing (>7) → Completed.
+3. **`JourneyCard`** — lifecycle guidance choosing one of several states from project count and completed-stage count, each with a status pill, a headline, a one-line instruction, and a labelled CTA: *Planning* ("Let's get building" → Create project) → *Onboarding* ("Almost there" → Open projects) → and on through the active build states.
 
-4. **Stat row** (`lg:grid-cols-4`) — Projects (accent/inverted card) · Total Budget · Stages Done (`x/y` + percentage) · Active Builds.
+4. **Stat row** (`lg:grid-cols-4`) — Projects (accent/inverted card) · Total Budget · **Total Paid** (with outstanding remainder, or "No payments yet") · Stages Done (`x/y` + percentage).
 
-5. **`VelocityChart`** — hand-rolled 400×120 SVG area+line chart of stage completions over time. Interpolates 8 points from project creation to now, dashed gridlines at 0/5/10, blue fill at 15% opacity, a larger outlined dot for "today", and three date labels. Uses a `<style>` block with `prefers-color-scheme` to recolour gridlines in dark mode.
-
-6. **Two-column grid** (`lg:grid-cols-5`):
+5. **Two-column grid** (`lg:grid-cols-5`):
    - **Left (3 cols) — `StageProgressPanel`**: merges stage progress *and* payment schedule. Header has an on-track/complete/not-started pill and names the current stage. A 3-cell strip shows **Spent / Active / Remaining** in dollars derived from each stage's `budget_pct` against the project total. Then one row per stage with a status circle (green check / blue `CircleDot` / amber for review / lock icon), name (struck-through when done), dollar allocation, a budget-share bar, the percentage, and a status badge. Has a 6-row skeleton.
-   - **Right (2 cols)** — **`CostingDonut`**: a `strokeDasharray` donut with 4px gaps splitting Spent (green) / Active (blue) / Remaining (grey), total in the hole, and a legend with dollar values and percentages. Below it, **`NewsfeedCard`** — "Platform Updates" with **three hardcoded feed items** (Budget Breakdown v2, Stage certificates coming, 27 African markets).
+   - **Right (2 cols)** — **`CostingDonut`**, now split by **cost category rather than payment state**: Materials 41% (blue, "Cement, blocks, rebar, fittings") · Professional Fees 34% (amber, "Architects, engineers, project mgmt") · Labor 23% (green, "Site workers + supervision") · Permits 2% (near-black). Leads with "Your biggest cost is **Materials** at 41% of total budget." Below it, **`NewsfeedCard`** — "Platform Updates" with **three hardcoded feed items**.
 
-7. **Empty-state variant** — when there are no projects at all, the analytics block is replaced by three how-it-works cards: Create a build / Add your contractor / Approve stages.
+   `VelocityChart` still exists in the file (a hand-rolled SVG area+line chart of stage completions over time) but is no longer placed in the main column.
 
-8. **Recent Projects** — up to 4 `ProjectCard`s (`xl:grid-cols-4`) with "View all →". Each card: tier chip, status pill with coloured dot, name, building type + location, stage progress bar, estimated budget, and an "Open" affordance. Loading shows 3 skeletons; empty shows **`EmptyBuilds`**, a dashed dropzone-style panel with a floating `HardHat` (infinite 2.8s y-oscillation) and a "Create a build" CTA. Contractors get a plain "No assigned builds yet" note instead.
+6. **Empty-state variant** — when there are no projects at all, the analytics block is replaced by three how-it-works cards: Create a build / Add your contractor / Approve stages.
+
+7. **Recent Projects** — up to 4 `ProjectCard`s (`xl:grid-cols-4`) with "View all →". Each card: tier chip, status pill with coloured dot, name, building type + location, stage progress bar, estimated budget, and an "Open" affordance. Loading shows 3 skeletons; empty shows **`EmptyBuilds`**, a dashed dropzone-style panel with a floating `HardHat` (infinite 2.8s y-oscillation) and a "Create a build" CTA. Contractors get a plain "No assigned builds yet" note instead.
 
 ## `/projects`
 [routes/projects/index.tsx](src/app/routes/projects/index.tsx)
@@ -328,9 +353,27 @@ Header "My Builds" + total count, and a "New Build" button (hidden for contracto
 
 **Data** — three parallel fetches: `fetchProject`, `fetchProjectStages`, `fetchProjectSubstages`. Error → "Project not found." with a link back.
 
-**Chrome** — breadcrumb nav (`← Dashboard / {project name}`), then a header with an eyebrow (`{building type} · {country}`), the project name, a meta line (beds · floors · roof type), a green **Live** pill, the tier badge, and the completion percentage.
+**Chrome** — breadcrumb nav (`← Dashboard / {project name}`), then a header with an eyebrow (`{building type} · {country}`), the project name, a meta line (beds · floors · roof type), a lifecycle pill, the tier badge, and the completion percentage.
 
-**Tabs are role-dependent:**
+### ⚠️ The pre-tracking gate
+
+A project now has **two lifecycle states**, keyed off `project.tracking_started_at` ([migration 018](supabase/migrations/018_project_tracking.sql)):
+
+| State | `tracking_started_at` | Header pill | Body |
+|---|---|---|---|
+| **Planning** | `NULL` | amber | `StartTrackingGate` — **the entire tab bar is hidden** |
+| **Tracking** | timestamp | green "Live" | the 7-tab interface below |
+
+**`StartTrackingGate`** ([src/components/project/StartTrackingGate.tsx](src/components/project/StartTrackingGate.tsx)) is a single centred card, "Confirm your budget to start tracking", explaining that the wizard figure was only a planning estimate and the owner should now enter the budget actually agreed with their contractor. It contains:
+- The **wizard estimate**, read-only, in a muted panel
+- A **final budget** input with a `$` prefix and live thousands-separator formatting
+- A **side-by-side comparison** that animates open only when the figure differs — struck-through estimate vs bordered final, plus an amber (higher) or green (lower) delta strip showing the absolute and percentage difference
+- An **optional contractor quote upload** (PDF/JPG/PNG) filed straight into the documents vault under the `contract` category
+- A footer warning that confirming **activates Stage 1 and locks in the payment schedule**
+
+Confirming calls the `start_project_tracking` RPC, which is owner-guarded, idempotent, and `SECURITY INVOKER` so RLS still applies. In one transaction it writes the confirmed budget, stamps `tracking_started_at`, **re-derives every stage's `payment_milestone_usd` from the confirmed figure**, flips stage 1 to `active`, and promotes stage 1's substages from `locked` to `pending` so evidence upload can begin. Existing projects were grandfathered to their `created_at`, so nobody sees this gate retroactively.
+
+**Tabs (only once tracking has started) are role-dependent:**
 - **Owner** — Overview · Stages · Costing · Timeline · Payments · Documents · Messages
 - **Contractor** — Stages · Messages only
 
@@ -389,13 +432,24 @@ Five stacked sections:
 
 "Project Timeline" with **two switchable views**: `ListView` and `GanttView`. `computeTimeline` derives per-stage start/end dates from the project start plus per-stage durations. Status pills and month/year headers throughout.
 
-### Tab: Payments — [PaymentsTab.tsx](src/components/project/PaymentsTab.tsx)
+### Tab: Payments — [ProjectPayments.tsx](src/components/project/ProjectPayments.tsx)
 
-- **Header** with a live FX chip: `1 USD = XAF 610` (from `getConstructionRate`)
-- **Summary card** — a sentence ("You've paid $X of $Y (Z%). $W still due.") over a split green/amber bar with inline percentages, plus a legend
-- **Per-stage rows** — stage name, USD amount with local-currency approximation, a `PayPill` (Paid / Partial / Unpaid), a progress bar (100% / 50% / 0%), and a completion date when paid
-- **The action button cycles state**: unpaid → partial → paid → unpaid, labelled "Record payment" or "Mark unpaid"
-- **Footer notice** — *"Recording only. Full Stripe payment processing and contractor payouts via pawaPay are coming soon."*
+> Replaces the older `PaymentsTab`, which still exists in the tree but is **no longer rendered by `detail.tsx`**.
+
+A two-view container with a segmented **Wallet | History** switch and an "Upgrade plan →" link to `/upgrade` (hidden on `jalla_management`). It loads the country FX rate and looks up the accepted contractor's email from `contractor_invites` to label the payee. Tier is passed through `normalizeTier()` so legacy `starter`/`pro`/`enterprise` rows still resolve.
+
+**`EscrowWallet`** — the default view:
+- A **dark escrow hero** showing funds held (`total − released`), the count of remaining stages, and a **segmented allocation bar** where each stage is a slice weighted by `budget_pct` and coloured by fund state — Released (green) · In Transit (blue) · Held (amber) · Locked (grey) — with a legend
+- Two summary cards: **Total project** and **Released** (with % of total)
+- A **stage list** where each row is one of: a **Pay** button (only when the stage is active and unpaid), a clickable Released/Transit badge that opens the payout tracker, or an inert Locked badge
+
+**`PaymentHistory`** — a vertical timeline of paid and in-transit stages with coloured node dots, per-stage amount, the platform fee, the completion date, the payout rail, and a "View payout →" affordance.
+
+**`MilestonePaymentModal`** — a two-panel modal. The dark left panel renders the **money flow as three chained steps**: *You pay* (stage amount + platform fee) → *Platform holds* (in escrow) → *Contractor gets* (converted to local currency). The right panel carries the confirm action.
+
+**`PayoutStatusModal`** — a **5-node payout tracker** (Received → Fee Split → Payout Sent → Converting → Delivered) that fills to node 3 while in transit and completes when paid, over a details table: contractor, phone, method, amount sent, amount received, exchange rate, date. Has a "Download Receipt" button.
+
+All four carry preview disclaimers — see [Payments status](#payments-status-stripe--switchr) below.
 
 ### Tab: Documents — [DocumentVault.tsx](src/components/project/DocumentVault.tsx)
 
@@ -468,7 +522,7 @@ Header "Contractor Directory" / "Verified professionals for your build". Queries
 
 Header "Finances" / "Budget overview across all your builds" with an **Export CSV** button (disabled when empty).
 
-**Info banner** — *"Estimated spend is calculated based on completed stages. Actual payments via Stripe + pawaPay are coming soon."*
+**Info banner** — *"Estimated spend is calculated based on completed stages. Actual payments via Stripe + Switchr are coming soon."*
 
 **Three stat cards** — Total Budget (accent) / Est. Spent / Est. Remaining. Spend is **not real payment data** — it's `budget_usd × (completedStages / 10)`.
 
@@ -477,6 +531,32 @@ Header "Finances" / "Budget overview across all your builds" with an **Export CS
 **CSV export** is fully client-side ([payments.tsx:263-290](src/app/routes/payments.tsx#L263-L290)) — builds `Project,Location,Total Budget (USD),Est. Spent (USD),Completion %`, escapes commas by quoting, and triggers a Blob download named `groundwork-finances.csv`.
 
 **`RecordPaymentModal`** — amount, method, note; labelled *"Coming soon — this records locally for your tracking."* Success fires a bottom-centred `Toast` that self-dismisses after 3s.
+
+## `/upgrade` — Plan Selection
+
+[routes/upgrade.tsx](src/app/routes/upgrade.tsx) → [components/payments/UpgradeScreen.tsx](src/components/payments/UpgradeScreen.tsx)
+
+The route file is a 9-line wrapper; all the substance is in `UpgradeScreen`. Registered inside the protected sidebar layout, but **absent from the sidebar nav** — reached from the "Upgrade plan →" link on a project's Payments tab, or by direct URL. The layout's page title resolves to "Upgrade Plan".
+
+**Dark hero** — "SELECT YOUR PLAN" eyebrow over "How do you want to build?", with a **3-way segmented toggle** (Self Verify · Jalla Verify · Management), each carrying its tier icon. Defaults to `jalla_verify`.
+
+**Revealed plan card** — animates on every switch (`AnimatePresence` keyed on selection). Shows an optional "MOST POPULAR" sparkle tag, the price in 5xl black type with its period, the plan name and description, then a green-check feature list. The CTA is disabled and reads **"Your current plan"** when it matches the viewer's tier. Selecting Jalla Verify appends "Cancel anytime. Downgrade at end of billing period."
+
+All copy, pricing, fees, and features come from **[src/lib/payments/config.ts](src/lib/payments/config.ts)** rather than being hardcoded — see below.
+
+### The billing config
+
+`TIER_BILLING` is the single source of truth for plan economics, deliberately decoupled from the already-approved public `/pricing` page so the two can diverge while numbers are still being settled:
+
+| Tier | Price | Platform fee | Features shown |
+|---|---|---|---|
+| `self_verify` | Free | **10%** | 3 projects, 1 contractor, self-approve stages, 500MB storage |
+| `jalla_verify` | $199/mo | **3%** | Unlimited projects & contractors, Jalla verification, stage certificates, weekly reports, community |
+| `jalla_management` | Custom | negotiated (`null`) | Dedicated PM, on-site team, daily updates, procurement oversight, custom reporting |
+
+Also exports `STRIPE_PROCESSING_PCT` (2.9%, display-only), `FALLBACK_FX` (XAF @ 600), `platformFee()`, `stripeProcessing()`, and `normalizeTier()` for legacy tier strings.
+
+**`PAYMENTS_ARE_PREVIEW = true`** gates every disclaimer in the payments UI. The file's header comment states plainly that these numbers are placeholders pending confirmation.
 
 ## `/notifications`
 [routes/notifications.tsx](src/app/routes/notifications.tsx)
@@ -536,7 +616,7 @@ H1 "Help & Support" / "Everything you need to build with confidence".
 
 **FAQ accordion** — **15 questions across 3 headed sections**, with a single-open accordion driven by a flat global index computed from per-section offsets:
 - *Getting Started* — creating a first project · supported countries · data privacy · mobile use · inviting a contractor
-- *Plans & Billing* — the plan tiers · Jalla Verification cost · free plan · when Stripe arrives · what pawaPay is
+- *Plans & Billing* — the plan tiers · Jalla Verification cost · free plan · when Stripe arrives · what Switchr is
 - *Verification & Stages* — how stage verification works · what evidence to upload · what happens on rejection · completing stages out of order · what a Stage Completion Certificate is
 
 **Contact form** — "Send us a message / We typically respond within 24 hours on business days." Fields: name, email (prefilled from the session), subject, message.
@@ -552,7 +632,7 @@ Ungated lead-generation tools. No auth, no sidebar.
 ## The Tools Layout
 [routes/tools/_tools-layout.tsx](src/app/routes/tools/_tools-layout.tsx)
 
-Slim sticky `backdrop-blur` header: logo → `/` , a `/` separator, then "Free Tools" → `/tools`. Right side has a "Sign in" link (hidden on mobile) and the `ThemeToggle`. Footer reads "Groundwork by Jalla · Free planning tools for African construction" with Tools / Pricing / Create account links.
+Slim sticky `backdrop-blur` header: logo → `/` , a `/` separator, then "Free Tools" → `/tools`. Right side has a "Sign in" link (hidden on mobile), the segmented **EN|FR toggle**, and the `ThemeToggle`. Footer reads "Groundwork by Jalla · Free planning tools for African construction" with Tools / Pricing / Create account links.
 
 ## `/tools`
 [routes/tools/index.tsx](src/app/routes/tools/index.tsx)
@@ -613,7 +693,7 @@ An **offline, account-free** tracker. State (`projectName`, `startDate`, per-sta
 
 **Double-guarded**: no session → `/auth/login`; session but `user_metadata.role !== 'admin'` → `/dashboard`. Renders a spinner until both checks pass, so non-admins never see a frame of admin UI.
 
-Its own `w-56` sidebar (logo with a small "Admin" subtitle) with 5 links — Overview · Reviews · Projects · Users · Contractors — plus a footer showing the admin's name and a log-out button. No mobile drawer; this panel is desktop-oriented.
+Its own `w-56` sidebar (logo with a small "Admin" subtitle) with 5 links — Overview · Reviews · Projects · Users · Contractors — plus a footer showing the admin's name, the **`LanguageToggle`**, and a log-out button. No mobile drawer; this panel is desktop-oriented.
 
 ## `/admin` — Overview
 [routes/admin/index.tsx](src/app/routes/admin/index.tsx)
@@ -685,4 +765,52 @@ The list is **split into pending and everything else** so the actionable queue s
 
 **Illustration approach** — no image assets for structural art. Every blueprint, floor plan, building type, and roof type is a hand-authored inline SVG, which is why files like `Step3BuildingType.tsx` (313 lines) and `BuildingPreview.tsx` (1,149 lines) are so large.
 
-**Not yet wired** — Stripe and pawaPay payments (tracking only, disclaimed in three places), profile email change, 2FA, and the Help page's video walkthrough link.
+**Not yet wired** — live payment processing (see below), profile email change, 2FA, and the Help page's video walkthrough link (currently a bare `youtube.com` URL).
+
+---
+
+## Payments status: Stripe + Switchr
+
+The payments **UI is fully built**; the **rails are not connected yet**.
+
+| Rail | Role | Status |
+|---|---|---|
+| **Stripe** | Card charge + escrow hold on the diaspora payer's side | API key almost ready — billing goes live once connected |
+| **Switchr** | Mobile-money payout to contractors on the XAF/FCFA corridor (Cameroon) | Not yet live |
+
+Everything is gated behind **`PAYMENTS_ARE_PREVIEW`** in [config.ts](src/lib/payments/config.ts), and the disclaimers appear in six places:
+
+| Surface | Copy |
+|---|---|
+| `/upgrade` | "Preview — billing goes live once Stripe is connected. Prices and fees shown are not final." |
+| `EscrowWallet` | "Preview — funds held via Stripe, released on verified completion and paid out through Switchr. Not yet live." |
+| `PayoutStatusModal` | "Preview — payout flow illustrative until Switchr is live." |
+| `/payments` | "Actual payments via Stripe + Switchr are coming soon." |
+| `PaymentsTab` *(legacy, unrendered)* | "Full Stripe payment processing and contractor payouts via Switchr are coming soon." |
+| `/help` FAQ | "What is Switchr?" — explains the mobile-money payout partner for the XAF/FCFA corridor |
+
+What is **real** today: the per-stage `payment_status` field (`unpaid` / `partial` / `paid`), written through `updatePaymentStatus`, with realtime updates on the project detail page and payments tab. Stage milestone amounts are real too, re-derived from the confirmed budget by the tracking gate. What is **simulated**: the escrow hold, the fee split, the FX conversion, and the payout tracker's 5 nodes.
+
+> `/payments` (the cross-project Finances page) still shows **"Est. Spent" as `budget_usd × (completedStages / 10)`** — a derived figure, not the actual `payment_status` data that the project-level wallet uses. These two numbers can disagree.
+
+---
+
+## Appendix: Internationalisation
+
+The app is **bilingual English / French**, built for the Cameroonian market where most users are francophone.
+
+**Core** — [src/lib/i18n/](src/lib/i18n/): `types.ts` (the `Lang` union, `LANG_META`, and a recursive `DeepKeys` type), `en.ts` (source of truth), `fr.ts`, `index.tsx` (provider + hooks), `external-forms.ts` (GHL config).
+
+**Detection order** — `localStorage.lang` → any `fr-*` entry in `navigator.languages` → English. A Cameroonian visitor with a French browser lands in French without touching the toggle.
+
+**Compile-enforced parity** — `fr.ts` is typed as `Mirror<EnDict>`. Adding an English key without its French translation **fails the build**, so a half-translated screen cannot ship. `t()` autocompletes every dot-path key and warns in dev on a miss; at runtime it falls back English → raw key rather than rendering blank.
+
+**Plurals** — `tPlural()` applies French rules (0 and 1 are singular) versus English (only 1), via `{key}` / `{key}_plural` pairs.
+
+**The toggle** — [LanguageToggle.tsx](src/components/ui/LanguageToggle.tsx), three variants: `segmented` (EN|FR, with an `onDark` mode for the black marketing navs), `compact` (icon-sized, for app top bars), and the default full-width row that matches `ThemeToggle` in sidebars. Present on **every** layout and standalone nav.
+
+**Terminology** — French copy uses Central/West African construction vocabulary, not literal translation: *chantier* (build), *étape* (stage), *sous-étape* (substage), *entrepreneur* (contractor), *justificatifs* (evidence), *maître d'ouvrage* (project owner), *dépendance* (boys' quarters).
+
+**Coverage today** — fully translated: all layouts and navigation, the landing nav, `/pricing`, `/community`, `/contractor-apply`, all six auth routes, `/onboarding`, `/invite/:token`, `/dashboard`, and `/projects`. Still English: the project detail tabs, `/payments`, `/profile`, `/help`, `/resources` (including the 14 long-form articles), the wizard step bodies, the free tools, and the admin panel — roughly 500 of ~870 strings.
+
+**The one thing that cannot be translated from this codebase** — the GoHighLevel application form on `/contractor-apply`. It is a cross-origin iframe; same-origin policy makes its DOM unreachable. The fix is a duplicated French form built inside GHL, then its ID pasted into `external-forms.ts`. Until then French visitors see the English form with an explicit notice.

@@ -42,7 +42,7 @@ export default function MilestonePaymentModal({
   const flow = [
     { icon: <CreditCard className="size-4" />, label: 'You pay',          value: formatUSDFull(youPay), sub: `inc. ${(fee > 0 ? formatUSDFull(fee) : 'no')} fee` },
     { icon: <Lock className="size-4" />,        label: 'Platform holds',   value: formatUSDFull(amount), sub: 'in escrow' },
-    { icon: <Banknote className="size-4" />,    label: 'Contractor gets',  value: localAmt !== null && rate ? formatLocalCurrency(localAmt, rate.currency_code) : formatUSDFull(amount), sub: 'via pawaPay MoMo' },
+    { icon: <Banknote className="size-4" />,    label: 'Contractor gets',  value: localAmt !== null && rate ? formatLocalCurrency(localAmt, rate.currency_code) : formatUSDFull(amount), sub: 'via Switchr MoMo' },
   ];
 
   return (

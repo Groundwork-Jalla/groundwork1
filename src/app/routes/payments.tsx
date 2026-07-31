@@ -311,7 +311,7 @@ export default function PaymentsPage() {
 
       {/* Info banner */}
       <div className="rounded-xl bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3 text-xs text-brand-mid-grey dark:text-brand-mid-grey leading-relaxed">
-        💡 <span className="font-medium text-brand-near-black dark:text-white">Estimated spend</span> is calculated based on completed stages. Actual payments via Stripe + pawaPay are coming soon.
+        💡 <span className="font-medium text-brand-near-black dark:text-white">Estimated spend</span> is calculated based on completed stages. Actual payments via Stripe + Switchr are coming soon.
       </div>
 
       {/* Stats */}

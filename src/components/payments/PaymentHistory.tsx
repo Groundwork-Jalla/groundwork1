@@ -91,7 +91,7 @@ export default function PaymentHistory({
                   <div className="flex items-center gap-3 text-[11px] text-brand-mid-grey flex-wrap">
                     <span>{fmtDate(p.completed_at)}</span>
                     <span className="text-brand-border-grey">·</span>
-                    <span>pawaPay MoMo</span>
+                    <span>Switchr MoMo</span>
                     <span className="text-brand-border-grey">·</span>
                     <span className="text-brand-near-black dark:text-white font-medium">View payout →</span>
                   </div>

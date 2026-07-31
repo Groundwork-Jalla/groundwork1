@@ -40,7 +40,7 @@ export default function PayoutStatusModal({
   const details: [string, string][] = [
     ['Contractor', contractorLabel],
     ['Phone', 'Not on file'],
-    ['Method', 'pawaPay · Mobile Money'],
+    ['Method', 'Switchr · Mobile Money'],
     ['Amount sent', `${formatUSDFull(amount)} USD`],
     ['Amount received', localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—'],
     ['Exchange rate', fx ? `1 USD = ${fx} ${ccy}` : '—'],
@@ -122,7 +122,7 @@ export default function PayoutStatusModal({
                 className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] py-2.5 text-xs font-semibold text-brand-near-black dark:text-white hover:bg-brand-off-white dark:hover:bg-[#252525] transition-colors">
                 <Download className="size-3.5" /> Download Receipt
               </button>
-              <p className="text-[10px] text-brand-soft-grey text-center mt-2.5">Preview — payout flow illustrative until pawaPay is live.</p>
+              <p className="text-[10px] text-brand-soft-grey text-center mt-2.5">Preview — payout flow illustrative until Switchr is live.</p>
             </div>
           </motion.div>
         </motion.div>

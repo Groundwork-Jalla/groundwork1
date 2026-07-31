@@ -70,8 +70,8 @@ const FAQ_SECTIONS: FaqSection[] = [
         a: "Full Stripe integration for contractor payments is in active development. For now, you can record payments manually inside each project's Payments tab.",
       },
       {
-        q: 'What is pawaPay?',
-        a: 'pawaPay is our mobile money payout partner for the XAF/FCFA corridor (Cameroon). When Stripe hold-and-release is live, contractor payouts in Cameroon will be processed via pawaPay.',
+        q: 'What is Switchr?',
+        a: 'Switchr is our mobile money payout partner for the XAF/FCFA corridor (Cameroon). When Stripe hold-and-release is live, contractor payouts in Cameroon will be processed via Switchr.',
       },
     ],
   },

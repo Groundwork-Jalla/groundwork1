@@ -218,7 +218,7 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
         <Info className="size-3.5 text-brand-mid-grey mt-0.5 shrink-0" />
         <p className="text-xs text-brand-mid-grey leading-relaxed">
           <span className="font-semibold text-brand-near-black dark:text-white">Recording only.</span>{' '}
-          Full Stripe payment processing and contractor payouts via pawaPay are coming soon. Use this tab to track what you've paid until then.
+          Full Stripe payment processing and contractor payouts via Switchr are coming soon. Use this tab to track what you've paid until then.
         </p>
       </div>
     </motion.div>

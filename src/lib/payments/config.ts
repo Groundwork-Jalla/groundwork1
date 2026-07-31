@@ -5,7 +5,7 @@ import type { ProjectTier } from '@/types/project';
 // These fees / prices / caps are NOT final. They are centralized here so the
 // real numbers can be dropped in one place once confirmed, and so the public
 // pricing page (already approved) is never coupled to them.
-// Real charging (Stripe hold) + payouts (pawaPay XAF) are not wired yet.
+// Real charging (Stripe hold) + payouts (Switchr XAF) are not wired yet.
 // =========================================================
 
 export const PAYMENTS_ARE_PREVIEW = true;
