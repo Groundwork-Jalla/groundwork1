@@ -157,6 +157,91 @@ export interface ConstructionRate {
   data_source: 'real_bq' | 'estimated_index';
   notes?: string | null;
   updated_at?: string;
+  /** Quantity take-off model. Null/absent = fall back to the legacy formula. */
+  takeoff?: TakeoffModel | null;
+  /** Count-driven fixture prices. Null/absent = engine defaults. */
+  fixture_prices?: Partial<FixturePrices> | null;
+}
+
+// -------------------------------------------------------
+// City rate book (migration 020) — one row per city
+// -------------------------------------------------------
+export interface CityRate {
+  city_code: string;
+  country_code: string;
+  city_name: string;
+  rc_350: number;
+  rc_250: number;
+  lean_concrete: number;
+  mortar: number;
+  index_vs_baseline: number;
+  currency_code: string;
+  data_source: 'real_bq' | 'estimated_index';
+  notes?: string | null;
+}
+
+// -------------------------------------------------------
+// Quantity take-off model (migration 020)
+// -------------------------------------------------------
+export interface TakeoffGeometry {
+  storey_height_m: number;
+  slab_thickness_m: number;
+  ground_slab_thickness_m: number;
+  partition_m_per_room: number;
+  perimeter_factor: number;
+  exc_m3_per_m2: number;
+  lean_m3_per_m2: number;
+  footing_m3_per_m2: number;
+  footing_floor_uplift: number;
+  col_m3_per_m2: number;
+  beam_m3_per_m2: number;
+  stair_m3: number;
+  flat_roof_sheet_frac: number;
+  pitched_roof_factor: number;
+  railing_ml_per_floor: number;
+  contingency_pct: number;
+}
+
+export interface TakeoffRates {
+  excavation_m3: number;
+  backfill_m3: number;
+  dpm_m2: number;
+  sand_bed_m2: number;
+  fdn_block_m2: number;
+  blockwork_m2: number;
+  plaster_m2: number;
+  deck_plaster_m2: number;
+  floor_tiles_m2: number;
+  wall_tiles_m2: number;
+  ceiling_m2: number;
+  paint_m2: number;
+  roof_sheet_m2: number;
+  roof_timber_m2: number;
+  roof_accessories: number;
+  parapet_ml: number;
+  door_avg: number;
+  window: number;
+  railing_ml: number;
+}
+
+export interface TakeoffModel {
+  version: string;
+  geometry: TakeoffGeometry;
+  rates: TakeoffRates;
+  electrical: { per_floor: number; per_room: number };
+}
+
+export interface FixturePrices {
+  supply: number;
+  drainage: number;
+  septic: number;
+  accessories: number;
+  wc: number;
+  mirror: number;
+  sink: number;
+  tub: number;
+  shower: number;
+  kitchen_sink: number;
 }
 
 // -------------------------------------------------------

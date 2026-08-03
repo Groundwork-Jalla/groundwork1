@@ -57,6 +57,28 @@ export const en = {
     allRightsReserved: 'All rights reserved.',
   },
 
+  // ── Status vocabulary (Foundations v1) ────────────────────
+  // The only words the product may use for status. Six states, no others.
+  // Retired here and everywhere: Spent · Paid · Done · Active · Deposited ·
+  // In escrow · Remaining · Transit. See src/lib/status.ts for the mapping
+  // from stored DB values onto these.
+  status: {
+    complete:       'Complete',
+    inProgress:     'In progress',
+    inTransit:      'In transit',
+    held:           'Held',
+    locked:         'Locked',
+    needsAttention: 'Needs attention',
+
+    // Money buckets — where the money sits, as opposed to where the work sits.
+    money: {
+      released:   'Released',
+      inTransit:  'In transit',
+      held:       'Held',
+      locked:     'Locked',
+    },
+  },
+
   // ── Language toggle ───────────────────────────────────────
   lang: {
     switchTo:   'Switch to {lang}',

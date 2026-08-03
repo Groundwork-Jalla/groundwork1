@@ -8,19 +8,45 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* Figures — every amount, percentage, stage number and date. Tabular so a column
+     of money stays a column and a changing digit never moves the layout. */
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Issued artefacts only — certificates, receipts, exported PDFs. Never live UI. */
+  --font-document: "Spectral", ui-serif, Georgia, serif;
 
+  /* ── Foundations v1 · ink and paper ──────────────────────
+     Semantic, not decorative. A colour means one thing and only that thing. */
+  --color-ink:      #0a0a0a;  /* primary text, active nav, primary button fill */
+  --color-ink-60:   #5a5a57;  /* supporting lines, column headers, descriptions */
+  --color-ink-35:   #9a9a96;  /* timestamps, eyebrows, locked figures */
+  --color-paper:    #ffffff;  /* anything holding content or a figure */
+  --color-canvas:   #f7f7f5;  /* page background, row hover, inset wells */
+  --color-rule:     #e4e3df;  /* card edge, table rules, progress track */
+
+  /* ── Foundations v1 · state ──────────────────────────────
+     Five states carry every status in the product. No tinted backgrounds —
+     state is a 6px dot plus the figure's own colour, never a pastel pill. */
+  --color-state-complete: #1f4d36; /* stage verified, funds released */
+  --color-state-active:   #0a0a0a; /* in progress / in transit */
+  --color-state-held:     #8a6a2c; /* with the platform, awaiting verification */
+  --color-state-locked:   #d6d4ce; /* not yet reachable; pairs with --color-ink-35 */
+  --color-state-alert:    #6e1f2b; /* overdue, failed, declined. Rare by design */
+
+  /* ── Brand tokens, realigned onto Foundations ────────────
+     Kept so existing markup keeps compiling; the values are now the Foundations
+     greys, which run slightly warm against the old neutral set. */
   --color-brand-white: #ffffff;
-  --color-brand-near-black: #0a0a0a;
+  --color-brand-near-black: #0a0a0a;  /* = --color-ink */
   --color-brand-rich-black: #1a1a1a;
-  --color-brand-mid-grey: #888888;
-  --color-brand-light-grey: #f5f5f5;
+  --color-brand-mid-grey: #5a5a57;    /* = --color-ink-60 */
+  --color-brand-light-grey: #f2f1ee;
   --color-brand-black: #000000;
-  --color-brand-muted-grey: #9ca3af;
-  --color-brand-border-grey: #e5e5e5;
+  --color-brand-muted-grey: #9a9a96;  /* = --color-ink-35 */
+  --color-brand-border-grey: #e4e3df; /* = --color-rule */
   --color-brand-dark-grey: #2a2a2a;
-  --color-brand-soft-grey: #bbbbbb;
-  --color-brand-off-white: #f8f8f8;
-  --color-brand-pale: #f2f2f2;
+  --color-brand-soft-grey: #9a9a96;   /* = --color-ink-35 */
+  --color-brand-off-white: #f7f7f5;   /* = --color-canvas */
+  --color-brand-pale: #f2f1ee;
 }
 
 html,
@@ -62,6 +88,23 @@ body {
   }
 }
 
+@layer components {
+  /* Foundations: every amount, percentage, stage number and date is mono and tabular.
+     A column of money stays a column, and a changing digit never moves the layout. */
+  .figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.01em;
+  }
+
+  /* Issued artefacts only — certificates, receipts, exported PDFs. Never live UI:
+     it is how you know you are holding a document rather than looking at a screen. */
+  .document-type {
+    font-family: var(--font-document);
+  }
+}
+
 @keyframes fill-progress {
   0% {
     width: 0;
@@ -90,6 +133,23 @@ html.dark {
   --color-brand-border-grey: #2c2c2c;
   --color-brand-mid-grey: #909090;
   --color-progress-bar-default: #e8e8e8; /* default bar fill flips light in dark mode */
+
+  /* ── Foundations tokens, dark ─────────────────────────────
+     NOTE: Foundations v1 specifies light mode only. These are derived, holding the
+     semantic meaning while meeting contrast on #141414. Worth confirming against
+     the design system before treating them as canonical. */
+  --color-ink:      #f0f0f0;
+  --color-ink-60:   #a3a39e;
+  --color-ink-35:   #6f6f6b;
+  --color-paper:    #1e1e1e;
+  --color-canvas:   #141414;
+  --color-rule:     #2c2c2c;
+
+  --color-state-complete: #4e9e78; /* #1f4d36 is unreadable on a dark surface */
+  --color-state-active:   #f0f0f0; /* active is "the colour of text", so it flips with ink */
+  --color-state-held:     #c9a04e;
+  --color-state-locked:   #3a3a38;
+  --color-state-alert:    #c2596b;
 }
 
 html.dark body {

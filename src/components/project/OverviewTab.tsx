@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
-import { formatUSDFull, formatUSD } from '@/lib/budget';
+import { formatUSDFull, formatUSD, BUDGET_ROLLUP_PCT } from '@/lib/budget';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
@@ -33,11 +33,13 @@ function fmtCompact(n: number): string {
 
 // ── Budget allocation donut (colorful) ───────────────────
 
+// Percentages come from BUDGET_ROLLUP_PCT so they always match the amounts rendered
+// beside them. They used to be hardcoded as 27 and 9 while the figures were 26% and 10%.
 const BUDGET_SLICES = [
-  { labelKey: 'project.overview.catMaterials' as TKey, pct: 41, color: '#3b82f6', descKey: 'project.overview.catMaterialsDesc' as TKey },
-  { labelKey: 'project.overview.catLabor'     as TKey, pct: 23, color: '#22c55e', descKey: 'project.overview.catLaborDesc'     as TKey },
-  { labelKey: 'project.overview.catFees'      as TKey, pct: 27, color: '#f59e0b', descKey: 'project.overview.catFeesDesc'      as TKey },
-  { labelKey: 'project.overview.catPermits'   as TKey, pct: 9,  color: '#a855f7', descKey: 'project.overview.catPermitsDesc'   as TKey },
+  { labelKey: 'project.overview.catMaterials' as TKey, pct: BUDGET_ROLLUP_PCT.materials, color: '#3b82f6', descKey: 'project.overview.catMaterialsDesc' as TKey },
+  { labelKey: 'project.overview.catLabor'     as TKey, pct: BUDGET_ROLLUP_PCT.labor,     color: '#22c55e', descKey: 'project.overview.catLaborDesc'     as TKey },
+  { labelKey: 'project.overview.catFees'      as TKey, pct: BUDGET_ROLLUP_PCT.fees,      color: '#f59e0b', descKey: 'project.overview.catFeesDesc'      as TKey },
+  { labelKey: 'project.overview.catPermits'   as TKey, pct: BUDGET_ROLLUP_PCT.permits,   color: '#a855f7', descKey: 'project.overview.catPermitsDesc'   as TKey },
 ] as const;
 
 function BudgetDonut({

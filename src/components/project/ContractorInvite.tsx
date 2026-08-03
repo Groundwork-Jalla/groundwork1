@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, UserPlus, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useFormat, useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -26,13 +26,7 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+// Dates are rendered through useFormat() so they follow the active language.
 
 type StatusBadgeProps = { status: ContractorInviteRow['status'] };
 
@@ -86,6 +80,7 @@ function InviteSkeleton() {
 
 export function ContractorInvite({ projectId, userId, projectName, projectTier }: ContractorInviteProps) {
   const t = useT();
+  const f = useFormat();
   const { user } = useAuth();
   const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
 
@@ -354,7 +349,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
                     {invite.email}
                   </span>
                   <span className="text-xs text-brand-mid-grey">
-                    Sent {formatDate(invite.created_at)}
+                    Sent {f.date(invite.created_at)}
                   </span>
                 </div>
 

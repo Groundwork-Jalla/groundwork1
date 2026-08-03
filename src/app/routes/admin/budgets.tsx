@@ -83,6 +83,11 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
               <input
                 id="admin-budget"
                 inputMode="numeric"
+                // Grouping stays locale-neutral here on purpose. This is an input mask,
+                // not a display figure: the onChange parse strips [^0-9.], so a French
+                // group separator would be fine but a French decimal comma would be
+                // silently eaten and turn 42 500,50 into 4250050. A budget field that
+                // quietly corrupts the number is worse than one that groups in en-US.
                 value={raw === '0' ? '' : Number(raw.replace(/[^0-9.]/g, '') || 0).toLocaleString('en-US')}
                 onChange={e => setRaw(e.target.value.replace(/[^0-9.]/g, ''))}
                 placeholder="0"

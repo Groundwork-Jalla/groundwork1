@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Trash2, FolderOpen, Upload, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useFormat, useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
@@ -47,13 +47,7 @@ const CATEGORY_ORDER: DocumentCategory[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+// Dates are rendered through useFormat() so they follow the active language.
 
 function groupByCategory(docs: ProjectDocumentRow[]): Map<DocumentCategory, ProjectDocumentRow[]> {
   const map = new Map<DocumentCategory, ProjectDocumentRow[]>();
@@ -126,6 +120,7 @@ interface DocRowProps {
 }
 
 function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
+  const f = useFormat();
   const category = (doc.category as DocumentCategory) ?? 'other';
   return (
     <motion.tr
@@ -148,7 +143,7 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
         </div>
       </td>
       <td className="px-4 py-3 text-xs text-brand-mid-grey whitespace-nowrap tabular-nums">
-        {formatDate(doc.created_at)}
+        {f.date(doc.created_at)}
       </td>
       <td className="px-4 py-3 text-xs text-brand-mid-grey whitespace-nowrap tabular-nums">
         {formatFileSize(doc.file_size)}
@@ -172,6 +167,7 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
 // ---------------------------------------------------------------------------
 
 function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
+  const f = useFormat();
   const category = (doc.category as DocumentCategory) ?? 'other';
   return (
     <motion.div
@@ -190,7 +186,7 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
           {doc.file_name}
         </p>
         <p className="text-xs text-brand-mid-grey mt-0.5 flex items-center gap-1.5 flex-wrap">
-          {formatDate(doc.created_at)}
+          {f.date(doc.created_at)}
           {doc.file_size ? ` · ${formatFileSize(doc.file_size)}` : ''}
           <CategoryBadge category={category} />
         </p>

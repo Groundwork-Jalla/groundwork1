@@ -12,7 +12,8 @@ import { useAuth }                    from '@/contexts/AuthContext';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
-import { formatUSDFull } from '@/lib/budget';
+import { formatUSDFull, BUDGET_ROLLUP_PCT } from '@/lib/budget';
+import { formatDate, formatMoney } from '@/lib/format';
 import { findCountry }   from '@/lib/countries';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
@@ -266,7 +267,7 @@ function JourneyCard({ projects, activeProject, completedCount }: {
   }
 
   const lastActivity = activeProject?.updated_at
-    ? new Date(activeProject.updated_at).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+    ? formatDate(activeProject.updated_at, 'short')
     : null;
 
   return (
@@ -349,7 +350,7 @@ function VelocityChart({ project, stages }: {
   md.setDate(1);
   md.setMonth(md.getMonth() + 1);
   while (md.getTime() <= chartEnd) {
-    allMonths.push({ t: md.getTime(), label: md.toLocaleDateString('en-US', { month: 'short' }) });
+    allMonths.push({ t: md.getTime(), label: formatDate(md, 'month') });
     md.setMonth(md.getMonth() + 1);
   }
   const tickStep = allMonths.length <= 8 ? 1 : Math.ceil(allMonths.length / 8);
@@ -382,8 +383,7 @@ function VelocityChart({ project, stages }: {
     `${actualPts[0].x.toFixed(1)},${(PT + ch).toFixed(1)}`,
   ].join(' ');
 
-  const fmtD = (t: number) =>
-    new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtD = (t: number) => formatDate(t, 'medium');
 
   return (
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
@@ -703,11 +703,13 @@ function StageProgressPanel({
 
 // ── Costing allocation donut (Materials / Labor / Fees / Permits) ──
 
+// Shares the roll-up used by the project Overview donut. These two showed different
+// numbers for the same project before — 34%/2% here against 27%/9% there.
 const COST_CATS = [
-  { key: 'materials', label: 'Materials',         desc: 'Cement, blocks, rebar, fittings',       color: '#3b82f6', pct: 41 },
-  { key: 'labor',     label: 'Labor',             desc: 'Site workers + supervision',             color: '#22c55e', pct: 23 },
-  { key: 'fees',      label: 'Professional Fees', desc: 'Architects, engineers, project mgmt',    color: '#f59e0b', pct: 34 },
-  { key: 'permits',   label: 'Permits',           desc: 'Government approvals & filings',          color: '#1f2937', pct: 2  },
+  { key: 'materials', label: 'Materials',         desc: 'Cement, blocks, rebar, fittings',     color: '#3b82f6', pct: BUDGET_ROLLUP_PCT.materials },
+  { key: 'labor',     label: 'Labor',             desc: 'Site workers + supervision',          color: '#22c55e', pct: BUDGET_ROLLUP_PCT.labor     },
+  { key: 'fees',      label: 'Professional Fees', desc: 'Architects, engineers, project mgmt', color: '#f59e0b', pct: BUDGET_ROLLUP_PCT.fees      },
+  { key: 'permits',   label: 'Permits & contingency', desc: 'Government approvals & reserve',  color: '#1f2937', pct: BUDGET_ROLLUP_PCT.permits   },
 ];
 
 function CostingDonut({ project }: { project: ProjectRow }) {
@@ -773,7 +775,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 
       {total > 0 && (
         <p className="text-[10px] text-brand-mid-grey mt-4 pt-3 border-t border-brand-border-grey dark:border-[#2c2c2c]">
-          Total estimated cost: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total)}.
+          Total estimated cost: {formatMoney(total)}.
         </p>
       )}
     </div>

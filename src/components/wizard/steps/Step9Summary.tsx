@@ -51,8 +51,8 @@ const FINISH_LABELS: Record<string, string> = {
 // ── Budget breakdown display ───────────────────────────────
 
 function BudgetBreakdownCard() {
-  const { data, constructionRate, rateLoading } = useWizard();
-  const detail = calculateBudgetDetail(data, constructionRate);
+  const { data, constructionRate, cityRate, rateLoading } = useWizard();
+  const detail = calculateBudgetDetail(data, constructionRate, cityRate);
   const isVerified = detail.dataSource === 'real_bq';
   const maxAmount  = Math.max(...detail.sections.map(s => s.amountUSD), 1);
 

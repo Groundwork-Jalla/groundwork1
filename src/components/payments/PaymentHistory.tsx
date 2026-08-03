@@ -1,13 +1,8 @@
-import { formatUSD, formatUSDFull } from '@/lib/budget';
 import { platformFee } from '@/lib/payments/config';
-import { useT } from '@/lib/i18n';
+import { useFormat, useT } from '@/lib/i18n';
+import { MoneyBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 export default function PaymentHistory({
   project, stages, tier, rate, onViewPayout,
@@ -19,6 +14,7 @@ export default function PaymentHistory({
   onViewPayout: (stage: ProjectStageRow) => void;
 }) {
   const t         = useT();
+  const f         = useFormat();
   const total     = project.budget_usd ?? 0;
   const paid      = stages.filter(s => s.payment_status === 'paid' || s.payment_status === 'partial');
   const totalPaid = paid.reduce((s, st) => s + (st.payment_milestone_usd ?? 0), 0);
@@ -37,13 +33,13 @@ export default function PaymentHistory({
       <div className="rounded-2xl bg-brand-near-black text-white flex px-6 py-5 mb-6">
         <div className="flex-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.totalPaid')}</p>
-          <p className="text-2xl font-extrabold mt-1 tabular-nums">{formatUSD(totalPaid)}</p>
+          <p className="text-2xl font-extrabold mt-1 figure">{f.money(totalPaid)}</p>
           <p className="text-[11px] text-white/35 mt-0.5">{paid.length} of {stages.length || 10} stages</p>
         </div>
         <div className="w-px bg-white/10 mx-5" />
         <div className="flex-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.remainingLabel')}</p>
-          <p className="text-2xl font-extrabold mt-1 tabular-nums">{formatUSD(remaining)}</p>
+          <p className="text-2xl font-extrabold mt-1 figure">{f.money(remaining)}</p>
           <p className="text-[11px] text-white/35 mt-0.5">{lockedCount} stage{lockedCount !== 1 ? 's' : ''} unpaid</p>
         </div>
       </div>
@@ -65,8 +61,8 @@ export default function PaymentHistory({
               <div key={p.id} className="relative mb-4">
                 <span className={cn(
                   'absolute -left-[20px] top-3.5 size-4 rounded-full border-[3px] border-white dark:border-[#141414]',
-                  isPaid ? 'bg-green-600' : 'bg-blue-600',
-                )} style={{ boxShadow: '0 0 0 1px var(--color-brand-border-grey)' }} />
+                  isPaid ? 'bg-state-complete' : 'bg-state-active',
+                )} style={{ boxShadow: '0 0 0 1px var(--color-rule)' }} />
                 <button
                   type="button"
                   onClick={() => onViewPayout(p)}
@@ -74,27 +70,21 @@ export default function PaymentHistory({
                 >
                   <div className="flex items-start justify-between gap-3 mb-2.5">
                     <div className="min-w-0">
-                      <span className={cn(
-                        'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold',
-                        isPaid ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                               : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-                      )}>
-                        {isPaid ? t('project.payments.paid') : t('project.payments.inTransit')}
-                      </span>
+                      <MoneyBadge bucket={isPaid ? 'released' : 'in_transit'} size="small" />
                       <p className="text-sm font-bold text-brand-near-black dark:text-white mt-2 leading-snug">
                         {t('project.stages.stageN', { n: p.stage_number })}: {p.name}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-lg font-extrabold text-brand-near-black dark:text-white tabular-nums">{formatUSDFull(amount)}</p>
-                      {fee > 0 && <p className="text-[10px] text-brand-soft-grey">{t('project.payments.fee', { amount: formatUSDFull(fee) })}</p>}
+                      <p className="text-lg font-extrabold text-brand-near-black dark:text-white figure">{f.money(amount)}</p>
+                      {fee > 0 && <p className="text-[10px] text-brand-soft-grey">{t('project.payments.fee', { amount: f.money(fee) })}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-brand-mid-grey flex-wrap">
-                    <span>{fmtDate(p.completed_at)}</span>
-                    <span className="text-brand-border-grey">·</span>
+                    <span>{f.date(p.completed_at)}</span>
+                    <span className="text-ink-35">·</span>
                     <span>{t('project.payments.momo')}</span>
-                    <span className="text-brand-border-grey">·</span>
+                    <span className="text-ink-35">·</span>
                     <span className="text-brand-near-black dark:text-white font-medium">{t('project.payments.viewPayout')}</span>
                   </div>
                 </button>

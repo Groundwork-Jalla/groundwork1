@@ -6,6 +6,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FinishLevel, WizardFormData } from '@/types/project';
+import { CITY_RATES, CM_CITY_CODES } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 
 const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[] = [
@@ -14,7 +15,7 @@ const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[
   { value: 'luxury',   label: 'Luxury',    description: 'Bespoke finishes, premium everything' },
 ];
 
-// ── Sqm estimation ─────────────────────────────────────────────
+// ── Footprint estimation ───────────────────────────────────────
 // Room benchmark sizes (sqm) — based on common African/UK residential standards
 const SQM = { bed: 14, bath: 5.5, living: 26, kitchen: 13 };
 // +22% for circulation: corridors, landings, stairs, wall thickness
@@ -27,6 +28,14 @@ interface SqmEstimate {
   label: string;   // human-readable building descriptor
 }
 
+/**
+ * Estimates the GROUND FLOOR FOOTPRINT, not the combined area of every floor.
+ *
+ * This used to return the combined area while the budget engine treated the same number
+ * as a footprint and then added a per-floor uplift on top — so a G+1 was counted close
+ * to twice. The engine is calibrated against BQ footprints (slab volume ÷ 0.12), so
+ * footprint is the figure that has to come out of here.
+ */
 function estimateSqm(data: WizardFormData): SqmEstimate | null {
   // Aggregate room counts across all floors
   const hasFR = data.floorRooms.length > 0 &&
@@ -47,8 +56,10 @@ function estimateSqm(data: WizardFormData): SqmEstimate | null {
     data.buildingType === 'office'           ? 1.40 :
     data.buildingType === 'retail'           ? 1.20 : 1.00;
 
+  const floors  = Math.max(1, data.floors);
   const raw     = beds * SQM.bed + baths * SQM.bath + livings * SQM.living + kitch * SQM.kitchen;
-  const typical = Math.round((raw * CIRC * mult) / 5) * 5;
+  // Those rooms are spread over every storey; the footprint is one storey's worth.
+  const typical = Math.round((raw * CIRC * mult / floors) / 5) * 5;
   const min     = Math.round((typical * 0.80) / 5) * 5;
   const max     = Math.round((typical * 1.30) / 5) * 5;
 
@@ -66,9 +77,18 @@ function estimateSqm(data: WizardFormData): SqmEstimate | null {
   return { min, max, typical, label: `${bText} ${story} ${typeLabel}` };
 }
 
+const isKnownCity = (city: string) =>
+  CM_CITY_CODES.some(code => CITY_RATES[code].city_name === city);
+
 export default function Step8Details() {
   const { data, update, next } = useWizard();
   const [sqmStr, setSqmStr] = useState(data.sqm > 0 ? String(data.sqm) : '');
+
+  // Only Cameroon has a real city rate book so far. Everywhere else keeps free text.
+  const showCityPicker = data.country === 'CM';
+  const [cityOther, setCityOther] = useState(
+    () => showCityPicker && data.city.length > 0 && !isKnownCity(data.city),
+  );
 
   const canContinue =
     data.projectName.trim().length >= 2 &&
@@ -119,19 +139,79 @@ export default function Step8Details() {
             <Label htmlFor="city" className="text-sm font-medium text-brand-near-black">
               City / location
             </Label>
-            <Input
-              id="city"
-              type="text"
-              placeholder={`e.g. Lagos, ${data.countryName || 'Nigeria'}`}
-              value={data.city}
-              onChange={e => update({ city: e.target.value })}
-            />
+            {showCityPicker ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {CM_CITY_CODES.map(code => {
+                    const c = CITY_RATES[code];
+                    const active = !cityOther && data.city === c.city_name;
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => { setCityOther(false); update({ city: c.city_name }); }}
+                        className={cn(
+                          'flex flex-col items-start rounded-xl border-2 px-3 py-2 transition-all duration-150',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
+                          active
+                            ? 'border-brand-near-black bg-brand-off-white'
+                            : 'border-brand-border-grey hover:border-brand-dark-grey',
+                        )}
+                      >
+                        <span className="text-sm font-semibold text-brand-near-black">{c.city_name}</span>
+                        <span className="text-[10px] text-brand-mid-grey tabular-nums">
+                          {c.index_vs_baseline === 1
+                            ? 'baseline'
+                            : `${c.index_vs_baseline > 1 ? '+' : ''}${Math.round((c.index_vs_baseline - 1) * 100)}% materials`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => { setCityOther(true); update({ city: '' }); }}
+                    className={cn(
+                      'flex flex-col items-start rounded-xl border-2 px-3 py-2 transition-all duration-150',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
+                      cityOther
+                        ? 'border-brand-near-black bg-brand-off-white'
+                        : 'border-brand-border-grey hover:border-brand-dark-grey',
+                    )}
+                  >
+                    <span className="text-sm font-semibold text-brand-near-black">Other…</span>
+                    <span className="text-[10px] text-brand-mid-grey">Douala rates</span>
+                  </button>
+                </div>
+                {cityOther && (
+                  <Input
+                    id="city"
+                    type="text"
+                    autoFocus
+                    placeholder="e.g. Bamenda"
+                    value={isKnownCity(data.city) ? '' : data.city}
+                    onChange={e => update({ city: e.target.value })}
+                  />
+                )}
+                <p className="text-xs text-brand-mid-grey">
+                  Material costs vary by up to 45% across Cameroon — cement and steel carry
+                  the haulage inland.
+                </p>
+              </>
+            ) : (
+              <Input
+                id="city"
+                type="text"
+                placeholder={`e.g. Lagos, ${data.countryName || 'Nigeria'}`}
+                value={data.city}
+                onChange={e => update({ city: e.target.value })}
+              />
+            )}
           </div>
 
-          {/* Floor area */}
+          {/* Ground floor footprint */}
           <div className="space-y-1.5">
             <Label htmlFor="sqm" className="text-sm font-medium text-brand-near-black">
-              Total floor area{' '}
+              Ground floor footprint{' '}
               <span className="font-normal text-brand-mid-grey">(optional)</span>
             </Label>
             <div className="relative">
@@ -140,7 +220,7 @@ export default function Step8Details() {
                 type="number"
                 min={10}
                 max={50000}
-                placeholder={estimate ? `e.g. ${estimate.typical}` : 'e.g. 250'}
+                placeholder={estimate ? `e.g. ${estimate.typical}` : 'e.g. 125'}
                 value={sqmStr}
                 onChange={e => handleSqmChange(e.target.value)}
                 className="pr-14"
@@ -150,8 +230,20 @@ export default function Step8Details() {
               </span>
             </div>
             <p className="text-xs text-brand-mid-grey">
-              Combined area of all floors, excluding the boys' quarters
+              The area the building covers on the ground, excluding the boys' quarters
             </p>
+
+            {/* Derived total built area — read-only, so the two figures can't drift */}
+            {data.sqm > 0 && (
+              <div className="flex items-center justify-between rounded-lg bg-brand-off-white px-3 py-2">
+                <span className="text-xs text-brand-mid-grey">
+                  Total built area across {data.floors} floor{data.floors !== 1 ? 's' : ''}
+                </span>
+                <span className="text-xs font-semibold text-brand-near-black tabular-nums">
+                  {(data.sqm * Math.max(1, data.floors)).toLocaleString()} sqm
+                </span>
+              </div>
+            )}
 
             {/* Smart estimate hint */}
             <AnimatePresence>
@@ -167,7 +259,7 @@ export default function Step8Details() {
                     <Lightbulb className="size-4 shrink-0 mt-0.5 text-brand-near-black opacity-60" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-brand-near-black leading-snug">
-                        Typical size for a {estimate.label}
+                        Typical footprint for a {estimate.label}
                       </p>
                       <p className="mt-0.5 text-xs text-brand-mid-grey leading-relaxed">
                         Based on your room layout, expect somewhere between{' '}

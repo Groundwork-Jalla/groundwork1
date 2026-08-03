@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Download } from 'lucide-react';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee } from '@/lib/payments/config';
-import { useT } from '@/lib/i18n';
+import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 
@@ -17,6 +17,7 @@ export default function PayoutStatusModal({
   onClose: () => void;
 }) {
   const t = useT();
+  const f = useFormat();
   if (!stage) return null;
 
   const amount   = stage.payment_milestone_usd ?? 0;
@@ -35,9 +36,7 @@ export default function PayoutStatusModal({
   ];
   const doneCount = paid ? nodes.length : 3;
 
-  const fmtDateTime = stage.completed_at
-    ? new Date(stage.completed_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—';
+  const fmtDateTime = f.date(stage.completed_at);
 
   const details: [string, string][] = [
     [t('project.payments.contractor'), contractorLabel],

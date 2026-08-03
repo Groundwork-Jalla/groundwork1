@@ -1,9 +1,13 @@
 import {
-  createContext, useCallback, useContext, useMemo, useState, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
 import { en, type EnDict } from './en';
 import { fr } from './fr';
 import { LANG_META, LANGS, type DeepKeys, type Lang } from './types';
+import {
+  formatDate, formatDateTime, formatMoney, formatNumber, formatPercent,
+  formatRelative, localeFor, setFormatLocale, type DateStyle,
+} from '@/lib/format';
 
 export type { Lang } from './types';
 export { LANGS, LANG_META } from './types';
@@ -122,6 +126,11 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectLang);
 
+  // Keep the bare formatters in '@/lib/format' in step. Components should use
+  // useFormat() so they re-render on a toggle; this covers the non-component callers
+  // (PDF export, and anything computing a string outside the tree).
+  useEffect(() => { setFormatLocale(lang); }, [lang]);
+
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
     try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
@@ -206,6 +215,36 @@ export function useLanguage(): LanguageContextValue {
 /** Shorthand for components that only need the translate function. */
 export function useT() {
   return useLanguage().t;
+}
+
+/**
+ * Locale-aware formatters bound to the current language.
+ *
+ * Prefer this over the bare functions in '@/lib/format' inside components: it is
+ * derived from context, so toggling the language re-renders the figures. A component
+ * that imports `formatUSD` directly will keep showing the old locale until something
+ * else re-renders it.
+ *
+ *   const f = useFormat();
+ *   f.money(42500)            // $42,500.00  ·  42 500,00 $US
+ *   f.date(stage.completed_at) // 3 Aug 2026  ·  3 août 2026
+ */
+export function useFormat() {
+  const { lang } = useLanguage();
+  return useMemo(() => {
+    const locale = localeFor(lang);
+    return {
+      locale,
+      money:    (amount: number, currency = 'USD') => formatMoney(amount, currency, locale),
+      number:   (value: number, options?: Intl.NumberFormatOptions) =>
+                  formatNumber(value, locale, options),
+      percent:  (value: number, fractionDigits = 0) => formatPercent(value, locale, fractionDigits),
+      date:     (value: Parameters<typeof formatDate>[0], style: DateStyle = 'medium') =>
+                  formatDate(value, style, locale),
+      dateTime: (value: Parameters<typeof formatDateTime>[0]) => formatDateTime(value, locale),
+      relative: (value: Parameters<typeof formatRelative>[0]) => formatRelative(value, locale),
+    };
+  }, [lang]);
 }
 
 export { LANGS as SUPPORTED_LANGS };

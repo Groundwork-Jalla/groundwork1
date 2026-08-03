@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatNumber } from '@/lib/format';
 import { motion } from 'framer-motion';
 import { CheckCircle2, CircleDashed, CircleDot, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -155,7 +156,7 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
         <h2 className="text-base font-semibold text-brand-near-black dark:text-white">Payment Tracking</h2>
         {rate && (
           <span className="text-[10px] text-brand-mid-grey border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2 py-0.5">
-            1 USD = {rate.currency_code} {rate.approx_fx_rate.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+            1 USD = {rate.currency_code} {formatNumber(rate.approx_fx_rate, undefined, { maximumFractionDigits: 2 })}
           </span>
         )}
       </div>

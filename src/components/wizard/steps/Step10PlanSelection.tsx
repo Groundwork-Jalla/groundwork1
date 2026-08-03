@@ -66,7 +66,7 @@ function TierCard({ title, price, description, features, selected, onSelect, pop
 // ── Page component ─────────────────────────────────────────
 
 export default function Step10PlanSelection() {
-  const { data, update, reset, constructionRate } = useWizard();
+  const { data, update, reset, constructionRate, cityRate } = useWizard();
   const { user } = useAuth();
   const navigate  = useNavigate();
 
@@ -78,7 +78,7 @@ export default function Step10PlanSelection() {
     setError(null);
     setSubmitting(true);
     try {
-      const budget  = calculateBudget(data, constructionRate);
+      const budget  = calculateBudget(data, constructionRate, cityRate);
       const project = await createProject(user.id, data, budget);
       reset();
       navigate(`/projects/${project.id}`);

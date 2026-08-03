@@ -6,9 +6,9 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import type { WizardFormData, ConstructionRate } from '@/types/project';
+import type { WizardFormData, ConstructionRate, CityRate } from '@/types/project';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
-import { getConstructionRate } from '@/lib/supabase/construction-rates';
+import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-rates';
 
 // =========================================================
 // Types
@@ -21,6 +21,7 @@ interface WizardContextValue {
   direction: WizardDirection;
   data: WizardFormData;
   constructionRate: ConstructionRate | null;
+  cityRate: CityRate | null;
   rateLoading: boolean;
   update: (patch: Partial<WizardFormData>) => void;
   next: () => void;
@@ -45,6 +46,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [data, setData]           = useState<WizardFormData>(WIZARD_DEFAULT_DATA);
 
   const [constructionRate, setConstructionRate] = useState<ConstructionRate | null>(null);
+  const [cityRate, setCityRate]                 = useState<CityRate | null>(null);
   const [rateLoading, setRateLoading]           = useState(false);
 
   // Fetch rate once whenever the selected country changes
@@ -63,6 +65,20 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     });
     return () => { cancelled = true; };
   }, [data.country]);
+
+  // City rates move independently of the country row — Kribi to Adamawa is a 1.45x spread
+  // inside Cameroon, so the city has to be resolved every time it changes.
+  useEffect(() => {
+    if (!data.country) {
+      setCityRate(null);
+      return;
+    }
+    let cancelled = false;
+    getCityRate(data.city, data.country).then(r => {
+      if (!cancelled) setCityRate(r);
+    });
+    return () => { cancelled = true; };
+  }, [data.country, data.city]);
 
   const update = useCallback((patch: Partial<WizardFormData>) => {
     setData(prev => ({ ...prev, ...patch }));
@@ -88,13 +104,14 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setDirection('forward');
     setData(WIZARD_DEFAULT_DATA);
     setConstructionRate(null);
+    setCityRate(null);
   }, []);
 
   return (
     <WizardContext.Provider
       value={{
         step, totalSteps: TOTAL_STEPS, direction, data,
-        constructionRate, rateLoading,
+        constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
       }}
     >

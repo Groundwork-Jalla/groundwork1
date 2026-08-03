@@ -71,6 +71,33 @@ export const fr: Mirror<EnDict> = {
     allRightsReserved: 'Tous droits réservés.',
   },
 
+  // ── Vocabulaire des statuts (Foundations v1) ──────────────
+  // Les seuls mots autorisés pour un statut. Six états, pas un de plus.
+  //
+  // Choix de traduction :
+  //   in transit → « en cours de virement » plutôt que « en transit », qui en
+  //     français évoque le transport de marchandises, pas un mouvement de fonds.
+  //   held → « bloqué » (retenu par la plateforme), à distinguer de locked
+  //     → « verrouillé » (pas encore atteignable). Les deux se traduiraient
+  //     volontiers par « bloqué » ; la distinction est essentielle ici.
+  //   released → « débloqué » : les fonds ont quitté la séquestre.
+  status: {
+    complete:       'Terminé',
+    inProgress:     'En cours',
+    inTransit:      'En cours de virement',
+    held:           'Bloqué',
+    locked:         'Verrouillé',
+    needsAttention: 'À traiter',
+
+    // Postes financiers — où se trouve l'argent, et non où en sont les travaux.
+    money: {
+      released:   'Débloqué',
+      inTransit:  'En cours de virement',
+      held:       'Bloqué',
+      locked:     'Verrouillé',
+    },
+  },
+
   // ── Sélecteur de langue ───────────────────────────────────
   lang: {
     switchTo:   'Passer en {lang}',

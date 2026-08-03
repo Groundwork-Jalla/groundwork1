@@ -275,6 +275,7 @@ export default function ProjectDetail() {
 
   const budget  = calculateBudget({
     country:         project.country,
+    city:            project.city ?? '',
     floors:          project.num_floors,
     buildingType:    project.building_type,
     roofType:        project.roof_type,
