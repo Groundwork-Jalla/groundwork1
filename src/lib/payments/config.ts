@@ -8,7 +8,24 @@ import type { ProjectTier } from '@/types/project';
 // Real charging (Stripe hold) + payouts (Switchr XAF) are not wired yet.
 // =========================================================
 
-export const PAYMENTS_ARE_PREVIEW = true;
+/**
+ * Two rails, two states — they are not both preview any more.
+ *
+ *   Stripe   Jalla Verify subscription, client → Jalla.   LIVE (see api/stripe/)
+ *   Switchr  project funds + contractor payouts in XAF.   NOT WIRED
+ *
+ * Contractors are never paid through Stripe: Stripe Connect does not support payouts to
+ * Cameroon, and no milestone money passes through a Stripe balance.
+ */
+
+/** Milestone charging and contractor payouts still await the Switchr integration. */
+export const MILESTONE_PAYMENTS_ARE_PREVIEW = true;
+
+/** Subscriptions run on Stripe Checkout. Keep true only if the keys are not yet set. */
+export const SUBSCRIPTIONS_ARE_PREVIEW = false;
+
+/** @deprecated Ambiguous now the two rails differ. Use the specific flag. */
+export const PAYMENTS_ARE_PREVIEW = MILESTONE_PAYMENTS_ARE_PREVIEW;
 
 export interface TierBilling {
   id: ProjectTier;

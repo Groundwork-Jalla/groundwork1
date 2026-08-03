@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TIER_BILLING, PAYMENTS_ARE_PREVIEW } from '@/lib/payments/config';
+import { TIER_BILLING, SUBSCRIPTIONS_ARE_PREVIEW } from '@/lib/payments/config';
+import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
 import { useT } from '@/lib/i18n';
 
@@ -21,8 +22,31 @@ const ICON: Record<ProjectTier, React.ReactNode> = {
 export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTier }) {
   const t = useT();
   const [sel, setSel] = useState<ProjectTier>('jalla_verify');
+  const [busy, setBusy]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const d = TIER_BILLING[sel];
   const isCurrent = currentTier === sel;
+
+  /**
+   * Only Jalla Verify is self-serve. Self Verify is the free default — there is nothing
+   * to buy — and Jalla Management is a negotiated contract, so it goes to sales rather
+   * than to Stripe.
+   */
+  async function handleCta() {
+    setError(null);
+    if (sel === 'self_verify') return;
+    if (sel === 'jalla_management') {
+      window.location.href = 'mailto:hello@tryjalla.com?subject=Jalla%20Management%20enquiry';
+      return;
+    }
+    setBusy(true);
+    try {
+      await startJallaVerifyCheckout();   // redirects to Stripe; nothing after this runs
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start checkout.');
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="max-w-xl mx-auto">
@@ -85,19 +109,26 @@ export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTi
 
           <button
             type="button"
-            disabled={isCurrent}
+            disabled={isCurrent || busy}
+            onClick={handleCta}
             className="mt-6 w-full rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-40"
           >
-            {isCurrent ? t('project.payments.currentPlan') : d.cta}
+            {isCurrent
+              ? t('project.payments.currentPlan')
+              : busy ? t('common.loading') : d.cta}
           </button>
 
-          {sel === 'jalla_verify' && (
+          {error && (
+            <p className="text-[11px] text-state-alert mt-2.5" role="alert">{error}</p>
+          )}
+
+          {sel === 'jalla_verify' && !error && (
             <p className="text-[11px] text-brand-mid-grey mt-2.5">{t('project.payments.cancelAnytime')}</p>
           )}
         </motion.div>
       </AnimatePresence>
 
-      {PAYMENTS_ARE_PREVIEW && (
+      {SUBSCRIPTIONS_ARE_PREVIEW && (
         <p className="text-[11px] text-brand-mid-grey text-center mt-5 leading-relaxed">
           {t('project.payments.previewBilling')}
         </p>
