@@ -5,6 +5,7 @@ import {
   Maximize2, Package, Users, Briefcase, Landmark, BarChart2, Scale, RefreshCw, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT, type TKey } from '@/lib/i18n';
 import { formatUSDFull, formatUSD } from '@/lib/budget';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
@@ -33,10 +34,10 @@ function fmtCompact(n: number): string {
 // ── Budget allocation donut (colorful) ───────────────────
 
 const BUDGET_SLICES = [
-  { label: 'Materials',        pct: 41, color: '#3b82f6', desc: 'Cement, blocks, rebar, fittings' },
-  { label: 'Labor',            pct: 23, color: '#22c55e', desc: 'Site workers and supervision'    },
-  { label: 'Professional Fees',pct: 27, color: '#f59e0b', desc: 'Architects, engineers, project mgmt' },
-  { label: 'Permits',          pct: 9,  color: '#a855f7', desc: 'Government approvals and filings' },
+  { labelKey: 'project.overview.catMaterials' as TKey, pct: 41, color: '#3b82f6', descKey: 'project.overview.catMaterialsDesc' as TKey },
+  { labelKey: 'project.overview.catLabor'     as TKey, pct: 23, color: '#22c55e', descKey: 'project.overview.catLaborDesc'     as TKey },
+  { labelKey: 'project.overview.catFees'      as TKey, pct: 27, color: '#f59e0b', descKey: 'project.overview.catFeesDesc'      as TKey },
+  { labelKey: 'project.overview.catPermits'   as TKey, pct: 9,  color: '#a855f7', descKey: 'project.overview.catPermitsDesc'   as TKey },
 ] as const;
 
 function BudgetDonut({
@@ -46,6 +47,7 @@ function BudgetDonut({
   total: number;
   onBreakdown: () => void;
 }) {
+  const t     = useT();
   const size  = 180;
   const cx    = size / 2;
   const cy    = size / 2;
@@ -64,20 +66,20 @@ function BudgetDonut({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-brand-near-black dark:text-white">Costing Allocation</p>
+        <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.costingAllocation')}</p>
         <button
           type="button"
           onClick={onBreakdown}
           className="flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
         >
-          <Info className="size-3" /> How is this calculated?
+          <Info className="size-3" /> {t('project.overview.howCalculated')}
         </button>
       </div>
 
       <p className="text-xs text-brand-mid-grey -mt-3">
-        Your biggest cost is{' '}
-        <span className="font-semibold text-brand-near-black dark:text-white">Materials</span>{' '}
-        at <span className="font-semibold text-brand-near-black dark:text-white">41%</span> of total budget.
+        {t('project.overview.biggestCostPre')}{' '}
+        <span className="font-semibold text-brand-near-black dark:text-white">{t('project.overview.catMaterials')}</span>{' '}
+        {t('project.overview.biggestCostMid')} <span className="font-semibold text-brand-near-black dark:text-white">41%</span> {t('project.overview.biggestCostPost')}
       </p>
 
       <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -86,7 +88,7 @@ function BudgetDonut({
           <svg width={size} height={size} className="-rotate-90">
             {arcs.map(arc => (
               <circle
-                key={arc.label}
+                key={arc.labelKey}
                 cx={cx} cy={cy} r={r} fill="none"
                 stroke={arc.color}
                 strokeWidth={sw}
@@ -97,22 +99,22 @@ function BudgetDonut({
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <p className="text-lg font-black text-brand-near-black dark:text-white tabular-nums leading-none">{formatUSDFull(total)}</p>
-            <p className="text-[9px] text-brand-mid-grey mt-1">Total budget</p>
+            <p className="text-[9px] text-brand-mid-grey mt-1">{t('project.overview.totalBudgetSmall')}</p>
           </div>
         </div>
 
         {/* Legend with descriptions */}
         <div className="flex flex-col gap-3 flex-1 w-full">
           {BUDGET_SLICES.map(s => (
-            <div key={s.label}>
+            <div key={s.labelKey}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
-                  <span className="text-xs font-medium text-brand-near-black dark:text-white">{s.label}</span>
+                  <span className="text-xs font-medium text-brand-near-black dark:text-white">{t(s.labelKey)}</span>
                 </div>
                 <span className="text-xs font-bold text-brand-near-black dark:text-white tabular-nums">{s.pct}%</span>
               </div>
-              <p className="text-[10px] text-brand-mid-grey pl-4">{s.desc}</p>
+              <p className="text-[10px] text-brand-mid-grey pl-4">{t(s.descKey)}</p>
             </div>
           ))}
           <p className="text-[10px] text-brand-mid-grey border-t border-brand-off-white dark:border-[#2c2c2c] pt-2">
@@ -378,6 +380,7 @@ function PaymentBar({
   totalBudget: number;
   onHowCalculated: () => void;
 }) {
+  const t = useT();
   const paidPct = totalBudget > 0 ? (paidTotal / totalBudget) * 100 : 0;
   const paidPctRounded = Math.round(paidPct);
 
@@ -390,7 +393,7 @@ function PaymentBar({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-sm font-medium text-brand-near-black dark:text-white">Payment Status</p>
+        <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.paymentStatus')}</p>
         <button
           type="button"
           onClick={onHowCalculated}
@@ -646,6 +649,7 @@ function StageProgressModal({
   activeStage: ProjectStageRow | undefined;
   onClose: () => void;
 }) {
+  const t = useT();
   const expectedStage = completedCount + 1;
   const actualStage   = activeStage?.stage_number ?? completedCount;
   const variance      = actualStage - expectedStage;
@@ -681,7 +685,7 @@ function StageProgressModal({
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525] flex items-center justify-between">
               <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">Your pace right now</p>
-              <p className="text-[10px] text-brand-mid-grey">COMPLETION</p>
+              <p className="text-[10px] text-brand-mid-grey">{t('project.overview.completionUpper')}</p>
             </div>
             <div className="px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -778,6 +782,7 @@ function StatCard({
 }
 
 function CompletionCard({ pct, count, total }: { pct: number; count: number; total: number }) {
+  const t = useT();
   const R = 32;
   const circ = 2 * Math.PI * R;
   const arc = circ * 0.75;
@@ -795,10 +800,10 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pb-1">
           <span className="text-xl font-black text-brand-near-black dark:text-white tabular-nums leading-none">{pct}%</span>
-          <span className="text-[8px] font-bold text-brand-mid-grey uppercase tracking-widest">COMPLETE</span>
+          <span className="text-[8px] font-bold text-brand-mid-grey uppercase tracking-widest">{t('project.overview.completeUpper')}</span>
         </div>
       </div>
-      <p className="text-[10px] text-brand-mid-grey mt-2">{count} of {total} stages</p>
+      <p className="text-[10px] text-brand-mid-grey mt-2">{t('project.overview.ofStages', { done: count, total })}</p>
     </div>
   );
 }
@@ -818,6 +823,7 @@ function StageIcon({ status }: { status: string }) {
 const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
 
 function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
+  const t = useT();
   const [signedUrls, setSignedUrls] = useState<string[]>([]);
   const [signing, setSigning] = useState(false);
 
@@ -851,7 +857,7 @@ function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
   return (
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-brand-near-black dark:text-white">Latest from Site</p>
+        <p className="text-xs font-medium text-brand-near-black dark:text-white">{t('project.overview.latestFromSite')}</p>
         <span className="text-[10px] text-brand-mid-grey">{imagePaths.length} photo{imagePaths.length !== 1 ? 's' : ''}</span>
       </div>
       {signing ? (
@@ -892,6 +898,7 @@ interface OverviewTabProps {
 export default function OverviewTab({
   project, stages, substages, budget, onViewCosting, onViewStage,
 }: OverviewTabProps) {
+  const t = useT();
   const [showBudgetBreakdown, setShowBudgetBreakdown]   = useState(false);
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false);
   const [showStageProgress, setShowStageProgress]       = useState(false);
@@ -953,24 +960,28 @@ export default function OverviewTab({
       {/* Stat cards — full-width row, alone */}
       <div className="flex flex-col sm:flex-row gap-3">
         <StatCard
-          label="Days Active"
+          label={t('project.overview.daysActive')}
           value={String(daysActive)}
-          sub="since project created"
+          sub={t('project.overview.daysActiveSub')}
           valueSize="text-3xl"
           icon={<Clock className="size-4 text-brand-near-black dark:text-white" />}
         />
         <CompletionCard pct={completedPct} count={completedCount} total={sortedStages.length} />
         <StatCard
-          label="Active Stage"
-          value={activeStage ? 'In Progress' : completedCount === sortedStages.length ? 'Complete' : 'Starting'}
+          label={t('project.overview.activeStage')}
+          value={activeStage
+            ? t('project.overview.nowInProgress')
+            : completedCount === sortedStages.length
+              ? t('project.overview.nowComplete')
+              : t('project.overview.nowStarting')}
           sub={activeStage?.name ?? nextStage?.name ?? ''}
           valueSize="text-xl"
           icon={<CheckCircle2 className="size-4 text-brand-near-black dark:text-white" />}
         />
         <StatCard
-          label="Next Milestone"
+          label={t('project.overview.nextMilestone')}
           value={nextStage ? formatUSDFull(nextStage.payment_milestone_usd ?? 0) : '—'}
-          sub={nextStage ? `starts ~${fmtDate(projStart)}` : 'All done'}
+          sub={nextStage ? t('project.overview.nextStarts', { date: fmtDate(projStart) }) : t('project.overview.allDone')}
           valueSize="text-lg"
           icon={<Landmark className="size-4 text-brand-near-black dark:text-white" />}
         />
@@ -1002,13 +1013,13 @@ export default function OverviewTab({
           {/* Stage progress */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-brand-near-black dark:text-white">Stage Progress</p>
+              <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.stageProgress')}</p>
               <button type="button" onClick={() => setShowStageProgress(true)} className="flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors">
                 <Info className="size-3" /> How is this calculated?
               </button>
             </div>
             <p className="text-xs text-brand-mid-grey mb-3">
-              {completedCount} of {sortedStages.length} stages complete{activeStage ? <> — currently working on <span className="font-medium text-brand-near-black dark:text-white">{activeStage.name}</span></> : ''}
+              {t('project.overview.stagesComplete', { done: completedCount, total: sortedStages.length })}{activeStage ? <> — {t('project.overview.currentlyOn')} <span className="font-medium text-brand-near-black dark:text-white">{activeStage.name}</span></> : ''}
             </p>
 
             <div className="h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden mb-4">
@@ -1057,7 +1068,7 @@ export default function OverviewTab({
                     'text-amber-600': stage.status === 'pending_review',
                     'text-brand-border-grey': stage.status === 'locked',
                   })}>
-                    {stage.status === 'complete' ? 'Done' : stage.status === 'active' ? 'In Progress' : stage.status === 'pending_review' ? 'In Review' : 'Locked'}
+                    {stage.status === 'complete' ? t('project.overview.statusDone') : stage.status === 'active' ? t('project.overview.statusProgress') : stage.status === 'pending_review' ? t('project.overview.statusReview') : t('project.overview.statusLocked')}
                   </span>
                 </div>
               ))}
@@ -1072,7 +1083,7 @@ export default function OverviewTab({
 
           {/* Stage Progress circles (compact) */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
-            <p className="text-xs font-medium text-brand-near-black dark:text-white mb-3">Stage Progress</p>
+            <p className="text-xs font-medium text-brand-near-black dark:text-white mb-3">{t('project.overview.stageProgress')}</p>
             <div className="grid grid-cols-5 gap-2">
               {sortedStages.map(stage => (
                 <div key={stage.id} className="flex flex-col items-center gap-1">
@@ -1101,32 +1112,32 @@ export default function OverviewTab({
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3 flex items-center gap-3">
             <Clock className="size-4 text-brand-mid-grey shrink-0" />
             <div>
-              <p className="text-sm font-bold text-brand-near-black dark:text-white tabular-nums">{daysActive} days active</p>
+              <p className="text-sm font-bold text-brand-near-black dark:text-white tabular-nums">{t('project.overview.daysActiveCount', { count: daysActive })}</p>
               <p className="text-[10px] text-brand-mid-grey">
-                since {new Date(project.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {t('project.overview.since', { date: new Date(project.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })}
               </p>
             </div>
           </div>
 
           {/* Predicted timeline */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-2">Predicted Timeline</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-2">{t('project.overview.predictedTimeline')}</p>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-brand-mid-grey">Start</span>
+                <span className="text-[10px] text-brand-mid-grey">{t('project.overview.start')}</span>
                 <span className="text-xs font-medium text-brand-near-black dark:text-white">{fmtDate(projStart)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-brand-mid-grey">Projected end</span>
+                <span className="text-[10px] text-brand-mid-grey">{t('project.overview.projectedEnd')}</span>
                 <span className="text-xs font-medium text-brand-near-black dark:text-white">{fmtDate(projEnd)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-brand-mid-grey">Days remaining</span>
-                <span className={cn('text-xs font-medium tabular-nums', daysLeft === 0 ? 'text-red-500' : 'text-brand-near-black dark:text-white')}>{daysLeft === 0 ? 'Overdue' : `${daysLeft}d`}</span>
+                <span className="text-[10px] text-brand-mid-grey">{t('project.overview.daysRemaining')}</span>
+                <span className={cn('text-xs font-medium tabular-nums', daysLeft === 0 ? 'text-red-500' : 'text-brand-near-black dark:text-white')}>{daysLeft === 0 ? t('project.overview.overdue') : `${daysLeft}d`}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-brand-mid-grey">Total duration</span>
-                <span className="text-xs font-medium text-brand-near-black dark:text-white">~{PREDICTED_DAYS} days</span>
+                <span className="text-[10px] text-brand-mid-grey">{t('project.overview.totalDuration')}</span>
+                <span className="text-xs font-medium text-brand-near-black dark:text-white">{t('project.overview.approxDays', { days: PREDICTED_DAYS })}</span>
               </div>
             </div>
           </div>
@@ -1134,7 +1145,7 @@ export default function OverviewTab({
           {/* Build location */}
           {country && (
             <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3">
-              <p className="text-[10px] text-brand-mid-grey mb-1">Build location</p>
+              <p className="text-[10px] text-brand-mid-grey mb-1">{t('project.overview.buildLocation')}</p>
               <p className="text-sm font-medium text-brand-near-black dark:text-white">{country.flag} {country.name}</p>
             </div>
           )}

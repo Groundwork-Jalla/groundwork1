@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Trash2, FolderOpen, Upload, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
@@ -286,6 +287,7 @@ function CategorySelectModal({
   onConfirm: (category: DocumentCategory) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState<DocumentCategory>('other');
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -296,7 +298,7 @@ function CategorySelectModal({
         transition={{ duration: 0.2 }}
         className="bg-white dark:bg-brand-rich-black rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] w-full max-w-sm p-5 shadow-lg"
       >
-        <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">Categorise document</p>
+        <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">{t('project.documents.categorise')}</p>
         <p className="text-xs text-brand-mid-grey mb-4 truncate" title={file.name}>{file.name}</p>
 
         <div className="grid grid-cols-2 gap-2 mb-5">
@@ -341,6 +343,7 @@ export interface DocumentVaultProps {
 }
 
 export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
+  const t = useT();
   const [docs, setDocs] = useState<ProjectDocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -506,7 +509,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       {/* Header row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-sm font-medium text-brand-near-black dark:text-white">Documents</h2>
+          <h2 className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.documents.title')}</h2>
           {hasStorageLimit && storageUsed !== null && (
             <div className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
               <div className="w-16 h-1 rounded-full bg-brand-border-grey overflow-hidden">

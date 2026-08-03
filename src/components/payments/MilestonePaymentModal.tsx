@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee, stripeProcessing } from '@/lib/payments/config';
+import { useT } from '@/lib/i18n';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 
 export default function MilestonePaymentModal({
@@ -23,6 +24,7 @@ export default function MilestonePaymentModal({
 
   if (!stage) return null;
 
+  const t         = useT();
   const amount    = stage.payment_milestone_usd ?? 0;
   const fee       = platformFee(amount, tier);
   const youPay    = amount + fee;
@@ -40,9 +42,14 @@ export default function MilestonePaymentModal({
   }
 
   const flow = [
-    { icon: <CreditCard className="size-4" />, label: 'You pay',          value: formatUSDFull(youPay), sub: `inc. ${(fee > 0 ? formatUSDFull(fee) : 'no')} fee` },
-    { icon: <Lock className="size-4" />,        label: 'Platform holds',   value: formatUSDFull(amount), sub: 'in escrow' },
-    { icon: <Banknote className="size-4" />,    label: 'Contractor gets',  value: localAmt !== null && rate ? formatLocalCurrency(localAmt, rate.currency_code) : formatUSDFull(amount), sub: 'via Switchr MoMo' },
+    { icon: <CreditCard className="size-4" />, label: t('project.payments.youPay'),
+      value: formatUSDFull(youPay),
+      sub: fee > 0 ? t('project.payments.incFee', { amount: formatUSDFull(fee) }) : t('project.payments.noFee') },
+    { icon: <Lock className="size-4" />, label: t('project.payments.platformHolds'),
+      value: formatUSDFull(amount), sub: t('project.payments.inEscrow') },
+    { icon: <Banknote className="size-4" />, label: t('project.payments.contractorGets'),
+      value: localAmt !== null && rate ? formatLocalCurrency(localAmt, rate.currency_code) : formatUSDFull(amount),
+      sub: t('project.payments.viaMomo') },
   ];
 
   return (
@@ -65,7 +72,7 @@ export default function MilestonePaymentModal({
             <div className="rounded-2xl bg-brand-near-black text-white p-6 flex flex-col justify-between">
               <div>
                 <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">
-                  Stage {stage.stage_number} of 10
+                  {t('project.payments.stageOf', { n: stage.stage_number })}
                 </span>
                 <h2 className="text-xl font-extrabold mt-4 leading-snug">{stage.name}</h2>
                 <p className="text-xs text-white/45 mt-1">{projectName}</p>
@@ -90,7 +97,7 @@ export default function MilestonePaymentModal({
               <div className="mt-6 rounded-xl bg-white/[0.04] border border-white/[0.08] px-4 py-3">
                 <div className="flex items-center justify-between text-[11px] text-white/40">
                   <span className="truncate">{contractorLabel}</span>
-                  <span className="shrink-0 ml-2">Payee</span>
+                  <span className="shrink-0 ml-2">{t('project.payments.payee')}</span>
                 </div>
               </div>
             </div>
@@ -102,7 +109,7 @@ export default function MilestonePaymentModal({
                 <X className="size-4" />
               </button>
 
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-mid-grey mb-4">Payment details</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-mid-grey mb-4">{t('project.payments.paymentDetails')}</p>
 
               <div className="space-y-0">
                 {[
@@ -118,18 +125,18 @@ export default function MilestonePaymentModal({
               </div>
 
               <div className="flex items-center justify-between rounded-xl bg-brand-near-black dark:bg-white px-4 py-3.5 my-4">
-                <span className="text-[13px] font-semibold text-white dark:text-brand-near-black">Total charge</span>
+                <span className="text-[13px] font-semibold text-white dark:text-brand-near-black">{t('project.payments.totalCharge')}</span>
                 <span className="text-2xl font-black text-white dark:text-brand-near-black tabular-nums">{formatUSDFull(youPay)}</span>
               </div>
 
               <div className="mb-4">
-                <p className="text-[11px] text-brand-mid-grey mb-1.5">Pay with</p>
+                <p className="text-[11px] text-brand-mid-grey mb-1.5">{t('project.payments.payWith')}</p>
                 <div className="flex items-center justify-between rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-5 rounded bg-brand-near-black dark:bg-white/90" />
                     <span className="text-xs text-brand-near-black dark:text-white tabular-nums">•••• 4242</span>
                   </div>
-                  <span className="text-[11px] text-brand-mid-grey">Change</span>
+                  <span className="text-[11px] text-brand-mid-grey">{t('project.payments.change')}</span>
                 </div>
               </div>
 

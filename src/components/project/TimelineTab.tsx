@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, Lock, AlertCircle, BadgeCheck, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 
 // Typical stage durations in days (indices 0-9 = stages 1-10)
@@ -61,22 +62,23 @@ function computeTimeline(stages: ProjectStageRow[], project: ProjectRow): Comput
 
 // ── Status helpers ────────────────────────────────────────
 
-function statusLabel(status: string): string {
-  if (status === 'complete')       return 'Completed';
-  if (status === 'active')         return 'In Progress';
-  if (status === 'pending_review') return 'Awaiting Approval';
-  return 'Upcoming';
+function statusLabelKey(status: string): TKey {
+  if (status === 'complete')       return 'project.timeline.statusCompleted';
+  if (status === 'active')         return 'project.timeline.statusInProgress';
+  if (status === 'pending_review') return 'project.timeline.statusAwaiting';
+  return 'project.timeline.statusUpcoming';
 }
 
 function StatusPill({ status }: { status: string }) {
+  const t = useT();
   const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide';
   if (status === 'complete')
-    return <span className={cn(base, 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black')}><CheckCircle2 className="size-2.5" />{statusLabel(status)}</span>;
+    return <span className={cn(base, 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black')}><CheckCircle2 className="size-2.5" />{t(statusLabelKey(status))}</span>;
   if (status === 'active')
-    return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{statusLabel(status)}</span>;
+    return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status))}</span>;
   if (status === 'pending_review')
-    return <span className={cn(base, 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400')}><AlertCircle className="size-2.5" />{statusLabel(status)}</span>;
-  return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{statusLabel(status)}</span>;
+    return <span className={cn(base, 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status))}</span>;
+  return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{t(statusLabelKey(status))}</span>;
 }
 
 // ── List view ─────────────────────────────────────────────
@@ -189,6 +191,8 @@ function GanttView({
   project: ProjectRow;
   onGoToStages: () => void;
 }) {
+  // Hook must run before the early return below.
+  const t = useT();
   if (computed.length === 0) return null;
 
   const projStart = computed[0].start;
@@ -317,15 +321,15 @@ function GanttView({
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-brand-off-white dark:border-[#2c2c2c]">
-          {[
-            { color: '#22c55e', label: 'Completed' },
-            { color: '#3b82f6', label: 'In progress' },
-            { color: '#f59e0b', label: 'Awaiting approval' },
-            { color: '#d1d5db', label: 'Upcoming' },
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5">
+          {([
+            { color: '#22c55e', key: 'project.timeline.legendCompleted'  as TKey },
+            { color: '#3b82f6', key: 'project.timeline.legendInProgress' as TKey },
+            { color: '#f59e0b', key: 'project.timeline.legendAwaiting'   as TKey },
+            { color: '#d1d5db', key: 'project.timeline.legendUpcoming'   as TKey },
+          ]).map(item => (
+            <div key={item.key} className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-              <span className="text-[10px] text-brand-mid-grey">{item.label}</span>
+              <span className="text-[10px] text-brand-mid-grey">{t(item.key)}</span>
             </div>
           ))}
         </div>
@@ -343,6 +347,7 @@ interface TimelineTabProps {
 }
 
 export default function TimelineTab({ project, stages, onGoToStages }: TimelineTabProps) {
+  const t = useT();
   const [view, setView] = useState<'list' | 'gantt'>('list');
   const computed = useMemo(() => computeTimeline(stages, project), [stages, project]);
 
@@ -355,7 +360,7 @@ export default function TimelineTab({ project, stages, onGoToStages }: TimelineT
     >
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-brand-near-black dark:text-white">Project Timeline</h2>
+          <h2 className="text-base font-semibold text-brand-near-black dark:text-white">{t('project.timeline.title')}</h2>
           {computed.length > 0 && (
             <p className="text-xs text-brand-mid-grey mt-0.5">
               {fmtDate(computed[0].start)} → {fmtDate(computed[computed.length - 1].end)}

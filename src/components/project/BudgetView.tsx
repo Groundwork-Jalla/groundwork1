@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT, type TKey } from '@/lib/i18n';
 import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
@@ -16,12 +17,12 @@ export interface BudgetViewProps {
 // ── Constants ────────────────────────────────────────────────
 
 const BUDGET_SLICES = [
-  { label: 'Materials',          pct: 41, key: 'materials'   as const },
-  { label: 'Labor',              pct: 23, key: 'labor'       as const },
-  { label: 'Engineering',        pct: 16, key: 'engineering' as const },
-  { label: 'Proj. Management',   pct: 10, key: 'management'  as const },
-  { label: 'Contingency',        pct: 8,  key: 'contingency' as const },
-  { label: 'Permits',            pct: 2,  key: 'permits'     as const },
+  { labelKey: 'project.costing.sliceMaterials'   as TKey, pct: 41, key: 'materials'   as const },
+  { labelKey: 'project.costing.sliceLabor'       as TKey, pct: 23, key: 'labor'       as const },
+  { labelKey: 'project.costing.sliceEngineering' as TKey, pct: 16, key: 'engineering' as const },
+  { labelKey: 'project.costing.sliceManagement'  as TKey, pct: 10, key: 'management'  as const },
+  { labelKey: 'project.costing.sliceContingency' as TKey, pct: 8,  key: 'contingency' as const },
+  { labelKey: 'project.costing.slicePermits'     as TKey, pct: 2,  key: 'permits'     as const },
 ] as const;
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -283,6 +284,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
   numFloors: number;
   floorRooms: FloorRoom[] | null;
 }) {
+  const t = useT();
   const floors = computeFloorCosts(total, numFloors, floorRooms);
   if (floors.length === 0) return null;
 
@@ -292,8 +294,8 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
       <div className="flex items-center gap-2 mb-4">
         <Layers className="size-4 text-brand-mid-grey" />
-        <p className="text-sm font-medium text-brand-near-black dark:text-white">Per-Floor Cost Breakdown</p>
-        <span className="ml-auto text-[10px] text-brand-mid-grey">{numFloors} floors</span>
+        <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.costing.perFloor')}</p>
+        <span className="ml-auto text-[10px] text-brand-mid-grey">{t('project.costing.floorsCount', { count: numFloors })}</span>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -351,6 +353,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
 // ── Main component ───────────────────────────────────────────
 
 export default function BudgetView({ project, stages }: BudgetViewProps) {
+  const t = useT();
   const [exporting, setExporting] = useState(false);
 
   async function handleExportPDF() {
@@ -390,9 +393,9 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
       {/* ── Section 1: Budget Overview Card ────────────────── */}
       <div className="rounded-xl border border-brand-border-grey p-5">
         <div className="flex items-center justify-between mb-1 gap-3">
-          <p className="text-sm font-medium text-brand-near-black">Budget Estimate</p>
+          <p className="text-sm font-medium text-brand-near-black">{t('project.costing.budgetEstimate')}</p>
           <div className="flex items-center gap-3 shrink-0">
-            <p className="text-xs text-brand-mid-grey">USD · indicative</p>
+            <p className="text-xs text-brand-mid-grey">{t('project.costing.usdIndicative')}</p>
             <button
               type="button"
               onClick={handleExportPDF}
@@ -400,7 +403,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
               className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black border border-brand-border-grey rounded-lg px-2.5 py-1 hover:bg-brand-off-white transition-colors disabled:opacity-50"
             >
               <Download className="size-3" />
-              {exporting ? 'Exporting…' : 'PDF'}
+              {exporting ? t('project.costing.exporting') : t('project.costing.pdf')}
             </button>
           </div>
         </div>
@@ -415,7 +418,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
           {BUDGET_SLICES.map((slice, i) => (
             <OverviewBar
               key={slice.key}
-              label={slice.label}
+              label={t(slice.labelKey)}
               pct={slice.pct}
               amount={budget[slice.key]}
               index={i}
@@ -424,16 +427,16 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
         </div>
 
         <p className="mt-4 text-[11px] text-brand-mid-grey leading-relaxed">
-          Indicative range. Final costs depend on local market conditions, site specifics, and contractor negotiations.
+          {t('project.costing.disclaimer')}
         </p>
       </div>
 
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
-        <MetricBox label="Total Budget" value={totalBudget} />
-        <MetricBox label="Released"     value={released} dimmed={released === 0} />
-        <MetricBox label="Held"         value={held}     dimmed={held === 0} />
-        <MetricBox label="Remaining"    value={remaining} dimmed={remaining === 0} />
+        <MetricBox label={t('project.costing.totalBudget')} value={totalBudget} />
+        <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />
+        <MetricBox label={t('project.costing.held')}        value={held}     dimmed={held === 0} />
+        <MetricBox label={t('project.costing.remaining')}   value={remaining} dimmed={remaining === 0} />
       </div>
 
       {/* ── Section 3: Per-Floor Breakdown (multi-floor only) ── */}
@@ -448,7 +451,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
       {/* ── Section 4: Per-Stage Budget Bars ───────────────── */}
       {sortedStages.length > 0 && (
         <div className="rounded-xl border border-brand-border-grey p-5">
-          <p className="text-sm font-medium text-brand-near-black mb-4">Stage Breakdown</p>
+          <p className="text-sm font-medium text-brand-near-black mb-4">{t('project.costing.stageBreakdown')}</p>
           <div className="flex flex-col gap-4">
             {sortedStages.map(stage => (
               <StageBar key={stage.id} stage={stage} />
@@ -460,7 +463,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
       {/* ── Section 5: Payment Timeline ────────────────────── */}
       {sortedStages.length > 0 && (
         <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
-          <p className="text-sm font-medium text-brand-near-black dark:text-white mb-5">Payment Timeline</p>
+          <p className="text-sm font-medium text-brand-near-black dark:text-white mb-5">{t('project.costing.paymentTimeline')}</p>
 
           <div className="flex flex-col">
             {sortedStages.map((stage, i) => {
@@ -490,7 +493,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#22c55e' }}>
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">released</span>
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.releasedLabel')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
                         {stage.completed_at && (
@@ -501,7 +504,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#3b82f6' }}>
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">held · in progress</span>
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.heldInProgress')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
                       </>
@@ -509,7 +512,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">awaiting approval</span>
+                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.awaitingApproval')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
                       </>
@@ -517,7 +520,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                       <>
                         <p className="text-sm font-medium tabular-nums text-brand-mid-grey leading-none">
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
-                          <span className="text-xs font-normal ml-1.5">locked</span>
+                          <span className="text-xs font-normal ml-1.5">{t('project.costing.lockedLabel')}</span>
                         </p>
                         <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stage.name}</p>
                       </>

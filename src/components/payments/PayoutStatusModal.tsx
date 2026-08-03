@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Download } from 'lucide-react';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee } from '@/lib/payments/config';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 
@@ -15,6 +16,7 @@ export default function PayoutStatusModal({
   contractorLabel: string;
   onClose: () => void;
 }) {
+  const t = useT();
   if (!stage) return null;
 
   const amount   = stage.payment_milestone_usd ?? 0;
@@ -25,11 +27,11 @@ export default function PayoutStatusModal({
   const paid     = stage.payment_status === 'paid';
 
   const nodes = [
-    { label: 'Received',   sub: formatUSDFull(amount + fee) },
-    { label: 'Fee Split',  sub: fee > 0 ? `−${formatUSDFull(fee)}` : '—' },
-    { label: 'Payout Sent', sub: formatUSDFull(amount) },
-    { label: 'Converting', sub: `→ ${ccy}` },
-    { label: 'Delivered',  sub: localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—' },
+    { label: t('project.payments.nodeReceived'),   sub: formatUSDFull(amount + fee) },
+    { label: t('project.payments.nodeFeeSplit'),   sub: fee > 0 ? `−${formatUSDFull(fee)}` : '—' },
+    { label: t('project.payments.nodePayoutSent'), sub: formatUSDFull(amount) },
+    { label: t('project.payments.nodeConverting'), sub: `→ ${ccy}` },
+    { label: t('project.payments.nodeDelivered'),  sub: localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—' },
   ];
   const doneCount = paid ? nodes.length : 3;
 
@@ -38,13 +40,13 @@ export default function PayoutStatusModal({
     : '—';
 
   const details: [string, string][] = [
-    ['Contractor', contractorLabel],
-    ['Phone', 'Not on file'],
-    ['Method', 'Switchr · Mobile Money'],
-    ['Amount sent', `${formatUSDFull(amount)} USD`],
-    ['Amount received', localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—'],
-    ['Exchange rate', fx ? `1 USD = ${fx} ${ccy}` : '—'],
-    ['Date', fmtDateTime],
+    [t('project.payments.contractor'), contractorLabel],
+    [t('project.payments.phone'), t('project.payments.notOnFile')],
+    [t('project.payments.method'), t('project.payments.methodValue')],
+    [t('project.payments.amountSent'), `${formatUSDFull(amount)} USD`],
+    [t('project.payments.amountReceived'), localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—'],
+    [t('project.payments.exchangeRate'), fx ? `1 USD = ${fx} ${ccy}` : '—'],
+    [t('project.payments.date'), fmtDateTime],
   ];
 
   return (
@@ -71,14 +73,14 @@ export default function PayoutStatusModal({
               </button>
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Payout tracker</p>
-                  <h2 className="text-lg font-extrabold mt-1">Stage {stage.stage_number}: {stage.name}</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.payoutTracker')}</p>
+                  <h2 className="text-lg font-extrabold mt-1">{t('project.stages.stageN', { n: stage.stage_number })}: {stage.name}</h2>
                 </div>
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold',
                   paid ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700',
                 )}>
-                  {paid ? 'Delivered' : 'In Transit'}
+                  {paid ? t('project.payments.delivered') : t('project.payments.inTransit')}
                 </span>
               </div>
 
@@ -108,7 +110,7 @@ export default function PayoutStatusModal({
 
             {/* Detail card */}
             <div className="rounded-b-2xl border-x border-b border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mid-grey mb-3">Details</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mid-grey mb-3">{t('project.payments.details')}</p>
               {details.map(([l, v], i) => (
                 <div key={l} className={cn(
                   'flex justify-between py-2 text-[13px]',
@@ -120,9 +122,9 @@ export default function PayoutStatusModal({
               ))}
               <button type="button"
                 className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] py-2.5 text-xs font-semibold text-brand-near-black dark:text-white hover:bg-brand-off-white dark:hover:bg-[#252525] transition-colors">
-                <Download className="size-3.5" /> Download Receipt
+                <Download className="size-3.5" /> {t('project.payments.downloadReceipt')}
               </button>
-              <p className="text-[10px] text-brand-soft-grey text-center mt-2.5">Preview — payout flow illustrative until Switchr is live.</p>
+              <p className="text-[10px] text-brand-soft-grey text-center mt-2.5">{t('project.payments.payoutPreview')}</p>
             </div>
           </motion.div>
         </motion.div>

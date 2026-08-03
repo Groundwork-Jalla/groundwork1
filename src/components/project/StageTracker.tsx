@@ -6,6 +6,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { formatUSD } from '@/lib/budget';
+import { useT, type TKey } from '@/lib/i18n';
 
 // Lazy-loaded so the certificate HTML is not bundled into the main chunk
 const StageCertificateModal = lazy(() =>
@@ -70,13 +71,14 @@ function StageCircle({
 // ── Stage badge ────────────────────────────────────────────
 
 function StageBadge({ status }: { status: StageStatus }) {
-  const map: Record<StageStatus, { label: string; className: string }> = {
-    active:         { label: 'Active',    className: 'bg-brand-near-black text-white' },
-    pending_review: { label: 'In Review', className: 'border border-brand-border-grey text-brand-mid-grey' },
-    complete:       { label: 'Complete',  className: 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey' },
-    locked:         { label: 'Locked',    className: 'text-brand-mid-grey' },
+  const t = useT();
+  const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
+    active:         { labelKey: 'project.stages.badgeActive',   className: 'bg-brand-near-black text-white' },
+    pending_review: { labelKey: 'project.stages.badgeReview',   className: 'border border-brand-border-grey text-brand-mid-grey' },
+    complete:       { labelKey: 'project.stages.badgeComplete', className: 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey' },
+    locked:         { labelKey: 'project.stages.badgeLocked',   className: 'text-brand-mid-grey' },
   };
-  const { label, className } = map[status];
+  const { labelKey, className } = map[status];
   return (
     <span
       className={cn(
@@ -84,7 +86,7 @@ function StageBadge({ status }: { status: StageStatus }) {
         className,
       )}
     >
-      {label}
+      {t(labelKey)}
     </span>
   );
 }
@@ -102,10 +104,11 @@ function ApproveButton({
   onApprove: () => void;
   loading: boolean;
 }) {
+  const t = useT();
   const label =
     tier === 'self_verify' || tier === 'starter'
-      ? `Approve Stage ${stageNumber}`
-      : `Request Verification`;
+      ? t('project.stages.approveStage', { n: stageNumber })
+      : t('project.stages.requestVerify');
 
   return (
     <button
@@ -149,6 +152,7 @@ function StageDetail({
   onApproveStage,
   renderEvidenceUpload,
 }: StageDetailProps) {
+  const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
 
@@ -191,7 +195,7 @@ function StageDetail({
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-[11px] font-medium text-brand-mid-grey mb-0.5">
-            Stage {stage.stage_number}
+            {t('project.stages.stageN', { n: stage.stage_number })}
           </p>
           <p className="text-sm font-semibold text-brand-near-black leading-snug">
             {stage.name}
@@ -208,7 +212,7 @@ function StageDetail({
 
       {stage.status === 'locked' ? (
         <p className="text-sm text-brand-mid-grey">
-          Complete the previous stage to unlock this one.
+          {t('project.stages.lockedBody')}
         </p>
       ) : (
         <>
@@ -250,8 +254,7 @@ function StageDetail({
           {(tier === 'jalla_management' || tier === 'enterprise') &&
             stage.status === 'active' && (
               <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
-                This stage is managed by Jalla. Progress will be updated by your project
-                manager.
+                {t('project.stages.managedNote')}
               </p>
             )}
         </>
@@ -261,16 +264,18 @@ function StageDetail({
         open={confirmOpen}
         title={
           tier === 'self_verify' || tier === 'starter'
-            ? 'Approve this stage?'
-            : 'Request verification?'
+            ? t('project.stages.confirmApproveTitle')
+            : t('project.stages.confirmVerifyTitle')
         }
         description={
           tier === 'self_verify' || tier === 'starter'
-            ? 'This will mark the stage complete, release the milestone payment, and unlock the next stage.'
-            : "This will submit all your evidence for Jalla review. You'll be notified once approved or if changes are needed."
+            ? t('project.stages.confirmApproveBody')
+            : t('project.stages.confirmVerifyBody')
         }
         confirmLabel={
-          tier === 'self_verify' || tier === 'starter' ? 'Approve Stage' : 'Submit for Review'
+          tier === 'self_verify' || tier === 'starter'
+            ? t('project.stages.confirmApproveCta')
+            : t('project.stages.confirmVerifyCta')
         }
         loading={approving}
         onConfirm={handleApprove}
@@ -323,6 +328,7 @@ export function StageTracker({
   onApproveStage,
   renderEvidenceUpload,
 }: StageTrackerProps) {
+  const t = useT();
   const activeStage = stages.find(
     s => s.status === 'active' || s.status === 'pending_review',
   );
@@ -338,10 +344,10 @@ export function StageTracker({
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-brand-near-black">Construction Pipeline</p>
+        <p className="text-sm font-semibold text-brand-near-black">{t('project.stages.pipeline')}</p>
         {stages.length > 0 && (
           <span className="text-xs text-brand-mid-grey tabular-nums">
-            {completedCount} / {stages.length} complete
+            {t('project.stages.completeCount', { done: completedCount, total: stages.length })}
           </span>
         )}
       </div>
@@ -393,7 +399,7 @@ export function StageTracker({
                       onClick={() => setCertStage(stage)}
                       className="inline-flex items-center gap-1 text-[10px] font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors mt-0.5"
                     >
-                      <Download className="size-3" /> Certificate
+                      <Download className="size-3" /> {t('project.stages.certificate')}
                     </button>
                   )}
                 </div>

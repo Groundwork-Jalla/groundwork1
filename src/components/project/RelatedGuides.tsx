@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Clock } from 'lucide-react';
 import { RESOURCES } from '@/lib/resources-data';
 import type { Resource } from '@/lib/resources-data';
+import { useT } from '@/lib/i18n';
 
 export type GuideTab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
 
@@ -28,6 +29,7 @@ interface RelatedGuidesProps {
 }
 
 export default function RelatedGuides({ tab, currentStage }: RelatedGuidesProps) {
+  const t = useT();
   let guides: Resource[];
 
   if (tab === 'stages' && currentStage) {
@@ -54,12 +56,12 @@ export default function RelatedGuides({ tab, currentStage }: RelatedGuidesProps)
   return (
     <div className="mt-8 border-t border-brand-border-grey dark:border-[#2c2c2c] pt-6">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-brand-near-black dark:text-white">Related Guides</p>
+        <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('project.guides.title')}</p>
         <Link
           to="/resources"
           className="flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
         >
-          View all <ArrowRight className="size-3" />
+          {t('project.guides.viewAll')} <ArrowRight className="size-3" />
         </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

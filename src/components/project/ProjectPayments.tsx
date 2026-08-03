@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { updatePaymentStatus } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { normalizeTier } from '@/lib/payments/config';
+import { useT, type TKey } from '@/lib/i18n';
 import EscrowWallet from '@/components/payments/EscrowWallet';
 import PaymentHistory from '@/components/payments/PaymentHistory';
 import MilestonePaymentModal from '@/components/payments/MilestonePaymentModal';
@@ -21,6 +22,7 @@ export default function ProjectPayments({
   stages: ProjectStageRow[];
   onPaymentUpdated: (stageId: string, status: PaymentStatus) => void;
 }) {
+  const t = useT();
   const [view, setView]   = useState<View>('wallet');
   const [rate, setRate]   = useState<ConstructionRate | null>(null);
   const [payStage, setPayStage]       = useState<ProjectStageRow | null>(null);
@@ -55,7 +57,7 @@ export default function ProjectPayments({
       {/* Header: view toggle + upgrade */}
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="inline-flex rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-1 bg-white dark:bg-[#1e1e1e]">
-          {([['wallet', 'Wallet', Wallet], ['history', 'History', History]] as const).map(([id, label, Icon]) => (
+          {([['wallet', 'project.payments.wallet', Wallet], ['history', 'project.payments.history', History]] as [View, TKey, typeof Wallet][]).map(([id, labelKey, Icon]) => (
             <button
               key={id}
               type="button"
@@ -66,7 +68,7 @@ export default function ProjectPayments({
                             : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >
-              <Icon className="size-3.5" /> {label}
+              <Icon className="size-3.5" /> {t(labelKey)}
             </button>
           ))}
         </div>
@@ -75,7 +77,7 @@ export default function ProjectPayments({
             to="/upgrade"
             className="inline-flex items-center gap-1 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:text-white hover:border-brand-near-black dark:hover:border-white transition-colors"
           >
-            Upgrade plan <ArrowUpRight className="size-3.5" />
+            {t('project.payments.upgradePlan')} <ArrowUpRight className="size-3.5" />
           </Link>
         )}
       </div>

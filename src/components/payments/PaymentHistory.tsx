@@ -1,5 +1,6 @@
 import { formatUSD, formatUSDFull } from '@/lib/budget';
 import { platformFee } from '@/lib/payments/config';
+import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 
@@ -17,6 +18,7 @@ export default function PaymentHistory({
   rate: ConstructionRate | null;
   onViewPayout: (stage: ProjectStageRow) => void;
 }) {
+  const t         = useT();
   const total     = project.budget_usd ?? 0;
   const paid      = stages.filter(s => s.payment_status === 'paid' || s.payment_status === 'partial');
   const totalPaid = paid.reduce((s, st) => s + (st.payment_milestone_usd ?? 0), 0);
@@ -34,13 +36,13 @@ export default function PaymentHistory({
       {/* Dark summary header */}
       <div className="rounded-2xl bg-brand-near-black text-white flex px-6 py-5 mb-6">
         <div className="flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Total paid</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.totalPaid')}</p>
           <p className="text-2xl font-extrabold mt-1 tabular-nums">{formatUSD(totalPaid)}</p>
           <p className="text-[11px] text-white/35 mt-0.5">{paid.length} of {stages.length || 10} stages</p>
         </div>
         <div className="w-px bg-white/10 mx-5" />
         <div className="flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Remaining</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.remainingLabel')}</p>
           <p className="text-2xl font-extrabold mt-1 tabular-nums">{formatUSD(remaining)}</p>
           <p className="text-[11px] text-white/35 mt-0.5">{lockedCount} stage{lockedCount !== 1 ? 's' : ''} unpaid</p>
         </div>
@@ -48,8 +50,8 @@ export default function PaymentHistory({
 
       {ordered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey dark:border-[#2c2c2c] px-6 py-12 text-center">
-          <p className="text-sm font-medium text-brand-near-black dark:text-white">No payments yet</p>
-          <p className="text-xs text-brand-mid-grey mt-1">Payments appear here once you release a stage milestone.</p>
+          <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.payments.noPaymentsTitle')}</p>
+          <p className="text-xs text-brand-mid-grey mt-1">{t('project.payments.noPaymentsBody')}</p>
         </div>
       ) : (
         <div className="relative pl-6">
@@ -77,23 +79,23 @@ export default function PaymentHistory({
                         isPaid ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                                : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
                       )}>
-                        {isPaid ? 'Paid' : 'In Transit'}
+                        {isPaid ? t('project.payments.paid') : t('project.payments.inTransit')}
                       </span>
                       <p className="text-sm font-bold text-brand-near-black dark:text-white mt-2 leading-snug">
-                        Stage {p.stage_number}: {p.name}
+                        {t('project.stages.stageN', { n: p.stage_number })}: {p.name}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-lg font-extrabold text-brand-near-black dark:text-white tabular-nums">{formatUSDFull(amount)}</p>
-                      {fee > 0 && <p className="text-[10px] text-brand-soft-grey">fee: {formatUSDFull(fee)}</p>}
+                      {fee > 0 && <p className="text-[10px] text-brand-soft-grey">{t('project.payments.fee', { amount: formatUSDFull(fee) })}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-brand-mid-grey flex-wrap">
                     <span>{fmtDate(p.completed_at)}</span>
                     <span className="text-brand-border-grey">·</span>
-                    <span>Switchr MoMo</span>
+                    <span>{t('project.payments.momo')}</span>
                     <span className="text-brand-border-grey">·</span>
-                    <span className="text-brand-near-black dark:text-white font-medium">View payout →</span>
+                    <span className="text-brand-near-black dark:text-white font-medium">{t('project.payments.viewPayout')}</span>
                   </div>
                 </button>
               </div>

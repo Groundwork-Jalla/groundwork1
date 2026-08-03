@@ -6,6 +6,7 @@ import {
   CalendarDays, BadgeCheck, ShieldCheck, Briefcase,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { supabase }              from '@/lib/supabase/client';
 import {
   fetchProject,
@@ -56,33 +57,33 @@ const ROOF_LABELS: Record<string, string> = {
 const FINISH_LABELS: Record<FinishLevel, string> = {
   standard: 'Standard', premium: 'Premium', luxury: 'Luxury',
 };
-const TIER_META: Record<string, { label: string; icon: React.ReactNode }> = {
-  self_verify:      { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
-  jalla_verify:     { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
-  jalla_management: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
+const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
+  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3.5" />  },
+  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3.5" /> },
+  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3.5" />   },
   // legacy values
-  starter:    { label: 'Self Verify',      icon: <BadgeCheck className="size-3.5" />  },
-  pro:        { label: 'Jalla Verify',     icon: <ShieldCheck className="size-3.5" /> },
-  enterprise: { label: 'Jalla Management', icon: <Briefcase className="size-3.5" />   },
+  starter:    { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3.5" />  },
+  pro:        { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3.5" /> },
+  enterprise: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3.5" />   },
 };
 
 // ── Tab bar ───────────────────────────────────────────────
 
 type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
 
-const OWNER_TABS: { id: Tab; label: string }[] = [
-  { id: 'overview',   label: 'Overview'   },
-  { id: 'stages',     label: 'Stages'     },
-  { id: 'costing',    label: 'Costing'    },
-  { id: 'timeline',   label: 'Timeline'   },
-  { id: 'payments',   label: 'Payments'   },
-  { id: 'documents',  label: 'Documents'  },
-  { id: 'messages',   label: 'Messages'   },
+const OWNER_TABS: { id: Tab; labelKey: TKey }[] = [
+  { id: 'overview',   labelKey: 'project.tabs.overview'  },
+  { id: 'stages',     labelKey: 'project.tabs.stages'    },
+  { id: 'costing',    labelKey: 'project.tabs.costing'   },
+  { id: 'timeline',   labelKey: 'project.tabs.timeline'  },
+  { id: 'payments',   labelKey: 'project.tabs.payments'  },
+  { id: 'documents',  labelKey: 'project.tabs.documents' },
+  { id: 'messages',   labelKey: 'project.tabs.messages'  },
 ];
 
-const CONTRACTOR_TABS: { id: Tab; label: string }[] = [
-  { id: 'stages',   label: 'Stages'   },
-  { id: 'messages', label: 'Messages' },
+const CONTRACTOR_TABS: { id: Tab; labelKey: TKey }[] = [
+  { id: 'stages',   labelKey: 'project.tabs.stages'   },
+  { id: 'messages', labelKey: 'project.tabs.messages' },
 ];
 
 function TabBar({
@@ -93,6 +94,7 @@ function TabBar({
   isContractor: boolean;
 }) {
   const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
+  const t = useT();
   return (
     <div className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-brand-border-grey mb-6">
       {tabs.map(tab => (
@@ -106,7 +108,7 @@ function TabBar({
               : 'text-brand-mid-grey hover:text-brand-near-black'
           }`}
         >
-          {tab.label}
+          {t(tab.labelKey)}
         </button>
       ))}
     </div>
@@ -131,6 +133,8 @@ export default function ProjectDetail() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const t        = useT();
+  const { suggestLangForCountry } = useLanguage();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
@@ -161,6 +165,12 @@ export default function ProjectDetail() {
   useEffect(() => {
     loadAll().finally(() => setLoading(false));
   }, [loadAll]);
+
+  // Default a francophone-market project to French. Only applies when the user
+  // has never picked a language themselves — an explicit choice always wins.
+  useEffect(() => {
+    suggestLangForCountry(project?.country);
+  }, [project?.country, suggestLangForCountry]);
 
   // Real-time: update stage payment_status when it changes in Supabase
   useEffect(() => {
@@ -253,9 +263,9 @@ export default function ProjectDetail() {
   if (error || !project) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
-        <p className="text-sm text-brand-mid-grey">{error ?? 'Project not found.'}</p>
+        <p className="text-sm text-brand-mid-grey">{error ?? t('project.notFound')}</p>
         <Link to="/dashboard" className="text-sm font-medium text-brand-near-black underline underline-offset-4">
-          Back to dashboard
+          {t('project.backToDashboard')}
         </Link>
       </div>
     );
@@ -316,7 +326,7 @@ export default function ProjectDetail() {
           className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors shrink-0"
         >
           <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">Dashboard</span>
+          <span className="hidden sm:inline">{t('nav.dashboard')}</span>
         </button>
         <span className="text-brand-border-grey hidden sm:inline">/</span>
         <span className="text-sm font-medium text-brand-near-black dark:text-white truncate">{project.name}</span>
@@ -336,9 +346,9 @@ export default function ProjectDetail() {
                 {project.name}
               </h1>
               <div className="mt-1 flex items-center gap-1.5 text-xs text-brand-mid-grey">
-                {project.bedrooms > 0 && <span>{project.bedrooms} bed</span>}
+                {project.bedrooms > 0 && <span>{t('project.header.bed', { count: project.bedrooms })}</span>}
                 {project.bedrooms > 0 && project.num_floors > 0 && <span>·</span>}
-                <span>{project.num_floors} floor{project.num_floors !== 1 ? 's' : ''}</span>
+                <span>{project.num_floors === 1 ? t('project.header.floor', { count: 1 }) : t('project.header.floors', { count: project.num_floors })}</span>
                 {ROOF_LABELS[project.roof_type] && <><span>·</span><span>{ROOF_LABELS[project.roof_type]}</span></>}
               </div>
             </div>
@@ -347,22 +357,22 @@ export default function ProjectDetail() {
                 {trackingStarted ? (
                   <span className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">
                     <span className="size-1.5 rounded-full bg-green-500 inline-block" />
-                    Live
+                    {t('project.header.live')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
                     <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
-                    Planning
+                    {t('project.header.planning')}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black dark:text-white">
                 {tier.icon}
-                {tier.label}
+                {t(tier.labelKey)}
               </div>
               {stages.length > 0 && (
                 <span className="text-[10px] text-brand-mid-grey tabular-nums">
-                  {completedPct}% complete
+                  {t('project.header.percentComplete', { pct: completedPct })}
                 </span>
               )}
             </div>
@@ -372,9 +382,9 @@ export default function ProjectDetail() {
           {!trackingStarted && (
             isContractor ? (
               <div className="rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-6 py-8 text-center max-w-2xl mx-auto">
-                <p className="text-sm font-semibold text-brand-near-black dark:text-white">Tracking hasn't started yet</p>
+                <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('project.gate.contractorTitle')}</p>
                 <p className="text-xs text-brand-mid-grey mt-1.5 leading-relaxed max-w-sm mx-auto">
-                  The project owner needs to confirm the final budget before stages open. Check back soon.
+                  {t('project.gate.contractorBody')}
                 </p>
               </div>
             ) : isManaged ? (
@@ -385,18 +395,17 @@ export default function ProjectDetail() {
                   </span>
                   <div>
                     <h2 className="text-lg font-bold text-brand-near-black dark:text-white leading-snug">
-                      Jalla is confirming your budget
+                      {t('project.gate.managedTitle')}
                     </h2>
                     <p className="text-sm text-brand-mid-grey mt-1 leading-relaxed">
-                      Your project manager reviews the plan and finalises the budget with your contractor.
-                      Tracking opens automatically once it's confirmed — you'll get a notification.
+                      {t('project.gate.managedBody')}
                     </p>
                   </div>
                 </div>
                 <div className="px-6 sm:px-8 py-5 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">Wizard estimate</p>
-                    <p className="text-xs text-brand-mid-grey mt-0.5">Jalla will confirm the final figure</p>
+                    <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.managedEstimate')}</p>
+                    <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.gate.managedNote')}</p>
                   </div>
                   <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
                     {project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}

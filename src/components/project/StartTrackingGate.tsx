@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { formatUSDFull } from '@/lib/budget';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { startProjectTracking } from '@/lib/supabase/tracking';
+import { useT } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 
 export default function StartTrackingGate({ project, userId, onStarted }: {
@@ -15,6 +16,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
   userId: string;
   onStarted: () => void;
 }) {
+  const t = useT();
   const estimate = project.budget_usd ?? 0;
 
   const [rawValue,   setRawValue]   = useState(String(Math.round(estimate)));
@@ -39,7 +41,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
       await uploadDocument(project.id, userId, file, undefined, 'contract');
       setUploadedName(file.name);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed.');
+      setError(err instanceof Error ? err.message : t('project.gate.errUpload'));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -47,14 +49,14 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
   }
 
   async function handleConfirm() {
-    if (finalBudget <= 0) { setError('Enter a valid budget amount.'); return; }
+    if (finalBudget <= 0) { setError(t('project.gate.errAmount')); return; }
     setError(null);
     setSubmitting(true);
     try {
       await startProjectTracking(project.id, finalBudget);
       onStarted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start tracking.');
+      setError(err instanceof Error ? err.message : t('project.gate.errStart'));
       setSubmitting(false);
     }
   }
@@ -75,11 +77,10 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
             </span>
             <div>
               <h2 className="text-lg font-bold text-brand-near-black dark:text-white leading-snug">
-                Confirm your budget to start tracking
+                {t('project.gate.title')}
               </h2>
               <p className="text-sm text-brand-mid-grey mt-1 leading-relaxed">
-                Your wizard estimate is a planning figure. Once you've spoken to your contractor,
-                enter the final budget you've agreed on — every stage payment is calculated from it.
+                {t('project.gate.body')}
               </p>
             </div>
           </div>
@@ -90,8 +91,8 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
           {/* Wizard estimate (read-only) */}
           <div className="flex items-center justify-between gap-4 rounded-xl bg-brand-off-white dark:bg-[#252525] px-4 py-3">
             <div>
-              <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">Wizard estimate</p>
-              <p className="text-xs text-brand-mid-grey mt-0.5">Auto-calculated from your build details</p>
+              <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.estimateLabel')}</p>
+              <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.gate.estimateSub')}</p>
             </div>
             <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white shrink-0">
               {estimate > 0 ? formatUSDFull(estimate) : '—'}
@@ -101,7 +102,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
           {/* Final budget input */}
           <div>
             <label htmlFor="final-budget" className="block text-sm font-semibold text-brand-near-black dark:text-white mb-2">
-              Your final budget
+              {t('project.gate.finalLabel')}
             </label>
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
@@ -125,11 +126,11 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
             >
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3">
-                  <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">Estimate</p>
+                  <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.compareEst')}</p>
                   <p className="text-base font-bold tabular-nums text-brand-mid-grey mt-1 line-through">{formatUSDFull(estimate)}</p>
                 </div>
                 <div className="rounded-xl border-2 border-brand-near-black dark:border-white px-4 py-3">
-                  <p className="text-[10px] font-semibold text-brand-near-black dark:text-white uppercase tracking-wide">Final budget</p>
+                  <p className="text-[10px] font-semibold text-brand-near-black dark:text-white uppercase tracking-wide">{t('project.gate.compareFinal')}</p>
                   <p className="text-base font-bold tabular-nums text-brand-near-black dark:text-white mt-1">{formatUSDFull(finalBudget)}</p>
                 </div>
               </div>
@@ -139,7 +140,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
                    : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400',
               )}>
                 {up ? <TrendingUp className="size-3.5 shrink-0" /> : <TrendingDown className="size-3.5 shrink-0" />}
-                {up ? 'Higher than estimate by' : 'Lower than estimate by'}{' '}
+                {up ? t('project.gate.higherBy') : t('project.gate.lowerBy')}{' '}
                 <span className="font-bold tabular-nums">{formatUSDFull(Math.abs(diff))}</span>
                 <span className="tabular-nums">({up ? '+' : '−'}{Math.abs(diffPct).toFixed(1)}%)</span>
               </div>
@@ -149,15 +150,15 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
           {/* Optional quote upload */}
           <div>
             <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">
-              Contractor quote <span className="text-brand-mid-grey font-normal">(optional)</span>
+              {t('project.gate.quoteLabel')} <span className="text-brand-mid-grey font-normal">{t('common.optional')}</span>
             </p>
-            <p className="text-xs text-brand-mid-grey mb-2.5">Keep a copy on file — stored in your documents.</p>
+            <p className="text-xs text-brand-mid-grey mb-2.5">{t('project.gate.quoteSub')}</p>
             <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
             {uploadedName ? (
               <div className="flex items-center gap-2.5 rounded-xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/30 px-4 py-2.5">
                 <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
                 <span className="text-xs text-green-700 dark:text-green-400 font-medium truncate flex-1">{uploadedName}</span>
-                <button type="button" onClick={() => fileRef.current?.click()} className="text-[11px] text-green-700 dark:text-green-400 underline shrink-0">Replace</button>
+                <button type="button" onClick={() => fileRef.current?.click()} className="text-[11px] text-green-700 dark:text-green-400 underline shrink-0">{t('project.gate.quoteReplace')}</button>
               </div>
             ) : (
               <button
@@ -167,7 +168,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
                 className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3 text-xs font-medium text-brand-mid-grey hover:border-brand-near-black dark:hover:border-white hover:text-brand-near-black dark:hover:text-white transition-colors disabled:opacity-50"
               >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                {uploading ? 'Uploading…' : 'Upload quote (PDF or image)'}
+                {uploading ? t('project.gate.quoteUploading') : t('project.gate.quoteUpload')}
               </button>
             )}
           </div>
@@ -182,7 +183,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
         {/* Footer */}
         <div className="px-6 sm:px-8 py-5 border-t border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white/40 dark:bg-[#171717] flex items-center justify-between gap-4">
           <p className="text-[11px] text-brand-mid-grey leading-snug max-w-xs">
-            Confirming activates Stage 1 and locks in your payment schedule. You can still upload evidence per stage as you go.
+            {t('project.gate.footerNote')}
           </p>
           <button
             type="button"
@@ -191,7 +192,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
             className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold px-5 py-3 hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
-            {submitting ? 'Starting…' : 'Confirm & Start Tracking'}
+            {submitting ? t('project.gate.starting') : t('project.gate.confirm')}
             {!submitting && <ArrowRight className="size-3.5" />}
           </button>
         </div>

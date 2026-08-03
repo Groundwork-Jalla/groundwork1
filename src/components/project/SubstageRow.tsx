@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Lock, Clock, Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 
@@ -100,6 +101,7 @@ export function SubstageRow({
 
   const hasEvidence = substage.evidence_urls.length > 0;
   const isLocked    = substage.status === 'locked';
+  const t           = useT();
   const isComplete  = substage.status === 'complete';
   const isPendingReview = substage.status === 'pending_review';
   const canMarkComplete = !!onMarkComplete && hasEvidence && !isComplete && !isPendingReview && isStageActive;
@@ -141,12 +143,12 @@ export function SubstageRow({
           {/* Status chips */}
           {isPendingReview && (
             <span className="shrink-0 inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[9px] font-medium text-amber-600 whitespace-nowrap">
-              Awaiting review
+              {t('project.stages.awaitingReview')}
             </span>
           )}
           {tier !== 'starter' && tier !== 'pro' && isComplete && substage.approved_by && (
             <span className="shrink-0 text-[9px] text-brand-mid-grey whitespace-nowrap">
-              Verified
+              {t('project.stages.verified')}
             </span>
           )}
         </div>
@@ -193,8 +195,8 @@ export function SubstageRow({
                   <Check className="size-3" strokeWidth={3} />
                 )}
                 {tier === 'starter'
-                  ? 'Mark complete'
-                  : 'Mark ready for review'}
+                  ? t('project.stages.markComplete')
+                  : t('project.stages.markReady')}
               </button>
             </motion.div>
           )}

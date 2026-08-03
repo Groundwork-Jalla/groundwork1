@@ -79,10 +79,38 @@ function pluralKey(base: string, count: number, lang: Lang): string {
 // Context
 // =========================================================
 
+/**
+ * Countries where we default new visitors to French unless they've chosen
+ * otherwise. Cameroon is the target market — most users there are francophone.
+ *
+ * NOTE: Cameroon is officially *bilingual*; roughly a fifth of the population
+ * (Northwest / Southwest regions) is anglophone. So this is a DEFAULT, never a
+ * lock — the toggle stays available everywhere and an explicit choice always
+ * wins, on this visit and every future one.
+ */
+export const FRENCH_DEFAULT_COUNTRIES = ['CM'];
+
+/** True when the user has already made an explicit language choice. */
+export function hasExplicitLangChoice(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'en' || stored === 'fr';
+  } catch {
+    return false;
+  }
+}
+
 interface LanguageContextValue {
   lang: Lang;
   setLang: (next: Lang) => void;
   toggle: () => void;
+  /**
+   * Suggest French for a francophone-market country — used when a project's
+   * build country becomes known. No-op if the user has already chosen a
+   * language, so it can never override an explicit preference.
+   */
+  suggestLangForCountry: (countryCode: string | null | undefined) => void;
   /** Translate a key, with optional {placeholder} interpolation. */
   t: (key: TKey, params?: Record<string, string | number>) => string;
   /** Translate with English/French plural rules driven by `count`. */
@@ -113,6 +141,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const suggestLangForCountry = useCallback((countryCode: string | null | undefined) => {
+    if (!countryCode) return;
+    // An explicit choice always wins — never override the user.
+    if (hasExplicitLangChoice()) return;
+    if (!FRENCH_DEFAULT_COUNTRIES.includes(countryCode.toUpperCase())) return;
+
+    setLangState(prev => {
+      if (prev === 'fr') return prev;
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = LANG_META.fr.htmlLang;
+      }
+      return 'fr';
+    });
+    // Deliberately NOT persisted — this is a suggestion, not a choice. If the
+    // user flips the toggle, that gets stored and wins from then on.
+  }, []);
+
   const t = useCallback(
     (key: TKey, params?: Record<string, string | number>) => {
       // Fall back to English, then to the raw key, so a missing translation
@@ -141,8 +186,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<LanguageContextValue>(
-    () => ({ lang, setLang, toggle, t, tPlural }),
-    [lang, setLang, toggle, t, tPlural],
+    () => ({ lang, setLang, toggle, suggestLangForCountry, t, tPlural }),
+    [lang, setLang, toggle, suggestLangForCountry, t, tPlural],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

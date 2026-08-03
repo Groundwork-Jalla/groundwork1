@@ -2,6 +2,7 @@ import { Check, Lock } from 'lucide-react';
 import { formatUSD, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
 type FundState = 'released' | 'transit' | 'held' | 'locked';
 
@@ -15,13 +16,18 @@ function fundState(s: ProjectStageRow): FundState {
 const SEG_COLOR: Record<FundState, string> = {
   released: '#22c55e', transit: '#3b82f6', held: '#f59e0b', locked: 'var(--color-brand-border-grey)',
 };
-const BADGE: Record<FundState, { label: string; cls: string }> = {
-  released: { label: 'Released', cls: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
-  transit:  { label: 'Transit',  cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
-  held:     { label: 'Held',     cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
-  locked:   { label: 'Locked',   cls: 'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey' },
+const BADGE: Record<FundState, { labelKey: TKey; cls: string }> = {
+  released: { labelKey: 'project.payments.stateReleased', cls: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
+  transit:  { labelKey: 'project.payments.stateTransit',  cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+  held:     { labelKey: 'project.payments.stateHeld',     cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+  locked:   { labelKey: 'project.payments.stateLocked',   cls: 'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey' },
 };
-const LEGEND: [FundState, string][] = [['released', 'Released'], ['transit', 'In Transit'], ['held', 'Held'], ['locked', 'Locked']];
+const LEGEND: [FundState, TKey][] = [
+  ['released', 'project.payments.legendReleased'],
+  ['transit',  'project.payments.legendTransit'],
+  ['held',     'project.payments.legendHeld'],
+  ['locked',   'project.payments.legendLocked'],
+];
 
 export default function EscrowWallet({
   project, stages, onPay, onViewPayout,
@@ -31,6 +37,7 @@ export default function EscrowWallet({
   onPay: (stage: ProjectStageRow) => void;
   onViewPayout: (stage: ProjectStageRow) => void;
 }) {
+  const { t, tPlural } = useLanguage();
   const total    = project.budget_usd ?? 0;
   const released = stages.filter(s => s.payment_status === 'paid').reduce((a, s) => a + (s.payment_milestone_usd ?? 0), 0);
   const escrow   = Math.max(0, total - released);
@@ -43,9 +50,9 @@ export default function EscrowWallet({
     <div>
       {/* Dark escrow hero */}
       <div className="rounded-2xl bg-brand-near-black text-white text-center px-7 py-7 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Project escrow</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{t('project.payments.escrowLabel')}</p>
         <p className="text-4xl font-black mt-1 tabular-nums">{formatUSD(escrow)}</p>
-        <p className="text-[13px] text-white/45 mt-1">held securely · {remaining} stage{remaining !== 1 ? 's' : ''} remaining</p>
+        <p className="text-[13px] text-white/45 mt-1">{tPlural('project.payments.heldSecurely', remaining)}</p>
 
         {/* Segmented allocation bar */}
         <div className="flex gap-0.5 mt-5 rounded-md overflow-hidden">
@@ -59,10 +66,10 @@ export default function EscrowWallet({
           ))}
         </div>
         <div className="flex justify-center gap-4 mt-3">
-          {LEGEND.map(([st, label]) => (
+          {LEGEND.map(([st, labelKey]) => (
             <span key={st} className="flex items-center gap-1.5 text-[10px] text-white/55">
               <span className="size-1.5 rounded-sm" style={{ background: SEG_COLOR[st] === 'var(--color-brand-border-grey)' ? '#666' : SEG_COLOR[st] }} />
-              {label}
+              {t(labelKey)}
             </span>
           ))}
         </div>
@@ -71,13 +78,13 @@ export default function EscrowWallet({
       {/* Total / Released cards */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey">Total project</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t('project.payments.totalProject')}</p>
           <p className="text-2xl font-extrabold text-brand-near-black dark:text-white mt-0.5 tabular-nums">{formatUSD(total)}</p>
         </div>
         <div className="rounded-2xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/20 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">Released</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">{t('project.payments.released')}</p>
           <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-0.5 tabular-nums">{formatUSD(released)}</p>
-          <p className="text-[10px] text-green-700/70 dark:text-green-400/70 mt-0.5">{releasedPct.toFixed(1)}% of total</p>
+          <p className="text-[10px] text-green-700/70 dark:text-green-400/70 mt-0.5">{t('project.payments.ofTotal', { pct: releasedPct.toFixed(1) })}</p>
         </div>
       </div>
 
@@ -126,7 +133,7 @@ export default function EscrowWallet({
                     onClick={() => onPay(s)}
                     className="rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-[11px] font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity"
                   >
-                    Pay
+                    {t('project.payments.pay')}
                   </button>
                 ) : state === 'released' || state === 'transit' ? (
                   <button
@@ -134,11 +141,11 @@ export default function EscrowWallet({
                     onClick={() => onViewPayout(s)}
                     className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold hover:opacity-80 transition-opacity', BADGE[state].cls)}
                   >
-                    {BADGE[state].label}
+                    {t(BADGE[state].labelKey)}
                   </button>
                 ) : (
                   <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold', BADGE[state].cls)}>
-                    {BADGE[state].label}
+                    {t(BADGE[state].labelKey)}
                   </span>
                 )}
               </div>
@@ -148,7 +155,7 @@ export default function EscrowWallet({
       </div>
 
       <p className="text-[10px] text-brand-soft-grey text-center mt-4 leading-relaxed">
-        Preview — funds held via Stripe, released on verified completion and paid out through Switchr. Not yet live.
+        {t('project.payments.previewNote')}
       </p>
     </div>
   );

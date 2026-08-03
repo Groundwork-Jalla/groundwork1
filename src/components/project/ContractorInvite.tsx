@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, UserPlus, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -84,6 +85,7 @@ function InviteSkeleton() {
 }
 
 export function ContractorInvite({ projectId, userId, projectName, projectTier }: ContractorInviteProps) {
+  const t = useT();
   const { user } = useAuth();
   const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
 
@@ -252,8 +254,8 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
       {/* Starter limit notice */}
       {isStarterAtLimit && (
         <p className="text-xs text-brand-mid-grey mb-4 leading-relaxed">
-          Self Verify plan allows 1 contractor per project.{' '}
-          <span className="text-brand-near-black">Upgrade to Jalla Verify for unlimited contractors.</span>
+          {t('project.invite.capNotice')}{' '}
+          <span className="text-brand-near-black">{t('project.invite.capUpgrade')}</span>
         </p>
       )}
 
