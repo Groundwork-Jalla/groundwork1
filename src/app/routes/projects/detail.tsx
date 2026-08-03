@@ -418,8 +418,13 @@ export default function ProjectDetail() {
             )
           )}
 
-          {/* Tabs (only once tracking has started) */}
-          {trackingStarted && (<>
+          {/* Tabs.
+              These render whether or not tracking has started. The gate above is a
+              prompt, not a wall: stages and substages are seeded at project creation
+              already `locked`, so nothing here is actionable until start_project_tracking
+              activates stage 1. Hiding the whole project behind the budget form meant a
+              user could not look at the build they had just costed. */}
+          <>
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} />
 
           {/* Tab: Overview */}
@@ -523,7 +528,7 @@ export default function ProjectDetail() {
               <RelatedGuides tab="messages" />
             </div>
           )}
-          </>)}
+          </>
 
         </motion.div>
       </div>
