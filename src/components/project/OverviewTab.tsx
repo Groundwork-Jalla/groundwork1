@@ -489,6 +489,7 @@ function PaymentBreakdownModal({
   outstanding: number;
   onClose: () => void;
 }) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const sorted  = [...stages].sort((a, b) => a.stage_number - b.stage_number);
   const paidPct = totalBudget > 0 ? Math.round((paidTotal / totalBudget) * 100) : 0;
@@ -615,7 +616,7 @@ function PaymentBreakdownModal({
                   {sorted.map(s => (
                     <tr key={s.id}>
                       <td className="px-4 py-3 text-xs text-brand-near-black dark:text-white">
-                        <span className="text-brand-mid-grey mr-2 tabular-nums">{s.stage_number}.</span>{s.name}
+                        <span className="text-brand-mid-grey mr-2 tabular-nums">{s.stage_number}.</span>{stageLabel(s)}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-semibold text-brand-near-black dark:text-white tabular-nums">
                         {formatUSDFull(s.payment_milestone_usd ?? 0)}
@@ -653,6 +654,7 @@ function StageProgressModal({
   activeStage: ProjectStageRow | undefined;
   onClose: () => void;
 }) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const expectedStage = completedCount + 1;
   const actualStage   = activeStage?.stage_number ?? completedCount;
@@ -714,7 +716,7 @@ function StageProgressModal({
               n: 2,
               icon: <RefreshCw className="size-4 text-brand-mid-grey" />,
               title: 'Find the stage you\'re working on',
-              badge: activeStage ? `Stage ${activeStage.stage_number}: ${activeStage.name}` : completedCount === stages.length ? 'All done' : 'Not started',
+              badge: activeStage ? `${activeStage.stage_number}. ${stageLabel(activeStage)}` : completedCount === stages.length ? 'All done' : 'Not started',
               body: 'We look for the first stage with status In Progress or Awaiting Approval. That\'s your actual position in the build.',
               formula: null,
             },
@@ -902,6 +904,7 @@ interface OverviewTabProps {
 export default function OverviewTab({
   project, stages, substages, budget, onViewCosting, onViewStage,
 }: OverviewTabProps) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const [showBudgetBreakdown, setShowBudgetBreakdown]   = useState(false);
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false);
@@ -1023,7 +1026,7 @@ export default function OverviewTab({
               </button>
             </div>
             <p className="text-xs text-brand-mid-grey mb-3">
-              {t('project.overview.stagesComplete', { done: completedCount, total: sortedStages.length })}{activeStage ? <> — {t('project.overview.currentlyOn')} <span className="font-medium text-brand-near-black dark:text-white">{activeStage.name}</span></> : ''}
+              {t('project.overview.stagesComplete', { done: completedCount, total: sortedStages.length })}{activeStage ? <> — {t('project.overview.currentlyOn')} <span className="font-medium text-brand-near-black dark:text-white">{stageLabel(activeStage)}</span></> : ''}
             </p>
 
             <div className="h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden mb-4">

@@ -120,6 +120,7 @@ function OverviewBar({
 // ── Per-stage bar ────────────────────────────────────────────
 
 function StageBar({ stage }: { stage: ProjectStageRow }) {
+  const { stageLabel } = useStageLabels();
   const isComplete = stage.status === 'complete';
   const isActive   = stage.status === 'active';
   const isReview   = stage.status === 'pending_review';
@@ -136,7 +137,7 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
               stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white',
             )}
           >
-            {stage.name}
+            {stageLabel(stage)}
           </span>
           <StatusBadge status={stage.status} />
         </div>
@@ -353,6 +354,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
 // ── Main component ───────────────────────────────────────────
 
 export default function BudgetView({ project, stages }: BudgetViewProps) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const [exporting, setExporting] = useState(false);
 
@@ -496,7 +498,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.releasedLabel')}</span>
                         </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
                         {stage.completed_at && (
                           <p className="text-[10px] text-brand-mid-grey mt-0.5">{formatDate(stage.completed_at)}</p>
                         )}
@@ -507,7 +509,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.heldInProgress')}</span>
                         </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
                       </>
                     ) : isReview ? (
                       <>
@@ -515,7 +517,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.awaitingApproval')}</span>
                         </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stage.name}</p>
+                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
                       </>
                     ) : (
                       <>
@@ -523,7 +525,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
                           {formatUSDFull(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal ml-1.5">{t('project.costing.lockedLabel')}</span>
                         </p>
-                        <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stage.name}</p>
+                        <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stageLabel(stage)}</p>
                       </>
                     )}
                   </div>
