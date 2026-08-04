@@ -75,6 +75,7 @@ const IMAGE_LABELS: Record<string, { title: string; sub: string }> = {
 // ── Image panel (steps 2, 3, 7) ────────────────────────────────
 
 function ImagePanel({ imageKey }: { imageKey: string | null }) {
+  const t = useT();
   const meta = imageKey ? IMAGE_LABELS[imageKey] : null;
   const src  = imageKey ? BUILDING_IMAGES[imageKey] : null;
 
@@ -826,6 +827,7 @@ function Signpost({ visible, name }: { visible: boolean; name: string }) {
 // ── Per-step badge content ─────────────────────────────────────
 
 function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useWizard>['data'] }) {
+  const t = useT();
   const budget = step === 9 ? calculateBudget(data) : null;
 
   return (

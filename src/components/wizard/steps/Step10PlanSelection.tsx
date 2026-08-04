@@ -25,6 +25,7 @@ interface TierCardProps {
 }
 
 function TierCard({ title, price, description, features, selected, onSelect, popular }: TierCardProps) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -67,6 +68,7 @@ function TierCard({ title, price, description, features, selected, onSelect, pop
 // ── Page component ─────────────────────────────────────────
 
 export default function Step10PlanSelection() {
+  const t = useT();
   const { data, update, reset, next, constructionRate, cityRate } = useWizard();
   const { user } = useAuth();
   const navigate  = useNavigate();

@@ -52,6 +52,7 @@ const FINISH_LABELS: Record<string, string> = {
 // ── Budget breakdown display ───────────────────────────────
 
 function BudgetBreakdownCard() {
+  const t = useT();
   const { data, constructionRate, cityRate, rateLoading } = useWizard();
   const detail = calculateBudgetDetail(data, constructionRate, cityRate);
   const isVerified = detail.dataSource === 'real_bq';
@@ -178,6 +179,7 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 // ── Page component ─────────────────────────────────────────
 
 export default function Step9Summary() {
+  const t = useT();
   const { data } = useWizard();
 
   return (

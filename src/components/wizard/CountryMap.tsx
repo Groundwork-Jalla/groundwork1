@@ -188,6 +188,7 @@ export function CountryMap({ countryCode, countryName }: CountryMapProps) {
 // ── Empty state (no country selected) ─────────────────────────
 
 export function MapEmptyState() {
+  const t = useT();
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
       {/* Blueprint dot grid */}
