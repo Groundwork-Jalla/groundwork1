@@ -6,6 +6,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Types ────────────────────────────────────────────────────
 

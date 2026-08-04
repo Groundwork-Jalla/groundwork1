@@ -12,6 +12,7 @@ import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
 import RelatedGuides from '@/components/project/RelatedGuides';
 import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, BudgetBreakdown } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 const PREDICTED_DAYS = 196;
 
@@ -1066,7 +1067,7 @@ export default function OverviewTab({
                   <div className="flex items-center gap-2 min-w-0">
                     <StageIcon status={stage.status} />
                     <span className={cn('text-sm truncate', stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
-                      {stage.name}
+                      {stageLabel(stage)}
                     </span>
                   </div>
                   <span className={cn('text-[9px] font-medium uppercase tracking-wide shrink-0', {

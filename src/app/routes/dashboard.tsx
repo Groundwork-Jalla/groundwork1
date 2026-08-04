@@ -17,6 +17,7 @@ import { formatDate, formatMoney } from '@/lib/format';
 import { findCountry }   from '@/lib/countries';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ type StageStatus = 'locked' | 'active' | 'pending_review' | 'complete';
 interface ProjectStage {
   id: string;
   stage_number: number;
+  /** i18n key (migration 024); null falls back to `name`. */
+  stage_key: string | null;
   name: string;
   status: StageStatus;
   budget_pct: number | null;
@@ -550,6 +553,7 @@ function StageProgressPanel({
   stages: ProjectStage[];
   stagesLoading: boolean;
 }) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const total      = project.budget_usd ?? 0;
   const totalPct   = stages.reduce((s, st) => s + (st.budget_pct ?? 0), 0) || 100;
@@ -666,7 +670,7 @@ function StageProgressPanel({
                   <span className={`text-xs font-semibold leading-snug ${
                     done_ ? 'line-through text-brand-mid-grey' : active_ ? 'text-brand-near-black' : 'text-brand-mid-grey'
                   }`}>
-                    {stage.name}
+                    {stageLabel(stage)}
                   </span>
                   {/* Dollar amount */}
                   {total > 0 && (
@@ -994,7 +998,7 @@ export default function Dashboard() {
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, name, status, budget_pct, completed_at')
+      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {

@@ -70,7 +70,7 @@ export default function StagesTool() {
 
                 {/* Name + meta */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stage.name}</p>
+                  <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t(`stages.${stage.key}` as TKey)}</p>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-[10px] text-brand-mid-grey">{STAGE_DAYS[i]}d est.</span>
                     <span className="text-[10px] text-brand-mid-grey">{stage.budget_pct}% of budget</span>

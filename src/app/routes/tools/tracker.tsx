@@ -190,7 +190,7 @@ export default function TrackerTool() {
                 </span>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stage.name}</p>
+                  <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t(`stages.${stage.key}` as TKey)}</p>
                   <p className="text-[10px] text-brand-mid-grey mt-0.5">{doneCount}/{stageTotal} done</p>
                 </div>
 
@@ -205,7 +205,7 @@ export default function TrackerTool() {
 
               {/* Print-visible stage header */}
               <div className="hidden print:flex items-center gap-3 px-4 py-2 bg-gray-100">
-                <span className="text-sm font-bold">{stage.stage_number}. {stage.name}</span>
+                <span className="text-sm font-bold">{stage.stage_number}. {t(`stages.${stage.key}` as TKey)}</span>
                 <span className="text-xs text-gray-500">({doneCount}/{stageTotal} done)</span>
               </div>
 

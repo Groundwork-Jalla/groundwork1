@@ -8,6 +8,7 @@ import { updatePaymentStatus } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { useEffect } from 'react';
 import type { ProjectRow, ProjectStageRow, PaymentStatus, ConstructionRate } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Payment status pill ──────────────────────────────────
 
@@ -42,6 +43,7 @@ function StagePayRow({
   rate: ConstructionRate | null;
   onUpdate: (id: string, s: PaymentStatus) => Promise<void>;
 }) {
+  const { stageLabel } = useStageLabels();
   const [busy, setBusy] = useState(false);
   const [localStatus, setLocalStatus] = useState<PaymentStatus>(stage.payment_status);
   const amount = stage.payment_milestone_usd ?? 0;
@@ -66,7 +68,7 @@ function StagePayRow({
             'text-sm font-medium',
             stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white',
           )}>
-            {stage.name}
+            {stageLabel(stage)}
           </p>
           <p className="text-xs text-brand-mid-grey tabular-nums mt-0.5">
             {formatUSDFull(amount)}
