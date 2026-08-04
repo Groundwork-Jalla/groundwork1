@@ -19,7 +19,7 @@ const ROLE_STYLES: Record<string, string> = {
 };
 
 export default function AdminUsers() {
-  const L = useDomainLabels();
+  const labels = useDomainLabels();
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery]     = useState('');
@@ -100,7 +100,7 @@ export default function AdminUsers() {
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-brand-mid-grey">{L.tier(u.tier)}</td>
+                  <td className="px-4 py-3 text-brand-mid-grey">{labels.tier(u.tier)}</td>
                   <td className="px-4 py-3 text-brand-mid-grey text-xs">
                     {new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>

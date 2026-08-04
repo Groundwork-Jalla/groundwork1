@@ -111,6 +111,7 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 // ── Main component ────────────────────────────────────────
 
 export default function ProjectDetail() {
+  const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -322,7 +323,7 @@ export default function ProjectDetail() {
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="min-w-0">
               <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
-                {L.buildingType(project.building_type)} · {country?.name ?? project.country}
+                {labels.buildingType(project.building_type)} · {country?.name ?? project.country}
               </p>
               <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight truncate">
                 {project.name}
@@ -331,7 +332,7 @@ export default function ProjectDetail() {
                 {project.bedrooms > 0 && <span>{t('project.header.bed', { count: project.bedrooms })}</span>}
                 {project.bedrooms > 0 && project.num_floors > 0 && <span>·</span>}
                 <span>{project.num_floors === 1 ? t('project.header.floor', { count: 1 }) : t('project.header.floors', { count: project.num_floors })}</span>
-                {project.roof_type && <><span>·</span><span>{L.roofType(project.roof_type)}</span></>}
+                {project.roof_type && <><span>·</span><span>{labels.roofType(project.roof_type)}</span></>}
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">

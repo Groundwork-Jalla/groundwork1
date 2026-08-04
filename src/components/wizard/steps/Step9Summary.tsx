@@ -154,6 +154,7 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 // ── Page component ─────────────────────────────────────────
 
 export default function Step9Summary() {
+  const labels = useDomainLabels();
   const t = useT();
   const { data } = useWizard();
 
@@ -175,7 +176,7 @@ export default function Step9Summary() {
           <SummaryRow icon={<MapPin className="size-3.5" />}    label="Location"
             value={[data.city, data.countryName].filter(Boolean).join(', ')} />
           <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
-            value={`${L.projectType(data.projectType)} · ${L.buildingType(data.buildingType)}`} />
+            value={`${labels.projectType(data.projectType)} · ${labels.buildingType(data.buildingType)}`} />
           <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"
             value={[
               `${data.floors} floor${data.floors > 1 ? 's' : ''}`,
@@ -186,9 +187,9 @@ export default function Step9Summary() {
             ].filter(Boolean).join(' · ')}
           />
           <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"
-            value={L.roofType(data.roofType)} />
+            value={labels.roofType(data.roofType)} />
           <SummaryRow icon={<Wrench className="size-3.5" />}    label="Finish"
-            value={L.finishLevel(data.finishLevel)} />
+            value={labels.finishLevel(data.finishLevel)} />
         </div>
 
         {/* Budget estimate with trade sections */}

@@ -59,6 +59,7 @@ function SkeletonCard() {
 }
 
 function ProjectCard({ project }: { project: ProjectRow }) {
+  const labels = useDomainLabels();
   const t = useT();
   const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
   const status = STATUS_META[project.status] ?? STATUS_META.active;
@@ -78,7 +79,7 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       </div>
       <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
       <div className="flex items-center gap-2 text-xs text-brand-mid-grey mb-4 flex-wrap">
-        <span className="flex items-center gap-1"><Building2 className="size-3 shrink-0" />{L.buildingType(project.building_type)}</span>
+        <span className="flex items-center gap-1"><Building2 className="size-3 shrink-0" />{labels.buildingType(project.building_type)}</span>
         {loc && <><span className="text-brand-border-grey">·</span><span className="flex items-center gap-1"><MapPin className="size-3 shrink-0" />{loc}</span></>}
       </div>
       <div className="mb-4">

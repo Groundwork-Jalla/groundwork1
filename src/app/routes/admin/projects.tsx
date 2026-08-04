@@ -24,7 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminProjects() {
-  const L = useDomainLabels();
+  const labels = useDomainLabels();
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading]   = useState(true);
   const [query, setQuery]       = useState('');
@@ -108,7 +108,7 @@ export default function AdminProjects() {
                   <td className="px-4 py-3 text-brand-mid-grey max-w-[160px] truncate">
                     <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
                   </td>
-                  <td className="px-4 py-3 text-brand-mid-grey">{L.tier(p.tier)}</td>
+                  <td className="px-4 py-3 text-brand-mid-grey">{labels.tier(p.tier)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLES[p.status] ?? ''}`}>
                       {p.status.replace('_', ' ')}
