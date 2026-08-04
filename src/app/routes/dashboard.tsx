@@ -205,6 +205,7 @@ function JourneyCard({ projects, activeProject, completedCount }: {
   activeProject: ProjectRow | undefined;
   completedCount: number;
 }) {
+  const t = useT();
   const hasProjects = projects.length > 0;
   const hasActive   = !!activeProject;
 
@@ -274,7 +275,7 @@ function JourneyCard({ projects, activeProject, completedCount }: {
     <div className="bg-white dark:bg-[#1e1e1e] border border-brand-border-grey dark:border-[#2c2c2c] rounded-2xl px-5 py-4">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest">Your Journey</p>
+          <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest">{t('dashboard.yourJourney')}</p>
           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusCls}`}>
             {status}
           </span>
@@ -303,6 +304,7 @@ function VelocityChart({ project, stages }: {
   project: ProjectRow;
   stages: ProjectStage[];
 }) {
+  const t = useT();
   const [hoverX, setHoverX] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -390,22 +392,22 @@ function VelocityChart({ project, stages }: {
       {/* Header + legend */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white">Build Progress</p>
-          <p className="text-xs text-brand-mid-grey mt-0.5">Stages completed vs. planned schedule</p>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('dashboard.buildProgress')}</p>
+          <p className="text-xs text-brand-mid-grey mt-0.5">{t('dashboard.progressSub')}</p>
         </div>
         <div className="flex items-center gap-5">
           <span className="flex items-center gap-1.5 text-[10px] font-medium text-brand-mid-grey">
             <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
               <line x1="0" y1="5" x2="22" y2="5" stroke="#9ca3af" strokeWidth="2" strokeDasharray="4,3" />
             </svg>
-            Planned
+            {t('dashboard.planned')}
           </span>
           <span className="flex items-center gap-1.5 text-[10px] font-medium text-blue-500">
             <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
               <line x1="0" y1="5" x2="22" y2="5" stroke="#3b82f6" strokeWidth="2" />
               <circle cx="11" cy="5" r="3" fill="#3b82f6" stroke="white" strokeWidth="1.5" />
             </svg>
-            Actual
+            {t('dashboard.actual')}
           </span>
         </div>
       </div>
@@ -439,7 +441,7 @@ function VelocityChart({ project, stages }: {
           <text x={9} y={PT + ch / 2} textAnchor="middle" fontSize="9"
             transform={`rotate(-90, 9, ${PT + ch / 2})`}
             style={{ fill: 'var(--color-brand-mid-grey)' }}>
-            Stages
+            {t('dashboard.stagesAxis')}
           </text>
 
           {/* X baseline */}
@@ -465,7 +467,7 @@ function VelocityChart({ project, stages }: {
           {/* X-axis title */}
           <text x={PL + cw / 2} y={H - 1} textAnchor="middle" fontSize="9"
             style={{ fill: 'var(--color-brand-mid-grey)' }}>
-            Month
+            {t('dashboard.monthAxis')}
           </text>
 
           {/* TODAY marker */}
@@ -474,7 +476,7 @@ function VelocityChart({ project, stages }: {
               <line x1={nowX} y1={PT} x2={nowX} y2={PT + ch}
                 stroke="#ef4444" strokeWidth="1" strokeDasharray="3,3" opacity="0.45" />
               <text x={nowX + 3} y={PT + 10} fontSize="8"
-                style={{ fill: '#ef4444' }} opacity="0.75">Today</text>
+                style={{ fill: '#ef4444' }} opacity="0.75">{t('dashboard.today')}</text>
             </>
           )}
 
@@ -548,6 +550,7 @@ function StageProgressPanel({
   stages: ProjectStage[];
   stagesLoading: boolean;
 }) {
+  const t = useT();
   const total      = project.budget_usd ?? 0;
   const totalPct   = stages.reduce((s, st) => s + (st.budget_pct ?? 0), 0) || 100;
   const done       = stages.filter(isComplete).length;
@@ -567,7 +570,7 @@ function StageProgressPanel({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-brand-near-black">Stage Progress</h3>
+              <h3 className="text-sm font-semibold text-brand-near-black">{t('dashboard.stageProgressTitle')}</h3>
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
                 pct === 100 ? 'bg-green-50 text-green-700 border-green-200'
                   : pct > 0  ? 'bg-blue-50 text-blue-700 border-blue-200'
@@ -713,6 +716,7 @@ const COST_CATS = [
 ];
 
 function CostingDonut({ project }: { project: ProjectRow }) {
+  const t = useT();
   const total = project.budget_usd ?? 0;
   const biggest = COST_CATS[0];
 
@@ -721,10 +725,10 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 
   return (
     <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
-      <h3 className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">Costing Allocation</h3>
+      <h3 className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">{t('dashboard.costingAllocation')}</h3>
       <p className="text-xs text-brand-mid-grey mb-4">
         {total > 0
-          ? <>Your biggest cost is <strong className="text-brand-near-black dark:text-white">{biggest.label}</strong> at {biggest.pct}% of total budget.</>
+          ? <>{t('dashboard.biggestCostPre')} <strong className="text-brand-near-black dark:text-white">{biggest.label}</strong> {biggest.pct}% {t('dashboard.biggestCostPost')}</>
           : 'Budget breakdown by category'}
       </p>
 
@@ -749,13 +753,13 @@ function CostingDonut({ project }: { project: ProjectRow }) {
           <circle cx={cx} cy={cy} r="55" fill="var(--color-donut-bg, white)" />
           {total > 0 ? (
             <>
-              <text x={cx} y={cy - 8} textAnchor="middle" style={{ fontSize: '9px', fill: '#9ca3af' }}>Total budget</text>
+              <text x={cx} y={cy - 8} textAnchor="middle" style={{ fontSize: '9px', fill: '#9ca3af' }}>{t('dashboard.totalBudget')}</text>
               <text x={cx} y={cy + 9} textAnchor="middle" style={{ fontSize: '13px', fontWeight: 700 }} fill="var(--color-brand-near-black, #111)">
                 {fmtShort(total)}
               </text>
             </>
           ) : (
-            <text x={cx} y={cy + 4} textAnchor="middle" style={{ fontSize: '11px', fill: '#9ca3af' }}>No budget</text>
+            <text x={cx} y={cy + 4} textAnchor="middle" style={{ fontSize: '11px', fill: '#9ca3af' }}>{t('dashboard.noBudget')}</text>
           )}
         </svg>
       </div>
@@ -809,10 +813,11 @@ const FEED_ITEMS = [
 ];
 
 function NewsfeedCard() {
+  const t = useT();
   return (
     <div className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col">
       <div className="px-5 py-3.5 border-b border-brand-off-white">
-        <p className="text-sm font-semibold text-brand-near-black">Platform Updates</p>
+        <p className="text-sm font-semibold text-brand-near-black">{t('dashboard.platformUpdates')}</p>
       </div>
       <div className="flex-1 divide-y divide-brand-off-white">
         {FEED_ITEMS.map(item => (

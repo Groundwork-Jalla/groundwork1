@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { Calculator, ListChecks, CreditCard, ClipboardList, ArrowRight } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 
 const TOOLS = [
   {
@@ -33,6 +34,7 @@ const TOOLS = [
 ];
 
 export default function ToolsIndex() {
+  const t = useT();
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
       {/* Hero */}
@@ -81,7 +83,7 @@ export default function ToolsIndex() {
           to="/auth/signup"
           className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
         >
-          Get started free
+          {t('tools.getStartedFree')}
         </Link>
       </div>
     </div>

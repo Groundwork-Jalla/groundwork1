@@ -323,7 +323,7 @@ function QuoteRequestDialog({
                 onClick={onClose}
                 className="mt-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-2.5 hover:bg-black transition-colors"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           ) : (
@@ -376,7 +376,7 @@ function QuoteRequestDialog({
 
               <div>
                 <label className={labelCls} htmlFor="qr-message">
-                  Message
+                  {t('contractors.inquiry.message')}
                 </label>
                 <textarea
                   id="qr-message"

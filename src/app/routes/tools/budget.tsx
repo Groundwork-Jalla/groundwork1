@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { calculateBudget, formatUSDFull, formatUSD } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
+import { useT } from '@/lib/i18n';
 
 const FINISH_LEVELS = [
   { value: 'standard', label: 'Standard', desc: 'Functional, cost-effective finishes' },
@@ -34,6 +35,7 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: n
 }
 
 export default function BudgetTool() {
+  const t = useT();
   const [country, setCountry] = useState('NG');
   const [sqm, setSqm] = useState(150);
   const [floors, setFloors] = useState(1);
@@ -47,18 +49,18 @@ export default function BudgetTool() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
       <Link to="/tools" className="inline-flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white mb-8 transition-colors">
-        <ChevronLeft className="size-3.5" /> Back to Tools
+        <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
       </Link>
 
-      <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">Build Budget Calculator</h1>
-      <p className="text-sm text-brand-mid-grey mb-10">Enter your project details. Costs update live as you adjust the inputs.</p>
+      <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">{t('tools.budgetTitle')}</h1>
+      <p className="text-sm text-brand-mid-grey mb-10">{t('tools.budgetSub')}</p>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
         {/* ── Form ── */}
         <div className="flex flex-col gap-6">
           {/* Country */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">Country</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('tools.country')}</label>
             <select
               value={country}
               onChange={e => setCountry(e.target.value)}
@@ -74,7 +76,7 @@ export default function BudgetTool() {
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5 flex flex-col gap-5">
             <div>
               <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">
-                Floor Area (sqm)
+                {t('tools.floorArea')}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -98,14 +100,14 @@ export default function BudgetTool() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">Floors</label>
+              <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('tools.floors')}</label>
               <Stepper value={floors} onChange={setFloors} min={1} max={10} />
             </div>
           </div>
 
           {/* Finish level */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-3 uppercase tracking-wide">Finish Level</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-3 uppercase tracking-wide">{t('tools.finishLevel')}</label>
             <div className="flex flex-col gap-2">
               {FINISH_LEVELS.map(fl => (
                 <button
@@ -136,7 +138,7 @@ export default function BudgetTool() {
         {/* ── Result ── */}
         <div className="lg:sticky lg:top-24 flex flex-col gap-4">
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-            <p className="text-xs text-brand-mid-grey mb-1">Estimated build cost</p>
+            <p className="text-xs text-brand-mid-grey mb-1">{t('tools.estimatedCost')}</p>
             <p className="text-4xl font-black text-brand-near-black dark:text-white tabular-nums mb-1">{formatUSDFull(budget.total)}</p>
             <p className="text-xs text-brand-mid-grey mb-5">USD · indicative · {sqm} sqm · {floors} floor{floors !== 1 ? 's' : ''} · {finishLevel}</p>
 
@@ -153,15 +155,15 @@ export default function BudgetTool() {
             </div>
 
             <p className="mt-4 text-[10px] text-brand-mid-grey leading-relaxed">
-              Indicative only. Actual costs vary by site, contractor, and local market.
+              {t('tools.indicative')}
             </p>
           </div>
 
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-4">
-            <p className="text-xs font-semibold text-brand-near-black dark:text-white mb-1">Want to track a real project?</p>
-            <p className="text-[11px] text-brand-mid-grey mb-3">Create a Groundwork account to manage stages, documents, and contractor payments.</p>
+            <p className="text-xs font-semibold text-brand-near-black dark:text-white mb-1">{t('tools.trackReal')}</p>
+            <p className="text-[11px] text-brand-mid-grey mb-3">{t('tools.trackRealBody')}</p>
             <Link to="/auth/signup" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
-              Get started free
+              {t('tools.getStartedFree')}
             </Link>
           </div>
         </div>

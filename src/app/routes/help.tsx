@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 
 // ── FAQ data ───────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ function FaqAccordion({
 type FormState = 'idle' | 'submitting' | 'success' | 'error';
 
 function ContactForm({ userEmail, userId }: { userEmail: string; userId: string | undefined }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [email, setEmail] = useState(userEmail);
   const [subject, setSubject] = useState('');
@@ -200,10 +202,10 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
         </div>
         <div>
           <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">
-            Message sent!
+            {t('help.sent')}
           </p>
           <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-            We've received your message and will respond within 24 hours.
+            {t('help.sentBody')}
           </p>
         </div>
       </div>
@@ -215,12 +217,12 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-brand-near-black dark:text-white">
-            Name
+            {t('help.name')}
           </label>
           <input
             type="text"
             required
-            placeholder="Your name"
+            placeholder={t('help.yourName')}
             value={name}
             onChange={e => setName(e.target.value)}
             className={inputCls}
@@ -228,7 +230,7 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-brand-near-black dark:text-white">
-            Email
+            {t('help.email')}
           </label>
           <input
             type="email"
@@ -243,12 +245,12 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
 
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-brand-near-black dark:text-white">
-          Subject
+          {t('help.subject')}
         </label>
         <input
           type="text"
           required
-          placeholder="What's this about?"
+          placeholder={t('help.subjectHint')}
           value={subject}
           onChange={e => setSubject(e.target.value)}
           className={inputCls}
@@ -257,12 +259,12 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
 
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-brand-near-black dark:text-white">
-          Message
+          {t('help.message')}
         </label>
         <textarea
           required
           rows={4}
-          placeholder="Tell us how we can help…"
+          placeholder={t('help.messageHint')}
           value={message}
           onChange={e => setMessage(e.target.value)}
           className={`${inputCls} h-auto min-h-[100px] resize-y`}
@@ -271,7 +273,7 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
 
       {formState === 'error' && (
         <p className="text-xs text-red-500">
-          Something went wrong. Please try again or email us directly at hello@groundwork.build
+          {t('help.sendFailed')}
         </p>
       )}
 
@@ -289,6 +291,7 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
 // ── Main page ──────────────────────────────────────────────
 
 export default function HelpPage() {
+  const t = useT();
   const { user } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const contactRef = useRef<HTMLDivElement>(null);
@@ -321,7 +324,7 @@ export default function HelpPage() {
           rel="noopener noreferrer"
           className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
         >
-          Watch videos
+          {t('help.watchVideos')}
         </a>
       ),
     },
@@ -334,7 +337,7 @@ export default function HelpPage() {
           href="mailto:hello@groundwork.build"
           className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
         >
-          Book now
+          {t('help.bookNow')}
         </a>
       ),
     },
@@ -347,7 +350,7 @@ export default function HelpPage() {
           to="/community"
           className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
         >
-          Join us
+          {t('help.joinUs')}
         </Link>
       ),
     },
@@ -361,7 +364,7 @@ export default function HelpPage() {
           onClick={scrollToContact}
           className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto text-left"
         >
-          Send a message
+          {t('help.sendCta')}
         </button>
       ),
     },
@@ -373,10 +376,10 @@ export default function HelpPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
-          Help & Support
+          {t('help.title')}
         </h1>
         <p className="text-sm text-brand-mid-grey mt-1">
-          Everything you need to build with confidence
+          {t('help.subtitle')}
         </p>
       </div>
 
@@ -406,7 +409,7 @@ export default function HelpPage() {
       {/* FAQ Accordion */}
       <div>
         <h2 className="text-lg font-bold text-brand-near-black dark:text-white mb-4">
-          Frequently asked questions
+          {t('help.faq')}
         </h2>
 
         {FAQ_SECTIONS.map((section, sIdx) => {
@@ -440,10 +443,10 @@ export default function HelpPage() {
         className="rounded-2xl border border-brand-border-grey bg-white dark:bg-brand-dark-grey dark:border-[#2c2c2c] p-6"
       >
         <h2 className="text-lg font-bold text-brand-near-black dark:text-white mb-1">
-          Send us a message
+          {t('help.sendMessage')}
         </h2>
         <p className="text-xs text-brand-mid-grey mb-6">
-          We typically respond within 24 hours on business days.
+          {t('help.responseTime')}
         </p>
         <ContactForm
           userEmail={user?.email ?? ''}

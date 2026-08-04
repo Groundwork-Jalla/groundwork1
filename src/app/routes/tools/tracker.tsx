@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronDown, ChevronUp, Printer, RotateCcw } from 'lucide-react';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const STORAGE_KEY = 'gw_tracker';
 const STAGES = getStageSeed('residential', 'single_family', 1);
@@ -40,6 +41,7 @@ function save(state: TrackerState) {
 }
 
 export default function TrackerTool() {
+  const t = useT();
   const [state, setState] = useState<TrackerState>(defaultState);
   const [loaded, setLoaded] = useState(false);
   const [openStage, setOpenStage] = useState<number | null>(1);
@@ -85,7 +87,7 @@ export default function TrackerTool() {
       {/* Non-print header */}
       <div className="print:hidden">
         <Link to="/tools" className="inline-flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white mb-8 transition-colors">
-          <ChevronLeft className="size-3.5" /> Back to Tools
+          <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
         </Link>
 
         <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">DIY Project Tracker</h1>
@@ -266,7 +268,7 @@ export default function TrackerTool() {
           <span className="font-semibold text-brand-near-black dark:text-white">Managing a real project?</span> Get stage sign-offs, document storage, contractor coordination, and payment tracking with a full Groundwork account.
         </p>
         <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
-          Get started free
+          {t('tools.getStartedFree')}
         </Link>
       </div>
     </div>

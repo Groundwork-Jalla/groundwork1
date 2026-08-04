@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
 const PAYMENT_NOTE = [
@@ -19,13 +20,14 @@ const PAYMENT_NOTE = [
 ];
 
 export default function StagesTool() {
+  const t = useT();
   const stages = getStageSeed('residential', 'single_family', 1);
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
       <Link to="/tools" className="inline-flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white mb-8 transition-colors">
-        <ChevronLeft className="size-3.5" /> Back to Tools
+        <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
       </Link>
 
       <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">Construction Stage Planner</h1>
@@ -130,7 +132,7 @@ export default function StagesTool() {
           <span className="font-semibold text-brand-near-black dark:text-white">Building soon?</span> Create a Groundwork account to track each substage with evidence, approvals, and contractor coordination.
         </p>
         <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
-          Get started free
+          {t('tools.getStartedFree')}
         </Link>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull }         from '@/lib/budget';
 import { findCountry }           from '@/lib/countries';
 import type { ProjectRow }       from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 const TOTAL_STAGES = 10;
 
@@ -63,6 +64,7 @@ interface RecordPaymentModalProps {
 }
 
 function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalProps) {
+  const t = useT();
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [method, setMethod] = useState('Bank Transfer');
@@ -109,12 +111,12 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-brand-near-black dark:text-white">Record Payment</h3>
+            <h3 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('finances.recordTitle')}</h3>
             <button
               type="button"
               onClick={onClose}
               className="flex size-7 items-center justify-center rounded-full hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-colors"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <X className="size-4 text-brand-mid-grey dark:text-brand-mid-grey" />
             </button>
@@ -122,18 +124,18 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
 
           {/* Project name */}
           <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">
-            For: <span className="font-medium text-brand-near-black dark:text-white">{project.name}</span>
+            {t('finances.recordFor')} <span className="font-medium text-brand-near-black dark:text-white">{project.name}</span>
           </p>
 
           {/* Info note */}
           <div className="rounded-lg bg-brand-off-white dark:bg-[#111] border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2.5 text-[11px] text-brand-mid-grey dark:text-brand-mid-grey leading-relaxed mb-4">
-            Coming soon — this records locally for your tracking. Full payment processing coming soon.
+            {t('finances.recordPreview')}
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Amount */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">Amount</label>
+              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">{t('finances.amount')}</label>
               <input
                 type="number"
                 step="0.01"
@@ -148,38 +150,38 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
 
             {/* Currency */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">Currency</label>
+              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">{t('finances.currency')}</label>
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
                 className={inputClass}
               >
-                <option value="USD">USD — US Dollar</option>
-                <option value="XAF">XAF — CFA Franc</option>
-                <option value="NGN">NGN — Nigerian Naira</option>
-                <option value="GHS">GHS — Ghanaian Cedi</option>
-                <option value="KES">KES — Kenyan Shilling</option>
+                <option value="USD">{t('finances.curUsd')}</option>
+                <option value="XAF">{t('finances.curXaf')}</option>
+                <option value="NGN">{t('finances.curNgn')}</option>
+                <option value="GHS">{t('finances.curGhs')}</option>
+                <option value="KES">{t('finances.curKes')}</option>
               </select>
             </div>
 
             {/* Method */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">Method</label>
+              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">{t('finances.method')}</label>
               <select
                 value={method}
                 onChange={e => setMethod(e.target.value)}
                 className={inputClass}
               >
-                <option>Bank Transfer</option>
-                <option>Mobile Money</option>
-                <option>Cash</option>
-                <option>Cheque</option>
+                <option value="Bank Transfer">{t('finances.bankTransfer')}</option>
+                <option value="Mobile Money">{t('finances.mobileMoney')}</option>
+                <option value="Cash">{t('finances.cash')}</option>
+                <option value="Cheque">{t('finances.cheque')}</option>
               </select>
             </div>
 
             {/* Note */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">Note (optional)</label>
+              <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">{t('finances.note')}</label>
               <input
                 type="text"
                 placeholder="e.g. Stage 3 milestone payment"
@@ -196,13 +198,13 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
                 onClick={onClose}
                 className="flex-1 h-10 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] text-sm font-medium text-brand-mid-grey dark:text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white hover:border-brand-near-black dark:hover:border-white transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 className="flex-1 h-10 rounded-xl bg-brand-near-black dark:bg-white text-sm font-semibold text-white dark:text-brand-near-black hover:opacity-90 transition-opacity"
               >
-                Record
+                {t('finances.record')}
               </button>
             </div>
           </form>
@@ -236,6 +238,7 @@ function Toast({ message, onDismiss }: { message: string; onDismiss: () => void 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
+  const t = useT();
   const { user } = useAuth();
   const isContractor = user?.user_metadata?.role === 'contractor';
 
@@ -295,8 +298,8 @@ export default function PaymentsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-brand-near-black dark:text-white">Finances</h2>
-          <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-0.5">Budget overview across all your builds</p>
+          <h2 className="text-lg font-bold text-brand-near-black dark:text-white">{t('finances.title')}</h2>
+          <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-0.5">{t('finances.subtitle')}</p>
         </div>
         <button
           type="button"
@@ -305,13 +308,13 @@ export default function PaymentsPage() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-lg px-3 py-1.5 bg-white dark:bg-brand-dark-grey transition-colors disabled:opacity-40 disabled:pointer-events-none"
         >
           <Download className="size-3.5" />
-          Export CSV
+          {t('finances.exportCsv')}
         </button>
       </div>
 
       {/* Info banner */}
       <div className="rounded-xl bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3 text-xs text-brand-mid-grey dark:text-brand-mid-grey leading-relaxed">
-        💡 <span className="font-medium text-brand-near-black dark:text-white">Estimated spend</span> is calculated based on completed stages. Actual payments via Stripe + Switchr are coming soon.
+        💡 <span className="font-medium text-brand-near-black dark:text-white">{t('project.overview.explain.spendNoteStrong')}</span> {t('project.overview.explain.spendNoteRest')}
       </div>
 
       {/* Stats */}
@@ -329,14 +332,14 @@ export default function PaymentsPage() {
       {!loading && projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey dark:border-[#2c2c2c] p-12 text-center">
           <Wallet className="size-10 text-brand-border-grey dark:text-[#2c2c2c] mx-auto mb-3" />
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">No financial data yet</p>
-          <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey">Create your first build to start tracking your budget.</p>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('finances.emptyTitle')}</p>
+          <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey">{t('finances.emptyBody')}</p>
         </div>
       ) : (
         <div className="bg-white dark:bg-brand-dark-grey rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
           <div className="px-5 py-4 border-b border-brand-off-white dark:border-[#2c2c2c]">
-            <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">Per-build breakdown</h2>
-            <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-0.5">Estimated spend is calculated from completed stages</p>
+            <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('finances.perBuild')}</h2>
+            <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-0.5">{t('finances.estimatedNote')}</p>
           </div>
           <div className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
             {loading
@@ -375,13 +378,13 @@ export default function PaymentsPage() {
                             className="inline-flex items-center gap-1 text-[10px] font-medium text-brand-mid-grey dark:text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-md px-2 py-1 bg-brand-off-white dark:bg-[#1c1c1c] transition-colors"
                           >
                             <Plus className="size-2.5" />
-                            Record
+                            {t('finances.record')}
                           </button>
                         </div>
                       </div>
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-[10px] text-brand-mid-grey dark:text-brand-mid-grey">
-                          <span>Est. spent: <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(spent)}</span></span>
+                          <span>{t('finances.estSpent')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(spent)}</span></span>
                           <span className="tabular-nums">{Math.round(spentPct)}% used</span>
                         </div>
                         <div className="h-2.5 w-full rounded-full bg-brand-light-grey dark:bg-[#2c2c2c] overflow-hidden">

@@ -120,7 +120,7 @@ function BudgetDonut({
             </div>
           ))}
           <p className="text-[10px] text-brand-mid-grey border-t border-brand-off-white dark:border-[#2c2c2c] pt-2">
-            Total estimated cost: <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(total)}</span>
+            {t('project.overview.explain.totalEstimatedCost')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(total)}</span>
           </p>
         </div>
       </div>
@@ -161,6 +161,7 @@ function BudgetBreakdownModal({
   outstanding: number;
   onClose: () => void;
 }) {
+  const t = useT();
   const countryName = findCountry(project.country)?.name ?? project.country;
   const profFees    = budget.engineering + budget.management;
   const permCont    = budget.permits + budget.contingency;
@@ -235,8 +236,8 @@ function BudgetBreakdownModal({
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-brand-off-white dark:border-[#2c2c2c] shrink-0">
           <div>
-            <p className="text-base font-bold text-brand-near-black dark:text-white">How is my budget calculated?</p>
-            <p className="text-xs text-brand-mid-grey mt-0.5">A plain-English walkthrough of every number — no jargon.</p>
+            <p className="text-base font-bold text-brand-near-black dark:text-white">{t('project.overview.explain.budgetTitle')}</p>
+            <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.overview.explain.budgetSub')}</p>
           </div>
           <button type="button" onClick={onClose} className="text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors ml-4 shrink-0 mt-0.5">
             <X className="size-4" />
@@ -246,7 +247,7 @@ function BudgetBreakdownModal({
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
           {/* Intro card */}
           <div className="rounded-xl bg-brand-off-white dark:bg-[#252525] border border-brand-border-grey dark:border-[#333] px-4 py-3 text-xs text-brand-mid-grey leading-relaxed">
-            Building a house involves four big buckets of cost: <strong className="text-brand-near-black dark:text-white">materials</strong> (the stuff), <strong className="text-brand-near-black dark:text-white">labor</strong> (the people), <strong className="text-brand-near-black dark:text-white">professional fees</strong> (the experts who plan &amp; supervise), and <strong className="text-brand-near-black dark:text-white">permits</strong> (the government approvals). Here's exactly how we worked yours out.
+            {t('project.overview.explain.bucketsIntro')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.bMaterials')}</strong> {t('project.overview.explain.bMaterialsParen')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.bLabor')}</strong> {t('project.overview.explain.bLaborParen')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.bFees')}</strong> {t('project.overview.explain.bFeesParen')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.bPermits')}</strong> {t('project.overview.explain.bPermitsParen')}
           </div>
 
           {/* Steps 1–5 */}
@@ -278,10 +279,10 @@ function BudgetBreakdownModal({
             <div className="flex items-center gap-3 px-4 py-3 bg-brand-off-white dark:bg-[#252525]">
               <StepBadge n={6} />
               <BarChart2 className="size-4 text-brand-mid-grey" />
-              <span className="text-sm font-semibold text-brand-near-black dark:text-white">Add it all up</span>
+              <span className="text-sm font-semibold text-brand-near-black dark:text-white">{t('project.overview.explain.addItUp')}</span>
             </div>
             <div className="px-4 py-3 text-xs">
-              <p className="text-brand-mid-grey mb-3">Your total project cost is the sum of all four buckets:</p>
+              <p className="text-brand-mid-grey mb-3">{t('project.overview.explain.sumOfFour')}</p>
               <table className="w-full">
                 <tbody className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
                   {[
@@ -296,7 +297,7 @@ function BudgetBreakdownModal({
                     </tr>
                   ))}
                   <tr className="border-t-2 border-brand-near-black dark:border-white">
-                    <td className="pt-2 font-bold text-brand-near-black dark:text-white">Total</td>
+                    <td className="pt-2 font-bold text-brand-near-black dark:text-white">{t('project.overview.explain.total')}</td>
                     <td className="pt-2 text-right font-black text-brand-near-black dark:text-white tabular-nums">{formatUSDFull(total)}</td>
                   </tr>
                 </tbody>
@@ -309,9 +310,9 @@ function BudgetBreakdownModal({
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Scale className="size-4 text-brand-mid-grey" />
-                <span className="text-sm font-semibold text-brand-near-black dark:text-white">Plan vs Actual — where you really are</span>
+                <span className="text-sm font-semibold text-brand-near-black dark:text-white">{t('project.overview.explain.planVsActual')}</span>
               </div>
-              <span className="text-[10px] text-brand-mid-grey">Based on payments you've recorded so far</span>
+              <span className="text-[10px] text-brand-mid-grey">{t('project.overview.explain.basedOnRecorded')}</span>
             </div>
             <div className="px-4 py-3">
               <div className="grid grid-cols-3 gap-2 mb-4">
@@ -345,23 +346,23 @@ function BudgetBreakdownModal({
                 </div>
               ))}
               <p className="text-[9px] text-brand-mid-grey mt-3 leading-relaxed">
-                Note: Payments are tracked per stage, not per cost bucket. We split your total paid amount across the four categories using the same ratio as your plan, so you can see roughly how much of each bucket has been funded.
+                {t('project.overview.explain.splitNote')}
               </p>
             </div>
           </div>
 
           {/* Why these percentages */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-4">
-            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">Why these percentages?</p>
+            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">{t('project.overview.explain.whyPercentages')}</p>
             <p className="text-xs text-brand-mid-grey leading-relaxed">
-              The labor, professional fees, and permit percentages aren't guesses — they're regional averages we calibrate from real quantity surveyor Bills of Quantities and local market rates. They get reviewed when the market shifts (currency moves, fuel prices, new permit rules). Your actual costs may vary based on your contractor's rates, where you source materials, and site conditions — that's why we also track every real payment you make, so you can see plan vs. actual at any time.
+              {t('project.overview.explain.percentagesBody')}
             </p>
             {project.finish_level !== 'standard' && (
               <p className="text-xs text-brand-mid-grey leading-relaxed mt-2">
-                Your <strong className="text-brand-near-black dark:text-white">{project.finish_level}</strong> finish level adds a multiplier to the base rate — higher-grade materials, fittings and fixtures cost more per sqm.
+                {t('project.overview.explain.finishPrefix')} <strong className="text-brand-near-black dark:text-white">{project.finish_level}</strong> {t('project.overview.explain.finishSuffix')}
               </p>
             )}
-            <p className="text-[9px] text-brand-border-grey mt-3">Want a per-category deep-dive? Click any of the four cost cards on the costing page to see exactly what that money is spent on.</p>
+            <p className="text-[9px] text-brand-border-grey mt-3">{t('project.overview.explain.deepDive')}</p>
           </div>
         </div>
       </motion.div>
@@ -401,7 +402,7 @@ function PaymentBar({
           onClick={onHowCalculated}
           className="flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
         >
-          <Info className="size-3" /> How is this calculated?
+          <Info className="size-3" /> {t('project.overview.explain.howCalculated')}
         </button>
       </div>
 
@@ -462,11 +463,11 @@ function PaymentBar({
       <div className="flex gap-5 mt-1">
         <span className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
           <span className="size-2.5 rounded-sm bg-green-500" />
-          Paid · <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(paidTotal)}</span>
+          {t('project.overview.explain.paidLabel')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(paidTotal)}</span>
         </span>
         <span className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
           <span className="size-2.5 rounded-sm bg-amber-400" />
-          Outstanding · <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(outstanding)}</span>
+          {t('project.overview.explain.outstandingLabel')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(outstanding)}</span>
         </span>
       </div>
     </div>
@@ -488,6 +489,7 @@ function PaymentBreakdownModal({
   outstanding: number;
   onClose: () => void;
 }) {
+  const t = useT();
   const sorted  = [...stages].sort((a, b) => a.stage_number - b.stage_number);
   const paidPct = totalBudget > 0 ? Math.round((paidTotal / totalBudget) * 100) : 0;
 
@@ -512,8 +514,8 @@ function PaymentBreakdownModal({
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-brand-off-white dark:border-[#2c2c2c] shrink-0">
           <div>
-            <p className="text-base font-bold text-brand-near-black dark:text-white">How payments are tracked</p>
-            <p className="text-xs text-brand-mid-grey mt-0.5">What "Paid" and "Outstanding" mean — and how each stage is marked.</p>
+            <p className="text-base font-bold text-brand-near-black dark:text-white">{t('project.overview.explain.paymentsTitle')}</p>
+            <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.overview.explain.paymentsSub')}</p>
           </div>
           <button type="button" onClick={onClose} className="text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors ml-4 shrink-0 mt-0.5">
             <X className="size-4" />
@@ -524,7 +526,7 @@ function PaymentBreakdownModal({
           {/* Where you are right now */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525]">
-              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">Where you are right now</p>
+              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">{t('project.overview.explain.whereYouAre')}</p>
             </div>
             <div className="px-4 py-3">
               <div className="grid grid-cols-3 gap-2 mb-4">
@@ -549,7 +551,7 @@ function PaymentBreakdownModal({
           {/* Three statuses explained */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525]">
-              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">Each stage falls into one of three statuses</p>
+              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">{t('project.overview.explain.threeStatuses')}</p>
             </div>
             <div className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
               {[
@@ -582,31 +584,31 @@ function PaymentBreakdownModal({
 
           {/* How payments get recorded */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-4">
-            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">How payments get recorded</p>
+            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">{t('project.overview.explain.howRecorded')}</p>
             <p className="text-xs text-brand-mid-grey leading-relaxed mb-2">
-              Whenever you transfer money to your contractor or supplier, open the matching stage and click <strong className="text-brand-near-black dark:text-white">Record Payment</strong>. Enter the amount and (optionally) attach a receipt. Your dashboard instantly updates the stage status, the chart above, and your overall paid percentage.
+              {t('project.overview.explain.recordBody')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.recordPayment')}</strong>. {t('project.overview.explain.recordBodyEnd')}
             </p>
             <p className="text-xs text-brand-mid-grey leading-relaxed">
-              You can record multiple part-payments for a single stage — they add up automatically. If you over-pay or your contractor renegotiates, an admin can adjust the total stage cost so your records stay clean.
+              {t('project.overview.explain.partPayments')}
             </p>
             <div className="mt-3 rounded-lg bg-brand-off-white dark:bg-brand-rich-black border border-brand-border-grey dark:border-[#333] px-3 py-2 text-[10px] text-brand-mid-grey">
-              Want to see all your payments in one place? Open the <strong className="text-brand-near-black dark:text-white">Payments</strong> tab for a full ledger with CSV export.
+              {t('project.overview.explain.ledgerBody')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.paymentsTab')}</strong> {t('project.overview.explain.ledgerBodyEnd')}
             </div>
           </div>
 
           {/* Per-stage breakdown table */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525] flex items-center justify-between">
-              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">Stage-by-stage breakdown</p>
+              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">{t('project.overview.explain.stageBreakdown')}</p>
               <p className="text-[10px] text-brand-mid-grey tabular-nums">{formatUSDFull(totalBudget)} total</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-brand-off-white dark:bg-brand-rich-black border-b border-brand-border-grey dark:border-[#2c2c2c]">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">Stage</th>
-                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">Milestone</th>
-                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">Status</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.overview.explain.colStage')}</th>
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.overview.explain.colMilestone')}</th>
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.overview.explain.colStatus')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
@@ -674,8 +676,8 @@ function StageProgressModal({
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-brand-off-white dark:border-[#2c2c2c] shrink-0">
           <div>
-            <p className="text-base font-bold text-brand-near-black dark:text-white">How is my pace calculated?</p>
-            <p className="text-xs text-brand-mid-grey mt-0.5">Plain-English on what "Ahead", "On track" and "Behind" mean — and how your number is worked out.</p>
+            <p className="text-base font-bold text-brand-near-black dark:text-white">{t('project.overview.explain.paceTitle')}</p>
+            <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.overview.explain.paceSub')}</p>
           </div>
           <button type="button" onClick={onClose} className="text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors ml-4 shrink-0 mt-0.5">
             <X className="size-4" />
@@ -686,7 +688,7 @@ function StageProgressModal({
           {/* Current pace snapshot */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
             <div className="px-4 py-3 bg-brand-off-white dark:bg-[#252525] flex items-center justify-between">
-              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">Your pace right now</p>
+              <p className="text-[10px] font-bold text-brand-mid-grey uppercase tracking-widest">{t('project.overview.explain.paceNow')}</p>
               <p className="text-[10px] text-brand-mid-grey">{t('project.overview.completionUpper')}</p>
             </div>
             <div className="px-4 py-3 flex items-center justify-between">
@@ -751,9 +753,9 @@ function StageProgressModal({
 
           {/* Why not time-based */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-4">
-            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">Why this isn't time-based</p>
+            <p className="text-[10px] font-bold text-brand-near-black dark:text-white uppercase tracking-widest mb-2">{t('project.overview.explain.whyNotTimeBased')}</p>
             <p className="text-xs text-brand-mid-grey leading-relaxed">
-              Most construction tools measure pace in days vs. estimated days — but real builds get delayed by weather, permit offices, material shortages, and labour availability in ways nobody can predict. We measure pace by <strong className="text-brand-near-black dark:text-white">stage progression</strong> instead, because a completed, verified stage is an objective fact. It's also what your bank, insurer, or financier cares about — not whether you're "on time" by some calendar estimate.
+              {t('project.overview.explain.paceBody')} <strong className="text-brand-near-black dark:text-white">{t('project.overview.explain.stageProgression')}</strong> {t('project.overview.explain.paceBodyEnd')}
             </p>
           </div>
         </div>
@@ -1017,7 +1019,7 @@ export default function OverviewTab({
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.stageProgress')}</p>
               <button type="button" onClick={() => setShowStageProgress(true)} className="flex items-center gap-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors">
-                <Info className="size-3" /> How is this calculated?
+                <Info className="size-3" /> {t('project.overview.explain.howCalculated')}
               </button>
             </div>
             <p className="text-xs text-brand-mid-grey mb-3">
