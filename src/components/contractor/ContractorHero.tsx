@@ -16,6 +16,7 @@ const nodes = [
 ];
 
 function NetworkScene() {
+  const t = useT();
   return (
     <div className="relative w-full max-w-[420px] mx-auto aspect-[400/310]">
       <svg viewBox="0 0 400 310" className="w-full h-full" aria-hidden="true">

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import type { FinishLevel, WizardFormData } from '@/types/project';
 import { CITY_RATES, CM_CITY_CODES } from '@/lib/budget';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[] = [
   { value: 'standard', label: 'Standard',  description: 'Good quality, practical finishes'     },
@@ -81,6 +82,7 @@ const isKnownCity = (city: string) =>
   CM_CITY_CODES.some(code => CITY_RATES[code].city_name === city);
 
 export default function Step8Details() {
+  const t = useT();
   const { data, update, next } = useWizard();
   const [sqmStr, setSqmStr] = useState(data.sqm > 0 ? String(data.sqm) : '');
 
@@ -112,17 +114,17 @@ export default function Step8Details() {
     <WizardShell canContinue={canContinue} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Tell us about your project
+          {t('wizard.s8Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          These details anchor your project in the Groundwork dashboard.
+          {t('wizard.s8Sub')}
         </p>
 
         <div className="mt-8 space-y-5">
           {/* Project name */}
           <div className="space-y-1.5">
             <Label htmlFor="project-name" className="text-sm font-medium text-brand-near-black">
-              Project name
+              {t('wizard.projectName')}
             </Label>
             <Input
               id="project-name"
@@ -137,7 +139,7 @@ export default function Step8Details() {
           {/* City / location */}
           <div className="space-y-1.5">
             <Label htmlFor="city" className="text-sm font-medium text-brand-near-black">
-              City / location
+              {t('wizard.cityLocation')}
             </Label>
             {showCityPicker ? (
               <>
@@ -178,8 +180,8 @@ export default function Step8Details() {
                         : 'border-brand-border-grey hover:border-brand-dark-grey',
                     )}
                   >
-                    <span className="text-sm font-semibold text-brand-near-black">Other…</span>
-                    <span className="text-[10px] text-brand-mid-grey">Douala rates</span>
+                    <span className="text-sm font-semibold text-brand-near-black">{t('wizard.otherCity')}</span>
+                    <span className="text-[10px] text-brand-mid-grey">{t('wizard.doualaRates')}</span>
                   </button>
                 </div>
                 {cityOther && (
@@ -230,7 +232,7 @@ export default function Step8Details() {
               </span>
             </div>
             <p className="text-xs text-brand-mid-grey">
-              The area the building covers on the ground, excluding the boys' quarters
+              {t('wizard.footprintHint')}
             </p>
 
             {/* Derived total built area — read-only, so the two figures can't drift */}

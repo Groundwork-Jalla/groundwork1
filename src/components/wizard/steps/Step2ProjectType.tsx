@@ -2,6 +2,7 @@ import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
 import type { ProjectType } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ── Inline SVG icons ──────────────────────────────────────
 
@@ -105,6 +106,7 @@ const OPTIONS: {
 // ── Component ─────────────────────────────────────────────
 
 export default function Step2ProjectType() {
+  const t = useT();
   const { data, update, next } = useWizard();
 
   function select(value: ProjectType) {
@@ -117,10 +119,10 @@ export default function Step2ProjectType() {
     <WizardShell canContinue={!!data.projectType} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          What are you building?
+          {t('wizard.s2Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Select the primary use of your project.
+          {t('wizard.s2Sub')}
         </p>
 
         <div className="mt-7 grid grid-cols-2 gap-3">

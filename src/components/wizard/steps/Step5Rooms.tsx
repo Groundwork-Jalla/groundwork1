@@ -5,6 +5,7 @@ import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
 import type { FloorRoom } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 function floorLabel(index: number) {
   return index === 0 ? 'GF' : `F${index}`;
@@ -34,6 +35,7 @@ function computeTotals(floors: FloorRoom[]) {
 }
 
 export default function Step5Rooms() {
+  const t = useT();
   const { data, update, next } = useWizard();
   const [floors, setFloors] = useState<FloorRoom[]>(() =>
     initFloors(data.floors, data.floorRooms),
@@ -69,10 +71,10 @@ export default function Step5Rooms() {
     <WizardShell canContinue={true} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Rooms per floor
+          {t('wizard.s5Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Set the room breakdown for each floor. These shape the floor plan and materials estimate.
+          {t('wizard.s5Sub')}
         </p>
 
         {/* Floor tabs */}
@@ -149,7 +151,7 @@ export default function Step5Rooms() {
         {/* Cross-floor totals summary */}
         {data.floors > 1 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="text-[11px] text-brand-mid-grey self-center">Total:</span>
+            <span className="text-[11px] text-brand-mid-grey self-center">{t('wizard.totalLabel')}</span>
             {[
               { count: computeTotals(floors).bedrooms,    unit: 'bed'    },
               { count: computeTotals(floors).bathrooms,   unit: 'bath'   },
@@ -165,7 +167,7 @@ export default function Step5Rooms() {
               </span>
             ))}
             {totalRooms === 0 && (
-              <span className="text-xs text-brand-mid-grey italic">No rooms added yet</span>
+              <span className="text-xs text-brand-mid-grey italic">{t('wizard.noRooms')}</span>
             )}
           </div>
         )}

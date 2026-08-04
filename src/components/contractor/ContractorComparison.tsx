@@ -7,6 +7,7 @@ const without = ["Unclear clients", "Payment delays", "Disorganized workflow", "
 const withJalla = ["Structured projects", "Secured, milestone payments", "Coordinated execution", "Defined roles and sequence", "Trade caps per region"];
 
 export default function ContractorComparison() {
+  const t = useT();
   return (
     <section className="bg-brand-off-white px-7 py-18">
       <div className="max-w-[750px] mx-auto">

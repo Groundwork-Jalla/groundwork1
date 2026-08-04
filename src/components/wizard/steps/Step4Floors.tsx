@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
+import { useT } from '@/lib/i18n';
 
 const FLOOR_LABELS: Record<number, string> = {
   1: 'Single storey',
@@ -40,6 +41,7 @@ function FloorStack({ floors }: { floors: number }) {
 }
 
 export default function Step4Floors() {
+  const t = useT();
   const { data, update, next } = useWizard();
 
   function setFloors(n: number) {
@@ -52,10 +54,10 @@ export default function Step4Floors() {
     <WizardShell canContinue={data.floors >= 1} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          How many floors?
+          {t('wizard.s4Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Include the ground floor. This affects structural estimates and staircase planning.
+          {t('wizard.s4Sub')}
         </p>
 
         {/* Floor stack visual */}
@@ -71,7 +73,7 @@ export default function Step4Floors() {
             onClick={() => setFloors(data.floors - 1)}
             disabled={data.floors <= 1}
             className="flex items-center justify-center size-16 rounded-2xl border-2 border-brand-border-grey text-brand-near-black text-3xl font-light transition-all hover:border-brand-dark-grey hover:bg-brand-off-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2 dark:text-white dark:border-[#3d3d3d] dark:hover:bg-[#282828]"
-            aria-label="Decrease floors"
+            aria-label={t('wizard.decreaseFloors')}
           >
             −
           </button>
@@ -99,7 +101,7 @@ export default function Step4Floors() {
             onClick={() => setFloors(data.floors + 1)}
             disabled={data.floors >= 20}
             className="flex items-center justify-center size-16 rounded-2xl border-2 border-brand-border-grey text-brand-near-black text-3xl font-light transition-all hover:border-brand-dark-grey hover:bg-brand-off-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2 dark:text-white dark:border-[#3d3d3d] dark:hover:bg-[#282828]"
-            aria-label="Increase floors"
+            aria-label={t('wizard.increaseFloors')}
           >
             +
           </button>

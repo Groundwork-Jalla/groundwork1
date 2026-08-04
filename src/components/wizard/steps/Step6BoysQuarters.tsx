@@ -3,18 +3,20 @@ import WizardShell from '../WizardShell';
 import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 export default function Step6BoysQuarters() {
+  const t = useT();
   const { data, update, next } = useWizard();
 
   return (
     <WizardShell canContinue={true} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Will there be a boys' quarters?
+          {t('wizard.s6Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          A boys' quarters (BQ) is a separate staff or servant accommodation attached to the main building.
+          {t('wizard.s6Sub')}
         </p>
 
         {/* Pill toggle */}

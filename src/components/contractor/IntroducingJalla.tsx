@@ -66,7 +66,7 @@ export default function IntroducingJalla() {
             {t('contractorApply.solutionTitle')}
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[520px] mx-auto">
-            We connect diaspora clients with verified on-ground professionals. But the real advantage is this:
+            {t('contractorApply.solutionBody')}
           </p>
         </Reveal>
 

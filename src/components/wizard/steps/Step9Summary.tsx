@@ -7,6 +7,7 @@ import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 const PREDICTED_DAYS = 196;
 
@@ -80,14 +81,14 @@ function BudgetBreakdownCard() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-semibold text-brand-near-black">Budget Estimate</p>
+              <p className="text-sm font-semibold text-brand-near-black">{t('wizard.budgetEstimate')}</p>
               <span className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide border',
                 isVerified
                   ? 'bg-green-50 text-green-700 border-green-200'
                   : 'bg-amber-50 text-amber-700 border-amber-200',
               )}>
-                {isVerified ? <><ShieldCheck className="size-2.5" /> Verified data</> : <><Info className="size-2.5" /> Regional estimate</>}
+                {isVerified ? <><ShieldCheck className="size-2.5" /> {t('wizard.verifiedData')}</> : <><Info className="size-2.5" /> {t('wizard.regionalEstimate')}</>}
               </span>
             </div>
             <p className="text-[10px] text-brand-mid-grey">
@@ -152,7 +153,7 @@ function BudgetBreakdownCard() {
       {/* Disclaimer */}
       <div className="px-5 pb-4">
         <p className="text-[10px] text-brand-mid-grey leading-relaxed bg-brand-off-white rounded-lg px-3 py-2.5">
-          <strong className="text-brand-near-black">Indicative estimate.</strong>{' '}
+          <strong className="text-brand-near-black">{t('wizard.indicative')}</strong>{' '}
           Actual costs vary by city, contractor, and current material prices.
           Confirm final figures with a certified quantity surveyor.
           {!isVerified && ' Regional estimate — no verified BQ data for this country yet.'}
@@ -186,10 +187,10 @@ export default function Step9Summary() {
     >
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Your project at a glance
+          {t('wizard.s9Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Review your project details and estimated budget before choosing a plan.
+          {t('wizard.s9Sub')}
         </p>
 
         {/* Summary grid */}
@@ -222,7 +223,7 @@ export default function Step9Summary() {
         <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
             <CalendarDays className="size-4 text-brand-mid-grey shrink-0" />
-            <p className="text-sm font-semibold text-brand-near-black">Predicted Build Timeline</p>
+            <p className="text-sm font-semibold text-brand-near-black">{t('wizard.timelineTitle')}</p>
           </div>
 
           {(() => {
@@ -248,7 +249,7 @@ export default function Step9Summary() {
 
           <div className="px-5 py-3 bg-brand-off-white/50 border-t border-brand-off-white">
             <p className="text-[10px] text-brand-mid-grey leading-relaxed">
-              Based on standard 10-stage residential construction. Actual duration depends on contractor pace, weather, approvals, and material availability.
+              {t('wizard.timelineSub')}
             </p>
           </div>
         </div>

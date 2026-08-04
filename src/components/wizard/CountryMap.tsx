@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COUNTRIES } from '@/lib/countries';
+import { useT } from '@/lib/i18n';
 
 function getFlag(code: string): string {
   return COUNTRIES.find(c => c.code === code)?.flag ?? '';
@@ -205,7 +206,7 @@ export function MapEmptyState() {
         <MapPin className="size-12 text-brand-near-black opacity-30" />
       </motion.div>
       <p className="relative z-10 text-xs text-brand-mid-grey font-medium text-center px-6">
-        Select a country to see it on the map
+        {t('wizard.mapPlaceholder')}
       </p>
     </div>
   );

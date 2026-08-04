@@ -9,6 +9,7 @@ import { createProject } from '@/lib/supabase/projects';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ProjectTier } from '@/types/project';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 // ── Tier card ─────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ function TierCard({ title, price, description, features, selected, onSelect, pop
     >
       {popular && (
         <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
-          Most popular
+          {t('wizard.mostPopular')}
         </span>
       )}
       {selected && (
@@ -142,10 +143,10 @@ export default function Step10PlanSelection() {
     >
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Choose your plan
+          {t('wizard.s10Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          You can upgrade or change your plan at any time from settings.
+          {t('wizard.s10Note')}
         </p>
 
         <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">

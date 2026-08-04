@@ -2,6 +2,7 @@ import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
 import type { RoofType } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ── SVG roof profile icons ────────────────────────────────
 
@@ -161,16 +162,17 @@ const OPTIONS: {
 // ── Component ─────────────────────────────────────────────
 
 export default function Step7RoofType() {
+  const t = useT();
   const { data, update, next } = useWizard();
 
   return (
     <WizardShell canContinue={!!data.roofType} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          What roof type do you prefer?
+          {t('wizard.s7Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          Your roof type affects material costs and structural requirements.
+          {t('wizard.s7Sub')}
         </p>
 
         <div className="mt-7 grid grid-cols-2 gap-3">

@@ -5,8 +5,10 @@ import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 export default function Step1Country() {
+  const t = useT();
   const { data, update, next } = useWizard();
   const [query, setQuery] = useState('');
 
@@ -29,10 +31,10 @@ export default function Step1Country() {
     <WizardShell canContinue={!!data.country} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-          Where will you be building?
+          {t('wizard.s1Title')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          We tailor cost estimates and verification coverage to your region.
+          {t('wizard.s1Sub')}
         </p>
 
         {/* Search */}
@@ -42,7 +44,7 @@ export default function Step1Country() {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search country…"
+            placeholder={t('wizard.searchCountry')}
             className="w-full rounded-lg border border-brand-border-grey bg-white pl-10 pr-4 py-2.5 text-sm text-brand-near-black placeholder:text-brand-soft-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black/30 focus:border-brand-near-black transition-all"
           />
         </div>

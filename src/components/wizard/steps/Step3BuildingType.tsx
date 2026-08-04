@@ -2,6 +2,7 @@ import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
 import type { BuildingType, ProjectType } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ── SVG icons ─────────────────────────────────────────────
 
@@ -272,6 +273,7 @@ const BUILDING_OPTIONS: Record<ProjectType, BuildingOption[]> = {
 // ── Component ─────────────────────────────────────────────
 
 export default function Step3BuildingType() {
+  const t = useT();
   const { data, update, next } = useWizard();
 
   const options = data.projectType ? BUILDING_OPTIONS[data.projectType] : [];
@@ -292,7 +294,7 @@ export default function Step3BuildingType() {
           {heading}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          This helps us tailor the project setup experience to your building type.
+          {t('wizard.s3Sub')}
         </p>
 
         <div className="mt-7 grid grid-cols-2 gap-3">

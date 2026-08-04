@@ -5,6 +5,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudget, formatUSD } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ── Photo image map (step 2 / 3 / 7) ──────────────────────────
 const BUILDING_IMAGES: Record<string, string> = {
@@ -150,7 +151,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
 
         {!imageKey && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-white/30 font-medium">Select an option to preview</p>
+            <p className="text-sm text-white/30 font-medium">{t('wizard.previewPlaceholder')}</p>
           </div>
         )}
       </motion.div>
@@ -844,7 +845,7 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
           <InfoBadge pos="bl" delay={0.2}>
             <div className="flex items-center gap-1.5">
               <Ruler className="size-3 opacity-50" />
-              <span className="opacity-60">Est. height</span>
+              <span className="opacity-60">{t('wizard.estHeight')}</span>
               <span className="font-semibold">{data.floors * 3}m</span>
             </div>
           </InfoBadge>
