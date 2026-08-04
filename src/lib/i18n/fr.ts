@@ -71,6 +71,57 @@ export const fr: Mirror<EnDict> = {
     allRightsReserved: 'Tous droits réservés.',
   },
 
+  // ── Profil / paramètres ───────────────────────────────────
+  profile: {
+    complete:            'Terminé',
+    accountDetails:      'Informations du compte',
+    changesSave:         'Les modifications sont enregistrées sur votre compte',
+    yourFullName:        'Votre nom complet',
+
+    identityTitle:       "Vérification d'identité",
+    identityVerified:    'Identité vérifiée',
+    identityPending:     'En cours de vérification',
+    identityNone:        'Non transmis',
+    idUploaded:          'Pièce transmise',
+    reupload:            'Transmettre à nouveau',
+    chooseFile:          'Choisir un fichier',
+    uploadIdDocument:    "Transmettre une pièce d'identité",
+
+    session:             'Session',
+    signOut:             'Se déconnecter',
+    emailAddress:        'Adresse e-mail',
+    emailSubtitle:       'Votre adresse de connexion',
+    emailComingSoon:     "La modification de l'e-mail arrive bientôt",
+    password:            'Mot de passe',
+    passwordBody:        'Recevez un lien de réinitialisation par e-mail pour changer votre mot de passe.',
+    sendResetLink:       'Envoyer le lien',
+    twoFactor:           'Authentification à deux facteurs',
+    comingSoon:          'Bientôt disponible',
+    twoFactorBody:       'Renforcez la sécurité de votre compte avec une vérification TOTP ou par SMS.',
+
+    emailNotifications:  'Notifications par e-mail',
+    notificationsBody:   'Choisissez les notifications que vous recevez par e-mail',
+    notificationsServerSide: "L'envoi des notifications par e-mail est géré côté serveur. Ces préférences seront synchronisées au lancement de Groundwork Notifications v2.",
+
+    yourPlan:            'Votre forfait',
+    comparePlans:        'Comparez les forfaits et débloquez plus de fonctionnalités',
+    currentPlan:         'Forfait actuel',
+    downgrade:           'Rétrograder',
+    manageBilling:       'Gérer la facturation',
+
+    exportTitle:         'Exporter vos données',
+    exportBody:          'Téléchargez une copie JSON des informations et métadonnées de votre compte.',
+    exportButton:        "Télécharger l'export JSON",
+    deleteTitle:         'Supprimer le compte',
+    deleteBody:          'La suppression du compte est irréversible. Tous les projets, documents et données seront définitivement effacés.',
+    deleteTypePrefix:    'Saisissez',
+    // Deliberately NOT translated: the user must type this word exactly, and the
+    // component compares against it. Translating the label but not the comparison —
+    // or vice versa — would lock francophone users out of deleting their account.
+    deleteConfirmWord:   'DELETE',
+    confirmDeletion:     'Confirmer la suppression',
+  },
+
   // ── Vocabulaire des statuts (Foundations v1) ──────────────
   // Les seuls mots autorisés pour un statut. Six états, pas un de plus.
   //
@@ -426,6 +477,16 @@ export const fr: Mirror<EnDict> = {
 
   // ── Authentification ──────────────────────────────────────
   auth: {
+    // Étiquettes du plan illustratif des écrans de connexion (SVG <text>).
+    plan: {
+      bedroom: 'CHAMBRE',
+      living:  'SÉJOUR',
+      dining:  'SALLE À MANGER',
+      kitchen: 'CUISINE',
+      bath:    'SDB',
+      // Référence du plan, pas du texte courant — identique dans les deux langues.
+      ref:     'GW-01',
+    },
     tagline:      'Protégez votre chantier.',
     taglineLine2: "Où que vous soyez.",
     login: {
@@ -483,6 +544,25 @@ export const fr: Mirror<EnDict> = {
   },
 
   // ── Intégration ───────────────────────────────────────────
+  // ── Project wizard ────────────────────────────────────────
+  wizard: {
+    confirmBudget: {
+      title:         'Confirmez votre budget',
+      subtitle:      "Ce montant devient le budget du chantier. Chaque jalon d'étape en découle — utilisez le chiffre de votre entrepreneur si vous en avez un.",
+      estimateLabel: 'Estimation Groundwork',
+      finalLabel:    'Votre budget définitif',
+      finalHint:     'Ajustez si votre entrepreneur a chiffré différemment.',
+      difference:    "{amount} ({pct} %) {direction} l'estimation Groundwork.",
+      above:         'au-dessus de',
+      below:         'en dessous de',
+      quoteLabel:    'Joindre le devis de votre entrepreneur',
+      quoteCta:      'Choisir un fichier — PDF, DOC ou image',
+      cta:           'Confirmer le budget et créer le chantier',
+      creating:      'Création du chantier…',
+      note:          "L'étape 1 s'ouvre dès la création du chantier. Le budget reste modifiable depuis l'onglet Coûts.",
+    },
+  },
+
   onboarding: {
     eyebrow:  'Configuration du compte',
     welcome:  'Bienvenue,',

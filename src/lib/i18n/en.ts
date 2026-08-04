@@ -57,6 +57,54 @@ export const en = {
     allRightsReserved: 'All rights reserved.',
   },
 
+  // ── Profile / settings ────────────────────────────────────
+  profile: {
+    complete:            'Complete',
+    accountDetails:      'Account details',
+    changesSave:         'Changes save to your account',
+    yourFullName:        'Your full name',
+
+    identityTitle:       'Identity Verification',
+    identityVerified:    'Identity Verified',
+    identityPending:     'Pending Review',
+    identityNone:        'Not submitted',
+    idUploaded:          'ID uploaded',
+    reupload:            'Re-upload',
+    chooseFile:          'Choose file to upload',
+    uploadIdDocument:    'Upload identity document',
+
+    session:             'Session',
+    signOut:             'Sign out',
+    emailAddress:        'Email address',
+    emailSubtitle:       'Your sign-in email address',
+    emailComingSoon:     'Email changes coming soon',
+    password:            'Password',
+    passwordBody:        'Send a reset link to your email to change your password.',
+    sendResetLink:       'Send reset link',
+    twoFactor:           'Two-factor authentication',
+    comingSoon:          'Coming soon',
+    twoFactorBody:       'Add an extra layer of security to your account with TOTP or SMS verification.',
+
+    emailNotifications:  'Email notifications',
+    notificationsBody:   'Choose which notifications you receive by email',
+    notificationsServerSide: 'Email notification delivery is managed server-side. These preferences will sync when Groundwork Notifications v2 launches.',
+
+    yourPlan:            'Your plan',
+    comparePlans:        'Compare plans and upgrade to unlock more features',
+    currentPlan:         'Current plan',
+    downgrade:           'Downgrade',
+    manageBilling:       'Manage billing',
+
+    exportTitle:         'Export your data',
+    exportBody:          'Download a JSON copy of your account information and metadata.',
+    exportButton:        'Download JSON export',
+    deleteTitle:         'Delete account',
+    deleteBody:          'Deleting your account is irreversible. All projects, documents, and data will be permanently removed.',
+    deleteTypePrefix:    'Type',
+    deleteConfirmWord:   'DELETE',
+    confirmDeletion:     'Confirm deletion',
+  },
+
   // ── Status vocabulary (Foundations v1) ────────────────────
   // The only words the product may use for status. Six states, no others.
   // Retired here and everywhere: Spent · Paid · Done · Active · Deposited ·
@@ -409,6 +457,17 @@ export const en = {
 
   // ── Auth ──────────────────────────────────────────────────
   auth: {
+    // Floor-plan illustration on the auth screens. Rendered as SVG <text>, so a
+    // francophone visitor otherwise sees an English blueprint behind the login form.
+    plan: {
+      bedroom: 'BEDROOM',
+      living:  'LIVING',
+      dining:  'DINING',
+      kitchen: 'KITCHEN',
+      bath:    'BATH',
+      // Drawing reference — a plan number, not prose. Same in both languages.
+      ref:     'GW-01',
+    },
     tagline:      'Protect your build.',
     taglineLine2: 'From anywhere.',
     login: {
@@ -466,6 +525,25 @@ export const en = {
   },
 
   // ── Onboarding ────────────────────────────────────────────
+  // ── Project wizard ────────────────────────────────────────
+  wizard: {
+    confirmBudget: {
+      title:         'Confirm your budget',
+      subtitle:      "This becomes your project budget. Every stage milestone is calculated from it, so use your contractor's figure if you have one.",
+      estimateLabel: 'Groundwork estimate',
+      finalLabel:    'Your final budget',
+      finalHint:     'Adjust if your contractor quoted a different figure.',
+      difference:    '{amount} ({pct}%) {direction} the Groundwork estimate.',
+      above:         'above',
+      below:         'below',
+      quoteLabel:    "Upload your contractor's quote",
+      quoteCta:      'Choose a file — PDF, DOC or image',
+      cta:           'Confirm budget & create project',
+      creating:      'Creating your project…',
+      note:          'Stage 1 opens as soon as your project is created. You can revise the budget later from the Costing tab.',
+    },
+  },
+
   onboarding: {
     eyebrow:  'Account setup',
     welcome:  'Welcome,',

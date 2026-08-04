@@ -6,6 +6,7 @@ import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useT } from "@/lib/i18n";
 
 function ArchDrawing() {
+  const t = useT();
   return (
     <svg
       viewBox="0 0 420 520"
@@ -44,11 +45,11 @@ function ArchDrawing() {
       <line x1="220" y1="240" x2="260" y2="240" stroke="white" strokeWidth="1.2" opacity="0.6" strokeDasharray="5 4" />
 
       {/* Room labels */}
-      <text x="55" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">BEDROOM</text>
-      <text x="127" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">LIVING</text>
-      <text x="204" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">DINING</text>
-      <text x="130" y="200" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">KITCHEN</text>
-      <text x="204" y="200" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">BATH</text>
+      <text x="55" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">{t('auth.plan.bedroom')}</text>
+      <text x="127" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">{t('auth.plan.living')}</text>
+      <text x="204" y="112" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">{t('auth.plan.dining')}</text>
+      <text x="130" y="200" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">{t('auth.plan.kitchen')}</text>
+      <text x="204" y="200" fontSize="8" fill="white" opacity="0.6" fontFamily="monospace" letterSpacing="1">{t('auth.plan.bath')}</text>
 
       {/* Section cut + north */}
       <line x1="300" y1="60" x2="300" y2="250" stroke="white" strokeWidth="1" strokeDasharray="6 3" opacity="0.35" />
@@ -95,7 +96,7 @@ function ArchDrawing() {
       <rect x="8" y="8" width="404" height="504" fill="none" stroke="white" strokeWidth="0.8" opacity="0.25" />
       <line x1="8" y1="480" x2="412" y2="480" stroke="white" strokeWidth="0.8" opacity="0.25" />
       <text x="20" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" letterSpacing="1">SITE PLAN + ELEVATION — SCALE 1:100</text>
-      <text x="380" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" textAnchor="end">GW-01</text>
+      <text x="380" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" textAnchor="end">{t('auth.plan.ref')}</text>
     </svg>
   );
 }

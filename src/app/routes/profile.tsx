@@ -14,6 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { TIER_BILLING } from '@/lib/payments/config';
+import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
+import type { ProjectTier } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -208,6 +212,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const t = useT();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
@@ -411,7 +416,15 @@ export default function ProfilePage() {
   const inputClass =
     'flex h-10 w-full rounded-md border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-brand-dark-grey pl-9 pr-3 py-2 text-sm text-brand-near-black dark:text-white outline-none transition-colors placeholder:text-brand-mid-grey focus-visible:border-brand-near-black dark:focus-visible:border-white';
 
-  const tier: string = user?.user_metadata?.tier ?? 'free';
+  // Real entitlement, maintained by the Stripe webhook on profiles.subscription_tier.
+  // This used to read user?.user_metadata?.tier ?? 'free' — a field nothing ever writes.
+  const [tier, setTier] = useState<ProjectTier>('self_verify');
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    getSubscription(user.id).then(s => { if (!cancelled) setTier(s.tier); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // ── Render ─────────────────────────────────────────────
   return (
@@ -481,7 +494,7 @@ export default function ProfilePage() {
                 {/* Profile form */}
                 <section>
                   <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-5">
-                    Account details
+                    {t('profile.accountDetails')}
                   </h2>
 
                   <form onSubmit={handleSave} className="flex flex-col gap-4">
@@ -493,7 +506,7 @@ export default function ProfilePage() {
                           type="text"
                           value={displayName}
                           onChange={e => setDisplayName(e.target.value)}
-                          placeholder="Your full name"
+                          placeholder={t('profile.yourFullName')}
                           className={inputClass}
                         />
                       </div>
@@ -551,7 +564,7 @@ export default function ProfilePage() {
 
                       {saveState === 'idle' && (
                         <span className="text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                          Changes save to your account
+                          {t('profile.changesSave')}
                         </span>
                       )}
                     </div>
@@ -564,21 +577,21 @@ export default function ProfilePage() {
                 <section>
                   <div className="flex items-start justify-between gap-4 mb-1">
                     <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-                      Identity Verification
+                      {t('profile.identityTitle')}
                     </h2>
 
                     {idVerified ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 shrink-0">
                         <Check className="size-3" strokeWidth={3} />
-                        Identity Verified
+                        {t('profile.identityVerified')}
                       </span>
                     ) : idDocumentPath ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5 shrink-0">
-                        Pending Review
+                        {t('profile.identityPending')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2.5 py-0.5 shrink-0">
-                        Not submitted
+                        {t('profile.identityNone')}
                       </span>
                     )}
                   </div>
@@ -594,7 +607,7 @@ export default function ProfilePage() {
                           <Check className="size-3.5 text-white dark:text-brand-near-black" strokeWidth={3} />
                         </span>
                         <span className="text-sm font-medium text-brand-near-black dark:text-white">
-                          ID uploaded
+                          {t('profile.idUploaded')}
                         </span>
                       </div>
                       <button
@@ -602,7 +615,7 @@ export default function ProfilePage() {
                         onClick={() => fileInputRef.current?.click()}
                         className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white underline underline-offset-2 transition-colors"
                       >
-                        Re-upload
+                        {t('profile.reupload')}
                       </button>
                     </div>
                   )}
@@ -614,7 +627,7 @@ export default function ProfilePage() {
                       className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-dashed border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1c1c1c] px-4 py-5 text-sm font-medium text-brand-mid-grey hover:border-brand-near-black dark:hover:border-white hover:text-brand-near-black dark:hover:text-white hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-all group"
                     >
                       <Camera className="size-4 group-hover:scale-105 transition-transform" />
-                      Choose file to upload
+                      {t('profile.chooseFile')}
                     </button>
                   )}
 
@@ -645,7 +658,7 @@ export default function ProfilePage() {
                     accept="image/*,application/pdf"
                     onChange={handleFileChange}
                     className="sr-only"
-                    aria-label="Upload identity document"
+                    aria-label={t('profile.uploadIdDocument')}
                   />
                 </section>
 
@@ -654,7 +667,7 @@ export default function ProfilePage() {
                 {/* Session */}
                 <section>
                   <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-3">
-                    Session
+                    {t('profile.session')}
                   </h2>
                   <button
                     type="button"
@@ -664,7 +677,7 @@ export default function ProfilePage() {
                     }}
                     className="text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-xl px-4 py-2 transition-colors"
                   >
-                    Sign out
+                    {t('profile.signOut')}
                   </button>
                 </section>
               </motion.div>
@@ -682,8 +695,8 @@ export default function ProfilePage() {
               >
                 {/* Email address */}
                 <section>
-                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Email address</h2>
-                  <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">Your sign-in email address</p>
+                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.emailAddress')}</h2>
+                  <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">{t('profile.emailSubtitle')}</p>
                   <div className="flex items-center gap-3">
                     <input
                       readOnly
@@ -692,7 +705,7 @@ export default function ProfilePage() {
                     />
                   </div>
                   <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-2">
-                    Email changes coming soon
+                    {t('profile.emailComingSoon')}
                   </p>
                 </section>
 
@@ -700,9 +713,9 @@ export default function ProfilePage() {
 
                 {/* Password */}
                 <section>
-                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Password</h2>
+                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.password')}</h2>
                   <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">
-                    Send a reset link to your email to change your password.
+                    {t('profile.passwordBody')}
                   </p>
 
                   {resetSent ? (
@@ -716,7 +729,7 @@ export default function ProfilePage() {
                         onClick={handlePasswordReset}
                         className="self-start text-sm font-medium text-brand-near-black dark:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-xl px-4 py-2 hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-colors"
                       >
-                        Send reset link
+                        {t('profile.sendResetLink')}
                       </button>
                       {resetError && (
                         <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -732,13 +745,13 @@ export default function ProfilePage() {
                 {/* 2FA */}
                 <section>
                   <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">Two-factor authentication</h2>
+                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.twoFactor')}</h2>
                     <span className="inline-flex items-center text-[11px] font-medium text-brand-mid-grey bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2.5 py-0.5">
-                      Coming soon
+                      {t('profile.comingSoon')}
                     </span>
                   </div>
                   <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                    Add an extra layer of security to your account with TOTP or SMS verification.
+                    {t('profile.twoFactorBody')}
                   </p>
                 </section>
               </motion.div>
@@ -753,9 +766,9 @@ export default function ProfilePage() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.2 }}
               >
-                <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Email notifications</h2>
+                <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.emailNotifications')}</h2>
                 <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-6">
-                  Choose which notifications you receive by email
+                  {t('profile.notificationsBody')}
                 </p>
 
                 <div className="flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c] rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-brand-dark-grey overflow-hidden">
@@ -782,7 +795,7 @@ export default function ProfilePage() {
                 </div>
 
                 <p className="text-[11px] text-brand-mid-grey dark:text-brand-mid-grey mt-4 leading-relaxed">
-                  Email notification delivery is managed server-side. These preferences will sync when Groundwork Notifications v2 launches.
+                  {t('profile.notificationsServerSide')}
                 </p>
               </motion.div>
             )}
@@ -797,120 +810,82 @@ export default function ProfilePage() {
                 transition={{ duration: 0.2 }}
               >
                 <div className="mb-1 flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">Your plan</h2>
+                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.yourPlan')}</h2>
                   <span className="inline-flex items-center text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                    {tier === 'jalla_verified' ? 'Jalla Verified' : tier === 'enterprise' ? 'Enterprise' : 'Self-Verify'}
+                    {TIER_BILLING[tier].name}
                   </span>
                 </div>
                 <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-6">
-                  Compare plans and upgrade to unlock more features
+                  {t('profile.comparePlans')}
                 </p>
 
+                {/* Rendered from TIER_BILLING, the canonical plan config.
+                    This block previously hardcoded three cards using a fifth set of tier
+                    names ("Jalla Verified", "Enterprise") compared against a tier read
+                    from user_metadata that defaulted to 'free' — none of which are real
+                    values. The DB uses self_verify | jalla_verify | jalla_management, so
+                    the comparisons never matched and every user saw "Self-Verify" as
+                    current, including anyone who had paid. */}
                 <div className="flex flex-col gap-4">
-                  {/* Self-Verify */}
-                  <div className={cn(
-                    'rounded-2xl border-2 p-5',
-                    tier === 'free' || !tier
-                      ? 'border-brand-near-black dark:border-white'
-                      : 'border-brand-border-grey dark:border-[#2c2c2c]',
-                  )}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-bold text-brand-near-black dark:text-white">Self-Verify</p>
-                        <p className="text-lg font-bold text-brand-near-black dark:text-white mt-0.5">Free</p>
-                      </div>
-                      {(tier === 'free' || !tier) && (
-                        <span className="text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                          Current plan
-                        </span>
-                      )}
-                    </div>
-                    <ul className="flex flex-col gap-1.5 mb-4">
-                      {['Unlimited projects', '10-stage tracker', 'Budget calculator', 'Document vault', 'Community access'].map(f => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                          <Check className="size-3 text-green-600 shrink-0" strokeWidth={3} />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    {tier !== 'free' && (
-                      <button type="button" className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white underline underline-offset-2 transition-colors">
-                        Downgrade
-                      </button>
-                    )}
-                  </div>
+                  {(['self_verify', 'jalla_verify', 'jalla_management'] as ProjectTier[]).map(id => {
+                    const plan      = TIER_BILLING[id];
+                    const isCurrent = tier === id;
+                    return (
+                      <div key={id} className={cn(
+                        'rounded-2xl border-2 p-5',
+                        isCurrent
+                          ? 'border-brand-near-black dark:border-white'
+                          : 'border-brand-border-grey dark:border-[#2c2c2c]',
+                      )}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="text-sm font-bold text-brand-near-black dark:text-white">{plan.name}</p>
+                            <p className="text-lg font-bold text-brand-near-black dark:text-white mt-0.5">
+                              {plan.price}{plan.period ?? ''}
+                            </p>
+                          </div>
+                          {isCurrent && (
+                            <span className="text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
+                              {t('profile.currentPlan')}
+                            </span>
+                          )}
+                        </div>
+                        <ul className="flex flex-col gap-1.5 mb-4">
+                          {plan.features.map(f => (
+                            <li key={f} className="flex items-center gap-2 text-xs text-brand-mid-grey dark:text-brand-mid-grey">
+                              <Check className="size-3 text-state-complete shrink-0" strokeWidth={3} />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
 
-                  {/* Jalla Verified */}
-                  <div className={cn(
-                    'rounded-2xl border-2 p-5',
-                    tier === 'jalla_verified'
-                      ? 'border-brand-near-black dark:border-white'
-                      : 'border-brand-border-grey dark:border-[#2c2c2c]',
-                  )}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-bold text-brand-near-black dark:text-white">Jalla Verified</p>
-                        <p className="text-lg font-bold text-brand-near-black dark:text-white mt-0.5">from <span className="text-brand-mid-grey text-sm font-medium">$15/stage</span></p>
+                        {isCurrent && id !== 'self_verify' ? (
+                          <button
+                            type="button"
+                            onClick={() => { openBillingPortal().catch(() => {}); }}
+                            className="text-xs font-semibold text-brand-near-black dark:text-white underline underline-offset-2 hover:opacity-70 transition-opacity"
+                          >
+                            {t('profile.manageBilling')}
+                          </button>
+                        ) : !isCurrent && id === 'jalla_verify' ? (
+                          <button
+                            type="button"
+                            onClick={() => { startJallaVerifyCheckout().catch(() => {}); }}
+                            className="text-xs font-semibold text-brand-near-black dark:text-white underline underline-offset-2 hover:opacity-70 transition-opacity"
+                          >
+                            {plan.cta}
+                          </button>
+                        ) : !isCurrent && id === 'jalla_management' ? (
+                          <a
+                            href="mailto:hello@tryjalla.com?subject=Jalla%20Management%20enquiry"
+                            className="inline-flex items-center text-xs font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2 transition-colors"
+                          >
+                            {plan.cta} &rarr;
+                          </a>
+                        ) : null}
                       </div>
-                      {tier === 'jalla_verified' && (
-                        <span className="text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                          Current plan
-                        </span>
-                      )}
-                    </div>
-                    <ul className="flex flex-col gap-1.5 mb-4">
-                      {['Everything in Self-Verify', 'Jalla team verification badge', 'Priority support', 'Stage completion certificates'].map(f => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                          <Check className="size-3 text-green-600 shrink-0" strokeWidth={3} />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    {tier !== 'jalla_verified' && (
-                      <a
-                        href="/pricing"
-                        className="inline-flex items-center text-xs font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2 transition-colors"
-                      >
-                        Upgrade &rarr;
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Enterprise */}
-                  <div className={cn(
-                    'rounded-2xl border-2 p-5',
-                    tier === 'enterprise'
-                      ? 'border-brand-near-black dark:border-white'
-                      : 'border-brand-border-grey dark:border-[#2c2c2c]',
-                  )}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-bold text-brand-near-black dark:text-white">Enterprise</p>
-                        <p className="text-lg font-bold text-brand-near-black dark:text-white mt-0.5">Custom</p>
-                      </div>
-                      {tier === 'enterprise' && (
-                        <span className="text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                          Current plan
-                        </span>
-                      )}
-                    </div>
-                    <ul className="flex flex-col gap-1.5 mb-4">
-                      {['Multiple projects', 'White-label dashboard', 'API access', 'Dedicated account manager'].map(f => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                          <Check className="size-3 text-green-600 shrink-0" strokeWidth={3} />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    {tier !== 'enterprise' && (
-                      <a
-                        href="mailto:hello@groundwork.build"
-                        className="inline-flex items-center text-xs font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2 transition-colors"
-                      >
-                        Contact us &rarr;
-                      </a>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -928,16 +903,16 @@ export default function ProfilePage() {
 
                   {/* Export data */}
                   <div>
-                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Export your data</h2>
+                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.exportTitle')}</h2>
                     <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-3">
-                      Download a JSON copy of your account information and metadata.
+                      {t('profile.exportBody')}
                     </p>
                     <button
                       type="button"
                       onClick={handleDataExport}
                       className="inline-flex items-center gap-2 text-sm font-medium text-brand-near-black dark:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-xl px-4 py-2 bg-white dark:bg-brand-dark-grey hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-colors"
                     >
-                      Download JSON export
+                      {t('profile.exportButton')}
                     </button>
                   </div>
 
@@ -945,9 +920,9 @@ export default function ProfilePage() {
 
                   {/* Delete account */}
                   <div>
-                    <h2 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Delete account</h2>
+                    <h2 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">{t('profile.deleteTitle')}</h2>
                     <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-1">
-                      Deleting your account is irreversible. All projects, documents, and data will be permanently removed.
+                      {t('profile.deleteBody')}
                     </p>
 
                     {deleteResult ? (
@@ -957,13 +932,13 @@ export default function ProfilePage() {
                     ) : showDeleteConfirm ? (
                       <div className="mt-3 flex flex-col gap-2">
                         <p className="text-xs font-medium text-red-700 dark:text-red-400">
-                          Type <span className="font-mono font-bold">DELETE</span> to confirm
+                          {t('profile.deleteTypePrefix')} <span className="font-mono font-bold">{t('profile.deleteConfirmWord')}</span>
                         </p>
                         <input
                           type="text"
                           value={deleteInput}
                           onChange={e => setDeleteInput(e.target.value)}
-                          placeholder="DELETE"
+                          placeholder={t('profile.deleteConfirmWord')}
                           className="flex h-10 w-full rounded-md border border-red-300 dark:border-red-900/60 bg-white dark:bg-brand-dark-grey px-3 py-2 text-sm text-brand-near-black dark:text-white outline-none focus-visible:border-red-600 dark:focus-visible:border-red-400 placeholder:text-brand-mid-grey"
                         />
                         <div className="flex gap-2">
@@ -972,7 +947,7 @@ export default function ProfilePage() {
                             onClick={() => { setShowDeleteConfirm(false); setDeleteInput(''); }}
                             className="flex-1 h-9 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
                           >
-                            Cancel
+                            {t('common.cancel')}
                           </button>
                           <button
                             type="button"
@@ -980,7 +955,7 @@ export default function ProfilePage() {
                             onClick={handleDeleteConfirm}
                             className="flex-1 h-9 rounded-lg bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                           >
-                            Confirm deletion
+                            {t('profile.confirmDeletion')}
                           </button>
                         </div>
                       </div>
@@ -990,7 +965,7 @@ export default function ProfilePage() {
                         onClick={() => setShowDeleteConfirm(true)}
                         className="mt-3 inline-flex items-center text-sm font-medium text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900/60 rounded-xl px-4 py-2 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
                       >
-                        Delete account
+                        {t('profile.deleteTitle')}
                       </button>
                     )}
                   </div>
