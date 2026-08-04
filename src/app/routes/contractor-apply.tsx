@@ -25,9 +25,18 @@ export default function ContractorApply() {
       <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-4 sm:px-7 py-3.5">
         <div className="max-w-275 mx-auto flex items-center justify-between">
           <GroundworkLogo variant="light" size="lg" linkTo="/" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle segmented onDark />
-            <Link to="/" className="text-xs text-white/60 hover:text-white transition-colors">
+            {/* Jumps to the application form without scrolling the whole page.
+                ContractorCTA opens the form when the hash is #apply, so this lands on the
+                form itself rather than on its collapsed CTA button. */}
+            <a
+              href="#apply"
+              className="inline-flex items-center rounded-md border border-white/25 px-3 py-2 text-[11px] sm:text-xs font-semibold text-white hover:bg-white/10 transition-colors whitespace-nowrap"
+            >
+              {t('contractorApply.nav.apply')}
+            </a>
+            <Link to="/" className="hidden sm:inline text-xs text-white/60 hover:text-white transition-colors">
               ← {t('contractorApply.backToHome')}
             </Link>
           </div>

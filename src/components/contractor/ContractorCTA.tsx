@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CheckCircle2, Clock, Users, Star, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,20 +35,42 @@ export default function ContractorCTA() {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const { lang, t } = useLanguage();
+  // Analytics fires once per page view. Both the button and the #apply hash route through
+  // openForm, and the hash can be re-entered any number of times without a remount.
+  const trackedRef = useRef(false);
 
   const form = getContractorForm(lang);
   const formUrl = buildFormUrl(lang);
 
   useGHLScript(open);
 
-  function handleOpen() {
-    trackEvent('contractor_applied');
+  const openForm = useCallback(() => {
+    if (!trackedRef.current) {
+      trackEvent('contractor_applied');
+      trackedRef.current = true;
+    }
     setOpen(true);
     // scroll to form after it renders
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
-  }
+  }, []);
+
+  /**
+   * Open the form when the page is entered at #apply, and when the hash changes to #apply
+   * while already here — the nav button on this same page navigates without remounting.
+   *
+   * Without this, #apply only scrolls to the collapsed section, so every "Apply" link
+   * (nav and hero) landed the user on another button instead of the form.
+   */
+  useEffect(() => {
+    const openIfApplyHash = () => {
+      if (window.location.hash === '#apply') openForm();
+    };
+    openIfApplyHash();
+    window.addEventListener('hashchange', openIfApplyHash);
+    return () => window.removeEventListener('hashchange', openIfApplyHash);
+  }, [openForm]);
 
   return (
     <>
@@ -116,7 +138,7 @@ export default function ContractorCTA() {
                   className="rounded-xl"
                 >
                   <Button
-                    onClick={handleOpen}
+                    onClick={openForm}
                     className="bg-white text-brand-near-black hover:bg-brand-pale font-bold text-sm px-10 py-5 h-auto rounded-xl group"
                   >
                     {t('contractorApply.cta.button')}

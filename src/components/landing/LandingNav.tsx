@@ -20,12 +20,21 @@ export default function LandingNav() {
         <GroundworkLogo variant="light" size="xl" linkTo="/" />
         <div className="flex items-center gap-2 sm:gap-3">
           <LanguageToggle segmented onDark />
+          {/* Contractor entry point.
+              Previously `hidden sm:inline-flex` + ghost — invisible on mobile and reading as a
+              footnote, so the contractor page was effectively only reachable via the footer.
+              Now a bordered button at every width. `variant="outline"` assumes a light
+              background, so the dark-bar colours are set here rather than in the variant. */}
           <Button
             asChild
-            variant="ghost"
-            className="hidden sm:inline-flex text-white/80 hover:text-white hover:bg-white/10 text-xs font-semibold px-4 rounded-md"
+            variant="outline"
+            className="border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white text-[11px] sm:text-xs font-semibold px-3 sm:px-4 h-10 sm:h-auto sm:py-2 rounded-md"
           >
-            <a href="/contractor-apply">{t('landing.nav.forContractors')}</a>
+            <a href="/contractor-apply">
+              {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
+              <span className="hidden sm:inline">{t('landing.nav.forContractors')}</span>
+              <span className="sm:hidden">{t('landing.nav.forContractorsShort')}</span>
+            </a>
           </Button>
           <Button asChild className="bg-white text-brand-near-black hover:bg-brand-off-white text-[11px] sm:text-xs font-semibold px-4 h-10 sm:h-auto sm:py-2 sm:px-6 rounded-md group">
             <a href="/community" className="flex items-center gap-1.5">

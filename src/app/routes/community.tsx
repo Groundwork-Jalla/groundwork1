@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import CountdownClock from "@/components/landing/CountdownClock";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useT } from "@/lib/i18n";
+import { sendWaitlistLead } from '@/lib/ghl';
 
 const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
@@ -131,6 +132,12 @@ export default function Community() {
     }
 
     await supabase.from("waitlist_members").insert({ name: name || null, location: location || null });
+
+    // Mirror the lead into GoHighLevel. Deliberately not awaited and deliberately after
+    // both inserts: the person is already on the waitlist by this point, so a CRM outage
+    // must not turn a successful signup into a visible error. A duplicate email never
+    // reaches here — it short-circuits above — so the CRM sees each person once.
+    sendWaitlistLead({ name, email, location });
 
     setSubmitting(false);
     trackEvent('waitlist_joined');
