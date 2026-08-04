@@ -863,10 +863,10 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
           />
           {(data.kitchens > 0 || data.livingRooms > 0) && (
             <InfoBadge key={`extra-${data.kitchens}-${data.livingRooms}`} pos="bl" delay={0.1}>
-              <span className="opacity-60">Kitchen </span>
+              <span className="opacity-60">{t('wizard.kitchen')} </span>
               <span className="font-semibold">{data.kitchens}</span>
               <span className="mx-2 opacity-30">·</span>
-              <span className="opacity-60">Living </span>
+              <span className="opacity-60">{t('wizard.living')} </span>
               <span className="font-semibold">{data.livingRooms}</span>
             </InfoBadge>
           )}

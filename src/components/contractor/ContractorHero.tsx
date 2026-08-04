@@ -74,7 +74,7 @@ function NetworkScene() {
         className="absolute left-[78%] top-[40%] flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[9px] font-semibold text-brand-near-black whitespace-nowrap"
       >
         <CheckCircle2 className="size-2.5" />
-        VERIFIED
+        {t('contractorApply.verified')}
       </motion.div>
     </div>
   );

@@ -80,7 +80,7 @@ export default function Step1Country() {
         {!showSearch && (
           <div className="mt-6">
             <p className="text-xs font-medium text-brand-mid-grey uppercase tracking-widest mb-3">
-              Popular
+              {t('wizard.popular')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {popular.map(c => (
@@ -98,7 +98,7 @@ export default function Step1Country() {
                 >
                   {c.recommended && (
                     <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
-                      Recommended
+                      {t('wizard.recommended')}
                     </span>
                   )}
                   <span className="text-2xl leading-none">{c.flag}</span>
@@ -125,7 +125,7 @@ export default function Step1Country() {
               onClick={() => update({ country: '', countryName: '' })}
               className="ml-auto text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors"
             >
-              Change
+              {t('wizard.change')}
             </button>
           </motion.div>
         )}

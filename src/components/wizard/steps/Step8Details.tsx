@@ -324,7 +324,7 @@ export default function Step8Details() {
           {/* Finish level */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-brand-near-black">
-              Finish level
+              {t('wizard.finishLevel')}
             </Label>
             <div className="grid grid-cols-3 gap-2">
               {FINISH_LEVELS.map(fl => (

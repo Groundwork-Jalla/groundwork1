@@ -69,7 +69,7 @@ export default function Step6BoysQuarters() {
                 />
               </div>
               <p className="mt-2 text-xs text-brand-mid-grey">
-                Adds ~$8,000 per room to the budget estimate
+                {t('wizard.bqCost')}
               </p>
             </motion.div>
           )}
