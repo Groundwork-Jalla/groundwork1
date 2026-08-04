@@ -18,6 +18,7 @@ import { findCountry }   from '@/lib/countries';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -68,16 +69,6 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: 
   starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
   pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
   enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
-};
-
-const BT_LABELS: Record<string, string> = {
-  single_family: 'Single Family', multi_family: 'Multi-Family',
-  townhouse: 'Townhouse',         semi_detached: 'Semi-Detached',
-  duplex: 'Duplex',               bungalow: 'Bungalow',
-  office: 'Office',               retail: 'Retail',
-  warehouse_commercial: 'Warehouse', hotel: 'Hotel',
-  guest_house: 'Guest House',     villa: 'Villa',
-  apartment: 'Apartment',         commercial: 'Commercial',
 };
 
 const PROJECT_STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
@@ -882,7 +873,7 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       <div className="flex items-center gap-2 text-xs text-brand-mid-grey mb-4 flex-wrap">
         <span className="flex items-center gap-1">
           <Building2 className="size-3 shrink-0" />
-          {BT_LABELS[project.building_type] ?? project.building_type}
+          {L.buildingType(project.building_type)}
         </span>
         {loc && (
           <>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, ExternalLink, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 interface AdminProject {
   id: string;
@@ -15,11 +16,6 @@ interface AdminProject {
   createdAt: string;
 }
 
-const TIER_LABELS: Record<string, string> = {
-  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', jalla_management: 'Jalla Management',
-  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Jalla Management',
-};
-
 const STATUS_STYLES: Record<string, string> = {
   active:    'bg-green-50 text-green-700',
   on_hold:   'bg-amber-50 text-amber-700',
@@ -28,6 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminProjects() {
+  const L = useDomainLabels();
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading]   = useState(true);
   const [query, setQuery]       = useState('');
@@ -111,7 +108,7 @@ export default function AdminProjects() {
                   <td className="px-4 py-3 text-brand-mid-grey max-w-[160px] truncate">
                     <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
                   </td>
-                  <td className="px-4 py-3 text-brand-mid-grey">{TIER_LABELS[p.tier] ?? p.tier}</td>
+                  <td className="px-4 py-3 text-brand-mid-grey">{L.tier(p.tier)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLES[p.status] ?? ''}`}>
                       {p.status.replace('_', ' ')}

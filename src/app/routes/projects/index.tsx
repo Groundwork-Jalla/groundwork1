@@ -12,6 +12,7 @@ import { formatUSDFull }         from '@/lib/budget';
 import { findCountry }           from '@/lib/countries';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const STARTER_LIMIT = 3;
 const TOTAL_STAGES  = 10;
@@ -23,18 +24,6 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: 
   starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
   pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
   enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
-};
-
-const BT_LABELS: Record<string, string> = {
-  single_family: 'Single Family', multi_family: 'Multi-Family',
-  townhouse: 'Townhouse', semi_detached: 'Semi-Detached',
-  office: 'Office', retail: 'Retail', hotel: 'Hotel',
-  factory: 'Factory', warehouse_commercial: 'Warehouse',
-  warehouse_industrial: 'Warehouse', industrial_complex: 'Industrial Complex',
-  distribution_centre: 'Distribution Centre',
-  mixed_residential_commercial: 'Res + Commercial',
-  live_work: 'Live / Work', mixed_retail_residential: 'Retail + Residential',
-  transit_oriented: 'Transit-Oriented',
 };
 
 const STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
@@ -89,7 +78,7 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       </div>
       <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
       <div className="flex items-center gap-2 text-xs text-brand-mid-grey mb-4 flex-wrap">
-        <span className="flex items-center gap-1"><Building2 className="size-3 shrink-0" />{BT_LABELS[project.building_type] ?? project.building_type}</span>
+        <span className="flex items-center gap-1"><Building2 className="size-3 shrink-0" />{L.buildingType(project.building_type)}</span>
         {loc && <><span className="text-brand-border-grey">·</span><span className="flex items-center gap-1"><MapPin className="size-3 shrink-0" />{loc}</span></>}
       </div>
       <div className="mb-4">

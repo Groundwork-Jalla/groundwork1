@@ -34,29 +34,10 @@ import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier, PaymentStatus,
 }                                from '@/types/project';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Label maps ────────────────────────────────────────────
 
-const PT_LABELS: Record<string, string> = {
-  residential: 'Residential', commercial: 'Commercial',
-  industrial:  'Industrial',  mixed_use:  'Mixed Use',
-};
-const BT_LABELS: Record<string, string> = {
-  single_family: 'Single Family', multi_family: 'Multi-Family',
-  townhouse: 'Townhouse', semi_detached: 'Semi-Detached',
-  office: 'Office', retail: 'Retail', warehouse_commercial: 'Warehouse',
-  hotel: 'Hotel', factory: 'Factory', warehouse_industrial: 'Warehouse',
-  industrial_complex: 'Industrial Complex', distribution_centre: 'Distribution Centre',
-  mixed_residential_commercial: 'Residential + Commercial', live_work: 'Live / Work',
-  mixed_retail_residential: 'Retail + Residential', transit_oriented: 'Transit-Oriented',
-};
-const ROOF_LABELS: Record<string, string> = {
-  long_span_aluminum: 'Long Span Aluminum', clay_tiles: 'Clay Tiles',
-  concrete_flat: 'Concrete / Flat Roof', shingle: 'Shingle',
-};
-const FINISH_LABELS: Record<FinishLevel, string> = {
-  standard: 'Standard', premium: 'Premium', luxury: 'Luxury',
-};
 const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
   self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3.5" />  },
   jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3.5" /> },
@@ -341,7 +322,7 @@ export default function ProjectDetail() {
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="min-w-0">
               <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
-                {BT_LABELS[project.building_type]} · {country?.name ?? project.country}
+                {L.buildingType(project.building_type)} · {country?.name ?? project.country}
               </p>
               <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight truncate">
                 {project.name}
@@ -350,7 +331,7 @@ export default function ProjectDetail() {
                 {project.bedrooms > 0 && <span>{t('project.header.bed', { count: project.bedrooms })}</span>}
                 {project.bedrooms > 0 && project.num_floors > 0 && <span>·</span>}
                 <span>{project.num_floors === 1 ? t('project.header.floor', { count: 1 }) : t('project.header.floors', { count: project.num_floors })}</span>
-                {ROOF_LABELS[project.roof_type] && <><span>·</span><span>{ROOF_LABELS[project.roof_type]}</span></>}
+                {project.roof_type && <><span>·</span><span>{L.roofType(project.roof_type)}</span></>}
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 interface AdminUser {
   id: string;
@@ -11,11 +12,6 @@ interface AdminUser {
   createdAt: string;
 }
 
-const TIER_LABELS: Record<string, string> = {
-  self_verify: 'Self Verify', jalla_verify: 'Jalla Verify', jalla_management: 'Jalla Management',
-  starter: 'Self Verify', pro: 'Jalla Verify', enterprise: 'Jalla Management',
-};
-
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-purple-50 text-purple-700',
   contractor: 'bg-blue-50 text-blue-700',
@@ -23,6 +19,7 @@ const ROLE_STYLES: Record<string, string> = {
 };
 
 export default function AdminUsers() {
+  const L = useDomainLabels();
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery]     = useState('');
@@ -103,7 +100,7 @@ export default function AdminUsers() {
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-brand-mid-grey">{TIER_LABELS[u.tier] ?? (u.tier || '—')}</td>
+                  <td className="px-4 py-3 text-brand-mid-grey">{L.tier(u.tier)}</td>
                   <td className="px-4 py-3 text-brand-mid-grey text-xs">
                     {new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>

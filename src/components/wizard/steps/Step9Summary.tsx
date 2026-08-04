@@ -8,6 +8,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const PREDICTED_DAYS = 196;
 
@@ -22,32 +23,6 @@ function fmtDate(d: Date): string {
 }
 
 // ── Label helpers ─────────────────────────────────────────
-
-const PT_LABELS: Record<string, string> = {
-  residential: 'Residential', commercial: 'Commercial',
-  industrial: 'Industrial', mixed_use: 'Mixed Use',
-};
-
-const BT_LABELS: Record<string, string> = {
-  single_family: 'Single Family', multi_family: 'Multi-Family',
-  townhouse: 'Townhouse', semi_detached: 'Semi-Detached',
-  office: 'Office', retail: 'Retail', warehouse_commercial: 'Warehouse',
-  hotel: 'Hotel', factory: 'Factory', warehouse_industrial: 'Warehouse',
-  industrial_complex: 'Industrial Complex', distribution_centre: 'Distribution Centre',
-  mixed_residential_commercial: 'Residential + Commercial', live_work: 'Live / Work',
-  mixed_retail_residential: 'Retail + Residential', transit_oriented: 'Transit-Oriented',
-  bungalow: 'Bungalow', duplex: 'Duplex', villa: 'Villa', apartment: 'Apartment',
-  guest_house: 'Guest House',
-};
-
-const ROOF_LABELS: Record<string, string> = {
-  long_span_aluminum: 'Long Span Aluminum', clay_tiles: 'Clay Tiles',
-  concrete_flat: 'Concrete / Flat Roof', shingle: 'Shingle',
-};
-
-const FINISH_LABELS: Record<string, string> = {
-  standard: 'Standard Finish', premium: 'Premium Finish', luxury: 'Luxury Finish',
-};
 
 // ── Budget breakdown display ───────────────────────────────
 
@@ -200,7 +175,7 @@ export default function Step9Summary() {
           <SummaryRow icon={<MapPin className="size-3.5" />}    label="Location"
             value={[data.city, data.countryName].filter(Boolean).join(', ')} />
           <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
-            value={`${PT_LABELS[data.projectType ?? '']} · ${BT_LABELS[data.buildingType ?? '']}`} />
+            value={`${L.projectType(data.projectType)} · ${L.buildingType(data.buildingType)}`} />
           <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"
             value={[
               `${data.floors} floor${data.floors > 1 ? 's' : ''}`,
@@ -211,9 +186,9 @@ export default function Step9Summary() {
             ].filter(Boolean).join(' · ')}
           />
           <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"
-            value={ROOF_LABELS[data.roofType ?? '']} />
+            value={L.roofType(data.roofType)} />
           <SummaryRow icon={<Wrench className="size-3.5" />}    label="Finish"
-            value={FINISH_LABELS[data.finishLevel]} />
+            value={L.finishLevel(data.finishLevel)} />
         </div>
 
         {/* Budget estimate with trade sections */}
