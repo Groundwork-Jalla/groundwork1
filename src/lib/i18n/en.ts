@@ -715,6 +715,8 @@ export const en = {
   // ── Onboarding ────────────────────────────────────────────
   // ── Project wizard ────────────────────────────────────────
   wizard: {
+    finishLevel: "Finish level",
+    bqCost: "Adds ~$8,000 per room to the budget estimate",
     previewPlaceholder: "Select an option to preview",
     estHeight: "Est. height",
     kitchen: "Kitchen",

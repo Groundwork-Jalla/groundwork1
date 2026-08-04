@@ -733,6 +733,8 @@ export const fr: Mirror<EnDict> = {
   // ── Intégration ───────────────────────────────────────────
   // ── Project wizard ────────────────────────────────────────
   wizard: {
+    finishLevel: "Niveau de finition",
+    bqCost: "Ajoute environ 8 000 $ par pièce à l'estimation",
     previewPlaceholder: "Choisissez une option pour l'aperçu",
     estHeight: "Hauteur est.",
     kitchen: "Cuisine",
