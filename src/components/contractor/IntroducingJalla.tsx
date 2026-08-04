@@ -1,11 +1,13 @@
 import { useRef } from "react";
 import { useInView } from "framer-motion";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const DARK = "#0A0A0A";
 const labels = ["Clear Scope", "Defined Roles", "Right Sequence", "Structured Payments"];
 
 function PipelineScene() {
+  const t = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -14,10 +16,10 @@ function PipelineScene() {
       <line x1="100" y1="160" x2="500" y2="160" stroke="#E5E5E5" strokeWidth="2" strokeDasharray="6 4" />
 
       <circle cx="100" cy="160" r="26" fill="white" stroke={DARK} strokeWidth="2" />
-      <text x="100" y="164" textAnchor="middle" fontSize="9" fontWeight="600" fill={DARK}>CLIENT</text>
+      <text x="100" y="164" textAnchor="middle" fontSize="9" fontWeight="600" fill={DARK}>{t('contractorApply.client')}</text>
 
       <rect x="270" y="130" width="60" height="60" rx="14" fill={DARK} />
-      <text x="300" y="164" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">JALLA</text>
+      <text x="300" y="164" textAnchor="middle" fontSize="11" fontWeight="700" fill="white">{t('contractorApply.brand')}</text>
       <rect x="270" y="130" width="60" height="60" rx="14" fill="none" stroke={DARK} strokeWidth="2" opacity="0.4">
         <animate attributeName="width" values="60;72;60" dur="2.6s" repeatCount="indefinite" />
         <animate attributeName="height" values="60;72;60" dur="2.6s" repeatCount="indefinite" />
@@ -26,7 +28,7 @@ function PipelineScene() {
       </rect>
 
       <circle cx="500" cy="160" r="26" fill="white" stroke={DARK} strokeWidth="2" />
-      <text x="500" y="164" textAnchor="middle" fontSize="8" fontWeight="600" fill={DARK}>PROFESSIONAL</text>
+      <text x="500" y="164" textAnchor="middle" fontSize="8" fontWeight="600" fill={DARK}>{t('contractorApply.professional')}</text>
 
       {[0, 1.5].map((delay, i) => (
         <circle key={i} cy="160" r="3.5" fill={DARK}>
@@ -54,13 +56,14 @@ function PipelineScene() {
 }
 
 export default function IntroducingJalla() {
+  const t = useT();
   return (
     <section className="bg-brand-off-white px-7 py-20">
       <div className="max-w-[800px] mx-auto text-center">
         <Reveal>
-          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">THE SOLUTION</span>
+          <span className="text-xs font-semibold tracking-[0.12em] text-brand-mid-grey">{t('contractorApply.theSolution')}</span>
           <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black mt-3">
-            Jalla is the controlled system that makes diaspora projects run properly.
+            {t('contractorApply.solutionTitle')}
           </h2>
           <p className="text-brand-mid-grey mt-3 max-w-[520px] mx-auto">
             We connect diaspora clients with verified on-ground professionals. But the real advantage is this:

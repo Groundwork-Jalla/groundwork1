@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { User, VolumeX } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 function StableLineIcon() {
   return (
@@ -37,14 +38,15 @@ const advantages = [
 ];
 
 export default function FoundingAdvantage() {
+  const t = useT();
   return (
     <section className="bg-brand-near-black px-7 py-18">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-10">
           <h2 className="font-sans text-3xl md:text-4xl font-bold text-white">
-            First in gets the best position.
+            {t('contractorApply.firstIn')}
           </h2>
-          <p className="text-sm text-white/50 mt-3">We're onboarding a limited number of partners per trade, per region.</p>
+          <p className="text-sm text-white/50 mt-3">{t('contractorApply.firstInBody')}</p>
         </Reveal>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

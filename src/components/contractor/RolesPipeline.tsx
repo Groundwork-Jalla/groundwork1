@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useInView } from "framer-motion";
 import { Scale, Compass, Ruler, HardHat, Zap } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const roles = [
   { Icon: Scale, label: "Land Lawyers", desc: "Title verification, legal clearance" },
@@ -12,6 +13,7 @@ const roles = [
 ];
 
 export default function RolesPipeline() {
+  const t = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -20,9 +22,9 @@ export default function RolesPipeline() {
       <div className="max-w-[900px] mx-auto text-center">
         <Reveal>
           <h2 className="font-sans text-2xl md:text-3xl font-bold text-brand-near-black">
-            One system. One sequence. No isolation.
+            {t('contractorApply.pipelineTitle')}
           </h2>
-          <p className="text-sm text-brand-mid-grey mt-3 mb-12">Jalla is not random leads. It's coordinated execution.</p>
+          <p className="text-sm text-brand-mid-grey mt-3 mb-12">{t('contractorApply.pipelineBody')}</p>
         </Reveal>
 
         <div ref={ref} className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-0">

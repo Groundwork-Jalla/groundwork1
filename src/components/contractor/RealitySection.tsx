@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const DARK = "#0A0A0A";
 
@@ -83,14 +84,15 @@ const pains = [
 ];
 
 export default function RealitySection() {
+  const t = useT();
   return (
     <section className="bg-white px-7 py-20">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
           <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black leading-snug">
-            You're great at what you do.
+            {t('contractorApply.realityTitle')}
             <br />
-            <span className="text-brand-mid-grey">The system around you is broken.</span>
+            <span className="text-brand-mid-grey">{t('contractorApply.realityTitle2')}</span>
           </h2>
         </Reveal>
 
@@ -109,7 +111,7 @@ export default function RealitySection() {
 
         <Reveal delay={0.3}>
           <p className="font-sans italic text-xl text-brand-mid-grey text-center mt-10">
-            You are not the problem. The system is.
+            {t('contractorApply.realityBody')}
           </p>
         </Reveal>
       </div>

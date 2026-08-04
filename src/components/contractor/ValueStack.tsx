@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const DARK = "#0A0A0A";
 
@@ -11,6 +12,7 @@ function useScrollTrigger() {
 }
 
 function FundedScene() {
+  const t = useT();
   return (
     <svg viewBox="0 0 220 150" className="w-full h-auto" aria-hidden="true">
       <rect x="60" y="20" width="100" height="80" rx="6" fill="white" stroke={DARK} strokeWidth="1.5" />
@@ -24,7 +26,7 @@ function FundedScene() {
       <rect x="60" y="112" width="80" height="8" rx="4" fill={DARK} />
       <motion.g animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
         <rect x="150" y="100" width="56" height="20" rx="10" fill={DARK} />
-        <text x="178" y="113" textAnchor="middle" fontSize="9" fontWeight="700" fill="white">FUNDED</text>
+        <text x="178" y="113" textAnchor="middle" fontSize="9" fontWeight="700" fill="white">{t('contractorApply.funded')}</text>
       </motion.g>
     </svg>
   );
@@ -153,6 +155,7 @@ function GrowthScene() {
 }
 
 function VerifiedScene() {
+  const t = useT();
   const [ref, inView] = useScrollTrigger();
   return (
     <svg ref={ref} viewBox="0 0 220 150" className="w-full h-auto" aria-hidden="true">
@@ -170,7 +173,7 @@ function VerifiedScene() {
       >
         {inView && <animate attributeName="stroke-dashoffset" from="34" to="0" begin="0.2s" dur="0.6s" fill="freeze" />}
       </path>
-      <text x="110" y="95" textAnchor="middle" fontSize="10" fontWeight="700" fill={DARK} letterSpacing="0.1em">VERIFIED</text>
+      <text x="110" y="95" textAnchor="middle" fontSize="10" fontWeight="700" fill={DARK} letterSpacing="0.1em">{t('contractorApply.verified')}</text>
       {Array.from({ length: 16 }, (_, i) => {
         const row = Math.floor(i / 4);
         const col = i % 4;
@@ -230,12 +233,13 @@ const items = [
 ];
 
 export default function ValueStack() {
+  const t = useT();
   return (
     <section className="bg-white px-7 py-20">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
           <h2 className="font-sans text-3xl md:text-4xl font-bold text-brand-near-black">
-            What you get.
+            {t('contractorApply.valueTitle')}
           </h2>
         </Reveal>
 

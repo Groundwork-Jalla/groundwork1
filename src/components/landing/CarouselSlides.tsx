@@ -51,7 +51,7 @@ export function CreateProjectSlide() {
         ))}
       </div>
       <div className="bg-brand-near-black text-white text-center text-xs font-semibold rounded-lg py-2.5">
-        Continue
+        {t('common.continue')}
       </div>
     </div>
   );
@@ -92,7 +92,7 @@ export function UploadProofSlide() {
       </div>
       <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-brand-mid-grey">
         <HardHat className="size-3.5" />
-        Contractor, On Site
+        {t('landing.carousel.contractorOnSite')}
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ export function VerifySlide() {
   return (
     <div className="bg-white rounded-2xl border border-brand-border-grey w-full max-w-[340px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
       <div className="bg-brand-near-black text-white text-center text-xs font-semibold py-3 tracking-widest">
-        JALLA VERIFIED
+        {t('landing.carousel.verifiedBadge')}
       </div>
       <div className="p-6 text-center">
         <motion.div
@@ -128,13 +128,14 @@ export function VerifySlide() {
             className="absolute left-0 top-0 w-full h-1 bg-white/60"
           />
         </div>
-        <p className="text-[10px] text-brand-mid-grey mt-3 tracking-wider">TOKEN #JLA-48213</p>
+        <p className="text-[10px] text-brand-mid-grey mt-3 tracking-wider">{t('landing.carousel.token')}</p>
       </div>
     </div>
   );
 }
 
 export function PaymentSlide() {
+  const t = useT();
   const stages = [true, true, true, false, false];
   return (
     <div className="w-full max-w-[360px]">
@@ -159,7 +160,7 @@ export function PaymentSlide() {
         ))}
       </div>
       <div className="bg-brand-near-black rounded-xl p-4 text-center">
-        <p className="text-xs font-semibold text-white">No Proof = No Payment</p>
+        <p className="text-xs font-semibold text-white">{t('landing.carousel.noProofNoPayment')}</p>
       </div>
     </div>
   );

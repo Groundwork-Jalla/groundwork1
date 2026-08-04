@@ -294,6 +294,7 @@ export const en = {
 
   // ── App navigation / chrome ───────────────────────────────
   nav: {
+    mainNavigation: "Main navigation",
     dashboard:      'Dashboard',
     myProjects:     'My Projects',
     projects:       'Projects',
@@ -316,6 +317,10 @@ export const en = {
 
   // ── Landing page ──────────────────────────────────────────
   landing: {
+    loss: {
+      averageLoss: "Average Loss on an Unstructured Build",
+      body:        "That's years of savings. Retirement delayed. Trust broken.",
+    },
     nav: {
       joinFree:       'Join for Free',
       forContractors: 'For Contractors',
@@ -360,6 +365,7 @@ export const en = {
     },
 
     comparison: {
+      disputed: "DISPUTED",
       eyebrow:     'THE DIFFERENCE',
       title:       'Building Back Home: Without Structure vs. With Groundwork',
       subtitle:    'The same build. Two very different outcomes.',
@@ -421,6 +427,11 @@ export const en = {
     },
 
     carousel: {
+      contractorOnSite: "Contractor, On Site",
+      verifiedBadge:    "JALLA VERIFIED",
+      // Sample token on the illustration — a reference code, not prose.
+      token:            "TOKEN #JLA-48213",
+      noProofNoPayment: "No Proof = No Payment",
       title:    'How Groundwork Keeps You in Control',
       subtitle: 'Step by Step',
       step:     'Step {current} of {total}',
@@ -583,6 +594,33 @@ export const en = {
 
   // ── Contractor application page ───────────────────────────
   contractorApply: {
+    brand: "JALLA",
+    network: "THE NETWORK",
+    foundingPartner: "FOUNDING PARTNER",
+    verified: "VERIFIED",
+    funded: "FUNDED",
+    limitedSpots: "LIMITED SPOTS · FOUNDING PARTNERS",
+    heroTitle: "Become a Founding Partner in Jalla's Verified Build Network",
+    heroBody: "Get first access to funded diaspora projects. Get paid on time. Grow without chasing clients.",
+    heroCta: "Apply to Become a Founding Partner",
+    comparisonTitle: "Without Jalla vs. With Jalla",
+    withoutJalla: "Without Jalla",
+    withJalla: "With Jalla",
+    notForYou: "This is NOT for you if:",
+    isForYou: "This IS for you if:",
+    firstIn: "First in gets the best position.",
+    firstInBody: "We're onboarding a limited number of partners per trade, per region.",
+    howItWorks: "How it works.",
+    client: "CLIENT",
+    professional: "PROFESSIONAL",
+    theSolution: "THE SOLUTION",
+    solutionTitle: "Jalla is the controlled system that makes diaspora projects run properly.",
+    realityTitle: "You're great at what you do.",
+    realityTitle2: "The system around you is broken.",
+    realityBody: "You are not the problem. The system is.",
+    pipelineTitle: "One system. One sequence. No isolation.",
+    pipelineBody: "Jalla is not random leads. It's coordinated execution.",
+    valueTitle: "What you get.",
     backToHome: 'Back to Home',
     cta: {
       badge:       'Accepting Founding Partner Applications',

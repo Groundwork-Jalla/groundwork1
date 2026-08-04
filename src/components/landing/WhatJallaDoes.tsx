@@ -168,7 +168,7 @@ export default function WhatJallaDoes() {
         {/* Hidden for now until the video is ready. Video embed will go here.
         <Reveal delay={0.3} className="mt-14">
           <div className="rounded-2xl border border-dashed border-brand-border-grey bg-brand-off-white h-[280px] flex items-center justify-center">
-            <span className="text-sm text-brand-mid-grey">Video coming soon</span>
+            <span className="text-sm text-brand-mid-grey">{t('landing.whatJalla.videoSoon')}</span>
           </div>
         </Reveal>
         */}

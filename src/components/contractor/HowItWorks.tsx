@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ClipboardList, SearchCheck, Rocket, TrendingUp } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const steps = [
   { Icon: ClipboardList, title: "Apply", desc: "Share your trade, location, experience, and past work." },
@@ -10,12 +11,13 @@ const steps = [
 ];
 
 export default function HowItWorks() {
+  const t = useT();
   return (
     <section className="bg-white px-7 py-18">
       <div className="max-w-[900px] mx-auto">
         <Reveal className="text-center mb-12">
           <h2 className="font-sans text-2xl md:text-3xl font-bold text-brand-near-black">
-            How it works.
+            {t('contractorApply.howItWorks')}
           </h2>
         </Reveal>
 

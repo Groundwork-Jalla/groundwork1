@@ -1,3 +1,4 @@
+import { useT } from '@/lib/i18n';
 const DARK = "#0A0A0A";
 const nodeX = [30, 95, 160, 225, 290];
 
@@ -15,6 +16,7 @@ function GridBackdrop({ stroke }: { stroke: string }) {
 }
 
 export function WithoutStructureScene() {
+  const t = useT();
   return (
     <svg viewBox="0 0 320 190" className="w-full h-full" aria-hidden="true">
       <GridBackdrop stroke="rgba(10,10,10,0.05)" />
@@ -25,7 +27,7 @@ export function WithoutStructureScene() {
           <animate attributeName="opacity" values="0.6;1;0.6" dur="2.2s" repeatCount="indefinite" />
         </circle>
         <text textAnchor="middle" y="3" fontSize="7" fontWeight="700" fill={DARK} opacity="0.4" letterSpacing="0.5">
-          DISPUTED
+          {t('landing.comparison.disputed')}
         </text>
       </g>
 

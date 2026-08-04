@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useInView } from "framer-motion";
+import { useT } from '@/lib/i18n';
 
 const TARGET = 48000;
 const DURATION = 2400;
@@ -9,6 +10,7 @@ function easeOutCubic(t: number): number {
 }
 
 export default function LossCounter() {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-50px" });
   const [value, setValue] = useState(0);
@@ -33,7 +35,7 @@ export default function LossCounter() {
   return (
     <div ref={ref} className="bg-brand-near-black rounded-2xl p-8 text-center mt-8">
       <div className="text-[11px] text-brand-mid-grey tracking-widest uppercase">
-        Average Loss on an Unstructured Build
+        {t('landing.loss.averageLoss')}
       </div>
       <div className="font-sans text-5xl font-bold text-white mt-2 tabular-nums">
         $
@@ -45,7 +47,7 @@ export default function LossCounter() {
         </span>
       </div>
       <p className="text-sm text-white/40 mt-3">
-        That's years of savings. Retirement delayed. Trust broken.
+        {t('landing.loss.body')}
       </p>
       <div className="flex flex-wrap justify-center gap-6 mt-6">
         {["Wasted materials", "Ghost contractors", "Unverified labor", "Rebuilt work"].map((label) => (

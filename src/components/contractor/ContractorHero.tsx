@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, HardHat, Scale, Compass, Ruler, Zap, Wrench, CheckCircle2 } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
 import { Button } from "@/components/ui/button";
+import { useT } from '@/lib/i18n';
 
 const roles = ["Contractors", "Land Lawyers", "Surveyors", "Engineers", "Electricians", "Plumbers", "Skilled Trades"];
 
@@ -41,8 +42,8 @@ function NetworkScene() {
       </svg>
 
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-        <div className="font-sans text-sm font-bold text-white">JALLA</div>
-        <div className="text-[7px] text-white/50 tracking-[0.1em] mt-0.5">THE NETWORK</div>
+        <div className="font-sans text-sm font-bold text-white">{t('contractorApply.brand')}</div>
+        <div className="text-[7px] text-white/50 tracking-[0.1em] mt-0.5">{t('contractorApply.network')}</div>
       </div>
 
       {nodes.map((n, i) => (
@@ -63,7 +64,7 @@ function NetworkScene() {
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         className="absolute right-0 top-[2%] rounded-full bg-white/10 border border-white/20 px-2.5 py-1 text-[9px] font-semibold text-white/70 whitespace-nowrap"
       >
-        FOUNDING PARTNER
+        {t('contractorApply.foundingPartner')}
       </motion.div>
 
       <motion.div
@@ -79,19 +80,20 @@ function NetworkScene() {
 }
 
 export default function ContractorHero() {
+  const t = useT();
   return (
     <section className="bg-brand-near-black px-7 py-16 lg:py-24">
       <div className="max-w-[1100px] mx-auto flex flex-col lg:flex-row items-center gap-12">
         <div className="flex-1 w-full">
           <Reveal>
             <span className="inline-block text-[10px] font-semibold text-white/60 bg-white/10 px-3.5 py-1.5 rounded-full tracking-[0.06em] mb-5">
-              LIMITED SPOTS · FOUNDING PARTNERS
+              {t('contractorApply.limitedSpots')}
             </span>
             <h1 className="font-sans text-4xl md:text-5xl font-black text-white leading-[1.12]">
-              Become a Founding Partner in Jalla's Verified Build Network
+              {t('contractorApply.heroTitle')}
             </h1>
             <p className="text-white/60 text-base md:text-lg leading-relaxed mt-4 max-w-[440px]">
-              Get first access to funded diaspora projects. Get paid on time. Grow without chasing clients.
+              {t('contractorApply.heroBody')}
             </p>
           </Reveal>
 
@@ -120,7 +122,7 @@ export default function ContractorHero() {
             >
               <Button asChild className="bg-white text-brand-near-black hover:bg-white/90 text-sm font-bold px-8 py-4 h-auto rounded-lg group">
                 <a href="#apply" className="flex items-center gap-2">
-                  Apply to Become a Founding Partner
+                  {t('contractorApply.heroCta')}
                   <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </a>
               </Button>

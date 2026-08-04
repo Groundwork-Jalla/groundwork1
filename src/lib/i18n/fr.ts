@@ -316,6 +316,7 @@ export const fr: Mirror<EnDict> = {
 
   // ── Navigation ────────────────────────────────────────────
   nav: {
+    mainNavigation: "Navigation principale",
     dashboard:      'Tableau de bord',
     myProjects:     'Mes projets',
     projects:       'Projets',
@@ -338,6 +339,10 @@ export const fr: Mirror<EnDict> = {
 
   // ── Page d'accueil ────────────────────────────────────────
   landing: {
+    loss: {
+      averageLoss: "Perte moyenne sur un chantier non encadré",
+      body:        "Ce sont des années d'épargne. Une retraite repoussée. Une confiance rompue.",
+    },
     nav: {
       joinFree:       'Rejoindre gratuitement',
       forContractors: 'Pour les entrepreneurs',
@@ -381,6 +386,7 @@ export const fr: Mirror<EnDict> = {
     },
 
     comparison: {
+      disputed: "CONTESTÉ",
       eyebrow:     'LA DIFFÉRENCE',
       title:       'Bâtir au pays : sans structure ou avec Groundwork',
       subtitle:    'Le même chantier. Deux issues très différentes.',
@@ -442,6 +448,10 @@ export const fr: Mirror<EnDict> = {
     },
 
     carousel: {
+      contractorOnSite: "L'entrepreneur, sur le chantier",
+      verifiedBadge:    "VÉRIFIÉ PAR JALLA",
+      token:            "TOKEN #JLA-48213",
+      noProofNoPayment: "Pas de preuve = pas de paiement",
       title:    'Comment Groundwork vous garde aux commandes',
       subtitle: 'Étape par étape',
       step:     'Étape {current} sur {total}',
@@ -603,6 +613,33 @@ export const fr: Mirror<EnDict> = {
 
   // ── Candidature entrepreneur ──────────────────────────────
   contractorApply: {
+    brand: "JALLA",
+    network: "LE RÉSEAU",
+    foundingPartner: "PARTENAIRE FONDATEUR",
+    verified: "VÉRIFIÉ",
+    funded: "FINANCÉ",
+    limitedSpots: "PLACES LIMITÉES · PARTENAIRES FONDATEURS",
+    heroTitle: "Devenez partenaire fondateur du réseau de chantiers vérifiés Jalla",
+    heroBody: "Accédez en priorité à des chantiers de la diaspora déjà financés. Soyez payé à temps. Développez votre activité sans courir après les clients.",
+    heroCta: "Postuler comme partenaire fondateur",
+    comparisonTitle: "Sans Jalla / Avec Jalla",
+    withoutJalla: "Sans Jalla",
+    withJalla: "Avec Jalla",
+    notForYou: "Ce n'est PAS pour vous si :",
+    isForYou: "C'est pour vous si :",
+    firstIn: "Les premiers arrivés ont la meilleure place.",
+    firstInBody: "Nous intégrons un nombre limité de partenaires par corps de métier et par région.",
+    howItWorks: "Comment ça marche.",
+    client: "CLIENT",
+    professional: "PROFESSIONNEL",
+    theSolution: "LA SOLUTION",
+    solutionTitle: "Jalla est le système encadré qui fait tourner correctement les chantiers de la diaspora.",
+    realityTitle: "Vous excellez dans votre métier.",
+    realityTitle2: "C'est le système autour de vous qui est cassé.",
+    realityBody: "Le problème, ce n'est pas vous. C'est le système.",
+    pipelineTitle: "Un système. Une séquence. Aucun isolement.",
+    pipelineBody: "Jalla, ce ne sont pas des contacts au hasard. C'est une exécution coordonnée.",
+    valueTitle: "Ce que vous obtenez.",
     backToHome: "Retour à l'accueil",
     cta: {
       badge:       'Candidatures Partenaire Fondateur ouvertes',

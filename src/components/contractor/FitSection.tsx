@@ -1,5 +1,6 @@
 import { Check, X } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
+import { useT } from '@/lib/i18n';
 
 const notFor = [
   "Avoid documentation and structure",
@@ -16,12 +17,13 @@ const isFor = [
 ];
 
 export default function FitSection() {
+  const t = useT();
   return (
     <section className="bg-brand-off-white px-7 py-18">
       <div className="max-w-[900px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-5">
         <Reveal direction="left">
           <div className="bg-brand-near-black rounded-2xl p-8 md:p-10 h-full">
-            <h3 className="text-xl font-bold text-white/40 mb-5">This is NOT for you if:</h3>
+            <h3 className="text-xl font-bold text-white/40 mb-5">{t('contractorApply.notForYou')}</h3>
             <ul className="space-y-3">
               {notFor.map((t) => (
                 <li key={t} className="flex gap-2.5 text-sm text-white/30 line-through">
@@ -34,7 +36,7 @@ export default function FitSection() {
         </Reveal>
         <Reveal direction="right" delay={0.15}>
           <div className="bg-white rounded-2xl border border-brand-border-grey p-8 md:p-10 h-full">
-            <h3 className="text-xl font-bold text-brand-near-black mb-5">This IS for you if:</h3>
+            <h3 className="text-xl font-bold text-brand-near-black mb-5">{t('contractorApply.isForYou')}</h3>
             <ul className="space-y-3">
               {isFor.map((t) => (
                 <li key={t} className="flex gap-2.5 text-sm font-medium text-brand-near-black">
