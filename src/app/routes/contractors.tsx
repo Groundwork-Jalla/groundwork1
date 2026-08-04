@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
+import { useT } from '@/lib/i18n';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ function SpecialtyPill({ label }: { label: string }) {
 }
 
 function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Plan }) {
+  const t = useT();
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
   if (isUnlocked && contractor.phone) {
@@ -102,7 +104,7 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
             className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
           >
             <MessageCircle className="size-3 shrink-0" />
-            WhatsApp
+            {t('contractors.whatsapp')}
           </a>
         )}
       </div>
@@ -125,7 +127,7 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
       <div className="absolute inset-0 flex items-center justify-start pl-0.5">
         <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
           <Lock className="size-3 shrink-0" />
-          Unlock with Pro
+          {t('contractors.unlockWithPro')}
         </span>
       </div>
     </div>
@@ -141,6 +143,7 @@ function ContractorCard({
   plan: Plan;
   onRequestQuote: (c: Contractor) => void;
 }) {
+  const t = useT();
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
   return (
@@ -163,7 +166,7 @@ function ContractorCard({
         {contractor.verified && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-semibold text-green-700">
             <CheckCircle2 className="size-3" />
-            Verified
+            {t('contractors.verified')}
           </span>
         )}
       </div>
@@ -189,11 +192,11 @@ function ContractorCard({
       {/* Stats row */}
       <div className="flex gap-4 mb-3">
         <div>
-          <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">Experience</p>
+          <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">{t('contractors.experience')}</p>
           <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.years_exp} yrs</p>
         </div>
         <div>
-          <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">Projects</p>
+          <p className="text-[10px] text-brand-mid-grey uppercase tracking-wide">{t('contractors.projects')}</p>
           <p className="text-sm font-bold text-brand-near-black tabular-nums">{contractor.completed_projects}</p>
         </div>
       </div>
@@ -218,18 +221,18 @@ function ContractorCard({
             onClick={() => onRequestQuote(contractor)}
             className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors group/btn"
           >
-            Request Quote
+            {t('contractors.requestQuote')}
             <ChevronRight className="size-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
           </button>
         ) : (
           <button
             type="button"
             disabled
-            title="Upgrade to Pro to contact this professional"
+            title={t('contractors.upgradeNotice')}
             className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey text-xs font-medium text-brand-mid-grey py-2.5 cursor-not-allowed opacity-60"
           >
             <Lock className="size-3" />
-            Upgrade to contact
+            {t('contractors.upgradeToContact')}
           </button>
         )}
       </div>
@@ -246,6 +249,7 @@ function QuoteRequestDialog({
   contractor: Contractor;
   onClose: () => void;
 }) {
+  const t = useT();
   const [submitted, setSubmitted] = useState(false);
 
   const inputCls =
@@ -288,7 +292,7 @@ function QuoteRequestDialog({
             type="button"
             onClick={onClose}
             className="shrink-0 flex items-center justify-center size-8 rounded-full text-brand-mid-grey hover:bg-brand-pale dark:hover:bg-[#282828] hover:text-brand-near-black dark:hover:text-white transition-colors"
-            aria-label="Close dialog"
+            aria-label={t('contractors.inquiry.closeDialog')}
           >
             <X className="size-4" />
           </button>
@@ -304,7 +308,7 @@ function QuoteRequestDialog({
               </div>
               <div>
                 <p className="font-bold text-brand-near-black dark:text-white text-base">
-                  Inquiry sent!
+                  {t('contractors.inquiry.sent')}
                 </p>
                 <p className="mt-1 text-sm text-brand-mid-grey max-w-xs">
                   Your inquiry has been sent.{' '}
@@ -333,7 +337,7 @@ function QuoteRequestDialog({
             >
               <div>
                 <label className={labelCls} htmlFor="qr-name">
-                  Your name
+                  {t('contractors.inquiry.yourName')}
                 </label>
                 <input
                   id="qr-name"
@@ -346,7 +350,7 @@ function QuoteRequestDialog({
 
               <div>
                 <label className={labelCls} htmlFor="qr-location">
-                  Project location
+                  {t('contractors.inquiry.location')}
                 </label>
                 <input
                   id="qr-location"
@@ -359,14 +363,14 @@ function QuoteRequestDialog({
 
               <div>
                 <label className={labelCls} htmlFor="qr-build-type">
-                  Build type
+                  {t('contractors.inquiry.buildType')}
                 </label>
                 <select id="qr-build-type" required className={inputCls}>
-                  <option value="">Select a build type</option>
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="industrial">Industrial</option>
-                  <option value="mixed-use">Mixed Use</option>
+                  <option value="">{t('contractors.inquiry.selectBuildType')}</option>
+                  <option value="residential">{t('contractors.inquiry.residential')}</option>
+                  <option value="commercial">{t('contractors.inquiry.commercial')}</option>
+                  <option value="industrial">{t('contractors.inquiry.industrial')}</option>
+                  <option value="mixed-use">{t('contractors.inquiry.mixedUse')}</option>
                 </select>
               </div>
 
@@ -378,19 +382,19 @@ function QuoteRequestDialog({
                   id="qr-message"
                   rows={3}
                   required
-                  placeholder="Describe your project — size, timeline, and any specific requirements"
+                  placeholder={t('contractors.inquiry.messageHint')}
                   className={inputCls}
                 />
               </div>
 
               <div>
                 <label className={labelCls} htmlFor="qr-contact-pref">
-                  Preferred contact
+                  {t('contractors.inquiry.preferredContact')}
                 </label>
                 <select id="qr-contact-pref" required className={inputCls}>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="email">Email</option>
-                  <option value="phone">Phone call</option>
+                  <option value="whatsapp">{t('contractors.whatsapp')}</option>
+                  <option value="email">{t('contractors.inquiry.email')}</option>
+                  <option value="phone">{t('contractors.inquiry.phoneCall')}</option>
                 </select>
               </div>
 
@@ -403,7 +407,7 @@ function QuoteRequestDialog({
                 type="submit"
                 className="w-full flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors"
               >
-                Send Inquiry
+                {t('contractors.inquiry.send')}
               </button>
             </form>
           )}
@@ -436,6 +440,7 @@ function CardSkeleton() {
 // ── Main page ──────────────────────────────────────────────
 
 export default function ContractorsPage() {
+  const t = useT();
   const { user } = useAuth();
 
   // Derive plan from onboarding-saved user metadata
@@ -488,10 +493,10 @@ export default function ContractorsPage() {
           className="mb-6"
         >
           <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
-            Contractor Directory
+            {t('contractors.title')}
           </h1>
           <p className="mt-1 text-sm text-brand-mid-grey">
-            Verified professionals for your build
+            {t('contractors.subtitle')}
           </p>
         </motion.div>
 
@@ -530,8 +535,8 @@ export default function ContractorsPage() {
         {/* Error */}
         {fetchState === 'error' && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-sm font-medium text-brand-near-black">Could not load contractors.</p>
-            <p className="text-xs text-brand-mid-grey mt-1">Please refresh and try again.</p>
+            <p className="text-sm font-medium text-brand-near-black">{t('contractors.loadFailed')}</p>
+            <p className="text-xs text-brand-mid-grey mt-1">{t('contractors.refreshRetry')}</p>
           </div>
         )}
 
@@ -541,7 +546,7 @@ export default function ContractorsPage() {
             <div className="mb-4 flex size-14 items-center justify-center rounded-full border-2 border-dashed border-brand-border-grey">
               <CheckCircle2 className="size-6 text-brand-mid-grey" />
             </div>
-            <p className="text-sm font-semibold text-brand-near-black">No contractors listed yet</p>
+            <p className="text-sm font-semibold text-brand-near-black">{t('contractors.emptyTitle')}</p>
             <p className="text-xs text-brand-mid-grey mt-1 max-w-xs">
               The Jalla team is vetting professionals. Check back soon, or{' '}
               <Link to="/contractor-apply" className="underline underline-offset-2 hover:text-brand-near-black transition-colors">
@@ -578,8 +583,8 @@ export default function ContractorsPage() {
         {/* Filtered empty */}
         {fetchState === 'ready' && contractors.length > 0 && visible.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-sm font-medium text-brand-near-black">No professionals in this category yet.</p>
-            <p className="text-xs text-brand-mid-grey mt-1">Try a different filter.</p>
+            <p className="text-sm font-medium text-brand-near-black">{t('contractors.emptyCategory')}</p>
+            <p className="text-xs text-brand-mid-grey mt-1">{t('contractors.tryFilter')}</p>
           </div>
         )}
 
@@ -591,7 +596,7 @@ export default function ContractorsPage() {
               to="/contractor-apply"
               className="underline underline-offset-4 hover:text-brand-near-black transition-colors"
             >
-              Apply to join the directory
+              {t('contractors.applyToJoin')}
             </Link>
           </p>
         )}

@@ -105,6 +105,46 @@ export const en = {
     confirmDeletion:     'Confirm deletion',
   },
 
+  // ── Contractor directory ──────────────────────────────────
+  contractors: {
+    title:           'Contractor Directory',
+    subtitle:        'Verified professionals for your build',
+    verified:        'Verified',
+    experience:      'Experience',
+    projects:        'Projects',
+    whatsapp:        'WhatsApp',
+    requestQuote:    'Request Quote',
+    unlockWithPro:   'Unlock with Pro',
+    upgradeToContact:'Upgrade to contact',
+    upgradeNotice:   'Upgrade to Pro to contact this professional',
+    applyToJoin:     'Apply to join the directory',
+
+    loadFailed:      'Could not load contractors.',
+    refreshRetry:    'Please refresh and try again.',
+    emptyTitle:      'No contractors listed yet',
+    emptyCategory:   'No professionals in this category yet.',
+    tryFilter:       'Try a different filter.',
+
+    inquiry: {
+      sent:            'Inquiry sent!',
+      yourName:        'Your name',
+      location:        'Project location',
+      buildType:       'Build type',
+      selectBuildType: 'Select a build type',
+      residential:     'Residential',
+      commercial:      'Commercial',
+      industrial:      'Industrial',
+      mixedUse:        'Mixed Use',
+      message:         'Message',
+      messageHint:     'Describe your project — size, timeline, and any specific requirements',
+      preferredContact:'Preferred contact',
+      email:           'Email',
+      phoneCall:       'Phone call',
+      send:            'Send Inquiry',
+      closeDialog:     'Close dialog',
+    },
+  },
+
   // ── Status vocabulary (Foundations v1) ────────────────────
   // The only words the product may use for status. Six states, no others.
   // Retired here and everywhere: Spent · Paid · Done · Active · Deposited ·

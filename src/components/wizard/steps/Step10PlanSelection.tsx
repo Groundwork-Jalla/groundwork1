@@ -66,15 +66,23 @@ function TierCard({ title, price, description, features, selected, onSelect, pop
 // ── Page component ─────────────────────────────────────────
 
 export default function Step10PlanSelection() {
-  const { data, update, reset, constructionRate, cityRate } = useWizard();
+  const { data, update, reset, next, constructionRate, cityRate } = useWizard();
   const { user } = useAuth();
   const navigate  = useNavigate();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
+  /**
+   * Jalla Management cannot confirm its own budget — a Jalla admin produces and confirms
+   * that figure after creation — so those projects are created here and open with a
+   * "preparing your budget" banner. The other two tiers go on to step 11 and confirm
+   * their figure before the project exists.
+   */
   async function handleSubmit() {
     if (!user) return;
+    if (data.tier !== 'jalla_management') { next(); return; }
+
     setError(null);
     setSubmitting(true);
     try {

@@ -122,6 +122,46 @@ export const fr: Mirror<EnDict> = {
     confirmDeletion:     'Confirmer la suppression',
   },
 
+  // ── Annuaire des entrepreneurs ────────────────────────────
+  contractors: {
+    title:           'Annuaire des entrepreneurs',
+    subtitle:        'Des professionnels vérifiés pour votre chantier',
+    verified:        'Vérifié',
+    experience:      'Expérience',
+    projects:        'Chantiers',
+    whatsapp:        'WhatsApp',
+    requestQuote:    'Demander un devis',
+    unlockWithPro:   'Débloquer avec Pro',
+    upgradeToContact:'Changer de forfait pour contacter',
+    upgradeNotice:   'Passez à Pro pour contacter ce professionnel',
+    applyToJoin:     "Rejoindre l'annuaire",
+
+    loadFailed:      'Impossible de charger les entrepreneurs.',
+    refreshRetry:    'Veuillez actualiser la page et réessayer.',
+    emptyTitle:      'Aucun entrepreneur pour le moment',
+    emptyCategory:   'Aucun professionnel dans cette catégorie.',
+    tryFilter:       'Essayez un autre filtre.',
+
+    inquiry: {
+      sent:            'Demande envoyée !',
+      yourName:        'Votre nom',
+      location:        'Lieu du chantier',
+      buildType:       'Type de construction',
+      selectBuildType: 'Choisissez un type',
+      residential:     'Résidentiel',
+      commercial:      'Commercial',
+      industrial:      'Industriel',
+      mixedUse:        'Usage mixte',
+      message:         'Message',
+      messageHint:     'Décrivez votre projet — surface, délais et exigences particulières',
+      preferredContact:'Contact préféré',
+      email:           'E-mail',
+      phoneCall:       'Appel téléphonique',
+      send:            'Envoyer la demande',
+      closeDialog:     'Fermer',
+    },
+  },
+
   // ── Vocabulaire des statuts (Foundations v1) ──────────────
   // Les seuls mots autorisés pour un statut. Six états, pas un de plus.
   //

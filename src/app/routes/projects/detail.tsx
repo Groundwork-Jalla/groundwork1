@@ -379,7 +379,15 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* Pre-tracking gate — confirm budget before stages open */}
+          {/* Pre-tracking banner.
+              Self Verify and Jalla Verify confirm their budget in the final wizard step,
+              so they never arrive here untracked. What remains is Jalla Management, whose
+              budget a Jalla admin confirms after creation, and the contractor's view of a
+              project whose owner has not finished.
+
+              StartTrackingGate is still rendered as a fallback for anything created
+              before that change and not caught by migration 022. It sits above the tabs
+              rather than replacing them — the project stays readable either way. */}
           {!trackingStarted && (
             isContractor ? (
               <div className="rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-6 py-8 text-center max-w-2xl mx-auto">

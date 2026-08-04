@@ -14,9 +14,14 @@ export async function createProject(
   formData: WizardFormData,
   budget: BudgetBreakdown,
 ): Promise<ProjectRow> {
-  // All projects are gated: they stay in "planning" until their final budget is
-  // confirmed. Self/Jalla Verify owners confirm it themselves (start_project_tracking);
-  // Jalla Management projects are confirmed by a Jalla admin (admin_start_project_tracking).
+  // Only Jalla Management is gated at creation. Its budget is produced and confirmed by
+  // a Jalla admin (admin_start_project_tracking), so the project opens still awaiting
+  // tracking and shows a banner.
+  //
+  // Self Verify and Jalla Verify confirm their budget in the final wizard step, which
+  // calls start_project_tracking immediately after this — they are created gated for the
+  // instant in between, so a failure there leaves a coherent project rather than one with
+  // an active stage and an unconfirmed budget.
   const tier  = formData.tier as ProjectTier;
   const gated = true;
 

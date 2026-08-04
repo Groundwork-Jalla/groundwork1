@@ -12,6 +12,7 @@ import Step7RoofType       from '@/components/wizard/steps/Step7RoofType';
 import Step8Details        from '@/components/wizard/steps/Step8Details';
 import Step9Summary        from '@/components/wizard/steps/Step9Summary';
 import Step10PlanSelection from '@/components/wizard/steps/Step10PlanSelection';
+import Step11ConfirmBudget from '@/components/wizard/steps/Step11ConfirmBudget';
 
 // ── Step router ───────────────────────────────────────────
 
@@ -26,6 +27,7 @@ const STEPS: React.ComponentType[] = [
   Step8Details,
   Step9Summary,
   Step10PlanSelection,
+  Step11ConfirmBudget,
 ];
 
 function WizardRouter() {
