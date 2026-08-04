@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Printer } from 'lucide-react';
+import { useStageLabels } from '@/lib/stage-labels';
+import { useT } from '@/lib/i18n';
 
 // ── Props ─────────────────────────────────────────────────
 
 export interface StageCertificateModalProps {
   stage: {
     stage_number: number;
+    /** i18n key (migration 024); null falls back to `name`. */
+    stage_key: string | null;
     name: string;
     completed_at: string | null;
     budget_pct: number | null;
@@ -39,6 +43,8 @@ export function StageCertificateModal({
   ownerName,
   onClose,
 }: StageCertificateModalProps) {
+  const t = useT();
+  const { stageLabel } = useStageLabels();
   const completedDate = stage.completed_at
     ? new Date(stage.completed_at).toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -200,7 +206,7 @@ export function StageCertificateModal({
                   lineHeight: 1.3,
                 }}
               >
-                Stage {stage.stage_number}: {stage.name}
+                {t('project.stages.stageN', { n: stage.stage_number })}: {stageLabel(stage)}
               </p>
             </div>
 

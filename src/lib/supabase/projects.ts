@@ -72,6 +72,9 @@ export async function createProject(
     const stageRows = seeds.map(s => ({
       project_id:            project.id,
       stage_number:          s.stage_number,
+      // Both are stored: `stage_key` drives translation, `name` stays the English
+      // fallback and a human-readable audit trail. See migration 024.
+      stage_key:             s.key,
       name:                  s.name,
       budget_pct:            s.budget_pct,
       payment_milestone_usd: Math.round(budget.total * s.budget_pct / 100),
@@ -89,11 +92,12 @@ export async function createProject(
     // 4. Insert substages for each stage
     const substageRows = insertedStages.flatMap(stage => {
       const seed = seeds.find(s => s.stage_number === stage.stage_number);
-      return (seed?.substages ?? []).map((name, idx) => ({
+      return (seed?.substages ?? []).map((sub, idx) => ({
         stage_id:         stage.id,
         project_id:       project.id,
         substage_number:  idx + 1,
-        name,
+        substage_key:     sub.key,
+        name:             sub.name,
         status:           stage.status === 'active' ? 'pending' : 'locked',
       }));
     });

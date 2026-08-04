@@ -3,6 +3,7 @@ import { formatUSD, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { useStageLabels } from '@/lib/stage-labels';
 
 type FundState = 'released' | 'transit' | 'held' | 'locked';
 
@@ -37,6 +38,7 @@ export default function EscrowWallet({
   onPay: (stage: ProjectStageRow) => void;
   onViewPayout: (stage: ProjectStageRow) => void;
 }) {
+  const { stageLabel } = useStageLabels();
   const { t, tPlural } = useLanguage();
   const total    = project.budget_usd ?? 0;
   const released = stages.filter(s => s.payment_status === 'paid').reduce((a, s) => a + (s.payment_milestone_usd ?? 0), 0);
@@ -61,7 +63,7 @@ export default function EscrowWallet({
               key={s.id}
               className="h-1.5"
               style={{ flex: Math.max(s.budget_pct ?? 1, 0.5), background: SEG_COLOR[fundState(s)] }}
-              title={`Stage ${s.stage_number}: ${s.name}`}
+              title={`${s.stage_number}. ${stageLabel(s)}`}
             />
           ))}
         </div>
@@ -117,7 +119,7 @@ export default function EscrowWallet({
               <div className="flex-1 min-w-0">
                 <p className={cn('text-[13px] font-medium truncate',
                   state === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
-                  {s.name}
+                  {stageLabel(s)}
                 </p>
               </div>
 

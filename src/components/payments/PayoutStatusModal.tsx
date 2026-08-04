@@ -5,6 +5,7 @@ import { platformFee } from '@/lib/payments/config';
 import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 export default function PayoutStatusModal({
   open, stage, tier, rate, contractorLabel, onClose,
@@ -17,6 +18,7 @@ export default function PayoutStatusModal({
   onClose: () => void;
 }) {
   const t = useT();
+  const { stageLabel } = useStageLabels();
   const f = useFormat();
   if (!stage) return null;
 
@@ -73,7 +75,7 @@ export default function PayoutStatusModal({
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">{t('project.payments.payoutTracker')}</p>
-                  <h2 className="text-lg font-extrabold mt-1">{t('project.stages.stageN', { n: stage.stage_number })}: {stage.name}</h2>
+                  <h2 className="text-lg font-extrabold mt-1">{t('project.stages.stageN', { n: stage.stage_number })}: {stageLabel(stage)}</h2>
                 </div>
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold',

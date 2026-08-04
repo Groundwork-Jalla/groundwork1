@@ -19,6 +19,8 @@ export interface SubstageSeed {
   /** Stable i18n key — t(`substages.${key}`). */
   key: string;
   name: string;
+  /** Interpolation values, for keys like `floorDecking` that carry a number. */
+  params?: Record<string, string | number>;
 }
 
 // ── Residential Single ────────────────────────────────────
@@ -166,14 +168,20 @@ function residentialSingleStages(): StageSeed[] {
 
 function residentialMultiStages(numFloors: number): StageSeed[] {
   const base = residentialSingleStages();
-  const floorLabels = Array.from({ length: numFloors }, (_, i) => `Floor ${i + 1} decking`);
+  // Dynamic per-floor substage. Carries the floor number as an interpolation param so
+  // the dictionary can order the words differently per language.
+  const floorLabels: SubstageSeed[] = Array.from({ length: numFloors }, (_, i) => ({
+    key: 'floorDecking',
+    params: { n: i + 1 },
+    name: `Floor ${i + 1} decking`,
+  }));
 
   return base.map(stage => {
     switch (stage.stage_number) {
       case 3:
         return {
           ...stage,
-          substages: [...stage.substages, 'Staircase construction', 'Common area walls'],
+          substages: [...stage.substages, { key: 'staircaseConstruction', name: 'Staircase construction' }, { key: 'commonAreaWalls', name: 'Common area walls' }],
         };
       case 4:
         return {
@@ -193,17 +201,17 @@ function residentialMultiStages(numFloors: number): StageSeed[] {
       case 8:
         return {
           ...stage,
-          substages: [...stage.substages, 'Common area finishing', 'Balcony railings'],
+          substages: [...stage.substages, { key: 'commonAreaFinishing', name: 'Common area finishing' }, { key: 'balconyRailings', name: 'Balcony railings' }],
         };
       case 9:
         return {
           ...stage,
-          substages: [...stage.substages, 'Car park marking', 'Generator house', 'Security post'],
+          substages: [...stage.substages, { key: 'carParkMarking', name: 'Car park marking' }, { key: 'generatorHouse', name: 'Generator house' }, { key: 'securityPost', name: 'Security post' }],
         };
       case 10:
         return {
           ...stage,
-          substages: [...stage.substages, 'Per-unit inspection', 'Common area inspection'],
+          substages: [...stage.substages, { key: 'perUnitInspection', name: 'Per-unit inspection' }, { key: 'commonAreaInspection', name: 'Common area inspection' }],
         };
       default:
         return stage;
@@ -364,17 +372,17 @@ function mixedUseStages(): StageSeed[] {
       case 7:
         return {
           ...stage,
-          substages: [...stage.substages, 'Residential unit finishing'],
+          substages: [...stage.substages, { key: 'residentialUnitFinishing', name: 'Residential unit finishing' }],
         };
       case 8:
         return {
           ...stage,
-          substages: [...stage.substages, 'Per-unit plumbing/electrical'],
+          substages: [...stage.substages, { key: 'perUnitPlumbingElectrical', name: 'Per-unit plumbing/electrical' }],
         };
       case 10:
         return {
           ...stage,
-          substages: [...stage.substages, 'Residential inspection', 'Commercial inspection'],
+          substages: [...stage.substages, { key: 'residentialInspection', name: 'Residential inspection' }, { key: 'commercialInspection', name: 'Commercial inspection' }],
         };
       default:
         return stage;

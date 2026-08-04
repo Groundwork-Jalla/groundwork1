@@ -7,6 +7,7 @@ import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { formatUSD } from '@/lib/budget';
 import { useT, type TKey } from '@/lib/i18n';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // Lazy-loaded so the certificate HTML is not bundled into the main chunk
 const StageCertificateModal = lazy(() =>
@@ -152,6 +153,7 @@ function StageDetail({
   onApproveStage,
   renderEvidenceUpload,
 }: StageDetailProps) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
@@ -198,7 +200,7 @@ function StageDetail({
             {t('project.stages.stageN', { n: stage.stage_number })}
           </p>
           <p className="text-sm font-semibold text-brand-near-black leading-snug">
-            {stage.name}
+            {stageLabel(stage)}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
@@ -329,6 +331,7 @@ export function StageTracker({
   renderEvidenceUpload,
 }: StageTrackerProps) {
   const t = useT();
+  const { stageLabel } = useStageLabels();
   const activeStage = stages.find(
     s => s.status === 'active' || s.status === 'pending_review',
   );

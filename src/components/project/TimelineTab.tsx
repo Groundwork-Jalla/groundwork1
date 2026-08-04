@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Lock, AlertCircle, BadgeCheck, ShieldCheck } from 
 import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // Typical stage durations in days (indices 0-9 = stages 1-10)
 const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
@@ -89,6 +90,7 @@ function ListView({
   computed: ComputedStage[];
   project: ProjectRow;
 }) {
+  const { stageLabel } = useStageLabels();
   const verificationLabel = project.tier === 'self_verify' || (project.tier as string) === 'starter'
     ? 'Self-verified'
     : 'Jalla Verified';
@@ -121,7 +123,7 @@ function ListView({
                   'text-sm font-medium truncate',
                   stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white',
                 )}>
-                  {stage.name}
+                  {stageLabel(stage)}
                 </span>
                 <div className="flex items-center gap-1 text-[9px] text-brand-mid-grey border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-1.5 py-0.5 shrink-0">
                   <VerifyIcon className="size-2.5" />
@@ -191,6 +193,7 @@ function GanttView({
   project: ProjectRow;
   onGoToStages: () => void;
 }) {
+  const { stageLabel } = useStageLabels();
   // Hook must run before the early return below.
   const t = useT();
   if (computed.length === 0) return null;
@@ -270,9 +273,9 @@ function GanttView({
                 <div
                   className="shrink-0 text-xs font-medium text-brand-near-black dark:text-white truncate"
                   style={{ width: 116 }}
-                  title={stage.name}
+                  title={stageLabel(stage)}
                 >
-                  {stage.name}
+                  {stageLabel(stage)}
                 </div>
 
                 {/* Bar track */}
@@ -300,7 +303,7 @@ function GanttView({
                       backgroundColor: barColor,
                     }}
                     onClick={onGoToStages}
-                    title={`${stage.name} · ${durationDays}d`}
+                    title={`${stageLabel(stage)} · ${durationDays}d`}
                     role="button"
                     tabIndex={0}
                   >
@@ -347,6 +350,7 @@ interface TimelineTabProps {
 }
 
 export default function TimelineTab({ project, stages, onGoToStages }: TimelineTabProps) {
+  const { stageLabel } = useStageLabels();
   const t = useT();
   const [view, setView] = useState<'list' | 'gantt'>('list');
   const computed = useMemo(() => computeTimeline(stages, project), [stages, project]);

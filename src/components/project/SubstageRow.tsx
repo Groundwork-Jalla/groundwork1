@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Status icon ───────────────────────────────────────────
 
@@ -96,6 +97,7 @@ export function SubstageRow({
   onEvidenceUploaded,
   renderEvidenceUpload,
 }: SubstageRowProps) {
+  const { substageLabel } = useStageLabels();
   const [marking, setMarking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,7 +139,7 @@ export function SubstageRow({
                 ? 'text-brand-mid-grey'
                 : 'text-brand-near-black font-medium',
           )}>
-            {substage.name}
+            {substageLabel(substage)}
           </span>
 
           {/* Status chips */}

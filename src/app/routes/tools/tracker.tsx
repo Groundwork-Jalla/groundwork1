@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronDown, ChevronUp, Printer, RotateCcw } from 'lucide-react';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 const STORAGE_KEY = 'gw_tracker';
 const STAGES = getStageSeed('residential', 'single_family', 1);
@@ -230,7 +230,7 @@ export default function TrackerTool() {
                               ? 'line-through text-brand-mid-grey'
                               : 'text-brand-near-black dark:text-white',
                           )}>
-                            {sub}
+                            {t(`substages.${sub.key}` as TKey, sub.params)}
                           </span>
                         </label>
                       );

@@ -3,6 +3,7 @@ import { useFormat, useT } from '@/lib/i18n';
 import { MoneyBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 export default function PaymentHistory({
   project, stages, tier, rate, onViewPayout,
@@ -14,6 +15,7 @@ export default function PaymentHistory({
   onViewPayout: (stage: ProjectStageRow) => void;
 }) {
   const t         = useT();
+  const { stageLabel } = useStageLabels();
   const f         = useFormat();
   const total     = project.budget_usd ?? 0;
   const paid      = stages.filter(s => s.payment_status === 'paid' || s.payment_status === 'partial');
@@ -72,7 +74,7 @@ export default function PaymentHistory({
                     <div className="min-w-0">
                       <MoneyBadge bucket={isPaid ? 'released' : 'in_transit'} size="small" />
                       <p className="text-sm font-bold text-brand-near-black dark:text-white mt-2 leading-snug">
-                        {t('project.stages.stageN', { n: p.stage_number })}: {p.name}
+                        {t('project.stages.stageN', { n: p.stage_number })}: {stageLabel(p)}
                       </p>
                     </div>
                     <div className="text-right shrink-0">

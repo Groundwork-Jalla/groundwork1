@@ -7,6 +7,7 @@ import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee, stripeProcessing } from '@/lib/payments/config';
 import { useT } from '@/lib/i18n';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
+import { useStageLabels } from '@/lib/stage-labels';
 
 export default function MilestonePaymentModal({
   open, stage, tier, rate, projectName, contractorLabel, onConfirm, onClose,
@@ -20,6 +21,7 @@ export default function MilestonePaymentModal({
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }) {
+  const { stageLabel } = useStageLabels();
   const [submitting, setSubmitting] = useState(false);
 
   if (!stage) return null;
@@ -74,7 +76,7 @@ export default function MilestonePaymentModal({
                 <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">
                   {t('project.payments.stageOf', { n: stage.stage_number })}
                 </span>
-                <h2 className="text-xl font-extrabold mt-4 leading-snug">{stage.name}</h2>
+                <h2 className="text-xl font-extrabold mt-4 leading-snug">{stageLabel(stage)}</h2>
                 <p className="text-xs text-white/45 mt-1">{projectName}</p>
 
                 <div className="flex flex-col gap-1 mt-6">

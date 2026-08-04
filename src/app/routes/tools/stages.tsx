@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
 const PAYMENT_NOTE = [
@@ -92,12 +92,12 @@ export default function StagesTool() {
                   <div className="grid sm:grid-cols-2 gap-5 pt-4">
                     {/* Substages */}
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-2">Substages</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-2">{t('tools.substages')}</p>
                       <ul className="flex flex-col gap-1.5">
                         {stage.substages.map(sub => (
-                          <li key={sub} className="flex items-start gap-2 text-xs text-brand-near-black dark:text-white">
+                          <li key={sub.key} className="flex items-start gap-2 text-xs text-brand-near-black dark:text-white">
                             <span className="size-1.5 rounded-full bg-brand-mid-grey mt-1.5 shrink-0" />
-                            {sub}
+                            {t(`substages.${sub.key}` as TKey, sub.params)}
                           </li>
                         ))}
                       </ul>

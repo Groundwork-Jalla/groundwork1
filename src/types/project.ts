@@ -301,6 +301,9 @@ export interface ProjectStageRow {
   id: string;
   project_id: string;
   stage_number: number;
+  /** i18n key (migration 024). Null on rows the backfill could not match — render `name`. */
+  stage_key: string | null;
+  /** English name, persisted at creation. Audit trail and render fallback. */
   name: string;
   status: StageStatus;
   budget_pct: number;
@@ -318,6 +321,8 @@ export interface ProjectSubstageRow {
   stage_id: string;
   project_id: string;
   substage_number: number;
+  /** i18n key (migration 024). Null falls back to `name`. */
+  substage_key: string | null;
   name: string;
   status: SubstageStatus;
   evidence_urls: string[];
