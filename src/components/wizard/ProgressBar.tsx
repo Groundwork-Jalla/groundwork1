@@ -1,19 +1,28 @@
 import { motion } from 'framer-motion';
 import { useWizard } from '@/contexts/WizardContext';
+import { useT, type TKey } from '@/lib/i18n';
 
-const STEP_LABELS = [
-  'Location',
-  'Project Type',
-  'Building',
-  'Floors',
-  'Rooms',
-  'Quarters',
-  'Roof',
-  'Details',
-  'Plan',
+/**
+ * One key per wizard step, in order. This list had nine entries against eleven steps —
+ * "Summary" was never listed and the new "Confirm budget" step was added later — so the
+ * last two rendered the bare fallback "Step 10" / "Step 11".
+ */
+const STEP_KEYS: TKey[] = [
+  'wizard.stepLocation',
+  'wizard.stepProjectType',
+  'wizard.stepBuilding',
+  'wizard.stepFloors',
+  'wizard.stepRooms',
+  'wizard.stepQuarters',
+  'wizard.stepRoof',
+  'wizard.stepDetails',
+  'wizard.stepSummary',
+  'wizard.stepPlan',
+  'wizard.stepConfirm',
 ];
 
 export default function ProgressBar() {
+  const t = useT();
   const { step, totalSteps, goTo } = useWizard();
   const pct = ((step - 1) / (totalSteps - 1)) * 100;
 
@@ -21,7 +30,7 @@ export default function ProgressBar() {
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium text-brand-mid-grey">
-          {STEP_LABELS[step - 1] ?? `Step ${step}`}
+          {STEP_KEYS[step - 1] ? t(STEP_KEYS[step - 1]) : t('wizard.stepN', { n: step })}
         </span>
         <span className="text-[11px] font-medium text-brand-mid-grey tabular-nums">
           {step} / {totalSteps}
@@ -66,7 +75,7 @@ export default function ProgressBar() {
               type="button"
               disabled={!done}
               onClick={() => done && goTo(n)}
-              aria-label={`Go to step ${n}: ${STEP_LABELS[i]}`}
+              aria-label={t('wizard.goToStep', { n, label: STEP_KEYS[i] ? t(STEP_KEYS[i]) : String(n) })}
               className="w-1 h-1 rounded-full transition-colors disabled:cursor-default focus:outline-none"
               style={{
                 background: n <= step ? '#0a0a0a' : '#e5e5e5',

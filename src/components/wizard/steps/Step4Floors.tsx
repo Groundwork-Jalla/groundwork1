@@ -1,21 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
-const FLOOR_LABELS: Record<number, string> = {
-  1: 'Single storey',
-  2: 'Two storeys',
-  3: 'Three storeys',
-  4: 'Four storeys',
-  5: 'Five storeys',
-  6: 'Six storeys',
-  7: 'Seven storeys',
-  8: 'Eight storeys',
-};
-
-function getLabel(n: number) {
-  return FLOOR_LABELS[n] ?? `${n} storeys`;
+/**
+ * French uses the R+N convention (R+1 = ground plus one), which is what Cameroonian
+ * drawings and BQs use — a literal "deux étages" would be ambiguous about the ground
+ * floor. Hence keys rather than a number-to-word map.
+ */
+function useFloorLabel() {
+  const t = useT();
+  return (n: number) =>
+    n >= 1 && n <= 8 ? t(`wizard.floors${n}` as TKey) : t('wizard.floorsN', { n });
 }
 
 // Stacked floor bars visual (compact version for the step panel)
@@ -42,6 +38,7 @@ function FloorStack({ floors }: { floors: number }) {
 
 export default function Step4Floors() {
   const t = useT();
+  const floorLabel = useFloorLabel();
   const { data, update, next } = useWizard();
 
   function setFloors(n: number) {
@@ -108,7 +105,7 @@ export default function Step4Floors() {
         </div>
 
         <p className="mt-5 text-center text-sm font-medium text-brand-mid-grey">
-          {getLabel(data.floors)}
+          {floorLabel(data.floors)}
         </p>
       </div>
     </WizardShell>

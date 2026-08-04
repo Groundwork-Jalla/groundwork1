@@ -5,7 +5,8 @@ import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudget, formatUSD } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom } from '@/types/project';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Photo image map (step 2 / 3 / 7) ──────────────────────────
 const BUILDING_IMAGES: Record<string, string> = {
@@ -40,43 +41,51 @@ const BUILDING_IMAGES: Record<string, string> = {
   shingle:              'https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=900&q=80',
 };
 
-const IMAGE_LABELS: Record<string, { title: string; sub: string }> = {
-  residential:  { title: 'Residential Build',            sub: 'Project type' },
-  commercial:   { title: 'Commercial Development',       sub: 'Project type' },
-  industrial:   { title: 'Industrial Facility',          sub: 'Project type' },
-  mixed_use:    { title: 'Mixed-Use Development',        sub: 'Project type' },
-  single_family:{ title: 'Single Family Home',           sub: 'Building type' },
-  bungalow:     { title: 'Bungalow',                     sub: 'Building type' },
-  villa:        { title: 'Villa',                        sub: 'Building type' },
-  apartment:    { title: 'Apartment Block',              sub: 'Building type' },
-  duplex:       { title: 'Duplex',                       sub: 'Building type' },
-  townhouse:    { title: 'Townhouse',                    sub: 'Building type' },
-  semi_detached:{ title: 'Semi-Detached',                sub: 'Building type' },
-  multi_family: { title: 'Multi-Family',                 sub: 'Building type' },
-  guest_house:  { title: 'Guest House',                  sub: 'Building type' },
-  office:       { title: 'Office Building',              sub: 'Building type' },
-  retail:       { title: 'Retail Space',                 sub: 'Building type' },
-  hotel:        { title: 'Hotel',                        sub: 'Building type' },
-  warehouse_commercial: { title: 'Warehouse',            sub: 'Building type' },
-  factory:      { title: 'Factory / Plant',              sub: 'Building type' },
-  warehouse_industrial: { title: 'Industrial Warehouse', sub: 'Building type' },
-  industrial_complex:   { title: 'Industrial Complex',   sub: 'Building type' },
-  distribution_centre:  { title: 'Distribution Centre',  sub: 'Building type' },
-  mixed_residential_commercial: { title: 'Residential + Commercial', sub: 'Building type' },
-  live_work:    { title: 'Live / Work Space',            sub: 'Building type' },
-  mixed_retail_residential: { title: 'Retail + Residential', sub: 'Building type' },
-  transit_oriented: { title: 'Transit-Oriented',        sub: 'Building type' },
-  long_span_aluminum: { title: 'Metal Sheet Roofing',   sub: 'Roof type' },
-  clay_tiles:   { title: 'Clay Tile Roof',               sub: 'Roof type' },
-  concrete_flat:{ title: 'Concrete Flat Roof',           sub: 'Roof type' },
-  shingle:      { title: 'Shingle Roof',                 sub: 'Roof type' },
-};
-
 // ── Image panel (steps 2, 3, 7) ────────────────────────────────
+
+/**
+ * Which caption sits above each preview image — the category it illustrates.
+ * Split out from the old IMAGE_LABELS map, whose English titles now live in the
+ * dictionary under preview.title.*
+ */
+const IMAGE_SUB_GROUP: Record<string, 'projectType' | 'buildingType' | 'roofType'> = {
+  residential: 'projectType',
+  commercial: 'projectType',
+  industrial: 'projectType',
+  mixed_use: 'projectType',
+  single_family: 'buildingType',
+  bungalow: 'buildingType',
+  villa: 'buildingType',
+  apartment: 'buildingType',
+  duplex: 'buildingType',
+  townhouse: 'buildingType',
+  semi_detached: 'buildingType',
+  multi_family: 'buildingType',
+  guest_house: 'buildingType',
+  office: 'buildingType',
+  retail: 'buildingType',
+  hotel: 'buildingType',
+  warehouse_commercial: 'buildingType',
+  factory: 'buildingType',
+  warehouse_industrial: 'buildingType',
+  industrial_complex: 'buildingType',
+  distribution_centre: 'buildingType',
+  mixed_residential_commercial: 'buildingType',
+  live_work: 'buildingType',
+  mixed_retail_residential: 'buildingType',
+  transit_oriented: 'buildingType',
+  long_span_aluminum: 'roofType',
+  clay_tiles: 'roofType',
+  concrete_flat: 'roofType',
+  shingle: 'roofType',
+};
 
 function ImagePanel({ imageKey }: { imageKey: string | null }) {
   const t = useT();
-  const meta = imageKey ? IMAGE_LABELS[imageKey] : null;
+  // Titles and the sub-caption now come from the dictionary, keyed off the image key.
+  const labels = useDomainLabels();
+  const metaTitle = imageKey ? labels.previewTitle(imageKey) : null;
+  const metaSub   = imageKey ? t(`preview.sub.${IMAGE_SUB_GROUP[imageKey] ?? 'buildingType'}` as TKey) : null;
   const src  = imageKey ? BUILDING_IMAGES[imageKey] : null;
 
   return (
@@ -93,7 +102,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
           /* Ken Burns — slow continuous zoom + drift */
           <motion.img
             src={src}
-            alt={meta?.title ?? 'Building'}
+            alt={metaTitle ?? t('wizard.previewPlaceholder')}
             className="absolute inset-0 w-full h-full object-cover origin-center"
             style={{ willChange: 'transform' }}
             animate={{ scale: [1.05, 1.12, 1.05], x: [-6, 6, -6] }}
@@ -112,7 +121,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
 
         {/* Floating pill — top right */}
         <AnimatePresence mode="wait">
-          {meta && (
+          {metaTitle && (
             <motion.div
               key={`pill-${imageKey}`}
               initial={{ opacity: 0, y: -10 }}
@@ -127,7 +136,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
                 className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 text-[11px] font-medium"
               >
                 <span className="size-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-                {meta.sub}
+                {metaSub}
               </motion.div>
             </motion.div>
           )}
@@ -135,7 +144,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
 
         {/* Bottom label */}
         <AnimatePresence mode="wait">
-          {meta && (
+          {metaTitle && (
             <motion.div
               key={imageKey}
               initial={{ opacity: 0, y: 12 }}
@@ -144,8 +153,8 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
               transition={{ duration: 0.35, delay: 0.1 }}
               className="absolute bottom-0 left-0 right-0 p-7"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">{meta.sub}</p>
-              <p className="text-2xl font-black text-white leading-tight">{meta.title}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">{metaSub}</p>
+              <p className="text-2xl font-black text-white leading-tight">{metaTitle}</p>
             </motion.div>
           )}
         </AnimatePresence>

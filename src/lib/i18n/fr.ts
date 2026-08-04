@@ -976,6 +976,28 @@ export const fr: Mirror<EnDict> = {
   // ── Intégration ───────────────────────────────────────────
   // ── Project wizard ────────────────────────────────────────
   wizard: {
+    stepLocation: "Lieu",
+    stepProjectType: "Type de projet",
+    stepBuilding: "Bâtiment",
+    stepFloors: "Niveaux",
+    stepRooms: "Pièces",
+    stepQuarters: "Dépendance",
+    stepRoof: "Toiture",
+    stepDetails: "Détails",
+    stepSummary: "Récapitulatif",
+    stepPlan: "Forfait",
+    stepConfirm: "Confirmation",
+    stepN: "Étape {n}",
+    goToStep: "Aller à l'étape {n} : {label}",
+    floors1: "Plain-pied",
+    floors2: "R+1",
+    floors3: "R+2",
+    floors4: "R+3",
+    floors5: "R+4",
+    floors6: "R+5",
+    floors7: "R+6",
+    floors8: "R+7",
+    floorsN: "R+{n}",
     finishLevel: "Niveau de finition",
     bqCost: "Ajoute environ 8 000 $ par pièce à l'estimation",
     previewPlaceholder: "Choisissez une option pour l'aperçu",
@@ -1525,6 +1547,7 @@ export const fr: Mirror<EnDict> = {
 
     // ── Onglet Documents ────────────────────────────────────
     documents: {
+      noneOfCategory: "Aucun document « {category} »",
       catPlan:      'Plans et dessins',
       catPermit:    'Permis et autorisations',
       catContract:  'Contrats',

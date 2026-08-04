@@ -961,6 +961,28 @@ export const en = {
   // ── Onboarding ────────────────────────────────────────────
   // ── Project wizard ────────────────────────────────────────
   wizard: {
+    stepLocation: "Location",
+    stepProjectType: "Project Type",
+    stepBuilding: "Building",
+    stepFloors: "Floors",
+    stepRooms: "Rooms",
+    stepQuarters: "Quarters",
+    stepRoof: "Roof",
+    stepDetails: "Details",
+    stepSummary: "Summary",
+    stepPlan: "Plan",
+    stepConfirm: "Confirm",
+    stepN: "Step {n}",
+    goToStep: "Go to step {n}: {label}",
+    floors1: "Single storey",
+    floors2: "Two storeys",
+    floors3: "Three storeys",
+    floors4: "Four storeys",
+    floors5: "Five storeys",
+    floors6: "Six storeys",
+    floors7: "Seven storeys",
+    floors8: "Eight storeys",
+    floorsN: "{n} storeys",
     finishLevel: "Finish level",
     bqCost: "Adds ~$8,000 per room to the budget estimate",
     previewPlaceholder: "Select an option to preview",
@@ -1510,6 +1532,7 @@ export const en = {
 
     // ── Documents tab ───────────────────────────────────────
     documents: {
+      noneOfCategory: "No {category} documents",
       catPlan:      'Plans & Drawings',
       catPermit:    'Permits & Approvals',
       catContract:  'Contracts',

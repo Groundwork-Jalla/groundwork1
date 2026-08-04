@@ -22,22 +22,13 @@ import {
   deleteDocument,
 } from '@/lib/supabase/documents';
 import type { ProjectDocumentRow, DocumentCategory } from '@/types/project';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
-
-export const CATEGORY_LABELS: Record<DocumentCategory, string> = {
-  contract:   'Contract',
-  permit:     'Permit',
-  receipt:    'Receipt',
-  invoice:    'Invoice',
-  report:     'Report',
-  site_photo: 'Site Photo',
-  other:      'Other',
-};
 
 const CATEGORY_ORDER: DocumentCategory[] = [
   'contract', 'permit', 'receipt', 'invoice', 'report', 'site_photo', 'other',
@@ -84,9 +75,10 @@ function SkeletonRow() {
 }
 
 function CategoryBadge({ category }: { category: DocumentCategory }) {
+  const labels = useDomainLabels();
   return (
     <span className="inline-flex items-center rounded-full border border-brand-border-grey dark:border-[#2c2c2c] px-1.5 py-px text-[9px] font-medium text-brand-mid-grey uppercase tracking-wide whitespace-nowrap">
-      {CATEGORY_LABELS[category] ?? 'Other'}
+      {labels.docCategory(category)}
     </span>
   );
 }
@@ -220,6 +212,7 @@ function CategorySection({
   onDeleteRequest: (doc: ProjectDocumentRow) => void;
   downloadingId: string | null;
 }) {
+  const labels = useDomainLabels();
   const [open, setOpen] = useState(true);
   return (
     <div>
@@ -229,7 +222,7 @@ function CategorySection({
         className="w-full flex items-center justify-between px-4 py-2 bg-brand-off-white dark:bg-[#1a1a1a] border-b border-brand-border-grey dark:border-[#2c2c2c] hover:bg-brand-light-grey dark:hover:bg-[#242424] transition-colors"
       >
         <span className="text-xs font-semibold text-brand-near-black dark:text-white uppercase tracking-wide">
-          {CATEGORY_LABELS[category]}
+          {labels.docCategory(category)}
           <span className="ml-1.5 font-normal text-brand-mid-grey">({docs.length})</span>
         </span>
         <ChevronDown className={cn('size-3.5 text-brand-mid-grey transition-transform', !open && '-rotate-90')} />
@@ -283,6 +276,7 @@ function CategorySelectModal({
   onConfirm: (category: DocumentCategory) => void;
   onCancel: () => void;
 }) {
+  const labels = useDomainLabels();
   const t = useT();
   const [selected, setSelected] = useState<DocumentCategory>('other');
   return (
@@ -310,7 +304,7 @@ function CategorySelectModal({
                   : 'border-brand-border-grey dark:border-[#2c2c2c] text-brand-near-black dark:text-white hover:bg-brand-off-white dark:hover:bg-[#282828]',
               )}
             >
-              {CATEGORY_LABELS[cat]}
+              {labels.docCategory(cat)}
             </button>
           ))}
         </div>
@@ -339,6 +333,7 @@ export interface DocumentVaultProps {
 }
 
 export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
+  const labels = useDomainLabels();
   const t = useT();
   const [docs, setDocs] = useState<ProjectDocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -562,7 +557,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
                   : 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >
-              {CATEGORY_LABELS[cat]} ({countByCategory(cat)})
+              {labels.docCategory(cat)} ({countByCategory(cat)})
             </button>
           ))}
         </div>
@@ -611,7 +606,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
         {!loading && filteredDocs.length === 0 && !fetchError && (
           <EmptyState
             icon={<FolderOpen className="size-10" />}
-            title={filterCategory === 'all' ? 'No documents yet' : `No ${CATEGORY_LABELS[filterCategory as DocumentCategory]} documents`}
+            title={filterCategory === 'all' ? 'No documents yet' : t('project.documents.noneOfCategory', { category: labels.docCategory(filterCategory) })}
             description={filterCategory === 'all'
               ? 'Upload contracts, permits, or plans to keep everything in one place.'
               : 'Try another category or upload a document.'}
