@@ -1,9 +1,10 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
 } from 'react';
-import { en, type EnDict } from './en';
-import { fr } from './fr';
-import { LANG_META, LANGS, type DeepKeys, type Lang } from './types';
+import { en } from './en';
+import { LANG_META, LANGS, type Lang } from './types';
+import { FRENCH_DEFAULT_COUNTRIES, translate, translatePlural, type TKey } from './translate';
+import { persistPreferredLang } from './persist-lang';
 import {
   formatDate, formatDateTime, formatMoney, formatNumber, formatPercent,
   formatRelative, localeFor, setFormatLocale, type DateStyle,
@@ -11,13 +12,9 @@ import {
 
 export type { Lang } from './types';
 export { LANGS, LANG_META } from './types';
+export { translate, translator, resolveRecipientLang, type TKey } from './translate';
 
 export const STORAGE_KEY = 'lang';
-
-/** Every valid dot-path into the dictionary — "nav.dashboard", "auth.login.title", … */
-export type TKey = DeepKeys<EnDict>;
-
-const DICTS: Record<Lang, unknown> = { en, fr };
 
 // =========================================================
 // Detection
@@ -54,31 +51,6 @@ export function detectLang(): Lang {
 // Lookup + interpolation
 // =========================================================
 
-function lookup(dict: unknown, path: string): string | undefined {
-  let node: unknown = dict;
-  for (const segment of path.split('.')) {
-    if (typeof node !== 'object' || node === null) return undefined;
-    node = (node as Record<string, unknown>)[segment];
-  }
-  return typeof node === 'string' ? node : undefined;
-}
-
-function interpolate(template: string, params?: Record<string, string | number>): string {
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in params ? String(params[key]) : match,
-  );
-}
-
-/**
- * French treats 0 and 1 as singular; English treats only 1 as singular.
- * Callers opt in by providing a `{key}_plural` entry alongside `{key}`.
- */
-function pluralKey(base: string, count: number, lang: Lang): string {
-  const isSingular = lang === 'fr' ? Math.abs(count) < 2 : count === 1;
-  return isSingular ? base : `${base}_plural`;
-}
-
 // =========================================================
 // Context
 // =========================================================
@@ -92,7 +64,7 @@ function pluralKey(base: string, count: number, lang: Lang): string {
  * lock — the toggle stays available everywhere and an explicit choice always
  * wins, on this visit and every future one.
  */
-export const FRENCH_DEFAULT_COUNTRIES = ['CM'];
+export { FRENCH_DEFAULT_COUNTRIES };
 
 /** True when the user has already made an explicit language choice. */
 export function hasExplicitLangChoice(): boolean {
@@ -131,24 +103,37 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // (PDF export, and anything computing a string outside the tree).
   useEffect(() => { setFormatLocale(lang); }, [lang]);
 
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
+  /**
+   * Record an explicit choice everywhere it needs to be known:
+   *   localStorage — so this browser remembers on the next visit
+   *   <html lang>  — so screen readers and the browser pick the right pronunciation
+   *   profiles     — so *email* to this person is written in their language
+   *
+   * The profile write is fire-and-forget and only fires when signed in. Nobody should
+   * be blocked from flipping a toggle because a network call is in flight, and an
+   * anonymous visitor has no row to write to. localStorage still carries the choice
+   * into the session they eventually create.
+   */
+  const persistChoice = useCallback((next: Lang) => {
+    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* private mode */ }
     if (typeof document !== 'undefined') {
       document.documentElement.lang = LANG_META[next].htmlLang;
     }
+    void persistPreferredLang(next);
   }, []);
+
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    persistChoice(next);
+  }, [persistChoice]);
 
   const toggle = useCallback(() => {
     setLangState(prev => {
       const next: Lang = prev === 'en' ? 'fr' : 'en';
-      try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
-      if (typeof document !== 'undefined') {
-        document.documentElement.lang = LANG_META[next].htmlLang;
-      }
+      persistChoice(next);
       return next;
     });
-  }, []);
+  }, [persistChoice]);
 
   const suggestLangForCountry = useCallback((countryCode: string | null | undefined) => {
     if (!countryCode) return;
@@ -169,28 +154,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: TKey, params?: Record<string, string | number>) => {
-      // Fall back to English, then to the raw key, so a missing translation
-      // degrades to readable text rather than a blank screen.
-      const hit = lookup(DICTS[lang], key) ?? lookup(en, key);
-      if (hit === undefined) {
-        if (import.meta.env.DEV) console.warn(`[i18n] missing key: ${key}`);
-        return key;
-      }
-      return interpolate(hit, params);
+      const out = translate(lang, key, params);
+      // translate() returns the key when it is missing. Warning here rather than in
+      // translate.ts keeps `import.meta` out of the serverless email path.
+      if (import.meta.env.DEV && out === key) console.warn(`[i18n] missing key: ${key}`);
+      return out;
     },
     [lang],
   );
 
   const tPlural = useCallback(
-    (key: TKey, count: number, params?: Record<string, string | number>) => {
-      const resolved = pluralKey(key, count, lang);
-      const hit = lookup(DICTS[lang], resolved)
-        ?? lookup(DICTS[lang], key)
-        ?? lookup(en, resolved)
-        ?? lookup(en, key);
-      if (hit === undefined) return key;
-      return interpolate(hit, { count, ...params });
-    },
+    (key: TKey, count: number, params?: Record<string, string | number>) =>
+      translatePlural(lang, key, count, params),
     [lang],
   );
 

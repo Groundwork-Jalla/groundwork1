@@ -1,8 +1,10 @@
 import { supabase } from './client';
 import { notifyAdmins } from './notifications';
 import { sendEmail } from '../email/send-email';
-import { buildStageApprovedHtml } from '../email/stage-approved-html';
-import { buildReworkHtml } from '../email/rework-requested-html';
+import { buildStageApprovedHtml, stageApprovedSubject } from '../email/stage-approved-html';
+import { resolveRecipientLang, translate, type TKey } from '@/lib/i18n/translate';
+import type { Lang } from '@/lib/i18n/types';
+import { buildReworkHtml, reworkSubject } from '../email/rework-requested-html';
 import { issueCertificate } from './certificates';
 import { trackEvent } from '@/lib/analytics';
 
@@ -154,6 +156,21 @@ export async function approveStage(
   });
 }
 
+/**
+ * Stage name in the recipient's language.
+ *
+ * Mirrors `useStageLabels()` on the render side: prefer the dictionary entry for the
+ * stored `stage_key`, fall back to the English `name` column when the key is NULL (a
+ * row migration 024's backfill could not match). Never renders a bare key like
+ * `stages.roofing` — an email is not a place to leak an identifier.
+ */
+function localizeStage(lang: Lang, key: string | null, storedName: string): string {
+  if (!key) return storedName;
+  const dictKey = `stages.${key}` as TKey;
+  const hit = translate(lang, dictKey);
+  return hit === dictKey ? storedName : hit;
+}
+
 // =========================================================
 // adminApproveStage — called by Jalla admin
 // Marks stage complete, approves all substages, unlocks next,
@@ -167,10 +184,12 @@ export async function adminApproveStage(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  // Fetch current stage name upfront
+  // Fetch current stage name upfront. `stage_key` (migration 024) is what lets the
+  // email render the stage in the owner's language — `name` is the stored English.
   const { data: stageData } = await supabase
-    .from('project_stages').select('name').eq('id', stageId).single();
+    .from('project_stages').select('name, stage_key').eq('id', stageId).single();
   const stageName = stageData?.name ?? `Stage ${stageNumber}`;
+  const stageKey  = stageData?.stage_key ?? null;
 
   // Mark all pending substages approved
   await supabase
@@ -190,14 +209,16 @@ export async function adminApproveStage(
   const nextStageNumber = stageNumber + 1;
   const isFinalStage = nextStageNumber > 10;
   let nextStageName = 'Project Complete';
+  let nextStageKey: string | null = null;
 
   if (!isFinalStage) {
     const { data: nextStage } = await supabase
-      .from('project_stages').select('id, name')
+      .from('project_stages').select('id, name, stage_key')
       .eq('project_id', projectId).eq('stage_number', nextStageNumber).single();
 
     if (nextStage) {
       nextStageName = nextStage.name ?? nextStageName;
+      nextStageKey  = nextStage.stage_key ?? null;
       await supabase.from('project_stages').update({ status: 'active' }).eq('id', nextStage.id);
       await supabase.from('project_substages').update({ status: 'pending' }).eq('stage_id', nextStage.id);
     }
@@ -211,7 +232,7 @@ export async function adminApproveStage(
 
   // Notify homeowner (bell + email)
   const { data: proj } = await supabase
-    .from('projects').select('user_id, name').eq('id', projectId).single();
+    .from('projects').select('user_id, name, country').eq('id', projectId).single();
 
   if (proj) {
     await supabase.from('notifications').insert({
@@ -224,9 +245,17 @@ export async function adminApproveStage(
 
     // Send email + issue certificate (fire-and-forget — never block the approval)
     Promise.resolve(
-      supabase.from('profiles').select('full_name, email').eq('id', proj.user_id).single()
+      supabase.from('profiles')
+        .select('full_name, email, preferred_lang')
+        .eq('id', proj.user_id).single()
     ).then(async ({ data: profile }) => {
       const ownerName = profile?.full_name ?? 'there';
+      // The admin approving this may be reading English; the owner may not be.
+      const lang = resolveRecipientLang(profile?.preferred_lang, proj.country);
+      const stageLabel = localizeStage(lang, stageKey, stageName);
+      const nextLabel  = isFinalStage
+        ? translate(lang, 'project.stages.projectComplete')
+        : localizeStage(lang, nextStageKey, nextStageName);
 
       // Issue certificate first so we can include the verify link in the email
       let certId: string | undefined;
@@ -237,7 +266,8 @@ export async function adminApproveStage(
           stageNumber,
           ownerName,
           projectName: proj.name,
-          stageName,
+          stageName: stageLabel,
+          lang,
         });
         // Extract the UUID from the end of the storage path via the cert record
         const certRecord = await supabase
@@ -253,8 +283,15 @@ export async function adminApproveStage(
       if (profile?.email) {
         sendEmail(
           profile.email,
-          `Stage Approved: ${stageName}`,
-          buildStageApprovedHtml(ownerName, proj.name, stageName, nextStageName, projectId, certId),
+          stageApprovedSubject(lang, stageLabel),
+          buildStageApprovedHtml(lang, {
+            ownerName,
+            projectName: proj.name,
+            stageName: stageLabel,
+            nextStageName: nextLabel,
+            projectId,
+            certificateId: certId,
+          }),
         ).catch(() => {});
       }
     }).catch(() => {});
@@ -283,8 +320,9 @@ export async function adminRequestRework(
 ): Promise<void> {
   // Fetch stage name
   const { data: stageData } = await supabase
-    .from('project_stages').select('name').eq('id', stageId).single();
+    .from('project_stages').select('name, stage_key').eq('id', stageId).single();
   const stageName = stageData?.name ?? `Stage ${stageNumber}`;
+  const stageKey  = stageData?.stage_key ?? null;
 
   // Count flagged substages before resetting (for email)
   const { count: flaggedCount } = await supabase
@@ -304,7 +342,7 @@ export async function adminRequestRework(
 
   // Notify homeowner (bell + email)
   const { data: proj } = await supabase
-    .from('projects').select('user_id, name').eq('id', projectId).single();
+    .from('projects').select('user_id, name, country').eq('id', projectId).single();
 
   if (proj) {
     await supabase.from('notifications').insert({
@@ -317,20 +355,24 @@ export async function adminRequestRework(
 
     // Send email (fire-and-forget)
     Promise.resolve(
-      supabase.from('profiles').select('full_name, email').eq('id', proj.user_id).single()
+      supabase.from('profiles')
+        .select('full_name, email, preferred_lang')
+        .eq('id', proj.user_id).single()
     ).then(({ data: profile }) => {
       if (!profile?.email) return;
+      const lang = resolveRecipientLang(profile.preferred_lang, proj.country);
+      const stageLabel = localizeStage(lang, stageKey, stageName);
       sendEmail(
         profile.email,
-        `Rework Requested: ${stageName}`,
-        buildReworkHtml(
-          profile.full_name ?? 'there',
-          proj.name,
-          stageName,
-          reason,
-          flaggedCount ?? 0,
+        reworkSubject(lang, stageLabel),
+        buildReworkHtml(lang, {
+          ownerName: profile.full_name ?? 'there',
+          projectName: proj.name,
+          stageName: stageLabel,
+          reworkNote: reason,
+          flaggedCount: flaggedCount ?? 0,
           projectId,
-        ),
+        }),
       ).catch(() => {});
     }).catch(() => {});
   }

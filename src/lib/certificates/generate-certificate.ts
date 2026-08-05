@@ -1,3 +1,7 @@
+import { translator } from '@/lib/i18n/translate';
+import { localeFor } from '@/lib/format';
+import type { Lang } from '@/lib/i18n/types';
+
 export interface CertificateOptions {
   projectName: string;
   stageName: string;
@@ -5,12 +9,19 @@ export interface CertificateOptions {
   ownerName: string;
   issuedAt: Date;
   certificateId: string;
+  /**
+   * Baked in at generation time — a certificate is a stored artefact, not a view, so
+   * there is no later opportunity to re-render it in another language.
+   */
+  lang: Lang;
 }
 
 // ── Helpers ───────────────────────────────────────────────
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-GB', {
+// The date was hardcoded to en-GB, so a French certificate would have read
+// "3 August 2026" under "DATE DE DÉLIVRANCE".
+function formatDate(d: Date, lang: Lang): string {
+  return d.toLocaleDateString(localeFor(lang), {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 }
@@ -18,7 +29,8 @@ function formatDate(d: Date): string {
 // ── PDF generation ────────────────────────────────────────
 
 export async function generateCertificate(opts: CertificateOptions): Promise<Blob> {
-  const { projectName, stageName, stageNumber, ownerName, issuedAt, certificateId } = opts;
+  const { projectName, stageName, stageNumber, ownerName, issuedAt, certificateId, lang } = opts;
+  const t = translator(lang);
   const { jsPDF } = await import('jspdf');
 
   const doc = new jsPDF({
@@ -56,13 +68,13 @@ export async function generateCertificate(opts: CertificateOptions): Promise<Blo
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(200, 200, 200);
-  doc.text('by Jalla  ·  Verified Construction Management', W / 2, 24, { align: 'center' });
+  doc.text(t('cert.brandSub'), W / 2, 24, { align: 'center' });
 
   // ── "CERTIFICATE OF STAGE COMPLETION" title ─────────────
   doc.setTextColor(10, 10, 10);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('CERTIFICATE OF STAGE COMPLETION', W / 2, 46, { align: 'center' });
+  doc.text(t('cert.title'), W / 2, 46, { align: 'center' });
 
   // ── Thin rule under title ────────────────────────────────
   doc.setDrawColor(10, 10, 10);
@@ -73,7 +85,7 @@ export async function generateCertificate(opts: CertificateOptions): Promise<Blo
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.text('This is to certify that', W / 2, 62, { align: 'center' });
+  doc.text(t('cert.certifies'), W / 2, 62, { align: 'center' });
 
   // Owner name (large)
   doc.setFont('helvetica', 'bold');
@@ -90,18 +102,18 @@ export async function generateCertificate(opts: CertificateOptions): Promise<Blo
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.text('has successfully completed', W / 2, 91, { align: 'center' });
+  doc.text(t('cert.completed'), W / 2, 91, { align: 'center' });
 
   // Stage + project
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(10, 10, 10);
-  doc.text(`Stage ${stageNumber}: ${stageName}`, W / 2, 103, { align: 'center' });
+  doc.text(t('cert.stageLine', { n: stageNumber, name: stageName }), W / 2, 103, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.text('of the construction project', W / 2, 112, { align: 'center' });
+  doc.text(t('cert.ofProject'), W / 2, 112, { align: 'center' });
 
   // Project name (medium bold)
   doc.setFont('helvetica', 'bold');
@@ -128,19 +140,19 @@ export async function generateCertificate(opts: CertificateOptions): Promise<Blo
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(10, 10, 10);
-  doc.text('DATE ISSUED', colLeft + 30, stampY + 6, { align: 'center' });
+  doc.text(t('cert.dateIssued'), colLeft + 30, stampY + 6, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(formatDate(issuedAt), colLeft + 30, stampY + 13, { align: 'center' });
+  doc.text(formatDate(issuedAt, lang), colLeft + 30, stampY + 13, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.text('VERIFIED BY', colRight - 30, stampY + 6, { align: 'center' });
+  doc.text(t('cert.verifiedBy'), colRight - 30, stampY + 6, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Jalla Review Team', colRight - 30, stampY + 13, { align: 'center' });
+  doc.text(t('cert.reviewTeam'), colRight - 30, stampY + 13, { align: 'center' });
 
   // ── Groundwork "seal" circle ─────────────────────────────
   doc.setDrawColor(10, 10, 10);
@@ -154,16 +166,16 @@ export async function generateCertificate(opts: CertificateOptions): Promise<Blo
   doc.setTextColor(10, 10, 10);
   doc.text('GROUNDWORK', W / 2, 145, { align: 'center' });
   doc.setFontSize(4);
-  doc.text('✓ VERIFIED', W / 2, 149.5, { align: 'center' });
+  doc.text(`✓ ${t('cert.sealVerified')}`, W / 2, 149.5, { align: 'center' });
   doc.setFontSize(3.5);
-  doc.text('BY JALLA', W / 2, 153.5, { align: 'center' });
+  doc.text(t('cert.sealBy'), W / 2, 153.5, { align: 'center' });
 
   // ── Footer: certificate ID ───────────────────────────────
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
   doc.setTextColor(160, 160, 160);
   doc.text(
-    `Certificate ID: ${certificateId}  ·  Verify at tryjalla.com/verify/${certificateId}`,
+    t('cert.footer', { id: certificateId }),
     W / 2, H - 14, { align: 'center' },
   );
 

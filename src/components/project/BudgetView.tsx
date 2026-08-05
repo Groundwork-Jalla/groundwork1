@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
@@ -356,13 +356,14 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
 
 export default function BudgetView({ project, stages }: BudgetViewProps) {
   const { stageLabel } = useStageLabels();
+  const { lang } = useLanguage();
   const t = useT();
   const [exporting, setExporting] = useState(false);
 
   async function handleExportPDF() {
     setExporting(true);
     try {
-      await exportBudgetPDF(project, stages);
+      await exportBudgetPDF(project, stages, lang);
     } finally {
       setExporting(false);
     }

@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { generateCertificate } from '../certificates/generate-certificate';
+import type { Lang } from '@/lib/i18n/types';
 
 // =========================================================
 // issueCertificate
@@ -13,9 +14,16 @@ export async function issueCertificate(opts: {
   stageNumber: number;
   ownerName:   string;
   projectName: string;
+  /** Already translated by the caller from `stage_key`. */
   stageName:   string;
+  /**
+   * The *owner's* language, not the approving admin's. A certificate is rendered once
+   * and stored as a PDF; there is no re-render later, so whatever is chosen here is
+   * what the owner downloads forever.
+   */
+  lang:        Lang;
 }): Promise<string> {
-  const { projectId, stageId, stageNumber, ownerName, projectName, stageName } = opts;
+  const { projectId, stageId, stageNumber, ownerName, projectName, stageName, lang } = opts;
 
   // 1. Pre-generate a UUID so the PDF can embed the verify URL
   const certId = crypto.randomUUID();
@@ -28,6 +36,7 @@ export async function issueCertificate(opts: {
     ownerName,
     issuedAt: new Date(),
     certificateId: certId,
+    lang,
   });
 
   // 3. Upload to 'certificates' bucket — public read bucket

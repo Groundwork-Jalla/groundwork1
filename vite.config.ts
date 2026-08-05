@@ -1,7 +1,7 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
-import { buildInviteHtml } from "./src/lib/email/invite-html";
+import { buildInviteHtml, inviteSubject } from "./src/lib/email/invite-html";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), ""); // no prefix — loads all vars incl. RESEND_API_KEY
@@ -82,7 +82,9 @@ export default defineConfig(({ mode }) => {
             req.on("end", async () => {
               try {
                 const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-                const { toEmail, projectName, inviterName, inviteToken } = body;
+                const { toEmail, projectName, inviterName, inviteToken, lang } = body;
+                // Mirrors api/send-invite.ts so dev and production send the same thing.
+                const recipientLang = lang === "fr" ? "fr" : "en";
 
                 if (!toEmail || !projectName || !inviterName) {
                   res.writeHead(400, { "Content-Type": "application/json" });
@@ -110,8 +112,8 @@ export default defineConfig(({ mode }) => {
                   body: JSON.stringify({
                     from: "Groundwork by Jalla <noreply@mail.tryjalla.com>",
                     to: [toEmail],
-                    subject: `${inviterName} invited you to a Groundwork project`,
-                    html: buildInviteHtml(inviterName, projectName, inviteToken ?? ""),
+                    subject: inviteSubject(recipientLang, inviterName),
+                    html: buildInviteHtml(recipientLang, inviterName, projectName, inviteToken ?? ""),
                   }),
                 });
 

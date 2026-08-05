@@ -54,12 +54,30 @@ export function translate(
 ): string {
   // Fall back to English, then to the raw key, so a missing translation degrades to
   // readable text rather than a blank line in someone's inbox.
+  // NOTE: no `import.meta` in this file. It is imported by the email builders, which
+  // are in turn imported by api/send-invite.ts — a Vercel serverless function. If that
+  // is emitted as CJS, `import.meta` is a *parse* error, not something a guard catches.
+  // The dev-time missing-key warning lives in the React provider instead.
   const hit = lookup(DICTS[lang], key) ?? lookup(en, key);
-  if (hit === undefined) {
-    if (import.meta.env?.DEV) console.warn(`[i18n] missing key: ${key}`);
-    return key;
-  }
+  if (hit === undefined) return key;
   return interpolate(hit, params);
+}
+
+/** Plural-aware translate. See `pluralKey` for the English/French rule. */
+export function translatePlural(
+  lang: Lang,
+  key: TKey,
+  count: number,
+  params?: Record<string, string | number>,
+): string {
+  const resolved = pluralKey(key, count, lang);
+  const dict = DICTS[lang];
+  const hit = lookup(dict, resolved)
+    ?? lookup(dict, key)
+    ?? lookup(en, resolved)
+    ?? lookup(en, key);
+  if (hit === undefined) return key;
+  return interpolate(hit, { count, ...params });
 }
 
 /** Bind `translate` to one language — handy when a builder makes dozens of calls. */

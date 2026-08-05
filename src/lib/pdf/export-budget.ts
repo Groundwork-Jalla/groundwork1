@@ -1,25 +1,50 @@
 import { jsPDF } from 'jspdf';
-import { calculateBudget, formatUSDFull } from '@/lib/budget';
-import { findCountry } from '@/lib/countries';
+import { calculateBudget } from '@/lib/budget';
+import { formatMoney, localeFor } from '@/lib/format';
+import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
+import type { Lang } from '@/lib/i18n/types';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 
+// Percentages match BUDGET_ROLLUP_PCT. The labels reuse the same dictionary keys as
+// BudgetView's on-screen table, so the PDF and the costing tab cannot end up
+// describing the same slice differently.
 const BUDGET_SLICES = [
-  { label: 'Materials',        pct: 41, key: 'materials'   as const },
-  { label: 'Labor',            pct: 23, key: 'labor'       as const },
-  { label: 'Engineering',      pct: 16, key: 'engineering' as const },
-  { label: 'Proj. Management', pct: 10, key: 'management'  as const },
-  { label: 'Contingency',      pct: 8,  key: 'contingency' as const },
-  { label: 'Permits',          pct: 2,  key: 'permits'     as const },
+  { labelKey: 'project.costing.sliceMaterials'   as TKey, pct: 41, key: 'materials'   as const },
+  { labelKey: 'project.costing.sliceLabor'       as TKey, pct: 23, key: 'labor'       as const },
+  { labelKey: 'project.costing.sliceEngineering' as TKey, pct: 16, key: 'engineering' as const },
+  { labelKey: 'project.costing.sliceManagement'  as TKey, pct: 10, key: 'management'  as const },
+  { labelKey: 'project.costing.sliceContingency' as TKey, pct: 8,  key: 'contingency' as const },
+  { labelKey: 'project.costing.slicePermits'     as TKey, pct: 2,  key: 'permits'     as const },
 ] as const;
 
-const PAY_LABEL: Record<string, string> = {
-  paid: 'Paid', partial: 'Partial', unpaid: 'Unpaid',
+const PAY_LABEL: Record<string, TKey> = {
+  paid: 'pdf.payPaid', partial: 'pdf.payPartial', unpaid: 'pdf.payUnpaid',
 };
 
+/** Stage name from `stage_key`, falling back to the stored English `name`. */
+function stageLabel(lang: Lang, stage: ProjectStageRow): string {
+  if (!stage.stage_key) return stage.name;
+  const key = `stages.${stage.stage_key}` as TKey;
+  const hit = translate(lang, key);
+  return hit === key ? stage.name : hit;
+}
+
+/**
+ * Costing report PDF.
+ *
+ * `lang` comes from the viewer's toggle — unlike email, whoever generates this is
+ * whoever reads it. Money and dates go through the locale-aware formatters rather than
+ * `formatUSDFull`, which reads a module-level locale that is only correct by
+ * coincidence outside a render.
+ */
 export async function exportBudgetPDF(
   project: ProjectRow,
   stages: ProjectStageRow[],
+  lang: Lang,
 ): Promise<void> {
+  const t = translator(lang);
+  const locale = localeFor(lang);
+  const money = (n: number) => formatMoney(n, 'USD', locale);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210;
   const MARGIN = 16;
@@ -38,17 +63,16 @@ export async function exportBudgetPDF(
     finishLevel:     project.finish_level,
   });
 
-  const country = findCountry(project.country);
-  const total   = project.budget_usd ?? budget.total;
+  const total = project.budget_usd ?? budget.total;
 
   // ── Header ───────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text('Groundwork', MARGIN, y);
+  doc.text(t('email.brand'), MARGIN, y);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text('by Jalla · Costing Report', MARGIN + 44, y);
+  doc.text(t('pdf.reportTitle'), MARGIN + 44, y);
   doc.setTextColor(0);
   y += 8;
 
@@ -62,10 +86,10 @@ export async function exportBudgetPDF(
   doc.setFontSize(9);
   doc.setTextColor(100);
   const meta = [
-    country?.name ?? project.country,
-    `${project.num_floors} floor${project.num_floors !== 1 ? 's' : ''}`,
-    `${project.sqm} sqm`,
-    project.finish_level.charAt(0).toUpperCase() + project.finish_level.slice(1) + ' finish',
+    translate(lang, `country.${project.country}` as TKey),
+    translatePlural(lang, 'pdf.floors', project.num_floors),
+    t('pdf.sqm', { n: project.sqm }),
+    t('pdf.finish', { level: translate(lang, `finishLevel.${project.finish_level}` as TKey) }),
   ].join(' · ');
   doc.text(meta, MARGIN, y);
   doc.setTextColor(0);
@@ -73,7 +97,9 @@ export async function exportBudgetPDF(
 
   // Date
   doc.text(
-    `Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+    t('pdf.generated', {
+      date: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }),
+    }),
     MARGIN, y,
   );
   y += 8;
@@ -86,18 +112,18 @@ export async function exportBudgetPDF(
   // ── Total ────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text(formatUSDFull(total), MARGIN, y);
+  doc.text(money(total), MARGIN, y);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text('Total estimated build cost (USD · indicative)', MARGIN, y + 6);
+  doc.text(t('pdf.totalCaption'), MARGIN, y + 6);
   doc.setTextColor(0);
   y += 14;
 
   // ── Cost breakdown table ─────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('Cost Breakdown', MARGIN, y);
+  doc.text(t('pdf.breakdown'), MARGIN, y);
   y += 5;
 
   // Table header
@@ -106,9 +132,9 @@ export async function exportBudgetPDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(255);
-  doc.text('Category',  MARGIN + 2, y + 4);
-  doc.text('%',          MARGIN + 80, y + 4);
-  doc.text('Amount (USD)', MARGIN + 100, y + 4);
+  doc.text(t('pdf.colCategory'), MARGIN + 2, y + 4);
+  doc.text('%',                 MARGIN + 80, y + 4);
+  doc.text(t('pdf.colAmount'),  MARGIN + 100, y + 4);
   doc.setTextColor(0);
   y += 6;
 
@@ -121,9 +147,9 @@ export async function exportBudgetPDF(
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN, y, COL, 6, 'F');
     }
-    doc.text(slice.label,                 MARGIN + 2,   y + 4);
-    doc.text(`${slice.pct}%`,             MARGIN + 80,  y + 4);
-    doc.text(formatUSDFull(budget[slice.key]), MARGIN + 100, y + 4);
+    doc.text(t(slice.labelKey),        MARGIN + 2,   y + 4);
+    doc.text(`${slice.pct}%`,          MARGIN + 80,  y + 4);
+    doc.text(money(budget[slice.key]), MARGIN + 100, y + 4);
     y += 6;
     rowShade = !rowShade;
   }
@@ -134,9 +160,9 @@ export async function exportBudgetPDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(255);
-  doc.text('Total',              MARGIN + 2,   y + 5);
-  doc.text('100%',               MARGIN + 80,  y + 5);
-  doc.text(formatUSDFull(total), MARGIN + 100, y + 5);
+  doc.text(t('pdf.total'), MARGIN + 2,   y + 5);
+  doc.text('100%',        MARGIN + 80,  y + 5);
+  doc.text(money(total),  MARGIN + 100, y + 5);
   doc.setTextColor(0);
   y += 12;
 
@@ -145,7 +171,7 @@ export async function exportBudgetPDF(
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('Payment Milestone Schedule', MARGIN, y);
+  doc.text(t('pdf.scheduleTitle'), MARGIN, y);
   y += 5;
 
   // Check page space
@@ -157,10 +183,10 @@ export async function exportBudgetPDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(255);
-  doc.text('Stage',       MARGIN + 2,   y + 4);
-  doc.text('%',            MARGIN + 95,  y + 4);
-  doc.text('Milestone',    MARGIN + 110, y + 4);
-  doc.text('Status',       MARGIN + 155, y + 4);
+  doc.text(t('pdf.colStage'),     MARGIN + 2,   y + 4);
+  doc.text('%',                   MARGIN + 95,  y + 4);
+  doc.text(t('pdf.colMilestone'), MARGIN + 110, y + 4);
+  doc.text(t('pdf.colStatus'),    MARGIN + 155, y + 4);
   doc.setTextColor(0);
   y += 6;
 
@@ -173,10 +199,11 @@ export async function exportBudgetPDF(
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN, y, COL, 6, 'F');
     }
-    doc.text(`${stage.stage_number}. ${stage.name}`, MARGIN + 2,   y + 4);
-    doc.text(`${stage.budget_pct}%`,                  MARGIN + 95,  y + 4);
-    doc.text(formatUSDFull(stage.payment_milestone_usd ?? 0), MARGIN + 110, y + 4);
-    doc.text(PAY_LABEL[stage.payment_status] ?? '—',  MARGIN + 155, y + 4);
+    const payKey = PAY_LABEL[stage.payment_status];
+    doc.text(`${stage.stage_number}. ${stageLabel(lang, stage)}`, MARGIN + 2,   y + 4);
+    doc.text(`${stage.budget_pct}%`,                              MARGIN + 95,  y + 4);
+    doc.text(money(stage.payment_milestone_usd ?? 0),             MARGIN + 110, y + 4);
+    doc.text(payKey ? t(payKey) : '—',                            MARGIN + 155, y + 4);
     y += 6;
     rowShade = !rowShade;
   }
@@ -187,8 +214,7 @@ export async function exportBudgetPDF(
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7.5);
   doc.setTextColor(130);
-  const disclaimer = 'Indicative estimate only. Actual costs depend on local market conditions, site specifics, contractor pricing, and current material costs. Confirm final figures with a certified quantity surveyor before committing to any expenditure.';
-  const lines = doc.splitTextToSize(disclaimer, COL);
+  const lines = doc.splitTextToSize(t('pdf.disclaimer'), COL);
   doc.text(lines, MARGIN, y);
   doc.setTextColor(0);
 
@@ -197,8 +223,8 @@ export async function exportBudgetPDF(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(160);
-  doc.text('Groundwork by Jalla', MARGIN, footerY);
-  doc.text(`Page 1`, W - MARGIN, footerY, { align: 'right' });
+  doc.text(t('email.footer'), MARGIN, footerY);
+  doc.text(t('pdf.page', { n: 1 }), W - MARGIN, footerY, { align: 'right' });
 
-  doc.save(`${project.name.replace(/\s+/g, '-')}-costing.pdf`);
+  doc.save(`${project.name.replace(/\s+/g, '-')}-${t('pdf.fileSuffix')}.pdf`);
 }

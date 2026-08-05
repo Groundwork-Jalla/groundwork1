@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { resolveRecipientLang } from '@/lib/i18n/translate';
 import type { ContractorInviteRow } from '@/types/project';
 
 // =========================================================
@@ -16,6 +17,13 @@ export async function inviteContractor(
   projectName: string,
   inviterName: string,
 ): Promise<InviteResult> {
+  // The invitee has no account yet, so there is no stored language preference to read.
+  // The build country is the best available signal — a contractor being invited onto a
+  // Cameroon project is overwhelmingly likely to read French. They can switch once
+  // they sign in, and that explicit choice is what every later email uses.
+  const { data: proj } = await supabase
+    .from('projects').select('country').eq('id', projectId).maybeSingle();
+  const lang = resolveRecipientLang(null, proj?.country);
   const { data, error } = await supabase
     .from('contractor_invites')
     .insert({
@@ -46,6 +54,7 @@ export async function inviteContractor(
         projectName,
         inviterName,
         inviteToken: data.token,
+        lang,
       }),
     });
     emailSent = r.ok;
