@@ -267,7 +267,6 @@ export default function ProjectDetail() {
     finishLevel:     project.finish_level,
   });
 
-  const country    = findCountry(project.country);
   const tier       = TIER_META[project.tier];
   const scaleStr   = [
     `${project.num_floors} floor${project.num_floors > 1 ? 's' : ''}`,
@@ -323,7 +322,7 @@ export default function ProjectDetail() {
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="min-w-0">
               <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
-                {labels.buildingType(project.building_type)} · {country?.name ?? project.country}
+                {labels.buildingType(project.building_type)} · {labels.country(project.country)}
               </p>
               <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight truncate">
                 {project.name}

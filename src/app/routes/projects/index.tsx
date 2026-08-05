@@ -63,10 +63,9 @@ function ProjectCard({ project }: { project: ProjectRow }) {
   const t = useT();
   const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
   const status = STATUS_META[project.status] ?? STATUS_META.active;
-  const country = findCountry(project.country);
   const done   = completedStages(project);
   const pct    = Math.round((done / TOTAL_STAGES) * 100);
-  const loc    = [project.city, country?.name ?? project.country].filter(Boolean).join(', ');
+  const loc    = [project.city, labels.country(project.country)].filter(Boolean).join(', ');
 
   return (
     <Link to={`/projects/${project.id}`}

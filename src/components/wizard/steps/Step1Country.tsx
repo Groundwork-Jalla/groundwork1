@@ -6,19 +6,27 @@ import { useWizard } from '@/contexts/WizardContext';
 import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 export default function Step1Country() {
   const t = useT();
+  const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
   const [query, setQuery] = useState('');
 
   const popular = COUNTRIES.filter(c => POPULAR_COUNTRY_CODES.includes(c.code));
 
+  // Match on the displayed name *and* the English one, so "Ivory Coast" typed by an
+  // anglophone still finds Côte d'Ivoire while French is selected, and vice versa.
   const filtered = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return COUNTRIES.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
-  }, [query]);
+    return COUNTRIES.filter(c =>
+      country(c.code).toLowerCase().includes(q)
+      || c.name.toLowerCase().includes(q)
+      || c.code.toLowerCase().includes(q),
+    );
+  }, [query, country]);
 
   function selectCountry(code: string, name: string) {
     update({ country: code, countryName: name });
@@ -57,7 +65,7 @@ export default function Step1Country() {
             className="mt-1 rounded-lg border border-brand-border-grey bg-white shadow-sm divide-y divide-brand-border-grey overflow-hidden"
           >
             {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-brand-mid-grey">No results for "{query}"</li>
+              <li className="px-4 py-3 text-sm text-brand-mid-grey">{t('wizard.noResultsFor', { query })}</li>
             ) : (
               filtered.slice(0, 8).map(c => (
                 <li key={c.code}>
@@ -67,7 +75,7 @@ export default function Step1Country() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-brand-off-white transition-colors"
                   >
                     <span className="text-lg leading-none">{c.flag}</span>
-                    <span className="font-medium text-brand-near-black">{c.name}</span>
+                    <span className="font-medium text-brand-near-black">{country(c.code)}</span>
                     <span className="ml-auto text-xs text-brand-mid-grey">{c.code}</span>
                   </button>
                 </li>
@@ -103,7 +111,7 @@ export default function Step1Country() {
                   )}
                   <span className="text-2xl leading-none">{c.flag}</span>
                   <span className="text-xs font-semibold text-brand-near-black text-center leading-tight">
-                    {c.name}
+                    {country(c.code)}
                   </span>
                 </button>
               ))}
@@ -119,7 +127,7 @@ export default function Step1Country() {
             className="mt-4 flex items-center gap-2 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5"
           >
             <span className="text-lg">{COUNTRIES.find(c => c.code === data.country)?.flag}</span>
-            <span className="text-sm font-medium text-brand-near-black">{data.countryName}</span>
+            <span className="text-sm font-medium text-brand-near-black">{country(data.country)}</span>
             <button
               type="button"
               onClick={() => update({ country: '', countryName: '' })}

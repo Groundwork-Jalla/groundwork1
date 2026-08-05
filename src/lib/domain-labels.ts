@@ -35,6 +35,12 @@ export function useDomainLabels() {
     finishLevel:  (v: string | null | undefined) => lookup('finishLevel', v),
     tier:         (v: string | null | undefined) => lookup('tier', v),
     docCategory:  (v: string | null | undefined) => lookup('docCategory', v),
+    /**
+     * Country name for an ISO code. `countries.ts` keeps the English name as its
+     * `name` field because the PDF export and the budget engine read it outside
+     * React; this is the display path.
+     */
+    country:      (v: string | null | undefined) => lookup('country', v),
     /** Preview panel caption for a wizard image key. */
     previewTitle: (v: string | null | undefined) => lookup('preview.title', v),
   };

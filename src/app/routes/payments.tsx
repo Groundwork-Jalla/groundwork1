@@ -6,9 +6,9 @@ import { useAuth }               from '@/contexts/AuthContext';
 import { fetchProjects }         from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull }         from '@/lib/budget';
-import { findCountry }           from '@/lib/countries';
 import type { ProjectRow }       from '@/types/project';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const TOTAL_STAGES = 10;
 
@@ -239,6 +239,7 @@ function Toast({ message, onDismiss }: { message: string; onDismiss: () => void 
 
 export default function PaymentsPage() {
   const t = useT();
+  const { country } = useDomainLabels();
   const { user } = useAuth();
   const isContractor = user?.user_metadata?.role === 'contractor';
 
@@ -268,8 +269,7 @@ export default function PaymentsPage() {
     const rows = projects.map(p => {
       const spent    = (p.budget_usd ?? 0) * (completedStages(p) / TOTAL_STAGES);
       const spentPct = p.budget_usd ? (spent / p.budget_usd) * 100 : 0;
-      const country  = findCountry(p.country);
-      const loc      = [p.city, country?.name ?? p.country].filter(Boolean).join('; ');
+      const loc      = [p.city, country(p.country)].filter(Boolean).join('; ');
       // Escape commas in fields
       const escape = (v: string) => v.includes(',') ? `"${v}"` : v;
       return [
@@ -353,8 +353,7 @@ export default function PaymentsPage() {
                   const spent    = (p.budget_usd ?? 0) * (completedStages(p) / TOTAL_STAGES);
                   const spentPct = p.budget_usd ? (spent / p.budget_usd) * 100 : 0;
                   const barPct   = ((p.budget_usd ?? 0) / maxBudget) * 100;
-                  const country  = findCountry(p.country);
-                  const loc      = [p.city, country?.name ?? p.country].filter(Boolean).join(', ');
+                  const loc      = [p.city, country(p.country)].filter(Boolean).join(', ');
                   return (
                     <div key={p.id} className="px-5 py-5">
                       <div className="flex items-start justify-between mb-3">
