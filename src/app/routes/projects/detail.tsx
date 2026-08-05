@@ -18,7 +18,6 @@ import {
   approveStage,
 }                                from '@/lib/supabase/approvals';
 import { calculateBudget, formatUSDFull } from '@/lib/budget';
-import { findCountry }           from '@/lib/countries';
 import { StageTracker }          from '@/components/project/StageTracker';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';

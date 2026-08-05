@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { ArrowRight, Clock } from 'lucide-react';
-import { RESOURCES } from '@/lib/resources-data';
-import type { Resource } from '@/lib/resources-data';
+import type { ResourceCategory } from '@/lib/resources-data';
+import { useResources, type Resource } from '@/lib/resources-labels';
 import { useT } from '@/lib/i18n';
 
 export type GuideTab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
@@ -16,11 +16,11 @@ const TAB_SLUGS: Record<GuideTab, string[]> = {
   messages:  ['hiring-a-contractor', 'reading-site-evidence', 'site-visit-checklist'],
 };
 
-const CATEGORY_STYLE: Record<string, string> = {
-  'Guides':          'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
-  'Checklists':      'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400',
-  'Legal & Finance': 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
-  'Videos':          'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400',
+const CATEGORY_STYLE: Record<ResourceCategory, string> = {
+  guides:       'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
+  checklists:   'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400',
+  legalFinance: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
+  videos:       'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400',
 };
 
 interface RelatedGuidesProps {
@@ -30,15 +30,16 @@ interface RelatedGuidesProps {
 
 export default function RelatedGuides({ tab, currentStage }: RelatedGuidesProps) {
   const t = useT();
+  const { all } = useResources();
   let guides: Resource[];
 
   if (tab === 'stages' && currentStage) {
-    const byStage = RESOURCES.filter(r => r.stage === currentStage).slice(0, 3);
+    const byStage = all.filter(r => r.stage === currentStage).slice(0, 3);
     if (byStage.length >= 2) {
       guides = byStage;
     } else {
       const defaults = TAB_SLUGS.stages
-        .map(s => RESOURCES.find(r => r.slug === s))
+        .map(s => all.find(r => r.slug === s))
         .filter(Boolean) as Resource[];
       guides = [
         ...byStage,
@@ -47,7 +48,7 @@ export default function RelatedGuides({ tab, currentStage }: RelatedGuidesProps)
     }
   } else {
     guides = TAB_SLUGS[tab]
-      .map(slug => RESOURCES.find(r => r.slug === slug))
+      .map(slug => all.find(r => r.slug === slug))
       .filter(Boolean) as Resource[];
   }
 
@@ -72,8 +73,8 @@ export default function RelatedGuides({ tab, currentStage }: RelatedGuidesProps)
             className="group rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4 flex flex-col gap-2 hover:border-brand-near-black dark:hover:border-[#555] transition-colors"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${CATEGORY_STYLE[guide.category] ?? 'bg-brand-off-white text-brand-mid-grey'}`}>
-                {guide.category}
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${CATEGORY_STYLE[guide.category]}`}>
+                {guide.categoryLabel}
               </span>
               <span className="flex items-center gap-1 text-[10px] text-brand-mid-grey shrink-0">
                 <Clock className="size-2.5" /> {guide.readTime}

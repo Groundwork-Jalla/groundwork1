@@ -27,56 +27,53 @@ export const SUBSCRIPTIONS_ARE_PREVIEW = false;
 /** @deprecated Ambiguous now the two rails differ. Use the specific flag. */
 export const PAYMENTS_ARE_PREVIEW = MILESTONE_PAYMENTS_ARE_PREVIEW;
 
-export interface TierBilling {
+/**
+ * Plan economics. Numbers only — every user-facing string for a tier (name, price
+ * label, description, feature bullets, CTA) lives in the dictionary and is read via
+ * `useTierBilling()` in src/lib/tier-labels.ts.
+ *
+ * They used to live together. That meant the same plan name existed here, in
+ * `UpgradeScreen`'s SHORT map, in `tiers.*` and in profile.tsx — four copies that had
+ * already drifted. One home for the money, one home for the words.
+ */
+export interface TierEconomics {
   id: ProjectTier;
-  name: string;
-  price: string;          // display string
+  /** Monthly subscription in USD. null = negotiated, 0 = free. */
   priceValue: number | null;
-  period?: string;
   /** Platform processing fee as a fraction of the stage amount. null = custom/negotiated. */
   feePct: number | null;
-  feeLabel: string;       // e.g. "10% fee"
-  desc: string;
-  features: string[];
-  tag?: string;
-  cta: string;
+  /** This tier shows a "/mo" suffix — drives the optional `tierBilling.*.period` lookup. */
+  hasPeriod: boolean;
+  /** This tier shows a highlight badge — drives the optional `tierBilling.*.tag` lookup. */
+  hasTag: boolean;
+  /** How many `tierBilling.*.fN` feature bullets the dictionary carries. */
+  featureCount: number;
 }
 
-export const TIER_BILLING: Record<ProjectTier, TierBilling> = {
+export const TIER_ECONOMICS: Record<ProjectTier, TierEconomics> = {
   self_verify: {
     id: 'self_verify',
-    name: 'Self Verify',
-    price: 'Free',
     priceValue: 0,
     feePct: 0.10,
-    feeLabel: '10% fee',
-    desc: 'Full control. You review every stage yourself.',
-    features: ['3 projects max', '1 contractor', 'Self-approve stages', '500MB storage', '10% payment fee'],
-    cta: 'Start Free',
+    hasPeriod: false,
+    hasTag: false,
+    featureCount: 5,
   },
   jalla_verify: {
     id: 'jalla_verify',
-    name: 'Jalla Verify',
-    price: '$199',
     priceValue: 199,
-    period: '/mo',
     feePct: 0.03,
-    feeLabel: '3% fee',
-    desc: 'Independent verification by Jalla professionals on every stage.',
-    tag: 'MOST POPULAR',
-    features: ['Unlimited projects', 'Unlimited contractors', 'Jalla verifies stages', 'Stage certificates', '3% payment fee', 'Weekly reports', 'Community access'],
-    cta: 'Subscribe — $199/mo',
+    hasPeriod: true,
+    hasTag: true,
+    featureCount: 7,
   },
   jalla_management: {
     id: 'jalla_management',
-    name: 'Jalla Management',
-    price: 'Custom',
     priceValue: null,
     feePct: null,
-    feeLabel: 'Custom terms',
-    desc: 'Full-service. Jalla manages your entire project from start to finish.',
-    features: ['Dedicated PM', 'On-site team', 'Daily updates', 'Procurement oversight', 'Custom reporting'],
-    cta: 'Contact Sales',
+    hasPeriod: false,
+    hasTag: false,
+    featureCount: 5,
   },
 };
 
@@ -88,7 +85,7 @@ export const FALLBACK_FX = { currency_code: 'XAF', approx_fx_rate: 600 };
 
 /** Platform fee for a stage amount, by tier. Returns 0 for custom tiers. */
 export function platformFee(amountUsd: number, tier: ProjectTier): number {
-  const pct = TIER_BILLING[tier]?.feePct ?? 0;
+  const pct = TIER_ECONOMICS[tier]?.feePct ?? 0;
   return Math.round(amountUsd * pct * 100) / 100;
 }
 

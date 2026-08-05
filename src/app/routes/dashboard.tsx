@@ -14,7 +14,6 @@ import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
 import { formatUSDFull, BUDGET_ROLLUP_PCT } from '@/lib/budget';
 import { formatDate, formatMoney } from '@/lib/format';
-import { findCountry }   from '@/lib/countries';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';

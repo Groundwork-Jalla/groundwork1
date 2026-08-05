@@ -9,7 +9,6 @@ import { useAuth }               from '@/contexts/AuthContext';
 import { fetchProjects }         from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull }         from '@/lib/budget';
-import { findCountry }           from '@/lib/countries';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';

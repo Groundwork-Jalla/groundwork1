@@ -1,52 +1,55 @@
 import { Link, useParams } from 'react-router';
 import { ArrowLeft, BookOpen, CheckSquare, Scale, Video, Clock } from 'lucide-react';
-import { RESOURCES, STAGE_NAMES } from '@/lib/resources-data';
-import type { ResourceCategory } from '@/lib/resources-data';
+import type { ResourceCategory, ResourceTag } from '@/lib/resources-data';
+import { useResources } from '@/lib/resources-labels';
+import { useT } from '@/lib/i18n';
 
 // ── Icon map ───────────────────────────────────────────────
 
 const CATEGORY_ICONS: Record<ResourceCategory, React.ComponentType<{ className?: string }>> = {
-  'Guides':          BookOpen,
-  'Checklists':      CheckSquare,
-  'Legal & Finance': Scale,
-  'Videos':          Video,
+  guides:       BookOpen,
+  checklists:   CheckSquare,
+  legalFinance: Scale,
+  videos:       Video,
 };
 
 // ── Tag colours ────────────────────────────────────────────
 
-const TAG_COLORS: Record<string, string> = {
-  Popular:      'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800',
-  Essential:    'bg-brand-near-black text-white border-transparent dark:bg-white dark:text-brand-near-black',
-  New:          'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800',
-  Important:    'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800',
-  'Start here': 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800',
+const TAG_COLORS: Record<ResourceTag, string> = {
+  popular:   'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800',
+  essential: 'bg-brand-near-black text-white border-transparent dark:bg-white dark:text-brand-near-black',
+  new:       'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800',
+  important: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800',
+  startHere: 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800',
 };
 
 // ── Page ───────────────────────────────────────────────────
 
 export default function ResourceDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const resource = RESOURCES.find(r => r.slug === slug);
+  const t = useT();
+  const { all, bySlug, stageName } = useResources();
+  const resource = bySlug(slug);
 
   if (!resource) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 text-center">
-        <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Resource not found</p>
+        <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('resources.notFound')}</p>
         <p className="text-xs text-brand-mid-grey dark:text-white/60 mb-6">
-          This resource doesn't exist or may have been removed.
+          {t('resources.notFoundBody')}
         </p>
         <Link
           to="/resources"
           className="text-sm font-medium text-brand-near-black dark:text-white underline underline-offset-2"
         >
-          ← Back to Resources
+          ← {t('resources.backToList')}
         </Link>
       </div>
     );
   }
 
   const CategoryIcon = CATEGORY_ICONS[resource.category];
-  const related = RESOURCES
+  const related = all
     .filter(r => r.category === resource.category && r.slug !== resource.slug)
     .slice(0, 3);
 
@@ -58,7 +61,7 @@ export default function ResourceDetailPage() {
         to="/resources"
         className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey dark:text-white/60 hover:text-brand-near-black dark:hover:text-white transition-colors mb-6"
       >
-        <ArrowLeft className="size-3.5" /> Resources
+        <ArrowLeft className="size-3.5" /> {t('resources.title')}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_272px] gap-8 items-start">
@@ -69,13 +72,13 @@ export default function ResourceDetailPage() {
           {/* Badge row */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {resource.tag && (
-              <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${TAG_COLORS[resource.tag] ?? 'bg-brand-off-white text-brand-mid-grey'}`}>
-                {resource.tag}
+              <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${TAG_COLORS[resource.tag]}`}>
+                {resource.tagLabel}
               </span>
             )}
             <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-full bg-brand-off-white dark:bg-[#2c2c2c] text-brand-mid-grey dark:text-white/60 border border-brand-border-grey dark:border-[#3c3c3c]">
               <CategoryIcon className="size-3" />
-              {resource.category}
+              {resource.categoryLabel}
             </span>
             <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-full bg-brand-off-white dark:bg-[#2c2c2c] text-brand-mid-grey dark:text-white/60 border border-brand-border-grey dark:border-[#3c3c3c]">
               <Clock className="size-3" />
@@ -91,7 +94,7 @@ export default function ResourceDetailPage() {
           {/* Stage badge */}
           {resource.stage !== null && (
             <div className="inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-lg bg-brand-light-grey dark:bg-[#2c2c2c] text-brand-mid-grey dark:text-white/60 border border-brand-border-grey dark:border-[#3c3c3c] mb-5">
-              Relevant: Stage {resource.stage} — {STAGE_NAMES[resource.stage]}
+              {t('resources.relevantStage', { n: resource.stage, name: stageName(resource.stage) })}
             </div>
           )}
 
@@ -116,7 +119,7 @@ export default function ResourceDetailPage() {
           <aside className="lg:sticky lg:top-6">
             <div className="rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
               <p className="text-[10px] font-semibold text-brand-mid-grey dark:text-white/60 uppercase tracking-wider mb-4">
-                Related {resource.category}
+                {t('resources.relatedIn', { category: resource.categoryLabel })}
               </p>
               <div className="space-y-2.5">
                 {related.map(rel => {

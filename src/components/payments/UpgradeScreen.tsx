@@ -2,17 +2,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TIER_BILLING, SUBSCRIPTIONS_ARE_PREVIEW } from '@/lib/payments/config';
+import { SUBSCRIPTIONS_ARE_PREVIEW } from '@/lib/payments/config';
+import { useTierBilling } from '@/lib/tier-labels';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
 import { useT } from '@/lib/i18n';
 
 const ORDER: ProjectTier[] = ['self_verify', 'jalla_verify', 'jalla_management'];
-const SHORT: Record<ProjectTier, string> = {
-  self_verify: 'Self Verify',
-  jalla_verify: 'Jalla Verify',
-  jalla_management: 'Management',
-};
 const ICON: Record<ProjectTier, React.ReactNode> = {
   self_verify: <BadgeCheck className="size-4" />,
   jalla_verify: <ShieldCheck className="size-4" />,
@@ -21,10 +17,11 @@ const ICON: Record<ProjectTier, React.ReactNode> = {
 
 export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTier }) {
   const t = useT();
+  const tiers = useTierBilling();
   const [sel, setSel] = useState<ProjectTier>('jalla_verify');
   const [busy, setBusy]   = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const d = TIER_BILLING[sel];
+  const d = tiers[sel];
   const isCurrent = currentTier === sel;
 
   /**
@@ -66,7 +63,7 @@ export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTi
               )}
             >
               {ICON[id]}
-              {SHORT[id]}
+              {tiers[id].short}
             </button>
           ))}
         </div>

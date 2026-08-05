@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { TIER_BILLING } from '@/lib/payments/config';
+import { useTierBilling } from '@/lib/tier-labels';
 import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
 import { useT } from '@/lib/i18n';
@@ -213,6 +213,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const t = useT();
+  const tiers = useTierBilling();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
@@ -812,14 +813,14 @@ export default function ProfilePage() {
                 <div className="mb-1 flex items-center gap-3">
                   <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.yourPlan')}</h2>
                   <span className="inline-flex items-center text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                    {TIER_BILLING[tier].name}
+                    {tiers[tier].name}
                   </span>
                 </div>
                 <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-6">
                   {t('profile.comparePlans')}
                 </p>
 
-                {/* Rendered from TIER_BILLING, the canonical plan config.
+                {/* Rendered from useTierBilling(), the canonical plan config.
                     This block previously hardcoded three cards using a fifth set of tier
                     names ("Jalla Verified", "Enterprise") compared against a tier read
                     from user_metadata that defaulted to 'free' — none of which are real
@@ -828,7 +829,7 @@ export default function ProfilePage() {
                     current, including anyone who had paid. */}
                 <div className="flex flex-col gap-4">
                   {(['self_verify', 'jalla_verify', 'jalla_management'] as ProjectTier[]).map(id => {
-                    const plan      = TIER_BILLING[id];
+                    const plan      = tiers[id];
                     const isCurrent = tier === id;
                     return (
                       <div key={id} className={cn(
