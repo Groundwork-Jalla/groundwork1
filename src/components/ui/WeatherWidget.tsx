@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Wind, Droplets } from 'lucide-react';
-import { findCountry } from '@/lib/countries';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Country capitals for weather API ──────────────────────
 
@@ -107,11 +107,12 @@ function useWeather(countryCode: string | null) {
 
 export function WeatherWidget({ countryCode }: { countryCode: string | null | undefined }) {
   const { weather, loading } = useWeather(countryCode ?? null);
+  const { country } = useDomainLabels();
   const coords = countryCode ? COUNTRY_COORDS[countryCode] : null;
 
   if (!countryCode || !coords) return null;
 
-  const countryName = findCountry(countryCode)?.name ?? countryCode;
+  const countryName = country(countryCode);
 
   if (loading) {
     return (

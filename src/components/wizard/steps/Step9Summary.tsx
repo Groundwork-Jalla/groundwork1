@@ -174,7 +174,7 @@ export default function Step9Summary() {
         {/* Summary grid */}
         <div className="mt-7 rounded-xl border border-brand-border-grey divide-y divide-brand-border-grey overflow-hidden">
           <SummaryRow icon={<MapPin className="size-3.5" />}    label="Location"
-            value={[data.city, data.countryName].filter(Boolean).join(', ')} />
+            value={[data.city, labels.country(data.country)].filter(Boolean).join(', ')} />
           <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
             value={`${labels.projectType(data.projectType)} · ${labels.buildingType(data.buildingType)}`} />
           <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"

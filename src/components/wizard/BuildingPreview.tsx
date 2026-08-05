@@ -837,12 +837,13 @@ function Signpost({ visible, name }: { visible: boolean; name: string }) {
 
 function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useWizard>['data'] }) {
   const t = useT();
+  const countryName = useDomainLabels().country(data.country);
   const budget = step === 9 ? calculateBudget(data) : null;
 
   return (
     <AnimatePresence mode="popLayout">
       {step === 1 && data.country && (
-        <Badge key="loc" icon={<MapPin className="size-3.5" />} label={`Building in ${data.countryName}`} pos="tr" />
+        <Badge key="loc" icon={<MapPin className="size-3.5" />} label={`Building in ${countryName}`} pos="tr" />
       )}
       {step === 2 && (
         <Badge key="type" icon={<Building2 className="size-3.5" />} label="Planning phase" sub="Foundation next" pos="tr" />
@@ -922,9 +923,9 @@ function getRoofLabel(rt: string): string {
 
 // ── Step hint text ─────────────────────────────────────────────
 
-function getHint(step: number, data: ReturnType<typeof useWizard>['data']): string {
+function getHint(step: number, data: ReturnType<typeof useWizard>['data'], countryName: string): string {
   switch (step) {
-    case 1: return data.countryName ? `Building in ${data.countryName}` : 'Choose your location';
+    case 1: return data.country ? `Building in ${countryName}` : 'Choose your location';
     case 2: return 'What kind of project?';
     case 3: return 'Defining the building type';
     case 4: return `${data.floors} ${data.floors === 1 ? 'storey' : 'storeys'}`;
@@ -980,6 +981,8 @@ function RoomChangeBurst({ totalRooms, step }: { totalRooms: number; step: numbe
 
 export function BuildingPreview() {
   const { step, data } = useWizard();
+  const { country } = useDomainLabels();
+  const countryName = country(data.country);
 
   const isMapStep      = step === 1;
   const isImageStep    = step === 2 || step === 3 || step === 7;
@@ -1017,7 +1020,7 @@ export function BuildingPreview() {
             className="absolute inset-0 z-0"
           >
             {data.country ? (
-              <CountryMap countryCode={data.country} countryName={data.countryName} />
+              <CountryMap countryCode={data.country} countryName={countryName} />
             ) : (
               <MapEmptyState />
             )}
@@ -1048,7 +1051,7 @@ export function BuildingPreview() {
                   transition={{ duration: 0.25 }}
                   className="text-[11px] font-semibold text-white/60 uppercase tracking-wider drop-shadow-sm"
                 >
-                  {getHint(step, data)}
+                  {getHint(step, data, countryName)}
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -1091,7 +1094,7 @@ export function BuildingPreview() {
                   transition={{ duration: 0.25 }}
                   className="text-[11px] font-semibold text-brand-mid-grey dark:text-white/40 uppercase tracking-wider"
                 >
-                  {getHint(step, data)}
+                  {getHint(step, data, countryName)}
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -1151,7 +1154,7 @@ export function BuildingPreview() {
               transition={{ duration: 0.25 }}
               className="text-[11px] font-semibold text-white/80 uppercase tracking-wider drop-shadow-sm"
             >
-              {getHint(step, data)}
+              {getHint(step, data, countryName)}
             </motion.p>
           </AnimatePresence>
         </div>

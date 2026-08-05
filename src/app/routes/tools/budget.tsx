@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { calculateBudget, formatUSDFull, formatUSD } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const FINISH_LEVELS = [
   { value: 'standard', label: 'Standard', desc: 'Functional, cost-effective finishes' },
@@ -36,6 +37,7 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: n
 
 export default function BudgetTool() {
   const t = useT();
+  const labels = useDomainLabels();
   const [country, setCountry] = useState('NG');
   const [sqm, setSqm] = useState(150);
   const [floors, setFloors] = useState(1);
@@ -67,7 +69,7 @@ export default function BudgetTool() {
               className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] text-sm text-brand-near-black dark:text-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white"
             >
               {COUNTRIES.map(c => (
-                <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                <option key={c.code} value={c.code}>{c.flag} {labels.country(c.code)}</option>
               ))}
             </select>
           </div>

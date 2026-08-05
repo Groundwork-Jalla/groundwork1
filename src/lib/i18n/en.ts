@@ -1024,6 +1024,7 @@ export const en = {
     recommended: "Recommended",
     change: "Change",
     searchCountry: "Search country…",
+    cityPlaceholder: 'e.g. Douala, {country}',
     noResultsFor: 'No results for “{query}”',
     s2Title: "What are you building?",
     s2Sub: "Select the primary use of your project.",

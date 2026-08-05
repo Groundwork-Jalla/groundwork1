@@ -13,6 +13,7 @@ import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
 import RelatedGuides from '@/components/project/RelatedGuides';
 import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, BudgetBreakdown } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const PREDICTED_DAYS = 196;
 
@@ -163,7 +164,7 @@ function BudgetBreakdownModal({
   onClose: () => void;
 }) {
   const t = useT();
-  const countryName = findCountry(project.country)?.name ?? project.country;
+  const countryName = useDomainLabels().country(project.country);
   const profFees    = budget.engineering + budget.management;
   const permCont    = budget.permits + budget.contingency;
   const paidPct     = total > 0 ? Math.round((paidTotal / total) * 100) : 0;
@@ -906,6 +907,7 @@ export default function OverviewTab({
   project, stages, substages, budget, onViewCosting, onViewStage,
 }: OverviewTabProps) {
   const { stageLabel } = useStageLabels();
+  const labels = useDomainLabels();
   const t = useT();
   const [showBudgetBreakdown, setShowBudgetBreakdown]   = useState(false);
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false);
@@ -1154,7 +1156,7 @@ export default function OverviewTab({
           {country && (
             <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3">
               <p className="text-[10px] text-brand-mid-grey mb-1">{t('project.overview.buildLocation')}</p>
-              <p className="text-sm font-medium text-brand-near-black dark:text-white">{country.flag} {country.name}</p>
+              <p className="text-sm font-medium text-brand-near-black dark:text-white">{country.flag} {labels.country(project.country)}</p>
             </div>
           )}
         </div>

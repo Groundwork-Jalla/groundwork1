@@ -1039,6 +1039,7 @@ export const fr: Mirror<EnDict> = {
     recommended: "Recommandé",
     change: "Modifier",
     searchCountry: "Rechercher un pays…",
+    cityPlaceholder: 'ex. : Douala, {country}',
     noResultsFor: 'Aucun résultat pour « {query} »',
     s2Title: "Que construisez-vous ?",
     s2Sub: "Choisissez l'usage principal de votre projet.",

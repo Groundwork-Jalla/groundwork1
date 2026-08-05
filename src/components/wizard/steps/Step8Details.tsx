@@ -9,6 +9,7 @@ import type { FinishLevel, WizardFormData } from '@/types/project';
 import { CITY_RATES, CM_CITY_CODES } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[] = [
   { value: 'standard', label: 'Standard',  description: 'Good quality, practical finishes'     },
@@ -83,6 +84,7 @@ const isKnownCity = (city: string) =>
 
 export default function Step8Details() {
   const t = useT();
+  const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
   const [sqmStr, setSqmStr] = useState(data.sqm > 0 ? String(data.sqm) : '');
 
@@ -203,7 +205,7 @@ export default function Step8Details() {
               <Input
                 id="city"
                 type="text"
-                placeholder={`e.g. Lagos, ${data.countryName || 'Nigeria'}`}
+                placeholder={t('wizard.cityPlaceholder', { country: country(data.country || 'CM') })}
                 value={data.city}
                 onChange={e => update({ city: e.target.value })}
               />

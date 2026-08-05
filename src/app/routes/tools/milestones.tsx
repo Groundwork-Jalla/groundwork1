@@ -5,6 +5,7 @@ import { calculateBudget, formatUSDFull } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { useT } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
 const WHEN_TO_PAY = [
@@ -22,6 +23,7 @@ const WHEN_TO_PAY = [
 
 export default function MilestonesTool() {
   const t = useT();
+  const labels = useDomainLabels();
   const [budget, setBudget] = useState(100000);
   const [country, setCountry] = useState('NG');
 
@@ -78,7 +80,7 @@ export default function MilestonesTool() {
               className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] text-sm text-brand-near-black dark:text-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white"
             >
               {COUNTRIES.map(c => (
-                <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                <option key={c.code} value={c.code}>{c.flag} {labels.country(c.code)}</option>
               ))}
             </select>
           </div>
