@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { User, VolumeX } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 function StableLineIcon() {
   return (
@@ -31,10 +31,10 @@ function StaircaseIcon() {
 }
 
 const advantages = [
-  { Icon: User, title: "Less saturation", desc: "One figure, not a crowd" },
-  { Icon: StableLineIcon, title: "Less price racing", desc: "Stable, not volatile", custom: true },
-  { Icon: VolumeX, title: "Less noise", desc: "Signal, not static" },
-  { Icon: StaircaseIcon, title: "More consistent opportunities", desc: "Climbing, not waiting", custom: true },
+  { Icon: User, n: 1 },
+  { Icon: StableLineIcon, n: 2, custom: true },
+  { Icon: VolumeX, n: 3 },
+  { Icon: StaircaseIcon, n: 4, custom: true },
 ];
 
 export default function FoundingAdvantage() {
@@ -51,7 +51,7 @@ export default function FoundingAdvantage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {advantages.map((a, i) => (
-            <Reveal key={a.title} delay={i * 0.12}>
+            <Reveal key={a.n} delay={i * 0.12}>
               <motion.div
                 whileHover={{ y: -4, backgroundColor: "rgba(255,255,255,0.08)" }}
                 className="bg-white/5 border border-white/10 rounded-xl p-6 text-center h-full"
@@ -59,8 +59,8 @@ export default function FoundingAdvantage() {
                 <div className="inline-flex mb-3 text-white/80">
                   {a.custom ? <a.Icon /> : <a.Icon className="size-7" />}
                 </div>
-                <h3 className="text-xs font-semibold text-white">{a.title}</h3>
-                <p className="text-[11px] text-white/40 mt-1">{a.desc}</p>
+                <h3 className="text-xs font-semibold text-white">{t(`contractorApply.advantage.t${a.n}` as TKey)}</h3>
+                <p className="text-[11px] text-white/40 mt-1">{t(`contractorApply.advantage.d${a.n}` as TKey)}</p>
               </motion.div>
             </Reveal>
           ))}

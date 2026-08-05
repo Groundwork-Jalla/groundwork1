@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
-const without = ["Unclear clients", "Payment delays", "Disorganized workflow", "Constant confusion", "Heavy competition"];
-const withJalla = ["Structured projects", "Secured, milestone payments", "Coordinated execution", "Defined roles and sequence", "Trade caps per region"];
+const WITHOUT = [1, 2, 3, 4, 5] as const;
+const WITH    = [1, 2, 3, 4, 5] as const;
 
 export default function ContractorComparison() {
   const t = useT();
@@ -22,10 +22,10 @@ export default function ContractorComparison() {
             <motion.div whileHover={{ y: -3 }} className="bg-white rounded-2xl border border-brand-border-grey p-7 h-full">
               <h3 className="text-base font-bold text-brand-near-black mb-4">{t('contractorApply.withoutJalla')}</h3>
               <ul className="space-y-2.5">
-                {without.map((t) => (
-                  <li key={t} className="flex gap-2 text-sm text-brand-mid-grey">
+                {WITHOUT.map((n) => (
+                  <li key={n} className="flex gap-2 text-sm text-brand-mid-grey">
                     <X className="size-4 shrink-0 mt-0.5" />
-                    {t}
+                    {t(`contractorApply.without.w${n}` as TKey)}
                   </li>
                 ))}
               </ul>
@@ -36,10 +36,10 @@ export default function ContractorComparison() {
             <motion.div whileHover={{ y: -3 }} className="bg-brand-near-black rounded-2xl p-7 h-full">
               <h3 className="text-base font-bold text-white mb-4">{t('contractorApply.withJalla')}</h3>
               <ul className="space-y-2.5">
-                {withJalla.map((t) => (
-                  <li key={t} className="flex gap-2 text-sm text-white/70">
+                {WITH.map((n) => (
+                  <li key={n} className="flex gap-2 text-sm text-white/70">
                     <Check className="size-4 shrink-0 mt-0.5" />
-                    {t}
+                    {t(`contractorApply.with.w${n}` as TKey)}
                   </li>
                 ))}
               </ul>

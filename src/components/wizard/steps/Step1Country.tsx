@@ -28,8 +28,8 @@ export default function Step1Country() {
     );
   }, [query, country]);
 
-  function selectCountry(code: string, name: string) {
-    update({ country: code, countryName: name });
+  function selectCountry(code: string) {
+    update({ country: code });
     setQuery('');
   }
 
@@ -71,7 +71,7 @@ export default function Step1Country() {
                 <li key={c.code}>
                   <button
                     type="button"
-                    onClick={() => selectCountry(c.code, c.name)}
+                    onClick={() => selectCountry(c.code)}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-brand-off-white transition-colors"
                   >
                     <span className="text-lg leading-none">{c.flag}</span>
@@ -95,7 +95,7 @@ export default function Step1Country() {
                 <button
                   key={c.code}
                   type="button"
-                  onClick={() => selectCountry(c.code, c.name)}
+                  onClick={() => selectCountry(c.code)}
                   className={cn(
                     'relative flex flex-col items-center gap-1.5 rounded-xl border-2 py-4 px-2 transition-all duration-150',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
@@ -130,7 +130,7 @@ export default function Step1Country() {
             <span className="text-sm font-medium text-brand-near-black">{country(data.country)}</span>
             <button
               type="button"
-              onClick={() => update({ country: '', countryName: '' })}
+              onClick={() => update({ country: '' })}
               className="ml-auto text-xs text-brand-mid-grey hover:text-brand-near-black transition-colors"
             >
               {t('wizard.change')}

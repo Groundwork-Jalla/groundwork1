@@ -55,7 +55,6 @@ export interface FloorRoom {
 export interface WizardFormData {
   // Step 1 — Country
   country: string;         // ISO 3166-1 alpha-2
-  countryName: string;
 
   // Step 2 — Project type
   projectType: ProjectType | null;
@@ -96,7 +95,6 @@ export interface WizardFormData {
 
 export const WIZARD_DEFAULT_DATA: WizardFormData = {
   country: '',
-  countryName: '',
   projectType: null,
   buildingType: null,
   floors: 1,

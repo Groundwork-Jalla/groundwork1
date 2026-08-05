@@ -1,20 +1,9 @@
 import { Check, X } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
-const notFor = [
-  "Avoid documentation and structure",
-  "Cannot verify past work or credentials",
-  "Prefer informal, cash-only arrangements",
-  "Resist milestone-based delivery and transparency",
-];
-
-const isFor = [
-  "You take your craft seriously",
-  "You want consistent, organized projects",
-  "You value clarity, accountability, and standards",
-  "You want to grow beyond small, informal jobs",
-];
+const NOT_FOR = [1, 2, 3, 4] as const;
+const IS_FOR  = [1, 2, 3, 4] as const;
 
 export default function FitSection() {
   const t = useT();
@@ -25,10 +14,10 @@ export default function FitSection() {
           <div className="bg-brand-near-black rounded-2xl p-8 md:p-10 h-full">
             <h3 className="text-xl font-bold text-white/40 mb-5">{t('contractorApply.notForYou')}</h3>
             <ul className="space-y-3">
-              {notFor.map((t) => (
-                <li key={t} className="flex gap-2.5 text-sm text-white/30 line-through">
+              {NOT_FOR.map((n) => (
+                <li key={n} className="flex gap-2.5 text-sm text-white/30 line-through">
                   <X className="size-4 shrink-0 mt-0.5" />
-                  <span>{t}</span>
+                  <span>{t(`contractorApply.notFor.n${n}` as TKey)}</span>
                 </li>
               ))}
             </ul>
@@ -38,10 +27,10 @@ export default function FitSection() {
           <div className="bg-white rounded-2xl border border-brand-border-grey p-8 md:p-10 h-full">
             <h3 className="text-xl font-bold text-brand-near-black mb-5">{t('contractorApply.isForYou')}</h3>
             <ul className="space-y-3">
-              {isFor.map((t) => (
-                <li key={t} className="flex gap-2.5 text-sm font-medium text-brand-near-black">
+              {IS_FOR.map((n) => (
+                <li key={n} className="flex gap-2.5 text-sm font-medium text-brand-near-black">
                   <Check className="size-4 shrink-0 mt-0.5" />
-                  <span>{t}</span>
+                  <span>{t(`contractorApply.isFor.i${n}` as TKey)}</span>
                 </li>
               ))}
             </ul>

@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 const DARK = "#0A0A0A";
 
@@ -76,11 +76,11 @@ function BackAndForthIcon() {
 }
 
 const pains = [
-  { Icon: ScopeIcon, text: "Clients show up with unclear scope and changing expectations" },
-  { Icon: PaymentDelayIcon, text: "Payments get delayed, negotiated, or ‘handled later’" },
-  { Icon: StalledIcon, text: "Projects stall because nobody is coordinating the full sequence" },
-  { Icon: LateCallIcon, text: "You get pulled in late and expected to ‘figure it out’" },
-  { Icon: BackAndForthIcon, text: "Too much back-and-forth, not enough decisions" },
+  { Icon: ScopeIcon, n: 1 },
+  { Icon: PaymentDelayIcon, n: 2 },
+  { Icon: StalledIcon, n: 3 },
+  { Icon: LateCallIcon, n: 4 },
+  { Icon: BackAndForthIcon, n: 5 },
 ];
 
 export default function RealitySection() {
@@ -97,13 +97,13 @@ export default function RealitySection() {
         </Reveal>
 
         <div>
-          {pains.map(({ Icon, text }, i) => (
-            <Reveal key={text} direction="left" delay={i * 0.1}>
+          {pains.map(({ Icon, n }, i) => (
+            <Reveal key={n} direction="left" delay={i * 0.1}>
               <div className="flex items-center gap-5 py-4 border-b border-brand-border-grey">
                 <div className="flex-shrink-0 w-12 h-12">
                   <Icon />
                 </div>
-                <p className="text-sm md:text-base text-brand-dark-grey">{text}</p>
+                <p className="text-sm md:text-base text-brand-dark-grey">{t(`contractorApply.pains.p${n}` as TKey)}</p>
               </div>
             </Reveal>
           ))}

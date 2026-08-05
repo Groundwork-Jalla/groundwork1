@@ -2,14 +2,14 @@ import { useRef } from "react";
 import { useInView } from "framer-motion";
 import { Scale, Compass, Ruler, HardHat, Zap } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 const roles = [
-  { Icon: Scale, label: "Land Lawyers", desc: "Title verification, legal clearance" },
-  { Icon: Compass, label: "Surveyors", desc: "Boundaries, site mapping" },
-  { Icon: Ruler, label: "Engineers", desc: "Structural design, specs" },
-  { Icon: HardHat, label: "Contractors", desc: "Build execution" },
-  { Icon: Zap, label: "Electricians", desc: "Final systems, finishing" },
+  { Icon: Scale, n: 1 },
+  { Icon: Compass, n: 2 },
+  { Icon: Ruler, n: 3 },
+  { Icon: HardHat, n: 4 },
+  { Icon: Zap, n: 5 },
 ];
 
 export default function RolesPipeline() {
@@ -29,13 +29,13 @@ export default function RolesPipeline() {
 
         <div ref={ref} className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-0">
           {roles.map((r, i) => (
-            <div key={r.label} className="flex items-center md:flex-row flex-col">
+            <div key={r.n} className="flex items-center md:flex-row flex-col">
               <Reveal delay={i * 0.15}>
                 <div className="group relative bg-white border-2 border-brand-near-black rounded-xl px-5 py-4 text-center min-w-[120px]">
                   <r.Icon className="size-5 mx-auto text-brand-near-black mb-1.5" />
-                  <span className="text-xs font-semibold text-brand-near-black block">{r.label}</span>
+                  <span className="text-xs font-semibold text-brand-near-black block">{t(`contractorApply.roles.l${r.n}` as TKey)}</span>
                   <span className="hidden md:block text-[10px] text-brand-mid-grey mt-1 max-w-[110px] mx-auto leading-snug opacity-0 group-hover:opacity-100 transition-opacity absolute left-1/2 -translate-x-1/2 top-full pt-1 bg-white">
-                    {r.desc}
+                    {t(`contractorApply.roles.r${r.n}` as TKey)}
                   </span>
                 </div>
               </Reveal>

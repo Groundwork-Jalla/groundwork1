@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Reveal } from "@/components/landing/Reveal";
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 const DARK = "#0A0A0A";
 
@@ -194,42 +194,12 @@ function VerifiedScene() {
 }
 
 const items = [
-  {
-    n: "01",
-    Scene: FundedScene,
-    title: "Access to Funded Diaspora Projects",
-    desc: "Work with clients who have real budgets, a clear scope of work, and a structured plan and timeline. No more ‘let's start and see.’",
-  },
-  {
-    n: "02",
-    Scene: PaymentScene,
-    title: "Reliable Payment System",
-    desc: "Funds secured before work begins. Milestone-based releases. Clear approval steps. If you complete the milestone, you get paid.",
-  },
-  {
-    n: "03",
-    Scene: StructuredScene,
-    title: "Structured Project Environment",
-    desc: "You operate inside a coordinated sequence. Defined roles and responsibilities. Clean handoffs between professionals. Everyone knows their part. Work flows.",
-  },
-  {
-    n: "04",
-    Scene: ProtectionScene,
-    title: "Protection from Client Confusion",
-    desc: "Jalla handles client communication, scope clarity, documentation, and coordination between stakeholders. You focus on delivery, not managing the client.",
-  },
-  {
-    n: "05",
-    Scene: GrowthScene,
-    title: "A Real Pipeline to Grow Your Practice",
-    desc: "As you perform well, you get access to more opportunities, higher-value builds, and long-term diaspora client relationships. You stop relying on word-of-mouth alone.",
-  },
-  {
-    n: "06",
-    Scene: VerifiedScene,
-    title: "Verified Partner Status",
-    desc: "Stand out with a Verified badge, priority consideration for high-trust projects, and featured placement in the network.",
-  },
+  { i: 1, Scene: FundedScene },
+  { i: 2, Scene: PaymentScene },
+  { i: 3, Scene: StructuredScene },
+  { i: 4, Scene: ProtectionScene },
+  { i: 5, Scene: GrowthScene },
+  { i: 6, Scene: VerifiedScene },
 ];
 
 export default function ValueStack() {
@@ -247,7 +217,7 @@ export default function ValueStack() {
           {items.map((item, i) => {
             const illustrationFirst = i % 2 === 0;
             return (
-              <Reveal key={item.n} direction={illustrationFirst ? "left" : "right"} delay={i * 0.08}>
+              <Reveal key={item.i} direction={illustrationFirst ? "left" : "right"} delay={i * 0.08}>
                 <div
                   className={`bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.04)] ${
                     illustrationFirst ? "md:flex-row" : "md:flex-row-reverse"
@@ -260,10 +230,10 @@ export default function ValueStack() {
                   </div>
                   <div className="flex-1 p-7 flex flex-col justify-center">
                     <div className="flex items-baseline gap-3">
-                      <span className="font-sans text-3xl text-brand-border-grey leading-none">{item.n}</span>
-                      <h3 className="text-lg font-bold text-brand-near-black">{item.title}</h3>
+                      <span className="font-sans text-3xl text-brand-border-grey leading-none">{String(item.i).padStart(2, '0')}</span>
+                      <h3 className="text-lg font-bold text-brand-near-black">{t(`contractorApply.value.t${item.i}` as TKey)}</h3>
                     </div>
-                    <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{item.desc}</p>
+                    <p className="text-sm text-brand-mid-grey mt-2 leading-relaxed">{t(`contractorApply.value.d${item.i}` as TKey)}</p>
                   </div>
                 </div>
               </Reveal>
