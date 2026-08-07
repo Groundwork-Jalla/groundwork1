@@ -1,4 +1,6 @@
+import { Link } from "react-router";
 import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
+import { useT } from "@/lib/i18n";
 
 const SOCIAL_LINKS = [
   {
@@ -35,12 +37,24 @@ const SOCIAL_LINKS = [
 ];
 
 export default function FooterSection() {
+  const t = useT();
   return (
     <footer className="border-t border-brand-border-grey py-4 px-4 sm:px-6 lg:px-10">
       <div className="max-w-275 mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
 
         {/* Logo — bottom left */}
         <GroundworkLogo linkTo="/" />
+
+        {/* Legal — Google's OAuth review and Stripe both check these are
+            reachable from the public site, not just live at their URLs. */}
+        <div className="flex items-center gap-4 text-xs text-brand-mid-grey order-last w-full sm:order-0 sm:w-auto">
+          <Link to="/privacy" className="hover:text-brand-near-black transition-colors">
+            {t('legal.privacy')}
+          </Link>
+          <Link to="/terms" className="hover:text-brand-near-black transition-colors">
+            {t('legal.terms')}
+          </Link>
+        </div>
 
         {/* Social icons — right */}
         <div className="flex items-center gap-4">

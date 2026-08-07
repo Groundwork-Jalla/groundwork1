@@ -24,6 +24,10 @@ type Mirror<T> = {
 
 export const fr: Mirror<EnDict> = {
   // ── Générique / partagé ───────────────────────────────────
+  legal: {
+    privacy: 'Politique de confidentialité',
+    terms:   "Conditions d'utilisation",
+  },
   common: {
     back:           'Retour',
     backToHome:     "Retour à l'accueil",

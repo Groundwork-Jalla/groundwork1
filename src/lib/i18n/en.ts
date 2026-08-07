@@ -10,6 +10,10 @@
 
 export const en = {
   // ── Generic / shared ──────────────────────────────────────
+  legal: {
+    privacy: 'Privacy Policy',
+    terms:   'Terms of Service',
+  },
   common: {
     back:           'Back',
     backToHome:     'Back to Home',
