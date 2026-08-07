@@ -1066,9 +1066,9 @@ export const en = {
       disqualifyWarn: 'Answering "No" to any of the above means we cannot proceed with your application at this time. You may still submit it for our records.',
 
       // Section 7
-      videoIntro:  'Record a 2-minute video answering the questions below and paste the link here. Candidates without a video will not be rejected.',
+      videoIntro:  'Record a 2-minute video answering the questions below and paste the link here. A video is not required — applications without one are still reviewed.',
       videoUrl:    'Video link',
-      videoHint:   'Optional · YouTube, Loom, Drive or WhatsApp link',
+      videoHint:   'Optional · Upload it to WhatsApp, Google Drive, or YouTube (unlisted), then paste the link. Please don’t attach the video file itself — a link keeps your data costs down.',
       whyJoinQ:    "Why do you want to join Jalla's Founding Network?",
       differentiatorQ: 'What makes you different from most professionals in your field?',
       readyQ:      'If accepted, are you prepared to participate in the early stages of building this network?',

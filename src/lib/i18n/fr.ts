@@ -1082,9 +1082,9 @@ export const fr: Mirror<EnDict> = {
       disqualifyWarn: "Répondre « Non » à l'une de ces questions signifie que nous ne pourrons pas donner suite à votre candidature pour le moment. Vous pouvez tout de même la soumettre pour nos archives.",
 
       // Section 7
-      videoIntro:  "Enregistrez une vidéo de 2 minutes répondant aux questions ci-dessous et collez le lien ici. Les candidats sans vidéo ne seront pas écartés.",
+      videoIntro:  "Enregistrez une vidéo de 2 minutes répondant aux questions ci-dessous et collez le lien ici. La vidéo n'est pas obligatoire — les candidatures sans vidéo sont tout de même examinées.",
       videoUrl:    'Lien de la vidéo',
-      videoHint:   'Facultatif · lien YouTube, Loom, Drive ou WhatsApp',
+      videoHint:   "Facultatif · Déposez-la sur WhatsApp, Google Drive ou YouTube (non répertoriée), puis collez le lien. Merci de ne pas joindre le fichier vidéo lui-même — un lien vous évite de consommer vos données.",
       whyJoinQ:    'Pourquoi souhaitez-vous rejoindre le Réseau Fondateur de Jalla ?',
       differentiatorQ: 'Qu\'est-ce qui vous distingue de la plupart des professionnels de votre domaine ?',
       readyQ:      'Si vous êtes retenu, êtes-vous prêt à participer aux premières étapes de construction de ce réseau ?',
