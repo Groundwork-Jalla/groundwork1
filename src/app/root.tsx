@@ -19,7 +19,10 @@ import "../styles/globals.css";
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
   { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-  { rel: "apple-touch-icon", href: "/favicon.svg" },
+  // iOS ignores SVG for apple-touch-icon and falls back to a screenshot of the
+  // page, so this slot needs a real raster. 512 is the size iOS prefers to
+  // downscale from for home-screen icons.
+  { rel: "apple-touch-icon", sizes: "512x512", href: "/logo-512.png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
