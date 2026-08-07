@@ -637,6 +637,8 @@ export const en = {
 
     comparison: {
       disputed: "DISPUTED",
+      moneyLeaks:   'money leaks here',
+      moneySecured: 'money stays secured',
       eyebrow:     'THE DIFFERENCE',
       title:       'Building Back Home: Without Structure vs. With Groundwork',
       subtitle:    'The same build. Two very different outcomes.',
@@ -890,6 +892,7 @@ export const en = {
     professional: "PROFESSIONAL",
     theSolution: "THE SOLUTION",
     solutionTitle: "Jalla is the controlled system that makes diaspora projects run properly.",
+    solutionClosing: "Jalla controls the process — so the scope is clear, the roles are defined, the sequence is respected, and the payments are structured.",
     realityTitle: "You're great at what you do.",
     realityTitle2: "The system around you is broken.",
     realityBody: "You are not the problem. The system is.",
@@ -911,6 +914,187 @@ export const en = {
       perk3:       'Part of a vetted, professional network',
       perk4:       'Founding Partner badge on your profile',
       footnote:    'Jalla is not a job board. It is controlled infrastructure for executing diaspora building projects properly, with the right professionals, in the right sequence, with the right safeguards.',
+    },
+    form: {
+      // Header
+      title:        "Become a Founding Contractor of Jalla's Verified Build Network",
+      subtitle:     'We are selecting a limited number of verified professionals per role and region before public expansion.',
+      forIntro:     'This application is for:',
+      forList:      'Contractors · Land Lawyers · Surveyors · Engineers · Electricians · Plumbers · Skilled Trades',
+      noGuarantee:  'Submission does not guarantee acceptance. All applications go through a thorough verification and review process.',
+
+      // Section headings
+      s1: 'Basic information',
+      s2: 'Professional category',
+      s3: 'Experience & operations',
+      s4: 'Credentials & verification',
+      s5: 'Project history',
+      s6: 'Professional standards',
+      s7: 'Future alignment',
+      s8: 'Regional capacity',
+      s9: 'Final agreement',
+
+      // Section 1
+      fullName:      'Full name',
+      businessName:  'Business / firm name',
+      phone:         'Phone number',
+      email:         'Email address',
+      country:       'Country',
+      city:          'City / region of operation',
+      portfolio:     'Website / social media / portfolio link',
+      portfolioHint: 'Optional but recommended',
+
+      // Section 2
+      roleQ:  'What best describes your role?',
+      rolePlaceholder: 'Select your role',
+      roleOther: 'Please specify your role',
+      role: {
+        general_contractor: 'General Contractor',
+        land_lawyer:        'Land Lawyer',
+        structural_engineer:'Structural Engineer',
+        architect:          'Architect',
+        quantity_surveyor:  'Quantity Surveyor',
+        land_surveyor:      'Land Surveyor',
+        electrician:        'Electrician',
+        plumber:            'Plumber',
+        mason:              'Mason',
+        carpenter:          'Carpenter',
+        roofing:            'Roofing Specialist',
+        interior_finishing: 'Interior Finishing Specialist',
+        other:              'Other',
+      },
+
+      // Section 3
+      yearsQ: 'How many years have you been operating professionally?',
+      years: {
+        under1: 'Less than 1 year',
+        y1_3:   '1–3 years',
+        y3_5:   '3–5 years',
+        y5_10:  '5–10 years',
+        y10:    '10+ years',
+      },
+      operatesQ: 'Do you operate as:',
+      operates: {
+        registered:  'Registered Business',
+        independent: 'Independent Professional',
+        small_team:  'Small Team',
+        larger_firm: 'Larger Firm',
+      },
+      teamSize:  'How many people are on your team?',
+      projectTypesQ: 'Which types of projects have you worked on?',
+      projectType: {
+        residential:  'Residential homes',
+        multi_family: 'Multi-family buildings',
+        commercial:   'Commercial buildings',
+        renovations:  'Renovations',
+        land:         'Land transactions',
+        legal:        'Legal verification',
+        infrastructure: 'Infrastructure',
+        other:        'Other',
+      },
+
+      // Section 4 — shared
+      uploadsTitle: 'Upload supporting documents',
+      uploadHint:   'PDF, JPG, PNG or WebP · max 10 MB each',
+      uploadCta:    'Choose files',
+      uploadedCount: '{n} file(s) attached',
+      removeFile:   'Remove',
+
+      // Section 4 — contractor
+      upContractor: 'Business registration certificate, tax certificate (if available), portfolio or photos of completed projects',
+      avgProjectQ:  'What is the average project size you handle?',
+      avgProject: {
+        under20:  'Under $20k',
+        k20_50:   '$20k–$50k',
+        k50_100:  '$50k–$100k',
+        over100:  '$100k+',
+      },
+      diasporaQ:    'Have you previously worked with diaspora clients?',
+      paymentStructureQ: 'Describe your typical payment structure',
+
+      // Section 4 — lawyer
+      upLawyer:     'Bar certification / licence, firm registration, relevant legal documents handled (optional)',
+      legalServicesQ: 'What legal services do you primarily provide?',
+      legalService: {
+        land_verification: 'Land verification',
+        contract_drafting: 'Contract drafting',
+        property_transfer: 'Property transfer',
+        dispute_resolution:'Dispute resolution',
+        title_review:      'Title review',
+        other:             'Other',
+      },
+      diasporaPropertyQ: 'Have you handled property transactions for diaspora clients before?',
+
+      // Section 4 — surveyor / engineer / architect
+      upTechnical:  'Professional certification / licence, portfolio or projects, relevant association membership',
+      servicesQ:    'What services do you provide?',
+      softwareQ:    'What software / tools do you use?',
+
+      // Section 4 — trades
+      upTrade:      'Certification or trade qualification (if applicable), photos or videos of previous work',
+      tradeProjectsQ: 'What type of projects do you typically work on?',
+      workStyleQ:   'Do you usually work independently or under contractors?',
+      workStyle: {
+        independently: 'Independently',
+        under:         'Under contractors',
+        both:          'Both',
+      },
+
+      // Section 5
+      projectsIntro:  'Please provide details for at least 3 previous projects or clients.',
+      projectN:       'Project {n}',
+      projName:       'Project name / type',
+      projLocation:   'Location',
+      projBudget:     'Approximate budget / value',
+      projRole:       'Your role',
+      projYear:       'Completion year',
+      refTitle:       'Client reference {n}',
+      refName:        'Name',
+      refPhone:       'Phone number',
+      refEmail:       'Email',
+      addProject:     'Add another project',
+      removeProject:  'Remove this project',
+
+      // Section 6
+      milestonesQ:    'Are you comfortable operating within a structured milestone-based system?',
+      verificationQ:  "Are you willing to operate under Jalla's verification and accountability standards?",
+      noSidePayQ:     'Are you willing to avoid direct payment arrangements outside the Jalla system for Jalla-managed projects?',
+      disqualifyWarn: 'Answering "No" to any of the above means we cannot proceed with your application at this time. You may still submit it for our records.',
+
+      // Section 7
+      videoIntro:  'Record a 2-minute video answering the questions below and paste the link here. Candidates without a video will not be rejected.',
+      videoUrl:    'Video link',
+      videoHint:   'Optional · YouTube, Loom, Drive or WhatsApp link',
+      whyJoinQ:    "Why do you want to join Jalla's Founding Network?",
+      differentiatorQ: 'What makes you different from most professionals in your field?',
+      readyQ:      'If accepted, are you prepared to participate in the early stages of building this network?',
+
+      // Section 8
+      regionsQ:    'Which area(s) are you available to work in? List all that apply',
+      concurrentQ: 'Approximately how many projects can you realistically handle at one time?',
+      concurrent: { one: '1', two_three: '2–3', four_five: '4–5', five_plus: '5+' },
+
+      // Section 9
+      agreeIntro: 'I understand that:',
+      agree1: 'Jalla is selecting a limited number of professionals per region',
+      agree2: 'Submission does not guarantee acceptance',
+      agree3: 'My application will be verified through references and project reviews',
+      agree4: 'Any false information will result in rejection and removal',
+      agreeCheckbox: 'I have read and understand the above',
+
+      // Controls & states
+      optional:    'Optional',
+      yes:         'Yes',
+      no:          'No',
+      submit:      'Submit founding application',
+      submitting:  'Submitting…',
+      reviewNote:  'Applications are reviewed manually. Qualified applicants will be contacted for verification and next steps.',
+      successTitle:'Application received',
+      successBody: "Thank you — we've sent a copy to your email. Our team reviews every application manually and will be in touch about verification and next steps.",
+      successToast:'Application submitted — check your email for a copy.',
+      errorGeneric:'Something went wrong sending your application. Please try again.',
+      errorRequired:'Please fill in all required fields before submitting.',
+      errorProjects:'Please provide details for at least 3 previous projects.',
     },
     without: {
       w1: 'Unclear clients',
@@ -948,6 +1132,7 @@ export const en = {
       t4: 'More consistent opportunities',
       d4: 'Climbing, not waiting',
     },
+    advantageClosing: "If you're accepted as a Founding Partner, you're positioned for early access and priority placement as demand ramps.",
     steps: {
       t1: 'Apply',
       d1: 'Share your trade, location, experience, and past work.',
@@ -1745,6 +1930,18 @@ export const en = {
     brand: 'Groundwork',
     byJalla: 'by Jalla',
     footer: 'Groundwork by Jalla',
+    contractorApplication: {
+      subject:  'We received your Founding Network application',
+      heading:  'Application received',
+      greeting: 'Hi {name},',
+      body:     'Thank you for applying to join Jalla\'s Verified Build Network as a Founding Partner. Your application has been received and is now in our review queue.',
+      whatNext: 'Applications are reviewed manually. We verify credentials, references and past projects before making a decision — if your application progresses, we will contact you about verification and next steps.',
+      copyIntro:'Here is a copy of everything you submitted:',
+      notListed:'Not provided',
+      filesLabel:'Attached documents',
+      fileCount:'{n} document(s) uploaded',
+      ctaSite:  'Visit Groundwork',
+    },
     invite: {
       subject: '{inviter} invited you to a Groundwork project',
       heading: 'You\'ve been invited',

@@ -76,8 +76,7 @@ export default function IntroducingJalla() {
 
         <Reveal delay={0.4}>
           <p className="font-sans text-lg font-semibold text-brand-near-black max-w-[560px] mx-auto mt-6 leading-relaxed">
-            Jalla controls the process — so the scope is clear, the roles are defined, the sequence is respected,
-            and the payments are structured.
+            {t('contractorApply.solutionClosing')}
           </p>
         </Reveal>
       </div>

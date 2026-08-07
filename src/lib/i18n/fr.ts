@@ -655,6 +655,8 @@ export const fr: Mirror<EnDict> = {
 
     comparison: {
       disputed: "CONTESTÉ",
+      moneyLeaks:   "l'argent fuit ici",
+      moneySecured: "l'argent reste sécurisé",
       eyebrow:     'LA DIFFÉRENCE',
       title:       'Bâtir au pays : sans structure ou avec Groundwork',
       subtitle:    'Le même chantier. Deux issues très différentes.',
@@ -906,6 +908,7 @@ export const fr: Mirror<EnDict> = {
     professional: "PROFESSIONNEL",
     theSolution: "LA SOLUTION",
     solutionTitle: "Jalla est le système encadré qui fait tourner correctement les chantiers de la diaspora.",
+    solutionClosing: "Jalla encadre le processus — le périmètre est clair, les rôles sont définis, la séquence est respectée et les paiements sont structurés.",
     realityTitle: "Vous excellez dans votre métier.",
     realityTitle2: "C'est le système autour de vous qui est cassé.",
     realityBody: "Le problème, ce n'est pas vous. C'est le système.",
@@ -927,6 +930,187 @@ export const fr: Mirror<EnDict> = {
       perk3:       "Membre d'un réseau professionnel sélectionné",
       perk4:       'Badge Partenaire Fondateur sur votre profil',
       footnote:    "Jalla n'est pas une bourse d'emploi. C'est une infrastructure maîtrisée pour exécuter correctement les projets de construction de la diaspora, avec les bons professionnels, dans le bon ordre, avec les bonnes garanties.",
+    },
+    form: {
+      // En-tête
+      title:        "Devenez Entrepreneur Fondateur du réseau de construction vérifié de Jalla",
+      subtitle:     "Nous sélectionnons un nombre limité de professionnels vérifiés par métier et par région avant l'ouverture au public.",
+      forIntro:     'Cette candidature s\'adresse aux :',
+      forList:      'Entrepreneurs · Juristes fonciers · Géomètres · Ingénieurs · Électriciens · Plombiers · Corps de métier qualifiés',
+      noGuarantee:  "Le dépôt d'une candidature ne garantit pas son acceptation. Toutes les candidatures font l'objet d'une vérification et d'un examen approfondis.",
+
+      // Titres de section
+      s1: 'Informations de base',
+      s2: 'Catégorie professionnelle',
+      s3: 'Expérience et activité',
+      s4: 'Qualifications et vérification',
+      s5: 'Historique de projets',
+      s6: 'Normes professionnelles',
+      s7: 'Vision commune',
+      s8: 'Capacité régionale',
+      s9: 'Accord final',
+
+      // Section 1
+      fullName:      'Nom complet',
+      businessName:  "Nom de l'entreprise / du cabinet",
+      phone:         'Numéro de téléphone',
+      email:         'Adresse e-mail',
+      country:       'Pays',
+      city:          "Ville / région d'activité",
+      portfolio:     'Site web / réseaux sociaux / portfolio',
+      portfolioHint: 'Facultatif mais recommandé',
+
+      // Section 2
+      roleQ:  'Qu\'est-ce qui décrit le mieux votre rôle ?',
+      rolePlaceholder: 'Sélectionnez votre rôle',
+      roleOther: 'Veuillez préciser votre rôle',
+      role: {
+        general_contractor: 'Entrepreneur général',
+        land_lawyer:        'Juriste foncier',
+        structural_engineer:'Ingénieur structure',
+        architect:          'Architecte',
+        quantity_surveyor:  'Économiste de la construction',
+        land_surveyor:      'Géomètre',
+        electrician:        'Électricien',
+        plumber:            'Plombier',
+        mason:              'Maçon',
+        carpenter:          'Charpentier',
+        roofing:            'Spécialiste toiture',
+        interior_finishing: 'Spécialiste finitions intérieures',
+        other:              'Autre',
+      },
+
+      // Section 3
+      yearsQ: 'Depuis combien d\'années exercez-vous professionnellement ?',
+      years: {
+        under1: "Moins d'un an",
+        y1_3:   '1 à 3 ans',
+        y3_5:   '3 à 5 ans',
+        y5_10:  '5 à 10 ans',
+        y10:    'Plus de 10 ans',
+      },
+      operatesQ: 'Vous exercez en tant que :',
+      operates: {
+        registered:  'Entreprise enregistrée',
+        independent: 'Professionnel indépendant',
+        small_team:  'Petite équipe',
+        larger_firm: 'Grande structure',
+      },
+      teamSize:  'Combien de personnes composent votre équipe ?',
+      projectTypesQ: 'Sur quels types de projets avez-vous travaillé ?',
+      projectType: {
+        residential:  'Maisons individuelles',
+        multi_family: 'Immeubles collectifs',
+        commercial:   'Bâtiments commerciaux',
+        renovations:  'Rénovations',
+        land:         'Transactions foncières',
+        legal:        'Vérification juridique',
+        infrastructure: 'Infrastructures',
+        other:        'Autre',
+      },
+
+      // Section 4 — commun
+      uploadsTitle: 'Joindre les pièces justificatives',
+      uploadHint:   'PDF, JPG, PNG ou WebP · 10 Mo maximum par fichier',
+      uploadCta:    'Choisir des fichiers',
+      uploadedCount: '{n} fichier(s) joint(s)',
+      removeFile:   'Retirer',
+
+      // Section 4 — entrepreneur
+      upContractor: "Registre de commerce, attestation fiscale (si disponible), portfolio ou photos de chantiers réalisés",
+      avgProjectQ:  'Quelle est la taille moyenne des projets que vous gérez ?',
+      avgProject: {
+        under20:  'Moins de 20 000 $',
+        k20_50:   '20 000 $ à 50 000 $',
+        k50_100:  '50 000 $ à 100 000 $',
+        over100:  'Plus de 100 000 $',
+      },
+      diasporaQ:    'Avez-vous déjà travaillé avec des clients de la diaspora ?',
+      paymentStructureQ: 'Décrivez votre structure de paiement habituelle',
+
+      // Section 4 — juriste
+      upLawyer:     "Certificat d'inscription au barreau, enregistrement du cabinet, documents juridiques traités (facultatif)",
+      legalServicesQ: 'Quels services juridiques proposez-vous principalement ?',
+      legalService: {
+        land_verification: 'Vérification foncière',
+        contract_drafting: 'Rédaction de contrats',
+        property_transfer: 'Transfert de propriété',
+        dispute_resolution:'Résolution de litiges',
+        title_review:      'Examen de titres',
+        other:             'Autre',
+      },
+      diasporaPropertyQ: 'Avez-vous déjà traité des transactions immobilières pour des clients de la diaspora ?',
+
+      // Section 4 — géomètre / ingénieur / architecte
+      upTechnical:  "Certification ou licence professionnelle, portfolio ou projets, adhésion à un ordre professionnel",
+      servicesQ:    'Quels services proposez-vous ?',
+      softwareQ:    'Quels logiciels / outils utilisez-vous ?',
+
+      // Section 4 — corps de métier
+      upTrade:      "Certification ou qualification professionnelle (le cas échéant), photos ou vidéos de travaux réalisés",
+      tradeProjectsQ: 'Sur quels types de chantiers travaillez-vous habituellement ?',
+      workStyleQ:   'Travaillez-vous plutôt en indépendant ou pour des entrepreneurs ?',
+      workStyle: {
+        independently: 'En indépendant',
+        under:         'Pour des entrepreneurs',
+        both:          'Les deux',
+      },
+
+      // Section 5
+      projectsIntro:  'Veuillez détailler au moins 3 projets ou clients précédents.',
+      projectN:       'Projet {n}',
+      projName:       'Nom / type de projet',
+      projLocation:   'Localisation',
+      projBudget:     'Budget / valeur approximative',
+      projRole:       'Votre rôle',
+      projYear:       "Année d'achèvement",
+      refTitle:       'Référence client {n}',
+      refName:        'Nom',
+      refPhone:       'Numéro de téléphone',
+      refEmail:       'E-mail',
+      addProject:     'Ajouter un autre projet',
+      removeProject:  'Retirer ce projet',
+
+      // Section 6
+      milestonesQ:    'Êtes-vous à l\'aise avec un système structuré fondé sur des jalons ?',
+      verificationQ:  "Acceptez-vous de travailler selon les normes de vérification et de responsabilité de Jalla ?",
+      noSidePayQ:     "Acceptez-vous d'éviter tout arrangement de paiement direct en dehors du système Jalla pour les projets gérés par Jalla ?",
+      disqualifyWarn: "Répondre « Non » à l'une de ces questions signifie que nous ne pourrons pas donner suite à votre candidature pour le moment. Vous pouvez tout de même la soumettre pour nos archives.",
+
+      // Section 7
+      videoIntro:  "Enregistrez une vidéo de 2 minutes répondant aux questions ci-dessous et collez le lien ici. Les candidats sans vidéo ne seront pas écartés.",
+      videoUrl:    'Lien de la vidéo',
+      videoHint:   'Facultatif · lien YouTube, Loom, Drive ou WhatsApp',
+      whyJoinQ:    'Pourquoi souhaitez-vous rejoindre le Réseau Fondateur de Jalla ?',
+      differentiatorQ: 'Qu\'est-ce qui vous distingue de la plupart des professionnels de votre domaine ?',
+      readyQ:      'Si vous êtes retenu, êtes-vous prêt à participer aux premières étapes de construction de ce réseau ?',
+
+      // Section 8
+      regionsQ:    'Dans quelle(s) zone(s) êtes-vous disponible pour travailler ? Indiquez-les toutes',
+      concurrentQ: 'Combien de projets pouvez-vous raisonnablement gérer en même temps ?',
+      concurrent: { one: '1', two_three: '2 à 3', four_five: '4 à 5', five_plus: 'Plus de 5' },
+
+      // Section 9
+      agreeIntro: 'Je comprends que :',
+      agree1: 'Jalla sélectionne un nombre limité de professionnels par région',
+      agree2: "Le dépôt d'une candidature ne garantit pas son acceptation",
+      agree3: 'Ma candidature sera vérifiée par des références et des examens de projets',
+      agree4: 'Toute fausse information entraînera un rejet et une exclusion',
+      agreeCheckbox: "J'ai lu et compris ce qui précède",
+
+      // Contrôles et états
+      optional:    'Facultatif',
+      yes:         'Oui',
+      no:          'Non',
+      submit:      'Envoyer ma candidature fondatrice',
+      submitting:  'Envoi en cours…',
+      reviewNote:  'Les candidatures sont examinées manuellement. Les candidats retenus seront contactés pour la vérification et les étapes suivantes.',
+      successTitle:'Candidature reçue',
+      successBody: "Merci — nous vous en avons envoyé une copie par e-mail. Notre équipe examine chaque candidature manuellement et vous contactera pour la vérification et les prochaines étapes.",
+      successToast:'Candidature envoyée — une copie vous a été adressée par e-mail.',
+      errorGeneric:"Une erreur s'est produite lors de l'envoi de votre candidature. Veuillez réessayer.",
+      errorRequired:'Veuillez remplir tous les champs obligatoires avant de soumettre.',
+      errorProjects:'Veuillez détailler au moins 3 projets précédents.',
     },
     without: {
       w1: 'Des clients aux attentes floues',
@@ -964,6 +1148,7 @@ export const fr: Mirror<EnDict> = {
       t4: 'Des opportunités plus régulières',
       d4: 'On progresse, on n\'attend pas',
     },
+    advantageClosing: "Si vous êtes retenu comme Partenaire Fondateur, vous bénéficiez d'un accès anticipé et d'un placement prioritaire à mesure que la demande augmente.",
     steps: {
       t1: 'Postuler',
       d1: 'Indiquez votre métier, votre localisation, votre expérience et vos réalisations.',
@@ -1760,6 +1945,18 @@ export const fr: Mirror<EnDict> = {
     brand: 'Groundwork',
     byJalla: 'par Jalla',
     footer: 'Groundwork par Jalla',
+    contractorApplication: {
+      subject:  'Nous avons bien reçu votre candidature au Réseau Fondateur',
+      heading:  'Candidature reçue',
+      greeting: 'Bonjour {name},',
+      body:     "Merci d'avoir postulé pour rejoindre le réseau de construction vérifié de Jalla en tant que Partenaire Fondateur. Votre candidature a bien été reçue et se trouve dans notre file d'examen.",
+      whatNext: "Les candidatures sont examinées manuellement. Nous vérifions les qualifications, les références et les projets passés avant toute décision — si votre candidature progresse, nous vous contacterons pour la vérification et les étapes suivantes.",
+      copyIntro:'Voici une copie de tout ce que vous avez soumis :',
+      notListed:'Non renseigné',
+      filesLabel:'Documents joints',
+      fileCount:'{n} document(s) téléversé(s)',
+      ctaSite:  'Découvrir Groundwork',
+    },
     invite: {
       subject: '{inviter} vous a invité sur un chantier Groundwork',
       heading: 'Vous avez reçu une invitation',

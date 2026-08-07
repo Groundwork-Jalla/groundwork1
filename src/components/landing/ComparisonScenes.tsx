@@ -66,7 +66,7 @@ export function WithoutStructureScene() {
         </circle>
       ))}
       <text x={nodeX[1] + 23} y="132" textAnchor="middle" fontSize="9.5" fill={DARK} opacity="0.45">
-        money leaks here
+        {t('landing.comparison.moneyLeaks')}
       </text>
 
       {/* decline arrow */}
@@ -88,6 +88,7 @@ export function WithoutStructureScene() {
 }
 
 export function WithGroundworkScene() {
+  const t = useT();
   return (
     <svg viewBox="0 0 320 190" className="w-full h-full" aria-hidden="true">
       <GridBackdrop stroke="rgba(255,255,255,0.06)" />
@@ -121,7 +122,7 @@ export function WithGroundworkScene() {
       <rect x="147" y="126" width="26" height="20" rx="3" fill="white" />
       <path d="M151,126 v-7 a9,9 0 1,1 18,0 v7" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
       <text x="160" y="165" textAnchor="middle" fontSize="9.5" fill="white" opacity="0.5">
-        money stays secured
+        {t('landing.comparison.moneySecured')}
       </text>
 
       {/* growth arrow */}

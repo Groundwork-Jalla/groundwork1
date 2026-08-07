@@ -68,8 +68,7 @@ export default function FoundingAdvantage() {
 
         <Reveal delay={0.5}>
           <p className="font-sans italic text-white/40 text-center mt-8 max-w-[480px] mx-auto">
-            If you're accepted as a Founding Partner, you're positioned for early access and priority placement as
-            demand ramps.
+            {t('contractorApply.advantageClosing')}
           </p>
         </Reveal>
       </div>

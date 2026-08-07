@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle2, Clock, Users, Star, Info } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Users, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/landing/Reveal";
 import { trackEvent } from "@/lib/analytics";
 import { useLanguage, type TKey } from "@/lib/i18n";
-import {
-  GHL_EMBED_SCRIPT,
-  buildFormUrl,
-  getContractorForm,
-} from "@/lib/i18n/external-forms";
+import ContractorApplicationForm from "./ContractorApplicationForm";
 
 const PERKS: { Icon: typeof CheckCircle2; key: TKey }[] = [
   { Icon: CheckCircle2, key: "contractorApply.cta.perk1" },
@@ -18,31 +14,22 @@ const PERKS: { Icon: typeof CheckCircle2; key: TKey }[] = [
   { Icon: Star,         key: "contractorApply.cta.perk4" },
 ];
 
-function useGHLScript(active: boolean) {
-  useEffect(() => {
-    if (!active) return;
-    const script = document.createElement("script");
-    script.src = GHL_EMBED_SCRIPT;
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      try { document.body.removeChild(script); } catch {}
-    };
-  }, [active]);
-}
-
 export default function ContractorCTA() {
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
-  const { lang, t } = useLanguage();
+  const { t } = useLanguage();
+
+  // Auto-dismiss the confirmation toast. The form's own success panel stays put —
+  // the toast is the glance-level acknowledgement, not the record of what happened.
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(false), 6000);
+    return () => clearTimeout(id);
+  }, [toast]);
   // Analytics fires once per page view. Both the button and the #apply hash route through
   // openForm, and the hash can be re-entered any number of times without a remount.
   const trackedRef = useRef(false);
-
-  const form = getContractorForm(lang);
-  const formUrl = buildFormUrl(lang);
-
-  useGHLScript(open);
 
   const openForm = useCallback(() => {
     if (!trackedRef.current) {
@@ -149,7 +136,10 @@ export default function ContractorCTA() {
             )}
           </AnimatePresence>
 
-          {/* GHL Form — revealed on click */}
+          {/* Application form — revealed on click.
+              Native (not a GHL iframe) so it can be translated, branch by role,
+              and confirm inline. Submissions land in Supabase and are mirrored
+              to GoHighLevel from api/ghl/contractor.ts. */}
           <AnimatePresence>
             {open && (
               <motion.div
@@ -157,9 +147,9 @@ export default function ContractorCTA() {
                 initial={{ opacity: 0, y: 32, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-white rounded-2xl p-5 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)]"
+                className="bg-white rounded-2xl p-5 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] text-left"
               >
-                <div className="flex items-center justify-between mb-5 pb-4 border-b border-brand-border-grey">
+                <div className="flex items-start justify-between mb-6 pb-4 border-b border-brand-border-grey">
                   <div>
                     <p className="font-sans text-base font-bold text-brand-near-black">
                       {t('contractorApply.cta.formTitle')}
@@ -176,38 +166,24 @@ export default function ContractorCTA() {
                   </button>
                 </div>
 
-                {/* The GHL form lives on another origin, so we cannot translate
-                    its contents. When no localised form exists for this
-                    language yet, say so plainly instead of failing silently. */}
-                {form.fallback && (
-                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-5">
-                    <Info className="size-4 text-amber-600 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-800 leading-relaxed">
-                      {t('contractorApply.cta.formEnglishOnly')}
-                    </p>
-                  </div>
-                )}
-
-                {/* key={lang} forces a fresh iframe when the language changes —
-                    GHL's embed script does not react to src updates in place. */}
-                <iframe
-                  key={lang}
-                  src={formUrl}
-                  style={{ width: "100%", border: "none", borderRadius: "8px", minHeight: `${form.height}px` }}
-                  id={`inline-${form.id}`}
-                  data-layout="{'id':'INLINE'}"
-                  data-trigger-type="alwaysShow"
-                  data-trigger-value=""
-                  data-activation-type="alwaysActivated"
-                  data-activation-value=""
-                  data-deactivation-type="neverDeactivate"
-                  data-deactivation-value=""
-                  data-form-name={t('contractorApply.cta.formName')}
-                  data-height={form.height}
-                  data-layout-iframe-id={`inline-${form.id}`}
-                  data-form-id={form.id}
-                  title={t('contractorApply.cta.formName')}
+                <ContractorApplicationForm
+                  onSuccess={() => setToast(true)}
                 />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Success toast */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 rounded-xl bg-brand-near-black text-white px-5 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+              >
+                <CheckCircle2 className="size-4 shrink-0" />
+                <span className="text-xs font-medium">{t('contractorApply.form.successToast')}</span>
               </motion.div>
             )}
           </AnimatePresence>
