@@ -68,17 +68,29 @@ export default async function handler(req: any, res: any) {
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
   const appUrl = process.env.PUBLIC_APP_URL ?? 'https://tryjalla.com';
 
+  // GHL stores first and last name separately, so send both alongside the full
+  // string. The form asks for one "Full name" field on purpose — splitting on the
+  // first space is a heuristic, not a truth: many names do not divide that way.
+  // `full_name` therefore stays authoritative and is what the CRM should display.
+  const fullName = str(b.fullName) ?? '';
+  const spaceAt  = fullName.indexOf(' ');
+  const firstName = spaceAt === -1 ? fullName : fullName.slice(0, spaceAt);
+  const lastName  = spaceAt === -1 ? ''       : fullName.slice(spaceAt + 1).trim();
+
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        // Standard contact fields — map these to first/last name, email, phone in GHL.
-        full_name: str(b.fullName),
-        email:     b.email,
-        phone:     str(b.phone),
-        country:   str(b.country),
-        city:      str(b.city),
+        // Standard contact fields. `first_name`/`last_name` exist because GHL stores
+        // them separately; `full_name` is the authoritative one to display.
+        full_name:  fullName || null,
+        first_name: firstName || null,
+        last_name:  lastName  || null,
+        email:      b.email,
+        phone:      str(b.phone),
+        country:    str(b.country),
+        city:       str(b.city),
 
         // Custom fields — create these once in GHL and map them in the workflow.
         business_name:       str(b.businessName),
