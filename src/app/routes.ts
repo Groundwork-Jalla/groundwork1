@@ -8,6 +8,9 @@ export default [
   route("community",           "routes/community.tsx"),
   route("pricing",             "routes/pricing.tsx"),
   route("verify/:id",          "routes/verify.tsx"),
+  // Required by Google OAuth verification and Stripe before going live.
+  route("privacy",             "routes/privacy.tsx"),
+  route("terms",               "routes/terms.tsx"),
 
   // Auth routes (public) — shared architectural layout
   layout("routes/_auth-layout.tsx", [
