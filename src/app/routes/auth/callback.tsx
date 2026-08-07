@@ -1,10 +1,52 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
+
+/**
+ * Wait for the session the client is establishing from the URL.
+ *
+ * The Supabase client is configured with `detectSessionInUrl: true`, so it
+ * exchanges the `?code=` itself as soon as this page loads. This page must NOT
+ * call exchangeCodeForSession as well: whichever call lands second finds the
+ * PKCE verifier already consumed and deleted, and fails with "code verifier not
+ * found in storage" — even though the sign-in actually succeeded and the user
+ * was created. That double-exchange is what produced the spurious error page.
+ *
+ * So: observe, don't exchange. Resolve as soon as a session exists, and give up
+ * after a timeout rather than hanging on a code that was genuinely rejected.
+ */
+function waitForSession(timeoutMs = 15000) {
+  return new Promise<Session | null>(resolve => {
+    let settled = false;
+    let unsub: (() => void) | undefined;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const finish = (session: Session | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsub?.();
+      resolve(session);
+    };
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) finish(session);
+    });
+    unsub = () => data.subscription.unsubscribe();
+
+    // The exchange may already have completed before this listener attached.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) finish(session);
+    });
+
+    timer = setTimeout(() => finish(null), timeoutMs);
+  });
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -13,43 +55,47 @@ export default function AuthCallback() {
 
   useEffect(() => {
     async function run() {
-      const code = new URLSearchParams(window.location.search).get("code");
+      const params = new URLSearchParams(window.location.search);
 
-      if (code) {
-        const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) { setError(error.message); return; }
+      // Supabase reports provider/consent failures as query params, not as a
+      // failed exchange — surface those rather than waiting for a session that
+      // is never coming.
+      const authError = params.get("error_description") ?? params.get("error");
+      if (authError) { setError(authError); return; }
 
-        // Process any pending invite (stored in localStorage before signup)
-        const token = localStorage.getItem("pendingInvite");
-        if (token) {
-          localStorage.removeItem("pendingInvite");
-          try {
-            const projectId = await acceptInvite(token);
-            navigate(`/projects/${projectId}`, { replace: true });
-            return;
-          } catch {
-            // Invalid/used token — fall through to normal routing
-          }
-        }
+      const hasCode = !!params.get("code");
 
-        const isNew = !sessionData.user?.user_metadata?.onboarding_complete;
-        if (isNew) trackEvent('signup_complete');
-        const { data: isAdmin } = await supabase.rpc('is_admin');
-        navigate(postAuthPath({ isAdmin: isAdmin === true, onboardingComplete: !isNew }), { replace: true });
+      const session = hasCode
+        ? await waitForSession()
+        : (await supabase.auth.getSession()).data.session;
+
+      if (!session) {
+        if (hasCode) { setError(t('auth.callback.expired')); return; }
+        navigate("/auth/login", { replace: true });
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/auth/login", { replace: true }); return; }
+      // Process any pending invite (stored in localStorage before signup)
+      const token = localStorage.getItem("pendingInvite");
+      if (token) {
+        localStorage.removeItem("pendingInvite");
+        try {
+          const projectId = await acceptInvite(token);
+          navigate(`/projects/${projectId}`, { replace: true });
+          return;
+        } catch {
+          // Invalid/used token — fall through to normal routing
+        }
+      }
+
+      const onboardingComplete = !!session.user?.user_metadata?.onboarding_complete;
+      if (!onboardingComplete) trackEvent('signup_complete');
       const { data: isAdmin } = await supabase.rpc('is_admin');
-      navigate(postAuthPath({
-        isAdmin: isAdmin === true,
-        onboardingComplete: !!session.user?.user_metadata?.onboarding_complete,
-      }), { replace: true });
+      navigate(postAuthPath({ isAdmin: isAdmin === true, onboardingComplete }), { replace: true });
     }
 
     run();
-  }, [navigate]);
+  }, [navigate, t]);
 
   if (error) {
     return (

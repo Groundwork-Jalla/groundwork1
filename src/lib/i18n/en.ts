@@ -1263,6 +1263,7 @@ export const en = {
       signingIn:  'Signing you in…',
       errorTitle: 'Something went wrong',
       backToLogin:'Back to login',
+      expired:    'This sign-in link has expired or has already been used. Please request a new one.',
     },
   },
 

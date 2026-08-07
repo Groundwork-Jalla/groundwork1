@@ -1278,6 +1278,7 @@ export const fr: Mirror<EnDict> = {
       signingIn:  'Connexion en cours…',
       errorTitle: "Une erreur s'est produite",
       backToLogin:'Retour à la connexion',
+      expired:    "Ce lien de connexion a expiré ou a déjà été utilisé. Veuillez en demander un nouveau.",
     },
   },
 
