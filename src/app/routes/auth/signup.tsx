@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { Check, X, Mail, Lock } from "lucide-react";
@@ -29,7 +29,36 @@ export default function Signup() {
   const [submitting,      setSubmitting]      = useState(false);
   const [submitted,       setSubmitted]       = useState(false);
 
+  // Resend state. Confirmation mail is sent by Supabase Auth (not our Resend
+  // templates), so when it goes missing the user has no other way to recover —
+  // without this they are simply stuck on the "check your email" screen.
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const [cooldown,  setCooldown]  = useState(0);
+
   const passwordValid = checks.every((c) => c.test(password));
+
+  // Supabase rate-limits confirmation mail hard. A local cooldown makes that
+  // visible up front rather than letting someone hammer the button into an
+  // opaque server-side error.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  async function handleResend() {
+    setResending(true);
+    setResendMsg(null);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setResending(false);
+    setResendMsg(error ? t('auth.signup.resendErr') : t('auth.signup.resentOk'));
+    if (!error) setCooldown(60);
+  }
 
   async function handleGoogleSignUp() {
     await supabase.auth.signInWithOAuth({
@@ -100,6 +129,29 @@ export default function Signup() {
             {t('auth.signup.checkEmailInvite')}
           </p>
         )}
+
+        {/* Recovery path for a confirmation mail that never arrived */}
+        <p className="text-xs text-brand-mid-grey mt-5 leading-relaxed">
+          {t('auth.signup.noEmailPrompt')}{' '}
+          {cooldown > 0 ? (
+            <span className="text-brand-soft-grey">
+              {t('auth.signup.resendWait', { s: cooldown })}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="text-brand-near-black underline underline-offset-4 disabled:opacity-50"
+            >
+              {resending ? t('auth.signup.resending') : t('auth.signup.resendCta')}
+            </button>
+          )}
+        </p>
+        {resendMsg && (
+          <p className="text-xs text-brand-mid-grey mt-2 leading-relaxed">{resendMsg}</p>
+        )}
+
         <Link
           to="/auth/login"
           className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"

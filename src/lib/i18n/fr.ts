@@ -1253,6 +1253,12 @@ export const fr: Mirror<EnDict> = {
       checkEmailBody: 'Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte.',
       checkEmailInvite:'Après confirmation, vous serez dirigé directement vers le projet qui vous a été attribué.',
       backToLogin:    'Retour à la connexion',
+      noEmailPrompt:  "Vous ne l'avez pas reçu ? Vérifiez vos spams, ou",
+      resendCta:      'renvoyez-le',
+      resending:      'Envoi en cours…',
+      resendWait:     'Vous pourrez en demander un autre dans {s} s',
+      resentOk:       "Envoyé. Vérifiez à nouveau votre boîte de réception — cela peut prendre une minute.",
+      resendErr:      "Impossible de renvoyer l'e-mail. Veuillez réessayer dans un instant.",
     },
     reset: {
       title:      'Réinitialiser le mot de passe',

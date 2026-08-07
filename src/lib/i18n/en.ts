@@ -1238,6 +1238,12 @@ export const en = {
       checkEmailBody: 'We sent a confirmation link to {email}. Click it to activate your account.',
       checkEmailInvite:"After confirming, you'll be taken directly to your assigned project.",
       backToLogin:    'Back to login',
+      noEmailPrompt:  "Didn't get it? Check your spam folder, or",
+      resendCta:      'send it again',
+      resending:      'Sending…',
+      resendWait:     'You can request another in {s}s',
+      resentOk:       'Sent. Check your inbox again — it can take a minute to arrive.',
+      resendErr:      "Couldn't resend the email. Please try again shortly.",
     },
     reset: {
       title:      'Reset password',
