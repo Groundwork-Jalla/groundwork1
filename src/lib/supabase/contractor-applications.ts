@@ -138,15 +138,24 @@ export function qualifies(input: ContractorApplicationInput): boolean {
  *
  * Returns the new row id. Throws only if the Supabase insert fails — that is the
  * one step that actually loses the application if it goes wrong.
+ *
+ * The id is minted here rather than read back from the insert. Applicants are
+ * anonymous and the table has no SELECT policy for `anon` — deliberately, since rows
+ * hold phone numbers, client references and credentials. Asking PostgREST to return
+ * the inserted row (`.select()`) makes it re-read that row under RLS, which anon
+ * cannot do, and the whole insert fails with 42501. Supplying the UUID sidesteps the
+ * read-back entirely, so the write path needs no read permission at all.
  */
 export async function submitContractorApplication(
   input: ContractorApplicationInput,
 ): Promise<string> {
   const status = qualifies(input) ? 'pending' : 'disqualified';
+  const id = crypto.randomUUID();
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('contractor_applications')
     .insert({
+      id,
       full_name:     input.fullName.trim(),
       business_name: input.businessName.trim() || null,
       phone:         input.phone.trim(),
@@ -182,9 +191,7 @@ export async function submitContractorApplication(
       agreed_to_terms: input.agreedToTerms,
       status,
       lang: input.lang,
-    })
-    .select('id')
-    .single<{ id: string }>();
+    });
 
   if (error) throw error;
 
@@ -194,7 +201,7 @@ export async function submitContractorApplication(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      applicationId: data.id,
+      applicationId: id,
       fullName:  input.fullName.trim(),
       email:     input.email.trim().toLowerCase(),
       phone:     input.phone.trim(),
@@ -218,5 +225,5 @@ export async function submitContractorApplication(
 
   trackEvent('contractor_application_submitted', { role: input.role, status });
 
-  return data.id;
+  return id;
 }
