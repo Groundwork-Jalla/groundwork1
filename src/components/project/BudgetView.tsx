@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Download, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
-import { calculateBudget, formatUSD, formatUSDFull } from '@/lib/budget';
+import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -14,17 +14,6 @@ export interface BudgetViewProps {
   project: ProjectRow;
   stages: ProjectStageRow[];
 }
-
-// ── Constants ────────────────────────────────────────────────
-
-const BUDGET_SLICES = [
-  { labelKey: 'project.costing.sliceMaterials'   as TKey, pct: 41, key: 'materials'   as const },
-  { labelKey: 'project.costing.sliceLabor'       as TKey, pct: 23, key: 'labor'       as const },
-  { labelKey: 'project.costing.sliceEngineering' as TKey, pct: 16, key: 'engineering' as const },
-  { labelKey: 'project.costing.sliceManagement'  as TKey, pct: 10, key: 'management'  as const },
-  { labelKey: 'project.costing.sliceContingency' as TKey, pct: 8,  key: 'contingency' as const },
-  { labelKey: 'project.costing.slicePermits'     as TKey, pct: 2,  key: 'permits'     as const },
-] as const;
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -369,24 +358,16 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
     }
   }
 
-  const budget = calculateBudget({
-    country:         project.country,
-    city:            project.city ?? '',
-    floors:          project.num_floors,
-    buildingType:    project.building_type,
-    roofType:        project.roof_type,
-    hasBoysQuarters: project.has_boys_quarters,
-    bqRooms:         project.bq_rooms,
-    sqm:             Number(project.sqm),
-    finishLevel:     project.finish_level,
-  });
+  // One budget, one total. `projectBudget` resolves the owner's confirmed `budget_usd`
+  // and only falls back to the engine estimate when there isn't one — so the slices
+  // below are always shares of the figure printed above them.
+  const budget = projectBudget(project);
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
 
   const released  = sumMilestones(sortedStages, s => s.status === 'complete');
   const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review');
   const remaining = sumMilestones(sortedStages, s => s.status === 'locked');
-  const totalBudget = project.budget_usd ?? budget.total;
 
   return (
     <motion.div
@@ -438,7 +419,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
 
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
-        <MetricBox label={t('project.costing.totalBudget')} value={totalBudget} />
+        <MetricBox label={t('project.costing.totalBudget')} value={budget.total} />
         <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />
         <MetricBox label={t('project.costing.held')}        value={held}     dimmed={held === 0} />
         <MetricBox label={t('project.costing.remaining')}   value={remaining} dimmed={remaining === 0} />
@@ -447,7 +428,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
       {/* ── Section 3: Per-Floor Breakdown (multi-floor only) ── */}
       {(project.num_floors ?? 1) > 1 && (
         <FloorBreakdownSection
-          total={totalBudget}
+          total={budget.total}
           numFloors={project.num_floors ?? 1}
           floorRooms={project.floor_rooms ?? null}
         />

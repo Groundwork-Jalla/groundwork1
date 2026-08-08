@@ -1,10 +1,13 @@
 import type {
   BudgetBreakdown, BudgetCalcDetail, CityRate, ConstructionRate,
-  TradeSection, WizardFormData,
+  ProjectRow, TradeSection, WizardFormData,
 } from '@/types/project';
 import { runTakeoff, SECTION_KEYS, type SectionKey } from './engine';
 import { BQ_ROOM_COST_USD, buildLegacyRate, legacyTotal } from './legacy';
 import { formatMoney } from '@/lib/format';
+// Type-only: erased at build, and nothing under @/lib/i18n imports @/lib/budget,
+// so this cannot create a cycle.
+import type { TKey } from '@/lib/i18n/translate';
 
 export { CITY_RATES, CM_CITY_CODES, CM_TAKEOFF, resolveCityRate, BASELINE_CITY } from './model';
 export { fixtureSchedule, plumbingCost } from './fixtures';
@@ -51,18 +54,109 @@ export function calculateBudget(
   rate?: ConstructionRate | null,
   cityRate?: CityRate | null,
 ): BudgetBreakdown {
-  const total = calculateTotal(data, rate, cityRate);
-  const pct = (p: number) => Math.round(total * p / 100);
+  return splitBudget(calculateTotal(data, rate, cityRate));
+}
+
+/**
+ * Split `units` across `weights` so the parts sum to `units` EXACTLY.
+ *
+ * Largest-remainder (Hare quota): floor every share, then hand the shortfall to the
+ * largest fractional remainders one unit at a time. `Array.prototype.sort` is
+ * specified as stable, so ties break on declaration order — for `BUDGET_SPLIT_PCT`
+ * that means the biggest slice absorbs a tied cent.
+ *
+ * Six independent `Math.round` calls used to drift the parts up to $2 away from the
+ * total they were printed beneath. There is no rounding rule that avoids that; the
+ * remainder has to be allocated deliberately, which is what this does.
+ */
+function allocate<K extends string>(units: number, weights: Record<K, number>): Record<K, number> {
+  const keys = Object.keys(weights) as K[];
+  const out  = Object.fromEntries(keys.map(k => [k, 0])) as Record<K, number>;
+
+  const totalWeight = keys.reduce((sum, k) => sum + Math.max(0, weights[k]), 0);
+  if (!Number.isFinite(units) || units <= 0 || totalWeight <= 0) return out;
+
+  const rounded = Math.round(units);
+  const rems: { key: K; rem: number }[] = [];
+  let assigned = 0;
+
+  for (const k of keys) {
+    const exact = rounded * Math.max(0, weights[k]) / totalWeight;
+    const base  = Math.floor(exact);
+    out[k] = base;
+    assigned += base;
+    rems.push({ key: k, rem: exact - base });
+  }
+
+  // Stable sort keeps declaration order for equal remainders.
+  rems.sort((a, b) => b.rem - a.rem);
+  for (let i = 0; i < rounded - assigned; i++) out[rems[i].key] += 1;
+
+  return out;
+}
+
+/**
+ * The canonical six-way breakdown of a budget.
+ *
+ * Works in integer CENTS, because `budget_usd` is NUMERIC(14,2) and money is rendered
+ * to two decimal places. For a whole-dollar total — which is every total the app
+ * produces, since both `calculateTotal` and `legacyTotal` round — each share is an
+ * exact number of cents and no remainder distribution is needed at all.
+ *
+ * Returns the SNAPPED total, not the input. That is load-bearing: parts and total come
+ * out of one object, so a component rendering `b.total` beside `b.materials` cannot
+ * show two figures that disagree.
+ */
+export function splitBudget(total: number): BudgetBreakdown {
+  const cents = Number.isFinite(total) && total > 0 ? Math.round(total * 100) : 0;
+  const parts = allocate(cents, BUDGET_SPLIT_PCT);
   return {
-    total,
-    materials:   pct(BUDGET_SPLIT_PCT.materials),
-    labor:       pct(BUDGET_SPLIT_PCT.labor),
-    engineering: pct(BUDGET_SPLIT_PCT.engineering),
-    permits:     pct(BUDGET_SPLIT_PCT.permits),
-    contingency: pct(BUDGET_SPLIT_PCT.contingency),
-    management:  pct(BUDGET_SPLIT_PCT.management),
+    total:       cents / 100,
+    materials:   parts.materials   / 100,
+    labor:       parts.labor       / 100,
+    engineering: parts.engineering / 100,
+    permits:     parts.permits     / 100,
+    contingency: parts.contingency / 100,
+    management:  parts.management  / 100,
   };
 }
+
+/**
+ * The breakdown for a saved project — the ONLY way a `ProjectRow` should get one.
+ *
+ * A project has exactly one budget: `budget_usd`, the figure the owner confirmed when
+ * tracking started. The engine estimate is a fallback for rows created before that
+ * confirmation, nothing more.
+ *
+ * Never pair `project.budget_usd` with a breakdown from `calculateBudget` — that was
+ * the bug this replaces. The costing tab printed slices of the *estimate* underneath
+ * the *confirmed* total, so "41% x total = materials" was arithmetically false for
+ * anyone who edited their budget.
+ */
+export function projectBudget(
+  project: ProjectBudgetSource,
+  rate?: ConstructionRate | null,
+  cityRate?: CityRate | null,
+): BudgetBreakdown {
+  if (project.budget_usd != null) return splitBudget(project.budget_usd);
+
+  return splitBudget(calculateTotal({
+    country:         project.country,
+    city:            project.city ?? undefined,
+    floors:          project.num_floors,
+    buildingType:    project.building_type,
+    roofType:        project.roof_type,
+    hasBoysQuarters: project.has_boys_quarters,
+    bqRooms:         project.bq_rooms,
+    sqm:             Number(project.sqm),
+    finishLevel:     project.finish_level,
+  }, rate, cityRate));
+}
+
+/** The fields of a `ProjectRow` that pricing actually reads. */
+export type ProjectBudgetSource = Pick<ProjectRow,
+  | 'country' | 'city' | 'num_floors' | 'building_type' | 'roof_type'
+  | 'has_boys_quarters' | 'bq_rooms' | 'sqm' | 'finish_level' | 'budget_usd'>;
 
 /**
  * The six-way cost split, as percentages. `calculateBudget` is the only place these are
@@ -101,6 +195,26 @@ export function rollupBudget(b: BudgetBreakdown) {
     permits:   b.permits + b.contingency,
   };
 }
+
+/**
+ * Display order and labels for the six-way split.
+ *
+ * Three components and the PDF each kept their own copy of this array with the
+ * percentages typed out as literals. Import this instead — a percentage that lives in
+ * two places is a percentage that will eventually disagree with itself.
+ */
+export const BUDGET_SLICES = [
+  { key: 'materials',   labelKey: 'project.costing.sliceMaterials',   pct: BUDGET_SPLIT_PCT.materials   },
+  { key: 'labor',       labelKey: 'project.costing.sliceLabor',       pct: BUDGET_SPLIT_PCT.labor       },
+  { key: 'engineering', labelKey: 'project.costing.sliceEngineering', pct: BUDGET_SPLIT_PCT.engineering },
+  { key: 'management',  labelKey: 'project.costing.sliceManagement',  pct: BUDGET_SPLIT_PCT.management  },
+  { key: 'contingency', labelKey: 'project.costing.sliceContingency', pct: BUDGET_SPLIT_PCT.contingency },
+  { key: 'permits',     labelKey: 'project.costing.slicePermits',     pct: BUDGET_SPLIT_PCT.permits     },
+] as const satisfies readonly {
+  key: Exclude<keyof BudgetBreakdown, 'total'>;
+  labelKey: TKey;
+  pct: number;
+}[];
 
 function calculateTotal(
   data: Partial<WizardFormData>,
@@ -150,13 +264,14 @@ export function calculateBudgetDetail(
       sections.push({
         key,
         label:       SECTION_LABELS[key],
-        pct:         round1((usd / total) * 100),
-        amountUSD:   Math.round(usd),
-        amountLocal: Math.round(local),
+        pct:         0, // assigned by finalizeSections
+        amountUSD:   usd,
+        amountLocal: local,
         color:       SECTION_COLORS[key] ?? '#9ca3af',
       });
     }
-    pushBoysQuarters(sections, data, bqUSD, total, fx);
+    pushBoysQuarters(sections, data, bqUSD, fx);
+    finalizeSections(sections, total, fx);
     return {
       sections, total,
       totalLocal:   Math.round(total * fx),
@@ -175,33 +290,38 @@ export function calculateBudgetDetail(
   const roofMult    = effective.roof_type_multipliers[data.roofType ?? '']                    ?? 1.0;
   const singleBase  = (data.sqm ?? 0) * effective.base_rate_usd * finishMult * buildMult * roofMult;
 
-  const add = (key: string, label: string, pct: number, usd: number) => {
+  // `pct` is deliberately NOT passed in. It used to be, and the eight base sections
+  // passed a share of `singleBase` while `upper_floor` and `bq` passed a share of
+  // `total` — two different denominators in one column, which summed to 118.7% on a
+  // two-storey build. Percentages are now derived from the amounts, once, below.
+  const add = (key: string, label: string, usd: number) => {
     if (usd <= 0) return;
     sections.push({
       key, label,
-      pct:         round1(pct),
-      amountUSD:   Math.round(usd),
-      amountLocal: Math.round(usd * fx),
+      pct:         0, // assigned by finalizeSections
+      amountUSD:   usd,
+      amountLocal: usd * fx,
       color:       SECTION_COLORS[key] ?? '#9ca3af',
     });
   };
 
-  add('preliminary',  SECTION_LABELS.preliminary,  secs.preliminary,  singleBase * secs.preliminary  / 100);
-  add('foundation',   SECTION_LABELS.foundation,   secs.foundation,   singleBase * secs.foundation   / 100);
-  add('ground_floor', SECTION_LABELS.ground_floor, secs.ground_floor, singleBase * secs.ground_floor / 100);
-  add('roof',         SECTION_LABELS.roof,         secs.roof,         singleBase * secs.roof         / 100);
-  add('joinery',      SECTION_LABELS.joinery,      secs.joinery,      singleBase * secs.joinery      / 100);
-  add('electrical',   SECTION_LABELS.electrical,   secs.electrical,   singleBase * secs.electrical   / 100);
-  add('plumbing',     SECTION_LABELS.plumbing,     secs.plumbing,     singleBase * secs.plumbing     / 100);
-  add('finishing',    SECTION_LABELS.finishing,    secs.finishing,    singleBase * secs.finishing    / 100);
+  add('preliminary',  SECTION_LABELS.preliminary,  singleBase * secs.preliminary  / 100);
+  add('foundation',   SECTION_LABELS.foundation,   singleBase * secs.foundation   / 100);
+  add('ground_floor', SECTION_LABELS.ground_floor, singleBase * secs.ground_floor / 100);
+  add('roof',         SECTION_LABELS.roof,         singleBase * secs.roof         / 100);
+  add('joinery',      SECTION_LABELS.joinery,      singleBase * secs.joinery      / 100);
+  add('electrical',   SECTION_LABELS.electrical,   singleBase * secs.electrical   / 100);
+  add('plumbing',     SECTION_LABELS.plumbing,     singleBase * secs.plumbing     / 100);
+  add('finishing',    SECTION_LABELS.finishing,    singleBase * secs.finishing    / 100);
 
   for (let f = 1; f <= extraFloors; f++) {
     const floorUSD = singleBase * (effective.upper_floor_addition_pct / 100);
     add('upper_floor',
         extraFloors === 1 ? SECTION_LABELS.upper_floor : `Floor ${f + 1} Structure`,
-        (floorUSD / total) * 100, floorUSD);
+        floorUSD);
   }
-  pushBoysQuarters(sections, data, bqUSD, total, fx);
+  pushBoysQuarters(sections, data, bqUSD, fx);
+  finalizeSections(sections, total, fx);
 
   return {
     sections, total,
@@ -214,21 +334,49 @@ export function calculateBudgetDetail(
 
 function pushBoysQuarters(
   sections: TradeSection[], data: Partial<WizardFormData>,
-  bqUSD: number, total: number, fx: number,
+  bqUSD: number, fx: number,
 ): void {
   if (bqUSD <= 0) return;
   const n = data.bqRooms ?? 0;
   sections.push({
     key:   'bq',
     label: `Boys' Quarters (${n} room${n > 1 ? 's' : ''})`,
-    pct:   round1((bqUSD / total) * 100),
-    amountUSD:   Math.round(bqUSD),
-    amountLocal: Math.round(bqUSD * fx),
+    pct:   0, // assigned by finalizeSections
+    amountUSD:   bqUSD,
+    amountLocal: bqUSD * fx,
     color:       SECTION_COLORS.bq,
   });
 }
 
-const round1 = (n: number) => Math.round(n * 10) / 10;
+/**
+ * Round the section amounts and derive their percentages, in one pass, from a single
+ * denominator.
+ *
+ * Both are allocated rather than rounded independently, so the amount column sums to
+ * `total` exactly and the percentage column sums to exactly 100.0 — the two things a
+ * reader checks first when a quotation is laid beside an estimate.
+ *
+ * Allocation is keyed on array INDEX, not `section.key`: a build with three upper
+ * floors emits `upper_floor` three times, and a key-based map would silently collapse
+ * them into one.
+ */
+function finalizeSections(sections: TradeSection[], total: number, fx: number): void {
+  if (sections.length === 0) return;
+
+  const weights = Object.fromEntries(
+    sections.map((s, i) => [String(i), Math.max(0, s.amountUSD)]),
+  ) as Record<string, number>;
+
+  const cents = allocate(Math.round(total * 100), weights);
+  const tenths = allocate(1000, weights);
+
+  sections.forEach((s, i) => {
+    const usd = cents[String(i)] / 100;
+    s.amountUSD   = usd;
+    s.amountLocal = Math.round(usd * fx);
+    s.pct         = tenths[String(i)] / 10;
+  });
+}
 
 // ── Formatting helpers ─────────────────────────────────────
 //

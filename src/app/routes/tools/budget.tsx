@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
-import { calculateBudget, formatUSDFull, formatUSD } from '@/lib/budget';
+import { BUDGET_SLICES, calculateBudget, formatUSDFull, formatUSD } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -11,15 +11,6 @@ const FINISH_LEVELS = [
   { value: 'premium',  label: 'Premium',  desc: 'Mid-range quality fittings and finishes' },
   { value: 'luxury',   label: 'Luxury',   desc: 'High-end materials and custom finishes' },
 ] as const;
-
-const BUDGET_SLICES = [
-  { label: 'Materials',       key: 'materials'   as const, pct: 41 },
-  { label: 'Labor',           key: 'labor'        as const, pct: 23 },
-  { label: 'Engineering',     key: 'engineering'  as const, pct: 16 },
-  { label: 'Proj. Management',key: 'management'   as const, pct: 10 },
-  { label: 'Contingency',     key: 'contingency'  as const, pct: 8  },
-  { label: 'Permits',         key: 'permits'      as const, pct: 2  },
-];
 
 function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   return (
@@ -147,7 +138,7 @@ export default function BudgetTool() {
             <div className="flex flex-col gap-2.5">
               {BUDGET_SLICES.map(s => (
                 <div key={s.key} className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 text-xs text-brand-mid-grey">{s.label}</span>
+                  <span className="w-28 shrink-0 text-xs text-brand-mid-grey">{t(s.labelKey)}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
                     <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${s.pct}%` }} />
                   </div>

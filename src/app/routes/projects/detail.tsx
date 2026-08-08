@@ -17,7 +17,7 @@ import {
   markSubstageComplete,
   approveStage,
 }                                from '@/lib/supabase/approvals';
-import { calculateBudget, formatUSDFull } from '@/lib/budget';
+import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { StageTracker }          from '@/components/project/StageTracker';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
@@ -254,17 +254,8 @@ export default function ProjectDetail() {
 
   // ── Derived display values ─────────────────────────────
 
-  const budget  = calculateBudget({
-    country:         project.country,
-    city:            project.city ?? '',
-    floors:          project.num_floors,
-    buildingType:    project.building_type,
-    roofType:        project.roof_type,
-    hasBoysQuarters: project.has_boys_quarters,
-    bqRooms:         project.bq_rooms,
-    sqm:             Number(project.sqm),
-    finishLevel:     project.finish_level,
-  });
+  // Resolves the owner's confirmed budget_usd, falling back to the engine estimate.
+  const budget  = projectBudget(project);
 
   const tier       = TIER_META[project.tier];
   const scaleStr   = [

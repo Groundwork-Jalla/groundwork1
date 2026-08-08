@@ -29,7 +29,17 @@ describe('canonical stage model', () => {
   });
 
   it('matches the approved budget shares', () => {
-    expect(BASE.map(s => s.budget_pct)).toEqual([5, 10, 5, 15, 20, 10, 10, 10, 10, 5]);
+    expect(BASE.map(s => s.budget_pct)).toEqual([0, 11, 5, 16, 21, 11, 11, 10, 10, 5]);
+  });
+
+  it('gives Land Secured no budget share', () => {
+    // Land acquisition is excluded from the construction budget by decision, so the
+    // stage is a required gate (title, survey, notary) that carries a $0 milestone.
+    // Its original 5% was redistributed across the other nine by largest-remainder,
+    // which preserves their relative weighting.
+    const land = BASE.find(s => s.key === 'landSecured')!;
+    expect(land.budget_pct).toBe(0);
+    expect(land.substages.length).toBe(5); // still gates stage 2
   });
 
   it('has exactly 60 substages, in the approved per-stage counts', () => {

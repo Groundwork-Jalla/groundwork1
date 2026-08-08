@@ -1,21 +1,9 @@
 import { jsPDF } from 'jspdf';
-import { calculateBudget } from '@/lib/budget';
+import { BUDGET_SLICES, projectBudget } from '@/lib/budget';
 import { formatMoney, localeFor } from '@/lib/format';
 import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
 import type { Lang } from '@/lib/i18n/types';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
-
-// Percentages match BUDGET_ROLLUP_PCT. The labels reuse the same dictionary keys as
-// BudgetView's on-screen table, so the PDF and the costing tab cannot end up
-// describing the same slice differently.
-const BUDGET_SLICES = [
-  { labelKey: 'project.costing.sliceMaterials'   as TKey, pct: 41, key: 'materials'   as const },
-  { labelKey: 'project.costing.sliceLabor'       as TKey, pct: 23, key: 'labor'       as const },
-  { labelKey: 'project.costing.sliceEngineering' as TKey, pct: 16, key: 'engineering' as const },
-  { labelKey: 'project.costing.sliceManagement'  as TKey, pct: 10, key: 'management'  as const },
-  { labelKey: 'project.costing.sliceContingency' as TKey, pct: 8,  key: 'contingency' as const },
-  { labelKey: 'project.costing.slicePermits'     as TKey, pct: 2,  key: 'permits'     as const },
-] as const;
 
 const PAY_LABEL: Record<string, TKey> = {
   paid: 'pdf.payPaid', partial: 'pdf.payPartial', unpaid: 'pdf.payUnpaid',
@@ -51,19 +39,10 @@ export async function exportBudgetPDF(
   const COL = W - MARGIN * 2;
   let y = MARGIN;
 
-  const budget = calculateBudget({
-    country:         project.country,
-    city:            project.city ?? '',
-    floors:          project.num_floors,
-    buildingType:    project.building_type,
-    roofType:        project.roof_type,
-    hasBoysQuarters: project.has_boys_quarters,
-    bqRooms:         project.bq_rooms,
-    sqm:             Number(project.sqm),
-    finishLevel:     project.finish_level,
-  });
-
-  const total = project.budget_usd ?? budget.total;
+  // Same resolution as the on-screen costing tab, so a downloaded PDF and the app can
+  // never quote different figures for the same project.
+  const budget = projectBudget(project);
+  const total  = budget.total;
 
   // ── Header ───────────────────────────────────────────
   doc.setFont('helvetica', 'bold');

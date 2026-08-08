@@ -6,7 +6,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
-import { formatUSDFull, formatUSD, BUDGET_ROLLUP_PCT } from '@/lib/budget';
+import {
+  formatUSDFull, formatUSD,
+  BUDGET_ROLLUP_PCT, BUDGET_SPLIT_PCT, projectBudget, rollupBudget, splitBudget,
+} from '@/lib/budget';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
@@ -83,7 +86,7 @@ function BudgetDonut({
       <p className="text-xs text-brand-mid-grey -mt-3">
         {t('project.overview.biggestCostPre')}{' '}
         <span className="font-semibold text-brand-near-black dark:text-white">{t('project.overview.catMaterials')}</span>{' '}
-        {t('project.overview.biggestCostMid')} <span className="font-semibold text-brand-near-black dark:text-white">41%</span> {t('project.overview.biggestCostPost')}
+        {t('project.overview.biggestCostMid')} <span className="font-semibold text-brand-near-black dark:text-white">{BUDGET_ROLLUP_PCT.materials}%</span> {t('project.overview.biggestCostPost')}
       </p>
 
       <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -168,6 +171,15 @@ function BudgetBreakdownModal({
   const profFees    = budget.engineering + budget.management;
   const permCont    = budget.permits + budget.contingency;
   const paidPct     = total > 0 ? Math.round((paidTotal / total) * 100) : 0;
+
+  // The shares are exact for a whole-dollar total; a total carrying cents can leave a
+  // penny in the allocator, so the formula says "≈" rather than claiming a false "=".
+  const eq = Number.isInteger(total) ? '=' : '≈';
+
+  // Payments are recorded per STAGE, not per category, so "paid by category" is an
+  // apportionment of what has been paid — not observed data. Allocating it keeps the
+  // four rows summing to `paidTotal` instead of drifting like the old 0.41/0.23/… did.
+  const paidSplit = rollupBudget(splitBudget(paidTotal));
   const floorNote   = project.num_floors > 1
     ? `Your build has ${project.num_floors} floors. Adding floors costs less than doubling everything — foundation and roof are shared — so each extra floor adds proportionally less.`
     : 'Your build is a single storey. No floor multiplier applies.';
@@ -185,33 +197,33 @@ function BudgetBreakdownModal({
       icon: <Package className="size-4 text-brand-mid-grey" />,
       title: 'Work out the material cost',
       amount: budget.materials,
-      pct: 41,
+      pct: BUDGET_SPLIT_PCT.materials,
       body: `Everything physical on site — cement, blocks, steel rebar, roofing, doors, windows, tiles, paint, pipes, electrical wiring. This is calibrated from real quantity surveyor (BQ) data for ${countryName}.`,
-      formula: `41%  ×  ${formatUSDFull(total)}  =  ${formatUSDFull(budget.materials)}`,
+      formula: `${BUDGET_SPLIT_PCT.materials}%  ×  ${formatUSDFull(total)}  ${eq}  ${formatUSDFull(budget.materials)}`,
     },
     {
       icon: <Users className="size-4 text-brand-mid-grey" />,
       title: 'Add labor',
       amount: budget.labor,
-      pct: 23,
+      pct: BUDGET_SPLIT_PCT.labor,
       body: `Site workers: masons, carpenters, plumbers, electricians, helpers and their supervisors. In ${countryName}, skilled labor scales proportionally with materials — more material volume means more workers are needed.`,
-      formula: `23%  ×  ${formatUSDFull(total)}  =  ${formatUSDFull(budget.labor)}`,
+      formula: `${BUDGET_SPLIT_PCT.labor}%  ×  ${formatUSDFull(total)}  ${eq}  ${formatUSDFull(budget.labor)}`,
     },
     {
       icon: <Briefcase className="size-4 text-brand-mid-grey" />,
       title: 'Add professional fees',
       amount: profFees,
-      pct: 26,
+      pct: BUDGET_ROLLUP_PCT.fees,
       body: 'Architect (technical drawings and planning), structural engineer (load calculations and safety sign-off), quantity surveyor (your BQ), and project manager (site visits, contractor coordination). You typically pay these partly upfront and in stages throughout the build.',
-      formula: `Engineering (16%)  +  Management (10%)  =  26%\n→  ${formatUSDFull(budget.engineering)}  +  ${formatUSDFull(budget.management)}  =  ${formatUSDFull(profFees)}`,
+      formula: `Engineering (${BUDGET_SPLIT_PCT.engineering}%)  +  Management (${BUDGET_SPLIT_PCT.management}%)  =  ${BUDGET_ROLLUP_PCT.fees}%\n→  ${formatUSDFull(budget.engineering)}  +  ${formatUSDFull(budget.management)}  =  ${formatUSDFull(profFees)}`,
     },
     {
       icon: <Landmark className="size-4 text-brand-mid-grey" />,
       title: 'Add government permits & contingency',
       amount: permCont,
-      pct: 10,
+      pct: BUDGET_ROLLUP_PCT.permits,
       body: `Planning approval, building permit, lands registry, and where required, environmental clearances. Plus a contingency buffer — material prices and exchange rates shift, especially for diaspora builders in ${countryName}. The contingency is yours to keep if not used.`,
-      formula: `Permits (2%)  +  Contingency (8%)  =  10%\n→  ${formatUSDFull(budget.permits)}  +  ${formatUSDFull(budget.contingency)}  =  ${formatUSDFull(permCont)}`,
+      formula: `Permits (${BUDGET_SPLIT_PCT.permits}%)  +  Contingency (${BUDGET_SPLIT_PCT.contingency}%)  =  ${BUDGET_ROLLUP_PCT.permits}%\n→  ${formatUSDFull(budget.permits)}  +  ${formatUSDFull(budget.contingency)}  =  ${formatUSDFull(permCont)}`,
     },
     {
       icon: <Plus className="size-4 text-brand-mid-grey" />,
@@ -334,10 +346,10 @@ function BudgetBreakdownModal({
               </div>
               <p className="text-[10px] text-center text-brand-mid-grey mb-4">{paidPct}% of your project is funded so far</p>
               {[
-                { label: 'Materials',           planned: budget.materials, paid: Math.round(paidTotal * 0.41) },
-                { label: 'Labor',               planned: budget.labor,     paid: Math.round(paidTotal * 0.23) },
-                { label: 'Professional fees',   planned: profFees,         paid: Math.round(paidTotal * 0.26) },
-                { label: 'Permits',             planned: permCont,         paid: Math.round(paidTotal * 0.10) },
+                { label: 'Materials',           planned: budget.materials, paid: paidSplit.materials },
+                { label: 'Labor',               planned: budget.labor,     paid: paidSplit.labor },
+                { label: 'Professional fees',   planned: profFees,         paid: paidSplit.fees },
+                { label: 'Permits',             planned: permCont,         paid: paidSplit.permits },
               ].map(r => (
                 <div key={r.label} className="flex items-center gap-3 mb-2">
                   <span className="w-32 shrink-0 text-[10px] text-brand-mid-grey">{r.label}</span>
@@ -926,7 +938,10 @@ export default function OverviewTab({
   const nextStage   = sortedStages.find(s => s.status !== 'complete');
 
   const paidTotal   = sortedStages.filter(s => s.payment_status === 'paid').reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-  const totalBudget = project.budget_usd ?? budget.total;
+  // `budget` already resolves the owner's confirmed budget_usd (see projectBudget), so
+  // the slices and this total are shares of one figure. Re-reading project.budget_usd
+  // here is what used to make "41% × total = materials" a false statement.
+  const totalBudget = budget.total;
   const outstanding = Math.max(0, totalBudget - paidTotal);
 
   const country     = findCountry(project.country);

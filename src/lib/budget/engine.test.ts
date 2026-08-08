@@ -123,15 +123,39 @@ describe('take-off against the four source BQs', () => {
 });
 
 describe('public API', () => {
-  it('returns the nine BQ sections, summing to the total', () => {
+  it('returns the nine BQ sections, summing to the total exactly', () => {
     const d = calculateBudgetDetail(CAMEROON_BQS[0].input, CM_RATE);
     expect(d.sections.map(s => s.key)).toEqual([
       'preliminary', 'foundation', 'ground_floor', 'upper_floor',
       'roof', 'joinery', 'electrical', 'plumbing', 'finishing',
     ]);
-    const sum = d.sections.reduce((s, x) => s + x.amountUSD, 0);
-    expect(Math.abs(sum - d.total)).toBeLessThan(d.total * 0.005);
+    // Amounts are allocated, not independently rounded, so this is exact — it used to
+    // be allowed 0.5% of slack.
+    const sum = d.sections.reduce((s, x) => s + Math.round(x.amountUSD * 100), 0);
+    expect(sum).toBe(Math.round(d.total * 100));
     expect(d.currencyCode).toBe('XAF');
+  });
+
+  it('gives section percentages a single denominator, summing to 100', () => {
+    // Regression: the eight base sections used to publish `pct` as a share of
+    // `singleBase` while `upper_floor` and `bq` published a share of `total`. Two
+    // denominators in one column read 118.7% on a two-storey legacy build.
+    const cases = [
+      calculateBudgetDetail(CAMEROON_BQS[0].input, CM_RATE),                    // take-off path
+      calculateBudgetDetail({                                                    // legacy path
+        country: 'NG', sqm: 150, floors: 2, buildingType: 'single_family',
+        roofType: 'long_span_aluminum', finishLevel: 'standard',
+      }),
+      calculateBudgetDetail({                                                    // legacy + BQ
+        country: 'NG', sqm: 150, floors: 3, buildingType: 'single_family',
+        roofType: 'long_span_aluminum', finishLevel: 'standard',
+        hasBoysQuarters: true, bqRooms: 2,
+      }),
+    ];
+    for (const d of cases) {
+      const pctSum = d.sections.reduce((s, x) => s + Math.round(x.pct * 10), 0);
+      expect(pctSum).toBe(1000); // 100.0%, in tenths
+    }
   });
 
   it('adds boys’ quarters on top of the take-off', () => {

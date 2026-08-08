@@ -23,6 +23,13 @@
 //
 // Budget shares total exactly 100%. Substages total exactly 60. Both are asserted
 // by the unit test in stage-seeds.test.ts — change them there too, deliberately.
+//
+// Land Secured carries 0%: land acquisition is excluded from the construction budget,
+// so stage 1 is a required gate (survey, title, notary) with a $0 milestone. Its
+// original 5% was redistributed across the other nine stages by largest-remainder,
+// which preserves the relative weighting Vanessa set against material and labour
+// intensity. That redistribution is a change to her signed-off numbers and needs her
+// re-approval.
 // =========================================================
 
 export interface StageSeed {
@@ -51,7 +58,7 @@ function baseStages(): StageSeed[] {
       stage_number: 1,
       key: 'landSecured',
       name: 'Land Secured',
-      budget_pct: 5,
+      budget_pct: 0,
       substages: [
         { key: 'engageSurveyor',        name: 'Engage surveyor' },
         { key: 'verifyLandTitle',       name: 'Verify land title' },
@@ -64,7 +71,7 @@ function baseStages(): StageSeed[] {
       stage_number: 2,
       key: 'designCompleted',
       name: 'Design Completed',
-      budget_pct: 10,
+      budget_pct: 11,
       substages: [
         { key: 'soilTest',                 name: 'Soil test' },
         { key: 'architecturalPlans',       name: 'Architectural plans' },
@@ -90,7 +97,7 @@ function baseStages(): StageSeed[] {
       stage_number: 4,
       key: 'foundation',
       name: 'Foundation',
-      budget_pct: 15,
+      budget_pct: 16,
       substages: [
         { key: 'excavationPitsTrenches',           name: 'Excavation of pits and trenches' },
         { key: 'backfill',                         name: 'Backfill' },
@@ -105,7 +112,7 @@ function baseStages(): StageSeed[] {
       stage_number: 5,
       key: 'structureWalls',
       name: 'Structure & Walls',
-      budget_pct: 20,
+      budget_pct: 21,
       substages: [
         { key: 'pillars',                     name: 'Pillars' },
         { key: 'beamsAndLintels',             name: 'Beams and lintels' },
@@ -121,7 +128,7 @@ function baseStages(): StageSeed[] {
       stage_number: 6,
       key: 'roofing',
       name: 'Roofing',
-      budget_pct: 10,
+      budget_pct: 11,
       substages: [
         { key: 'hardwoodTrussAssembly',   name: 'Hardwood truss assembly' },
         { key: 'purlinInstallation',      name: 'Purlin installation' },
@@ -133,7 +140,7 @@ function baseStages(): StageSeed[] {
       stage_number: 7,
       key: 'electricalPlumbing',
       name: 'Electrical & Plumbing',
-      budget_pct: 10,
+      budget_pct: 11,
       substages: [
         { key: 'electricalConduitCabling',    name: 'Electrical conduit and cabling' },
         { key: 'switchesSocketsJunctionBoxes', name: 'Switches, sockets, junction boxes' },
