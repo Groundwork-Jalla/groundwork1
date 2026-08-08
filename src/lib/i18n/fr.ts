@@ -280,6 +280,18 @@ export const fr: Mirror<EnDict> = {
   // POP ceiling → faux plafond en staff · screeding → chape
   // snag list → liste de réserves · first/second fix → premier/second œuvre ──
   stages: {
+    // ── Séquence canonique (modèle approuvé par Vanessa) ──
+    landSecured:        'Terrain sécurisé',
+    designCompleted:    'Conception finalisée',
+    sitePreparation:    'Préparation du terrain',
+    foundation:         'Fondations',
+    structureWalls:     'Structure et murs',
+    electricalPlumbing: 'Électricité et plomberie',
+    exteriorWork:       'Aménagements extérieurs',
+    finalHandover:      'Remise finale',
+    // `roofing` et `finishing` sont partagés avec les noms hérités ci-dessous.
+
+    // ── Noms hérités, conservés pour les projets déjà créés ──
     landAcquisitionAndDocumentation: "Acquisition du terrain et documents",
     sitePreparationAndFoundation: "Préparation du terrain et fondations",
     blockWorkAndWalls: "Maçonnerie et murs",
@@ -300,6 +312,78 @@ export const fr: Mirror<EnDict> = {
     complianceAndHandover: "Conformité et réception",
   },
   substages: {
+    // ── 1. Terrain sécurisé ──
+    engageSurveyor:        'Mandater un géomètre',
+    verifyLandTitle:       'Vérifier le titre foncier',
+    engageNotary:          'Mandater un notaire/avocat',
+    paymentByBankTransfer: 'Paiement par virement bancaire',
+    landTitleTransfer:     'Transfert du titre foncier',
+    // ── 2. Conception finalisée ──
+    soilTest:                  'Étude de sol',
+    architecturalPlans:        'Plans architecturaux',
+    structuralPlan:            'Plan de structure',
+    planAuthorization:         'Validation des plans',
+    buildingPermitApplication: 'Demande de permis de construire',
+    // ── 3. Préparation du terrain ──
+    energySupply:             'Raccordement électrique',
+    waterSupply:              "Approvisionnement en eau",
+    clearingAndLeveling:      'Débroussaillage et nivellement',
+    magazineConstruction:     'Construction du magasin de chantier',
+    siteMaterialsProcurement: 'Achat du matériel de chantier',
+    // ── 4. Fondations ──
+    excavationPitsTrenches:          'Excavation des fouilles et tranchées',
+    backfill:                        'Remblai',
+    leanConcrete:                    'Béton de propreté',
+    reinforcedConcreteFootings:      'Semelles en béton armé',
+    foundationPillarsBeams:          'Poteaux et poutres de fondation',
+    foundationFloorSlab:             'Dalle de plancher',
+    foundationBlocksPolystyreneSand: 'Blocs de fondation + polystyrène + couche de sable',
+    // ── 5. Structure et murs ──
+    pillars:                    'Poteaux',
+    beamsAndLintels:            'Poutres et linteaux',
+    staircase:                  'Escalier',
+    structureFloorSlab:         'Dalle de plancher',
+    blockWalls:                 'Murs en parpaings',
+    internalExternalPlastering: 'Enduits intérieurs et extérieurs',
+    mortarFlooringTiles:        'Chape et carrelage au sol',
+    wallTilesDecorativePlaster: 'Carrelage mural et enduit décoratif',
+    // ── 6. Toiture ──
+    hardwoodTrussAssembly:    'Assemblage de la charpente en bois dur',
+    purlinInstallation:       'Pose des pannes',
+    roofingSheetInstallation: 'Pose des tôles de couverture',
+    roofAccessoriesFinishing: 'Accessoires et finitions',
+    // ── 7. Électricité et plomberie ──
+    electricalConduitCabling:     'Gaines et câblage électriques',
+    switchesSocketsJunctionBoxes: 'Interrupteurs, prises, boîtes de dérivation',
+    lightingFixtures:             'Luminaires et lustre',
+    meterInstallation:            'Pose du compteur',
+    electricalAccessories:        'Accessoires électriques',
+    waterSupplySystem:            "Réseau d'alimentation en eau",
+    drainageSystem:               'Réseau d’évacuation',
+    sanitaryFixtures:             'Appareils sanitaires',
+    kitchenSinkDrainage:          'Évier de cuisine et évacuation',
+    septicTankSoakAway:           'Fosse septique et puisard',
+    // ── 8. Finitions ──
+    woodenDoors:                'Portes en bois',
+    aluminiumGlassWindows:      'Fenêtres en aluminium et verre',
+    ironRailings:               'Garde-corps métalliques',
+    surfacePreparationPainting: 'Préparation des surfaces avant peinture',
+    externalPaint:              'Peinture extérieure',
+    internalPaint:              'Peinture intérieure',
+    ceilingPaintWoodVarnish:    'Peinture de plafond et vernis bois',
+    decorationContingencies:    'Décoration et imprévus',
+    // ── 9. Aménagements extérieurs ──
+    exteriorLightingDesign: "Conception de l'éclairage extérieur",
+    waterFeatures:          "Points d'eau",
+    exteriorFlooring:       'Revêtement de sol extérieur',
+    fencing:                'Clôture',
+    gardenSeating:          'Jardin et espaces de détente',
+    // ── 10. Remise finale ──
+    fullSystemInspection:      'Inspection et vérification complètes des installations',
+    furnishingCoordination:    "Coordination de l'ameublement",
+    handoverKeysDocumentation: 'Remise des clés et des documents',
+
+    // ── Sous-étapes héritées, conservées pour les projets déjà créés ──
     staircaseConstruction: "Construction de l'escalier",
     commonAreaWalls: "Murs des parties communes",
     commonAreaFinishing: "Finitions des parties communes",

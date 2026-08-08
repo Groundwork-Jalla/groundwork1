@@ -1,8 +1,28 @@
 // =========================================================
 // stage-seeds.ts
-// Stage and substage definitions keyed by project + building type.
-// getStageSeed() is called at project creation time; it returns
-// the exact pipeline for that project — never a one-size-fits-all set.
+//
+// The 10 build stages and 60 substages, as specified and approved by Vanessa
+// (construction consultant). getStageSeed() is called once at project creation
+// and returns the pipeline that project will keep for its whole life.
+//
+// The sequence is not arbitrary — it encodes four rules from the spec:
+//   · Legal before physical      — title and permits first; a defective wall can
+//                                  be rebuilt, a plot you do not own cannot.
+//   · Load path from the ground  — foundation, frame, then infill. A cast element
+//                                  is corrected by demolition, not adjustment.
+//   · Weatherproof before interiors — roofing precedes services and finishing so a
+//                                  rainy season cannot destroy paid-for work.
+//   · Concealed work before it is concealed — electrical and plumbing run while
+//                                  walls are open; afterwards every change is a
+//                                  chase cut at several times the cost.
+//
+// All four project types share this pipeline. The sequence is argued from build
+// physics and law, which do not change for a warehouse, and maintaining divergent
+// models across 60 substages x 2 languages is where drift creeps in. Multi-floor
+// residential layers extra substages on top rather than forking the model.
+//
+// Budget shares total exactly 100%. Substages total exactly 60. Both are asserted
+// by the unit test in stage-seeds.test.ts — change them there too, deliberately.
 // =========================================================
 
 export interface StageSeed {
@@ -23,151 +43,158 @@ export interface SubstageSeed {
   params?: Record<string, string | number>;
 }
 
-// ── Residential Single ────────────────────────────────────
-// Covers: single_family, townhouse, semi_detached
+// ── The canonical pipeline ────────────────────────────────
 
-function residentialSingleStages(): StageSeed[] {
+function baseStages(): StageSeed[] {
   return [
     {
       stage_number: 1,
-      key: 'landAcquisitionAndDocumentation',
-      name: 'Land Acquisition & Documentation',
+      key: 'landSecured',
+      name: 'Land Secured',
       budget_pct: 5,
       substages: [
-        { key: 'titleVerification', name: 'Title verification' },
-        { key: 'surveyPlan', name: 'Survey plan' },
-        { key: 'cOfOProcessing', name: 'C of O processing' },
-        { key: 'landPurchaseAgreement', name: 'Land purchase agreement' },
+        { key: 'engageSurveyor',        name: 'Engage surveyor' },
+        { key: 'verifyLandTitle',       name: 'Verify land title' },
+        { key: 'engageNotary',          name: 'Engage notary/lawyer' },
+        { key: 'paymentByBankTransfer', name: 'Payment by bank transfer' },
+        { key: 'landTitleTransfer',     name: 'Land title transfer' },
       ],
     },
     {
       stage_number: 2,
-      key: 'sitePreparationAndFoundation',
-      name: 'Site Preparation & Foundation',
+      key: 'designCompleted',
+      name: 'Design Completed',
       budget_pct: 10,
       substages: [
-        { key: 'siteClearing', name: 'Site clearing' },
-        { key: 'settingOut', name: 'Setting out' },
-        { key: 'excavation', name: 'Excavation' },
-        { key: 'foundationConcretePour', name: 'Foundation concrete pour' },
-        { key: 'dpcDampProofCourse', name: 'DPC (damp proof course)' },
+        { key: 'soilTest',                 name: 'Soil test' },
+        { key: 'architecturalPlans',       name: 'Architectural plans' },
+        { key: 'structuralPlan',           name: 'Structural plan' },
+        { key: 'planAuthorization',        name: 'Plan authorization' },
+        { key: 'buildingPermitApplication', name: 'Building permit application' },
       ],
     },
     {
       stage_number: 3,
-      key: 'blockWorkAndWalls',
-      name: 'Block Work & Walls',
-      budget_pct: 15,
+      key: 'sitePreparation',
+      name: 'Site Preparation',
+      budget_pct: 5,
       substages: [
-        { key: 'groundFloorWalls', name: 'Ground floor walls' },
-        { key: 'windowDoorLintels', name: 'Window/door lintels' },
-        { key: 'firstFloorWallsIfMultiStorey', name: 'First floor walls (if multi-storey)' },
-        { key: 'columnsAndBeams', name: 'Columns and beams' },
+        { key: 'energySupply',             name: 'Energy supply' },
+        { key: 'waterSupply',              name: 'Water supply' },
+        { key: 'clearingAndLeveling',      name: 'Clearing and leveling' },
+        { key: 'magazineConstruction',     name: 'Magazine construction' },
+        { key: 'siteMaterialsProcurement', name: 'Site materials procurement' },
       ],
     },
     {
       stage_number: 4,
-      key: 'deckingAndUpperFloors',
-      name: 'Decking & Upper Floors',
-      budget_pct: 10,
+      key: 'foundation',
+      name: 'Foundation',
+      budget_pct: 15,
       substages: [
-        { key: 'scaffoldingErection', name: 'Scaffolding erection' },
-        { key: 'deckingFormwork', name: 'Decking formwork' },
-        { key: 'reinforcementBrcRebar', name: 'Reinforcement (BRC/rebar)' },
-        { key: 'concretePour', name: 'Concrete pour' },
-        { key: 'curing', name: 'Curing' },
+        { key: 'excavationPitsTrenches',           name: 'Excavation of pits and trenches' },
+        { key: 'backfill',                         name: 'Backfill' },
+        { key: 'leanConcrete',                     name: 'Lean concrete' },
+        { key: 'reinforcedConcreteFootings',       name: 'Reinforced concrete footings' },
+        { key: 'foundationPillarsBeams',           name: 'Foundation pillars and beams' },
+        { key: 'foundationFloorSlab',              name: 'Floor slab' },
+        { key: 'foundationBlocksPolystyreneSand',  name: 'Foundation blocks + polystyrene + sand layer' },
       ],
     },
     {
       stage_number: 5,
-      key: 'roofing',
-      name: 'Roofing',
-      budget_pct: 10,
+      key: 'structureWalls',
+      name: 'Structure & Walls',
+      budget_pct: 20,
       substages: [
-        { key: 'roofTrussFabrication', name: 'Roof truss fabrication' },
-        { key: 'trussInstallation', name: 'Truss installation' },
-        { key: 'roofingSheetsTiles', name: 'Roofing sheets/tiles' },
-        { key: 'fasciaAndBargeBoard', name: 'Fascia and barge board' },
-        { key: 'gutterInstallation', name: 'Gutter installation' },
+        { key: 'pillars',                     name: 'Pillars' },
+        { key: 'beamsAndLintels',             name: 'Beams and lintels' },
+        { key: 'staircase',                   name: 'Staircase' },
+        { key: 'structureFloorSlab',          name: 'Floor slab' },
+        { key: 'blockWalls',                  name: 'Block walls' },
+        { key: 'internalExternalPlastering',  name: 'Internal and external plastering' },
+        { key: 'mortarFlooringTiles',         name: 'Mortar flooring and tiles' },
+        { key: 'wallTilesDecorativePlaster',  name: 'Wall tiles and decorative plaster' },
       ],
     },
     {
       stage_number: 6,
-      key: 'plasteringAndScreeding',
-      name: 'Plastering & Screeding',
+      key: 'roofing',
+      name: 'Roofing',
       budget_pct: 10,
       substages: [
-        { key: 'internalWallPlastering', name: 'Internal wall plastering' },
-        { key: 'externalWallPlastering', name: 'External wall plastering' },
-        { key: 'floorScreeding', name: 'Floor screeding' },
-        { key: 'popCeilingIfSelected', name: 'POP ceiling (if selected)' },
+        { key: 'hardwoodTrussAssembly',   name: 'Hardwood truss assembly' },
+        { key: 'purlinInstallation',      name: 'Purlin installation' },
+        { key: 'roofingSheetInstallation', name: 'Roofing sheet installation' },
+        { key: 'roofAccessoriesFinishing', name: 'Accessories and finishing' },
       ],
     },
     {
       stage_number: 7,
-      key: 'electricalAndPlumbing',
+      key: 'electricalPlumbing',
       name: 'Electrical & Plumbing',
       budget_pct: 10,
       substages: [
-        { key: 'firstFixElectricalConduitsWiring', name: 'First fix electrical (conduits/wiring)' },
-        { key: 'firstFixPlumbingPipes', name: 'First fix plumbing (pipes)' },
-        { key: 'septicTankSoakaway', name: 'Septic tank/soakaway' },
-        { key: 'waterTankInstallation', name: 'Water tank installation' },
+        { key: 'electricalConduitCabling',    name: 'Electrical conduit and cabling' },
+        { key: 'switchesSocketsJunctionBoxes', name: 'Switches, sockets, junction boxes' },
+        { key: 'lightingFixtures',            name: 'Lighting fixtures and chandelier' },
+        { key: 'meterInstallation',           name: 'Meter installation' },
+        { key: 'electricalAccessories',       name: 'Electrical accessories' },
+        { key: 'waterSupplySystem',           name: 'Water supply system' },
+        { key: 'drainageSystem',              name: 'Drainage system' },
+        { key: 'sanitaryFixtures',            name: 'Sanitary fixtures' },
+        { key: 'kitchenSinkDrainage',         name: 'Kitchen sink and drainage' },
+        { key: 'septicTankSoakAway',          name: 'Septic tank and soak-away pit' },
       ],
     },
     {
       stage_number: 8,
       key: 'finishing',
       name: 'Finishing',
-      budget_pct: 15,
+      budget_pct: 10,
       substages: [
-        { key: 'wallTilingKitchenBath', name: 'Wall tiling (kitchen/bath)' },
-        { key: 'floorTiling', name: 'Floor tiling' },
-        { key: 'paintingInterior', name: 'Painting (interior)' },
-        { key: 'paintingExterior', name: 'Painting (exterior)' },
-        { key: 'doorInstallation', name: 'Door installation' },
-        { key: 'windowInstallation', name: 'Window installation' },
-        { key: 'kitchenCabinets', name: 'Kitchen cabinets' },
-        { key: 'wardrobeInstallation', name: 'Wardrobe installation' },
+        { key: 'woodenDoors',                name: 'Wooden doors' },
+        { key: 'aluminiumGlassWindows',      name: 'Aluminium and glass windows' },
+        { key: 'ironRailings',               name: 'Iron railings' },
+        { key: 'surfacePreparationPainting', name: 'Surface preparation for painting' },
+        { key: 'externalPaint',              name: 'External paint' },
+        { key: 'internalPaint',              name: 'Internal paint' },
+        { key: 'ceilingPaintWoodVarnish',    name: 'Ceiling paint and wood varnish' },
+        { key: 'decorationContingencies',    name: 'Decoration and contingencies' },
       ],
     },
     {
       stage_number: 9,
-      key: 'externalWorks',
-      name: 'External Works',
+      key: 'exteriorWork',
+      name: 'Exterior Work',
       budget_pct: 10,
       substages: [
-        { key: 'fenceGateConstruction', name: 'Fence/gate construction' },
-        { key: 'drainageChannels', name: 'Drainage channels' },
-        { key: 'drivewayParkingPaving', name: 'Driveway/parking paving' },
-        { key: 'landscaping', name: 'Landscaping' },
-        { key: 'externalLighting', name: 'External lighting' },
+        { key: 'exteriorLightingDesign', name: 'Exterior lighting design' },
+        { key: 'waterFeatures',          name: 'Water features' },
+        { key: 'exteriorFlooring',       name: 'Flooring' },
+        { key: 'fencing',                name: 'Fencing' },
+        { key: 'gardenSeating',          name: 'Garden and seating' },
       ],
     },
     {
       stage_number: 10,
-      key: 'finalInspectionAndHandover',
-      name: 'Final Inspection & Handover',
+      key: 'finalHandover',
+      name: 'Final Handover',
       budget_pct: 5,
       substages: [
-        { key: 'secondFixElectricalFixturesSwitches', name: 'Second fix electrical (fixtures/switches)' },
-        { key: 'secondFixPlumbingFixturesTaps', name: 'Second fix plumbing (fixtures/taps)' },
-        { key: 'generalSnagList', name: 'General snag list' },
-        { key: 'finalCleaning', name: 'Final cleaning' },
-        { key: 'clientWalkthrough', name: 'Client walkthrough' },
-        { key: 'keyHandover', name: 'Key handover' },
+        { key: 'fullSystemInspection',       name: 'Full system inspection and verification' },
+        { key: 'furnishingCoordination',     name: 'Furnishing coordination' },
+        { key: 'handoverKeysDocumentation',  name: 'Handover of keys and documentation' },
       ],
     },
   ];
 }
 
-// ── Residential Multi ─────────────────────────────────────
-// Covers: multi_family
-// Extends residential single with shared/common-area additions
-// and per-floor substages scaled to numFloors
+// ── Multi-floor residential ───────────────────────────────
+// Layers extra substages onto the canonical pipeline rather than forking it,
+// so a change to the base sequence reaches every project type.
 
 function residentialMultiStages(numFloors: number): StageSeed[] {
-  const base = residentialSingleStages();
   // Dynamic per-floor substage. Carries the floor number as an interpolation param so
   // the dictionary can order the words differently per language.
   const floorLabels: SubstageSeed[] = Array.from({ length: numFloors }, (_, i) => ({
@@ -176,241 +203,71 @@ function residentialMultiStages(numFloors: number): StageSeed[] {
     name: `Floor ${i + 1} decking`,
   }));
 
-  return base.map(stage => {
+  return baseStages().map(stage => {
     switch (stage.stage_number) {
-      case 3:
+      case 5: // Structure & Walls — the frame carries the extra floors
         return {
           ...stage,
-          substages: [...stage.substages, { key: 'staircaseConstruction', name: 'Staircase construction' }, { key: 'commonAreaWalls', name: 'Common area walls' }],
+          substages: [
+            ...stage.substages,
+            ...floorLabels,
+            { key: 'commonAreaWalls', name: 'Common area walls' },
+          ],
         };
-      case 4:
-        return {
-          ...stage,
-          substages: [...stage.substages, ...floorLabels],
-        };
-      case 7:
+      case 7: // Electrical & Plumbing
         return {
           ...stage,
           substages: [
             ...stage.substages,
             { key: 'commonAreaElectrical', name: 'Common area electrical' },
-            { key: 'fireSafetyWiring', name: 'Fire safety wiring' },
-            { key: 'boreholeWaterSystem', name: 'Borehole/water system' },
+            { key: 'fireSafetyWiring',     name: 'Fire safety wiring' },
+            { key: 'boreholeWaterSystem',  name: 'Borehole/water system' },
           ],
         };
-      case 8:
+      case 8: // Finishing
         return {
           ...stage,
-          substages: [...stage.substages, { key: 'commonAreaFinishing', name: 'Common area finishing' }, { key: 'balconyRailings', name: 'Balcony railings' }],
+          substages: [
+            ...stage.substages,
+            { key: 'commonAreaFinishing', name: 'Common area finishing' },
+            { key: 'balconyRailings',     name: 'Balcony railings' },
+          ],
         };
-      case 9:
+      case 9: // Exterior Work
         return {
           ...stage,
-          substages: [...stage.substages, { key: 'carParkMarking', name: 'Car park marking' }, { key: 'generatorHouse', name: 'Generator house' }, { key: 'securityPost', name: 'Security post' }],
+          substages: [
+            ...stage.substages,
+            { key: 'carParkMarking',  name: 'Car park marking' },
+            { key: 'generatorHouse',  name: 'Generator house' },
+            { key: 'securityPost',    name: 'Security post' },
+          ],
         };
-      case 10:
+      case 10: // Final Handover
         return {
           ...stage,
-          substages: [...stage.substages, { key: 'perUnitInspection', name: 'Per-unit inspection' }, { key: 'commonAreaInspection', name: 'Common area inspection' }],
-        };
-      default:
-        return stage;
-    }
-  });
-}
-
-// ── Commercial / Industrial ───────────────────────────────
-// Covers: office, retail, warehouse_commercial, hotel,
-//         factory, warehouse_industrial, industrial_complex,
-//         distribution_centre
-
-function commercialStages(): StageSeed[] {
-  return [
-    {
-      stage_number: 1,
-      key: 'landAndPermits',
-      name: 'Land & Permits',
-      budget_pct: 5,
-      substages: [
-        { key: 'titleVerification', name: 'Title verification' },
-        { key: 'survey', name: 'Survey' },
-        { key: 'buildingPermit', name: 'Building permit' },
-        { key: 'environmentalAssessment', name: 'Environmental assessment' },
-        { key: 'commercialZoningConfirmation', name: 'Commercial zoning confirmation' },
-      ],
-    },
-    {
-      stage_number: 2,
-      key: 'sitePreparationAndFoundation',
-      name: 'Site Preparation & Foundation',
-      budget_pct: 12,
-      substages: [
-        { key: 'siteClearing', name: 'Site clearing' },
-        { key: 'soilTesting', name: 'Soil testing' },
-        { key: 'excavation', name: 'Excavation' },
-        { key: 'pileFoundationIfNeeded', name: 'Pile foundation (if needed)' },
-        { key: 'foundationPour', name: 'Foundation pour' },
-        { key: 'dpc', name: 'DPC' },
-      ],
-    },
-    {
-      stage_number: 3,
-      key: 'structuralFrame',
-      name: 'Structural Frame',
-      budget_pct: 18,
-      substages: [
-        { key: 'columnErection', name: 'Column erection' },
-        { key: 'beamInstallation', name: 'Beam installation' },
-        { key: 'floorSlabsPerLevel', name: 'Floor slabs per level' },
-        { key: 'structuralSteelIfWarehouse', name: 'Structural steel (if warehouse)' },
-        { key: 'loadBearingWalls', name: 'Load-bearing walls' },
-      ],
-    },
-    {
-      stage_number: 4,
-      key: 'roofingAndWeatherproofing',
-      name: 'Roofing & Weatherproofing',
-      budget_pct: 8,
-      substages: [
-        { key: 'roofTrussSteelFrame', name: 'Roof truss/steel frame' },
-        { key: 'roofingSheets', name: 'Roofing sheets' },
-        { key: 'waterproofingMembrane', name: 'Waterproofing membrane' },
-        { key: 'flashingAndGutters', name: 'Flashing and gutters' },
-      ],
-    },
-    {
-      stage_number: 5,
-      key: 'externalEnvelope',
-      name: 'External Envelope',
-      budget_pct: 10,
-      substages: [
-        { key: 'externalCladding', name: 'External cladding' },
-        { key: 'curtainWallGlazingIfOffice', name: 'Curtain wall/glazing (if office)' },
-        { key: 'rollerShuttersIfWarehouse', name: 'Roller shutters (if warehouse)' },
-        { key: 'externalPlastering', name: 'External plastering' },
-      ],
-    },
-    {
-      stage_number: 6,
-      key: 'mepFirstFix',
-      name: 'MEP First Fix',
-      budget_pct: 12,
-      substages: [
-        { key: 'electricalConduitsTrunking', name: 'Electrical conduits/trunking' },
-        { key: 'plumbingRisers', name: 'Plumbing risers' },
-        { key: 'hvacDuctingIfApplicable', name: 'HVAC ducting (if applicable)' },
-        { key: 'fireSuppressionPiping', name: 'Fire suppression piping' },
-        { key: 'dataCabling', name: 'Data cabling' },
-      ],
-    },
-    {
-      stage_number: 7,
-      key: 'internalBuildOut',
-      name: 'Internal Build-out',
-      budget_pct: 12,
-      substages: [
-        { key: 'partitionWalls', name: 'Partition walls' },
-        { key: 'suspendedCeiling', name: 'Suspended ceiling' },
-        { key: 'floorTilingEpoxy', name: 'Floor tiling/epoxy' },
-        { key: 'wallFinishes', name: 'Wall finishes' },
-        { key: 'staircaseFinishing', name: 'Staircase finishing' },
-      ],
-    },
-    {
-      stage_number: 8,
-      key: 'mepSecondFix',
-      name: 'MEP Second Fix',
-      budget_pct: 8,
-      substages: [
-        { key: 'lightFixtures', name: 'Light fixtures' },
-        { key: 'powerOutlets', name: 'Power outlets' },
-        { key: 'plumbingFixtures', name: 'Plumbing fixtures' },
-        { key: 'hvacUnits', name: 'HVAC units' },
-        { key: 'fireAlarmSuppression', name: 'Fire alarm/suppression' },
-        { key: 'generatorConnection', name: 'Generator connection' },
-      ],
-    },
-    {
-      stage_number: 9,
-      key: 'externalWorks',
-      name: 'External Works',
-      budget_pct: 10,
-      substages: [
-        { key: 'perimeterFenceWall', name: 'Perimeter fence/wall' },
-        { key: 'accessRoad', name: 'Access road' },
-        { key: 'parkingLot', name: 'Parking lot' },
-        { key: 'signage', name: 'Signage' },
-        { key: 'landscaping', name: 'Landscaping' },
-        { key: 'securityInfrastructure', name: 'Security infrastructure' },
-      ],
-    },
-    {
-      stage_number: 10,
-      key: 'complianceAndHandover',
-      name: 'Compliance & Handover',
-      budget_pct: 5,
-      substages: [
-        { key: 'fireSafetyInspection', name: 'Fire safety inspection' },
-        { key: 'electricalCertification', name: 'Electrical certification' },
-        { key: 'buildingInspection', name: 'Building inspection' },
-        { key: 'snagListResolution', name: 'Snag list resolution' },
-        { key: 'clientWalkthrough', name: 'Client walkthrough' },
-        { key: 'keyHandover', name: 'Key handover' },
-      ],
-    },
-  ];
-}
-
-// ── Mixed Use ─────────────────────────────────────────────
-// Commercial template with residential additions at the
-// build-out, MEP second fix, and handover stages
-
-function mixedUseStages(): StageSeed[] {
-  const base = commercialStages();
-  return base.map(stage => {
-    switch (stage.stage_number) {
-      case 7:
-        return {
-          ...stage,
-          substages: [...stage.substages, { key: 'residentialUnitFinishing', name: 'Residential unit finishing' }],
-        };
-      case 8:
-        return {
-          ...stage,
-          substages: [...stage.substages, { key: 'perUnitPlumbingElectrical', name: 'Per-unit plumbing/electrical' }],
-        };
-      case 10:
-        return {
-          ...stage,
-          substages: [...stage.substages, { key: 'residentialInspection', name: 'Residential inspection' }, { key: 'commercialInspection', name: 'Commercial inspection' }],
+          substages: [
+            ...stage.substages,
+            { key: 'perUnitInspection',    name: 'Per-unit inspection' },
+            { key: 'commonAreaInspection', name: 'Common area inspection' },
+          ],
         };
       default:
         return stage;
     }
   });
 }
-
-// ── Public API ────────────────────────────────────────────
 
 export function getStageSeed(
   projectType: string,
   buildingType: string,
   numFloors: number,
 ): StageSeed[] {
-  switch (projectType) {
-    case 'residential':
-      return buildingType === 'multi_family'
-        ? residentialMultiStages(numFloors)
-        : residentialSingleStages();
-
-    case 'commercial':
-    case 'industrial':
-      return commercialStages();
-
-    case 'mixed_use':
-      return mixedUseStages();
-
-    default:
-      return residentialSingleStages();
+  // Commercial, industrial and mixed-use share the canonical pipeline: the
+  // sequence is argued from build physics and law, which do not change by
+  // building type. Only multi-floor residential adds to it.
+  if (projectType === 'residential' && buildingType === 'multi_family') {
+    return residentialMultiStages(numFloors);
   }
+  return baseStages();
 }

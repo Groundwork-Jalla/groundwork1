@@ -264,6 +264,18 @@ export const en = {
   // Migration 024 adds stage_key/substage_key and backfills existing rows, and the UI
   // renders t(`stages.${key}`) with the stored name as a fallback. ──
   stages: {
+    // ── Canonical pipeline (Vanessa's approved model) ──
+    landSecured:        'Land Secured',
+    designCompleted:    'Design Completed',
+    sitePreparation:    'Site Preparation',
+    foundation:         'Foundation',
+    structureWalls:     'Structure & Walls',
+    electricalPlumbing: 'Electrical & Plumbing',
+    exteriorWork:       'Exterior Work',
+    finalHandover:      'Final Handover',
+    // `roofing` and `finishing` are shared with the legacy names below.
+
+    // ── Legacy names, kept so pre-existing projects still render ──
     landAcquisitionAndDocumentation: "Land Acquisition & Documentation",
     sitePreparationAndFoundation: "Site Preparation & Foundation",
     blockWorkAndWalls: "Block Work & Walls",
@@ -284,6 +296,78 @@ export const en = {
     complianceAndHandover: "Compliance & Handover",
   },
   substages: {
+    // ── 1. Land Secured ──
+    engageSurveyor:        'Engage surveyor',
+    verifyLandTitle:       'Verify land title',
+    engageNotary:          'Engage notary/lawyer',
+    paymentByBankTransfer: 'Payment by bank transfer',
+    landTitleTransfer:     'Land title transfer',
+    // ── 2. Design Completed ──
+    soilTest:                  'Soil test',
+    architecturalPlans:        'Architectural plans',
+    structuralPlan:            'Structural plan',
+    planAuthorization:         'Plan authorization',
+    buildingPermitApplication: 'Building permit application',
+    // ── 3. Site Preparation ──
+    energySupply:             'Energy supply',
+    waterSupply:              'Water supply',
+    clearingAndLeveling:      'Clearing and leveling',
+    magazineConstruction:     'Magazine construction',
+    siteMaterialsProcurement: 'Site materials procurement',
+    // ── 4. Foundation ──
+    excavationPitsTrenches:          'Excavation of pits and trenches',
+    backfill:                        'Backfill',
+    leanConcrete:                    'Lean concrete',
+    reinforcedConcreteFootings:      'Reinforced concrete footings',
+    foundationPillarsBeams:          'Foundation pillars and beams',
+    foundationFloorSlab:             'Floor slab',
+    foundationBlocksPolystyreneSand: 'Foundation blocks + polystyrene + sand layer',
+    // ── 5. Structure & Walls ──
+    pillars:                    'Pillars',
+    beamsAndLintels:            'Beams and lintels',
+    staircase:                  'Staircase',
+    structureFloorSlab:         'Floor slab',
+    blockWalls:                 'Block walls',
+    internalExternalPlastering: 'Internal and external plastering',
+    mortarFlooringTiles:        'Mortar flooring and tiles',
+    wallTilesDecorativePlaster: 'Wall tiles and decorative plaster',
+    // ── 6. Roofing ──
+    hardwoodTrussAssembly:    'Hardwood truss assembly',
+    purlinInstallation:       'Purlin installation',
+    roofingSheetInstallation: 'Roofing sheet installation',
+    roofAccessoriesFinishing: 'Accessories and finishing',
+    // ── 7. Electrical & Plumbing ──
+    electricalConduitCabling:     'Electrical conduit and cabling',
+    switchesSocketsJunctionBoxes: 'Switches, sockets, junction boxes',
+    lightingFixtures:             'Lighting fixtures and chandelier',
+    meterInstallation:            'Meter installation',
+    electricalAccessories:        'Electrical accessories',
+    waterSupplySystem:            'Water supply system',
+    drainageSystem:               'Drainage system',
+    sanitaryFixtures:             'Sanitary fixtures',
+    kitchenSinkDrainage:          'Kitchen sink and drainage',
+    septicTankSoakAway:           'Septic tank and soak-away pit',
+    // ── 8. Finishing ──
+    woodenDoors:                'Wooden doors',
+    aluminiumGlassWindows:      'Aluminium and glass windows',
+    ironRailings:               'Iron railings',
+    surfacePreparationPainting: 'Surface preparation for painting',
+    externalPaint:              'External paint',
+    internalPaint:              'Internal paint',
+    ceilingPaintWoodVarnish:    'Ceiling paint and wood varnish',
+    decorationContingencies:    'Decoration and contingencies',
+    // ── 9. Exterior Work ──
+    exteriorLightingDesign: 'Exterior lighting design',
+    waterFeatures:          'Water features',
+    exteriorFlooring:       'Flooring',
+    fencing:                'Fencing',
+    gardenSeating:          'Garden and seating',
+    // ── 10. Final Handover ──
+    fullSystemInspection:      'Full system inspection and verification',
+    furnishingCoordination:    'Furnishing coordination',
+    handoverKeysDocumentation: 'Handover of keys and documentation',
+
+    // ── Legacy substages, kept so pre-existing projects still render ──
     staircaseConstruction: "Staircase construction",
     commonAreaWalls: "Common area walls",
     commonAreaFinishing: "Common area finishing",
