@@ -2,7 +2,7 @@ import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
 import type { BuildingType, ProjectType } from '@/types/project';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 // ── SVG icons ─────────────────────────────────────────────
 
@@ -238,35 +238,33 @@ function MixedResCommIcon() {
 
 type BuildingOption = {
   value: BuildingType;
-  label: string;
-  description: string;
   icon: React.ReactNode;
 };
 
 const BUILDING_OPTIONS: Record<ProjectType, BuildingOption[]> = {
   residential: [
-    { value: 'single_family',  label: 'Single Family',   description: 'Detached home for one household',       icon: <SingleFamilyIcon /> },
-    { value: 'multi_family',   label: 'Multi-Family',    description: 'Apartments or blocks with multiple units', icon: <MultiFamilyIcon /> },
-    { value: 'townhouse',      label: 'Townhouse',       description: 'Terraced units sharing side walls',      icon: <TownhouseIcon /> },
-    { value: 'semi_detached',  label: 'Semi-Detached',   description: 'Two units joined by a party wall',       icon: <SemiDetachedIcon /> },
+    { value: 'single_family', icon: <SingleFamilyIcon /> },
+    { value: 'multi_family', icon: <MultiFamilyIcon /> },
+    { value: 'townhouse', icon: <TownhouseIcon /> },
+    { value: 'semi_detached', icon: <SemiDetachedIcon /> },
   ],
   commercial: [
-    { value: 'office',              label: 'Office',       description: 'Office buildings and corporate HQs',      icon: <OfficeIcon /> },
-    { value: 'retail',              label: 'Retail',       description: 'Shops, malls, and showrooms',             icon: <RetailIcon /> },
-    { value: 'warehouse_commercial',label: 'Warehouse',    description: 'Storage, distribution, and logistics',    icon: <WarehouseIcon /> },
-    { value: 'hotel',               label: 'Hotel',        description: 'Hotels, lodges, and serviced apartments', icon: <HotelIcon /> },
+    { value: 'office', icon: <OfficeIcon /> },
+    { value: 'retail', icon: <RetailIcon /> },
+    { value: 'warehouse_commercial', icon: <WarehouseIcon /> },
+    { value: 'hotel', icon: <HotelIcon /> },
   ],
   industrial: [
-    { value: 'factory',             label: 'Factory',           description: 'Manufacturing and production facilities', icon: <FactoryIcon /> },
-    { value: 'warehouse_industrial',label: 'Warehouse',         description: 'Industrial storage and racking',          icon: <WarehouseIcon /> },
-    { value: 'industrial_complex',  label: 'Industrial Complex',description: 'Multi-unit industrial estate',             icon: <FactoryIcon /> },
-    { value: 'distribution_centre', label: 'Distribution',      description: 'High-throughput logistics centres',        icon: <DistributionIcon /> },
+    { value: 'factory', icon: <FactoryIcon /> },
+    { value: 'warehouse_industrial', icon: <WarehouseIcon /> },
+    { value: 'industrial_complex', icon: <FactoryIcon /> },
+    { value: 'distribution_centre', icon: <DistributionIcon /> },
   ],
   mixed_use: [
-    { value: 'mixed_residential_commercial', label: 'Residential + Commercial', description: 'Residential above, retail below', icon: <MixedResCommIcon /> },
-    { value: 'live_work',                    label: 'Live / Work',              description: 'Combined workspace and living area', icon: <SingleFamilyIcon /> },
-    { value: 'mixed_retail_residential',     label: 'Retail + Residential',     description: 'Shopfronts with upper-floor flats',  icon: <RetailIcon /> },
-    { value: 'transit_oriented',             label: 'Transit-Oriented',         description: 'High-density near transport hubs',   icon: <MixedResCommIcon /> },
+    { value: 'mixed_residential_commercial', icon: <MixedResCommIcon /> },
+    { value: 'live_work', icon: <SingleFamilyIcon /> },
+    { value: 'mixed_retail_residential', icon: <RetailIcon /> },
+    { value: 'transit_oriented', icon: <MixedResCommIcon /> },
   ],
 };
 
@@ -278,14 +276,9 @@ export default function Step3BuildingType() {
 
   const options = data.projectType ? BUILDING_OPTIONS[data.projectType] : [];
 
-  const headings: Record<ProjectType, string> = {
-    residential: 'What type of residential building?',
-    commercial:  'What type of commercial building?',
-    industrial:  'What type of industrial facility?',
-    mixed_use:   'What type of mixed-use development?',
-  };
-
-  const heading = data.projectType ? headings[data.projectType] : 'What type of building?';
+  const heading = data.projectType
+    ? t(`wizardTypes.heading.${data.projectType}` as TKey)
+    : t('wizardTypes.heading.fallback');
 
   return (
     <WizardShell canContinue={!!data.buildingType} onContinue={next}>
@@ -304,8 +297,8 @@ export default function Step3BuildingType() {
               selected={data.buildingType === opt.value}
               onClick={() => update({ buildingType: opt.value })}
               icon={opt.icon}
-              label={opt.label}
-              description={opt.description}
+              label={t(`wizardTypes.building.${opt.value}.label` as TKey)}
+              description={t(`wizardTypes.building.${opt.value}.desc` as TKey)}
             />
           ))}
         </div>

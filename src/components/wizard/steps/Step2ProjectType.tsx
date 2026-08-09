@@ -2,7 +2,7 @@ import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
 import type { ProjectType } from '@/types/project';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 // ── Inline SVG icons ──────────────────────────────────────
 
@@ -73,34 +73,12 @@ function MixedUseIcon() {
 
 const OPTIONS: {
   value: ProjectType;
-  label: string;
-  description: string;
   icon: React.ReactNode;
 }[] = [
-  {
-    value:       'residential',
-    label:       'Residential',
-    description: 'Homes, apartments, and private dwellings',
-    icon:        <ResidentialIcon />,
-  },
-  {
-    value:       'commercial',
-    label:       'Commercial',
-    description: 'Offices, retail, hotels, and hospitality',
-    icon:        <CommercialIcon />,
-  },
-  {
-    value:       'industrial',
-    label:       'Industrial',
-    description: 'Factories, warehouses, and logistics hubs',
-    icon:        <IndustrialIcon />,
-  },
-  {
-    value:       'mixed_use',
-    label:       'Mixed Use',
-    description: 'Combined residential and commercial spaces',
-    icon:        <MixedUseIcon />,
-  },
+  { value: 'residential', icon: <ResidentialIcon /> },
+  { value: 'commercial',  icon: <CommercialIcon />  },
+  { value: 'industrial',  icon: <IndustrialIcon />  },
+  { value: 'mixed_use',   icon: <MixedUseIcon />    },
 ];
 
 // ── Component ─────────────────────────────────────────────
@@ -132,8 +110,8 @@ export default function Step2ProjectType() {
               selected={data.projectType === opt.value}
               onClick={() => select(opt.value)}
               icon={opt.icon}
-              label={opt.label}
-              description={opt.description}
+              label={t(`wizardTypes.projectType.${opt.value}.label` as TKey)}
+              description={t(`wizardTypes.projectType.${opt.value}.desc` as TKey)}
             />
           ))}
         </div>
