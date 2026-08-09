@@ -271,7 +271,7 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
       </div>
 
       {formState === 'error' && (
-        <p className="text-xs text-red-500">
+        <p className="text-xs text-state-alert">
           {t('help.sendFailed')}
         </p>
       )}

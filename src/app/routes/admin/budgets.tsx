@@ -99,7 +99,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
           {changed && (
             <div className={cn(
               'flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium',
-              up ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700',
+              up ? 'bg-brand-off-white text-state-held' : 'bg-brand-off-white text-state-complete',
             )}>
               {up ? <TrendingUp className="size-3.5 shrink-0" /> : <TrendingDown className="size-3.5 shrink-0" />}
               {up ? 'Higher than estimate by' : 'Lower than estimate by'}{' '}
@@ -108,7 +108,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
             </div>
           )}
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-state-alert">{error}</p>}
         </div>
 
         <div className="px-6 py-4 border-t border-brand-border-grey bg-brand-off-white/50 flex items-center justify-between gap-3">
@@ -183,7 +183,7 @@ export default function AdminBudgets() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <CheckCircle2 className="size-10 text-green-500" />
+          <CheckCircle2 className="size-10 text-state-complete" />
           <p className="text-sm font-medium text-brand-near-black">All caught up</p>
           <p className="text-xs text-brand-mid-grey">No Jalla Management projects are awaiting a budget.</p>
         </div>

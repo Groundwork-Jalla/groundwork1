@@ -15,8 +15,8 @@ interface ContractorApp {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  pending:  'bg-amber-50 text-amber-700 border border-amber-200',
-  approved: 'bg-green-50 text-green-700 border border-green-200',
+  pending:  'bg-brand-off-white text-state-held border border-state-held/30',
+  approved: 'bg-brand-off-white text-state-complete border border-state-complete/30',
   rejected: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey',
 };
 
@@ -166,7 +166,7 @@ function ApplicationCard({
             type="button"
             disabled={actioning}
             onClick={() => onAction(app.id, 'rejected')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-brand-border-grey rounded-xl text-brand-mid-grey hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-brand-border-grey rounded-xl text-brand-mid-grey hover:text-state-alert hover:border-state-alert/30 hover:bg-brand-off-white transition-colors disabled:opacity-50"
           >
             {actioning ? <Loader2 className="size-3 animate-spin" /> : <XCircle className="size-3.5" />}
             Reject

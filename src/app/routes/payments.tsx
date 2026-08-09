@@ -140,7 +140,7 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="0.00"
+                placeholder={t('fields.amountPlaceholder')}
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 required
@@ -184,7 +184,7 @@ function RecordPaymentModal({ project, onClose, onSuccess }: RecordPaymentModalP
               <label className="text-xs font-medium text-brand-mid-grey dark:text-brand-mid-grey uppercase tracking-wide">{t('finances.note')}</label>
               <input
                 type="text"
-                placeholder="e.g. Stage 3 milestone payment"
+                placeholder={t('fields.notePlaceholder')}
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 className={inputClass}
@@ -326,9 +326,9 @@ export default function PaymentsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard label="Total Budget"   value={formatUSDFull(totalBudget)} sub="committed across all builds" icon={Wallet}       accent />
-          <StatCard label="Est. Spent"     value={formatUSDFull(estSpent)}    sub="based on stage completion"   icon={TrendingUp}        />
-          <StatCard label="Est. Remaining" value={formatUSDFull(remaining)}   sub="to spend on completion"      icon={CheckCircle2}      />
+          <StatCard label={t('stats.totalBudget')}   value={formatUSDFull(totalBudget)} sub="committed across all builds" icon={Wallet}       accent />
+          <StatCard label={t('stats.estSpent')}     value={formatUSDFull(estSpent)}    sub="based on stage completion"   icon={TrendingUp}        />
+          <StatCard label={t('stats.estRemaining')} value={formatUSDFull(remaining)}   sub="to spend on completion"      icon={CheckCircle2}      />
         </div>
       )}
 

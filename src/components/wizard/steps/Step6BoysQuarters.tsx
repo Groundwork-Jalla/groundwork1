@@ -60,7 +60,7 @@ export default function Step6BoysQuarters() {
             >
               <div className="mt-6 rounded-xl border border-brand-border-grey">
                 <Stepper
-                  label="Number of BQ rooms"
+                  label={t('wizardFields.bqRooms')}
                   sublabel="Each room includes a bathroom"
                   value={data.bqRooms}
                   onChange={v => update({ bqRooms: v })}

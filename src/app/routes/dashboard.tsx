@@ -58,8 +58,8 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: 
 };
 
 const PROJECT_STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
-  active:    { labelKey: 'common.active',   dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
-  on_hold:   { labelKey: 'common.onHold',   dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
+  active:    { labelKey: 'common.active',   dot: 'bg-state-active',      badge: 'bg-brand-off-white text-state-active border border-state-active/30'    },
+  on_hold:   { labelKey: 'common.onHold',   dot: 'bg-state-held',         badge: 'bg-brand-off-white text-state-held border border-state-held/30'                    },
   completed: { labelKey: 'common.complete', dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
   archived:  { labelKey: 'common.archived', dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
 };

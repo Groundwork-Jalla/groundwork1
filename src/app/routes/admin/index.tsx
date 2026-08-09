@@ -81,35 +81,35 @@ export default function AdminOverview() {
           value={stats?.totalProjects ?? null}
           icon={FolderOpen}
           to="/admin/projects"
-          color="bg-blue-50 text-blue-600"
+          color="bg-brand-off-white text-state-active"
         />
         <StatCard
           label="Pending Reviews"
           value={stats?.pendingReviews ?? null}
           icon={ClipboardCheck}
           to="/admin/reviews"
-          color={stats?.pendingReviews ? 'bg-amber-50 text-amber-600' : 'bg-brand-off-white text-brand-mid-grey'}
+          color={stats?.pendingReviews ? 'bg-brand-off-white text-state-held' : 'bg-brand-off-white text-brand-mid-grey'}
         />
         <StatCard
           label="Pending Budgets"
           value={stats?.pendingBudgets ?? null}
           icon={Wallet}
           to="/admin/budgets"
-          color={stats?.pendingBudgets ? 'bg-amber-50 text-amber-600' : 'bg-brand-off-white text-brand-mid-grey'}
+          color={stats?.pendingBudgets ? 'bg-brand-off-white text-state-held' : 'bg-brand-off-white text-brand-mid-grey'}
         />
         <StatCard
           label="Total Users"
           value={stats?.totalUsers ?? null}
           icon={Users}
           to="/admin/users"
-          color="bg-green-50 text-green-600"
+          color="bg-brand-off-white text-state-complete"
         />
         <StatCard
           label="Pending Contractors"
           value={stats?.pendingContractors ?? null}
           icon={HardHat}
           to="/admin/contractors"
-          color={stats?.pendingContractors ? 'bg-purple-50 text-purple-600' : 'bg-brand-off-white text-brand-mid-grey'}
+          color={stats?.pendingContractors ? 'bg-brand-off-white text-state-active' : 'bg-brand-off-white text-brand-mid-grey'}
         />
       </div>
     </div>

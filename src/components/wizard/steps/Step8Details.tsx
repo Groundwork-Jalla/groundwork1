@@ -131,7 +131,7 @@ export default function Step8Details() {
             <Input
               id="project-name"
               type="text"
-              placeholder="e.g. Lekki Duplex Phase 2"
+              placeholder={t('wizardFields.projectNamePlaceholder')}
               value={data.projectName}
               onChange={e => update({ projectName: e.target.value })}
               autoComplete="off"
@@ -191,7 +191,7 @@ export default function Step8Details() {
                     id="city"
                     type="text"
                     autoFocus
-                    placeholder="e.g. Bamenda"
+                    placeholder={t('wizardFields.cityPlaceholder')}
                     value={isKnownCity(data.city) ? '' : data.city}
                     onChange={e => update({ city: e.target.value })}
                   />

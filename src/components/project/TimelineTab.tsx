@@ -78,7 +78,7 @@ function StatusPill({ status }: { status: string }) {
   if (status === 'active')
     return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status))}</span>;
   if (status === 'pending_review')
-    return <span className={cn(base, 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status))}</span>;
+    return <span className={cn(base, 'bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held text-state-held dark:text-state-held')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status))}</span>;
   return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{t(statusLabelKey(status))}</span>;
 }
 

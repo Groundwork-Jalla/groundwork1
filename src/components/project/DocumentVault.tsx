@@ -145,7 +145,7 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
           <Button variant="ghost" size="icon" aria-label={`Download ${doc.file_name}`} disabled={downloadingId === doc.id} onClick={() => onDownload(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
             <Download className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label={`Delete ${doc.file_name}`} onClick={() => onDeleteRequest(doc)} className="size-8 text-brand-mid-grey hover:text-red-600">
+          <Button variant="ghost" size="icon" aria-label={`Delete ${doc.file_name}`} onClick={() => onDeleteRequest(doc)} className="size-8 text-brand-mid-grey hover:text-state-alert">
             <Trash2 className="size-4" />
           </Button>
         </div>
@@ -187,7 +187,7 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
         <Button variant="ghost" size="icon" aria-label={`Download ${doc.file_name}`} disabled={downloadingId === doc.id} onClick={() => onDownload(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
           <Download className="size-4" />
         </Button>
-        <Button variant="ghost" size="icon" aria-label={`Delete ${doc.file_name}`} onClick={() => onDeleteRequest(doc)} className="size-8 text-brand-mid-grey hover:text-red-600">
+        <Button variant="ghost" size="icon" aria-label={`Delete ${doc.file_name}`} onClick={() => onDeleteRequest(doc)} className="size-8 text-brand-mid-grey hover:text-state-alert">
           <Trash2 className="size-4" />
         </Button>
       </div>
@@ -507,8 +507,8 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
                 <div
                   className={cn(
                     'h-full rounded-full',
-                    storageUsed / storageLimit > 0.9 ? 'bg-red-500'
-                    : storageUsed / storageLimit > 0.7 ? 'bg-amber-400'
+                    storageUsed / storageLimit > 0.9 ? 'bg-state-alert'
+                    : storageUsed / storageLimit > 0.7 ? 'bg-state-held'
                     : 'bg-brand-near-black'
                   )}
                   style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
@@ -566,17 +566,17 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       {/* Error banners */}
       <AnimatePresence mode="popLayout">
         {fetchError && (
-          <motion.div key="fetch-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
+          <motion.div key="fetch-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-state-alert/30 bg-brand-off-white px-4 py-2.5 text-xs text-state-alert">
             {fetchError}
           </motion.div>
         )}
         {uploadError && (
-          <motion.div key="upload-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
+          <motion.div key="upload-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-state-alert/30 bg-brand-off-white px-4 py-2.5 text-xs text-state-alert">
             {uploadError}
           </motion.div>
         )}
         {deleteError && (
-          <motion.div key="delete-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
+          <motion.div key="delete-error" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-3 rounded-lg border border-state-alert/30 bg-brand-off-white px-4 py-2.5 text-xs text-state-alert">
             {deleteError}
           </motion.div>
         )}
@@ -634,7 +634,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       {/* Delete confirmation modal */}
       <ConfirmModal
         open={pendingDelete !== null}
-        title="Delete document"
+        title={t('misc.deleteDocument')}
         description={
           pendingDelete ? `"${pendingDelete.file_name}" will be permanently removed and cannot be recovered.` : ''
         }

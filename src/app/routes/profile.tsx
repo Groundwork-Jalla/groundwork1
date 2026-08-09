@@ -95,7 +95,7 @@ function CompletionMeter({ meta }: { meta: ProfileMeta }) {
           Profile {pct}% complete
         </span>
         {pct === 100 && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-state-complete bg-brand-off-white border border-state-complete/30 rounded-full px-2.5 py-0.5">
             <Check className="size-3" />
             Complete
           </span>
@@ -482,8 +482,8 @@ export default function ProfilePage() {
                     activeTab === tab.id
                       ? 'border-b-2 border-brand-near-black dark:border-white text-brand-near-black dark:text-white font-semibold'
                       : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
-                    tab.id === 'danger' && activeTab !== 'danger' && 'hover:text-red-600 dark:hover:text-red-400',
-                    tab.id === 'danger' && activeTab === 'danger' && 'border-b-2 border-red-600 dark:border-red-400 text-red-600 dark:text-red-400',
+                    tab.id === 'danger' && activeTab !== 'danger' && 'hover:text-state-alert dark:hover:text-state-alert',
+                    tab.id === 'danger' && activeTab === 'danger' && 'border-b-2 border-state-alert dark:border-state-alert text-state-alert dark:text-state-alert',
                   )}
                 >
                   {t(tab.labelKey)}
@@ -514,7 +514,7 @@ export default function ProfilePage() {
                   </h2>
 
                   <form onSubmit={handleSave} className="flex flex-col gap-4">
-                    <Field label="Display name" htmlFor="display-name">
+                    <Field label={t('fields.displayName')} htmlFor="display-name">
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-brand-mid-grey pointer-events-none" />
                         <input
@@ -528,7 +528,7 @@ export default function ProfilePage() {
                       </div>
                     </Field>
 
-                    <Field label="Phone number" htmlFor="phone">
+                    <Field label={t('fields.phoneNumber')} htmlFor="phone">
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-brand-mid-grey pointer-events-none" />
                         <input
@@ -536,13 +536,13 @@ export default function ProfilePage() {
                           type="tel"
                           value={phone}
                           onChange={e => setPhone(e.target.value)}
-                          placeholder="+1 555 000 0000"
+                          placeholder={t('fields.phonePlaceholder')}
                           className={inputClass}
                         />
                       </div>
                     </Field>
 
-                    <Field label="Country" htmlFor="country">
+                    <Field label={t('fields.country')} htmlFor="country">
                       <div className="relative">
                         <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-brand-mid-grey pointer-events-none" />
                         <input
@@ -550,14 +550,14 @@ export default function ProfilePage() {
                           type="text"
                           value={country}
                           onChange={e => setCountry(e.target.value)}
-                          placeholder="e.g. Nigeria, United States"
+                          placeholder={t('fields.countryPlaceholder')}
                           className={inputClass}
                         />
                       </div>
                     </Field>
 
                     {saveState === 'error' && saveError && (
-                      <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <p className="text-xs text-state-alert bg-brand-off-white border border-state-alert/30 rounded-lg px-3 py-2">
                         {saveError}
                       </p>
                     )}
@@ -569,7 +569,7 @@ export default function ProfilePage() {
                         className={cn(
                           'flex items-center gap-2 rounded-xl text-sm font-semibold px-5 py-2.5 h-auto transition-all',
                           saveState === 'saved'
-                            ? 'bg-green-700 hover:bg-green-700 text-white'
+                            ? 'bg-state-complete hover:bg-state-complete text-white'
                             : 'bg-brand-near-black hover:bg-black text-white',
                         )}
                       >
@@ -597,12 +597,12 @@ export default function ProfilePage() {
                     </h2>
 
                     {idVerified ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 shrink-0">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-state-complete bg-brand-off-white border border-state-complete/30 rounded-full px-2.5 py-0.5 shrink-0">
                         <Check className="size-3" strokeWidth={3} />
                         {t('profile.identityVerified')}
                       </span>
                     ) : idDocumentPath ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5 shrink-0">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-state-held bg-brand-off-white border border-state-held/30 rounded-full px-2.5 py-0.5 shrink-0">
                         {t('profile.identityPending')}
                       </span>
                     ) : (
@@ -651,7 +651,7 @@ export default function ProfilePage() {
 
                   {uploadState === 'error' && uploadError && (
                     <div className="mt-3 flex flex-col gap-2">
-                      <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <p className="text-xs text-state-alert bg-brand-off-white border border-state-alert/30 rounded-lg px-3 py-2">
                         {uploadError}
                       </p>
                       <button
@@ -735,7 +735,7 @@ export default function ProfilePage() {
                   </p>
 
                   {resetSent ? (
-                    <p className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50 rounded-lg px-3 py-2">
+                    <p className="text-xs text-state-complete dark:text-state-complete bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 dark:border-state-complete/50 rounded-lg px-3 py-2">
                       Reset link sent to {user?.email}
                     </p>
                   ) : (
@@ -748,7 +748,7 @@ export default function ProfilePage() {
                         {t('profile.sendResetLink')}
                       </button>
                       {resetError && (
-                        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <p className="text-xs text-state-alert bg-brand-off-white border border-state-alert/30 rounded-lg px-3 py-2">
                           {resetError}
                         </p>
                       )}
@@ -977,7 +977,7 @@ export default function ProfilePage() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-6 flex flex-col gap-6">
+                <div className="rounded-2xl border border-state-alert/30 dark:border-state-alert/50 bg-brand-off-white dark:bg-state-alert/20 p-6 flex flex-col gap-6">
 
                   {/* Export data */}
                   <div>
@@ -994,11 +994,11 @@ export default function ProfilePage() {
                     </button>
                   </div>
 
-                  <div className="border-t border-red-200 dark:border-red-900/50" />
+                  <div className="border-t border-state-alert/30 dark:border-state-alert/50" />
 
                   {/* Delete account */}
                   <div>
-                    <h2 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">{t('profile.deleteTitle')}</h2>
+                    <h2 className="text-sm font-semibold text-state-alert dark:text-state-alert mb-1">{t('profile.deleteTitle')}</h2>
                     <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-1">
                       {t('profile.deleteBody')}
                     </p>
@@ -1009,7 +1009,7 @@ export default function ProfilePage() {
                       </p>
                     ) : showDeleteConfirm ? (
                       <div className="mt-3 flex flex-col gap-2">
-                        <p className="text-xs font-medium text-red-700 dark:text-red-400">
+                        <p className="text-xs font-medium text-state-alert dark:text-state-alert">
                           {t('profile.deleteTypePrefix')} <span className="font-mono font-bold">{t('profile.deleteConfirmWord')}</span>
                         </p>
                         <input
@@ -1017,7 +1017,7 @@ export default function ProfilePage() {
                           value={deleteInput}
                           onChange={e => setDeleteInput(e.target.value)}
                           placeholder={t('profile.deleteConfirmWord')}
-                          className="flex h-10 w-full rounded-md border border-red-300 dark:border-red-900/60 bg-white dark:bg-brand-dark-grey px-3 py-2 text-sm text-brand-near-black dark:text-white outline-none focus-visible:border-red-600 dark:focus-visible:border-red-400 placeholder:text-brand-mid-grey"
+                          className="flex h-10 w-full rounded-md border border-state-alert/30 dark:border-state-alert/60 bg-white dark:bg-brand-dark-grey px-3 py-2 text-sm text-brand-near-black dark:text-white outline-none focus-visible:border-state-alert dark:focus-visible:border-state-alert placeholder:text-brand-mid-grey"
                         />
                         <div className="flex gap-2">
                           <button
@@ -1031,7 +1031,7 @@ export default function ProfilePage() {
                             type="button"
                             disabled={deleteInput !== 'DELETE'}
                             onClick={handleDeleteConfirm}
-                            className="flex-1 h-9 rounded-lg bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                            className="flex-1 h-9 rounded-lg bg-state-alert text-sm font-semibold text-white hover:bg-state-alert transition-colors disabled:opacity-40 disabled:pointer-events-none"
                           >
                             {t('profile.confirmDeletion')}
                           </button>
@@ -1041,7 +1041,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="mt-3 inline-flex items-center text-sm font-medium text-red-700 dark:text-red-400 border border-red-300 dark:border-red-900/60 rounded-xl px-4 py-2 hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
+                        className="mt-3 inline-flex items-center text-sm font-medium text-state-alert dark:text-state-alert border border-state-alert/30 dark:border-state-alert/60 rounded-xl px-4 py-2 hover:bg-brand-off-white dark:hover:bg-state-alert/40 transition-colors"
                       >
                         {t('profile.deleteTitle')}
                       </button>

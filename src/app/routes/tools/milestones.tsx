@@ -142,8 +142,8 @@ export default function MilestonesTool() {
       </div>
 
       {/* Safety note */}
-      <div className="mt-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 print:hidden">
-        <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+      <div className="mt-6 rounded-xl border border-state-held/30 dark:border-state-held bg-brand-off-white dark:bg-state-held/20 px-4 py-3 print:hidden">
+        <p className="text-xs text-state-held dark:text-state-held leading-relaxed">
           <span className="font-semibold">{t('tools.safetyTip')}</span> {t('tools.safetyBody')}
         </p>
       </div>

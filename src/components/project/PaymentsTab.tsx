@@ -16,13 +16,13 @@ import { useStageLabels } from '@/lib/stage-labels';
 function PayPill({ status }: { status: PaymentStatus }) {
   if (status === 'paid')
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 dark:border-state-complete px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-state-complete dark:text-state-complete">
         <CheckCircle2 className="size-2.5" /> Paid
       </span>
     );
   if (status === 'partial')
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-state-held dark:text-state-held">
         <CircleDot className="size-2.5" /> Partial
       </span>
     );
@@ -98,7 +98,7 @@ function StagePayRow({
         <motion.div
           className={cn(
             'h-full rounded-full',
-            localStatus === 'paid' ? 'bg-green-600 dark:bg-green-500' : 'bg-amber-500',
+            localStatus === 'paid' ? 'bg-state-complete dark:bg-state-complete' : 'bg-state-held',
           )}
           initial={{ width: 0 }}
           animate={{ width: `${barPct}%` }}
@@ -108,7 +108,7 @@ function StagePayRow({
 
       {/* Dates if available */}
       {localStatus === 'paid' && stage.completed_at && (
-        <p className="text-[10px] text-green-600 dark:text-green-400">
+        <p className="text-[10px] text-state-complete dark:text-state-complete">
           Paid · stage completed{' '}
           {new Date(stage.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
@@ -159,7 +159,7 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-brand-near-black dark:text-white">Payment Tracking</h2>
+        <h2 className="text-base font-semibold text-brand-near-black dark:text-white">{t('misc.paymentTracking')}</h2>
         {rate && (
           <span className="text-[10px] text-brand-mid-grey border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2 py-0.5">
             1 USD = {rate.currency_code} {formatNumber(rate.approx_fx_rate, undefined, { maximumFractionDigits: 2 })}
@@ -175,7 +175,7 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
           {' '}of{' '}
           <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(totalBudget)}</span>
           {' '}({paidPct}%).{' '}
-          <span className="text-amber-600 dark:text-amber-400">{formatUSDFull(outstanding)} still due.</span>
+          <span className="text-state-held dark:text-state-held">{formatUSDFull(outstanding)} still due.</span>
         </p>
 
         <div className="flex mt-3 h-8 rounded-lg overflow-hidden">

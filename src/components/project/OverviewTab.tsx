@@ -337,8 +337,8 @@ function BudgetBreakdownModal({
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
                   { label: 'PLANNED',       value: formatUSDFull(total),       cls: '' },
-                  { label: 'PAID SO FAR',   value: formatUSDFull(paidTotal),   cls: 'text-green-600 dark:text-green-400' },
-                  { label: outstanding > 0 ? 'OUTSTANDING' : 'UNDER BUDGET', value: formatUSDFull(outstanding), cls: 'text-amber-600 dark:text-amber-400' },
+                  { label: 'PAID SO FAR',   value: formatUSDFull(paidTotal),   cls: 'text-state-complete dark:text-state-complete' },
+                  { label: outstanding > 0 ? 'OUTSTANDING' : 'UNDER BUDGET', value: formatUSDFull(outstanding), cls: 'text-state-held dark:text-state-held' },
                 ].map(c => (
                   <div key={c.label} className="rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2 text-center">
                     <p className="text-[8px] font-semibold text-brand-mid-grey uppercase tracking-wider mb-1">{c.label}</p>
@@ -359,7 +359,7 @@ function BudgetBreakdownModal({
                 <div key={r.label} className="flex items-center gap-3 mb-2">
                   <span className="w-32 shrink-0 text-[10px] text-brand-mid-grey">{r.label}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-                    <motion.div className="h-full rounded-full bg-green-400" initial={{ width: 0 }} animate={{ width: `${r.planned > 0 ? Math.min(Math.round((r.paid / r.planned) * 100), 100) : 0}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+                    <motion.div className="h-full rounded-full bg-state-complete" initial={{ width: 0 }} animate={{ width: `${r.planned > 0 ? Math.min(Math.round((r.paid / r.planned) * 100), 100) : 0}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
                   </div>
                   <span className="text-[10px] font-medium text-brand-near-black dark:text-white tabular-nums shrink-0 w-28 text-right">{formatUSDFull(r.paid)} / {formatUSDFull(r.planned)}</span>
                 </div>
@@ -516,8 +516,8 @@ function PaymentBreakdownModal({
   const paidPct = totalBudget > 0 ? Math.round((paidTotal / totalBudget) * 100) : 0;
 
   const pill = (s: string) => {
-    if (s === 'paid')    return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800';
-    if (s === 'partial') return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
+    if (s === 'paid')    return 'bg-brand-off-white dark:bg-state-complete/30 text-state-complete dark:text-state-complete border border-state-complete/30 dark:border-state-complete';
+    if (s === 'partial') return 'bg-brand-off-white dark:bg-state-held/30 text-state-held dark:text-state-held border border-state-held/30 dark:border-state-held';
     return 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-mid-grey';
   };
 
@@ -554,8 +554,8 @@ function PaymentBreakdownModal({
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
                   { label: 'TOTAL BUDGET',  value: formatUSDFull(totalBudget),  cls: '' },
-                  { label: 'PAID',          value: formatUSDFull(paidTotal),    cls: 'text-green-600 dark:text-green-400' },
-                  { label: 'OUTSTANDING',   value: formatUSDFull(outstanding),  cls: 'text-amber-600 dark:text-amber-400' },
+                  { label: 'PAID',          value: formatUSDFull(paidTotal),    cls: 'text-state-complete dark:text-state-complete' },
+                  { label: 'OUTSTANDING',   value: formatUSDFull(outstanding),  cls: 'text-state-held dark:text-state-held' },
                 ].map(c => (
                   <div key={c.label} className="rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-2 py-2 text-center">
                     <p className="text-[8px] font-semibold text-brand-mid-grey uppercase tracking-wider mb-1">{c.label}</p>
@@ -583,12 +583,12 @@ function PaymentBreakdownModal({
                   desc: 'No payment has been recorded for this stage yet. The full milestone amount is still owed.',
                 },
                 {
-                  icon: <span className="size-8 rounded-full border-2 border-amber-400 flex items-center justify-center shrink-0"><CheckCircle2 className="size-3.5 text-amber-400" /></span>,
+                  icon: <span className="size-8 rounded-full border-2 border-state-held flex items-center justify-center shrink-0"><CheckCircle2 className="size-3.5 text-state-held" /></span>,
                   label: 'Partial',
                   desc: "You've paid something towards this stage, but not the full milestone amount. The remainder is still outstanding.",
                 },
                 {
-                  icon: <span className="size-8 rounded-full border-2 border-green-500 bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0"><CheckCircle2 className="size-3.5 text-green-500" /></span>,
+                  icon: <span className="size-8 rounded-full border-2 border-state-complete bg-brand-off-white dark:bg-state-complete/20 flex items-center justify-center shrink-0"><CheckCircle2 className="size-3.5 text-state-complete" /></span>,
                   label: 'Paid',
                   desc: 'The full stage milestone amount has been recorded as paid. Nothing more is owed for this stage.',
                 },
@@ -682,7 +682,7 @@ function StageProgressModal({
   const variance      = actualStage - expectedStage;
   const pace          = variance > 0 ? 'Ahead of schedule' : variance < 0 ? 'Behind schedule' : 'On track';
   const paceIcon      = variance > 0 ? '↗' : variance < 0 ? '↘' : '—';
-  const paceColor     = variance > 0 ? 'text-green-600 dark:text-green-400' : variance < 0 ? 'text-red-500 dark:text-red-400' : 'text-brand-mid-grey';
+  const paceColor     = variance > 0 ? 'text-state-complete dark:text-state-complete' : variance < 0 ? 'text-state-alert dark:text-state-alert' : 'text-brand-mid-grey';
 
   return (
     <div
@@ -840,7 +840,7 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 function StageIcon({ status }: { status: string }) {
   if (status === 'complete')       return <CheckCircle2 className="size-3.5 text-brand-near-black dark:text-white shrink-0" />;
   if (status === 'active')         return <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.6, repeat: Infinity }} className="size-3.5 rounded-full border-2 border-brand-near-black dark:border-white bg-transparent shrink-0 inline-block" />;
-  if (status === 'pending_review') return <AlertCircle className="size-3.5 text-amber-500 shrink-0" />;
+  if (status === 'pending_review') return <AlertCircle className="size-3.5 text-state-held shrink-0" />;
   return <Lock className="size-3 text-brand-border-grey shrink-0" />;
 }
 
@@ -941,12 +941,12 @@ function SubstageChecks({ substages }: { substages: ProjectSubstageRow[] }) {
                 done
                   ? 'border-brand-near-black bg-brand-near-black dark:border-white dark:bg-white'
                   : review
-                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                    ? 'border-state-held bg-brand-off-white dark:bg-state-held/20'
                     : 'border-brand-border-grey dark:border-[#2c2c2c]',
               )}
             >
               {done && <Check className="size-2.5 stroke-3 text-white dark:text-brand-near-black" />}
-              {review && <span className="size-1.5 rounded-full bg-amber-500" />}
+              {review && <span className="size-1.5 rounded-full bg-state-held" />}
             </span>
             <span
               className={cn(
@@ -1005,7 +1005,7 @@ function StageWithSubstages({
           <span className={cn('text-[9px] font-medium uppercase tracking-wide', {
             'text-brand-mid-grey': stage.status === 'complete',
             'text-brand-near-black dark:text-white': stage.status === 'active',
-            'text-amber-600': stage.status === 'pending_review',
+            'text-state-held': stage.status === 'pending_review',
             'text-brand-border-grey': stage.status === 'locked',
           })}>
             {stage.status === 'complete' ? t('project.overview.statusDone')
@@ -1176,7 +1176,7 @@ export default function OverviewTab({
                     'size-10 rounded-full border-2 flex items-center justify-center',
                     stage.status === 'complete'       ? 'bg-brand-near-black dark:bg-white border-brand-near-black dark:border-white' :
                     stage.status === 'active'         ? 'border-brand-near-black dark:border-white bg-transparent' :
-                    stage.status === 'pending_review' ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' :
+                    stage.status === 'pending_review' ? 'border-state-held bg-brand-off-white dark:bg-state-held/20' :
                     'border-brand-border-grey dark:border-[#2c2c2c] bg-transparent',
                   )}>
                     {stage.status === 'complete' ? (
@@ -1184,7 +1184,7 @@ export default function OverviewTab({
                     ) : stage.status === 'active' ? (
                       <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.6, repeat: Infinity }} className="size-2.5 rounded-full bg-brand-near-black dark:bg-white inline-block" />
                     ) : stage.status === 'pending_review' ? (
-                      <AlertCircle className="size-4 text-amber-500" />
+                      <AlertCircle className="size-4 text-state-held" />
                     ) : (
                       <Lock className="size-3 text-brand-border-grey" />
                     )}
@@ -1245,7 +1245,7 @@ export default function OverviewTab({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-brand-mid-grey">{t('project.overview.daysRemaining')}</span>
-                <span className={cn('text-xs font-medium tabular-nums', daysLeft === 0 ? 'text-red-500' : 'text-brand-near-black dark:text-white')}>{daysLeft === 0 ? t('project.overview.overdue') : `${daysLeft}d`}</span>
+                <span className={cn('text-xs font-medium tabular-nums', daysLeft === 0 ? 'text-state-alert' : 'text-brand-near-black dark:text-white')}>{daysLeft === 0 ? t('project.overview.overdue') : `${daysLeft}d`}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-brand-mid-grey">{t('project.overview.totalDuration')}</span>

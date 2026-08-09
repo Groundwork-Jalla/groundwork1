@@ -30,7 +30,7 @@ export default function StagesTool() {
         <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
       </Link>
 
-      <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">Construction Stage Planner</h1>
+      <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">{t('toolsPage.stagePlanner')}</h1>
       <p className="text-sm text-brand-mid-grey mb-10">
         The standard 10-stage pipeline for residential construction. Click a stage to see substages and payment guidance.
       </p>
@@ -106,15 +106,15 @@ export default function StagesTool() {
                     {/* Meta */}
                     <div className="flex flex-col gap-3">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">Typical Duration</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">{t('toolsPage.typicalDuration')}</p>
                         <p className="text-sm font-semibold text-brand-near-black dark:text-white">{STAGE_DAYS[i]} days</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">Budget Allocation</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">{t('toolsPage.budgetAllocation')}</p>
                         <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stage.budget_pct}%</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">Payment Timing</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">{t('toolsPage.paymentTiming')}</p>
                         <p className="text-xs text-brand-near-black dark:text-white">{PAYMENT_NOTE[i]}</p>
                       </div>
                     </div>
@@ -129,7 +129,7 @@ export default function StagesTool() {
       {/* CTA */}
       <div className="mt-10 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-xs text-brand-mid-grey">
-          <span className="font-semibold text-brand-near-black dark:text-white">Building soon?</span> Create a Groundwork account to track each substage with evidence, approvals, and contractor coordination.
+          <span className="font-semibold text-brand-near-black dark:text-white">{t('toolsPage.buildingSoon')}</span> Create a Groundwork account to track each substage with evidence, approvals, and contractor coordination.
         </p>
         <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}

@@ -14,6 +14,7 @@ import {
   formatBytes,
 } from '@/lib/storage-limits';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface EvidenceUploadProps {
   projectId: string;
@@ -138,6 +139,7 @@ export function EvidenceUpload({
     getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
   }, [projectId, hasStorageLimit]);
 
+  const t = useT();
   const thumbnails = useThumbnails(existingUrls);
 
   const updateFileProgress = useCallback(
@@ -354,7 +356,7 @@ export function EvidenceUpload({
           className="w-full sm:w-auto gap-2"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          aria-label="Upload evidence files"
+          aria-label={t('a11y.uploadEvidence')}
         >
           {uploading ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -372,9 +374,9 @@ export function EvidenceUpload({
                 className={cn(
                   'h-full rounded-full transition-all',
                   storageUsed / storageLimit > 0.9
-                    ? 'bg-red-500'
+                    ? 'bg-state-alert'
                     : storageUsed / storageLimit > 0.7
-                    ? 'bg-amber-400'
+                    ? 'bg-state-held'
                     : 'bg-brand-near-black'
                 )}
                 style={{ width: `${Math.min((storageUsed / storageLimit) * 100, 100)}%` }}
@@ -401,7 +403,7 @@ export function EvidenceUpload({
             {sizeErrors.map((err) => (
               <li
                 key={err}
-                className="flex items-start gap-1.5 text-xs text-red-600"
+                className="flex items-start gap-1.5 text-xs text-state-alert"
               >
                 <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
                 <span>{err}</span>
@@ -419,18 +421,18 @@ export function EvidenceUpload({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18 }}
-            className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5"
+            className="mt-3 flex items-start gap-2 rounded-lg border border-state-alert/30 bg-brand-off-white px-3 py-2.5"
             role="alert"
           >
-            <AlertCircle className="mt-px size-4 shrink-0 text-red-500" aria-hidden="true" />
+            <AlertCircle className="mt-px size-4 shrink-0 text-state-alert" aria-hidden="true" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-red-700">{globalError}</p>
+              <p className="text-xs text-state-alert">{globalError}</p>
             </div>
             <button
               type="button"
               onClick={handleRetry}
-              className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
-              aria-label="Retry upload"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-state-alert hover:text-state-alert focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-state-alert rounded"
+              aria-label={t('a11y.retryUpload')}
             >
               <RefreshCw className="size-3" aria-hidden="true" />
               Retry
@@ -448,7 +450,7 @@ export function EvidenceUpload({
             exit={{ opacity: 0 }}
             className="mt-4 space-y-3"
             aria-live="polite"
-            aria-label="Upload progress"
+            aria-label={t('a11y.uploadProgress')}
           >
             {uploadingFiles.map((f) => (
               <motion.div
@@ -472,7 +474,7 @@ export function EvidenceUpload({
                 </div>
 
                 {f.error ? (
-                  <p className="text-xs text-red-600">{f.error}</p>
+                  <p className="text-xs text-state-alert">{f.error}</p>
                 ) : (
                   <div
                     className="h-1 w-full rounded-full bg-brand-border-grey overflow-hidden"
@@ -485,7 +487,7 @@ export function EvidenceUpload({
                     <motion.div
                       className={cn(
                         'h-full rounded-full',
-                        f.done ? 'bg-green-500' : 'bg-brand-near-black'
+                        f.done ? 'bg-state-complete' : 'bg-brand-near-black'
                       )}
                       initial={{ width: '0%' }}
                       animate={{ width: `${f.progress}%` }}
@@ -575,8 +577,8 @@ export function EvidenceUpload({
         !uploading && (
           <EmptyState
             icon={<Camera className="size-8" />}
-            title="No evidence uploaded"
-            description="Upload photos or PDF documents to support this substage."
+            title={t('evidence.noneTitle')}
+            description={t('evidence.noneBody')}
           />
         )
       )}
@@ -584,7 +586,7 @@ export function EvidenceUpload({
       {/* Delete confirmation modal */}
       <ConfirmModal
         open={deleteTarget !== null}
-        title="Remove file"
+        title={t('evidence.removeTitle')}
         description="This will remove the file reference from this substage. The action cannot be undone."
         confirmLabel="Remove"
         cancelLabel="Keep"

@@ -41,10 +41,13 @@ export function SiteNav() {
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className="sticky top-0 z-50 border-b border-white/10 bg-brand-near-black backdrop-blur-lg"
     >
-      <div className="mx-auto flex max-w-275 items-center justify-between px-4 py-3.5 sm:px-7">
-        <div className="flex items-center gap-7">
-          <GroundworkLogo variant="light" size="xl" linkTo="/" />
-          <div className="hidden items-center gap-6 md:flex">
+      <div className="mx-auto flex max-w-275 items-center justify-between px-3 py-3.5 sm:px-7">
+        <div className="flex min-w-0 items-center gap-7">
+          {/* The wordmark is the largest fixed element in the bar. One size down
+              below sm buys the ~20px that keeps both CTAs on screen at 320px. */}
+          <span className="sm:hidden"><GroundworkLogo variant="light" size="lg" linkTo="/" /></span>
+          <span className="hidden sm:block"><GroundworkLogo variant="light" size="xl" linkTo="/" /></span>
+          <div className="hidden items-center gap-6 lg:flex">
             {LINKS.map(({ to, labelKey }) => (
               <NavLink
                 key={to}
@@ -81,7 +84,8 @@ export function SiteNav() {
           >
             {onContractorPage ? (
               <a href="#apply">
-                {t('contractorApply.nav.apply')}
+                <span className="hidden sm:inline">{t('contractorApply.nav.apply')}</span>
+                <span className="sm:hidden">{t('contractorApply.nav.applyShort')}</span>
               </a>
             ) : (
               <Link to="/contractor-apply">
@@ -93,12 +97,14 @@ export function SiteNav() {
           </Button>
           <Button
             asChild
-            className="group h-9 shrink-0 rounded-md bg-white px-3 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
+            className="group h-9 shrink-0 rounded-md bg-white px-2.5 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
           >
             <Link to="/community" className="flex items-center gap-1.5">
               <span className="hidden sm:inline">{t('landing.nav.joinFree')}</span>
               <span className="sm:hidden">{t('landing.nav.joinFreeShort')}</span>
-              <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+              {/* Decorative; it is the last ~18px that pushes the bar past a 320px
+                  viewport, and the button reads fine without it. */}
+              <ArrowRight className="hidden size-3.5 transition-transform duration-300 group-hover:translate-x-1 sm:inline" />
             </Link>
           </Button>
         </div>

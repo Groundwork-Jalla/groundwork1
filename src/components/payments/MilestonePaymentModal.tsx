@@ -202,7 +202,7 @@ export default function MilestonePaymentModal({
                   );
                 })}
               </div>
-              <p className="text-[10px] text-brand-soft-grey text-center mt-2">Preview — no live charge yet. Marks the stage paid for tracking.</p>
+              <p className="text-[10px] text-brand-soft-grey text-center mt-2">{t('misc.previewNoCharge')}</p>
             </div>
           </motion.div>
         </motion.div>

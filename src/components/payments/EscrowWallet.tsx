@@ -18,9 +18,9 @@ const SEG_COLOR: Record<FundState, string> = {
   released: '#22c55e', transit: '#3b82f6', held: '#f59e0b', locked: 'var(--color-brand-border-grey)',
 };
 const BADGE: Record<FundState, { labelKey: TKey; cls: string }> = {
-  released: { labelKey: 'project.payments.stateReleased', cls: 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
-  transit:  { labelKey: 'project.payments.stateTransit',  cls: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
-  held:     { labelKey: 'project.payments.stateHeld',     cls: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+  released: { labelKey: 'project.payments.stateReleased', cls: 'bg-brand-off-white dark:bg-state-complete/30 text-state-complete dark:text-state-complete' },
+  transit:  { labelKey: 'project.payments.stateTransit',  cls: 'bg-brand-off-white dark:bg-state-active/30 text-state-active dark:text-state-active' },
+  held:     { labelKey: 'project.payments.stateHeld',     cls: 'bg-brand-off-white dark:bg-state-held/30 text-state-held dark:text-state-held' },
   locked:   { labelKey: 'project.payments.stateLocked',   cls: 'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey' },
 };
 const LEGEND: [FundState, TKey][] = [
@@ -83,10 +83,10 @@ export default function EscrowWallet({
           <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t('project.payments.totalProject')}</p>
           <p className="text-2xl font-extrabold text-brand-near-black dark:text-white mt-0.5 tabular-nums">{formatUSD(total)}</p>
         </div>
-        <div className="rounded-2xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/20 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">{t('project.payments.released')}</p>
-          <p className="text-2xl font-extrabold text-green-700 dark:text-green-400 mt-0.5 tabular-nums">{formatUSD(released)}</p>
-          <p className="text-[10px] text-green-700/70 dark:text-green-400/70 mt-0.5">{t('project.payments.ofTotal', { pct: releasedPct.toFixed(1) })}</p>
+        <div className="rounded-2xl border border-state-complete/30 dark:border-state-complete/40 bg-brand-off-white dark:bg-state-complete/20 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-state-complete dark:text-state-complete">{t('project.payments.released')}</p>
+          <p className="text-2xl font-extrabold text-state-complete dark:text-state-complete mt-0.5 tabular-nums">{formatUSD(released)}</p>
+          <p className="text-[10px] text-state-complete/70 dark:text-state-complete/70 mt-0.5">{t('project.payments.ofTotal', { pct: releasedPct.toFixed(1) })}</p>
         </div>
       </div>
 
@@ -106,9 +106,9 @@ export default function EscrowWallet({
             >
               <div className={cn(
                 'flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                state === 'released' ? 'bg-green-600 text-white'
-                  : state === 'transit' ? 'bg-blue-600 text-white'
-                  : state === 'held' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                state === 'released' ? 'bg-state-complete text-white'
+                  : state === 'transit' ? 'bg-state-active text-white'
+                  : state === 'held' ? 'bg-brand-off-white dark:bg-state-held/30 text-state-held dark:text-state-held'
                   : 'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey',
               )}>
                 {state === 'released' ? <Check className="size-3.5 stroke-[3]" />

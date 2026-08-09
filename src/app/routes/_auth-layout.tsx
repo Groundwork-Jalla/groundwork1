@@ -95,7 +95,7 @@ function ArchDrawing() {
       {/* Drawing border + title block */}
       <rect x="8" y="8" width="404" height="504" fill="none" stroke="white" strokeWidth="0.8" opacity="0.25" />
       <line x1="8" y1="480" x2="412" y2="480" stroke="white" strokeWidth="0.8" opacity="0.25" />
-      <text x="20" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" letterSpacing="1">SITE PLAN + ELEVATION — SCALE 1:100</text>
+      <text x="20" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" letterSpacing="1">{t('misc.blueprintCaption')}</text>
       <text x="380" y="494" fontSize="7" fill="white" opacity="0.4" fontFamily="monospace" textAnchor="end">{t('auth.plan.ref')}</text>
     </svg>
   );

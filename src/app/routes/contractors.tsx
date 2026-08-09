@@ -348,7 +348,7 @@ function ContractorCard({
         </div>
 
         {contractor.verified && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-off-white border border-state-complete/30 px-2 py-0.5 text-[10px] font-semibold text-state-complete">
             <CheckCircle2 className="size-3" />
             {t('contractors.verified')}
           </span>
@@ -497,8 +497,8 @@ function QuoteRequestDialog({
           {submitted ? (
             /* Success state */
             <div className="flex flex-col items-center text-center py-6 gap-4">
-              <div className="flex size-14 items-center justify-center rounded-full bg-green-50 border border-green-200">
-                <CheckCircle2 className="size-7 text-green-600" />
+              <div className="flex size-14 items-center justify-center rounded-full bg-brand-off-white border border-state-complete/30">
+                <CheckCircle2 className="size-7 text-state-complete" />
               </div>
               <div>
                 <p className="font-bold text-brand-near-black dark:text-white text-base">
@@ -537,7 +537,7 @@ function QuoteRequestDialog({
                   id="qr-name"
                   type="text"
                   required
-                  placeholder="e.g. David Okafor"
+                  placeholder={t('fields.namePlaceholder')}
                   className={inputCls}
                 />
               </div>
@@ -550,7 +550,7 @@ function QuoteRequestDialog({
                   id="qr-location"
                   type="text"
                   required
-                  placeholder="e.g. Douala, Cameroon"
+                  placeholder={t('fields.cityPlaceholder')}
                   className={inputCls}
                 />
               </div>

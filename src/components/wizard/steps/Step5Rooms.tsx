@@ -113,7 +113,7 @@ export default function Step5Rooms() {
             {current && (
               <div className="mt-3 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] divide-y divide-brand-border-grey dark:divide-[#2c2c2c] overflow-hidden">
                 <Stepper
-                  label="Bedrooms"
+                  label={t('wizardFields.bedrooms')}
                   sublabel="Including master bedroom"
                   value={current.bedrooms}
                   onChange={v => handleRoomChange(activeTab, 'bedrooms', v)}
@@ -121,7 +121,7 @@ export default function Step5Rooms() {
                   max={20}
                 />
                 <Stepper
-                  label="Bathrooms"
+                  label={t('wizardFields.bathrooms')}
                   sublabel="Including en-suite bathrooms"
                   value={current.bathrooms}
                   onChange={v => handleRoomChange(activeTab, 'bathrooms', v)}
@@ -129,7 +129,7 @@ export default function Step5Rooms() {
                   max={20}
                 />
                 <Stepper
-                  label="Living Areas"
+                  label={t('wizardFields.livingAreas')}
                   sublabel="Sitting rooms & lounges"
                   value={current.livingRooms}
                   onChange={v => handleRoomChange(activeTab, 'livingRooms', v)}
@@ -137,7 +137,7 @@ export default function Step5Rooms() {
                   max={5}
                 />
                 <Stepper
-                  label="Kitchens"
+                  label={t('wizardFields.kitchens')}
                   value={current.kitchens}
                   onChange={v => handleRoomChange(activeTab, 'kitchens', v)}
                   min={0}

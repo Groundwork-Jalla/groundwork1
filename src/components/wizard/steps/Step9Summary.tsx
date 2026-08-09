@@ -61,8 +61,8 @@ function BudgetBreakdownCard() {
               <span className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide border',
                 isVerified
-                  ? 'bg-green-50 text-green-700 border-green-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200',
+                  ? 'bg-brand-off-white text-state-complete border-state-complete/30'
+                  : 'bg-brand-off-white text-state-held border-state-held/30',
               )}>
                 {isVerified ? <><ShieldCheck className="size-2.5" /> {t('wizard.verifiedData')}</> : <><Info className="size-2.5" /> {t('wizard.regionalEstimate')}</>}
               </span>

@@ -51,7 +51,7 @@ function CertCard({ cert }: { cert: Certificate }) {
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-near-black">
           <Award className="size-5 text-white" />
         </div>
-        <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-[10px] font-semibold text-green-700">
+        <span className="inline-flex items-center rounded-full bg-brand-off-white border border-state-complete/30 px-2.5 py-0.5 text-[10px] font-semibold text-state-complete">
           {t('documents.verified')}
         </span>
       </div>
@@ -298,9 +298,9 @@ export default function DocumentsPage() {
       {tab === 'certificates' && (
         <>
           {certsErr && (
-            <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <AlertCircle className="size-4 text-amber-600 shrink-0" />
-              <p className="text-xs text-amber-700">
+            <div className="flex items-center gap-3 rounded-xl border border-state-held/30 bg-brand-off-white px-4 py-3">
+              <AlertCircle className="size-4 text-state-held shrink-0" />
+              <p className="text-xs text-state-held">
                 {t('documents.certsTableMissing')}
               </p>
             </div>

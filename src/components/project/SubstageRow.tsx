@@ -26,8 +26,8 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
   }
   if (status === 'pending_review') {
     return (
-      <span className={cn(box, 'border-amber-400 bg-amber-50')}>
-        <Clock className="size-2.5 text-amber-500" />
+      <span className={cn(box, 'border-state-held bg-brand-off-white')}>
+        <Clock className="size-2.5 text-state-held" />
       </span>
     );
   }
@@ -144,7 +144,7 @@ export function SubstageRow({
 
           {/* Status chips */}
           {isPendingReview && (
-            <span className="shrink-0 inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-px text-[9px] font-medium text-amber-600 whitespace-nowrap">
+            <span className="shrink-0 inline-flex items-center rounded-full border border-state-held/30 bg-brand-off-white px-2 py-px text-[9px] font-medium text-state-held whitespace-nowrap">
               {t('project.stages.awaitingReview')}
             </span>
           )}
@@ -205,7 +205,7 @@ export function SubstageRow({
         </AnimatePresence>
 
         {error && (
-          <p className="mt-1.5 text-[11px] text-red-500">{error}</p>
+          <p className="mt-1.5 text-[11px] text-state-alert">{error}</p>
         )}
       </div>
     </div>

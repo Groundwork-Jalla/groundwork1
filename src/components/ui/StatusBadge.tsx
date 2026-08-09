@@ -8,7 +8,7 @@ import {
  * The Foundations badge: a 6px dot and a word.
  *
  * No tinted pill. Foundations is explicit about why — "a table of ten stages reads as a
- * ledger instead of a paint chart". The previous badges used `bg-green-50 text-green-700`
+ * ledger instead of a paint chart". The previous badges used `bg-brand-off-white text-state-complete`
  * style pastel fills, which made a ten-row stage table look like a colour swatch page and
  * gave four different visual weights to what is one dimension of information.
  *

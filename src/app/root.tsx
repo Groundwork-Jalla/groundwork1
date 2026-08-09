@@ -15,6 +15,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import "@/lib/sentry";
 import { GA_ID } from "@/lib/analytics";
 import "../styles/globals.css";
+import { useT } from '@/lib/i18n';
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -35,7 +36,13 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // Both pre-paint scripts below deliberately mutate this element before React
+    // hydrates — the theme script adds `class="dark"`, the language script rewrites
+    // `lang`. React compares the prerendered markup against the mutated DOM and
+    // warns on every route. The mutation is the point (it prevents a flash of the
+    // wrong theme and gives screen readers the right language immediately), so the
+    // warning is suppressed here rather than the behaviour being changed.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -76,10 +83,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function AppInner() {
+  const t = useT();
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Sentry.ErrorBoundary fallback={<p className="p-8 text-sm text-brand-mid-grey">Something went wrong. Please refresh the page.</p>}>
+        <Sentry.ErrorBoundary fallback={<p className="p-8 text-sm text-brand-mid-grey">{t('errors.generic')}</p>}>
           <div id="main-content">
             <Outlet />
           </div>

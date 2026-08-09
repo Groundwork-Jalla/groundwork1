@@ -82,8 +82,8 @@ export default function InvitePage() {
   if (invite.status === 'accepted') {
     return (
       <div className="w-full text-center">
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-green-50">
-          <UserPlus className="size-5 text-green-600" />
+        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-off-white">
+          <UserPlus className="size-5 text-state-complete" />
         </div>
         <h1 className="font-sans text-2xl font-bold text-brand-near-black mb-2">
           {t('invite.acceptedTitle')}
@@ -147,7 +147,7 @@ export default function InvitePage() {
             {accepting ? t('invite.accepting') : t('invite.accept')}
           </button>
           {acceptErr && (
-            <p className="mt-3 text-xs text-center text-red-600">{acceptErr}</p>
+            <p className="mt-3 text-xs text-center text-state-alert">{acceptErr}</p>
           )}
         </>
       ) : (

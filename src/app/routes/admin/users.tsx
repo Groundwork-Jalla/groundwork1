@@ -13,9 +13,9 @@ interface AdminUser {
 }
 
 const ROLE_STYLES: Record<string, string> = {
-  admin:      'bg-purple-50 text-purple-700',
-  contractor: 'bg-blue-50 text-blue-700',
-  homeowner:  'bg-green-50 text-green-700',
+  admin:      'bg-brand-off-white text-state-active',
+  contractor: 'bg-brand-off-white text-state-active',
+  homeowner:  'bg-brand-off-white text-state-complete',
 };
 
 export default function AdminUsers() {

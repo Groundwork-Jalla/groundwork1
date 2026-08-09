@@ -135,7 +135,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
                 className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 text-[11px] font-medium"
               >
-                <span className="size-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+                <span className="size-1.5 rounded-full bg-state-complete animate-pulse shrink-0" />
                 {metaSub}
               </motion.div>
             </motion.div>
@@ -846,7 +846,7 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
         <Badge key="loc" icon={<MapPin className="size-3.5" />} label={`Building in ${countryName}`} pos="tr" />
       )}
       {step === 2 && (
-        <Badge key="type" icon={<Building2 className="size-3.5" />} label="Planning phase" sub="Foundation next" pos="tr" />
+        <Badge key="type" icon={<Building2 className="size-3.5" />} label={t('buildPreview.planningPhase')} sub="Foundation next" pos="tr" />
       )}
       {step === 3 && data.buildingType && (
         <Badge key="bt" icon={<Building2 className="size-3.5" />} label={getBuildingTypeLabel(data.buildingType)} pos="tr" />
@@ -894,7 +894,7 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
       {step === 9 && budget && (
         <>
           <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub="est." pos="tr" />
-          <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label="Ready to build" pos="bl" />
+          <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label={t('buildPreview.readyToBuild')} pos="bl" />
         </>
       )}
     </AnimatePresence>

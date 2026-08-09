@@ -30,8 +30,9 @@ interface ProjectChatProps {
 // ---------------------------------------------------------------------------
 
 function MessageSkeleton() {
+  const t = useT();
   return (
-    <div className="flex flex-col gap-3 p-4" aria-busy="true" aria-label="Loading messages">
+    <div className="flex flex-col gap-3 p-4" aria-busy="true" aria-label={t('a11y.loadingMessages')}>
       {[false, true, false, true].map((isRight, i) => (
         <div
           key={i}
@@ -210,7 +211,7 @@ export function ProjectChat({ projectId, currentUserId, currentUserName }: Proje
         className="flex-1 overflow-y-auto max-h-[480px] sm:max-h-[560px] p-4"
         role="log"
         aria-live="polite"
-        aria-label="Project messages"
+        aria-label={t('a11y.projectMessages')}
       >
         {loading ? (
           <MessageSkeleton />
@@ -247,9 +248,9 @@ export function ProjectChat({ projectId, currentUserId, currentUserName }: Proje
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message..."
+            placeholder={t('project.chat.messagePlaceholder')}
             disabled={sending}
-            aria-label="Type a message"
+            aria-label={t('a11y.typeMessage')}
             className={cn(
               'flex-1 rounded-xl border border-brand-border-grey bg-brand-off-white',
               'px-4 py-2.5 text-sm font-sans text-brand-near-black placeholder:text-brand-mid-grey',
@@ -263,7 +264,7 @@ export function ProjectChat({ projectId, currentUserId, currentUserName }: Proje
             variant="default"
             onClick={handleSend}
             disabled={sending || inputValue.trim().length === 0}
-            aria-label="Send message"
+            aria-label={t('a11y.sendMessage')}
             className="shrink-0 rounded-xl"
           >
             <Send size={16} strokeWidth={2} />

@@ -29,7 +29,7 @@ function Field({ label, hint, required, htmlFor, children }: {
     <div className="space-y-1.5">
       <Label htmlFor={htmlFor}>
         {label}
-        {required && <span className="text-red-500">*</span>}
+        {required && <span className="text-state-alert">*</span>}
       </Label>
       {children}
       {hint && <p className="text-[11px] text-brand-mid-grey">{hint}</p>}
@@ -87,7 +87,7 @@ function YesNo({ label, value, onChange }: {
   const { t } = useLanguage();
   return (
     <div className="space-y-1.5">
-      <Label>{label}<span className="text-red-500">*</span></Label>
+      <Label>{label}<span className="text-state-alert">*</span></Label>
       <div className="flex gap-2">
         {[true, false].map(v => (
           <button
@@ -548,9 +548,9 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         <YesNo label={f('verificationQ')} value={verification} onChange={setVerification} />
         <YesNo label={f('noSidePayQ')}    value={noSidePay}    onChange={setNoSidePay} />
         {willDisqualify && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <AlertTriangle className="size-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-amber-800 leading-relaxed">{f('disqualifyWarn')}</p>
+          <div className="flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white px-4 py-3">
+            <AlertTriangle className="size-4 text-state-held mt-0.5 shrink-0" />
+            <p className="text-[11px] text-state-held leading-relaxed">{f('disqualifyWarn')}</p>
           </div>
         )}
       </Section>
@@ -610,7 +610,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
             {agreed && <CheckCircle2 className="size-3 text-white" />}
           </span>
           <span className="text-xs text-brand-near-black">
-            {f('agreeCheckbox')}<span className="text-red-500">*</span>
+            {f('agreeCheckbox')}<span className="text-state-alert">*</span>
           </span>
         </button>
       </Section>
@@ -618,7 +618,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       {/* Submit */}
       <div className="pt-2 space-y-3">
         {error && (
-          <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-xs text-state-alert bg-brand-off-white rounded-lg px-3 py-2">{error}</p>
         )}
         <Button type="submit" disabled={submitting} className="w-full h-auto py-3.5 font-semibold">
           {submitting && <Loader2 className="size-4 animate-spin" />}

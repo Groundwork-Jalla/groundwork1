@@ -43,7 +43,7 @@ function EvidenceGrid({ urls }: { urls: string[] }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+          className="flex items-center gap-1 text-xs font-medium text-state-active hover:underline"
         >
           <ExternalLink className="size-3" />
           Evidence {i + 1}
@@ -153,7 +153,7 @@ function StageReviewCard({
       <div className="px-5 py-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="inline-flex items-center rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+            <span className="inline-flex items-center rounded-full bg-brand-off-white text-state-held border border-state-held/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
               In Review
             </span>
             <span className="text-[10px] text-brand-mid-grey">Stage {item.stageNumber}</span>
@@ -308,7 +308,7 @@ export default function AdminReviews() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <CheckCircle2 className="size-10 text-green-500" />
+          <CheckCircle2 className="size-10 text-state-complete" />
           <p className="text-sm font-medium text-brand-near-black">All caught up</p>
           <p className="text-xs text-brand-mid-grey">No stages are pending review right now.</p>
         </div>

@@ -78,7 +78,7 @@ export default function PayoutStatusModal({
                 </div>
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold',
-                  paid ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700',
+                  paid ? 'bg-brand-off-white text-state-complete' : 'bg-brand-off-white text-state-active',
                 )}>
                   {paid ? t('project.payments.delivered') : t('project.payments.inTransit')}
                 </span>

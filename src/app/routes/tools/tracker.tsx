@@ -90,7 +90,7 @@ export default function TrackerTool() {
           <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
         </Link>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">DIY Project Tracker</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">{t('toolsPage.diyTracker')}</h1>
         <p className="text-sm text-brand-mid-grey mb-8">
           Check off substages as you go. Progress saves automatically in your browser — no account needed.
         </p>
@@ -98,17 +98,17 @@ export default function TrackerTool() {
         {/* Project meta */}
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
           <div>
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">Project Name</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('toolsPage.projectName')}</label>
             <input
               type="text"
               value={state.projectName}
               onChange={e => setState(prev => ({ ...prev, projectName: e.target.value }))}
-              placeholder="My House Build"
+              placeholder={t('toolsPage.projectNamePlaceholder')}
               className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] text-sm text-brand-near-black dark:text-white px-3 py-2.5 placeholder:text-brand-border-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">Start Date</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('toolsPage.startDate')}</label>
             <input
               type="date"
               value={state.startDate}
@@ -149,7 +149,7 @@ export default function TrackerTool() {
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2 text-xs font-medium text-brand-mid-grey hover:text-red-600 hover:border-red-300 dark:hover:border-red-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2 text-xs font-medium text-brand-mid-grey hover:text-state-alert hover:border-state-alert/30 dark:hover:border-state-alert transition-colors"
           >
             <RotateCcw className="size-3.5" /> Reset
           </button>
@@ -242,7 +242,7 @@ export default function TrackerTool() {
                     <textarea
                       value={state.notes[stage.stage_number] ?? ''}
                       onChange={e => setNote(stage.stage_number, e.target.value)}
-                      placeholder="Add notes about this stage…"
+                      placeholder={t('toolsPage.notesPlaceholder')}
                       rows={2}
                       className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] text-xs text-brand-near-black dark:text-white px-3 py-2 placeholder:text-brand-border-grey focus:outline-none focus:ring-1 focus:ring-brand-near-black dark:focus:ring-white resize-none"
                     />
@@ -265,7 +265,7 @@ export default function TrackerTool() {
       {/* CTA */}
       <div className="mt-10 print:hidden rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-xs text-brand-mid-grey">
-          <span className="font-semibold text-brand-near-black dark:text-white">Managing a real project?</span> Get stage sign-offs, document storage, contractor coordination, and payment tracking with a full Groundwork account.
+          <span className="font-semibold text-brand-near-black dark:text-white">{t('toolsPage.managingReal')}</span> Get stage sign-offs, document storage, contractor coordination, and payment tracking with a full Groundwork account.
         </p>
         <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}

@@ -39,7 +39,7 @@ export default function ToolsIndex() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
       {/* Hero */}
       <div className="mb-14">
-        <p className="text-xs font-semibold uppercase tracking-widest text-brand-mid-grey mb-3">Free Planning Tools</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-mid-grey mb-3">{t('toolsPage.freeTitle')}</p>
         <h1 className="text-3xl sm:text-4xl font-black text-brand-near-black dark:text-white leading-tight mb-4">
           Build smarter,<br />before you break ground.
         </h1>
@@ -76,7 +76,7 @@ export default function ToolsIndex() {
       {/* CTA strip */}
       <div className="mt-14 rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">Want the full picture?</p>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('toolsPage.wantFullPicture')}</p>
           <p className="text-xs text-brand-mid-grey">Create a Groundwork account to track your real project with stage approvals, document storage, and contractor coordination.</p>
         </div>
         <Link

@@ -42,11 +42,11 @@ function NotifItem({
       onClick={handleClick}
       className={cn(
         'w-full text-left px-4 py-3 flex gap-3 items-start hover:bg-brand-off-white transition-colors',
-        !notif.read_at && 'bg-blue-50/60 hover:bg-blue-50',
+        !notif.read_at && 'bg-brand-off-white/60 hover:bg-brand-off-white',
       )}
     >
       {!notif.read_at && (
-        <span className="mt-1.5 shrink-0 size-2 rounded-full bg-blue-500" />
+        <span className="mt-1.5 shrink-0 size-2 rounded-full bg-state-active" />
       )}
       <div className={cn('flex-1 min-w-0', notif.read_at && 'pl-5')}>
         <p className="text-xs font-semibold text-brand-near-black leading-snug">{notif.title}</p>
@@ -125,7 +125,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       >
         <Bell className="size-4.5 text-brand-mid-grey" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white tabular-nums">
+          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-state-active text-[9px] font-bold text-white tabular-nums">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

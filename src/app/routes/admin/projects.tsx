@@ -17,8 +17,8 @@ interface AdminProject {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  active:    'bg-green-50 text-green-700',
-  on_hold:   'bg-amber-50 text-amber-700',
+  active:    'bg-brand-off-white text-state-active',
+  on_hold:   'bg-brand-off-white text-state-held',
   completed: 'bg-brand-off-white text-brand-mid-grey',
   archived:  'bg-brand-off-white text-brand-mid-grey',
 };

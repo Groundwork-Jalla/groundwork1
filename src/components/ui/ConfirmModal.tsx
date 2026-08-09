@@ -59,7 +59,7 @@ export function ConfirmModal({
               </Button>
               <Button
                 type="button"
-                className={`flex-1 text-sm ${destructive ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                className={`flex-1 text-sm ${destructive ? 'bg-state-alert hover:bg-state-alert' : ''}`}
                 onClick={onConfirm}
                 disabled={loading}
               >

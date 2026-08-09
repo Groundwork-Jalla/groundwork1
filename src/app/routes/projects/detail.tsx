@@ -327,13 +327,13 @@ export default function ProjectDetail() {
             <div className="flex flex-col items-end gap-1.5 shrink-0">
               <div className="flex items-center gap-2">
                 {trackingStarted ? (
-                  <span className="flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">
-                    <span className="size-1.5 rounded-full bg-green-500 inline-block" />
+                  <span className="flex items-center gap-1 rounded-full bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 dark:border-state-complete px-2 py-0.5 text-[10px] font-semibold text-state-complete dark:text-state-complete uppercase tracking-wide">
+                    <span className="size-1.5 rounded-full bg-state-complete inline-block" />
                     {t('project.header.live')}
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-                    <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                  <span className="flex items-center gap-1 rounded-full bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held px-2 py-0.5 text-[10px] font-semibold text-state-held dark:text-state-held uppercase tracking-wide">
+                    <span className="size-1.5 rounded-full bg-state-held inline-block" />
                     {t('project.header.planning')}
                   </span>
                 )}

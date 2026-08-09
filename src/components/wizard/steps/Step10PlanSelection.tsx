@@ -132,8 +132,8 @@ export default function Step10PlanSelection() {
 
   const tierIcons: Record<string, React.ReactNode> = {
     self_verify:      <BadgeCheck className="size-4 text-brand-mid-grey" />,
-    jalla_verify:     <ShieldCheck className="size-4 text-blue-600" />,
-    jalla_management: <Briefcase className="size-4 text-purple-600" />,
+    jalla_verify:     <ShieldCheck className="size-4 text-state-active" />,
+    jalla_management: <Briefcase className="size-4 text-state-active" />,
   };
 
   return (

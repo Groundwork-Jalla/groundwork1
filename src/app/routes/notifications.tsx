@@ -48,11 +48,11 @@ function filterNotifications(list: Notification[], filter: FilterTab): Notificat
 }
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
-  stage_approved:         <BadgeCheck className="size-4 text-green-600" />,
-  evidence_uploaded:      <Upload className="size-4 text-blue-600" />,
-  message_received:       <MessageSquare className="size-4 text-purple-600" />,
+  stage_approved:         <BadgeCheck className="size-4 text-state-complete" />,
+  evidence_uploaded:      <Upload className="size-4 text-state-active" />,
+  message_received:       <MessageSquare className="size-4 text-state-active" />,
   project_created:        <Building2 className="size-4 text-brand-mid-grey" />,
-  verification_requested: <AlertCircle className="size-4 text-amber-600" />,
+  verification_requested: <AlertCircle className="size-4 text-state-held" />,
 };
 
 const FILTER_TABS: { labelKey: TKey; value: FilterTab }[] = [

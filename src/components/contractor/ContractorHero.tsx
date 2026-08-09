@@ -111,7 +111,7 @@ export default function ContractorHero() {
             </div>
 
             <motion.div
-              className="mt-8 inline-block rounded-lg"
+              className="mt-8 inline-block max-w-full rounded-lg"
               animate={{
                 boxShadow: [
                   "0 0 0 0 rgba(255,255,255,0.2)",
@@ -121,10 +121,13 @@ export default function ContractorHero() {
               }}
               transition={{ duration: 2.5, repeat: Infinity }}
             >
-              <Button asChild className="bg-white text-brand-near-black hover:bg-white/90 text-sm font-bold px-8 py-4 h-auto rounded-lg group">
-                <a href="#apply" className="flex items-center gap-2">
-                  {t('contractorApply.heroCta')}
-                  <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
+              {/* px-8 plus a long unwrappable label put this ~9px past a 320px
+                  viewport. The label is allowed to wrap and the padding eases at the
+                  smallest width; from sm up it is unchanged. */}
+              <Button asChild className="group h-auto max-w-full rounded-lg bg-white px-5 py-4 text-sm font-bold text-brand-near-black hover:bg-white/90 sm:px-8">
+                <a href="#apply" className="flex max-w-full items-center gap-2 whitespace-normal text-left">
+                  <span className="min-w-0">{t('contractorApply.heroCta')}</span>
+                  <ArrowRight className="size-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
                 </a>
               </Button>
             </motion.div>

@@ -28,8 +28,8 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: 
 };
 
 const STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
-  active:    { labelKey: 'common.active',    dot: 'bg-green-500',         badge: 'bg-green-50 text-green-700 border border-green-200'                    },
-  on_hold:   { labelKey: 'common.onHold',    dot: 'bg-amber-500',         badge: 'bg-amber-50 text-amber-700 border border-amber-200'                    },
+  active:    { labelKey: 'common.active',    dot: 'bg-state-active',      badge: 'bg-brand-off-white text-state-active border border-state-active/30'    },
+  on_hold:   { labelKey: 'common.onHold',    dot: 'bg-state-held',         badge: 'bg-brand-off-white text-state-held border border-state-held/30'                    },
   completed: { labelKey: 'common.complete',  dot: 'bg-brand-mid-grey',    badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
   archived:  { labelKey: 'common.archived',  dot: 'bg-brand-border-grey', badge: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey' },
 };
@@ -157,7 +157,7 @@ export default function ProjectsIndex() {
       {!loading && !isContractor && starterCount > 0 && (
         <div className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm ${
           atStarterLimit
-            ? 'bg-amber-50 border border-amber-200 text-amber-800'
+            ? 'bg-brand-off-white border border-state-held/30 text-state-held'
             : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey'
         }`}>
           <span>
@@ -165,7 +165,7 @@ export default function ProjectsIndex() {
             {atStarterLimit && ` ${t('projects.limitReached')}`}
           </span>
           {atStarterLimit && (
-            <Link to="/upgrade" className="shrink-0 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+            <Link to="/upgrade" className="shrink-0 text-xs font-semibold text-state-held underline underline-offset-2 hover:text-state-held">
               {t('projects.upgradeNudge')}
             </Link>
           )}

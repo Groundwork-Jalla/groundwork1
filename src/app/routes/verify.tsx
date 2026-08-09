@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Download } from 'lucide-react';
 import { getCertificate } from '@/lib/supabase/certificates';
+import { useT } from '@/lib/i18n';
 
 interface CertRow {
   id: string;
@@ -23,6 +24,7 @@ function formatDate(iso: string) {
 }
 
 export default function VerifyCertificate() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const [cert, setCert]     = useState<CertRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function VerifyCertificate() {
 
         {cert && (
           <p className="mt-8 max-w-md text-center text-xs text-brand-mid-grey">
-            This certificate was issued by Groundwork by Jalla. Verify its authenticity at{' '}
+            {t('verify.issuedBy')}{' '}
             <span className="font-medium text-brand-near-black">tryjalla.com/verify/{id}</span>
           </p>
         )}
@@ -63,6 +65,7 @@ export default function VerifyCertificate() {
 }
 
 function NotFound() {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -72,22 +75,23 @@ function NotFound() {
     >
       <XCircle className="size-14 text-brand-border-grey" strokeWidth={1.2} />
       <div>
-        <h1 className="text-xl font-bold text-brand-near-black">Certificate not found</h1>
+        <h1 className="text-xl font-bold text-brand-near-black">{t('verify.notFoundTitle')}</h1>
         <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          This certificate ID does not match any record in our system. It may be invalid, expired, or the link may be incomplete.
+          {t('verify.notFoundBody')}
         </p>
       </div>
       <Link
         to="/"
         className="mt-2 text-sm font-medium text-brand-near-black underline underline-offset-4 hover:opacity-70 transition-opacity"
       >
-        Return to Groundwork
+        {t('verify.returnHome')}
       </Link>
     </motion.div>
   );
 }
 
 function CertificateCard({ cert }: { cert: CertRow }) {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -99,9 +103,9 @@ function CertificateCard({ cert }: { cert: CertRow }) {
       <div className="flex items-center gap-3 mb-6">
         <CheckCircle2 className="size-10 text-brand-near-black shrink-0" strokeWidth={1.5} />
         <div>
-          <p className="text-xs font-semibold text-brand-mid-grey uppercase tracking-wider">Verified</p>
+          <p className="text-xs font-semibold text-brand-mid-grey uppercase tracking-wider">{t('verify.verified')}</p>
           <h1 className="text-xl font-bold text-brand-near-black leading-tight">
-            Certificate of Stage Completion
+            {t('verify.certTitle')}
           </h1>
         </div>
       </div>
@@ -111,17 +115,17 @@ function CertificateCard({ cert }: { cert: CertRow }) {
         {/* Header band */}
         <div className="bg-brand-near-black px-6 py-4">
           <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
-            Groundwork by Jalla · Verified Construction Record
+            {t('verify.recordBanner')}
           </p>
         </div>
 
         {/* Details */}
         <div className="px-6 py-6 space-y-5">
-          <Field label="Issued to" value={cert.issued_to} />
-          <Field label="Project" value={cert.project_name} />
-          <Field label="Stage completed" value={`Stage ${cert.stage_number}: ${cert.stage_name}`} />
-          <Field label="Date issued" value={formatDate(cert.issued_at)} />
-          <Field label="Certificate ID" value={cert.id} mono />
+          <Field label={t('certificate.fieldOwner')} value={cert.issued_to} />
+          <Field label={t('certificate.fieldProject')} value={cert.project_name} />
+          <Field label={t('verify.stageCompleted')} value={`${t('project.stages.stageN', { n: cert.stage_number })}: ${cert.stage_name}`} />
+          <Field label={t('verify.dateIssued')} value={formatDate(cert.issued_at)} />
+          <Field label={t('verify.certId')} value={cert.id} mono />
         </div>
 
         {/* Download */}
@@ -135,14 +139,14 @@ function CertificateCard({ cert }: { cert: CertRow }) {
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3 hover:bg-black transition-colors"
             >
               <Download className="size-4" />
-              Download Certificate PDF
+              {t('verify.downloadPdf')}
             </a>
           </div>
         )}
       </div>
 
       <p className="mt-4 text-center text-xs text-brand-mid-grey">
-        This record is permanently stored and verifiable at this URL.
+        {t('verify.permanentNote')}
       </p>
     </motion.div>
   );

@@ -235,9 +235,9 @@ function StageDetail({
           </div>
 
           {stage.status === 'active' && !stagePaid && !isContractor && (
-            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30 px-3 py-2.5">
-              <Lock className="size-3.5 shrink-0 text-amber-500 mt-0.5" />
-              <p className="text-xs text-amber-700 dark:text-amber-400 leading-snug">
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white dark:border-state-held/40 dark:bg-state-held/30 px-3 py-2.5">
+              <Lock className="size-3.5 shrink-0 text-state-held mt-0.5" />
+              <p className="text-xs text-state-held dark:text-state-held leading-snug">
                 Payment required before uploading evidence or approving this stage. Record payment in the{' '}
                 <span className="font-semibold">Payments</span> tab.
               </p>

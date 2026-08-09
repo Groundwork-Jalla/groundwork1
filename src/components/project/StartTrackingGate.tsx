@@ -141,8 +141,8 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               </div>
               <div className={cn(
                 'mt-3 flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium',
-                up ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
-                   : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400',
+                up ? 'bg-brand-off-white dark:bg-state-held/30 text-state-held dark:text-state-held'
+                   : 'bg-brand-off-white dark:bg-state-complete/30 text-state-complete dark:text-state-complete',
               )}>
                 {up ? <TrendingUp className="size-3.5 shrink-0" /> : <TrendingDown className="size-3.5 shrink-0" />}
                 {up ? t('project.gate.higherBy') : t('project.gate.lowerBy')}{' '}
@@ -160,10 +160,10 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
             <p className="text-xs text-brand-mid-grey mb-2.5">{t('project.gate.quoteSub')}</p>
             <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
             {uploadedName ? (
-              <div className="flex items-center gap-2.5 rounded-xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/30 px-4 py-2.5">
-                <Check className="size-4 shrink-0 text-green-600 dark:text-green-400" />
-                <span className="text-xs text-green-700 dark:text-green-400 font-medium truncate flex-1">{uploadedName}</span>
-                <button type="button" onClick={() => fileRef.current?.click()} className="text-[11px] text-green-700 dark:text-green-400 underline shrink-0">{t('project.gate.quoteReplace')}</button>
+              <div className="flex items-center gap-2.5 rounded-xl border border-state-complete/30 dark:border-state-complete/40 bg-brand-off-white dark:bg-state-complete/30 px-4 py-2.5">
+                <Check className="size-4 shrink-0 text-state-complete dark:text-state-complete" />
+                <span className="text-xs text-state-complete dark:text-state-complete font-medium truncate flex-1">{uploadedName}</span>
+                <button type="button" onClick={() => fileRef.current?.click()} className="text-[11px] text-state-complete dark:text-state-complete underline shrink-0">{t('project.gate.quoteReplace')}</button>
               </div>
             ) : (
               <button
@@ -179,7 +179,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
           </div>
 
           {error && (
-            <p className="text-xs text-red-500 flex items-center gap-1.5">
+            <p className="text-xs text-state-alert flex items-center gap-1.5">
               <Info className="size-3.5 shrink-0" /> {error}
             </p>
           )}

@@ -32,8 +32,8 @@ type StatusBadgeProps = { status: ContractorInviteRow['status'] };
 
 function StatusBadge({ status }: StatusBadgeProps) {
   const styles: Record<ContractorInviteRow['status'], string> = {
-    pending: 'text-amber-600 bg-amber-50',
-    accepted: 'text-green-700 bg-green-50',
+    pending: 'text-state-held bg-brand-off-white',
+    accepted: 'text-state-complete bg-brand-off-white',
     rejected: 'text-brand-mid-grey bg-brand-light-grey',
   };
   const labels: Record<ContractorInviteRow['status'], string> = {
@@ -224,16 +224,16 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white px-3.5 py-3">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-state-held" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-amber-800 leading-relaxed">{emailWarning}</p>
+                <p className="text-xs text-state-held leading-relaxed">{emailWarning}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setEmailWarning('')}
-                className="shrink-0 text-amber-500 hover:text-amber-700 transition-colors"
-                aria-label="Dismiss"
+                className="shrink-0 text-state-held hover:text-state-held transition-colors"
+                aria-label={t('a11y.dismiss')}
               >
                 <X size={14} />
               </button>
@@ -277,7 +277,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
                   id="contractor-email"
                   type="email"
                   autoComplete="off"
-                  placeholder="contractor@email.com"
+                  placeholder={t('inviteUi.emailPlaceholder')}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -288,18 +288,18 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
                     'w-full rounded-lg border bg-white px-3 py-2 text-sm text-brand-near-black placeholder:text-brand-mid-grey',
                     'outline-none focus:ring-2 focus:ring-brand-near-black/20 transition-shadow',
                     emailError
-                      ? 'border-red-400 focus:ring-red-200'
+                      ? 'border-state-alert focus:ring-state-alert'
                       : 'border-brand-border-grey',
                     submitting && 'opacity-60 cursor-not-allowed',
                   )}
                 />
                 {emailError && (
-                  <p className="text-xs text-red-500 mt-0.5">{emailError}</p>
+                  <p className="text-xs text-state-alert mt-0.5">{emailError}</p>
                 )}
               </div>
 
               {submitError && (
-                <p className="text-xs text-red-500">{submitError}</p>
+                <p className="text-xs text-state-alert">{submitError}</p>
               )}
 
               <Button
@@ -321,7 +321,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
       ) : invites.length === 0 ? (
         <EmptyState
           icon={<UserPlus size={28} strokeWidth={1.5} />}
-          title="No contractors invited"
+          title={t('inviteUi.noneTitle')}
           description="Invite a contractor to give them scoped access to upload evidence and message on this project."
         />
       ) : (
@@ -374,7 +374,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
       {/* Revoke confirm modal */}
       <ConfirmModal
         open={revokeTarget !== null}
-        title="Remove contractor invite?"
+        title={t('inviteUi.removeTitle')}
         description={`Remove invite for ${revokeTarget?.email ?? ''}? They will no longer be able to accept.`}
         confirmLabel="Remove"
         cancelLabel="Keep"
