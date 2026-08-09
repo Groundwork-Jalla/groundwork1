@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Download, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Layers, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget } from '@/lib/budget';
@@ -37,72 +37,123 @@ function formatDate(iso: string): string {
 // ── Status badge ─────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: StageStatus }) {
+  const t = useT();
+  const base = 'inline-flex items-center rounded-full px-1.5 py-px text-[9px] uppercase tracking-wide';
+
   if (status === 'complete') {
-    return (
-      <span className="inline-flex items-center rounded-full bg-brand-off-white border border-brand-border-grey px-1.5 py-px text-[9px] font-medium text-brand-mid-grey uppercase tracking-wide">
-        Complete
-      </span>
-    );
+    return <span className={cn(base, 'border border-brand-border-grey bg-brand-off-white font-medium text-brand-mid-grey')}>{t('project.costing.statusComplete')}</span>;
   }
   if (status === 'active') {
-    return (
-      <span className="inline-flex items-center rounded-full bg-brand-near-black px-1.5 py-px text-[9px] font-semibold text-white uppercase tracking-wide">
-        Active
-      </span>
-    );
+    return <span className={cn(base, 'bg-brand-near-black font-semibold text-white')}>{t('project.costing.statusActive')}</span>;
   }
   if (status === 'pending_review') {
-    return (
-      <span className="inline-flex items-center rounded-full border border-brand-border-grey px-1.5 py-px text-[9px] font-medium text-brand-mid-grey uppercase tracking-wide">
-        In Review
-      </span>
-    );
+    return <span className={cn(base, 'border border-brand-border-grey font-medium text-brand-mid-grey')}>{t('project.costing.statusInReview')}</span>;
   }
-  // locked
-  return (
-    <span className="inline-flex items-center rounded-full border border-brand-border-grey bg-white px-1.5 py-px text-[9px] font-medium text-brand-border-grey uppercase tracking-wide">
-      Locked
-    </span>
-  );
+  return <span className={cn(base, 'border border-brand-border-grey bg-white font-medium text-brand-border-grey')}>{t('project.costing.statusLocked')}</span>;
 }
 
-const SLICE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#06b6d4'] as const;
+// Six shades, dark to light in slice order. Not six hues: these are shares of one
+// budget, not six independent things, and a ramp says "parts of a whole" where a
+// rainbow says "unrelated categories". It also leaves colour free to mean status.
+const SLICE_SHADES = ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d1d5db'] as const;
 
-// ── Overview budget bar (animated) ───────────────────────────
+// ── Overview budget bar (animated, expandable) ───────────────
 
+/**
+ * One trade line, openable to show where that money lands across the build.
+ *
+ * Philip's note on this screen was that an owner needs the granular material and
+ * labour figures without exporting a PDF first. The split shown is this slice's
+ * share distributed over the stage weights — Materials is 41% of the budget, and
+ * each stage takes its `budget_pct` of that — which is exactly how the milestone
+ * amounts are derived, so the numbers here reconcile with the payment schedule
+ * further down the page rather than being a second, differently-rounded estimate.
+ */
 function OverviewBar({
   label,
   pct,
   amount,
   index,
+  stages,
 }: {
   label: string;
   pct: number;
   amount: number;
   index: number;
+  stages: ProjectStageRow[];
 }) {
-  const color = SLICE_COLORS[index % SLICE_COLORS.length];
+  const { stageLabel } = useStageLabels();
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const color = SLICE_SHADES[index % SLICE_SHADES.length];
+
+  // Stages carrying no budget share (Land Secured is 0%) would render as $0 rows.
+  const funded = stages.filter(s => (s.budget_pct ?? 0) > 0);
+
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <div className="flex items-center gap-1.5 w-28 shrink-0">
-        <span className="size-2 rounded-sm shrink-0" style={{ backgroundColor: color }} />
-        <span className="text-xs text-brand-mid-grey truncate">{label}</span>
-      </div>
-      <div className="relative flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-        <motion.div
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.55, ease: 'easeOut', delay: 0.12 + index * 0.07 }}
-          style={{ originX: 0, width: `${pct}%`, backgroundColor: color }}
-          className="absolute inset-y-0 left-0 rounded-full"
-        />
-      </div>
-      <span className="w-20 shrink-0 text-right text-xs font-medium text-brand-near-black dark:text-white tabular-nums">
-        {formatUSD(amount)}
-      </span>
-      <span className="w-7 shrink-0 text-right text-[10px] text-brand-mid-grey tabular-nums">
-        {pct}%
-      </span>
+    <div className="border-b border-brand-off-white last:border-b-0 dark:border-[#242424]">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 py-1.5 text-left transition-colors hover:bg-brand-off-white/60 dark:hover:bg-[#242424]"
+      >
+        <span className="flex w-28 shrink-0 items-center gap-1.5">
+          <ChevronRight className={cn('size-3 shrink-0 text-brand-mid-grey transition-transform', open && 'rotate-90')} />
+          <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
+          <span className="truncate text-xs text-brand-mid-grey">{label}</span>
+        </span>
+        <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
+          <motion.span
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.55, ease: 'easeOut', delay: 0.12 + index * 0.07 }}
+            style={{ originX: 0, width: `${pct}%`, backgroundColor: color }}
+            className="absolute inset-y-0 left-0 rounded-full"
+          />
+        </span>
+        <span className="w-20 shrink-0 text-right text-xs font-medium tabular-nums text-brand-near-black dark:text-white">
+          {formatUSD(amount)}
+        </span>
+        <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-brand-mid-grey">
+          {pct}%
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="pb-3 pl-9 pr-2 pt-1">
+              <p className="mb-2 text-[10px] text-brand-mid-grey">
+                {t('project.costing.acrossStages', { label })}
+              </p>
+              {funded.length === 0 ? (
+                <p className="text-[11px] text-brand-mid-grey">{t('project.costing.noStageData')}</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {funded.map(stage => (
+                    <div key={stage.id} className="flex items-baseline justify-between gap-3 text-[11px]">
+                      <span className="min-w-0 truncate text-brand-mid-grey">{stageLabel(stage)}</span>
+                      <span className="flex shrink-0 items-baseline gap-2">
+                        <span className="text-brand-border-grey tabular-nums">{stage.budget_pct}%</span>
+                        <span className="w-16 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
+                          {formatUSD(amount * ((stage.budget_pct ?? 0) / 100))}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -324,7 +375,11 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
                 style={{
                   originX: 0,
                   width: `${(fc.amount / maxAmount) * 100}%`,
-                  backgroundColor: fc.floor === 0 ? '#3b82f6' : fc.floor === numFloors - 1 ? '#f59e0b' : '#60a5fa',
+                  // A floor is an identity, not a state — greyscale, darkest at
+                  // ground and lightening upward, which also reads as the stack.
+                  backgroundColor: fc.floor === 0
+                    ? '#1f2937'
+                    : fc.floor === numFloors - 1 ? '#9ca3af' : '#4b5563',
                 }}
                 className="absolute inset-y-0 left-0 rounded-full"
               />
@@ -408,6 +463,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
               pct={slice.pct}
               amount={budget[slice.key]}
               index={i}
+              stages={sortedStages}
             />
           ))}
         </div>

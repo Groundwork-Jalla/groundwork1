@@ -113,7 +113,6 @@ export default function ProjectPayments({
       <PayoutStatusModal
         open={!!payoutStage}
         stage={payoutStage}
-        tier={tier}
         rate={rate}
         contractorLabel={contractor}
         onClose={() => setPayoutStage(null)}

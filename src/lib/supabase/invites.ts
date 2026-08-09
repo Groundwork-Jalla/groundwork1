@@ -84,6 +84,35 @@ export async function fetchInvites(projectId: string): Promise<ContractorInviteR
 }
 
 // =========================================================
+// fetchTeam — every contractor across every project you own
+//
+// Powers the Team section in Settings: the owner's question there is "who has
+// access to my builds", which is not answerable from one project's invite list.
+// Returns one row per invite, each carrying its project name, so a contractor
+// working on two of your builds legitimately appears twice.
+// =========================================================
+export interface TeamMember extends ContractorInviteRow {
+  project_name: string;
+}
+
+export async function fetchTeam(projectIds: string[]): Promise<TeamMember[]> {
+  if (projectIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('contractor_invites')
+    .select('*, projects(name)')
+    .in('project_id', projectIds)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map(row => {
+    const { projects, ...invite } = row as ContractorInviteRow & { projects: { name: string } | null };
+    return { ...invite, project_name: projects?.name ?? '' };
+  });
+}
+
+// =========================================================
 // revokeInvite
 // =========================================================
 export async function revokeInvite(inviteId: string): Promise<void> {

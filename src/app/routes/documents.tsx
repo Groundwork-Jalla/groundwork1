@@ -8,6 +8,7 @@ import { useAuth }       from '@/contexts/AuthContext';
 import { supabase }      from '@/lib/supabase/client';
 import { fetchProjects } from '@/lib/supabase/projects';
 import type { ProjectRow } from '@/types/project';
+import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ function formatDate(iso: string): string {
 // ── Certificate card ───────────────────────────────────────
 
 function CertCard({ cert }: { cert: Certificate }) {
+  const t = useT();
   return (
     <div className="bg-white rounded-2xl border border-brand-border-grey p-5 flex flex-col gap-4">
       {/* Header badge */}
@@ -50,7 +52,7 @@ function CertCard({ cert }: { cert: Certificate }) {
           <Award className="size-5 text-white" />
         </div>
         <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-[10px] font-semibold text-green-700">
-          Verified
+          {t('documents.verified')}
         </span>
       </div>
 
@@ -70,7 +72,7 @@ function CertCard({ cert }: { cert: Certificate }) {
 
       {/* Meta */}
       <div className="flex items-center justify-between text-[10px] text-brand-mid-grey border-t border-brand-off-white pt-3">
-        <span>Issued to {cert.issued_to}</span>
+        <span>{t('documents.issuedTo', { name: cert.issued_to })}</span>
         <span className="tabular-nums">{formatDate(cert.issued_at)}</span>
       </div>
 
@@ -83,7 +85,7 @@ function CertCard({ cert }: { cert: Certificate }) {
               download
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors"
             >
-              <Download className="size-3.5" /> Download PDF
+              <Download className="size-3.5" /> {t('documents.downloadPdf')}
             </a>
             <a
               href={`/verify/${cert.id}`}
@@ -96,7 +98,7 @@ function CertCard({ cert }: { cert: Certificate }) {
           </>
         ) : (
           <span className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey text-xs text-brand-mid-grey py-2.5 cursor-not-allowed opacity-60">
-            PDF generating…
+            {t('documents.pdfGenerating')}
           </span>
         )}
       </div>
@@ -107,6 +109,7 @@ function CertCard({ cert }: { cert: Certificate }) {
 // ── Evidence row ───────────────────────────────────────────
 
 function EvidenceRow({ item }: { item: EvidenceStage }) {
+  const t = useT();
   return (
     <Link
       to={`/projects/${item.projectId}`}
@@ -150,6 +153,7 @@ type Tab = 'certificates' | 'evidence';
 
 export default function DocumentsPage() {
   const { user } = useAuth();
+  const t = useT();
 
   const [tab,          setTab]          = useState<Tab>('certificates');
   const [certs,        setCerts]        = useState<Certificate[]>([]);
@@ -255,9 +259,9 @@ export default function DocumentsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-brand-near-black">Documents</h2>
+          <h2 className="text-lg font-bold text-brand-near-black">{t('documents.title')}</h2>
           <p className="text-xs text-brand-mid-grey mt-0.5">
-            Certificates and evidence across all your builds
+            {t('documents.subtitle')}
           </p>
         </div>
       </div>
@@ -265,25 +269,25 @@ export default function DocumentsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-brand-off-white rounded-xl p-1 w-fit">
         {([
-          { key: 'certificates', label: 'Certificates', count: certs.length },
-          { key: 'evidence',     label: 'Evidence',     count: totalEvFiles  },
-        ] as const).map(t => (
+          { key: 'certificates', labelKey: 'documents.tabCertificates' as TKey, count: certs.length },
+          { key: 'evidence',     labelKey: 'documents.tabEvidence' as TKey,     count: totalEvFiles  },
+        ] as const).map(tab_ => (
           <button
-            key={t.key}
+            key={tab_.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => setTab(tab_.key)}
             className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              tab === t.key
+              tab === tab_.key
                 ? 'bg-white text-brand-near-black shadow-sm border border-brand-border-grey'
                 : 'text-brand-mid-grey hover:text-brand-near-black'
             }`}
           >
-            {t.label}
-            {!loading && t.count > 0 && (
+            {t(tab_.labelKey)}
+            {!loading && tab_.count > 0 && (
               <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold px-1 ${
-                tab === t.key ? 'bg-brand-near-black text-white' : 'bg-brand-border-grey text-brand-mid-grey'
+                tab === tab_.key ? 'bg-brand-near-black text-white' : 'bg-brand-border-grey text-brand-mid-grey'
               }`}>
-                {t.count}
+                {tab_.count}
               </span>
             )}
           </button>
@@ -297,7 +301,7 @@ export default function DocumentsPage() {
             <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <AlertCircle className="size-4 text-amber-600 shrink-0" />
               <p className="text-xs text-amber-700">
-                Certificates table not yet set up. Apply migration 014 to enable this feature.
+                {t('documents.certsTableMissing')}
               </p>
             </div>
           )}
@@ -310,7 +314,7 @@ export default function DocumentsPage() {
                 <Award className="size-7 text-brand-border-grey" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-brand-near-black mb-1">No certificates yet</p>
+                <p className="text-sm font-semibold text-brand-near-black mb-1">{t('documents.noCertificates')}</p>
                 <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
                   Certificates are issued automatically when a stage is approved and completed.
                   Progress through your build to earn them.
@@ -321,7 +325,7 @@ export default function DocumentsPage() {
                   to="/projects/new"
                   className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-5 py-2.5 hover:bg-black transition-colors"
                 >
-                  Start a build
+                  {t('documents.startBuild')}
                 </Link>
               )}
             </div>
@@ -344,7 +348,7 @@ export default function DocumentsPage() {
                 <Image className="size-7 text-brand-border-grey" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-brand-near-black mb-1">No evidence uploaded yet</p>
+                <p className="text-sm font-semibold text-brand-near-black mb-1">{t('documents.noEvidence')}</p>
                 <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
                   Evidence photos and documents uploaded by your contractor appear here,
                   grouped by project and stage.
@@ -359,7 +363,7 @@ export default function DocumentsPage() {
                 <p className="text-sm font-semibold text-white flex-1">
                   {totalEvFiles} evidence {totalEvFiles === 1 ? 'file' : 'files'} across {projects.length} {projects.length === 1 ? 'project' : 'projects'}
                 </p>
-                <span className="text-xs text-white/50">Click a row to view files in context</span>
+                <span className="text-xs text-white/50">{t('documents.clickRowHint')}</span>
               </div>
 
               {/* Grouped by project */}

@@ -1,18 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Download } from 'lucide-react';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
-import { platformFee } from '@/lib/payments/config';
 import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 
 export default function PayoutStatusModal({
-  open, stage, tier, rate, contractorLabel, onClose,
+  open, stage, rate, contractorLabel, onClose,
 }: {
   open: boolean;
   stage: ProjectStageRow | null;
-  tier: ProjectTier;
   rate: ConstructionRate | null;
   contractorLabel: string;
   onClose: () => void;
@@ -20,23 +18,24 @@ export default function PayoutStatusModal({
   const t = useT();
   const { stageLabel } = useStageLabels();
   const f = useFormat();
+
+  // Every hook above this line — see MilestonePaymentModal for why.
   if (!stage) return null;
 
   const amount   = stage.payment_milestone_usd ?? 0;
-  const fee      = platformFee(amount, tier);
   const localAmt = rate ? amount * rate.approx_fx_rate : null;
   const fx       = rate?.approx_fx_rate ?? null;
   const ccy      = rate?.currency_code ?? 'XAF';
   const paid     = stage.payment_status === 'paid';
 
   const nodes = [
-    { label: t('project.payments.nodeReceived'),   sub: formatUSDFull(amount + fee) },
-    { label: t('project.payments.nodeFeeSplit'),   sub: fee > 0 ? `−${formatUSDFull(fee)}` : '—' },
+    { label: t('project.payments.nodeReceived'),   sub: formatUSDFull(amount) },
     { label: t('project.payments.nodePayoutSent'), sub: formatUSDFull(amount) },
     { label: t('project.payments.nodeConverting'), sub: `→ ${ccy}` },
     { label: t('project.payments.nodeDelivered'),  sub: localAmt !== null ? formatLocalCurrency(localAmt, ccy) : '—' },
   ];
-  const doneCount = paid ? nodes.length : 3;
+  // Unpaid stages have only reached "received"; paid ones ran the whole chain.
+  const doneCount = paid ? nodes.length : 1;
 
   const fmtDateTime = f.date(stage.completed_at);
 

@@ -17,7 +17,9 @@ import { cn } from '@/lib/utils';
 import { useTierBilling } from '@/lib/tier-labels';
 import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
+import { fetchProjects } from '@/lib/supabase/projects';
+import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -30,7 +32,7 @@ interface ProfileMeta {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type UploadState = 'idle' | 'uploading' | 'done' | 'error';
-type ActiveTab = 'profile' | 'account' | 'notifications' | 'subscription' | 'danger';
+type ActiveTab = 'profile' | 'account' | 'team' | 'notifications' | 'subscription' | 'danger';
 
 interface NotifPrefs {
   stage_approvals: boolean;
@@ -216,6 +218,8 @@ export default function ProfilePage() {
   const tiers = useTierBilling();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
 
   // ── Form state ─────────────────────────────────────────
   const [displayName, setDisplayName] = useState(
@@ -405,13 +409,24 @@ export default function ProfilePage() {
     setDeleteInput('');
   }
 
+  useEffect(() => {
+    if (activeTab !== 'team' || !user || team.length > 0) return;
+    setTeamLoading(true);
+    fetchProjects(user.id)
+      .then(ps => fetchTeam(ps.map(p => p.id)))
+      .then(setTeam)
+      .catch(() => {})
+      .finally(() => setTeamLoading(false));
+  }, [activeTab, user, team.length]);
+
   // ── Tab definitions ────────────────────────────────────
-  const tabs: { id: ActiveTab; label: string }[] = [
-    { id: 'profile',       label: 'Profile' },
-    { id: 'account',       label: 'Account' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'subscription',  label: 'Subscription' },
-    { id: 'danger',        label: 'Danger' },
+  const tabs: { id: ActiveTab; labelKey: TKey }[] = [
+    { id: 'profile',       labelKey: 'profile.tabs.profile'       },
+    { id: 'account',       labelKey: 'profile.tabs.account'       },
+    { id: 'team',          labelKey: 'profile.tabs.team'          },
+    { id: 'notifications', labelKey: 'profile.tabs.notifications' },
+    { id: 'subscription',  labelKey: 'profile.tabs.subscription'  },
+    { id: 'danger',        labelKey: 'profile.tabs.danger'        },
   ];
 
   const inputClass =
@@ -471,7 +486,7 @@ export default function ProfilePage() {
                     tab.id === 'danger' && activeTab === 'danger' && 'border-b-2 border-red-600 dark:border-red-400 text-red-600 dark:text-red-400',
                   )}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               ))}
             </div>
@@ -759,6 +774,68 @@ export default function ProfilePage() {
             )}
 
             {/* ── Tab: Notifications ── */}
+            {activeTab === 'team' && (
+              <motion.div
+                key="team"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col"
+              >
+                <section>
+                  <h2 className="mb-1 text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.team.title')}</h2>
+                  <p className="mb-4 text-xs text-brand-mid-grey">{t('profile.team.subtitle')}</p>
+
+                  {teamLoading ? (
+                    <div className="flex flex-col gap-2">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="h-14 animate-pulse rounded-xl bg-brand-light-grey dark:bg-[#252525]" />
+                      ))}
+                    </div>
+                  ) : team.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-brand-border-grey px-5 py-10 text-center dark:border-[#2c2c2c]">
+                      <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('profile.team.emptyTitle')}</p>
+                      <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-brand-mid-grey">{t('profile.team.emptyBody')}</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {team.map(m => (
+                        <div
+                          key={m.id}
+                          className="flex items-center gap-3 rounded-xl border border-brand-border-grey bg-white p-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+                        >
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-off-white text-[11px] font-bold text-brand-near-black dark:bg-[#252525] dark:text-white">
+                            {m.email.slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-brand-near-black dark:text-white">{m.email}</p>
+                            <p className="truncate text-xs text-brand-mid-grey">
+                              {m.project_name || t('profile.team.unknownProject')}
+                            </p>
+                          </div>
+                          <span className={cn(
+                            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                            m.status === 'accepted'
+                              ? 'bg-state-complete/10 text-state-complete'
+                              : m.status === 'pending'
+                                ? 'bg-brand-off-white text-brand-mid-grey dark:bg-[#252525]'
+                                : 'bg-brand-off-white text-brand-border-grey dark:bg-[#252525]',
+                          )}>
+                            {m.status === 'accepted'
+                              ? t('profile.team.statusActive')
+                              : m.status === 'pending'
+                                ? t('profile.team.statusInvited')
+                                : t('profile.team.statusDeclined')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </motion.div>
+            )}
+
             {activeTab === 'notifications' && (
               <motion.div
                 key="notifications"

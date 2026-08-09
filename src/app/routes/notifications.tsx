@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bell, CheckCheck, Building2, Upload, MessageSquare, BadgeCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -54,16 +55,33 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   verification_requested: <AlertCircle className="size-4 text-amber-600" />,
 };
 
-const FILTER_TABS: { label: string; value: FilterTab }[] = [
-  { label: 'All',      value: 'all' },
-  { label: 'Unread',   value: 'unread' },
-  { label: 'Projects', value: 'projects' },
-  { label: 'Payments', value: 'payments' },
-  { label: 'System',   value: 'system' },
+const FILTER_TABS: { labelKey: TKey; value: FilterTab }[] = [
+  { labelKey: 'notifications.filters.all',      value: 'all' },
+  { labelKey: 'notifications.filters.unread',   value: 'unread' },
+  { labelKey: 'notifications.filters.projects', value: 'projects' },
+  { labelKey: 'notifications.filters.payments', value: 'payments' },
+  { labelKey: 'notifications.filters.system',   value: 'system' },
 ];
+
+/**
+ * Design B groups the list into NEW and EARLIER rather than running one flat feed.
+ *
+ * The split is unread-vs-read, not a time window: what makes a notification "new"
+ * to a person is that they have not dealt with it, and a 3-day-old unread approval
+ * still needs action while this morning's read one does not. A date cut would push
+ * exactly the wrong items down.
+ */
+function splitByAttention(list: Notification[]): { fresh: Notification[]; earlier: Notification[] } {
+  return {
+    fresh:   list.filter(n => !n.read),
+    earlier: list.filter(n => n.read),
+  };
+}
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const t = useT();
+  const { tPlural } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -142,6 +160,37 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
   const filtered = filterNotifications(notifications, filter);
+  const { fresh, earlier } = splitByAttention(filtered);
+
+  const renderRow = (n: Notification) => (
+    <div
+      key={n.id}
+      onClick={() => markOneRead(n)}
+      className={`flex items-start gap-3 px-5 py-4 transition-colors cursor-pointer ${
+        !n.read
+          ? 'bg-brand-off-white/60 dark:bg-[#1f1f1f]'
+          : 'hover:bg-brand-off-white/30 dark:hover:bg-brand-rich-black'
+      }`}
+    >
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-off-white dark:bg-[#222] mt-0.5">
+        {TYPE_ICON[n.type] ?? <Bell className="size-4 text-brand-mid-grey" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white truncate">
+            {n.title}
+          </p>
+          {!n.read && (
+            <span className="size-2 rounded-full bg-brand-near-black dark:bg-white shrink-0" />
+          )}
+        </div>
+        <p className="text-xs text-brand-mid-grey leading-relaxed">{n.body}</p>
+        <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-1.5 tabular-nums">
+          {timeAgo(n.created_at)}
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
@@ -149,9 +198,11 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-brand-near-black dark:text-white">Notifications</h2>
-          <p className="text-xs text-brand-mid-grey mt-0.5">
-            {loading ? 'Loading…' : unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+          <h2 className="text-lg font-bold text-brand-near-black dark:text-white">{t('nav.notifications')}</h2>
+          <p className="mt-0.5 text-xs text-brand-mid-grey">
+            {loading
+              ? t('common.loading')
+              : unreadCount > 0 ? tPlural('notifications.unreadCount', unreadCount) : t('notifications.allCaughtUp')}
           </p>
         </div>
         {unreadCount > 0 && (
@@ -160,7 +211,7 @@ export default function NotificationsPage() {
             onClick={markAllRead}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors border border-brand-border-grey dark:border-[#2c2c2c] rounded-lg px-3 py-1.5 bg-white dark:bg-brand-dark-grey"
           >
-            <CheckCheck className="size-3.5" /> Mark all read
+            <CheckCheck className="size-3.5" /> {t('notifications.markAllRead')}
           </button>
         )}
       </div>
@@ -178,7 +229,7 @@ export default function NotificationsPage() {
                 : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white rounded-full px-3 py-1.5 text-xs font-medium transition-colors'
             }
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
@@ -204,47 +255,28 @@ export default function NotificationsPage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">
-              {filter === 'all' ? 'No notifications yet' : 'Nothing here'}
+              {filter === 'all' ? t('notifications.emptyTitle') : t('notifications.emptyFiltered')}
             </p>
             <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-              {filter === 'all'
-                ? "You'll be notified here when stages are approved, evidence is uploaded, or messages arrive."
-                : 'No notifications match this filter.'}
+              {filter === 'all' ? t('notifications.emptyBody') : t('notifications.emptyFilteredBody')}
             </p>
           </div>
         </div>
       ) : (
         <div className="bg-white dark:bg-brand-dark-grey rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] overflow-hidden">
           <div className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
-            {filtered.map(n => (
-              <div
-                key={n.id}
-                onClick={() => markOneRead(n)}
-                className={`flex items-start gap-3 px-5 py-4 transition-colors cursor-pointer ${
-                  !n.read
-                    ? 'bg-brand-off-white/60 dark:bg-[#1f1f1f]'
-                    : 'hover:bg-brand-off-white/30 dark:hover:bg-brand-rich-black'
-                }`}
-              >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-off-white dark:bg-[#222] mt-0.5">
-                  {TYPE_ICON[n.type] ?? <Bell className="size-4 text-brand-mid-grey" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-semibold text-brand-near-black dark:text-white truncate">
-                      {n.title}
-                    </p>
-                    {!n.read && (
-                      <span className="size-2 rounded-full bg-brand-near-black dark:bg-white shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-xs text-brand-mid-grey leading-relaxed">{n.body}</p>
-                  <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-1.5 tabular-nums">
-                    {timeAgo(n.created_at)}
-                  </p>
-                </div>
-              </div>
-            ))}
+            {fresh.length > 0 && (
+              <p className="bg-brand-off-white/60 px-5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-mid-grey dark:bg-[#1a1a1a]">
+                {t('notifications.groupNew')}
+              </p>
+            )}
+            {fresh.map(renderRow)}
+            {earlier.length > 0 && (
+              <p className="bg-brand-off-white/60 px-5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-mid-grey dark:bg-[#1a1a1a]">
+                {t('notifications.groupEarlier')}
+              </p>
+            )}
+            {earlier.map(renderRow)}
           </div>
 
           {/* Load older button */}
@@ -259,10 +291,10 @@ export default function NotificationsPage() {
                 {loadingMore ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />
-                    Loading…
+                    {t('common.loading')}
                   </>
                 ) : (
-                  'Load older notifications'
+                  t('notifications.loadOlder')
                 )}
               </button>
             </div>

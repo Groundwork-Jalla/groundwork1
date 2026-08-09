@@ -14,33 +14,33 @@ the decision, not suggestions. Most originate in the 3 Aug UI review with Philip
 | Dashboard | **B** ✅ done 9 Aug | + profile completion tracker, + costing allocation widget. Hero shows released/held/remaining derived from stage payment state; costing donut is greyscale and resolves its total through `projectBudget()` |
 | My Projects | **A** ✅ done 9 Aug | Chosen for the "2 of 3 used → Upgrade" indicator — which was inert text and is now a real link to `/upgrade`. Cards resolve their figure through `projectBudget()` rather than showing an em dash when no budget is confirmed |
 | Project Overview | **A** ✅ done 9 Aug | + vertical check-mark substage system from B: each stage in the Stage Progress panel opens to its ticked substages, active stage open by default. Costing donut and payment bar greyscaled; duplicate stage tracker removed from the sidebar; weather now resolves the **build city**, not the country capital |
-| Stages | **A** | + vertical check-mark substage list from B |
-| Budget / Costing | **A** | Cost boxes expand in place to show material and labour lines — no export required to see detail |
+| Stages | **A** ✅ done 9 Aug | Substage rows are now B's rounded-square check-boxes (ticked + struck through, amber clock awaiting review, camera for evidence-not-yet-submitted, empty when open). Pipeline labels take the *translated* stage name and no longer end on a dangling "&" |
+| Budget / Costing | **A** ✅ done 9 Aug | Each trade line opens in place to its per-stage distribution — Materials $17,425 → Foundation $2,788, Structure $3,659 … — derived from the same stage weights as the milestones, so it reconciles with the payment schedule below. Trade slices and per-floor bars greyscaled; stage-status colours kept |
 
 ## Payment screens
 
 | Screen | Design | Modifiers |
 |---|---|---|
-| Upgrade / Plan selection | **A** | Three plan columns side by side. (Overrides the 3 Aug meeting note, which said B — Favour changed this on 9 Aug.) Less body text, larger buttons |
-| Milestone Payment | **B** | "Processing fee", **not** "platform fee"; fee lives in a dropdown rather than on the face of the screen |
-| Payment History | **B** | + Export button; fee column removed — the view is about funds reaching construction |
-| Payout Status | **B** | All fee references removed; wording tightened. Visible to both client and contractor |
-| Escrow Wallet | **B** | Footer reads "funds held in secure wallet" — never name the external provider. Colour used sparingly, as accent only |
+| Upgrade / Plan selection | **A** ✅ done 9 Aug | Three plan columns side by side, Jalla Verify the dark featured column. (Overrides the 3 Aug note, which said B.) Monochrome ticks; only Jalla Verify has a Stripe checkout — Self Verify is free, Management goes to sales |
+| Milestone Payment | **B** ✅ done 9 Aug | Stage budget leads; processing fee and card processing sit behind a "Fee details" disclosure. Fixed a Rules-of-Hooks violation — `useT`/`useState` were being called after an early `return null` |
+| Payment History | **B** ✅ done 9 Aug | + Export CSV (client-side, quoted fields, UTF-8 BOM for Excel); fee line removed; totals resolve through `projectBudget()` |
+| Payout Status | **B** ✅ done 9 Aug | Fee-split node removed entirely — the chain is Received → Payout sent → Converting → Delivered. Same hooks fix as the milestone modal; unused `tier` prop dropped |
+| Escrow Wallet | **B** ✅ done 9 Aug | Copy now reads "held in a secure wallet". **Ten** strings across en/fr named Switchr or Stripe and were rewritten provider-neutral; "payment fee" → "processing fee" platform-wide |
 
 ## App screens
 
 | Screen | Design | Modifiers |
 |---|---|---|
 | Timeline | **A** | **Keep the current live implementation** — Favour is happy with it. Matches the 3 Aug note to leave it and let user feedback drive changes. Both List and Gantt views stay available |
-| Documents | **A** | — |
-| Messages | **B** | Two-pane. (Meeting notes said "design D", which doesn't exist; Favour chose B on 9 Aug) |
-| Notifications | **B** | + filter chips, Mark-all-read and unread indicators from A. No emoji; bell and all icons black and white |
-| Resources | **A** | Coloured tag highlights removed |
-| Settings | **A** | + new Team section listing invited and Jalla-assigned contractors |
-| Contractor Directory | **A** | + search bar. Professions extended (plumbers, lawyers, land experts …). Lock icon black and white, not an emoji |
-| Pre-Tracking / Budget Verification | **A** | Shortened CTA. Optional step — users without a contractor quote proceed on Jalla's estimate |
-| Contractor Profile | **B** | **No star ratings — show a score instead.** + faded/upgrade-gated contact block from A, + clear specialty labelling |
-| Help & Support | **B** | "Book a call" removed — messaging only, for complaints and issues |
+| Documents | **A** ⚠️ diverges | Fully translated (was entirely hardcoded English). **The mockup's taxonomy does not match the data**: Design A assumed a flat file list with Legal / Contracts / Permits categories, but the app stores *certificates* and *per-stage evidence*. Kept the real Certificates / Evidence tabs rather than inventing categories the data cannot fill — needs your call if you want the mockup's shape instead |
+| Messages | **B** ⚠️ diverges | Empty state translated. **B's two-pane layout does not fit the data**: chat is per-project and reached from that project's Messages tab, so the conversation-list sidebar would always list exactly one chat. Kept the single thread — needs your call if you want a cross-project inbox, which is a new feature, not a restyle |
+| Notifications | **B** ✅ done 9 Aug | + A's filter chips, Mark-all-read and unread dots. B's NEW / EARLIER grouping added — split on unread-vs-read rather than a date window, so a 3-day-old unread approval stays at the top where it still needs action. Whole screen translated (was hardcoded English) |
+| Resources | **A** ✅ done 9 Aug | Coloured tag highlights removed — all tags neutral except `essential`, which keeps the inverted treatment because it genuinely ranks rather than labels |
+| Settings | **A** ✅ done 9 Aug | + **Team tab** (client-side, read-only — admin contractor *management* stays in Admin → Contractors, which is a different table and a different question): every contractor across every project you own, with Active / Invited / Declined status. New `fetchTeam()` query; loads lazily since most Settings visits never open it. Tab labels translated (were English constants) |
+| Contractor Directory | **A** ✅ done 9 Aug | + search over name/trade/location/specialty, accent-insensitive so "Yaounde" finds "Yaoundé". Filter chips now translated (were rendering raw English constants). Star rating replaced by a **score out of 5**. Professions still to extend (plumbers, lawyers, land experts) |
+| Pre-Tracking / Budget Verification | **A** ✅ verified 9 Aug | Already matched Design A — shortened CTA ("Confirm & Start Tracking"), quote upload marked optional, fully translated. No changes needed |
+| Contractor Profile | **B** ✅ done 9 Aug | Dark centred hero opened from a directory card (not its own route — the decision is made in the list, and a separate page loses your place). Score out of 5, never stars. From A: the blurred upgrade-gated contact block and an explicit "Specialties" heading, which B showed as bare unlabelled chips |
+| Help & Support | **B** ✅ done 9 Aug | "Book a Call" tile removed per Philip (unmanageable call volume); the existing Contact Support tile already scrolls to the message form. Tile copy translated |
 
 ## Cross-cutting
 
@@ -71,8 +71,11 @@ These apply to every screen above, not to any one of them:
   truth and `fr.ts` is typed `Mirror<EnDict>`, so `npx tsc --noEmit` proves key parity —
   but it cannot catch a hardcoded English string that never entered the dictionary.
   New screens go into the dictionary as they are built, not afterwards.
-- **No emoji anywhere in the UI.** Icons are black and white. Philip's reasoning:
-  coloured emoji read as amateur.
+- **No emoji anywhere in the UI.** ✅ Swept 9 Aug — app chrome is emoji-free (lightbulb
+  banner, certificate tier marks, invite tick all converted to lucide icons). Two
+  deliberate exceptions remain and need your call: the **weather widget**'s condition
+  glyphs (☀️ ⛅ 🌧️), where emoji are the conventional vocabulary, and a decorative ✦ on
+  the contractor landing page. Philip's reasoning: coloured emoji read as amateur.
 - **Colour is an accent, not a data channel.** Green/amber/blue mark status; they do
   not carry the primary information.
 - **Architectural blueprint schematic** is the consistent visual theme across the platform.

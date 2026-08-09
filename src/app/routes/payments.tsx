@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Wallet, TrendingUp, CheckCircle2, Download, X, Plus } from 'lucide-react';
+import { MapPin, Wallet, TrendingUp, CheckCircle2, Download, X, Plus, Lightbulb } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
 import { fetchProjects }         from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
@@ -313,8 +313,12 @@ export default function PaymentsPage() {
       </div>
 
       {/* Info banner */}
-      <div className="rounded-xl bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3 text-xs text-brand-mid-grey dark:text-brand-mid-grey leading-relaxed">
-        💡 <span className="font-medium text-brand-near-black dark:text-white">{t('project.overview.explain.spendNoteStrong')}</span> {t('project.overview.explain.spendNoteRest')}
+      <div className="flex items-start gap-2.5 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1c1c1c]">
+        <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-brand-mid-grey" />
+        <span>
+          <span className="font-medium text-brand-near-black dark:text-white">{t('project.overview.explain.spendNoteStrong')}</span>{' '}
+          {t('project.overview.explain.spendNoteRest')}
+        </span>
       </div>
 
       {/* Stats */}

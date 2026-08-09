@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlayCircle,
-  CalendarDays,
   Users,
   Mail,
   ChevronDown,
@@ -315,8 +314,8 @@ export default function HelpPage() {
   const quickActions = [
     {
       icon: PlayCircle,
-      title: 'Video Walkthroughs',
-      desc: 'Watch step-by-step guides for every feature',
+      title: t('help.tiles.videosTitle'),
+      desc: t('help.tiles.videosDesc'),
       action: (
         <a
           href="https://www.youtube.com"
@@ -329,22 +328,9 @@ export default function HelpPage() {
       ),
     },
     {
-      icon: CalendarDays,
-      title: 'Book a Call',
-      desc: 'Schedule a 30-min onboarding session with our team',
-      action: (
-        <a
-          href="mailto:hello@groundwork.build"
-          className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
-        >
-          {t('help.bookNow')}
-        </a>
-      ),
-    },
-    {
       icon: Users,
-      title: 'Join Community',
-      desc: 'Connect with other builders in our community',
+      title: t('help.tiles.communityTitle'),
+      desc: t('help.tiles.communityDesc'),
       action: (
         <Link
           to="/community"
@@ -356,8 +342,8 @@ export default function HelpPage() {
     },
     {
       icon: Mail,
-      title: 'Contact Support',
-      desc: "Send us a message and we'll respond within 24h",
+      title: t('help.tiles.contactTitle'),
+      desc: t('help.tiles.contactDesc'),
       action: (
         <button
           type="button"

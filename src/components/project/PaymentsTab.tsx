@@ -3,7 +3,8 @@ import { formatNumber } from '@/lib/format';
 import { motion } from 'framer-motion';
 import { CheckCircle2, CircleDashed, CircleDot, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
+import { formatUSDFull, formatLocalCurrency, projectBudget } from '@/lib/budget';
+import { useT } from '@/lib/i18n';
 import { updatePaymentStatus } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { useEffect } from 'react';
@@ -125,6 +126,7 @@ interface PaymentsTabProps {
 }
 
 export default function PaymentsTab({ project, stages, onPaymentUpdated }: PaymentsTabProps) {
+  const t = useT();
   const [rate, setRate] = useState<ConstructionRate | null>(null);
 
   useEffect(() => {
@@ -133,7 +135,9 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
   }, [project.country]);
 
   const sorted = [...stages].sort((a, b) => a.stage_number - b.stage_number);
-  const totalBudget = project.budget_usd ?? 0;
+  // Resolves the confirmed budget, or the engine estimate when there isn't one — so
+  // the paid percentage below is never measured against a total of zero.
+  const totalBudget = projectBudget(project).total;
 
   const paidTotal = sorted
     .filter(s => s.payment_status === 'paid')
@@ -176,30 +180,30 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
 
         <div className="flex mt-3 h-8 rounded-lg overflow-hidden">
           <motion.div
-            className="bg-green-600 dark:bg-green-500 flex items-center justify-center"
+            className="flex items-center justify-center bg-brand-near-black dark:bg-white"
             initial={{ width: 0 }}
             animate={{ width: `${Math.max(paidPct > 0 ? 6 : 0, paidPct)}%` }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             {paidPct >= 12 && (
-              <span className="text-[10px] font-bold text-white">{paidPct}%</span>
+              <span className="text-[10px] font-bold text-white dark:text-brand-near-black">{paidPct}%</span>
             )}
           </motion.div>
-          <div className="flex-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 flex items-center justify-center rounded-r-lg">
+          <div className="flex flex-1 items-center justify-center rounded-r-lg bg-brand-light-grey dark:bg-[#282828]">
             {(100 - paidPct) >= 12 && (
-              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400">{100 - paidPct}%</span>
+              <span className="text-[10px] font-medium text-brand-mid-grey">{100 - paidPct}%</span>
             )}
           </div>
         </div>
 
         <div className="flex gap-4 mt-2">
           <span className="flex items-center gap-1.5 text-[10px] text-brand-mid-grey">
-            <span className="size-2 rounded-full bg-green-600" />
-            Paid · {formatUSDFull(paidTotal)}
+            <span className="size-2 rounded-full bg-brand-near-black dark:bg-white" />
+            {t('project.overview.explain.paidLabel')} {formatUSDFull(paidTotal)}
           </span>
           <span className="flex items-center gap-1.5 text-[10px] text-brand-mid-grey">
-            <span className="size-2 rounded-full bg-amber-400" />
-            Outstanding · {formatUSDFull(outstanding)}
+            <span className="size-2 rounded-full bg-brand-light-grey dark:bg-[#282828]" />
+            {t('project.overview.explain.outstandingLabel')} {formatUSDFull(outstanding)}
           </span>
         </div>
       </div>
@@ -220,8 +224,8 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
       <div className="flex items-start gap-2.5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] px-4 py-3">
         <Info className="size-3.5 text-brand-mid-grey mt-0.5 shrink-0" />
         <p className="text-xs text-brand-mid-grey leading-relaxed">
-          <span className="font-semibold text-brand-near-black dark:text-white">Recording only.</span>{' '}
-          Full Stripe payment processing and contractor payouts via Switchr are coming soon. Use this tab to track what you've paid until then.
+          <span className="font-semibold text-brand-near-black dark:text-white">{t('project.payments.recordingOnlyTitle')}</span>{' '}
+          {t('project.payments.recordingOnlyBody')}
         </p>
       </div>
     </motion.div>

@@ -309,10 +309,24 @@ export interface StageTrackerProps {
   }) => React.ReactNode;
 }
 
-function shortLabel(name: string): string {
-  const words = name.split(/\s+/);
-  const label = words.length <= 2 ? name : words.slice(0, 2).join(' ');
-  return label.length > 13 ? label.slice(0, 12) + '…' : label;
+/**
+ * Two-word label for the pipeline node, which is 56px wide.
+ *
+ * Takes the TRANSLATED stage label, not the English `name` column — the pipeline
+ * used to read "Structure &" / "Electrical &" in French too, because it truncated
+ * the untranslated database value.
+ *
+ * Trailing conjunctions are dropped rather than shown: "Structure & Walls" cut to
+ * two words leaves "Structure &", which reads as a typo. "Structure" alone is
+ * unambiguous at this size, and the full name is on the panel below.
+ */
+const DANGLING = /[\s&/,–—-]+$|\s+(and|et|&)$/i;
+
+function shortLabel(label: string): string {
+  const words = label.split(/\s+/);
+  let short = words.length <= 2 ? label : words.slice(0, 2).join(' ');
+  short = short.replace(DANGLING, '').replace(DANGLING, '');
+  return short.length > 13 ? short.slice(0, 12) + '…' : short;
 }
 
 export function StageTracker({
@@ -392,7 +406,7 @@ export function StageTracker({
                           : 'text-brand-mid-grey',
                       )}
                     >
-                      {shortLabel(stage.name)}
+                      {shortLabel(stageLabel(stage))}
                     </span>
                   </button>
 

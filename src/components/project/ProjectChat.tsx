@@ -13,6 +13,7 @@ import {
   formatRelativeTime,
 } from '@/lib/supabase/messages';
 import type { ProjectMessageRow } from '@/types/project';
+import { useT } from '@/lib/i18n';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -104,6 +105,7 @@ function MessageBubble({ message, isOwn, showSenderName }: MessageBubbleProps) {
 // ---------------------------------------------------------------------------
 
 export function ProjectChat({ projectId, currentUserId, currentUserName }: ProjectChatProps) {
+  const t = useT();
   const [messages, setMessages] = useState<ProjectMessageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState('');
@@ -215,8 +217,8 @@ export function ProjectChat({ projectId, currentUserId, currentUserName }: Proje
         ) : messages.length === 0 ? (
           <EmptyState
             icon={<MessageSquare size={32} strokeWidth={1.5} />}
-            title="No messages yet"
-            description="Start a conversation about your project."
+            title={t('project.chat.emptyTitle')}
+            description={t('project.chat.emptyBody')}
           />
         ) : (
           <div className="flex flex-col gap-2">

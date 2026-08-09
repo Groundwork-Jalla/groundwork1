@@ -114,7 +114,7 @@ export function SubstageRow({
     try {
       await onMarkComplete!(substage.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update.');
+      setError(err instanceof Error ? err.message : t('project.stages.updateFailed'));
     } finally {
       setMarking(false);
     }

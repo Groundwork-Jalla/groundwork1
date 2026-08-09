@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Printer } from 'lucide-react';
 import { useStageLabels } from '@/lib/stage-labels';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -28,11 +28,11 @@ export interface StageCertificateModalProps {
 
 // ── Helpers ───────────────────────────────────────────────
 
-function tierLabel(tier: string): string {
-  if (tier === 'self_verify' || tier === 'starter') return 'Self-Verified (Owner)';
-  if (tier === 'jalla_verify') return 'Jalla Verified ✓';
-  if (tier === 'jalla_management') return 'Jalla Management ✓';
-  return tier;
+function tierLabelKey(tier: string): TKey {
+  if (tier === 'self_verify' || tier === 'starter') return 'certificate.tierSelfVerified';
+  if (tier === 'jalla_verify')     return 'certificate.tierJallaVerified';
+  if (tier === 'jalla_management') return 'certificate.tierJallaManagement';
+  return 'certificate.tierSelfVerified';
 }
 
 // ── Component ─────────────────────────────────────────────
@@ -66,12 +66,12 @@ export function StageCertificateModal({
       : '—';
 
   const details: Array<[string, string]> = [
-    ['Project', project.name],
-    ['Location', locationStr || project.country],
-    ['Owner', ownerName],
-    ['Completed', completedDate],
-    ['Milestone', milestoneStr],
-    ['Verified by', tierLabel(project.tier)],
+    [t('certificate.fieldProject'),   project.name],
+    [t('certificate.fieldLocation'),  locationStr || project.country],
+    [t('certificate.fieldOwner'),     ownerName],
+    [t('certificate.fieldCompleted'), completedDate],
+    [t('certificate.fieldMilestone'), milestoneStr],
+    [t('certificate.fieldVerifiedBy'), t(tierLabelKey(project.tier))],
   ];
 
   // Inject print styles that isolate only the certificate

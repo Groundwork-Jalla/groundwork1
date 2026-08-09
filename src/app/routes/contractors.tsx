@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
-  Star,
   Phone,
   Mail,
   MessageCircle,
@@ -11,11 +10,12 @@ import {
   Lock,
   ChevronRight,
   X,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -44,6 +44,27 @@ type FilterKey = 'All' | 'General Contractor' | 'Engineer' | 'Surveyor' | 'Desig
 
 const FILTERS: FilterKey[] = ['All', 'General Contractor', 'Engineer', 'Surveyor', 'Designer'];
 
+const FILTER_LABEL: Record<FilterKey, TKey> = {
+  'All':                'contractors.filters.all',
+  'General Contractor': 'contractors.filters.contractor',
+  'Engineer':           'contractors.filters.engineer',
+  'Surveyor':           'contractors.filters.surveyor',
+  'Designer':           'contractors.filters.designer',
+};
+
+/**
+ * Free-text match over the fields a person would actually type: who they are, what
+ * they do, where they are, and what they specialise in. Accents are stripped so
+ * "Yaounde" finds "Yaoundé" — most people will not reach for the diacritic.
+ */
+const norm = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function matchesQuery(c: Contractor, q: string): boolean {
+  if (!q.trim()) return true;
+  const hay = norm([c.name, c.trade, c.location, ...c.specialties].join(' '));
+  return norm(q).trim().split(/\s+/).every(term => hay.includes(term));
+}
+
 function matchesFilter(contractor: Contractor, filter: FilterKey): boolean {
   if (filter === 'All') return true;
   if (filter === 'General Contractor') return contractor.trade === 'General Contractor';
@@ -55,12 +76,15 @@ function matchesFilter(contractor: Contractor, filter: FilterKey): boolean {
 
 // ── Sub-components ─────────────────────────────────────────
 
-function StarRating({ rating, reviews }: { rating: number; reviews: number }) {
+function ScoreBadge({ rating, reviews }: { rating: number; reviews: number }) {
+  const t = useT();
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-brand-mid-grey">
-      <Star className="size-3 fill-brand-near-black text-brand-near-black" />
-      <span className="font-medium text-brand-near-black tabular-nums">{rating.toFixed(1)}</span>
-      <span>({reviews} reviews)</span>
+    <span className="inline-flex items-center gap-1.5 text-xs text-brand-mid-grey">
+      <span className="inline-flex items-baseline gap-0.5 rounded-md bg-brand-off-white px-1.5 py-0.5">
+        <span className="font-bold tabular-nums text-brand-near-black">{rating.toFixed(1)}</span>
+        <span className="text-[9px] text-brand-mid-grey">/5</span>
+      </span>
+      <span>{t('contractors.scoreFrom', { count: reviews })}</span>
     </span>
   );
 }
@@ -134,14 +158,137 @@ function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Pl
   );
 }
 
-function ContractorCard({
-  contractor,
-  plan,
-  onRequestQuote,
+// ── Contractor profile (Design B + elements from A) ────────
+//
+// Design B's centred dark hero, opened from a directory card rather than living at
+// its own route: the directory is where the decision gets made, and sending someone
+// to a separate page to read a bio loses their place in the list they were scanning.
+//
+// From Design A, per the 3 Aug decision: the gated contact block, the upgrade path,
+// and an explicit "Specialties" heading — B showed bare chips with nothing saying
+// what they were.
+
+function ContractorProfileModal({
+  contractor, plan, onRequestQuote, onClose,
 }: {
   contractor: Contractor;
   plan: Plan;
   onRequestQuote: (c: Contractor) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const initials = contractor.avatar_initials
+    || contractor.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={contractor.name}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 10 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        onClick={e => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-xl"
+      >
+        {/* Dark centred hero */}
+        <div className="relative rounded-t-2xl bg-brand-near-black px-6 pb-6 pt-7 text-center text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <X className="size-4" />
+          </button>
+
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-white/10 text-lg font-bold">
+            {initials}
+          </div>
+          <h2 className="text-lg font-extrabold leading-snug">{contractor.name}</h2>
+
+          {contractor.verified && (
+            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold">
+              <CheckCircle2 className="size-3" />
+              {t('contractors.verifiedProfessional')}
+            </span>
+          )}
+
+          <p className="mt-2 text-xs text-white/45">
+            {[contractor.trade, contractor.location].filter(Boolean).join(' · ')}
+          </p>
+
+          {/* Score, not stars — see ScoreBadge. */}
+          <div className="mt-4 flex items-center justify-center gap-6 text-[11px] text-white/55">
+            {contractor.review_count > 0 && (
+              <span className="flex flex-col">
+                <span className="text-sm font-bold tabular-nums text-white">{contractor.rating.toFixed(1)}<span className="text-[9px] text-white/40">/5</span></span>
+                {t('contractors.statScore')}
+              </span>
+            )}
+            <span className="flex flex-col">
+              <span className="text-sm font-bold tabular-nums text-white">{contractor.years_exp}</span>
+              {t('contractors.statYears')}
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-bold tabular-nums text-white">{contractor.completed_projects}</span>
+              {t('contractors.statProjects')}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 p-6">
+          {contractor.bio && (
+            <p className="text-xs leading-relaxed text-brand-near-black dark:text-white">{contractor.bio}</p>
+          )}
+
+          {contractor.specialties.length > 0 && (
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-brand-mid-grey">
+                {t('contractors.specialtiesLabel')}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {contractor.specialties.map(sp => <SpecialtyPill key={sp} label={sp} />)}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-brand-mid-grey">
+              {t('contractors.contactLabel')}
+            </p>
+            <ContactSection contractor={contractor} plan={plan} />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => { onRequestQuote(contractor); onClose(); }}
+            className="w-full rounded-xl bg-brand-near-black py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            {t('contractors.requestIntroduction')}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ContractorCard({
+  contractor,
+  plan,
+  onRequestQuote,
+  onViewProfile,
+}: {
+  contractor: Contractor;
+  plan: Plan;
+  onRequestQuote: (c: Contractor) => void;
+  onViewProfile: (c: Contractor) => void;
 }) {
   const t = useT();
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
@@ -178,7 +325,7 @@ function ContractorCard({
           {contractor.location}
         </span>
         {contractor.review_count > 0 && (
-          <StarRating rating={contractor.rating} reviews={contractor.review_count} />
+          <ScoreBadge rating={contractor.rating} reviews={contractor.review_count} />
         )}
       </div>
 
@@ -213,8 +360,18 @@ function ContractorCard({
       {/* Contact section (tier-gated) */}
       <ContactSection contractor={contractor} plan={plan} />
 
+      {/* Opens the full profile. Available on every plan — the gating is on the
+          contact details inside it, not on reading who someone is. */}
+      <button
+        type="button"
+        onClick={() => onViewProfile(contractor)}
+        className="mt-3 w-full rounded-xl border border-brand-border-grey py-2 text-xs font-semibold text-brand-near-black transition-colors hover:border-brand-near-black hover:bg-brand-off-white"
+      >
+        {t('contractors.viewProfile')}
+      </button>
+
       {/* Request Quote CTA */}
-      <div className="mt-3">
+      <div className="mt-2">
         {isUnlocked ? (
           <button
             type="button"
@@ -452,7 +609,9 @@ export default function ContractorsPage() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
+  const [query, setQuery] = useState('');
   const [quoteTarget, setQuoteTarget] = useState<Contractor | null>(null);
+  const [profileTarget, setProfileTarget] = useState<Contractor | null>(null);
 
   useEffect(() => {
     supabase
@@ -471,7 +630,7 @@ export default function ContractorsPage() {
       });
   }, []);
 
-  const visible = contractors.filter((c) => matchesFilter(c, activeFilter));
+  const visible = contractors.filter(c => matchesFilter(c, activeFilter) && matchesQuery(c, query));
 
   return (
     <div className="bg-brand-off-white min-h-full">
@@ -480,6 +639,14 @@ export default function ContractorsPage() {
           <QuoteRequestDialog
             contractor={quoteTarget}
             onClose={() => setQuoteTarget(null)}
+          />
+        )}
+        {profileTarget && (
+          <ContractorProfileModal
+            contractor={profileTarget}
+            plan={plan}
+            onRequestQuote={(c) => setQuoteTarget(c)}
+            onClose={() => setProfileTarget(null)}
           />
         )}
       </AnimatePresence>
@@ -500,6 +667,21 @@ export default function ContractorsPage() {
           </p>
         </motion.div>
 
+        {/* Search — required by the 3 Aug decision; Design A had chips only. */}
+        {fetchState === 'ready' && contractors.length > 0 && (
+          <div className="relative mb-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={t('contractors.searchPlaceholder')}
+              aria-label={t('contractors.searchPlaceholder')}
+              className="w-full rounded-xl border border-brand-border-grey bg-white py-2.5 pl-9 pr-3 text-sm text-brand-near-black placeholder:text-brand-mid-grey focus:border-brand-near-black focus:outline-none"
+            />
+          </div>
+        )}
+
         {/* Filter bar */}
         {fetchState === 'ready' && contractors.length > 0 && (
           <motion.div
@@ -519,7 +701,7 @@ export default function ContractorsPage() {
                     : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey hover:border-brand-near-black hover:text-brand-near-black'
                 }`}
               >
-                {f}
+                {t(FILTER_LABEL[f])}
               </button>
             ))}
           </motion.div>
@@ -573,6 +755,7 @@ export default function ContractorsPage() {
                     contractor={contractor}
                     plan={plan}
                     onRequestQuote={(c) => setQuoteTarget(c)}
+                    onViewProfile={(c) => setProfileTarget(c)}
                   />
                 </motion.div>
               ))}
@@ -591,7 +774,7 @@ export default function ContractorsPage() {
         {/* Footer note */}
         {fetchState === 'ready' && contractors.length > 0 && (
           <p className="mt-10 text-center text-xs text-brand-mid-grey">
-            All listed professionals are screened by the Jalla team.{' '}
+            {t('contractors.screenedNote')}{' '}
             <Link
               to="/contractor-apply"
               className="underline underline-offset-4 hover:text-brand-near-black transition-colors"

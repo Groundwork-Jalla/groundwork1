@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Loader2, CreditCard, ShieldCheck, Lock, ArrowDown, Banknote, Check,
+  X, Loader2, CreditCard, ShieldCheck, Lock, ArrowDown, Banknote, Check, ChevronDown,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { platformFee, stripeProcessing } from '@/lib/payments/config';
 import { useT } from '@/lib/i18n';
@@ -22,11 +23,14 @@ export default function MilestonePaymentModal({
   onClose: () => void;
 }) {
   const { stageLabel } = useStageLabels();
+  const t = useT();
   const [submitting, setSubmitting] = useState(false);
+  const [feesOpen, setFeesOpen]     = useState(false);
 
+  // Every hook above this line — `stage` is null until a stage is picked, and an
+  // early return before the hooks would change the hook count between renders.
   if (!stage) return null;
 
-  const t         = useT();
   const amount    = stage.payment_milestone_usd ?? 0;
   const fee       = platformFee(amount, tier);
   const youPay    = amount + fee;
@@ -113,22 +117,58 @@ export default function MilestonePaymentModal({
 
               <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-mid-grey mb-4">{t('project.payments.paymentDetails')}</p>
 
-              <div className="space-y-0">
-                {[
-                  ['Stage budget', formatUSDFull(amount), false],
-                  [`Platform fee`, fee > 0 ? formatUSDFull(fee) : '—', false],
-                  ['Stripe processing', `~${formatUSDFull(stripeEst)}`, true],
-                ].map(([l, v, muted], i) => (
-                  <div key={l as string} className={`flex justify-between py-2 text-[13px] ${i < 2 ? 'border-b border-brand-light-grey dark:border-[#252525]' : ''}`}>
-                    <span className="text-brand-mid-grey">{l}</span>
-                    <span className={muted ? 'text-brand-soft-grey tabular-nums' : 'font-semibold text-brand-near-black dark:text-white tabular-nums'}>{v}</span>
-                  </div>
-                ))}
+              {/* The stage budget leads — it is the number the owner agreed with their
+                  contractor. Fees sit behind the disclosure below: Philip's call was
+                  that itemising them here reads as a surcharge on every milestone,
+                  while hiding them entirely would be worse. Both figures are one click
+                  away and the total charged is never obscured. */}
+              <div className="flex justify-between py-2 text-[13px]">
+                <span className="text-brand-mid-grey">{t('project.payments.stageBudget')}</span>
+                <span className="font-semibold tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(amount)}</span>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl bg-brand-near-black dark:bg-white px-4 py-3.5 my-4">
+              <button
+                type="button"
+                onClick={() => setFeesOpen(o => !o)}
+                aria-expanded={feesOpen}
+                className="flex w-full items-center justify-between border-t border-brand-light-grey py-2 text-[12px] text-brand-mid-grey transition-colors hover:text-brand-near-black dark:border-[#252525] dark:hover:text-white"
+              >
+                <span className="flex items-center gap-1.5">
+                  <ChevronDown className={cn('size-3 transition-transform', feesOpen && 'rotate-180')} />
+                  {t('project.payments.feeDetails')}
+                </span>
+                <span className="tabular-nums">{fee > 0 ? formatUSDFull(fee) : '—'}</span>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {feesOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 pb-2 pl-4.5 pt-1">
+                      <div className="flex justify-between text-[12px]">
+                        <span className="text-brand-mid-grey">{t('project.payments.processingFee')}</span>
+                        <span className="tabular-nums text-brand-near-black dark:text-white">{fee > 0 ? formatUSDFull(fee) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between text-[12px]">
+                        <span className="text-brand-mid-grey">{t('project.payments.cardProcessing')}</span>
+                        <span className="tabular-nums text-brand-soft-grey">~{formatUSDFull(stripeEst)}</span>
+                      </div>
+                      <p className="pt-1 text-[10px] leading-relaxed text-brand-mid-grey">
+                        {t('project.payments.feeNote')}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="my-4 flex items-center justify-between rounded-xl bg-brand-near-black px-4 py-3.5 dark:bg-white">
                 <span className="text-[13px] font-semibold text-white dark:text-brand-near-black">{t('project.payments.totalCharge')}</span>
-                <span className="text-2xl font-black text-white dark:text-brand-near-black tabular-nums">{formatUSDFull(youPay)}</span>
+                <span className="text-2xl font-black tabular-nums text-white dark:text-brand-near-black">{formatUSDFull(youPay)}</span>
               </div>
 
               <div className="mb-4">
@@ -149,7 +189,7 @@ export default function MilestonePaymentModal({
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold py-3.5 hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                {submitting ? 'Processing…' : 'Confirm Payment'}
+                {submitting ? t('common.loading') : t('project.payments.confirmPayment')}
               </button>
 
               <div className="flex items-center justify-center gap-4 mt-3.5">

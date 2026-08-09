@@ -18,12 +18,16 @@ const CATEGORY_ICONS: Record<ResourceCategory, React.ComponentType<{ className?:
 
 // ── Tag colours ────────────────────────────────────────────
 
+// Colour highlights removed on Philip's call — five hues across the grid signalled
+// nothing a reader could act on, and none of them mapped to a state. `essential`
+// keeps the inverted treatment because it is the one tag that ranks: it marks the
+// handful of articles we want read first, which is a real distinction, not a label.
 const TAG_COLORS: Record<ResourceTag, string> = {
-  popular:   'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800',
   essential: 'bg-brand-near-black text-white border-transparent dark:bg-white dark:text-brand-near-black',
-  new:       'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800',
-  important: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800',
-  startHere: 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800',
+  popular:   'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
+  new:       'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
+  important: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
+  startHere: 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey dark:bg-[#252525] dark:border-[#2c2c2c]',
 };
 
 // ── Pill button ────────────────────────────────────────────

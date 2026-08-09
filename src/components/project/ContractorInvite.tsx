@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, UserPlus, X } from 'lucide-react';
+import { AlertTriangle, UserPlus, X, Check } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useFormat, useT } from '@/lib/i18n';
@@ -50,11 +50,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
       )}
     >
       {labels[status]}
-      {status === 'accepted' && (
-        <span aria-hidden="true" className="text-green-600">
-          ✓
-        </span>
-      )}
+      {status === 'accepted' && <Check className="size-3 shrink-0" aria-hidden="true" />}
     </span>
   );
 }
