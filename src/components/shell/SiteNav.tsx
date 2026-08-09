@@ -62,8 +62,14 @@ export function SiteNav() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageToggle segmented onDark />
+        {/* Below sm the bar is width-critical: logo + language + two CTAs measured
+            425px against a 375px viewport, which clipped the primary CTA mid-word
+            and overlapped the wordmark. Every element here shrinks rather than one
+            of them being dropped — the contractor entry point in particular is
+            meant to be reachable at every width. */}
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+          <span className="hidden sm:block"><LanguageToggle segmented onDark /></span>
+          <span className="sm:hidden"><LanguageToggle compact onDark /></span>
           {/* Contractor entry point. Bordered at every width — as a ghost button it
               read as a footnote and the contractor page was effectively only
               reachable from the footer. `variant="outline"` assumes a light
@@ -71,7 +77,7 @@ export function SiteNav() {
           <Button
             asChild
             variant="outline"
-            className="h-10 rounded-md border-white/25 bg-transparent px-3 text-[11px] font-semibold text-white hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
+            className="h-9 shrink-0 rounded-md border-white/25 bg-transparent px-2.5 text-[11px] font-semibold text-white hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
           >
             {onContractorPage ? (
               <a href="#apply">
@@ -87,10 +93,11 @@ export function SiteNav() {
           </Button>
           <Button
             asChild
-            className="group h-10 rounded-md bg-white px-4 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
+            className="group h-9 shrink-0 rounded-md bg-white px-3 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
           >
             <Link to="/community" className="flex items-center gap-1.5">
-              {t('landing.nav.joinFree')}
+              <span className="hidden sm:inline">{t('landing.nav.joinFree')}</span>
+              <span className="sm:hidden">{t('landing.nav.joinFreeShort')}</span>
               <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </Button>

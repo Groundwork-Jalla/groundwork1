@@ -2,9 +2,40 @@ import { useEffect, useState } from 'react';
 import { Wind, Droplets } from 'lucide-react';
 import { useDomainLabels } from '@/lib/domain-labels';
 
-// ── Country capitals for weather API ──────────────────────
+// ── Coordinates for the weather API ───────────────────────
 
-const COUNTRY_COORDS: Record<string, { lat: number; lon: number; city: string }> = {
+interface Coords { lat: number; lon: number; city: string }
+
+/**
+ * Build cities, checked before the country capital.
+ *
+ * The widget used to key off country alone, so a Douala build was shown Yaoundé's
+ * weather — 200km away, different coast, different rain. The point of this panel is
+ * to tell an owner abroad whether their site can be poured this week, and a capital
+ * that is not the site cannot answer that.
+ *
+ * Keyed on the lower-cased city string stored on the project. Anything not listed
+ * falls back to the capital, which is still better than nothing.
+ */
+const CITY_COORDS: Record<string, Coords> = {
+  douala:      { lat:  4.0511, lon:  9.7679, city: 'Douala'      },
+  'yaoundé':   { lat:  3.8480, lon: 11.5021, city: 'Yaoundé'     },
+  yaounde:     { lat:  3.8480, lon: 11.5021, city: 'Yaoundé'     },
+  kribi:       { lat:  2.9370, lon:  9.9100, city: 'Kribi'       },
+  buea:        { lat:  4.1527, lon:  9.2920, city: 'Buea'        },
+  limbe:       { lat:  4.0186, lon:  9.1950, city: 'Limbe'       },
+  bamenda:     { lat:  5.9597, lon: 10.1459, city: 'Bamenda'     },
+  bali:        { lat:  5.8833, lon: 10.0167, city: 'Bali'        },
+  'ngaoundéré':{ lat:  7.3167, lon: 13.5833, city: 'Ngaoundéré'  },
+  ngaoundere:  { lat:  7.3167, lon: 13.5833, city: 'Ngaoundéré'  },
+  adamawa:     { lat:  7.3167, lon: 13.5833, city: 'Ngaoundéré'  },
+  lagos:       { lat:  6.5244, lon:  3.3792, city: 'Lagos'       },
+  abuja:       { lat:  9.0765, lon:  7.3986, city: 'Abuja'       },
+  accra:       { lat:  5.6037, lon: -0.1870, city: 'Accra'       },
+  nairobi:     { lat: -1.2921, lon: 36.8219, city: 'Nairobi'     },
+};
+
+const COUNTRY_COORDS: Record<string, Coords> = {
   NG: { lat:  9.0765,  lon:  7.3986,  city: 'Abuja'       },
   CM: { lat:  3.8667,  lon: 11.5167,  city: 'Yaoundé'     },
   GH: { lat:  5.6037,  lon: -0.1870,  city: 'Accra'       },
@@ -54,13 +85,19 @@ interface WeatherData {
   forecast: WeatherDay[];
 }
 
-function useWeather(countryCode: string | null) {
+/** The build city if we know it, otherwise the country capital. */
+function resolveCoords(countryCode: string | null, city: string | null): Coords | null {
+  const byCity = city ? CITY_COORDS[city.trim().toLowerCase()] : undefined;
+  if (byCity) return byCity;
+  return countryCode ? COUNTRY_COORDS[countryCode] ?? null : null;
+}
+
+function useWeather(countryCode: string | null, city: string | null) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!countryCode) return;
-    const coords = COUNTRY_COORDS[countryCode];
+    const coords = resolveCoords(countryCode, city);
     if (!coords) return;
     setLoading(true);
     setWeather(null);
@@ -98,19 +135,23 @@ function useWeather(countryCode: string | null) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [countryCode]);
+  }, [countryCode, city]);
 
   return { weather, loading };
 }
 
 // ── Component ─────────────────────────────────────────────
 
-export function WeatherWidget({ countryCode }: { countryCode: string | null | undefined }) {
-  const { weather, loading } = useWeather(countryCode ?? null);
+export function WeatherWidget({ countryCode, city }: {
+  countryCode: string | null | undefined;
+  /** Build city. Falls back to the country capital when unrecognised. */
+  city?: string | null;
+}) {
+  const { weather, loading } = useWeather(countryCode ?? null, city ?? null);
   const { country } = useDomainLabels();
-  const coords = countryCode ? COUNTRY_COORDS[countryCode] : null;
+  const coords = resolveCoords(countryCode ?? null, city ?? null);
 
-  if (!countryCode || !coords) return null;
+  if (!coords) return null;
 
   const countryName = country(countryCode);
 

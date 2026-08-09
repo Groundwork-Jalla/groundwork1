@@ -2,10 +2,10 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Clock, Lock, AlertCircle, X, Info,
-  Maximize2, Package, Users, Briefcase, Landmark, BarChart2, Scale, RefreshCw, Plus,
+  Maximize2, Package, Users, Briefcase, Landmark, BarChart2, Scale, RefreshCw, Plus, Check, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import {
   formatUSDFull, formatUSD,
   BUDGET_ROLLUP_PCT, BUDGET_SPLIT_PCT, projectBudget, rollupBudget, splitBudget,
@@ -36,15 +36,20 @@ function fmtCompact(n: number): string {
   return `$${n}`;
 }
 
-// ── Budget allocation donut (colorful) ───────────────────
+// ── Budget allocation donut ──────────────────────────────
 
 // Percentages come from BUDGET_ROLLUP_PCT so they always match the amounts rendered
 // beside them. They used to be hardcoded as 27 and 9 while the figures were 26% and 10%.
+//
+// Greyscale, dark to light in legend order — the same ramp the dashboard donut uses, so
+// the same four categories read identically on both screens. Colour on this page marks
+// stage state (active, awaiting review, overdue); a category is not a state, and four
+// hues competing with those made the states harder to pick out.
 const BUDGET_SLICES = [
-  { labelKey: 'project.overview.catMaterials' as TKey, pct: BUDGET_ROLLUP_PCT.materials, color: '#3b82f6', descKey: 'project.overview.catMaterialsDesc' as TKey },
-  { labelKey: 'project.overview.catLabor'     as TKey, pct: BUDGET_ROLLUP_PCT.labor,     color: '#22c55e', descKey: 'project.overview.catLaborDesc'     as TKey },
-  { labelKey: 'project.overview.catFees'      as TKey, pct: BUDGET_ROLLUP_PCT.fees,      color: '#f59e0b', descKey: 'project.overview.catFeesDesc'      as TKey },
-  { labelKey: 'project.overview.catPermits'   as TKey, pct: BUDGET_ROLLUP_PCT.permits,   color: '#a855f7', descKey: 'project.overview.catPermitsDesc'   as TKey },
+  { labelKey: 'project.overview.catMaterials' as TKey, pct: BUDGET_ROLLUP_PCT.materials, color: '#1f2937', descKey: 'project.overview.catMaterialsDesc' as TKey },
+  { labelKey: 'project.overview.catLabor'     as TKey, pct: BUDGET_ROLLUP_PCT.labor,     color: '#4b5563', descKey: 'project.overview.catLaborDesc'     as TKey },
+  { labelKey: 'project.overview.catFees'      as TKey, pct: BUDGET_ROLLUP_PCT.fees,      color: '#9ca3af', descKey: 'project.overview.catFeesDesc'      as TKey },
+  { labelKey: 'project.overview.catPermits'   as TKey, pct: BUDGET_ROLLUP_PCT.permits,   color: '#d1d5db', descKey: 'project.overview.catPermitsDesc'   as TKey },
 ] as const;
 
 function BudgetDonut({
@@ -342,7 +347,7 @@ function BudgetBreakdownModal({
                 ))}
               </div>
               <div className="h-2 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden mb-4">
-                <motion.div className="h-full rounded-full bg-green-500" initial={{ width: 0 }} animate={{ width: `${Math.min(paidPct, 100)}%` }} transition={{ duration: 0.7, ease: 'easeOut' }} />
+                <motion.div className="h-full rounded-full bg-brand-near-black dark:bg-white" initial={{ width: 0 }} animate={{ width: `${Math.min(paidPct, 100)}%` }} transition={{ duration: 0.7, ease: 'easeOut' }} />
               </div>
               <p className="text-[10px] text-center text-brand-mid-grey mb-4">{paidPct}% of your project is funded so far</p>
               {[
@@ -421,12 +426,14 @@ function PaymentBar({
       </div>
 
       <p className="text-xs text-brand-mid-grey mb-4">
-        You've paid{' '}
-        <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(paidTotal)}</span>
-        {' '}of{' '}
-        <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(totalBudget)}</span>
-        {' '}({paidPctRounded}%).{' '}
-        <span className="text-amber-600 dark:text-amber-400 font-medium">{formatUSDFull(outstanding)} still due.</span>
+        {t('project.overview.paidSummary', {
+          paid: formatUSDFull(paidTotal),
+          total: formatUSDFull(totalBudget),
+          pct: paidPctRounded,
+        })}{' '}
+        <span className="font-medium text-brand-near-black dark:text-white">
+          {t('project.overview.stillDue', { amount: formatUSDFull(outstanding) })}
+        </span>
       </p>
 
       {/* 50% mid marker */}
@@ -440,22 +447,22 @@ function PaymentBar({
       {/* The bar */}
       <div className="flex h-11 rounded-xl overflow-hidden relative">
         <motion.div
-          className="bg-green-500 flex items-center justify-center relative"
+          className="bg-brand-near-black dark:bg-white flex items-center justify-center relative"
           initial={{ width: 0 }}
           animate={{ width: `${Math.max(paidPct, paidPct > 0 ? 5 : 0)}%` }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
           {paidPctRounded >= 10 && (
-            <span className="text-xs font-bold text-white tabular-nums">{paidPctRounded}%</span>
+            <span className="text-xs font-bold text-white dark:text-brand-near-black tabular-nums">{paidPctRounded}%</span>
           )}
           {/* Tooltip at right edge of green */}
           {paidPctRounded > 0 && paidPctRounded < 90 && (
             <div className="absolute -right-px top-0 bottom-0 w-px bg-white/40 z-10" />
           )}
         </motion.div>
-        <div className="flex-1 bg-amber-400 dark:bg-amber-500 flex items-center justify-center">
+        <div className="flex-1 bg-brand-light-grey dark:bg-[#282828] flex items-center justify-center">
           {(100 - paidPctRounded) >= 10 && (
-            <span className="text-xs font-bold text-white tabular-nums">{100 - paidPctRounded}%</span>
+            <span className="text-xs font-bold text-brand-mid-grey tabular-nums">{100 - paidPctRounded}%</span>
           )}
         </div>
       </div>
@@ -476,11 +483,11 @@ function PaymentBar({
       {/* Legend */}
       <div className="flex gap-5 mt-1">
         <span className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
-          <span className="size-2.5 rounded-sm bg-green-500" />
+          <span className="size-2.5 rounded-sm bg-brand-near-black dark:bg-white" />
           {t('project.overview.explain.paidLabel')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(paidTotal)}</span>
         </span>
         <span className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
-          <span className="size-2.5 rounded-sm bg-amber-400" />
+          <span className="size-2.5 rounded-sm bg-brand-light-grey dark:bg-[#282828]" />
           {t('project.overview.explain.outstandingLabel')} <span className="font-semibold text-brand-near-black dark:text-white">{formatUSDFull(outstanding)}</span>
         </span>
       </div>
@@ -557,7 +564,7 @@ function PaymentBreakdownModal({
                 ))}
               </div>
               <div className="h-2 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden mb-2">
-                <motion.div className="h-full rounded-full bg-green-500" initial={{ width: 0 }} animate={{ width: `${Math.min(paidPct, 100)}%` }} transition={{ duration: 0.7, ease: 'easeOut' }} />
+                <motion.div className="h-full rounded-full bg-brand-near-black dark:bg-white" initial={{ width: 0 }} animate={{ width: `${Math.min(paidPct, 100)}%` }} transition={{ duration: 0.7, ease: 'easeOut' }} />
               </div>
               <p className="text-[10px] text-center text-brand-mid-grey">{paidPct}% of your project is funded so far</p>
             </div>
@@ -904,6 +911,116 @@ function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
   );
 }
 
+// ── Stage row with substage check-marks ──────────────────
+// Design A gives the horizontal pipeline its visibility; Design B's vertical
+// check-marks are what actually tell you how far through a stage the work is.
+// Philip asked for both: the stage list keeps A's scannability, and each stage
+// opens to B's ticked substage list rather than sending you to another tab.
+//
+// The active stage starts open — it is the only one where the answer changes
+// day to day, and making the reader click to reach it defeats the purpose.
+
+function SubstageChecks({ substages }: { substages: ProjectSubstageRow[] }) {
+  const { substageLabel } = useStageLabels();
+  const { t, tPlural } = useLanguage();
+
+  if (substages.length === 0) {
+    return <p className="py-2 pl-8 text-xs text-brand-mid-grey">{t('project.overview.noSubstages')}</p>;
+  }
+
+  return (
+    <div className="flex flex-col pb-1 pl-8">
+      {substages.map(sub => {
+        const done = sub.status === 'complete';
+        const review = sub.status === 'pending_review';
+        return (
+          <div key={sub.id} className="flex items-center gap-2.5 py-1.5">
+            <span
+              className={cn(
+                'flex size-4 shrink-0 items-center justify-center rounded border-[1.5px]',
+                done
+                  ? 'border-brand-near-black bg-brand-near-black dark:border-white dark:bg-white'
+                  : review
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                    : 'border-brand-border-grey dark:border-[#2c2c2c]',
+              )}
+            >
+              {done && <Check className="size-2.5 stroke-3 text-white dark:text-brand-near-black" />}
+              {review && <span className="size-1.5 rounded-full bg-amber-500" />}
+            </span>
+            <span
+              className={cn(
+                'min-w-0 flex-1 truncate text-xs',
+                done ? 'text-brand-mid-grey line-through' : 'text-brand-near-black dark:text-white',
+              )}
+            >
+              {substageLabel(sub)}
+            </span>
+            {sub.evidence_urls.length > 0 && (
+              <span className="shrink-0 text-[10px] tabular-nums text-brand-mid-grey">
+                {tPlural('project.overview.evidenceCount', sub.evidence_urls.length)}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StageWithSubstages({
+  stage, substages, defaultOpen,
+}: {
+  stage: ProjectStageRow;
+  substages: ProjectSubstageRow[];
+  defaultOpen: boolean;
+}) {
+  const { stageLabel } = useStageLabels();
+  const t = useT();
+  const [open, setOpen] = useState(defaultOpen);
+
+  const mine = substages
+    .filter(s => s.stage_id === stage.id)
+    .sort((a, b) => a.substage_number - b.substage_number);
+  const done = mine.filter(s => s.status === 'complete').length;
+
+  return (
+    <div className="py-1">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 py-1.5 text-left"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <StageIcon status={stage.status} />
+          <span className={cn('truncate text-sm', stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
+            {stageLabel(stage)}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {mine.length > 0 && (
+            <span className="text-[10px] tabular-nums text-brand-mid-grey">{done}/{mine.length}</span>
+          )}
+          <span className={cn('text-[9px] font-medium uppercase tracking-wide', {
+            'text-brand-mid-grey': stage.status === 'complete',
+            'text-brand-near-black dark:text-white': stage.status === 'active',
+            'text-amber-600': stage.status === 'pending_review',
+            'text-brand-border-grey': stage.status === 'locked',
+          })}>
+            {stage.status === 'complete' ? t('project.overview.statusDone')
+              : stage.status === 'active' ? t('project.overview.statusProgress')
+              : stage.status === 'pending_review' ? t('project.overview.statusReview')
+              : t('project.overview.statusLocked')}
+          </span>
+          <ChevronDown className={cn('size-3.5 text-brand-mid-grey transition-transform', open && 'rotate-180')} />
+        </span>
+      </button>
+      {open && <SubstageChecks substages={mine} />}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────
 
 interface OverviewTabProps {
@@ -1077,25 +1194,15 @@ export default function OverviewTab({
               ))}
             </div>
 
-            {/* Detailed list */}
+            {/* Detailed list — each stage opens to its ticked substages */}
             <div className="flex flex-col divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
               {sortedStages.map(stage => (
-                <div key={stage.id} className="flex items-center justify-between py-2 gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <StageIcon status={stage.status} />
-                    <span className={cn('text-sm truncate', stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
-                      {stageLabel(stage)}
-                    </span>
-                  </div>
-                  <span className={cn('text-[9px] font-medium uppercase tracking-wide shrink-0', {
-                    'text-brand-mid-grey': stage.status === 'complete',
-                    'text-brand-near-black dark:text-white': stage.status === 'active',
-                    'text-amber-600': stage.status === 'pending_review',
-                    'text-brand-border-grey': stage.status === 'locked',
-                  })}>
-                    {stage.status === 'complete' ? t('project.overview.statusDone') : stage.status === 'active' ? t('project.overview.statusProgress') : stage.status === 'pending_review' ? t('project.overview.statusReview') : t('project.overview.statusLocked')}
-                  </span>
-                </div>
+                <StageWithSubstages
+                  key={stage.id}
+                  stage={stage}
+                  substages={substages}
+                  defaultOpen={stage.id === activeStage?.id}
+                />
               ))}
             </div>
           </div>
@@ -1106,32 +1213,12 @@ export default function OverviewTab({
         {/* ── Right sidebar ─────────────────────────────── */}
         <div className="flex flex-col gap-4">
 
-          {/* Stage Progress circles (compact) */}
-          <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
-            <p className="text-xs font-medium text-brand-near-black dark:text-white mb-3">{t('project.overview.stageProgress')}</p>
-            <div className="grid grid-cols-5 gap-2">
-              {sortedStages.map(stage => (
-                <div key={stage.id} className="flex flex-col items-center gap-1">
-                  <div className={cn(
-                    'size-8 rounded-full border flex items-center justify-center',
-                    stage.status === 'complete'       ? 'bg-brand-near-black dark:bg-white border-brand-near-black dark:border-white' :
-                    stage.status === 'active'         ? 'border-brand-near-black dark:border-white' :
-                    stage.status === 'pending_review' ? 'border-amber-400' :
-                    'border-brand-border-grey dark:border-[#2c2c2c]',
-                  )}>
-                    {stage.status === 'complete'
-                      ? <CheckCircle2 className="size-3.5 text-white dark:text-brand-near-black" />
-                      : stage.status === 'pending_review'
-                        ? <AlertCircle className="size-3 text-amber-400" />
-                        : <span className="text-[9px] text-brand-mid-grey font-medium">{stage.stage_number}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* The sidebar used to repeat the 10-circle stage tracker that already sits
+              in the left column a few hundred pixels away. One tracker, in the panel
+              that also carries the substage detail. */}
 
           {/* Weather */}
-          <WeatherWidget countryCode={project.country} />
+          <WeatherWidget countryCode={project.country} city={project.city} />
 
           {/* Days active + location */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] px-4 py-3 flex items-center gap-3">

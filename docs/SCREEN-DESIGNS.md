@@ -11,9 +11,9 @@ the decision, not suggestions. Most originate in the 3 Aug UI review with Philip
 
 | Screen | Design | Modifiers |
 |---|---|---|
-| Dashboard | **B** | + profile completion tracker, + costing allocation widget |
-| My Projects | **A** | (chosen for the "2 of 3 used → Upgrade" indicator) |
-| Project Overview | **A** | + vertical check-mark substage system from B |
+| Dashboard | **B** ✅ done 9 Aug | + profile completion tracker, + costing allocation widget. Hero shows released/held/remaining derived from stage payment state; costing donut is greyscale and resolves its total through `projectBudget()` |
+| My Projects | **A** ✅ done 9 Aug | Chosen for the "2 of 3 used → Upgrade" indicator — which was inert text and is now a real link to `/upgrade`. Cards resolve their figure through `projectBudget()` rather than showing an em dash when no budget is confirmed |
+| Project Overview | **A** ✅ done 9 Aug | + vertical check-mark substage system from B: each stage in the Stage Progress panel opens to its ticked substages, active stage open by default. Costing donut and payment bar greyscaled; duplicate stage tracker removed from the sidebar; weather now resolves the **build city**, not the country capital |
 | Stages | **A** | + vertical check-mark substage list from B |
 | Budget / Costing | **A** | Cost boxes expand in place to show material and labour lines — no export required to see detail |
 

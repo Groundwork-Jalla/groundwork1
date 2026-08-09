@@ -72,7 +72,12 @@ export function LanguageToggle({
         title={title}
         aria-label={title}
         className={cn(
-          'flex size-8 items-center justify-center gap-1 rounded-lg text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors dark:hover:text-white dark:hover:bg-[#2c2c2c]',
+          'flex size-8 items-center justify-center gap-1 rounded-lg transition-colors',
+          // The compact variant used to ignore `onDark`, so on the public navbar it
+          // rendered mid-grey on near-black and was effectively invisible.
+          onDark
+            ? 'text-white/70 hover:bg-white/10 hover:text-white'
+            : 'text-brand-mid-grey hover:bg-brand-off-white hover:text-brand-near-black dark:hover:bg-[#2c2c2c] dark:hover:text-white',
           className,
         )}
       >

@@ -1,19 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import {
   Plus, BadgeCheck, ShieldCheck, Briefcase,
-  MapPin, Building2, ChevronRight, FolderOpen,
-  Wallet, CreditCard, CheckCircle2, HardHat,
-  UserCircle, Check, ArrowRight, TrendingUp,
-  Lock, CircleDot,
+  ChevronRight, HardHat,
+  UserCircle, Check, Upload, MessageSquare, FolderArchive,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
-import { formatUSDFull, BUDGET_ROLLUP_PCT } from '@/lib/budget';
-import { formatDate, formatMoney } from '@/lib/format';
+import { formatUSDFull, BUDGET_ROLLUP_PCT, projectBudget } from '@/lib/budget';
+import { formatMoney } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -32,42 +30,31 @@ interface ProjectStage {
   status: StageStatus;
   budget_pct: number | null;
   completed_at: string | null;
+  /** Stored milestone. Null on older rows — fall back to budget_pct × total. */
+  payment_milestone_usd: number | null;
+  payment_status: 'unpaid' | 'partial' | 'paid' | null;
 }
 
 // ── Stage status helpers ───────────────────────────────────
 
 const isComplete = (s: ProjectStage) => s.status === 'complete';
 const isActive   = (s: ProjectStage) => s.status === 'active' || s.status === 'pending_review';
-const isLocked   = (s: ProjectStage) => s.status === 'locked';
-
-function stageBadge(status: StageStatus) {
-  switch (status) {
-    case 'complete':       return { label: 'Done',              cls: 'bg-green-50 text-green-700 border-green-200'  };
-    case 'pending_review': return { label: 'Awaiting approval', cls: 'bg-amber-50 text-amber-700 border-amber-200'  };
-    case 'active':         return { label: 'In progress',       cls: 'bg-blue-50 text-blue-700 border-blue-200'     };
-    default:               return { label: 'Upcoming',          cls: 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey' };
-  }
-}
-
-function stageBarColor(status: StageStatus): string {
-  if (status === 'complete')       return '#22c55e';
-  if (status === 'active' || status === 'pending_review') return '#3b82f6';
-  return '#e2e8f0';
-}
 
 // ── Constants ──────────────────────────────────────────────
 
 const STARTER_LIMIT  = 3;
 const TOTAL_STAGES   = 10;
-const PREDICTED_DAYS = 196;
 
+// Tier is an identity, not a status, so it does not get a hue. Colour on this
+// platform is reserved for state — active, held, overdue — and spending blue and
+// purple on plan names made the one signal that does mean something harder to see.
 const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
   self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
+  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
   starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
+  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
 };
 
 const PROJECT_STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
@@ -83,11 +70,12 @@ function completedStages(p: ProjectRow): number {
   return p.status === 'completed' ? TOTAL_STAGES : Math.max(0, p.current_stage - 1);
 }
 
-function greeting(): string {
+/** Returns a key, not a string — the greeting was the one untranslated line here. */
+function greetingKey(): TKey {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'dashboard.goodMorning';
+  if (h < 17) return 'dashboard.goodAfternoon';
+  return 'dashboard.goodEvening';
 }
 
 function fmtShort(n: number): string {
@@ -112,32 +100,6 @@ function HorizBar({ pct, color = 'var(--color-progress-bar-default)' }: { pct: n
         animate={{ width: `${Math.min(pct, 100)}%` }}
         transition={{ duration: 0.9, ease: 'easeOut' }}
       />
-    </div>
-  );
-}
-
-// ── Stat card ──────────────────────────────────────────────
-
-function StatCard({
-  label, value, sub, icon: Icon, accent = false,
-}: {
-  label: string; value: string; sub?: string;
-  icon: React.ComponentType<{ className?: string }>; accent?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl border p-5 flex flex-col gap-3 ${
-      accent ? 'bg-brand-near-black border-brand-near-black' : 'bg-white border-brand-border-grey'
-    }`}>
-      <div className="flex items-center justify-between">
-        <span className={`text-xs font-medium ${accent ? 'text-white/55' : 'text-brand-mid-grey'}`}>{label}</span>
-        <span className={`flex size-8 items-center justify-center rounded-lg ${accent ? 'bg-white/10' : 'bg-brand-off-white'}`}>
-          <Icon className={`size-4 ${accent ? 'text-white/70' : 'text-brand-mid-grey'}`} />
-        </span>
-      </div>
-      <div>
-        <p className={`text-2xl font-bold tabular-nums ${accent ? 'text-white' : 'text-brand-near-black'}`}>{value}</p>
-        {sub && <p className={`text-xs mt-0.5 ${accent ? 'text-white/45' : 'text-brand-mid-grey'}`}>{sub}</p>}
-      </div>
     </div>
   );
 }
@@ -191,509 +153,181 @@ function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
   );
 }
 
-// ── Journey card (Your Journey) ────────────────────────────
+// ── Active project hero (Design B) ─────────────────────────
+// The one card the dashboard is built around: the build you are actually running.
+// Design B's argument is that a dashboard is a place to act, not a place to read
+// statistics, so the active project gets the whole top of the page and everything
+// else is secondary.
 
-function JourneyCard({ projects, activeProject, completedCount }: {
-  projects: ProjectRow[];
-  activeProject: ProjectRow | undefined;
-  completedCount: number;
-}) {
-  const t = useT();
-  const hasProjects = projects.length > 0;
-  const hasActive   = !!activeProject;
+interface MoneySplit { released: number; held: number; remaining: number }
 
-  let status: string;
-  let statusCls: string;
-  let title: string;
-  let desc: string;
-  let href: string;
-  let btnLabel: string;
+/**
+ * Where this project's money currently sits.
+ *
+ * Derived from stage payment state rather than from a running total, so it stays
+ * correct when a stage is approved out of order or a payment is reversed:
+ *   · released  — milestones actually paid out
+ *   · held      — milestones for stages under way but not yet released
+ *   · remaining — everything still locked ahead
+ */
+function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
+  const { total } = projectBudget(project);
 
-  if (!hasProjects) {
-    status    = 'Planning';
-    statusCls = 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey';
-    title     = "Let's get building";
-    desc      = 'Create your first project to start tracking your build from day one.';
-    href      = '/projects/new';
-    btnLabel  = 'Create project';
-  } else if (!hasActive) {
-    status    = 'Onboarding';
-    statusCls = 'bg-blue-50 text-blue-700 border-blue-200';
-    title     = 'Almost there';
-    desc      = 'Open a project and add your contractor to begin stage tracking.';
-    href      = '/projects';
-    btnLabel  = 'Open projects';
-  } else if (completedCount >= TOTAL_STAGES) {
-    status    = 'Completed';
-    statusCls = 'bg-green-50 text-green-700 border-green-200';
-    title     = 'Build complete';
-    desc      = 'All stages are done. Download your project summary and certificate.';
-    href      = `/projects/${activeProject.id}`;
-    btnLabel  = 'View project';
-  } else if (completedCount > 7) {
-    status    = 'Finishing';
-    statusCls = 'bg-green-50 text-green-700 border-green-200';
-    title     = 'Nearly there';
-    desc      = `${completedCount} of ${TOTAL_STAGES} stages done — prepare for handover on ${activeProject.name}.`;
-    href      = `/projects/${activeProject.id}`;
-    btnLabel  = 'View project';
-  } else if (completedCount >= 1) {
-    status    = 'Active';
-    statusCls = 'bg-blue-50 text-blue-700 border-blue-200';
-    title     = 'Build in progress';
-    desc      = `${completedCount} of ${TOTAL_STAGES} stages complete on ${activeProject.name}. Check your current stage and approve progress.`;
-    href      = `/projects/${activeProject.id}`;
-    btnLabel  = 'Open project';
-  } else {
-    // project exists but no stages done — could be dormant
-    const lastUpdated = activeProject.updated_at ? new Date(activeProject.updated_at) : null;
-    const daysSince   = lastUpdated ? Math.floor((Date.now() - lastUpdated.getTime()) / 86400000) : 999;
-    status    = daysSince > 7 ? 'Dormant' : 'Active';
-    statusCls = daysSince > 7
-      ? 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey'
-      : 'bg-blue-50 text-blue-700 border-blue-200';
-    title     = daysSince > 7 ? "We're still here" : 'Ready to build';
-    desc      = daysSince > 7
-      ? "It's been a while — pick up where you left off in a few clicks."
-      : `${activeProject.name} is set up and ready. Upload your first evidence to get started.`;
-    href      = `/projects/${activeProject.id}`;
-    btnLabel  = 'Open project';
+  let released = 0, held = 0;
+  for (const s of stages) {
+    const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, total);
+    if (s.payment_status === 'paid') released += amount;
+    else if (isActive(s)) held += amount;
   }
-
-  const lastActivity = activeProject?.updated_at
-    ? formatDate(activeProject.updated_at, 'short')
-    : null;
-
-  return (
-    <div className="bg-white dark:bg-[#1e1e1e] border border-brand-border-grey dark:border-[#2c2c2c] rounded-2xl px-5 py-4">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest">{t('dashboard.yourJourney')}</p>
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusCls}`}>
-            {status}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-brand-near-black dark:text-white leading-snug">{title}</p>
-          <p className="text-xs text-brand-mid-grey mt-1 leading-relaxed max-w-sm">{desc}</p>
-          {lastActivity && (
-            <p className="text-[10px] text-brand-mid-grey mt-2">Last activity: {lastActivity}</p>
-          )}
-        </div>
-        <Link to={href}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-xs font-semibold px-4 py-2.5 hover:opacity-90 transition-opacity whitespace-nowrap">
-          {btnLabel} <ArrowRight className="size-3" />
-        </Link>
-      </div>
-    </div>
-  );
+  return { released, held, remaining: Math.max(total - released - held, 0) };
 }
 
-// ── Progress velocity chart ────────────────────────────────
-
-function VelocityChart({ project, stages }: {
-  project: ProjectRow;
-  stages: ProjectStage[];
+function ActiveProjectHero({ project, stages, stagesLoading }: {
+  project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean;
 }) {
   const t = useT();
-  const [hoverX, setHoverX] = useState<number | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  const start      = new Date(project.created_at).getTime();
-  const now        = Date.now();
-  const plannedEnd = start + PREDICTED_DAYS * 86400000;
-  const chartEnd   = Math.max(now, plannedEnd) + 20 * 86400000;
-  const xSpan      = chartEnd - start;
-
-  const W = 460, H = 186;
-  const PL = 36, PR = 14, PT = 16, PB = 38;
-  const cw = W - PL - PR;
-  const ch = H - PT - PB;
-
-  const toX   = (t: number) => PL + ((t - start) / xSpan) * cw;
-  const toY   = (c: number) => PT + ((TOTAL_STAGES - c) / TOTAL_STAGES) * ch;
-  const fromX = (px: number) => start + ((px - PL) / cw) * xSpan;
-  const nowX  = toX(now);
-
-  // Planned line: steady linear from (start,0) → (plannedEnd, 10)
-  const plannedPts = [
-    { x: toX(start),      y: toY(0),            t: start,      c: 0 },
-    { x: toX(plannedEnd), y: toY(TOTAL_STAGES),  t: plannedEnd, c: TOTAL_STAGES },
-  ];
-
-  // Actual line: step-wise using real completed_at timestamps
-  const doneByDate = stages
-    .filter(s => s.status === 'complete' && s.completed_at)
-    .sort((a, b) => +new Date(a.completed_at!) - +new Date(b.completed_at!));
-
-  const actualPts: { x: number; y: number; t: number; c: number; name?: string }[] = [
-    { x: toX(start), y: toY(0), t: start, c: 0 },
-  ];
-  doneByDate.forEach((s, i) => {
-    const t = +new Date(s.completed_at!);
-    actualPts.push({ x: toX(t), y: toY(i + 1), t, c: i + 1, name: s.name });
-  });
-  const totalDone = stages.filter(s => s.status === 'complete').length;
-  // Extend to today (plateau at current count)
-  actualPts.push({ x: toX(now), y: toY(totalDone), t: now, c: totalDone });
-
-  // Monthly X ticks
-  const allMonths: { t: number; label: string }[] = [];
-  const md = new Date(project.created_at);
-  md.setDate(1);
-  md.setMonth(md.getMonth() + 1);
-  while (md.getTime() <= chartEnd) {
-    allMonths.push({ t: md.getTime(), label: formatDate(md, 'month') });
-    md.setMonth(md.getMonth() + 1);
-  }
-  const tickStep = allMonths.length <= 8 ? 1 : Math.ceil(allMonths.length / 8);
-  const months   = allMonths.filter((_, i) => i % tickStep === 0);
-
-  const yTicks = [0, 2, 4, 6, 8, 10];
-
-  // Hover helpers
-  const hoverT       = hoverX !== null ? fromX(hoverX) : null;
-  const hoverActual  = hoverT !== null
-    ? actualPts.reduce((b, p) => Math.abs(p.t - hoverT) < Math.abs(b.t - hoverT) ? p : b)
-    : null;
-  const hoverPlanned = hoverT !== null
-    ? Math.min(10, Math.max(0, ((hoverT - start) / (plannedEnd - start)) * 10))
-    : null;
-
-  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const px   = (e.clientX - rect.left) * (W / rect.width);
-    setHoverX(px >= PL && px <= W - PR ? px : null);
-  };
-
-  const polyStr = (pts: { x: number; y: number }[]) =>
-    pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-
-  const areaStr = [
-    ...actualPts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`),
-    `${actualPts.at(-1)!.x.toFixed(1)},${(PT + ch).toFixed(1)}`,
-    `${actualPts[0].x.toFixed(1)},${(PT + ch).toFixed(1)}`,
-  ].join(' ');
-
-  const fmtD = (t: number) => formatDate(t, 'medium');
-
-  return (
-    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
-      {/* Header + legend */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('dashboard.buildProgress')}</p>
-          <p className="text-xs text-brand-mid-grey mt-0.5">{t('dashboard.progressSub')}</p>
-        </div>
-        <div className="flex items-center gap-5">
-          <span className="flex items-center gap-1.5 text-[10px] font-medium text-brand-mid-grey">
-            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
-              <line x1="0" y1="5" x2="22" y2="5" stroke="#9ca3af" strokeWidth="2" strokeDasharray="4,3" />
-            </svg>
-            {t('dashboard.planned')}
-          </span>
-          <span className="flex items-center gap-1.5 text-[10px] font-medium text-blue-500">
-            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden>
-              <line x1="0" y1="5" x2="22" y2="5" stroke="#3b82f6" strokeWidth="2" />
-              <circle cx="11" cy="5" r="3" fill="#3b82f6" stroke="white" strokeWidth="1.5" />
-            </svg>
-            {t('dashboard.actual')}
-          </span>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="relative">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full"
-          preserveAspectRatio="none"
-          style={{ overflow: 'visible', height: '130px' }}
-          onMouseMove={handleMove}
-          onMouseLeave={() => setHoverX(null)}
-        >
-          {/* Y grid + labels */}
-          {yTicks.map(c => (
-            <g key={c}>
-              <line x1={PL} y1={toY(c)} x2={W - PR} y2={toY(c)}
-                stroke="var(--color-brand-border-grey)"
-                strokeWidth={c === 0 ? 1.2 : 0.6}
-                strokeDasharray={c === 0 ? undefined : '4,4'} />
-              <text x={PL - 5} y={toY(c) + 3.5} textAnchor="end" fontSize="9"
-                style={{ fill: 'var(--color-brand-mid-grey)', fontVariantNumeric: 'tabular-nums' }}>
-                {c}
-              </text>
-            </g>
-          ))}
-
-          {/* Y-axis title */}
-          <text x={9} y={PT + ch / 2} textAnchor="middle" fontSize="9"
-            transform={`rotate(-90, 9, ${PT + ch / 2})`}
-            style={{ fill: 'var(--color-brand-mid-grey)' }}>
-            {t('dashboard.stagesAxis')}
-          </text>
-
-          {/* X baseline */}
-          <line x1={PL} y1={PT + ch} x2={W - PR} y2={PT + ch}
-            stroke="var(--color-brand-border-grey)" strokeWidth="1.2" />
-
-          {/* Month ticks + labels */}
-          {months.map((m, i) => {
-            const x = toX(m.t);
-            if (x < PL || x > W - PR) return null;
-            return (
-              <g key={i}>
-                <line x1={x} y1={PT + ch} x2={x} y2={PT + ch + 4}
-                  stroke="var(--color-brand-border-grey)" strokeWidth="1" />
-                <text x={x} y={PT + ch + 15} textAnchor="middle" fontSize="9"
-                  style={{ fill: 'var(--color-brand-mid-grey)' }}>
-                  {m.label}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* X-axis title */}
-          <text x={PL + cw / 2} y={H - 1} textAnchor="middle" fontSize="9"
-            style={{ fill: 'var(--color-brand-mid-grey)' }}>
-            {t('dashboard.monthAxis')}
-          </text>
-
-          {/* TODAY marker */}
-          {nowX >= PL && nowX <= W - PR && (
-            <>
-              <line x1={nowX} y1={PT} x2={nowX} y2={PT + ch}
-                stroke="#ef4444" strokeWidth="1" strokeDasharray="3,3" opacity="0.45" />
-              <text x={nowX + 3} y={PT + 10} fontSize="8"
-                style={{ fill: '#ef4444' }} opacity="0.75">{t('dashboard.today')}</text>
-            </>
-          )}
-
-          {/* Planned line (dashed grey) */}
-          <polyline points={polyStr(plannedPts)}
-            fill="none" stroke="#9ca3af" strokeWidth="1.5"
-            strokeDasharray="5,4" strokeLinecap="round" />
-
-          {/* Actual area fill */}
-          {actualPts.length > 1 && (
-            <polygon points={areaStr} fill="rgba(59,130,246,0.07)" />
-          )}
-
-          {/* Actual line (solid blue) */}
-          <polyline points={polyStr(actualPts)}
-            fill="none" stroke="#3b82f6" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" />
-
-          {/* Data dots on actual */}
-          {actualPts.map((p, i) => {
-            if (i === 0) return null;
-            const isLast = i === actualPts.length - 1;
-            return (
-              <circle key={i} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)}
-                r={isLast ? 5 : 3.5}
-                fill="#3b82f6" stroke="white" strokeWidth={isLast ? 2 : 1.5} />
-            );
-          })}
-
-          {/* Hover crosshair ring */}
-          {hoverActual && (
-            <circle cx={hoverActual.x.toFixed(1)} cy={hoverActual.y.toFixed(1)} r={7}
-              fill="white" stroke="#3b82f6" strokeWidth="2" opacity="0.9" />
-          )}
-        </svg>
-
-        {/* Tooltip */}
-        {hoverActual && hoverPlanned !== null && (
-          <div
-            className="pointer-events-none absolute z-20 min-w-36 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#252525] shadow-lg px-3 py-2 text-xs"
-            style={{
-              left:      `${(hoverActual.x / W) * 100}%`,
-              top:       `${(hoverActual.y / H) * 100}%`,
-              transform: 'translate(-50%, calc(-100% - 10px))',
-            }}
-          >
-            <p className="font-semibold text-brand-near-black dark:text-white mb-1">
-              {hoverActual.c} of {TOTAL_STAGES} stages
-            </p>
-            {hoverActual.name && (
-              <p className="text-brand-mid-grey text-[10px] mb-0.5 truncate max-w-40">{hoverActual.name}</p>
-            )}
-            <p className="text-brand-mid-grey text-[10px]">{fmtD(hoverActual.t)}</p>
-            <p className="text-[10px] text-brand-mid-grey mt-1 pt-1 border-t border-brand-border-grey dark:border-[#333]">
-              Planned: {Math.round(hoverPlanned * 10) / 10} stages
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Stage Progress + Payment Schedule (merged) ─────────────
-// Each stage shows its name, status, and dollar allocation.
-
-function StageProgressPanel({
-  project, stages, stagesLoading,
-}: {
-  project: ProjectRow;
-  stages: ProjectStage[];
-  stagesLoading: boolean;
-}) {
   const { stageLabel } = useStageLabels();
-  const t = useT();
-  const total      = project.budget_usd ?? 0;
-  const totalPct   = stages.reduce((s, st) => s + (st.budget_pct ?? 0), 0) || 100;
-  const done       = stages.filter(isComplete).length;
-  const stageTotal = stages.length || TOTAL_STAGES;
-  const pct        = Math.round((done / stageTotal) * 100);
-  const currentStg = stages.find(isActive) ?? stages.find(isLocked);
+  const { buildingType } = useDomainLabels();
 
-  const spent     = stages.filter(isComplete).reduce((acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
-  const activeAmt = stages.filter(isActive).reduce(  (acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
-  const remaining = stages.filter(isLocked).reduce(  (acc, s) => acc + pctToDollars(s.budget_pct, total), 0);
+  const done    = stages.filter(isComplete).length;
+  const current = stages.find(isActive);
+  const pct     = stages.length ? Math.round((done / stages.length) * 100) : 0;
+  const { released, held, remaining } = moneySplit(project, stages);
+  const { total } = projectBudget(project);
+
+  const meta = [
+    buildingType(project.building_type),
+    [project.city, project.country].filter(Boolean).join(', '),
+    total > 0 ? formatUSDFull(total) : null,
+  ].filter(Boolean).join(' · ');
+
+  const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="rounded-2xl border border-[#333] bg-brand-near-black p-6 sm:p-7"
+    >
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
+          <span className={`size-1.5 rounded-full ${status.dot}`} />
+          {t(status.labelKey)}
+        </span>
+        <span className="shrink-0 text-[11px] text-white/40 tabular-nums">
+          {stagesLoading
+            ? '—'
+            : t('dashboard.hero.stageOf', { n: current?.stage_number ?? done, total: stages.length || TOTAL_STAGES })}
+        </span>
+      </div>
 
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-brand-off-white">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-brand-near-black">{t('dashboard.stageProgressTitle')}</h3>
-              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                pct === 100 ? 'bg-green-50 text-green-700 border-green-200'
-                  : pct > 0  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'bg-brand-off-white text-brand-mid-grey border-brand-border-grey'
-              }`}>
-                <TrendingUp className="size-2.5" />
-                {pct === 100 ? 'Complete' : pct > 0 ? 'On track' : 'Not started'}
-              </span>
-            </div>
-            <p className="text-xs text-brand-mid-grey">
-              {done} of {stageTotal} stages complete
-              {done < stageTotal && currentStg && (
-                <> — <strong className="text-brand-near-black">{currentStg.name}</strong> {isActive(currentStg) ? 'in progress' : 'up next'}</>
-              )}
+      <h2 className="text-xl font-bold text-white sm:text-2xl">{project.name}</h2>
+      <p className="mt-1 text-xs text-white/45">{meta}</p>
+
+      <div className="mt-5">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            className="h-full rounded-full bg-white"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[10px] text-white/40">
+          <span className="tabular-nums">{t('dashboard.hero.percentComplete', { pct })}</span>
+          <span className="truncate pl-3">
+            {current ? stageLabel(current) : t('dashboard.stageProgress.notStarted')}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-2.5">
+        {([
+          ['dashboard.hero.released',  released],
+          ['dashboard.hero.held',      held],
+          ['dashboard.hero.remaining', remaining],
+        ] as const).map(([labelKey, amount]) => (
+          <div key={labelKey} className="rounded-xl bg-white/6 px-3 py-2.5">
+            <p className="text-[9px] font-semibold text-white/40">{t(labelKey)}</p>
+            <p className="mt-0.5 text-base font-bold tabular-nums text-white">
+              {stagesLoading ? '—' : fmtShort(amount)}
             </p>
           </div>
-          <Link to={`/projects/${project.id}`}
-            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black transition-colors">
-            Open <ArrowRight className="size-3" />
-          </Link>
-        </div>
-
-        {/* Overall bar */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-[10px] text-brand-mid-grey mb-1.5">
-            <span className="font-semibold text-brand-near-black truncate max-w-40">{project.name}</span>
-            <span>{pct}% complete</span>
-          </div>
-          <HorizBar pct={pct} color="#22c55e" />
-        </div>
+        ))}
       </div>
 
-      {/* Mini budget summary */}
-      {total > 0 && stages.length > 0 && (
-        <div className="grid grid-cols-3 divide-x divide-brand-off-white border-b border-brand-off-white">
-          {[
-            { label: 'Spent',     amount: spent,     color: 'text-green-700' },
-            { label: 'Active',    amount: activeAmt, color: 'text-blue-700'  },
-            { label: 'Remaining', amount: remaining, color: 'text-brand-mid-grey' },
-          ].map(row => (
-            <div key={row.label} className="flex flex-col items-center py-3 px-2 gap-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-brand-mid-grey">{row.label}</span>
-              <span className={`text-sm font-black tabular-nums ${row.color}`}>{fmtShort(row.amount)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <Link
+        to={`/projects/${project.id}`}
+        className="group mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
+      >
+        {t('dashboard.hero.openProject')}
+        <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+    </motion.div>
+  );
+}
 
-      {/* Stage rows */}
-      <div className="flex-1 overflow-y-auto divide-y divide-brand-off-white">
-        {stagesLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3 animate-pulse">
-              <div className="size-6 rounded-full bg-brand-light-grey shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3 w-3/4 rounded bg-brand-light-grey" />
-                <div className="h-1.5 w-full rounded-full bg-brand-light-grey" />
-              </div>
-              <div className="h-4 w-12 rounded bg-brand-light-grey" />
-            </div>
-          ))
-        ) : stages.map((stage, i) => {
-          const done_     = isComplete(stage);
-          const active_   = isActive(stage);
-          const amount    = pctToDollars(stage.budget_pct, total);
-          const barW      = totalPct > 0 ? ((stage.budget_pct ?? 0) / totalPct) * 100 : 0;
-          const { label: badgeLabel, cls: badgeCls } = stageBadge(stage.status);
+// ── Quick actions (Design B) ───────────────────────────────
+// Four destinations with a live subtitle each, so the tile says what is waiting
+// rather than merely where it goes. Monochrome icons — no emoji anywhere.
 
-          return (
-            <motion.div
-              key={stage.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.025 }}
-              className={`flex items-start gap-3 px-4 py-3 ${active_ ? 'bg-blue-50/30' : ''}`}
-            >
-              {/* Status circle */}
-              <div className={`flex size-6 shrink-0 items-center justify-center rounded-full mt-0.5 text-[10px] font-bold ${
-                done_   ? 'bg-green-500 text-white'
-                  : active_ ? 'bg-blue-500 text-white'
-                  : stage.status === 'pending_review' ? 'bg-amber-400 text-white'
-                  : 'bg-brand-off-white text-brand-mid-grey border border-brand-border-grey'
-              }`}>
-                {done_   ? <Check className="size-3.5 stroke-3" />
-                  : active_ ? <CircleDot className="size-3" />
-                  : isLocked(stage) ? <Lock className="size-3 text-brand-mid-grey" />
-                  : <span>{stage.stage_number}</span>}
-              </div>
+function QuickActions({ project, unread, documentCount, contractorCount }: {
+  project: ProjectRow | undefined;
+  unread: number;
+  documentCount: number;
+  contractorCount: number;
+}) {
+  const t = useT();
 
-              {/* Stage details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <span className={`text-xs font-semibold leading-snug ${
-                    done_ ? 'line-through text-brand-mid-grey' : active_ ? 'text-brand-near-black' : 'text-brand-mid-grey'
-                  }`}>
-                    {stageLabel(stage)}
-                  </span>
-                  {/* Dollar amount */}
-                  {total > 0 && (
-                    <span className={`text-xs font-black tabular-nums shrink-0 ${
-                      done_ ? 'text-green-700' : active_ ? 'text-blue-700' : 'text-brand-mid-grey'
-                    }`}>
-                      {fmtShort(amount)}
-                    </span>
-                  )}
-                </div>
-                {/* Budget bar + pct + badge */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1 rounded-full bg-brand-light-grey overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: stageBarColor(stage.status) }}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${barW}%` }}
-                      transition={{ duration: 0.6, delay: 0.1 + i * 0.03, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <span className="text-[9px] tabular-nums text-brand-mid-grey shrink-0 w-6 text-right">
-                    {stage.budget_pct ?? 0}%
-                  </span>
-                  <span className={`text-[9px] font-semibold rounded-full px-1.5 py-0.5 shrink-0 border ${badgeCls}`}>
-                    {badgeLabel}
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+  const actions = [
+    {
+      to: project ? `/projects/${project.id}` : '/projects',
+      icon: Upload,
+      labelKey: 'dashboard.quick.evidence' as TKey,
+      sub: project
+        ? t('dashboard.quick.evidenceSub', { project: project.name })
+        : t('dashboard.quick.evidenceNone'),
+    },
+    {
+      to: '/notifications',
+      icon: MessageSquare,
+      labelKey: 'dashboard.quick.messages' as TKey,
+      sub: unread > 0
+        ? t('dashboard.quick.messagesSub', { count: unread })
+        : t('dashboard.quick.messagesNone'),
+    },
+    {
+      to: '/documents',
+      icon: FolderArchive,
+      labelKey: 'dashboard.quick.documents' as TKey,
+      sub: t('dashboard.quick.documentsSub', { count: documentCount }),
+    },
+    {
+      to: '/contractors',
+      icon: HardHat,
+      labelKey: 'dashboard.quick.contractors' as TKey,
+      sub: t('dashboard.quick.contractorsSub', { count: contractorCount }),
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {actions.map(({ to, icon: Icon, labelKey, sub }) => (
+        <Link
+          key={labelKey}
+          to={to}
+          className="group flex items-center gap-3.5 rounded-2xl border border-brand-border-grey bg-white p-4 transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-off-white transition-colors group-hover:bg-brand-near-black dark:bg-[#252525]">
+            <Icon className="size-4.5 text-brand-mid-grey transition-colors group-hover:text-white" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-brand-near-black dark:text-white">{t(labelKey)}</span>
+            <span className="block truncate text-xs text-brand-mid-grey">{sub}</span>
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }
@@ -702,32 +336,44 @@ function StageProgressPanel({
 
 // Shares the roll-up used by the project Overview donut. These two showed different
 // numbers for the same project before — 34%/2% here against 27%/9% there.
+//
+// Greyscale, not a hue per slice. Colour on this platform marks status — paid,
+// held, overdue — and spending it on four categories that carry no status makes
+// the one signal that does mean something harder to see. The ramp runs dark to
+// light in the same order as the legend, so a slice is identified by position and
+// by its label, and the chart survives being printed or read by a colourblind user.
+const COST_SHADES = ['#1f2937', '#4b5563', '#9ca3af', '#d1d5db'];
+
 const COST_CATS = [
-  { key: 'materials', label: 'Materials',         desc: 'Cement, blocks, rebar, fittings',     color: '#3b82f6', pct: BUDGET_ROLLUP_PCT.materials },
-  { key: 'labor',     label: 'Labor',             desc: 'Site workers + supervision',          color: '#22c55e', pct: BUDGET_ROLLUP_PCT.labor     },
-  { key: 'fees',      label: 'Professional Fees', desc: 'Architects, engineers, project mgmt', color: '#f59e0b', pct: BUDGET_ROLLUP_PCT.fees      },
-  { key: 'permits',   label: 'Permits & contingency', desc: 'Government approvals & reserve',  color: '#1f2937', pct: BUDGET_ROLLUP_PCT.permits   },
-];
+  { key: 'materials', labelKey: 'dashboard.costCats.materials.label', descKey: 'dashboard.costCats.materials.desc', shade: COST_SHADES[0], pct: BUDGET_ROLLUP_PCT.materials },
+  { key: 'labor',     labelKey: 'dashboard.costCats.labor.label',     descKey: 'dashboard.costCats.labor.desc',     shade: COST_SHADES[1], pct: BUDGET_ROLLUP_PCT.labor     },
+  { key: 'fees',      labelKey: 'dashboard.costCats.fees.label',      descKey: 'dashboard.costCats.fees.desc',      shade: COST_SHADES[2], pct: BUDGET_ROLLUP_PCT.fees      },
+  { key: 'permits',   labelKey: 'dashboard.costCats.permits.label',   descKey: 'dashboard.costCats.permits.desc',   shade: COST_SHADES[3], pct: BUDGET_ROLLUP_PCT.permits   },
+] satisfies { key: string; labelKey: TKey; descKey: TKey; shade: string; pct: number }[];
 
 function CostingDonut({ project }: { project: ProjectRow }) {
   const t = useT();
-  const total = project.budget_usd ?? 0;
+  // projectBudget resolves budget_usd ?? engine estimate — so a project the owner
+  // has not yet confirmed a budget for still shows its allocation instead of "no
+  // budget", and the amounts here can never disagree with the total beside them.
+  const { total } = projectBudget(project);
   const biggest = COST_CATS[0];
 
   const r = 68, cx = 100, cy = 100, circ = 2 * Math.PI * r, GAP = 3;
   let acc = 0;
 
   return (
-    <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
-      <h3 className="text-sm font-semibold text-brand-near-black dark:text-white mb-0.5">{t('dashboard.costingAllocation')}</h3>
-      <p className="text-xs text-brand-mid-grey mb-4">
+    <div className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h3 className="mb-0.5 text-sm font-semibold text-brand-near-black dark:text-white">{t('dashboard.costingAllocation')}</h3>
+      <p className="mb-4 text-xs text-brand-mid-grey">
         {total > 0
-          ? <>{t('dashboard.biggestCostPre')} <strong className="text-brand-near-black dark:text-white">{biggest.label}</strong> {biggest.pct}% {t('dashboard.biggestCostPost')}</>
-          : 'Budget breakdown by category'}
+          ? <>{t('dashboard.biggestCostPre')} <strong className="text-brand-near-black dark:text-white">{t(biggest.labelKey)}</strong> {biggest.pct}% {t('dashboard.biggestCostPost')}</>
+          : t('dashboard.costing.byCategory')}
       </p>
 
-      <div className="flex justify-center mb-4">
-        <svg viewBox="0 0 200 200" className="w-40 h-40">
+      <div className="mb-4 flex justify-center">
+        <svg viewBox="0 0 200 200" className="h-40 w-40" role="img"
+          aria-label={COST_CATS.map(c => `${t(c.labelKey)} ${c.pct}%`).join(', ')}>
           <g transform={`rotate(-90, ${cx}, ${cy})`}>
             {COST_CATS.map((cat) => {
               const fraction = cat.pct / 100;
@@ -737,7 +383,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
               return (
                 <circle key={cat.key}
                   cx={cx} cy={cy} r={r} fill="none"
-                  stroke={cat.color} strokeWidth="26"
+                  stroke={cat.shade} strokeWidth="26"
                   strokeDasharray={`${Math.max(vis, 0)} ${circ}`}
                   strokeDashoffset={off} strokeLinecap="butt"
                 />
@@ -761,144 +407,62 @@ function CostingDonut({ project }: { project: ProjectRow }) {
       <div className="space-y-2.5">
         {COST_CATS.map(cat => (
           <div key={cat.key} className="flex items-center gap-2">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-brand-near-black dark:text-white font-medium">{cat.label}</span>
-              <span className="text-[10px] text-brand-mid-grey ml-1">· {cat.desc}</span>
+            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.shade }} />
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-medium text-brand-near-black dark:text-white">{t(cat.labelKey)}</span>
+              <span className="ml-1 text-[10px] text-brand-mid-grey">· {t(cat.descKey)}</span>
             </div>
-            <span className="text-[10px] tabular-nums text-brand-mid-grey font-semibold">{cat.pct}%</span>
+            <span className="text-[10px] font-semibold tabular-nums text-brand-mid-grey">{cat.pct}%</span>
           </div>
         ))}
       </div>
 
       {total > 0 && (
-        <p className="text-[10px] text-brand-mid-grey mt-4 pt-3 border-t border-brand-border-grey dark:border-[#2c2c2c]">
-          Total estimated cost: {formatMoney(total)}.
+        <p className="mt-4 border-t border-brand-border-grey pt-3 text-[10px] text-brand-mid-grey dark:border-[#2c2c2c]">
+          {t('dashboard.costing.totalEstimated', { amount: formatMoney(total) })}
         </p>
       )}
     </div>
   );
 }
 
-// ── Platform newsfeed ──────────────────────────────────────
+// ── Other projects row (Design B) ──────────────────────────
+// Deliberately quieter than the hero: one line, no progress bar, no imagery. These
+// are builds you are not working on right now, and the page's job is to keep the
+// active one unambiguous.
 
-const FEED_ITEMS = [
-  {
-    id: 1,
-    icon: '🏗️',
-    title: 'Budget Breakdown v2 live',
-    body: 'Accurate construction rates now calibrated from real Cameroonian BQ data.',
-    age: '2d ago',
-  },
-  {
-    id: 2,
-    icon: '📋',
-    title: 'Stage certificates coming',
-    body: 'Auto-generated PDF certificates issued on every approved stage.',
-    age: '1w ago',
-  },
-  {
-    id: 3,
-    icon: '🌍',
-    title: '27 African markets',
-    body: 'Country coverage expanded — Cameroon, Nigeria, Kenya, South Africa and more.',
-    age: '2w ago',
-  },
-];
-
-function NewsfeedCard() {
+function OtherProjectRow({ project }: { project: ProjectRow }) {
   const t = useT();
-  return (
-    <div className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden flex flex-col">
-      <div className="px-5 py-3.5 border-b border-brand-off-white">
-        <p className="text-sm font-semibold text-brand-near-black">{t('dashboard.platformUpdates')}</p>
-      </div>
-      <div className="flex-1 divide-y divide-brand-off-white">
-        {FEED_ITEMS.map(item => (
-          <div key={item.id} className="flex items-start gap-3 px-5 py-3.5">
-            <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-brand-near-black leading-snug">{item.title}</p>
-              <p className="text-[10px] text-brand-mid-grey leading-relaxed mt-0.5">{item.body}</p>
-            </div>
-            <span className="text-[9px] text-brand-mid-grey shrink-0 mt-0.5 tabular-nums">{item.age}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Skeleton ───────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div className="rounded-2xl border border-brand-border-grey bg-white p-5 flex flex-col gap-3 animate-pulse">
-      <div className="flex justify-between">
-        <div className="h-3 w-14 rounded bg-brand-light-grey" />
-        <div className="h-5 w-16 rounded-full bg-brand-light-grey" />
-      </div>
-      <div className="h-5 w-2/3 rounded bg-brand-light-grey" />
-      <div className="h-3 w-1/2 rounded bg-brand-light-grey" />
-      <div className="h-2 w-full rounded-full bg-brand-light-grey mt-1" />
-    </div>
-  );
-}
-
-// ── Project card ───────────────────────────────────────────
-
-function ProjectCard({ project }: { project: ProjectRow }) {
-  const labels = useDomainLabels();
-  const t       = useT();
-  const tier    = TIER_META[project.tier] ?? TIER_META.self_verify;
-  const status  = PROJECT_STATUS_META[project.status as keyof typeof PROJECT_STATUS_META] ?? PROJECT_STATUS_META.active;
-  const done    = completedStages(project);
-  const pct     = Math.round((done / TOTAL_STAGES) * 100);
-  const loc     = [project.city, labels.country(project.country)].filter(Boolean).join(', ');
+  const { buildingType } = useDomainLabels();
+  const { total } = projectBudget(project);
+  const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
+  const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
 
   return (
-    <Link to={`/projects/${project.id}`}
-      className="group block rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${tier.color}`}>
-          {tier.icon} {t(tier.labelKey)}
-        </span>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
-          <span className={`size-1.5 rounded-full ${status.dot}`} />
-          {t(status.labelKey)}
-        </span>
+    <Link
+      to={`/projects/${project.id}`}
+      className="flex items-center gap-4 rounded-2xl border border-brand-border-grey bg-white p-4 transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+    >
+      <span className={`size-2 shrink-0 rounded-full ${status.dot}`} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-brand-near-black dark:text-white">{project.name}</p>
+        <p className="truncate text-xs text-brand-mid-grey">
+          {[
+            buildingType(project.building_type),
+            [project.city, project.country].filter(Boolean).join(', '),
+            t('dashboard.card.stages', { done: completedStages(project), total: TOTAL_STAGES }),
+          ].filter(Boolean).join(' · ')}
+        </p>
       </div>
-      <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
-      <div className="flex items-center gap-2 text-xs text-brand-mid-grey mb-4 flex-wrap">
-        <span className="flex items-center gap-1">
-          <Building2 className="size-3 shrink-0" />
-          {labels.buildingType(project.building_type)}
-        </span>
-        {loc && (
-          <>
-            <span className="text-brand-border-grey">·</span>
-            <span className="flex items-center gap-1"><MapPin className="size-3 shrink-0" />{loc}</span>
-          </>
-        )}
-      </div>
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-[10px] text-brand-mid-grey mb-1.5">
-          <span>{t('dashboard.card.stages', { done, total: TOTAL_STAGES })}</span>
-          <span className="font-semibold text-brand-near-black">{pct}%</span>
-        </div>
-        <HorizBar pct={pct} color="#22c55e" />
-      </div>
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('dashboard.card.estBudget')}</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">
-            {project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}
-          </p>
-        </div>
-        <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
-          {t('dashboard.card.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+      <div className="shrink-0 text-right">
+        <p className="text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
+          {total > 0 ? fmtShort(total) : '—'}
+        </p>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${tier.color}`}>
+          {tier.icon}{t(tier.labelKey)}
         </span>
       </div>
+      <ChevronRight className="size-4 shrink-0 text-brand-border-grey" />
     </Link>
   );
 }
@@ -941,7 +505,9 @@ export default function Dashboard() {
   const [loading,       setLoading]       = useState(true);
   const [activeStages,  setActiveStages]  = useState<ProjectStage[]>([]);
   const [stagesLoading, setStagesLoading] = useState(false);
-  const [totalPaid,     setTotalPaid]     = useState(0);
+  const [unreadCount,      setUnreadCount]      = useState(0);
+  const [documentCount,    setDocumentCount]    = useState(0);
+  const [contractorCount,  setContractorCount]  = useState(0);
 
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
@@ -953,34 +519,20 @@ export default function Dashboard() {
     p => p.tier === 'self_verify' || (p.tier as string) === 'starter'
   ).length >= STARTER_LIMIT;
 
-  const totalBudget   = projects.reduce((s, p) => s + (p.budget_usd ?? 0), 0);
-  const activeCount   = projects.filter(p => p.status === 'active').length;
-  const totalDone     = projects.reduce((s, p) => s + completedStages(p), 0);
-  const totalPossible = projects.length * TOTAL_STAGES;
 
   const activeProject = projects
     .filter(p => p.status === 'active')
     .sort((a, b) => new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime())[0]
     ?? projects[0];
 
-  const completedStageCount = activeStages.filter(s => s.status === 'complete').length;
 
   useEffect(() => {
     if (!user) return;
     const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
-    loader.then(ps => {
-      setProjects(ps);
-      if (ps.length > 0) {
-        supabase
-          .from('project_stages')
-          .select('payment_milestone_usd')
-          .in('project_id', ps.map(p => p.id))
-          .eq('payment_status', 'paid')
-          .then(({ data }) => {
-            setTotalPaid((data ?? []).reduce((s, r) => s + (r.payment_milestone_usd ?? 0), 0));
-          });
-      }
-    }).catch(() => {}).finally(() => setLoading(false));
+    loader
+      .then(setProjects)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [user, isContractor]);
 
   useEffect(() => {
@@ -988,7 +540,7 @@ export default function Dashboard() {
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at')
+      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, payment_status')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {
@@ -997,117 +549,116 @@ export default function Dashboard() {
       });
   }, [activeProject?.id]);
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
+  // Counts behind the quick-action subtitles. Head-only queries — we want the
+  // number, never the rows. Failures leave the count at 0 and the tile still
+  // works as a link, so a slow table never blocks the dashboard rendering.
+  useEffect(() => {
+    if (!user || projects.length === 0) return;
+    const ids = projects.map(p => p.id);
 
-      {/* Page header */}
-      <div className="flex items-center justify-between gap-4">
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('read_at', null)          // unread is a null timestamp, not a boolean
+      .then(({ count }) => setUnreadCount(count ?? 0));
+
+    supabase
+      .from('project_documents')
+      .select('id', { count: 'exact', head: true })
+      .in('project_id', ids)
+      .then(({ count }) => setDocumentCount(count ?? 0));
+
+    supabase
+      .from('contractor_invites')
+      .select('id', { count: 'exact', head: true })
+      .in('project_id', ids)
+      .eq('status', 'accepted')
+      .then(({ count }) => setContractorCount(count ?? 0));
+  }, [user, projects]);
+
+  const otherProjects = projects.filter(p => p.id !== activeProject?.id);
+
+  return (
+    // Design B: focus-forward. One active build owns the top of the page; everything
+    // else is secondary. The dense stat grid Design A used lives on /projects now.
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-24 sm:px-6 md:pb-8">
+
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">{t('dashboard.title')}</h1>
-          <p className="text-sm text-brand-mid-grey mt-0.5">{t('dashboard.subtitle')}</p>
+          <p className="text-xs text-brand-mid-grey">{t(greetingKey())}</p>
+          <h1 className="mt-1 text-2xl font-bold text-brand-near-black dark:text-white">{displayName}</h1>
         </div>
         {!isContractor && !atStarterLimit && (
           <Link to="/projects/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-5 py-2.5 hover:bg-black transition-colors shrink-0">
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
             <Plus className="size-4" /> {t('dashboard.newProject')}
           </Link>
         )}
       </div>
 
-      {/* Profile completion */}
       {!loading && !isContractor && (
         <ProfileCompletion nameSet={nameSet} idUploaded={idUploaded} hasProject={projects.length > 0} />
       )}
 
-      {/* Journey card */}
-      {!loading && !isContractor && (
-        <JourneyCard projects={projects} activeProject={activeProject} completedCount={completedStageCount} />
+      {loading ? (
+        <div className="h-72 animate-pulse rounded-2xl bg-brand-light-grey dark:bg-[#1e1e1e]" />
+      ) : activeProject ? (
+        <>
+          <ActiveProjectHero
+            project={activeProject}
+            stages={activeStages}
+            stagesLoading={stagesLoading}
+          />
+
+          <QuickActions
+            project={activeProject}
+            unread={unreadCount}
+            documentCount={documentCount}
+            contractorCount={contractorCount}
+          />
+
+          <CostingDonut project={activeProject} />
+        </>
+      ) : isContractor ? (
+        <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">
+          {t('dashboard.empty.contractor')}
+        </div>
+      ) : (
+        <EmptyBuilds />
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label={t('dashboard.stats.projects')}    value={loading ? '—' : String(projects.length)}
-          sub={t('dashboard.stats.activeSuffix', { count: activeCount })} icon={FolderOpen} accent />
-        <StatCard label={t('dashboard.stats.totalBudget')} value={loading ? '—' : fmtShort(totalBudget)}
-          sub={t('dashboard.stats.acrossAll')} icon={Wallet} />
-        <StatCard label={t('dashboard.stats.totalPaid')}   value={loading ? '—' : fmtShort(totalPaid)}
-          sub={totalPaid > 0
-            ? t('dashboard.stats.outstanding', { amount: fmtShort(totalBudget - totalPaid) })
-            : t('dashboard.stats.noPayments')} icon={CreditCard} />
-        <StatCard label={t('dashboard.stats.stagesDone')}  value={loading ? '—' : `${totalDone}/${totalPossible || '—'}`}
-          sub={totalPossible > 0
-            ? t('dashboard.stats.percentDone', { pct: Math.round((totalDone / totalPossible) * 100) })
-            : t('dashboard.stats.noStages')} icon={CheckCircle2} />
-      </div>
-
-      {/* Analytics — active project */}
-      {!loading && activeProject ? (
-        <>
-          {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
-            <div className="lg:col-span-3">
-              <StageProgressPanel
-                project={activeProject}
-                stages={activeStages}
-                stagesLoading={stagesLoading}
-              />
-            </div>
-            <div className="lg:col-span-2 flex flex-col gap-4">
-              <CostingDonut project={activeProject} />
-              <NewsfeedCard />
-            </div>
-          </div>
-
-        </>
-      ) : !loading && projects.length === 0 && !isContractor ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { icon: <Building2 className="size-5 text-brand-mid-grey" />,    title: t('dashboard.tips.createTitle'),     desc: t('dashboard.tips.createDesc')     },
-            { icon: <HardHat   className="size-5 text-brand-mid-grey" />,    title: t('dashboard.tips.contractorTitle'), desc: t('dashboard.tips.contractorDesc') },
-            { icon: <CheckCircle2 className="size-5 text-brand-mid-grey" />, title: t('dashboard.tips.approveTitle'),    desc: t('dashboard.tips.approveDesc')    },
-          ].map(tip => (
-            <div key={tip.title} className="bg-white rounded-2xl border border-brand-border-grey p-5">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-brand-off-white mb-3">{tip.icon}</div>
-              <p className="text-sm font-semibold text-brand-near-black mb-1">{tip.title}</p>
-              <p className="text-xs text-brand-mid-grey leading-relaxed">{tip.desc}</p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {/* Recent projects */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-brand-near-black">{t('dashboard.recentProjects')}</h2>
-          {projects.length > 0 && (
-            <Link to="/projects" className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black transition-colors">
+      {otherProjects.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold tracking-wide text-brand-mid-grey">
+              {t('dashboard.otherProjects')}
+            </h2>
+            <Link to="/projects" className="text-xs font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black">
               {t('common.viewAll')} →
             </Link>
-          )}
-        </div>
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SkeletonCard /><SkeletonCard /><SkeletonCard />
           </div>
-        ) : projects.length === 0 ? (
-          isContractor
-            ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">
-                {t('dashboard.empty.contractor')}
-              </div>
-            : <EmptyBuilds />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {projects.slice(0, 4).map((p, i) => (
+          <div className="space-y-2.5">
+            {otherProjects.slice(0, 3).map((p, i) => (
               <motion.div key={p.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}>
-                <ProjectCard project={p} />
+                transition={{ delay: i * 0.06 }}>
+                <OtherProjectRow project={p} />
               </motion.div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!loading && !isContractor && projects.length > 0 && !atStarterLimit && (
+        <Link
+          to="/projects/new"
+          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-border-grey py-4 text-sm font-semibold text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black"
+        >
+          <Plus className="size-4" /> {t('dashboard.newProject')}
+        </Link>
+      )}
     </div>
   );
 }

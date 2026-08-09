@@ -9,40 +9,39 @@ import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Status icon ───────────────────────────────────────────
 
+// Rounded SQUARE, not a circle — Design B's check-marks are checkboxes, and a
+// checkbox reads as "this is a thing that gets ticked off" in a way a status dot
+// does not. The distinct states are kept: a lock and an awaiting-review clock say
+// more than an empty box, and the camera marks evidence uploaded but not yet
+// submitted, which is the state a contractor most often needs to see.
 function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEvidence: boolean }) {
+  const box = 'flex size-4 shrink-0 items-center justify-center rounded border-[1.5px]';
+
   if (status === 'complete') {
     return (
-      <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-brand-near-black">
+      <span className={cn(box, 'border-brand-near-black bg-brand-near-black')}>
         <Check className="size-2.5 text-white" strokeWidth={3.5} />
       </span>
     );
   }
   if (status === 'pending_review') {
     return (
-      <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-amber-400 bg-amber-50">
+      <span className={cn(box, 'border-amber-400 bg-amber-50')}>
         <Clock className="size-2.5 text-amber-500" />
       </span>
     );
   }
   if (status === 'locked') {
-    return (
-      <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-brand-border-grey">
-        <Lock className="size-2 text-brand-border-grey" />
-      </span>
-    );
+    return <span className={cn(box, 'border-brand-border-grey')}><Lock className="size-2 text-brand-border-grey" /></span>;
   }
   if (hasEvidence) {
-    return (
-      <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-brand-near-black">
-        <Camera className="size-2.5 text-brand-near-black" />
-      </span>
-    );
+    return <span className={cn(box, 'border-brand-near-black')}><Camera className="size-2.5 text-brand-near-black" /></span>;
   }
-  // pending / in_progress
+  // pending / in_progress — an empty box, pulsing so the next action is findable.
   return (
     <span className="relative flex size-4 shrink-0 items-center justify-center">
-      <span className="absolute size-4 rounded-full border border-brand-near-black opacity-30 animate-ping" />
-      <span className="relative size-2.5 rounded-full border-2 border-brand-near-black" />
+      <span className="absolute size-4 rounded border-[1.5px] border-brand-near-black opacity-30 animate-ping" />
+      <span className={cn(box, 'relative border-brand-border-grey')} />
     </span>
   );
 }
@@ -50,6 +49,7 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
 // ── Evidence thumbnails (inline, compact) ─────────────────
 
 function EvidencePills({ urls }: { urls: string[] }) {
+  const t = useT();
   if (urls.length === 0) return null;
   return (
     <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
@@ -61,7 +61,7 @@ function EvidencePills({ urls }: { urls: string[] }) {
             className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2 py-0.5 text-[10px] text-brand-mid-grey"
           >
             <Camera className="size-2.5 shrink-0" />
-            {isImage ? `Photo ${i + 1}` : `File ${i + 1}`}
+            {isImage ? t('project.stages.photoN', { n: i + 1 }) : t('project.stages.fileN', { n: i + 1 })}
           </span>
         );
       })}

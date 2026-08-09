@@ -16,11 +16,15 @@ const TAB_SLUGS: Record<GuideTab, string[]> = {
   messages:  ['hiring-a-contractor', 'reading-site-evidence', 'site-visit-checklist'],
 };
 
+// One neutral chip for every category. The category is already spelled out in the
+// chip; a hue per category added nothing a reader could act on, and it competed with
+// the stage-status colours on the same screen. Kept as a map rather than collapsed to
+// a constant so a category can be given emphasis later without restructuring callers.
 const CATEGORY_STYLE: Record<ResourceCategory, string> = {
-  guides:       'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
-  checklists:   'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400',
-  legalFinance: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
-  videos:       'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400',
+  guides:       'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey',
+  checklists:   'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey',
+  legalFinance: 'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey',
+  videos:       'bg-brand-off-white dark:bg-[#252525] text-brand-mid-grey',
 };
 
 interface RelatedGuidesProps {

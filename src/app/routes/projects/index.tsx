@@ -8,7 +8,7 @@ import {
 import { useAuth }               from '@/contexts/AuthContext';
 import { fetchProjects }         from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
-import { formatUSDFull }         from '@/lib/budget';
+import { formatUSDFull, projectBudget } from '@/lib/budget';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -16,13 +16,15 @@ import { useDomainLabels } from '@/lib/domain-labels';
 const STARTER_LIMIT = 3;
 const TOTAL_STAGES  = 10;
 
+// Tier is an identity, not a status, so it carries no hue — colour here is reserved
+// for state (active / on hold / complete), which is what a scan of this grid is for.
 const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
   self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
+  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
   starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-blue-600'       },
-  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-purple-600'     },
+  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
+  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
 };
 
 const STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
@@ -65,6 +67,9 @@ function ProjectCard({ project }: { project: ProjectRow }) {
   const done   = completedStages(project);
   const pct    = Math.round((done / TOTAL_STAGES) * 100);
   const loc    = [project.city, labels.country(project.country)].filter(Boolean).join(', ');
+  // budget_usd is null until the owner confirms one in Step 11; projectBudget falls
+  // back to the engine estimate so the card shows a figure rather than an em dash.
+  const budget = projectBudget(project).total;
 
   return (
     <Link to={`/projects/${project.id}`}
@@ -90,7 +95,7 @@ function ProjectCard({ project }: { project: ProjectRow }) {
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('projects.estBudget')}</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">{project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}</p>
+          <p className="text-sm font-bold text-brand-near-black tabular-nums">{budget > 0 ? formatUSDFull(budget) : '—'}</p>
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
           {t('common.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -159,7 +164,11 @@ export default function ProjectsIndex() {
             {t('projects.starterUsed', { used: starterCount, limit: STARTER_LIMIT })}
             {atStarterLimit && ` ${t('projects.limitReached')}`}
           </span>
-          {atStarterLimit && <span className="text-xs font-semibold text-amber-700">{t('projects.upgradeNudge')}</span>}
+          {atStarterLimit && (
+            <Link to="/upgrade" className="shrink-0 text-xs font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-900">
+              {t('projects.upgradeNudge')}
+            </Link>
+          )}
         </div>
       )}
 
