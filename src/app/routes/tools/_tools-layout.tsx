@@ -1,56 +1,37 @@
 import { Outlet, Link } from 'react-router';
-import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { SiteNav } from '@/components/shell/SiteNav';
+import { SiteFooter } from '@/components/shell/SiteFooter';
 import { useT } from '@/lib/i18n';
 
+/**
+ * Free public planning tools. Wears the same navbar and footer as the rest of
+ * the public site; the breadcrumb below them is the only tools-specific chrome,
+ * since these pages sit two levels down and the nav alone doesn't say where.
+ */
 export default function ToolsLayout() {
   const t = useT();
 
   return (
-    <div className="min-h-screen bg-white dark:bg-brand-rich-black font-sans">
-      {/* Slim branded header */}
-      <header className="sticky top-0 z-30 border-b border-brand-border-grey dark:border-[#2c2c2c] bg-white/80 dark:bg-brand-rich-black/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" aria-label="Groundwork home">
-              <GroundworkLogo size="sm" />
-            </Link>
-            <span className="text-brand-border-grey dark:text-[#444] select-none">/</span>
-            <Link to="/tools" className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors">
-              {t('nav.freeTools')}
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/auth/login"
-              className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors hidden sm:block"
-            >
-              {t('common.signIn')}
-            </Link>
-            <LanguageToggle segmented />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-white font-sans dark:bg-brand-rich-black">
+      <SiteNav />
 
-      <main>
+      <div className="border-b border-brand-border-grey dark:border-[#2c2c2c]">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6">
+          <Link to="/" className="text-xs font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
+            {t('nav.groundwork')}
+          </Link>
+          <span className="select-none text-brand-border-grey dark:text-[#444]">/</span>
+          <Link to="/tools" className="text-xs font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
+            {t('nav.freeTools')}
+          </Link>
+        </div>
+      </div>
+
+      <main className="flex-1">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-brand-off-white dark:border-[#1f1f1f] mt-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-brand-mid-grey">
-            Groundwork by Jalla · Free planning tools for African construction
-          </p>
-          <div className="flex items-center gap-4 text-xs text-brand-mid-grey">
-            <Link to="/tools" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('nav.tools')}</Link>
-            <Link to="/pricing" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('nav.pricing')}</Link>
-            <Link to="/auth/signup" className="hover:text-brand-near-black dark:hover:text-white transition-colors">{t('common.createAccount')}</Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

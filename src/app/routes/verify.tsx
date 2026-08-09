@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, Download, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, Download } from 'lucide-react';
 import { getCertificate } from '@/lib/supabase/certificates';
-import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 
 interface CertRow {
   id: string;
@@ -40,36 +39,25 @@ export default function VerifyCertificate() {
   }, [id]);
 
   return (
-    <div className="min-h-screen bg-brand-off-white flex flex-col">
-      {/* Nav */}
-      <nav className="border-b border-brand-border-grey bg-white px-6 py-4 flex items-center justify-between">
-        <GroundworkLogo linkTo="/" size="md" />
-        <Link
-          to="/"
-          className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-          Back to Groundwork
-        </Link>
-      </nav>
-
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
+    // Navbar and footer come from routes/_public-layout.tsx. The authenticity
+    // note below is page content, not chrome — it is about this certificate.
+    <div className="flex flex-col bg-brand-off-white">
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-16">
         {loading ? (
-          <div className="h-8 w-8 rounded-full border-2 border-brand-border-grey border-t-brand-near-black animate-spin" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-border-grey border-t-brand-near-black" />
         ) : notFound ? (
           <NotFound />
         ) : cert ? (
           <CertificateCard cert={cert} />
         ) : null}
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-brand-border-grey bg-white px-6 py-4 text-center">
-        <p className="text-xs text-brand-mid-grey">
-          This certificate was issued by Groundwork by Jalla. Verify its authenticity at{' '}
-          <span className="text-brand-near-black font-medium">tryjalla.com/verify/{id}</span>
-        </p>
-      </footer>
+        {cert && (
+          <p className="mt-8 max-w-md text-center text-xs text-brand-mid-grey">
+            This certificate was issued by Groundwork by Jalla. Verify its authenticity at{' '}
+            <span className="font-medium text-brand-near-black">tryjalla.com/verify/{id}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

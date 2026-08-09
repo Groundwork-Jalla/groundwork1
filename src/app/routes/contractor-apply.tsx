@@ -1,7 +1,5 @@
-import { Link } from "react-router";
 import { useForceLight } from "@/hooks/useForceLight";
 import BackToTop from "@/components/ui/BackToTop";
-import { GroundworkLogo } from "@/components/ui/GroundworkLogo";
 import ContractorHero from "@/components/contractor/ContractorHero";
 import RealitySection from "@/components/contractor/RealitySection";
 import IntroducingJalla from "@/components/contractor/IntroducingJalla";
@@ -13,35 +11,14 @@ import HowItWorks from "@/components/contractor/HowItWorks";
 import ContractorComparison from "@/components/contractor/ContractorComparison";
 import SocialProof from "@/components/contractor/SocialProof";
 import ContractorCTA from "@/components/contractor/ContractorCTA";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { useT } from "@/lib/i18n";
 
 export default function ContractorApply() {
   useForceLight();
-  const t = useT();
 
   return (
+    // Navbar comes from routes/_public-layout.tsx. Its contractor button becomes the
+    // "#apply" jump on this page — see components/shell/SiteNav.tsx.
     <div className="bg-white overflow-x-clip">
-      <nav className="sticky top-0 z-50 bg-brand-near-black border-b border-white/10 px-4 sm:px-7 py-3.5">
-        <div className="max-w-275 mx-auto flex items-center justify-between">
-          <GroundworkLogo variant="light" size="lg" linkTo="/" />
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageToggle segmented onDark />
-            {/* Jumps to the application form without scrolling the whole page.
-                ContractorCTA opens the form when the hash is #apply, so this lands on the
-                form itself rather than on its collapsed CTA button. */}
-            <a
-              href="#apply"
-              className="inline-flex items-center rounded-md border border-white/25 px-3 py-2 text-[11px] sm:text-xs font-semibold text-white hover:bg-white/10 transition-colors whitespace-nowrap"
-            >
-              {t('contractorApply.nav.apply')}
-            </a>
-            <Link to="/" className="hidden sm:inline text-xs text-white/60 hover:text-white transition-colors">
-              ← {t('contractorApply.backToHome')}
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       <ContractorHero />
       <RealitySection />
@@ -55,17 +32,8 @@ export default function ContractorApply() {
       <SocialProof />
       <ContractorCTA />
 
+      {/* Footer comes from routes/_public-layout.tsx. */}
       <BackToTop />
-      <footer className="border-t border-brand-border-grey py-7 text-center">
-        <span className="font-sans text-[15px] font-semibold text-brand-near-black">Jalla</span>
-        <span className="text-[8px] text-brand-mid-grey tracking-[0.12em] ml-1.5">{t('contractorApply.footer.firm')}</span>
-        <p className="text-[11px] text-brand-mid-grey mt-1">
-          © {new Date().getFullYear()} Jalla. ·{" "}
-          <Link to="/" className="underline">
-            {t('common.backToHome')}
-          </Link>
-        </p>
-      </footer>
     </div>
   );
 }

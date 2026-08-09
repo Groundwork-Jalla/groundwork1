@@ -1,4 +1,3 @@
-import LandingNav from "./LandingNav";
 import HeroSection from "./HeroSection";
 import StatsBar from "./StatsBar";
 import WhatJallaDoes from "./WhatJallaDoes";
@@ -7,14 +6,14 @@ import RiskSection from "./RiskSection";
 import PlatformCarousel from "./PlatformCarousel";
 import WhyUseJalla from "./WhyUseJalla";
 import CTASection from "./CTASection";
-import FooterSection from "./FooterSection";
 import SocialProofToast from "./SocialProofToast";
 import BackToTop from "@/components/ui/BackToTop";
 
+// The navbar and footer come from routes/_public-layout.tsx now, shared with
+// every other public page — see components/shell/SiteNav.tsx.
 export default function LandingPage() {
   return (
     <div className="overflow-x-clip">
-      <LandingNav />
       <HeroSection />
       <StatsBar />
       <WhatJallaDoes />
@@ -23,7 +22,6 @@ export default function LandingPage() {
       <PlatformCarousel />
       <WhyUseJalla />
       <CTASection />
-      <FooterSection />
       <SocialProofToast />
       <BackToTop />
     </div>

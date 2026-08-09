@@ -2,15 +2,17 @@ import { route, layout } from "@react-router/dev/routes";
 import type { RouteConfig } from "@react-router/dev/routes";
 
 export default [
-  // Public pages
-  route("/",                   "routes/landing.tsx"),
-  route("contractor-apply",    "routes/contractor-apply.tsx"),
-  route("community",           "routes/community.tsx"),
-  route("pricing",             "routes/pricing.tsx"),
-  route("verify/:id",          "routes/verify.tsx"),
-  // Required by Google OAuth verification and Stripe before going live.
-  route("privacy",             "routes/privacy.tsx"),
-  route("terms",               "routes/terms.tsx"),
+  // Public pages — all share the site navbar and footer
+  layout("routes/_public-layout.tsx", [
+    route("/",                 "routes/landing.tsx"),
+    route("contractor-apply",  "routes/contractor-apply.tsx"),
+    route("community",         "routes/community.tsx"),
+    route("pricing",           "routes/pricing.tsx"),
+    route("verify/:id",        "routes/verify.tsx"),
+    // Required by Google OAuth verification and Stripe before going live.
+    route("privacy",           "routes/privacy.tsx"),
+    route("terms",             "routes/terms.tsx"),
+  ]),
 
   // Auth routes (public) — shared architectural layout
   layout("routes/_auth-layout.tsx", [

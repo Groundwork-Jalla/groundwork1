@@ -690,6 +690,11 @@ export const fr: Mirror<EnDict> = {
     viewProfile:    'Voir le profil',
     skipToContent:  'Aller au contenu principal',
     groundwork:     'Groundwork',
+    overview:       'Aperçu',
+    reviews:        'Vérifications',
+    budgets:        'Budgets',
+    users:          'Utilisateurs',
+    admin:          'Administration',
   },
 
   // ── Page d'accueil ────────────────────────────────────────

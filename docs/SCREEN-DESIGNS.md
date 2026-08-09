@@ -49,22 +49,24 @@ These apply to every screen above, not to any one of them:
 - **High fidelity and dynamic.** Screens are built to the finished visual standard —
   real type hierarchy, real spacing, real states — and driven by live data with loading,
   empty, and error states. No static mockup fidelity, no placeholder-only screens.
-- **One shell, used everywhere.** The sidebar must be identical on every page that has
-  one, and the navbar and footer must appear on every screen. Today they are not:
+- **One shell, used everywhere.** ✅ Done 9 Aug 2026. `src/components/shell/` holds the
+  single implementation; layouts apply it, pages never import it.
 
-  | Surface | Today |
-  |---|---|
-  | App pages (`_layout.tsx`) | sidebar A |
-  | Admin pages (`admin/_admin-layout.tsx`) | sidebar B — a second, divergent implementation |
-  | `landing` | footer via `FooterSection`, no shared nav |
-  | `pricing`, `verify` | their own hand-rolled Nav + Footer |
-  | `privacy`, `terms` | `LegalPage`'s own chrome |
-  | `contractor-apply`, `community` | **neither nav nor footer** |
-  | `projects/new` | full-screen wizard — deliberately exempt |
+  | Component | Applied by | Covers |
+  |---|---|---|
+  | `AppShell` + `AppSidebar` | `_layout.tsx`, `admin/_admin-layout.tsx` | every signed-in page |
+  | `SiteNav` + `SiteFooter` | `_public-layout.tsx`, `tools/_tools-layout.tsx` | every signed-out page |
 
-  Target: one `<AppSidebar>`, one `<SiteNav>`, one `<SiteFooter>`, applied through the
-  route layouts rather than imported per page. The wizard stays exempt by design —
-  `WizardShell` owns the viewport.
+  `projects/new` stays exempt by design — `WizardShell` owns the viewport.
+
+  Nav destinations live in `shell/nav-config.ts` as data, so the sidebar, the mobile
+  drawer and the mobile tab bar cannot disagree about what exists. A new page is added
+  there, not in three components.
+
+  What this removed: a second divergent admin sidebar (different radii and padding,
+  hardcoded English labels, and no mobile navigation at all — the admin area was
+  unusable on a phone), three hand-rolled public navbars, and three hand-rolled
+  footers. `contractor-apply` and `community` had no navbar or footer whatsoever.
 - **Translation.** Every screen must be fully translated. `en.ts` is the source of
   truth and `fr.ts` is typed `Mirror<EnDict>`, so `npx tsc --noEmit` proves key parity —
   but it cannot catch a hardcoded English string that never entered the dictionary.

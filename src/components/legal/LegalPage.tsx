@@ -1,7 +1,5 @@
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
-import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useForceLight } from '@/hooks/useForceLight';
 import { useLanguage } from '@/lib/i18n';
 import type { LegalDoc } from '@/lib/legal/content';
@@ -20,24 +18,8 @@ export default function LegalPage({ doc }: { doc: Record<Lang, LegalDoc> }) {
   const d = doc[lang] ?? doc.en;
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Nav — same shell as /pricing */}
-      <nav className="border-b border-brand-border-grey px-5 sm:px-8 py-4 flex items-center justify-between">
-        <GroundworkLogo linkTo="/" />
-        <div className="flex items-center gap-4">
-          <LanguageToggle segmented />
-          <Link to="/auth/login" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
-            {t('common.logIn')}
-          </Link>
-          <Link
-            to="/auth/signup"
-            className="text-sm font-semibold bg-brand-near-black text-white px-4 py-2 rounded-xl hover:bg-black transition-colors"
-          >
-            {t('common.getStarted')}
-          </Link>
-        </div>
-      </nav>
-
+    // Navbar and footer come from routes/_public-layout.tsx.
+    <div className="bg-white font-sans">
       <motion.article
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

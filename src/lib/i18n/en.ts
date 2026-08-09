@@ -671,6 +671,13 @@ export const en = {
     viewProfile:    'View profile',
     skipToContent:  'Skip to main content',
     groundwork:     'Groundwork',
+    // Admin shell. Previously hardcoded English in the admin layout, which is why
+    // the admin area stayed in English however the language was set.
+    overview:       'Overview',
+    reviews:        'Reviews',
+    budgets:        'Budgets',
+    users:          'Users',
+    admin:          'Admin',
   },
 
   // ── Landing page ──────────────────────────────────────────

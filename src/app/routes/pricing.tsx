@@ -2,8 +2,6 @@ import { Link } from 'react-router';
 import { useForceLight } from '@/hooks/useForceLight';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-react';
-import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────
@@ -186,24 +184,8 @@ export default function PricingPage() {
   const t = useT();
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Nav */}
-      <nav className="border-b border-brand-border-grey px-5 sm:px-8 py-4 flex items-center justify-between">
-        <GroundworkLogo linkTo="/" />
-        <div className="flex items-center gap-4">
-          <LanguageToggle segmented />
-          <Link to="/auth/login" className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors">
-            {t('common.logIn')}
-          </Link>
-          <Link
-            to="/auth/signup"
-            className="text-sm font-semibold bg-brand-near-black text-white px-4 py-2 rounded-xl hover:bg-black transition-colors"
-          >
-            {t('common.getStarted')}
-          </Link>
-        </div>
-      </nav>
-
+    // Navbar and footer come from routes/_public-layout.tsx.
+    <div className="bg-white font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
 
         {/* Hero */}
@@ -269,14 +251,6 @@ export default function PricingPage() {
         </motion.div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-brand-border-grey px-5 sm:px-8 py-6 flex items-center justify-between text-xs text-brand-mid-grey">
-        <span>© {new Date().getFullYear()} Jalla. {t('common.allRightsReserved')}</span>
-        <div className="flex items-center gap-4">
-          <Link to="/" className="hover:text-brand-near-black transition-colors">{t('community.home')}</Link>
-          <Link to="/community" className="hover:text-brand-near-black transition-colors">{t('nav.community')}</Link>
-        </div>
-      </footer>
     </div>
   );
 }
