@@ -70,8 +70,8 @@ const FAQ_SECTIONS: FaqSection[] = [
         a: "Full Stripe integration for contractor payments is in active development. For now, you can record payments manually inside each project's Payments tab.",
       },
       {
-        q: 'What is Switchr?',
-        a: 'Switchr is our mobile money payout partner for the XAF/FCFA corridor (Cameroon). When Stripe hold-and-release is live, contractor payouts in Cameroon will be processed via Switchr.',
+        q: 'How does my contractor get paid?',
+        a: 'Funds are held in a secure wallet and released only when a stage is verified. In Cameroon the payout reaches your contractor as mobile money in XAF, so they receive local currency without a bank transfer. Our payment providers are named in the Privacy Policy.',
       },
     ],
   },

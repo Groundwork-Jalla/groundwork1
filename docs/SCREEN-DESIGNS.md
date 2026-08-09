@@ -37,7 +37,7 @@ the decision, not suggestions. Most originate in the 3 Aug UI review with Philip
 | Notifications | **B** ✅ done 9 Aug | + A's filter chips, Mark-all-read and unread dots. B's NEW / EARLIER grouping added — split on unread-vs-read rather than a date window, so a 3-day-old unread approval stays at the top where it still needs action. Whole screen translated (was hardcoded English) |
 | Resources | **A** ✅ done 9 Aug | Coloured tag highlights removed — all tags neutral except `essential`, which keeps the inverted treatment because it genuinely ranks rather than labels |
 | Settings | **A** ✅ done 9 Aug | + **Team tab** (client-side, read-only — admin contractor *management* stays in Admin → Contractors, which is a different table and a different question): every contractor across every project you own, with Active / Invited / Declined status. New `fetchTeam()` query; loads lazily since most Settings visits never open it. Tab labels translated (were English constants) |
-| Contractor Directory | **A** ✅ done 9 Aug | + search over name/trade/location/specialty, accent-insensitive so "Yaounde" finds "Yaoundé". Filter chips now translated (were rendering raw English constants). Star rating replaced by a **score out of 5**. Professions still to extend (plumbers, lawyers, land experts) |
+| Contractor Directory | **A** ✅ done 9 Aug | + search over name/trade/location/specialty, accent-insensitive so "Yaounde" finds "Yaoundé". Filter chips now translated (were rendering raw English constants). Star rating replaced by a **score out of 5**. Professions extended to 9 chips mirroring the application's role taxonomy — Contractors / Engineers / Architects / Surveyors / Land Lawyers / Plumbers / Electricians / Other Trades. Keyword-matched against the free-text `trade` column, with the Contractor chip yielding to narrower ones so "Electrical Contractor" lands under Electricians |
 | Pre-Tracking / Budget Verification | **A** ✅ verified 9 Aug | Already matched Design A — shortened CTA ("Confirm & Start Tracking"), quote upload marked optional, fully translated. No changes needed |
 | Contractor Profile | **B** ✅ done 9 Aug | Dark centred hero opened from a directory card (not its own route — the decision is made in the list, and a separate page loses your place). Score out of 5, never stars. From A: the blurred upgrade-gated contact block and an explicit "Specialties" heading, which B showed as bare unlabelled chips |
 | Help & Support | **B** ✅ done 9 Aug | "Book a Call" tile removed per Philip (unmanageable call volume); the existing Contact Support tile already scrolls to the message form. Tile copy translated |
@@ -71,12 +71,16 @@ These apply to every screen above, not to any one of them:
   truth and `fr.ts` is typed `Mirror<EnDict>`, so `npx tsc --noEmit` proves key parity —
   but it cannot catch a hardcoded English string that never entered the dictionary.
   New screens go into the dictionary as they are built, not afterwards.
-- **No emoji anywhere in the UI.** ✅ Swept 9 Aug — app chrome is emoji-free (lightbulb
-  banner, certificate tier marks, invite tick all converted to lucide icons). Two
-  deliberate exceptions remain and need your call: the **weather widget**'s condition
-  glyphs (☀️ ⛅ 🌧️), where emoji are the conventional vocabulary, and a decorative ✦ on
-  the contractor landing page. Philip's reasoning: coloured emoji read as amateur.
+- **No emoji anywhere in the UI.** ✅ Complete 9 Aug. Lightbulb banner, certificate tier
+  marks, invite tick and the **weather widget**'s condition glyphs are all lucide icons
+  now; the weather advice line carries severity by icon instead of ⚠️. The only glyph
+  left is a decorative ✦ on the contractor landing page, which is a typographic
+  ornament rather than an icon. Philip's reasoning: coloured emoji read as amateur.
 - **Colour is an accent, not a data channel.** Green/amber/blue mark status; they do
   not carry the primary information.
 - **Architectural blueprint schematic** is the consistent visual theme across the platform.
 - **"Processing fee"** is the platform-wide term. Never "platform fee".
+- **Never name the payment provider in product copy.** ✅ Swept 9 Aug — no occurrences
+  left in any screen or dictionary, including the Help FAQ, which now answers "how does
+  my contractor get paid" instead of "what is Switchr". The **privacy policy keeps the
+  names**: naming sub-processors there is a legal requirement, not marketing copy.

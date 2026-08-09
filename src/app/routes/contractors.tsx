@@ -40,16 +40,48 @@ interface Contractor {
 
 // ── Filter categories ──────────────────────────────────────
 
-type FilterKey = 'All' | 'General Contractor' | 'Engineer' | 'Surveyor' | 'Designer';
+// Mirrors the taxonomy the contractor application already collects
+// (`contractorApply.role.*`), so someone who applies as a plumber is findable as
+// one. Philip named plumbers, lawyers and land experts specifically; the trades are
+// grouped under one chip rather than five, because a client hiring a mason is
+// usually hiring through a contractor and does not want six near-empty categories.
+type FilterKey =
+  | 'All' | 'Contractor' | 'Engineer' | 'Architect'
+  | 'Surveyor' | 'Lawyer' | 'Plumber' | 'Electrician' | 'Trades';
 
-const FILTERS: FilterKey[] = ['All', 'General Contractor', 'Engineer', 'Surveyor', 'Designer'];
+const FILTERS: FilterKey[] = [
+  'All', 'Contractor', 'Engineer', 'Architect',
+  'Surveyor', 'Lawyer', 'Plumber', 'Electrician', 'Trades',
+];
 
 const FILTER_LABEL: Record<FilterKey, TKey> = {
-  'All':                'contractors.filters.all',
-  'General Contractor': 'contractors.filters.contractor',
-  'Engineer':           'contractors.filters.engineer',
-  'Surveyor':           'contractors.filters.surveyor',
-  'Designer':           'contractors.filters.designer',
+  'All':         'contractors.filters.all',
+  'Contractor':  'contractors.filters.contractor',
+  'Engineer':    'contractors.filters.engineer',
+  'Architect':   'contractors.filters.architect',
+  'Surveyor':    'contractors.filters.surveyor',
+  'Lawyer':      'contractors.filters.lawyer',
+  'Plumber':     'contractors.filters.plumber',
+  'Electrician': 'contractors.filters.electrician',
+  'Trades':      'contractors.filters.trades',
+};
+
+/**
+ * Keywords matched against the free-text `trade` column, lower-cased.
+ *
+ * Keyword matching rather than an enum because `trade` is free text written by
+ * whoever onboarded the contractor — "Structural Engineer", "Civil Engineer" and
+ * "Engineer" must all land under Engineer.
+ */
+const FILTER_KEYWORDS: Record<Exclude<FilterKey, 'All'>, string[]> = {
+  Contractor:  ['general contractor', 'contractor', 'builder'],
+  Engineer:    ['engineer'],
+  Architect:   ['architect', 'designer'],
+  Surveyor:    ['surveyor', 'land expert'],
+  Lawyer:      ['lawyer', 'notary', 'legal'],
+  Plumber:     ['plumb'],
+  Electrician: ['electric'],
+  Trades:      ['mason', 'carpenter', 'roofing', 'interior', 'finishing', 'tiler', 'welder', 'painter'],
 };
 
 /**
@@ -67,11 +99,16 @@ function matchesQuery(c: Contractor, q: string): boolean {
 
 function matchesFilter(contractor: Contractor, filter: FilterKey): boolean {
   if (filter === 'All') return true;
-  if (filter === 'General Contractor') return contractor.trade === 'General Contractor';
-  if (filter === 'Engineer') return contractor.trade.includes('Engineer');
-  if (filter === 'Surveyor') return contractor.trade.includes('Surveyor');
-  if (filter === 'Designer') return contractor.trade.includes('Designer');
-  return false;
+  const trade = contractor.trade.toLowerCase();
+  // "General Contractor" contains "contractor", so the Contractor chip would also
+  // swallow every specialist whose title ends in it — check the narrower chips first.
+  if (filter !== 'Contractor') {
+    return FILTER_KEYWORDS[filter].some(k => trade.includes(k));
+  }
+  const claimedElsewhere = (Object.keys(FILTER_KEYWORDS) as Exclude<FilterKey, 'All'>[])
+    .filter(k => k !== 'Contractor')
+    .some(k => FILTER_KEYWORDS[k].some(w => trade.includes(w)));
+  return !claimedElsewhere && FILTER_KEYWORDS.Contractor.some(k => trade.includes(k));
 }
 
 // ── Sub-components ─────────────────────────────────────────

@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Wind, Droplets } from 'lucide-react';
+import {
+  Wind, Droplets, Sun, CloudSun, Cloud, CloudFog,
+  CloudDrizzle, CloudRain, Snowflake, CloudLightning, AlertTriangle, Check,
+} from 'lucide-react';
+import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Coordinates for the weather API ───────────────────────
@@ -55,18 +59,25 @@ const COUNTRY_COORDS: Record<string, Coords> = {
   US: { lat: 38.9072,  lon: -77.0369, city: 'Washington'  },
 };
 
-const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Day abbreviations come from the dictionary — 'Mon'/'Tue' are not French.
+const DAY_KEYS: TKey[] = [
+  'weather.days.sun', 'weather.days.mon', 'weather.days.tue', 'weather.days.wed',
+  'weather.days.thu', 'weather.days.fri', 'weather.days.sat',
+];
 
-function wmoInfo(code: number): { label: string; emoji: string } {
-  if (code === 0)  return { label: 'Clear sky',     emoji: '☀️'  };
-  if (code <= 2)   return { label: 'Partly cloudy', emoji: '⛅'  };
-  if (code <= 3)   return { label: 'Overcast',      emoji: '☁️'  };
-  if (code <= 48)  return { label: 'Foggy',         emoji: '🌫️' };
-  if (code <= 57)  return { label: 'Drizzle',       emoji: '🌦️' };
-  if (code <= 67)  return { label: 'Rain',          emoji: '🌧️' };
-  if (code <= 77)  return { label: 'Snow',          emoji: '❄️'  };
-  if (code <= 82)  return { label: 'Rain showers',  emoji: '🌦️' };
-  return                  { label: 'Thunderstorm',  emoji: '⛈️'  };
+type WmoIcon = typeof Sun;
+
+/** WMO weather code → a monochrome icon and a dictionary key for its label. */
+function wmoInfo(code: number): { labelKey: TKey; Icon: WmoIcon } {
+  if (code === 0)  return { labelKey: 'weather.clear',        Icon: Sun            };
+  if (code <= 2)   return { labelKey: 'weather.partlyCloudy', Icon: CloudSun       };
+  if (code <= 3)   return { labelKey: 'weather.overcast',     Icon: Cloud          };
+  if (code <= 48)  return { labelKey: 'weather.foggy',        Icon: CloudFog       };
+  if (code <= 57)  return { labelKey: 'weather.drizzle',      Icon: CloudDrizzle   };
+  if (code <= 67)  return { labelKey: 'weather.rain',         Icon: CloudRain      };
+  if (code <= 77)  return { labelKey: 'weather.snow',         Icon: Snowflake      };
+  if (code <= 82)  return { labelKey: 'weather.showers',      Icon: CloudDrizzle   };
+  return                  { labelKey: 'weather.thunderstorm', Icon: CloudLightning };
 }
 
 interface WeatherDay {
@@ -147,6 +158,7 @@ export function WeatherWidget({ countryCode, city }: {
   /** Build city. Falls back to the country capital when unrecognised. */
   city?: string | null;
 }) {
+  const t = useT();
   const { weather, loading } = useWeather(countryCode ?? null, city ?? null);
   const { country } = useDomainLabels();
   const coords = resolveCoords(countryCode ?? null, city ?? null);
@@ -175,19 +187,19 @@ export function WeatherWidget({ countryCode, city }: {
   if (!weather) return null;
 
   const today = weather.forecast[0];
-  const { label, emoji } = wmoInfo(weather.currentCode);
+  const { labelKey, Icon: CurrentIcon } = wmoInfo(weather.currentCode);
 
-  function buildingAdvice(precipPct: number): string {
-    if (precipPct >= 70) return '⚠️ High rain probability — delay concrete pours and earthworks';
-    if (precipPct >= 40) return '🌦️ Some rain expected — monitor conditions before outdoor work';
-    return '✓ Good conditions for construction work today';
+  function buildingAdvice(precipPct: number): { key: TKey; Icon: WmoIcon; alert: boolean } {
+    if (precipPct >= 70) return { key: 'weather.adviceHighRain', Icon: AlertTriangle, alert: true  };
+    if (precipPct >= 40) return { key: 'weather.adviceSomeRain', Icon: CloudDrizzle,  alert: false };
+    return                      { key: 'weather.adviceGood',     Icon: Check,         alert: false };
   }
 
   return (
     <div className="rounded-xl border border-brand-border-grey bg-white overflow-hidden">
       {/* Header label */}
       <div className="px-5 py-3 border-b border-brand-border-grey flex items-center justify-between">
-        <span className="text-xs font-semibold text-brand-near-black">Site Weather</span>
+        <span className="text-xs font-semibold text-brand-near-black">{t('weather.siteWeather')}</span>
         <span className="text-[10px] text-brand-mid-grey">{coords.city}, {countryName}</span>
       </div>
 
@@ -196,11 +208,11 @@ export function WeatherWidget({ countryCode, city }: {
         <div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tabular-nums text-brand-near-black">{weather.currentTemp}°C</span>
-            <span className="text-sm text-brand-mid-grey">{label}</span>
+            <span className="text-sm text-brand-mid-grey">{t(labelKey)}</span>
           </div>
           <div className="flex items-center gap-3 mt-1.5 text-[11px] text-brand-mid-grey flex-wrap">
             <span className="flex items-center gap-1">
-              <Droplets className="size-3" /> Rain: {today.precipPct}%
+              <Droplets className="size-3" /> {t('weather.rain')}: {today.precipPct}%
             </span>
             <span className="flex items-center gap-1">
               <Wind className="size-3" /> {weather.windspeed} km/h
@@ -208,15 +220,15 @@ export function WeatherWidget({ countryCode, city }: {
             <span>H: {today.high}° · L: {today.low}°</span>
           </div>
         </div>
-        <span className="text-4xl leading-none" aria-hidden="true">{emoji}</span>
+        <CurrentIcon className="size-10 shrink-0 text-brand-mid-grey" aria-hidden="true" strokeWidth={1.5} />
       </div>
 
       {/* 5-day forecast */}
       <div className="grid grid-cols-5 gap-2 px-5 pb-4">
         {weather.forecast.map((day, i) => {
           const d = new Date(day.date + 'T12:00:00');
-          const dayLabel = i === 0 ? 'Today' : DAYS_SHORT[d.getDay()];
-          const { emoji: dayEmoji } = wmoInfo(day.code);
+          const dayLabel = i === 0 ? t('weather.today') : t(DAY_KEYS[d.getDay()]);
+          const { Icon: DayIcon, labelKey: dayLabelKey } = wmoInfo(day.code);
           return (
             <div key={day.date} className={`flex flex-col items-center gap-1 rounded-xl py-2.5 px-1 ${
               i === 0 ? 'bg-brand-near-black' : 'bg-brand-off-white'
@@ -224,7 +236,10 @@ export function WeatherWidget({ countryCode, city }: {
               <span className={`text-[9px] font-semibold uppercase tracking-wide ${
                 i === 0 ? 'text-white/60' : 'text-brand-mid-grey'
               }`}>{dayLabel}</span>
-              <span className="text-base leading-none">{dayEmoji}</span>
+              <DayIcon
+                aria-label={t(dayLabelKey)}
+                className={`size-4 ${i === 0 ? 'text-white' : 'text-brand-mid-grey'}`}
+              />
               <span className={`text-xs font-bold tabular-nums ${i === 0 ? 'text-white' : 'text-brand-near-black'}`}>
                 {day.high}°
               </span>
@@ -238,9 +253,15 @@ export function WeatherWidget({ countryCode, city }: {
 
       {/* Construction advice */}
       <div className="px-5 py-3 border-t border-brand-border-grey bg-brand-off-white">
-        <p className="text-[10px] text-brand-mid-grey leading-relaxed">
-          {buildingAdvice(today.precipPct)}
-        </p>
+        {(() => {
+          const advice = buildingAdvice(today.precipPct);
+          return (
+            <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-brand-mid-grey">
+              <advice.Icon className={`mt-px size-3 shrink-0 ${advice.alert ? 'text-state-alert' : 'text-brand-mid-grey'}`} />
+              {t(advice.key)}
+            </p>
+          );
+        })()}
       </div>
     </div>
   );
