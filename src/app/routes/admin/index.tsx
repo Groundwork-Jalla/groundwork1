@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { FolderOpen, Users, ClipboardCheck, HardHat, ChevronRight, Wallet } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 
 interface Stats {
   totalProjects: number;
@@ -36,6 +37,7 @@ function StatCard({
 }
 
 export default function AdminOverview() {
+  const t = useT();
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
@@ -71,41 +73,41 @@ export default function AdminOverview() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-brand-near-black">Admin Overview</h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">Groundwork platform summary</p>
+        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.overviewTitle')}</h1>
+        <p className="mt-1 text-sm text-brand-mid-grey">{t('admin.overviewSubtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
         <StatCard
-          label="Total Projects"
+          label={t('admin.totalProjects')}
           value={stats?.totalProjects ?? null}
           icon={FolderOpen}
           to="/admin/projects"
           color="bg-brand-off-white text-state-active"
         />
         <StatCard
-          label="Pending Reviews"
+          label={t('admin.pendingReviews')}
           value={stats?.pendingReviews ?? null}
           icon={ClipboardCheck}
           to="/admin/reviews"
           color={stats?.pendingReviews ? 'bg-brand-off-white text-state-held' : 'bg-brand-off-white text-brand-mid-grey'}
         />
         <StatCard
-          label="Pending Budgets"
+          label={t('admin.pendingBudgets')}
           value={stats?.pendingBudgets ?? null}
           icon={Wallet}
           to="/admin/budgets"
           color={stats?.pendingBudgets ? 'bg-brand-off-white text-state-held' : 'bg-brand-off-white text-brand-mid-grey'}
         />
         <StatCard
-          label="Total Users"
+          label={t('admin.totalUsers')}
           value={stats?.totalUsers ?? null}
           icon={Users}
           to="/admin/users"
           color="bg-brand-off-white text-state-complete"
         />
         <StatCard
-          label="Pending Contractors"
+          label={t('admin.pendingContractors')}
           value={stats?.pendingContractors ?? null}
           icon={HardHat}
           to="/admin/contractors"

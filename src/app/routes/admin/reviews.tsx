@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApproveStage, adminRequestRework } from '@/lib/supabase/approvals';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useT } from '@/lib/i18n';
 
 interface PendingStage {
   stageId: string;
@@ -62,6 +63,7 @@ function ReworkModal({
   onClose: () => void;
   onConfirm: (reason: string) => void;
 }) {
+  const t = useT();
   const [reason, setReason] = useState('');
   function handleConfirm() {
     if (!reason.trim()) return;
@@ -79,13 +81,13 @@ function ReworkModal({
             transition={{ duration: 0.15 }}
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
           >
-            <h3 className="text-base font-semibold text-brand-near-black mb-2">Request changes</h3>
+            <h3 className="text-base font-semibold text-brand-near-black mb-2">{t('admin.requestChanges')}</h3>
             <p className="text-sm text-brand-mid-grey mb-4">
               Explain what needs to be corrected. The homeowner will be notified.
             </p>
             <textarea
               className="w-full h-28 rounded-xl border border-brand-border-grey px-3 py-2.5 text-sm text-brand-near-black resize-none outline-none focus:ring-2 focus:ring-brand-near-black/20"
-              placeholder="Describe the required changes..."
+              placeholder={t('admin.changesPlaceholder')}
               value={reason}
               onChange={e => setReason(e.target.value)}
             />
@@ -122,6 +124,7 @@ function StageReviewCard({
   onApproved: (stageId: string) => void;
   onReworkRequested: (stageId: string) => void;
 }) {
+  const t = useT();
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(true);
   const [approving, setApproving] = useState(false);
@@ -205,7 +208,7 @@ function StageReviewCard({
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-brand-border-grey rounded-xl text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
         >
           <RotateCcw className="size-4" />
-          Request changes
+          {t('admin.requestChanges')}
         </button>
         <button
           type="button"
@@ -219,7 +222,7 @@ function StageReviewCard({
 
       <ConfirmModal
         open={confirmApprove}
-        title="Approve this stage?"
+        title={t('admin.approveStageTitle')}
         description={`Approving will mark Stage ${item.stageNumber} complete and unlock Stage ${item.stageNumber + 1} for ${item.projectName}.`}
         confirmLabel="Approve"
         loading={approving}
@@ -237,6 +240,7 @@ function StageReviewCard({
 }
 
 export default function AdminReviews() {
+  const t = useT();
   const [items, setItems] = useState<PendingStage[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -295,7 +299,7 @@ export default function AdminReviews() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-brand-near-black">Stage Reviews</h1>
+        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.reviewsTitle')}</h1>
         <p className="mt-1 text-sm text-brand-mid-grey">
           Jalla Verify stages awaiting your approval
         </p>
@@ -309,8 +313,8 @@ export default function AdminReviews() {
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <CheckCircle2 className="size-10 text-state-complete" />
-          <p className="text-sm font-medium text-brand-near-black">All caught up</p>
-          <p className="text-xs text-brand-mid-grey">No stages are pending review right now.</p>
+          <p className="text-sm font-medium text-brand-near-black">{t('admin.allCaughtUp')}</p>
+          <p className="text-xs text-brand-mid-grey">{t('admin.reviewsEmpty')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4 max-w-2xl">

@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Loader2, ExternalLink, Search, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { useT } from '@/lib/i18n';
 
 interface AdminProject {
   id: string;
@@ -24,6 +25,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminProjects() {
+  const t = useT();
   const labels = useDomainLabels();
   const [assignTarget, setAssignTarget] = useState<AdminProject | null>(null);
   const [assignEmail,  setAssignEmail]  = useState('');
@@ -97,14 +99,14 @@ export default function AdminProjects() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black">All Projects</h1>
+          <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allProjects')}</h1>
           <p className="mt-1 text-sm text-brand-mid-grey">{projects.length} total</p>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
           <input
             type="text"
-            placeholder="Search projects..."
+            placeholder={t('admin.searchProjects')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
@@ -114,7 +116,7 @@ export default function AdminProjects() {
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-brand-mid-grey">
-          <Loader2 className="size-4 animate-spin" /> Loading…
+          <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
         </div>
       ) : (
         <div className="rounded-2xl border border-brand-border-grey overflow-hidden bg-white">
@@ -151,7 +153,7 @@ export default function AdminProjects() {
                         type="button"
                         onClick={() => { setAssignTarget(p); setAssignEmail(''); setAssignError(null); }}
                         className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
-                        title="Assign contractor"
+                        title={t('admin.assignContractor')}
                       >
                         <UserPlus className="size-4" />
                       </button>
@@ -159,7 +161,7 @@ export default function AdminProjects() {
                         to={`/projects/${p.id}`}
                         target="_blank"
                         className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
-                        title="View project"
+                        title={t('admin.viewProject')}
                       >
                         <ExternalLink className="size-4" />
                       </Link>
@@ -170,7 +172,7 @@ export default function AdminProjects() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
-                    No projects match "{query}"
+                    {t('admin.noProjectsMatch', { query })}
                   </td>
                 </tr>
               )}
@@ -181,7 +183,7 @@ export default function AdminProjects() {
 
       {assignDone && (
         <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5 text-xs text-brand-near-black">
-          Assigned {assignDone}. It now appears in the owner's Team tab.
+          {t('admin.assignedNotice', { detail: assignDone })}
         </p>
       )}
 
@@ -196,10 +198,11 @@ export default function AdminProjects() {
             role="dialog"
             aria-modal="true"
           >
-            <h2 className="text-sm font-bold text-brand-near-black">Assign a contractor</h2>
+            <h2 className="text-sm font-bold text-brand-near-black">{t('admin.assignTitle')}</h2>
             <p className="mt-1 text-xs text-brand-mid-grey">
-              Adds them to <span className="font-medium text-brand-near-black">{assignTarget.name}</span> and
-              shows them in the owner's Team tab straight away — no invite email, no acceptance step.
+              {t('admin.assignBodyPre')}{' '}
+              <span className="font-medium text-brand-near-black">{assignTarget.name}</span>{' '}
+              {t('admin.assignBodyPost')}
             </p>
 
             <input
@@ -208,8 +211,8 @@ export default function AdminProjects() {
               value={assignEmail}
               onChange={e => setAssignEmail(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAssign(); }}
-              placeholder="contractor@example.com"
-              aria-label="Contractor email"
+              placeholder={t('admin.assignEmailPlaceholder')}
+              aria-label={t('admin.assignEmailLabel')}
               className="mt-4 w-full rounded-lg border border-brand-border-grey px-3 py-2 text-sm text-brand-near-black placeholder:text-brand-mid-grey focus:border-brand-near-black focus:outline-none"
             />
 
@@ -223,7 +226,7 @@ export default function AdminProjects() {
                 onClick={() => setAssignTarget(null)}
                 className="flex-1 rounded-lg border border-brand-border-grey py-2 text-xs font-semibold text-brand-near-black hover:bg-brand-off-white"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -231,7 +234,7 @@ export default function AdminProjects() {
                 disabled={assigning || !assignEmail.trim()}
                 className="flex-1 rounded-lg bg-brand-near-black py-2 text-xs font-semibold text-white disabled:opacity-40"
               >
-                {assigning ? 'Assigning…' : 'Assign'}
+                {assigning ? t('admin.assigning') : t('admin.assign')}
               </button>
             </div>
           </div>

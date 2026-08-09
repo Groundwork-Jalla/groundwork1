@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle, XCircle, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 
 interface ContractorApp {
   id: string;
@@ -21,6 +22,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function AdminContractors() {
+  const t = useT();
   const [apps, setApps]       = useState<ContractorApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery]     = useState('');
@@ -73,7 +75,7 @@ export default function AdminContractors() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black">Contractor Applications</h1>
+          <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.applicationsTitle')}</h1>
           <p className="mt-1 text-sm text-brand-mid-grey">
             {apps.filter(a => a.status === 'pending').length} pending · {apps.length} total
           </p>
@@ -82,7 +84,7 @@ export default function AdminContractors() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
           <input
             type="text"
-            placeholder="Search applicants..."
+            placeholder={t('admin.searchApplicants')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
@@ -126,7 +128,7 @@ export default function AdminContractors() {
             </section>
           )}
           {filtered.length === 0 && (
-            <p className="text-sm text-brand-mid-grey py-8 text-center">No applications found.</p>
+            <p className="text-sm text-brand-mid-grey py-8 text-center">{t('admin.noApplications')}</p>
           )}
         </div>
       )}

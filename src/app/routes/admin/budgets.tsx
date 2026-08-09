@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { adminStartProjectTracking } from '@/lib/supabase/tracking';
 import { formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface PendingBudget {
   id: string;
@@ -22,6 +23,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
   onClose: () => void;
   onConfirmed: (id: string) => void;
 }) {
+  const t = useT();
   const [raw, setRaw] = useState(String(Math.round(project.estimate)));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
       >
         <div className="px-6 py-5 border-b border-brand-border-grey flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-bold text-brand-near-black">Confirm budget & start tracking</h2>
+            <h2 className="text-base font-bold text-brand-near-black">{t('admin.confirmBudgetCta')}</h2>
             <p className="text-xs text-brand-mid-grey mt-0.5">{project.name} · {project.ownerName || project.ownerEmail}</p>
           </div>
           <button type="button" onClick={onClose} className="flex size-7 items-center justify-center rounded-lg text-brand-mid-grey hover:bg-brand-off-white transition-colors">
@@ -70,14 +72,14 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
         <div className="px-6 py-5 space-y-4">
           <div className="flex items-center justify-between rounded-xl bg-brand-off-white px-4 py-3">
             <div>
-              <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">Wizard estimate</p>
-              <p className="text-xs text-brand-mid-grey mt-0.5">Auto-calculated from build details</p>
+              <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('admin.wizardEstimate')}</p>
+              <p className="text-xs text-brand-mid-grey mt-0.5">{t('admin.wizardEstimateSub')}</p>
             </div>
             <p className="text-lg font-bold tabular-nums text-brand-near-black">{project.estimate > 0 ? formatUSDFull(project.estimate) : '—'}</p>
           </div>
 
           <div>
-            <label htmlFor="admin-budget" className="block text-sm font-semibold text-brand-near-black mb-2">Confirmed budget</label>
+            <label htmlFor="admin-budget" className="block text-sm font-semibold text-brand-near-black mb-2">{t('admin.confirmedBudget')}</label>
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
               <input
@@ -112,7 +114,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
         </div>
 
         <div className="px-6 py-4 border-t border-brand-border-grey bg-brand-off-white/50 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-brand-mid-grey max-w-[55%]">Activates Stage 1, sets the payment schedule, and notifies the client.</p>
+          <p className="text-[11px] text-brand-mid-grey max-w-[55%]">{t('admin.confirmBudgetNote')}</p>
           <button
             type="button"
             onClick={handleConfirm}
@@ -129,6 +131,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
 }
 
 export default function AdminBudgets() {
+  const t = useT();
   const [items, setItems] = useState<PendingBudget[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PendingBudget | null>(null);
@@ -171,7 +174,7 @@ export default function AdminBudgets() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-brand-near-black">Budget Confirmations</h1>
+        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.budgetsTitle')}</h1>
         <p className="mt-1 text-sm text-brand-mid-grey">
           Jalla Management projects awaiting a confirmed budget before tracking can begin
         </p>
@@ -179,13 +182,13 @@ export default function AdminBudgets() {
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-brand-mid-grey">
-          <Loader2 className="size-4 animate-spin" /> Loading pending projects…
+          <Loader2 className="size-4 animate-spin" /> {t('admin.loadingProjects')}
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <CheckCircle2 className="size-10 text-state-complete" />
-          <p className="text-sm font-medium text-brand-near-black">All caught up</p>
-          <p className="text-xs text-brand-mid-grey">No Jalla Management projects are awaiting a budget.</p>
+          <p className="text-sm font-medium text-brand-near-black">{t('admin.allCaughtUp')}</p>
+          <p className="text-xs text-brand-mid-grey">{t('admin.budgetsEmpty')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3 max-w-2xl">
@@ -197,7 +200,7 @@ export default function AdminBudgets() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-brand-near-black truncate">{p.name}</p>
-                  <Link to={`/projects/${p.id}`} className="text-brand-mid-grey hover:text-brand-near-black shrink-0" title="Open project">
+                  <Link to={`/projects/${p.id}`} className="text-brand-mid-grey hover:text-brand-near-black shrink-0" title={t('admin.openProject')}>
                     <ExternalLink className="size-3.5" />
                   </Link>
                 </div>

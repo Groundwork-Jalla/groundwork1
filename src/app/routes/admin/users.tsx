@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { useT } from '@/lib/i18n';
 
 interface AdminUser {
   id: string;
@@ -19,6 +20,7 @@ const ROLE_STYLES: Record<string, string> = {
 };
 
 export default function AdminUsers() {
+  const t = useT();
   const labels = useDomainLabels();
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,14 +59,14 @@ export default function AdminUsers() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black">All Users</h1>
+          <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allUsers')}</h1>
           <p className="mt-1 text-sm text-brand-mid-grey">{users.length} registered</p>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder={t('admin.searchUsers')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"

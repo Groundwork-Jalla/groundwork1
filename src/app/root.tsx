@@ -82,12 +82,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppInner() {
+/**
+ * Rendered as the error-boundary fallback, which sits inside LanguageProvider —
+ * so it can translate. AppInner itself cannot: it *renders* the provider, so a
+ * hook called there runs outside its own context and throws.
+ */
+function ErrorFallback() {
   const t = useT();
+  return <p className="p-8 text-sm text-brand-mid-grey">{t('errors.generic')}</p>;
+}
+
+function AppInner() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Sentry.ErrorBoundary fallback={<p className="p-8 text-sm text-brand-mid-grey">{t('errors.generic')}</p>}>
+        <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
           <div id="main-content">
             <Outlet />
           </div>
