@@ -1,43 +1,64 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Building2, Layers, Ruler, Home, Wrench, CheckCircle2, DollarSign, MapPin } from 'lucide-react';
 import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudget, formatUSD } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
-import type { FloorRoom } from '@/types/project';
+import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/project';
 import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Photo image map (step 2 / 3 / 7) ──────────────────────────
-const BUILDING_IMAGES: Record<string, string> = {
-  residential: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
-  commercial:  'https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=900&q=80',
-  industrial:  'https://images.unsplash.com/photo-1495292312634-1531ba4dc949?auto=format&fit=crop&w=900&q=80',
-  mixed_use:   'https://images.unsplash.com/photo-1759734979552-1bf3a9568f56?auto=format&fit=crop&w=900&q=80',
+
+/**
+ * Every value the preview panel can be asked to illustrate. Typing the map
+ * against the union rather than `string` means adding a project, building or
+ * roof type without an image is a compile error, not a blank panel — the
+ * failure mode that previously shipped a dead URL to production.
+ */
+type ImageKey = ProjectType | BuildingType | RoofType;
+
+/**
+ * Files under `/building-types/` are served from our own origin. They replace
+ * hotlinked stock photos that either 404'd or showed the wrong subject; keeping
+ * them in-repo means the picture can't drift away from the label it sits under.
+ * Attribution for those files is in docs/IMAGE-CREDITS.md.
+ */
+const BUILDING_IMAGES: Record<ImageKey, string> = {
+  // Project type (step 2)
+  residential:          'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
+  commercial:           'https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=900&q=80',
+  industrial:           '/building-types/industrial.webp',
+  mixed_use:            '/building-types/mixed_use.webp',
+
+  // Residential (step 3)
   single_family:        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
-  bungalow:             'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=900&q=80',
-  villa:                'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80',
-  apartment:            'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80',
-  duplex:               'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=900&q=80',
-  townhouse:            'https://images.unsplash.com/photo-1769344694490-66fb22a8d8cf?auto=format&fit=crop&w=900&q=80',
-  semi_detached:        'https://images.unsplash.com/photo-1785595480634-77f4aef9280e?auto=format&fit=crop&w=900&q=80',
   multi_family:         'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80',
-  guest_house:          'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=900&q=80',
+  townhouse:            '/building-types/townhouse.webp',
+  semi_detached:        'https://images.unsplash.com/photo-1785595480634-77f4aef9280e?auto=format&fit=crop&w=900&q=80',
+
+  // Commercial (step 3)
   office:               'https://images.unsplash.com/photo-1470075801209-17f9ec0cada6?auto=format&fit=crop&w=900&q=80',
-  retail:               'https://images.unsplash.com/photo-1643841370871-146b51aa4cca?auto=format&fit=crop&w=900&q=80',
-  hotel:                'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+  retail:               '/building-types/retail.webp',
   warehouse_commercial: 'https://images.unsplash.com/photo-1694885169342-909981fb408a?auto=format&fit=crop&w=900&q=80',
+  hotel:                '/building-types/hotel.webp',
+
+  // Industrial (step 3)
   factory:              'https://images.unsplash.com/photo-1546185058-592ead754d27?auto=format&fit=crop&w=900&q=80',
   warehouse_industrial: 'https://images.unsplash.com/photo-1684695749267-233af13276d0?auto=format&fit=crop&w=900&q=80',
   industrial_complex:   'https://images.unsplash.com/photo-1669003152237-7bd1ac4c13f3?auto=format&fit=crop&w=900&q=80',
   distribution_centre:  'https://images.unsplash.com/photo-1720811559371-7b0ebd219127?auto=format&fit=crop&w=900&q=80',
+
+  // Mixed use (step 3)
   mixed_residential_commercial: 'https://images.unsplash.com/photo-1759299596344-cc2e0c26003a?auto=format&fit=crop&w=900&q=80',
   live_work:            'https://images.unsplash.com/photo-1774957108662-80d697d70844?auto=format&fit=crop&w=900&q=80',
-  mixed_retail_residential: 'https://images.unsplash.com/photo-1785545830879-a7fa53345127?auto=format&fit=crop&w=900&q=80',
-  transit_oriented:     'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=80',
-  long_span_aluminum:   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=900&q=80',
-  clay_tiles:           'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?auto=format&fit=crop&w=900&q=80',
-  concrete_flat:        'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=900&q=80',
+  mixed_retail_residential:     'https://images.unsplash.com/photo-1785545830879-a7fa53345127?auto=format&fit=crop&w=900&q=80',
+  transit_oriented:     '/building-types/transit_oriented.webp',
+
+  // Roof type (step 7)
+  long_span_aluminum:   '/building-types/long_span_aluminum.webp',
+  clay_tiles:           '/building-types/clay_tiles.webp',
+  concrete_flat:        '/building-types/concrete_flat.webp',
   shingle:              'https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=900&q=80',
 };
 
@@ -48,20 +69,15 @@ const BUILDING_IMAGES: Record<string, string> = {
  * Split out from the old IMAGE_LABELS map, whose English titles now live in the
  * dictionary under preview.title.*
  */
-const IMAGE_SUB_GROUP: Record<string, 'projectType' | 'buildingType' | 'roofType'> = {
+const IMAGE_SUB_GROUP: Record<ImageKey, 'projectType' | 'buildingType' | 'roofType'> = {
   residential: 'projectType',
   commercial: 'projectType',
   industrial: 'projectType',
   mixed_use: 'projectType',
   single_family: 'buildingType',
-  bungalow: 'buildingType',
-  villa: 'buildingType',
-  apartment: 'buildingType',
-  duplex: 'buildingType',
   townhouse: 'buildingType',
   semi_detached: 'buildingType',
   multi_family: 'buildingType',
-  guest_house: 'buildingType',
   office: 'buildingType',
   retail: 'buildingType',
   hotel: 'buildingType',
@@ -80,13 +96,19 @@ const IMAGE_SUB_GROUP: Record<string, 'projectType' | 'buildingType' | 'roofType
   shingle: 'roofType',
 };
 
-function ImagePanel({ imageKey }: { imageKey: string | null }) {
+function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
   const t = useT();
   // Titles and the sub-caption now come from the dictionary, keyed off the image key.
   const labels = useDomainLabels();
+  // A failed image falls back to the dark ground, never to a stand-in photo: an
+  // unrelated picture under a caption reading "Clay Tiles" misinforms, where an
+  // empty panel with the right caption merely underwhelms.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [imageKey]);
+
   const metaTitle = imageKey ? labels.previewTitle(imageKey) : null;
-  const metaSub   = imageKey ? t(`preview.sub.${IMAGE_SUB_GROUP[imageKey] ?? 'buildingType'}` as TKey) : null;
-  const src  = imageKey ? BUILDING_IMAGES[imageKey] : null;
+  const metaSub   = imageKey ? t(`preview.sub.${IMAGE_SUB_GROUP[imageKey]}` as TKey) : null;
+  const src  = imageKey && !failed ? BUILDING_IMAGES[imageKey] : null;
 
   return (
     <AnimatePresence mode="wait">
@@ -107,10 +129,7 @@ function ImagePanel({ imageKey }: { imageKey: string | null }) {
             style={{ willChange: 'transform' }}
             animate={{ scale: [1.05, 1.12, 1.05], x: [-6, 6, -6] }}
             transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-            onError={e => {
-              (e.target as HTMLImageElement).src =
-                `https://picsum.photos/seed/${imageKey ?? 'building'}/900/700`;
-            }}
+            onError={() => setFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 bg-[#111]" />
