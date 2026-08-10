@@ -7,71 +7,43 @@ import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudget } from '@/lib/budget';
 import { createProject } from '@/lib/supabase/projects';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTierBilling } from '@/lib/tier-labels';
 import type { ProjectTier } from '@/types/project';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 
-// ── Tier card ─────────────────────────────────────────────
+// =========================================================
+// Design A, in selection form.
+//
+// This step used to carry its own hardcoded copy of the three plans — a fifth
+// copy after the four that payments/config.ts consolidated, and one that had
+// drifted: it omitted the 10% processing fee and the one-contractor limit, at
+// the exact moment someone commits to a tier. The words now come from
+// `useTierBilling()`, the same source as /upgrade, so the two screens cannot
+// disagree and both translate.
+//
+// The difference from /upgrade is the interaction, not the layout: here the card
+// *is* the control (nothing is being bought yet — the wizard's own button
+// submits), so there is no per-card CTA and selection is shown by a ring.
+// =========================================================
 
-interface TierCardProps {
-  value: ProjectTier;
-  title: string;
-  price: string;
-  description: string;
-  features: string[];
-  selected: boolean;
-  onSelect: () => void;
-  popular?: boolean;
-}
+const ORDER: ProjectTier[] = ['self_verify', 'jalla_verify', 'jalla_management'];
 
-function TierCard({ title, price, description, features, selected, onSelect, popular }: TierCardProps) {
-  const t = useT();
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        'relative w-full text-left rounded-xl border-2 p-4 transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
-        selected
-          ? 'border-brand-near-black bg-brand-off-white'
-          : 'border-brand-border-grey hover:border-brand-dark-grey',
-      )}
-    >
-      {popular && (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap">
-          {t('wizard.mostPopular')}
-        </span>
-      )}
-      {selected && (
-        <span className="absolute top-3 right-3 flex size-4 items-center justify-center rounded-full bg-brand-near-black">
-          <Check className="size-2.5 text-white" strokeWidth={3} />
-        </span>
-      )}
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-sm font-bold text-brand-near-black">{title}</span>
-      </div>
-      <div className="text-xs font-semibold text-brand-near-black mb-1">{price}</div>
-      <p className="text-xs text-brand-mid-grey mb-3 leading-relaxed">{description}</p>
-      <ul className="space-y-1">
-        {features.map(f => (
-          <li key={f} className="flex items-start gap-1.5 text-xs text-brand-mid-grey">
-            <Check className="size-3 text-brand-near-black mt-0.5 shrink-0" strokeWidth={2.5} />
-            {f}
-          </li>
-        ))}
-      </ul>
-    </button>
-  );
-}
+const ICON: Record<ProjectTier, React.ReactNode> = {
+  self_verify:      <BadgeCheck className="size-4" />,
+  jalla_verify:     <ShieldCheck className="size-4" />,
+  jalla_management: <Briefcase className="size-4" />,
+};
 
-// ── Page component ─────────────────────────────────────────
+/** The plan we actually sell gets the dark column, as on /upgrade. */
+const FEATURED: ProjectTier = 'jalla_verify';
 
 export default function Step10PlanSelection() {
   const t = useT();
   const { data, update, reset, next, constructionRate, cityRate } = useWizard();
   const { user } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
+  const tiers = useTierBilling();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
@@ -94,54 +66,18 @@ export default function Step10PlanSelection() {
       reset();
       navigate(`/projects/${project.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(err instanceof Error ? err.message : t('wizard.s10CreateFailed'));
       setSubmitting(false);
     }
   }
-
-  const tiers: TierCardProps[] = [
-    {
-      value:       'self_verify',
-      title:       'Self Verify',
-      price:       'Free',
-      description: 'Self-manage your build with the full Groundwork toolkit. Up to 3 projects.',
-      features:    ['Up to 3 projects', 'Budget & stage tracking', 'Document vault', 'Self-verify stages'],
-      selected:    data.tier === 'self_verify',
-      onSelect:    () => update({ tier: 'self_verify' }),
-    },
-    {
-      value:       'jalla_verify',
-      title:       'Jalla Verify',
-      price:       '$199 / mo',
-      description: 'Unlimited projects, full contractor access, and Jalla-verified stages.',
-      features:    ['Unlimited projects', 'Full contractor directory', 'Jalla-verified stages', 'Priority support'],
-      selected:    data.tier === 'jalla_verify',
-      onSelect:    () => update({ tier: 'jalla_verify' }),
-      popular:     true,
-    },
-    {
-      value:       'jalla_management',
-      title:       'Jalla Management',
-      price:       'Custom',
-      description: 'Jalla manages everything on your behalf. Full-service, dedicated project manager.',
-      features:    ['Everything in Jalla Verify', 'Dedicated project manager', 'Procurement oversight', 'On-site representation'],
-      selected:    data.tier === 'jalla_management',
-      onSelect:    () => update({ tier: 'jalla_management' }),
-    },
-  ];
-
-  const tierIcons: Record<string, React.ReactNode> = {
-    self_verify:      <BadgeCheck className="size-4 text-brand-mid-grey" />,
-    jalla_verify:     <ShieldCheck className="size-4 text-state-active" />,
-    jalla_management: <Briefcase className="size-4 text-state-active" />,
-  };
 
   return (
     <WizardShell
       canContinue={!!data.tier}
       onContinue={handleSubmit}
-      continueLabel="Create Project"
+      continueLabel={t('wizard.s10CreateProject')}
       isSubmitting={submitting}
+      wide
     >
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
@@ -151,10 +87,86 @@ export default function Step10PlanSelection() {
           {t('wizard.s10Note')}
         </p>
 
-        <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
-          {tiers.map(tier => (
-            <TierCard key={tier.value} {...tier} />
-          ))}
+        <div className="mt-8 grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
+          {ORDER.map((id, i) => {
+            const d        = tiers[id];
+            const featured = id === FEATURED;
+            const selected = data.tier === id;
+
+            return (
+              <motion.button
+                key={id}
+                type="button"
+                onClick={() => update({ tier: id })}
+                aria-pressed={selected}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.06 * i, ease: 'easeOut' }}
+                className={cn(
+                  // rounded-2xl, not rounded-xl: globals.css inverts
+                  // `.bg-brand-near-black.text-white.rounded-xl` in dark mode, which would
+                  // turn the featured column white.
+                  'relative flex h-full w-full flex-col rounded-2xl border p-4 text-left transition-all duration-150 sm:p-5',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
+                  featured
+                    ? 'border-brand-near-black bg-brand-near-black text-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]'
+                    : 'border-brand-border-grey bg-white hover:border-brand-dark-grey',
+                  selected && 'ring-2 ring-brand-near-black ring-offset-2',
+                )}
+              >
+                {d.tag && !selected && (
+                  <span className={cn(
+                    'absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.06em]',
+                    featured ? 'bg-white text-brand-near-black' : 'bg-brand-near-black text-white',
+                  )}>
+                    {d.tag}
+                  </span>
+                )}
+
+                {selected && (
+                  <span className={cn(
+                    'absolute -top-2.5 left-1/2 flex size-5 -translate-x-1/2 items-center justify-center rounded-full',
+                    featured ? 'bg-white' : 'bg-brand-near-black',
+                  )}>
+                    <Check className={cn('size-3 stroke-3', featured ? 'text-brand-near-black' : 'text-white')} />
+                  </span>
+                )}
+
+                <div className={cn('mb-1 flex items-center gap-2', featured ? 'text-white/70' : 'text-brand-mid-grey')}>
+                  {ICON[id]}
+                  <span className="text-sm font-bold">{d.name}</span>
+                </div>
+
+                <div className="mb-2.5 flex items-baseline gap-1">
+                  <span className="text-2xl font-black tracking-tight sm:text-3xl">{d.price}</span>
+                  {d.period && (
+                    <span className={cn('text-sm', featured ? 'text-white/50' : 'text-brand-mid-grey')}>{d.period}</span>
+                  )}
+                </div>
+
+                <p className={cn('mb-5 text-xs leading-relaxed', featured ? 'text-white/55' : 'text-brand-mid-grey')}>
+                  {d.desc}
+                </p>
+
+                <div className="flex flex-1 flex-col gap-2.5">
+                  {d.features.map(f => (
+                    <div key={f} className="flex items-start gap-2.5">
+                      {/* Monochrome tick — a feature being present is not a status. */}
+                      <span className={cn(
+                        'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full',
+                        featured ? 'bg-white/15' : 'bg-brand-off-white',
+                      )}>
+                        <Check className={cn('size-2.5 stroke-3', featured ? 'text-white' : 'text-brand-near-black')} />
+                      </span>
+                      <span className={cn('text-xs leading-snug', featured ? 'text-white/85' : 'text-brand-near-black')}>
+                        {f}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
 
         {/* Selected plan summary */}
@@ -162,12 +174,11 @@ export default function Step10PlanSelection() {
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 rounded-xl bg-brand-off-white border border-brand-border-grey px-4 py-3 flex items-center gap-2.5"
+            className="mt-5 flex items-center gap-2.5 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3"
           >
-            {tierIcons[data.tier]}
+            <span className="text-brand-mid-grey">{ICON[data.tier]}</span>
             <p className="text-xs text-brand-mid-grey">
-              <span className="font-semibold text-brand-near-black">{tiers.find(t => t.value === data.tier)?.title}</span>
-              {' '}selected — you can switch any time from your settings.
+              {t('wizard.s10Selected', { plan: tiers[data.tier].name })}
             </p>
           </motion.div>
         )}
@@ -176,7 +187,8 @@ export default function Step10PlanSelection() {
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 rounded-lg bg-brand-off-white border border-brand-border-grey px-4 py-3 text-sm text-brand-near-black"
+            role="alert"
+            className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black"
           >
             {error}
           </motion.p>

@@ -6,6 +6,7 @@ import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useT } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import ProgressBar from './ProgressBar';
 import { BuildingPreview } from './BuildingPreview';
 import { useWizard } from '@/contexts/WizardContext';
@@ -35,6 +36,15 @@ interface WizardShellProps {
   continueLabel?: string;
   isSubmitting?: boolean;
   hideContinue?: boolean;
+  /**
+   * Widen the content column from the default reading width.
+   *
+   * Every other step is a form, and `max-w-lg` is the right measure for one. Step 10
+   * is a three-column comparison — at 512px each column gets about 112px of text and
+   * every bullet wraps to three lines, which defeats the point of showing the plans
+   * side by side.
+   */
+  wide?: boolean;
 }
 
 export default function WizardShell({
@@ -44,7 +54,9 @@ export default function WizardShell({
   continueLabel,
   isSubmitting = false,
   hideContinue = false,
+  wide = false,
 }: WizardShellProps) {
+  const measure = wide ? 'max-w-3xl' : 'max-w-lg';
   const { step, totalSteps, direction, next, back } = useWizard();
   const t = useT();
   const isFirst = step === 1;
@@ -90,7 +102,7 @@ export default function WizardShell({
 
         {/* Step content */}
         <main className="flex-1 overflow-y-auto px-6 sm:px-10 py-8">
-          <div className="w-full max-w-lg mx-auto">
+          <div className={cn("w-full mx-auto", measure)}>
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -109,7 +121,7 @@ export default function WizardShell({
 
         {/* Footer */}
         <footer className="shrink-0 px-6 sm:px-10 py-4 border-t border-brand-border-grey">
-          <div className="w-full max-w-lg mx-auto flex items-center justify-end gap-3">
+          <div className={cn("w-full mx-auto flex items-center justify-end gap-3", measure)}>
             {!hideContinue && (
               <Button
                 type="button"

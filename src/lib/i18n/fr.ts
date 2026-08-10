@@ -1733,6 +1733,9 @@ export const fr: Mirror<EnDict> = {
     s10Title: "Choisissez votre forfait",
     mostPopular: "Le plus choisi",
     s10Note: "Vous pouvez changer de forfait à tout moment depuis les paramètres.",
+    s10Selected: "{plan} sélectionné — vous pouvez en changer à tout moment depuis vos paramètres.",
+    s10CreateProject: "Créer le projet",
+    s10CreateFailed: "Impossible de créer votre projet. Veuillez réessayer.",
     confirmBudget: {
       title:         'Confirmez votre budget',
       subtitle:      "Ce montant devient le budget du chantier. Chaque jalon d'étape en découle — utilisez le chiffre de votre entrepreneur si vous en avez un.",
