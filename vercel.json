@@ -1,11 +1,6 @@
 {
   "buildCommand": "pnpm build",
   "outputDirectory": "build/client",
-  "functions": {
-    "api/*.ts": { "maxDuration": 30 },
-    "api/ghl/*.ts": { "maxDuration": 30 },
-    "api/stripe/*.ts": { "maxDuration": 30 }
-  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
