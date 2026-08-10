@@ -66,7 +66,11 @@ export default async function handler(req: any, res: any) {
   }
 
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
-  const appUrl = process.env.PUBLIC_APP_URL ?? 'https://tryjalla.com';
+  // PUBLIC_SITE_URL is the documented name (.env.example) and what api/_lib/stripe.ts
+  // reads. PUBLIC_APP_URL is accepted too so an existing deployment that set the old
+  // name keeps working — otherwise this silently falls back to the default and every
+  // CRM deep link points at the wrong host.
+  const appUrl = process.env.PUBLIC_SITE_URL ?? process.env.PUBLIC_APP_URL ?? 'https://tryjalla.com';
 
   // GHL stores first and last name separately, so send both alongside the full
   // string. The form asks for one "Full name" field on purpose — splitting on the
