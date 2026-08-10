@@ -52,6 +52,10 @@ export default [
     route("tools/tracker",      "routes/tools/tracker.tsx"),
   ]),
 
+  // Staff sign-in. Outside the admin layout: that layout sends unauthenticated
+  // visitors here, so nesting it inside would redirect to itself forever.
+  route("admin/login",           "routes/admin/login.tsx"),
+
   // Admin panel (role-guarded inside its own layout)
   layout("routes/admin/_admin-layout.tsx", [
     route("admin",               "routes/admin/index.tsx"),

@@ -19,8 +19,9 @@ export default function AdminLayout() {
   useEffect(() => {
     if (loading) return;
     if (!session) {
-      // Send them to login, then back to the admin page they were reaching for
-      navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
+      // Staff entrance, not the client login — then back to the admin page they
+      // were reaching for. /admin/login sits outside this layout on purpose.
+      navigate(`/admin/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
       return;
     }
     if (adminChecked && !isAdmin) navigate('/dashboard', { replace: true });

@@ -179,6 +179,16 @@ export const fr: Mirror<EnDict> = {
     previewNoCharge: 'Aperçu — aucun débit réel. Marque l\'étape comme payée pour le suivi.',
     blueprintCaption:'PLAN DE MASSE + ÉLÉVATION — ÉCHELLE 1:100',
   },
+  adminAuth: {
+    eyebrow:      'Accès personnel',
+    title:        'Connexion administrateur',
+    subtitle:     "Cet espace est réservé à l'équipe Groundwork. Connectez-vous avec votre compte administrateur.",
+    submit:       'Se connecter',
+    notAdmin:     "Ce compte n'a pas accès à l'administration. Connectez-vous avec un compte de l'équipe, ou demandez l'accès à un administrateur.",
+    noSelfServe:  "L'accès administrateur est accordé par un administrateur — aucune inscription ici.",
+    backToSite:   'Retour à Groundwork',
+  },
+
   admin: {
     overviewTitle:    'Aperçu administrateur',
     overviewSubtitle: 'Résumé de la plateforme Groundwork',
@@ -1712,6 +1722,16 @@ export const fr: Mirror<EnDict> = {
       noAccount:  'Vous n’avez pas de compte ?',
       signUp:     "S'inscrire",
     },
+    adminEntry: {
+      eyebrow:     'Accès réservé',
+      title:       'Connexion administrateur',
+      subtitle:    "Cet espace est réservé au personnel de Groundwork. Les clients se connectent depuis le site principal.",
+      submit:      "Se connecter à l'administration",
+      notAdmin:    "Ce compte n'a pas accès à l'administration. Vous avez été déconnecté.",
+      noSelfServe: "L'accès administrateur est accordé par un administrateur existant — aucune inscription ici.",
+      backToSite:  'Retour à Groundwork',
+    },
+
     signup: {
       title:          'Inscription',
       titleInvite:    'Créez votre compte',

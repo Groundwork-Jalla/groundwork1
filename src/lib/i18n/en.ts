@@ -165,6 +165,18 @@ export const en = {
     previewNoCharge: 'Preview — no live charge yet. Marks the stage paid for tracking.',
     blueprintCaption:'SITE PLAN + ELEVATION — SCALE 1:100',
   },
+  // Staff sign-in (/admin/login). Separate from auth.login.* on purpose: the client
+  // login and the back-office entrance are different doors and read differently.
+  adminAuth: {
+    eyebrow:      'Staff access',
+    title:        'Admin sign in',
+    subtitle:     'This area is restricted to Groundwork staff. Sign in with your admin account.',
+    submit:       'Sign in',
+    notAdmin:     'That account does not have admin access. Sign in with a staff account, or ask an administrator to grant you access.',
+    noSelfServe:  'Admin access is granted by an administrator — there is no sign-up here.',
+    backToSite:   'Back to Groundwork',
+  },
+
   admin: {
     overviewTitle:    'Admin Overview',
     overviewSubtitle: 'Groundwork platform summary',
@@ -1702,6 +1714,19 @@ export const en = {
       noAccount:  "Don't have an account?",
       signUp:     'Sign up',
     },
+    // ── Staff entrance (/admin/login) ──
+    // Reuses auth.login.* for the shared field labels; only the admin-specific
+    // framing lives here.
+    adminEntry: {
+      eyebrow:     'Staff access',
+      title:       'Admin sign in',
+      subtitle:    'This area is restricted to Groundwork staff. Client accounts sign in from the main site.',
+      submit:      'Sign in to admin',
+      notAdmin:    'That account does not have admin access. You have been signed out.',
+      noSelfServe: 'Admin access is granted by an existing administrator — there is no sign-up here.',
+      backToSite:  'Back to Groundwork',
+    },
+
     signup: {
       title:          'Sign up',
       titleInvite:    'Create your account',

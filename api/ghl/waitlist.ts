@@ -55,13 +55,24 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // GHL stores first and last name separately. The form asks for one "Name" field, so
+  // send both the split and the original: splitting on the first space is a heuristic,
+  // not a truth — many names do not divide that way — and `name` stays authoritative.
+  // Same shape as api/ghl/contractor.ts so one workflow mapping fits both.
+  const fullName = typeof name === 'string' ? name.trim() : '';
+  const spaceAt   = fullName.indexOf(' ');
+  const firstName = spaceAt === -1 ? fullName : fullName.slice(0, spaceAt);
+  const lastName  = spaceAt === -1 ? ''       : fullName.slice(spaceAt + 1).trim();
+
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        name:     typeof name === 'string' && name.trim()     ? name.trim()     : null,
+        name:       fullName || null,
+        first_name: firstName || null,
+        last_name:  lastName  || null,
         location: typeof location === 'string' && location.trim() ? location.trim() : null,
         source: 'groundwork_waitlist',
         submitted_at: new Date().toISOString(),
