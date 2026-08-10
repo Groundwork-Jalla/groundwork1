@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle2, Briefcase, ExternalLink, X, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { ownerLookup } from '@/lib/supabase/admin-users';
 import { adminStartProjectTracking } from '@/lib/supabase/tracking';
 import { formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
@@ -139,22 +140,26 @@ export default function AdminBudgets() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('projects')
-        .select(`id, name, user_id, country, budget_usd,
-                 profiles!inner(full_name, email)`)
-        .in('tier', ['jalla_management', 'enterprise'])
-        .is('tracking_started_at', null)
-        .order('created_at', { ascending: true });
+      // See admin-users.ts: the projects -> profiles embed is not a relationship
+      // PostgREST can resolve, so it 400'd and this list was always empty.
+      const [{ data }, owners] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id, name, user_id, country, budget_usd')
+          .in('tier', ['jalla_management', 'enterprise'])
+          .is('tracking_started_at', null)
+          .order('created_at', { ascending: true }),
+        ownerLookup(),
+      ]);
 
       setItems((data ?? []).map((p: Record<string, unknown>) => {
-        const profile = p.profiles as Record<string, unknown>;
+        const profile = owners.get(p.user_id as string);
         return {
           id:         p.id as string,
           name:       p.name as string,
           ownerId:    p.user_id as string,
-          ownerEmail: (profile?.email as string) ?? '',
-          ownerName:  (profile?.full_name as string) ?? '',
+          ownerEmail: profile?.email ?? '',
+          ownerName:  profile?.name ?? '',
           country:    p.country as string,
           estimate:   Number(p.budget_usd ?? 0),
         };

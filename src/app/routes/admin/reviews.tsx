@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, RotateCcw, Loader2, ImageIcon, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { ownerLookup } from '@/lib/supabase/admin-users';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApproveStage, adminRequestRework } from '@/lib/supabase/approvals';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -248,23 +249,28 @@ export default function AdminReviews() {
     setLoading(true);
     try {
       // Fetch all stages with pending_review status (jalla_verify projects)
-      const { data: stages } = await supabase
-        .from('project_stages')
-        .select(`
-          id, stage_number, name, completed_at,
-          projects!inner(id, name, user_id, tier,
-            profiles!inner(full_name, email)
-          ),
-          project_substages(id, name, status, evidence_urls)
-        `)
-        .eq('status', 'pending_review')
-        .order('stage_number');
+      // The nested profiles embed is dropped: projects -> profiles is not a
+      // relationship PostgREST can infer (the FK targets auth.users), so the whole
+      // query 400'd and no stage ever reached review. projects -> project_stages IS
+      // a real FK, so that half of the embed is kept.
+      const [{ data: stages }, owners] = await Promise.all([
+        supabase
+          .from('project_stages')
+          .select(`
+            id, stage_number, name, completed_at,
+            projects!inner(id, name, user_id, tier),
+            project_substages(id, name, status, evidence_urls)
+          `)
+          .eq('status', 'pending_review')
+          .order('stage_number'),
+        ownerLookup(),
+      ]);
 
       if (!stages) { setItems([]); return; }
 
       const pending: PendingStage[] = stages.map((s: Record<string, unknown>) => {
         const proj = s.projects as Record<string, unknown>;
-        const profile = proj.profiles as Record<string, unknown>;
+        const profile = owners.get(proj.user_id as string);
         const substages = (s.project_substages as Record<string, unknown>[]) ?? [];
         return {
           stageId:     s.id as string,
@@ -272,8 +278,8 @@ export default function AdminReviews() {
           stageName:   s.name as string,
           projectId:   proj.id as string,
           projectName: proj.name as string,
-          ownerEmail:  profile?.email as string ?? '',
-          ownerName:   profile?.full_name as string ?? '',
+          ownerEmail:  profile?.email ?? '',
+          ownerName:   profile?.name ?? '',
           submittedAt: s.completed_at as string | null,
           substages:   substages.map(sub => ({
             id:           sub.id as string,

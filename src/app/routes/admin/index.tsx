@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { FolderOpen, Users, ClipboardCheck, HardHat, ChevronRight, Wallet } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { listAdminUsers } from '@/lib/supabase/admin-users';
 import { useT } from '@/lib/i18n';
 
 interface Stats {
@@ -42,28 +43,36 @@ export default function AdminOverview() {
 
   useEffect(() => {
     async function load() {
-      const [projects, reviews, budgets, users] = await Promise.all([
+      const [projects, reviews, budgets] = await Promise.all([
         supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('project_stages').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
         supabase.from('projects').select('id', { count: 'exact', head: true })
           .in('tier', ['jalla_management', 'enterprise']).is('tracking_started_at', null),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
       ]);
 
+      // Counted from the same source as /admin/users, so the card and the page agree.
+      // `profiles` under-reports: it had 3 rows against 6 auth users.
+      let totalUsers = 0;
+      try { totalUsers = (await listAdminUsers()).length; } catch { /* stays 0 */ }
+
+      // Was `contractors.status = 'pending'`. That table is a public directory with no
+      // `status` column, so the request 400'd on every load — and supabase-js resolves
+      // errors rather than throwing, so the try/catch never caught anything. Pending
+      // applications are the number this card was actually meant to show.
       let pendingContractors = 0;
-      try {
+      {
         const { count } = await supabase
-          .from('contractors')
+          .from('contractor_applications')
           .select('id', { count: 'exact', head: true })
           .eq('status', 'pending');
         pendingContractors = count ?? 0;
-      } catch { /* contractors table may not exist */ }
+      }
 
       setStats({
         totalProjects:   projects.count ?? 0,
         pendingReviews:  reviews.count  ?? 0,
         pendingBudgets:  budgets.count  ?? 0,
-        totalUsers:      users.count    ?? 0,
+        totalUsers,
         pendingContractors,
       });
     }

@@ -324,6 +324,8 @@ export const en = {
     },
 
     allUsers:         'All Users',
+    usersLoadFailed:  'Could not load users.',
+    roleClient:       'client',
     searchUsers:      'Search users…',
 
     allCaughtUp:      'All caught up',

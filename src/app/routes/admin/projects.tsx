@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, ExternalLink, Search, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { ownerLookup } from '@/lib/supabase/admin-users';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 
@@ -61,18 +62,25 @@ export default function AdminProjects() {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await supabase
-          .from('projects')
-          .select(`id, name, tier, status, current_stage, country, created_at,
-                   profiles!inner(full_name, email)`)
-          .order('created_at', { ascending: false });
+        // `profiles!inner(...)` used to be embedded here. PostgREST cannot infer that
+        // relationship — projects.user_id references auth.users, not profiles — so the
+        // request 400'd and this page always read "0 total". Owners are resolved
+        // separately now, which also keeps a project visible when its owner has no
+        // profile row (the `!inner` would have dropped it even if the join worked).
+        const [{ data }, owners] = await Promise.all([
+          supabase
+            .from('projects')
+            .select('id, name, user_id, tier, status, current_stage, country, created_at')
+            .order('created_at', { ascending: false }),
+          ownerLookup(),
+        ]);
         setProjects((data ?? []).map((p: Record<string, unknown>) => {
-          const profile = p.profiles as Record<string, unknown>;
+          const profile = owners.get(p.user_id as string);
           return {
             id:           p.id as string,
             name:         p.name as string,
-            ownerEmail:   profile?.email as string ?? '',
-            ownerName:    profile?.full_name as string ?? '',
+            ownerEmail:   profile?.email ?? '',
+            ownerName:    profile?.name ?? '',
             tier:         p.tier as string,
             status:       p.status as string,
             currentStage: p.current_stage as number,

@@ -333,6 +333,8 @@ export const fr: Mirror<EnDict> = {
     },
 
     allUsers:         'Tous les utilisateurs',
+    usersLoadFailed:  'Impossible de charger les utilisateurs.',
+    roleClient:       'client',
     searchUsers:      'Rechercher un utilisateur…',
 
     allCaughtUp:      'Tout est à jour',
