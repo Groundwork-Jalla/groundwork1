@@ -173,7 +173,6 @@ export const en = {
     subtitle:     'This area is restricted to Groundwork staff. Sign in with your admin account.',
     submit:       'Sign in',
     notAdmin:     'That account does not have admin access. Sign in with a staff account, or ask an administrator to grant you access.',
-    noSelfServe:  'Admin access is granted by an administrator — there is no sign-up here.',
     backToSite:   'Back to Groundwork',
   },
 

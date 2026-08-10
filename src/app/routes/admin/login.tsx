@@ -21,6 +21,10 @@ import { useT } from '@/lib/i18n';
 // `is_admin()` and the RLS policies behind it. What this page adds is an honest
 // failure: sign in with a non-admin account and it says so and signs you back out,
 // rather than silently dropping you on the client dashboard wondering what happened.
+//
+// Password only. No sign-up link, and Google OAuth was removed deliberately: OAuth
+// returns through /auth/callback, so the not-an-admin check below never runs on that
+// path and the visitor keeps a session the staff entrance never validated.
 // =========================================================
 
 export default function AdminLogin() {
@@ -72,14 +76,6 @@ export default function AdminLogin() {
 
     await completeSignIn();
     setSubmitting(false);
-  }
-
-  async function handleGoogle() {
-    // Returns through /auth/callback, which routes admins to /admin on its own.
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/admin` },
-    });
   }
 
   return (
@@ -167,26 +163,9 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/12" />
-            <span className="text-[11px] text-white/35">{t('common.or')}</span>
-            <div className="h-px flex-1 bg-white/12" />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogle}
-            className="w-full rounded-xl border border-white/20 py-3 text-sm font-medium text-white transition-colors hover:bg-white/[0.06]"
-          >
-            {t('auth.login.google')}
-          </button>
-
-          {/* No sign-up link, by design: staff accounts are granted in user_roles, never self-served. */}
-          <p className="mt-8 text-center text-xs text-white/35">{t('adminAuth.noSelfServe')}</p>
-
           <Link
             to="/"
-            className="mt-6 flex items-center justify-center gap-1.5 text-xs text-white/40 transition-colors hover:text-white/70"
+            className="mt-8 flex items-center justify-center gap-1.5 text-xs text-white/40 transition-colors hover:text-white/70"
           >
             <ArrowLeft className="size-3" /> {t('adminAuth.backToSite')}
           </Link>

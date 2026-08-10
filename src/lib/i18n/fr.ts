@@ -185,7 +185,6 @@ export const fr: Mirror<EnDict> = {
     subtitle:     "Cet espace est réservé à l'équipe Groundwork. Connectez-vous avec votre compte administrateur.",
     submit:       'Se connecter',
     notAdmin:     "Ce compte n'a pas accès à l'administration. Connectez-vous avec un compte de l'équipe, ou demandez l'accès à un administrateur.",
-    noSelfServe:  "L'accès administrateur est accordé par un administrateur — aucune inscription ici.",
     backToSite:   'Retour à Groundwork',
   },
 
