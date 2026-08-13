@@ -174,6 +174,76 @@ export async function signCredentialUrl(path: string): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
+/**
+ * Publish an accepted application into the public contractor directory.
+ *
+ * The mapping lives in `admin_promote_application()` (migration 033) rather than here:
+ * it reads an admin-only table and writes another in one transaction, and doing it in
+ * SQL keeps the field translation — experience bucket to a number, city+country to one
+ * location string, project types to specialties — in a single place that cannot drift.
+ * Idempotent on contractors.application_id, so accepting twice updates one row.
+ */
+export async function promoteApplication(applicationId: string): Promise<string> {
+  const { data, error } = await supabase
+    .rpc('admin_promote_application', { p_application_id: applicationId });
+  if (error) throw error;
+  return String(data ?? '');
+}
+
+// ── Contractor directory ───────────────────────────────────
+
+export interface DirectoryEntry {
+  id: string;
+  name: string;
+  trade: string;
+  location: string;
+  yearsExp: number;
+  completedProjects: number;
+  specialties: string[];
+  verified: boolean;
+  active: boolean;
+  email: string | null;
+  phone: string | null;
+  /** Set when this entry was published from an application. */
+  applicationId: string | null;
+  createdAt: string;
+}
+
+/**
+ * Admins see inactive entries too — `admins_read_all_contractors` (033) sits alongside
+ * the public policy, which only exposes active ones.
+ */
+export async function listDirectory(): Promise<DirectoryEntry[]> {
+  const { data, error } = await supabase
+    .from('contractors')
+    .select('id, name, trade, location, years_exp, completed_projects, specialties, ' +
+            'verified, active, email, phone, application_id, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as Row[]).map(r => ({
+    id:                s(r.id),
+    name:              s(r.name),
+    trade:             s(r.trade),
+    location:          s(r.location),
+    yearsExp:          typeof r.years_exp === 'number' ? r.years_exp : 0,
+    completedProjects: typeof r.completed_projects === 'number' ? r.completed_projects : 0,
+    specialties:       Array.isArray(r.specialties) ? (r.specialties as string[]) : [],
+    verified:          r.verified === true,
+    active:            r.active === true,
+    email:             sn(r.email),
+    phone:             sn(r.phone),
+    applicationId:     sn(r.application_id),
+    createdAt:         s(r.created_at),
+  }));
+}
+
+/** Take an entry down without deleting it — reviews and history stay intact. */
+export async function setDirectoryActive(id: string, active: boolean): Promise<void> {
+  const { error } = await supabase.from('contractors').update({ active }).eq('id', id);
+  if (error) throw error;
+}
+
 // ── Waitlist ───────────────────────────────────────────────
 
 export interface WaitlistEntry {

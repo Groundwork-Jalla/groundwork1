@@ -4,7 +4,7 @@ import {
   Loader2, ArrowLeft, Download, ExternalLink, CloudOff, AlertTriangle, Check,
 } from 'lucide-react';
 import {
-  getApplication, setApplicationStatus, signCredentialUrl,
+  getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
   ASSIGNABLE_STATUSES, type ApplicationDetail,
 } from '@/lib/supabase/admin-applications';
 import { StatusPill, useRoleLabel } from './applications';
@@ -116,13 +116,33 @@ export default function AdminApplicationDetail() {
     return () => { alive = false; };
   }, [id]);
 
+  /**
+   * Accepting also publishes them to the public directory. Until now it only moved a
+   * status column, so an accepted contractor appeared nowhere and the directory stayed
+   * empty. The publish is idempotent, so re-accepting refreshes the entry rather than
+   * creating a second one.
+   *
+   * The status is saved first and kept even if publishing fails: the decision is the
+   * admin's and should not be lost to a directory problem, which is recoverable by
+   * pressing Accept again.
+   */
   async function decide(status: typeof ASSIGNABLE_STATUSES[number]) {
     if (!id) return;
     setSaving(true); setNotice(null);
     try {
       await setApplicationStatus(id, status);
       setApp(prev => (prev ? { ...prev, status } : prev));
-      setNotice({ ok: true, text: t('admin.apps.statusSaved') });
+
+      if (status === 'accepted') {
+        try {
+          await promoteApplication(id);
+          setNotice({ ok: true, text: t('admin.apps.publishedToDirectory') });
+        } catch {
+          setNotice({ ok: false, text: t('admin.apps.publishFailed') });
+        }
+      } else {
+        setNotice({ ok: true, text: t('admin.apps.statusSaved') });
+      }
     } catch {
       setNotice({ ok: false, text: t('admin.apps.statusFailed') });
     } finally {
