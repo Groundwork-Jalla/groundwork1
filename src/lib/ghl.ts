@@ -12,8 +12,11 @@
 
 export interface WaitlistLead {
   name?: string;
+  /** Already trimmed and lower-cased by the caller — see community.tsx. */
   email: string;
   location?: string;
+  /** Language the form was filled in, so the CRM can follow up in it. */
+  lang: 'en' | 'fr';
 }
 
 /**

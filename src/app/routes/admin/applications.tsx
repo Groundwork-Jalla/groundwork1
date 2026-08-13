@@ -6,6 +6,7 @@ import {
   type ApplicationSummary, type ApplicationStatus,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
+import { useDomainLabels } from '@/lib/domain-labels';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
 // =========================================================
@@ -66,18 +67,9 @@ function fmtDate(iso: string, lang: string): string {
         { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-/**
- * `role` is a stored enum. The public form already translates these under
- * contractorApply.form.role.*, so reuse them rather than showing `general_contractor`.
- * `role_other` is free text and has no key — fall back to the raw value.
- */
+/** Kept as a named export so the detail and directory screens share one import. */
 export function useRoleLabel() {
-  const t = useT();
-  return (role: string) => {
-    const key = `contractorApply.form.role.${role}` as TKey;
-    const label = t(key);
-    return label === key ? role : label;
-  };
+  return useDomainLabels().trade;
 }
 
 export default function AdminApplications() {

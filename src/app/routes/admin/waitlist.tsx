@@ -109,6 +109,7 @@ export default function AdminWaitlist() {
               <thead className="border-b border-brand-border-grey bg-brand-off-white">
                 <tr className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colEmail')}</th>
+                  <th scope="col" className="px-4 py-2.5">{t('admin.wait.colLang')}</th>
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colCrm')}</th>
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colJoined')}</th>
                 </tr>
@@ -120,6 +121,9 @@ export default function AdminWaitlist() {
                       <a href={`mailto:${r.email}`} className="text-brand-near-black underline underline-offset-2 hover:opacity-70">
                         {r.email}
                       </a>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-medium uppercase text-brand-mid-grey">
+                      {r.lang}
                     </td>
                     <td className="px-4 py-3">
                       {r.syncedToGhl ? (

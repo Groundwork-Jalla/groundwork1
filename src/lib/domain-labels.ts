@@ -43,5 +43,13 @@ export function useDomainLabels() {
     country:      (v: string | null | undefined) => lookup('country', v),
     /** Preview panel caption for a wizard image key. */
     previewTitle: (v: string | null | undefined) => lookup('preview.title', v),
+    /**
+     * Contractor trade / applicant role. Both `contractor_applications.role` and
+     * `contractors.trade` hold the same enum key, and the public application form
+     * already translates them, so reuse those strings rather than shipping a second
+     * copy. Directory rows added by hand before this held an English label instead of
+     * a key — the fallback renders those unchanged.
+     */
+    trade:        (v: string | null | undefined) => lookup('contractorApply.form.role', v),
   };
 }

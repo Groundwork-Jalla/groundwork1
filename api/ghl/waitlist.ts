@@ -48,7 +48,12 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const { name, email, location } = req.body ?? {};
+  const { name, location } = req.body ?? {};
+  // Normalised here as well as in the client: this endpoint is reachable directly,
+  // and a stray-case address would miss markSynced()'s WHERE and look unforwarded.
+  const email = typeof req.body?.email === 'string'
+    ? req.body.email.trim().toLowerCase()
+    : req.body?.email;
 
   if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
     res.status(400).json({ error: 'A valid email is required' });
@@ -74,6 +79,8 @@ export default async function handler(req: any, res: any) {
         first_name: firstName || null,
         last_name:  lastName  || null,
         location: typeof location === 'string' && location.trim() ? location.trim() : null,
+        // Which language to write the launch announcement in.
+        lang: req.body?.lang === 'fr' ? 'fr' : 'en',
         source: 'groundwork_waitlist',
         submitted_at: new Date().toISOString(),
       }),

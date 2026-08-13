@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CountdownClock from "@/components/landing/CountdownClock";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { useT } from "@/lib/i18n";
+import { useT, useLanguage } from '@/lib/i18n';
 import { sendWaitlistLead } from '@/lib/ghl';
 
 const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
@@ -112,6 +112,7 @@ function BlueprintPanel() {
 export default function Community() {
   useForceLight();
   const t = useT();
+  const { lang } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
@@ -124,20 +125,30 @@ export default function Community() {
     setError(null);
     setSubmitting(true);
 
-    const { error: emailError } = await supabase.from("waitlist_emails").insert({ email });
+    // Normalised before it is stored. The UNIQUE constraint is on the literal string,
+    // so without this "Foo@Bar.com" and "foo@bar.com" are two rows — two GoHighLevel
+    // leads, and the same person receiving every announcement twice. Migration 034 adds
+    // a CHECK so this cannot be reintroduced from another caller.
+    const cleanEmail = email.trim().toLowerCase();
+
+    const { error: emailError } = await supabase
+      .from("waitlist_emails")
+      .insert({ email: cleanEmail, lang });
     if (emailError) {
       setSubmitting(false);
       setError(emailError.code === "23505" ? t('community.alreadyOnList') : emailError.message);
       return;
     }
 
+    // Best-effort: this feeds the landing page's social-proof ticker, and failing it
+    // must not cost someone their place on the list. They are already recorded above.
     await supabase.from("waitlist_members").insert({ name: name || null, location: location || null });
 
     // Mirror the lead into GoHighLevel. Deliberately not awaited and deliberately after
     // both inserts: the person is already on the waitlist by this point, so a CRM outage
     // must not turn a successful signup into a visible error. A duplicate email never
     // reaches here — it short-circuits above — so the CRM sees each person once.
-    sendWaitlistLead({ name, email, location });
+    sendWaitlistLead({ name, email: cleanEmail, location, lang });
 
     setSubmitting(false);
     trackEvent('waitlist_joined');

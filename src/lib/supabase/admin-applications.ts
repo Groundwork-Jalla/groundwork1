@@ -249,6 +249,8 @@ export async function setDirectoryActive(id: string, active: boolean): Promise<v
 export interface WaitlistEntry {
   id: string;
   email: string;
+  /** Language the signup form was in (migration 034). */
+  lang: 'en' | 'fr';
   syncedToGhl: boolean;
   syncedToGhlAt: string | null;
   createdAt: string;
@@ -261,13 +263,14 @@ export interface WaitlistEntry {
 export async function listWaitlist(): Promise<WaitlistEntry[]> {
   const { data, error } = await supabase
     .from('waitlist_emails')
-    .select('id, email, synced_to_ghl, synced_to_ghl_at, created_at')
+    .select('id, email, lang, synced_to_ghl, synced_to_ghl_at, created_at')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
   return ((data ?? []) as unknown as Row[]).map((r) => ({
     id:            s(r.id),
     email:         s(r.email),
+    lang:          r.lang === 'fr' ? 'fr' : 'en',
     syncedToGhl:   r.synced_to_ghl === true,
     syncedToGhlAt: sn(r.synced_to_ghl_at),
     createdAt:     s(r.created_at),

@@ -349,6 +349,7 @@ export const fr: Mirror<EnDict> = {
       subtitle:   "Toutes les personnes qui ont demandé à être prévenues de l'ouverture de Groundwork.",
       search:     'Rechercher par e-mail…',
       colEmail:   'E-mail',
+      colLang:    'Langue',
       colJoined:  'Inscrit le',
       colCrm:     'CRM',
       empty:      "Personne ne s'est encore inscrit.",
@@ -1532,6 +1533,10 @@ export const fr: Mirror<EnDict> = {
       },
 
       // Section 4 — commun
+      errorProjectTypes: 'Sélectionnez au moins un type de projet sur lequel vous avez travaillé.',
+      errorDocuments:    "Joignez les documents correspondant à votre rôle — une candidature ne peut pas être examinée sans eux.",
+      errorUploadFailed: 'Vos documents n’ont pas pu être téléversés. Vérifiez votre connexion et réessayez.',
+      uploadsRequired:   'Obligatoire',
       uploadsTitle: 'Joindre les pièces justificatives',
       uploadHint:   'PDF, JPG, PNG ou WebP · 10 Mo maximum par fichier',
       uploadCta:    'Choisir des fichiers',

@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
+import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -213,6 +214,7 @@ function ContractorProfileModal({
   onRequestQuote: (c: Contractor) => void;
   onClose: () => void;
 }) {
+  const tradeLabel = useDomainLabels().trade;
   const t = useT();
   const initials = contractor.avatar_initials
     || contractor.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -258,7 +260,7 @@ function ContractorProfileModal({
           )}
 
           <p className="mt-2 text-xs text-white/45">
-            {[contractor.trade, contractor.location].filter(Boolean).join(' · ')}
+            {[tradeLabel(contractor.trade), contractor.location].filter(Boolean).join(' · ')}
           </p>
 
           {/* Score, not stars — see ScoreBadge. */}
@@ -327,6 +329,7 @@ function ContractorCard({
   onRequestQuote: (c: Contractor) => void;
   onViewProfile: (c: Contractor) => void;
 }) {
+  const tradeLabel = useDomainLabels().trade;
   const t = useT();
   const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
@@ -343,7 +346,7 @@ function ContractorCard({
             <p className="font-bold text-brand-near-black text-base leading-snug truncate">
               {contractor.name}
             </p>
-            <p className="text-sm text-brand-mid-grey truncate">{contractor.trade}</p>
+            <p className="text-sm text-brand-mid-grey truncate">{tradeLabel(contractor.trade)}</p>
           </div>
         </div>
 
@@ -443,6 +446,7 @@ function QuoteRequestDialog({
   contractor: Contractor;
   onClose: () => void;
 }) {
+  const tradeLabel = useDomainLabels().trade;
   const t = useT();
   const [submitted, setSubmitted] = useState(false);
 
@@ -479,7 +483,7 @@ function QuoteRequestDialog({
               <p className="font-bold text-brand-near-black dark:text-white text-sm leading-snug truncate">
                 {contractor.name}
               </p>
-              <p className="text-xs text-brand-mid-grey truncate">{contractor.trade}</p>
+              <p className="text-xs text-brand-mid-grey truncate">{tradeLabel(contractor.trade)}</p>
             </div>
           </div>
           <button

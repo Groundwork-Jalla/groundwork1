@@ -341,6 +341,7 @@ export const en = {
       subtitle:   'Everyone who asked to be told when Groundwork opens.',
       search:     'Search by email…',
       colEmail:   'Email',
+      colLang:    'Lang',
       colJoined:  'Joined',
       colCrm:     'CRM',
       empty:      'Nobody has joined the waitlist yet.',
@@ -1524,6 +1525,10 @@ export const en = {
       },
 
       // Section 4 — shared
+      errorProjectTypes: 'Select at least one type of project you have worked on.',
+      errorDocuments:    'Attach the documents for your role — an application cannot be reviewed without them.',
+      errorUploadFailed: 'Your documents could not be uploaded. Check your connection and try again.',
+      uploadsRequired:   'Required',
       uploadsTitle: 'Upload supporting documents',
       uploadHint:   'PDF, JPG, PNG or WebP · max 10 MB each',
       uploadCta:    'Choose files',

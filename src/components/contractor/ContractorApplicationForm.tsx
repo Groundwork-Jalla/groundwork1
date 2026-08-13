@@ -109,15 +109,18 @@ function YesNo({ label, value, onChange }: {
   );
 }
 
-function CheckGroup({ label, options, selected, onToggle }: {
+function CheckGroup({ label, options, selected, onToggle, required }: {
   label: string;
   options: { key: string; label: string }[];
   selected: string[];
   onToggle: (key: string) => void;
+  required?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label>
+        {label}{required && <span className="text-state-alert"> *</span>}
+      </Label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {options.map(o => {
           const on = selected.includes(o.key);
@@ -225,6 +228,17 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       setError(f('errorRequired'));
       return;
     }
+    if (projectTypes.length === 0) {
+      setError(f('errorProjectTypes'));
+      return;
+    }
+    // Credentials are what makes an application reviewable — a role's documents are
+    // the only evidence behind every other claim on the form. Checked before the
+    // upload loop so nobody waits on a transfer only to be told it was needed.
+    if (files.length + pending.length === 0) {
+      setError(f('errorDocuments'));
+      return;
+    }
     const filled = projects.filter(p => p.name.trim() && p.location.trim());
     if (filled.length < 3) {
       setError(f('errorProjects'));
@@ -241,8 +255,19 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         try {
           uploaded.push(await uploadCredential(file, file.name, submissionId));
         } catch {
-          // A failed attachment must not cost someone their whole application.
+          // One failed attachment among several must not cost someone their whole
+          // application — the rest still arrive and an admin can chase the gap.
         }
+      }
+
+      // But documents are mandatory now, so an application with none of them is not
+      // reviewable. Losing every upload means the transfer failed, not that they had
+      // nothing to send; submitting silently would look like success and produce an
+      // application no admin could act on.
+      if (uploaded.length === 0) {
+        setSubmitting(false);
+        setError(f('errorUploadFailed'));
+        return;
       }
 
       const input: ContractorApplicationInput = {
@@ -386,6 +411,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         </Field>
         <CheckGroup
           label={f('projectTypesQ')}
+          required
           options={typeKeys.map(k => ({ key: k, label: f(`projectType.${k}`) }))}
           selected={projectTypes}
           onToggle={k => setProjectTypes(p => toggleIn(p, k))}
@@ -396,7 +422,11 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       {track && (
         <Section n={4} title={f('s4')}>
           <div className="rounded-xl bg-brand-off-white px-4 py-3">
-            <p className="text-[11px] font-semibold text-brand-near-black mb-1">{f('uploadsTitle')}</p>
+            <p className="text-[11px] font-semibold text-brand-near-black mb-1">
+              {f('uploadsTitle')}
+              <span className="text-state-alert"> *</span>
+              <span className="ml-1.5 font-medium text-brand-mid-grey">{f('uploadsRequired')}</span>
+            </p>
             <p className="text-[11px] text-brand-mid-grey leading-relaxed">
               {track === 'contractor' ? f('upContractor')
                 : track === 'lawyer'  ? f('upLawyer')
