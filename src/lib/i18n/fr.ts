@@ -310,6 +310,8 @@ export const fr: Mirror<EnDict> = {
       markAccepted: 'Accepter',
       markRejected: 'Refuser',
       statusSaved:  'Statut mis à jour.',
+      applicantNotified: "Le candidat a été informé par e-mail.",
+      notifyFailed:      "Impossible d'envoyer l'e-mail au candidat — la décision est enregistrée, appuyez à nouveau pour réessayer.",
       statusFailed: 'Impossible de mettre à jour le statut.',
       publishedToDirectory: "Acceptée et publiée dans l'annuaire des prestataires.",
       publishFailed: "Acceptée, mais la publication dans l'annuaire a échoué. Appuyez à nouveau sur Accepter pour réessayer.",
@@ -1574,7 +1576,7 @@ export const fr: Mirror<EnDict> = {
       softwareQ:    'Quels logiciels / outils utilisez-vous ?',
 
       // Section 4 — corps de métier
-      upTrade:      "Certification ou qualification professionnelle (le cas échéant), photos ou vidéos de travaux réalisés",
+      upTrade:      "Toute preuve de votre travail : un certificat ou une qualification si vous en avez un, une lettre de recommandation d'une entreprise ou d'un client pour qui vous avez travaillé, ou des photos et vidéos de chantiers réalisés. Un certificat n'est pas obligatoire — une lettre de recommandation suffit.",
       tradeProjectsQ: 'Sur quels types de chantiers travaillez-vous habituellement ?',
       workStyleQ:   'Travaillez-vous plutôt en indépendant ou pour des entrepreneurs ?',
       workStyle: {
@@ -2562,6 +2564,19 @@ export const fr: Mirror<EnDict> = {
     brand: 'Groundwork',
     byJalla: 'par Jalla',
     footer: 'Groundwork par Jalla',
+    decision: {
+      eyebrow:          'Réseau fondateur',
+      greeting:         'Bonjour {name},',
+      acceptedSubject:  'Vous êtes accepté(e) dans le Réseau fondateur Groundwork',
+      acceptedHeading:  'Votre candidature est acceptée',
+      acceptedBody1:    "Nous avons examiné votre candidature et vos justificatifs, et nous souhaitons vous compter dans le Réseau fondateur. Votre profil figure désormais dans l'annuaire des prestataires, où les clients qui construisent dans votre région peuvent vous trouver.",
+      acceptedBody2:    'Créez votre compte avec cette même adresse e-mail pour gérer les chantiers auxquels les clients vous invitent, téléverser les preuves d\'étape et être payé(e) par jalons.',
+      acceptedCta:      'Créer votre compte',
+      rejectedSubject:  'Votre candidature au Réseau fondateur Groundwork',
+      rejectedHeading:  'Nous ne donnons pas suite à votre candidature',
+      rejectedBody1:    'Merci d\'avoir postulé au Réseau fondateur et pour le temps consacré à votre dossier. Nous ne donnons pas suite cette fois-ci.',
+      rejectedBody2:    'Le réseau en est à ses débuts et nous intégrons un nombre restreint de professionnels par région. Vous pourrez postuler à nouveau au fur et à mesure de notre expansion.',
+    },
     contractorApplication: {
       subject:  'Nous avons bien reçu votre candidature au Réseau Fondateur',
       heading:  'Candidature reçue',

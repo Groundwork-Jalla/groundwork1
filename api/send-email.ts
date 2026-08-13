@@ -5,6 +5,32 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // This endpoint takes `to`, `subject` and `html` straight from the caller, so without
+  // a check it is an open relay on noreply@mail.tryjalla.com — anyone could send mail
+  // that looks like it came from us. A valid session is now required. The contractor
+  // application form used to be the one anonymous caller; it goes through
+  // /api/contractor-application-notify instead, which derives its recipients from the
+  // database rather than the request.
+  const token = String(req.headers?.authorization ?? '').replace(/^Bearer /i, '');
+  if (!token) {
+    return res.status(401).json({ error: 'Sign in required' });
+  }
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const anonKey     = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    console.error('[email] Supabase env missing — cannot verify caller');
+    return res.status(500).json({ error: 'Server is not configured' });
+  }
+  const { createClient } = await import('@supabase/supabase-js');
+  const caller = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user }, error: authErr } = await caller.auth.getUser();
+  if (authErr || !user) {
+    return res.status(401).json({ error: 'Sign in required' });
+  }
+
   const { to, subject, html } = req.body ?? {};
   if (!to || !subject || !html) {
     return res.status(400).json({ error: 'Missing required fields: to, subject, html' });

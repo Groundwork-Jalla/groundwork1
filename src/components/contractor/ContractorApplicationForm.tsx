@@ -7,10 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useLanguage, type TKey } from '@/lib/i18n';
 import { COUNTRIES } from '@/lib/countries';
-import { sendEmail } from '@/lib/email/send-email';
-import {
-  buildContractorApplicationHtml, contractorApplicationSubject,
-} from '@/lib/email/contractor-application-html';
 import {
   CONTRACTOR_ROLES, credentialTrack, qualifies, submitContractorApplication,
   uploadCredential,
@@ -284,15 +280,18 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         lang,
       };
 
-      await submitContractorApplication(input);
+      const applicationId = await submitContractorApplication(input);
 
-      // Applicant's own copy. Fire-and-forget: the application is already saved and
-      // a mail failure must not read as a failed submission.
-      void sendEmail(
-        email.trim(),
-        contractorApplicationSubject(lang),
-        buildContractorApplicationHtml(lang, input),
-      );
+      // Sends the applicant's copy AND the alert to the team inbox. Fire-and-forget:
+      // the application is already saved and a mail failure must not read as a failed
+      // submission. Only the id is sent — the endpoint derives both recipients from the
+      // stored row, so this cannot be used to send mail to an arbitrary address.
+      void fetch('/api/contractor-application-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+        keepalive: true,
+      }).catch(() => { /* logged server-side; the applicant is already through */ });
 
       setDone(true);
       onSuccess?.();

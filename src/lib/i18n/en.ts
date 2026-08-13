@@ -301,6 +301,8 @@ export const en = {
       markAccepted: 'Accept',
       markRejected: 'Reject',
       statusSaved:  'Status updated.',
+      applicantNotified: 'The applicant has been emailed.',
+      notifyFailed:      'The applicant could not be emailed — the decision is saved, press the button again to retry.',
       statusFailed: 'Could not update the status.',
       publishedToDirectory: 'Accepted and published to the contractor directory.',
       publishFailed: 'Accepted, but publishing to the directory failed. Press Accept again to retry.',
@@ -1566,7 +1568,7 @@ export const en = {
       softwareQ:    'What software / tools do you use?',
 
       // Section 4 — trades
-      upTrade:      'Certification or trade qualification (if applicable), photos or videos of previous work',
+      upTrade:      'Any proof of your work: a trade certificate or qualification if you have one, a recommendation or reference letter from a company or client you have worked for, or photos and videos of jobs you have completed. A certificate is not required — a reference letter counts.',
       tradeProjectsQ: 'What type of projects do you typically work on?',
       workStyleQ:   'Do you usually work independently or under contractors?',
       workStyle: {
@@ -2558,6 +2560,19 @@ export const en = {
     brand: 'Groundwork',
     byJalla: 'by Jalla',
     footer: 'Groundwork by Jalla',
+    decision: {
+      eyebrow:          'Founding Network',
+      greeting:         'Hi {name},',
+      acceptedSubject:  'You have been accepted into the Groundwork Founding Network',
+      acceptedHeading:  'Your application has been accepted',
+      acceptedBody1:    'We have reviewed your application and your credentials, and we would like you on the Founding Network. Your profile is now listed in the contractor directory, where clients building in your region can find you.',
+      acceptedBody2:    'Create your account with this same email address to manage the projects clients invite you to, upload stage evidence, and get paid on milestones.',
+      acceptedCta:      'Create your account',
+      rejectedSubject:  'Your Groundwork Founding Network application',
+      rejectedHeading:  'We are not moving forward with your application',
+      rejectedBody1:    'Thank you for applying to the Founding Network, and for the time you put into the application. On this occasion we are not taking it further.',
+      rejectedBody2:    'The network is still early and we are onboarding a small number of professionals per region. You are welcome to apply again as we expand.',
+    },
     contractorApplication: {
       subject:  'We received your Founding Network application',
       heading:  'Application received',

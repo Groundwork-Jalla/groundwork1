@@ -190,6 +190,29 @@ export async function promoteApplication(applicationId: string): Promise<string>
   return String(data ?? '');
 }
 
+/**
+ * Email the applicant their decision. The endpoint takes only an id and the decision —
+ * it reads the address, name and language from the row itself, so the admin's browser
+ * never chooses who gets mail from our sending domain.
+ */
+export async function sendDecisionEmail(
+  applicationId: string,
+  decision: 'accepted' | 'rejected',
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('not signed in');
+
+  const r = await fetch('/api/send-application-decision', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ applicationId, decision }),
+  });
+  if (!r.ok) throw new Error(`decision email failed: ${r.status}`);
+}
+
 // ── Contractor directory ───────────────────────────────────
 
 export interface DirectoryEntry {

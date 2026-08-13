@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import {
   getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
+  sendDecisionEmail,
   ASSIGNABLE_STATUSES, type ApplicationDetail,
 } from '@/lib/supabase/admin-applications';
 import { StatusPill, useRoleLabel } from './applications';
@@ -142,6 +143,24 @@ export default function AdminApplicationDetail() {
         }
       } else {
         setNotice({ ok: true, text: t('admin.apps.statusSaved') });
+      }
+
+      // Tell the applicant. Reported separately from the decision itself: the status is
+      // already saved, so a mail failure must not read as "the decision did not stick".
+      // `reviewing` is an internal state and never generates a message.
+      if (status === 'accepted' || status === 'rejected') {
+        try {
+          await sendDecisionEmail(id, status);
+          setNotice(prev => ({
+            ok: prev?.ok ?? true,
+            text: `${prev?.text ?? ''} ${t('admin.apps.applicantNotified')}`.trim(),
+          }));
+        } catch {
+          setNotice(prev => ({
+            ok: false,
+            text: `${prev?.text ?? ''} ${t('admin.apps.notifyFailed')}`.trim(),
+          }));
+        }
       }
     } catch {
       setNotice({ ok: false, text: t('admin.apps.statusFailed') });
