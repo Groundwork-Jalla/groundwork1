@@ -1,13 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Groundwork mark. The "G" is an outlined path, not <text>: favicons render in an
+       isolated context with no access to the page's webfonts, so a font-family
+       reference silently fell back to Arial Black and never showed the brand letter.
+       Glyph: Plus Jakarta Sans ExtraBold (800) — what font-black resolves to, since
+       the family has no 900. -->
   <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
-  <text
-    x="16"
-    y="23"
-    text-anchor="middle"
-    font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif"
-    font-weight="900"
-    font-size="21"
-    fill="white"
-    letter-spacing="-0.5"
-  >G</text>
+  <path transform="translate(5.097 25.930) scale(0.02666 -0.02666)" fill="#ffffff" d="M424 -12Q344 -12 275.0 17.0Q206 46 154.0 98.0Q102 150 73.0 220.0Q44 290 44 373Q44 456 72.0 526.5Q100 597 151.0 648.5Q202 700 270.5 728.5Q339 757 420 757Q501 757 565.5 730.0Q630 703 675.0 658.0Q720 613 739 558L602 492Q583 546 535.5 581.5Q488 617 420 617Q354 617 304.0 586.0Q254 555 226.5 500.5Q199 446 199 373Q199 300 228.0 245.0Q257 190 307.5 159.0Q358 128 424 128Q475 128 519.5 147.5Q564 167 591.5 204.0Q619 241 619 293V355L690 295H420V425H774V346Q774 255 744.0 187.5Q714 120 663.5 75.5Q613 31 550.5 9.5Q488 -12 424 -12Z"/>
 </svg>
