@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Groundwork">
+  <!-- Groundwork by Jalla. Letterforms are outlined vector paths (Plus Jakarta Sans ExtraBold 800 / Medium 500), so nothing depends on the font being installed. Generated - do not hand-edit; see public/brand/README.md. -->
+  <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
+  <path transform="translate(5.097 25.930) scale(0.02666 -0.02666)" fill="#ffffff" d="M424.0 -12.0Q344.0 -12.0 275.0 17.0Q206.0 46.0 154.0 98.0Q102.0 150.0 73.0 220.0Q44.0 290.0 44.0 373.0Q44.0 456.0 72.0 526.5Q100.0 597.0 151.0 648.5Q202.0 700.0 270.5 728.5Q339.0 757.0 420.0 757.0Q501.0 757.0 565.5 730.0Q630.0 703.0 675.0 658.0Q720.0 613.0 739.0 558.0L602.0 492.0Q583.0 546.0 535.5 581.5Q488.0 617.0 420.0 617.0Q354.0 617.0 304.0 586.0Q254.0 555.0 226.5 500.5Q199.0 446.0 199.0 373.0Q199.0 300.0 228.0 245.0Q257.0 190.0 307.5 159.0Q358.0 128.0 424.0 128.0Q475.0 128.0 519.5 147.5Q564.0 167.0 591.5 204.0Q619.0 241.0 619.0 293.0V355.0L690.0 295.0H420.0V425.0H774.0V346.0Q774.0 255.0 744.0 187.5Q714.0 120.0 663.5 75.5Q613.0 31.0 550.5 9.5Q488.0 -12.0 424.0 -12.0Z"/>
+</svg>
