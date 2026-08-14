@@ -1390,6 +1390,7 @@ export const en = {
     joinFree:   'Join for Free',
     joining:    'Joining…',
     noSpam:     'No spam. Just early access and launch updates.',
+    invalidEmail:    'That email does not look complete — check the part after the @, e.g. name@gmail.com',
     alreadyOnList: "You're already on the list.",
     successTitle:  "You're in.",
     successBody:   "You'll be among the first to know when Groundwork launches. In the meantime, join the community.",
@@ -1527,6 +1528,7 @@ export const en = {
       },
 
       // Section 4 — shared
+      errorEmail:        'That email does not look complete — check the part after the @, e.g. name@gmail.com',
       errorProjectTypes: 'Select at least one type of project you have worked on.',
       errorDocuments:    'Attach the documents for your role — an application cannot be reviewed without them.',
       errorUploadFailed: 'Your documents could not be uploaded. Check your connection and try again.',

@@ -1398,6 +1398,7 @@ export const fr: Mirror<EnDict> = {
     joinFree:   'Rejoindre gratuitement',
     joining:    'Inscription…',
     noSpam:     "Pas de spam. Uniquement l'accès anticipé et les actualités du lancement.",
+    invalidEmail:    "Cette adresse semble incomplète — vérifiez ce qui suit le @, par ex. nom@gmail.com",
     alreadyOnList: 'Vous êtes déjà inscrit.',
     successTitle:  'Vous y êtes.',
     successBody:   'Vous serez parmi les premiers informés du lancement de Groundwork. En attendant, rejoignez la communauté.',
@@ -1535,6 +1536,7 @@ export const fr: Mirror<EnDict> = {
       },
 
       // Section 4 — commun
+      errorEmail:        "Cette adresse semble incomplète — vérifiez ce qui suit le @, par ex. nom@gmail.com",
       errorProjectTypes: 'Sélectionnez au moins un type de projet sur lequel vous avez travaillé.',
       errorDocuments:    "Joignez les documents correspondant à votre rôle — une candidature ne peut pas être examinée sans eux.",
       errorUploadFailed: 'Vos documents n’ont pas pu être téléversés. Vérifiez votre connexion et réessayez.',

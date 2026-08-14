@@ -13,6 +13,7 @@ import CountdownClock from "@/components/landing/CountdownClock";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useT, useLanguage } from '@/lib/i18n';
 import { SKOOL_URL } from '@/lib/community';
+import { isValidEmail } from '@/lib/email/is-valid-email';
 import { sendWaitlistLead } from '@/lib/ghl';
 
 
@@ -131,6 +132,15 @@ export default function Community() {
     // a CHECK so this cannot be reintroduced from another caller.
     const cleanEmail = email.trim().toLowerCase();
 
+    // type="email" alone lets "foo@gmail" through — see lib/email/is-valid-email.ts.
+    // Caught here so the person can fix a typo, instead of joining the list and never
+    // hearing from us again.
+    if (!isValidEmail(cleanEmail)) {
+      setSubmitting(false);
+      setError(t('community.invalidEmail'));
+      return;
+    }
+
     const { error: emailError } = await supabase
       .from("waitlist_emails")
       .insert({ email: cleanEmail, lang });
@@ -156,7 +166,7 @@ export default function Community() {
     void fetch('/api/waitlist-welcome', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: cleanEmail, name }),
+      body: JSON.stringify({ email: cleanEmail, name, location }),
       keepalive: true,
     }).catch(() => { /* logged server-side */ });
 

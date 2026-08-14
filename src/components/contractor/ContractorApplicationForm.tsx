@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useLanguage, type TKey } from '@/lib/i18n';
 import { COUNTRIES } from '@/lib/countries';
+import { isValidEmail } from '@/lib/email/is-valid-email';
 import {
   CONTRACTOR_ROLES, credentialTrack, qualifies, submitContractorApplication,
   uploadCredential,
@@ -222,6 +223,10 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       || milestones === null || verification === null || noSidePay === null
       || readyEarly === null) {
       setError(f('errorRequired'));
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError(f('errorEmail'));
       return;
     }
     if (projectTypes.length === 0) {
