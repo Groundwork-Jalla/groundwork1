@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import CountdownClock from "@/components/landing/CountdownClock";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useT, useLanguage } from '@/lib/i18n';
+import { SKOOL_URL } from '@/lib/community';
 import { sendWaitlistLead } from '@/lib/ghl';
 
-const SKOOL_URL = "https://www.skool.com/jalla-community-1888/about";
 
 function BlueprintPanel() {
   return (
@@ -149,6 +149,16 @@ export default function Community() {
     // must not turn a successful signup into a visible error. A duplicate email never
     // reaches here — it short-circuits above — so the CRM sees each person once.
     sendWaitlistLead({ name, email: cleanEmail, location, lang });
+
+    // Welcome email, with the community link. The success screen offers it too, but
+    // people close the tab — this is the copy they can come back to. Fire-and-forget:
+    // they are already on the list and a mail failure must not read as a failed signup.
+    void fetch('/api/waitlist-welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, name }),
+      keepalive: true,
+    }).catch(() => { /* logged server-side */ });
 
     setSubmitting(false);
     trackEvent('waitlist_joined');

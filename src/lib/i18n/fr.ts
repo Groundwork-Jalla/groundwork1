@@ -2577,6 +2577,16 @@ export const fr: Mirror<EnDict> = {
       rejectedBody1:    'Merci d\'avoir postulé au Réseau fondateur et pour le temps consacré à votre dossier. Nous ne donnons pas suite cette fois-ci.',
       rejectedBody2:    'Le réseau en est à ses débuts et nous intégrons un nombre restreint de professionnels par région. Vous pourrez postuler à nouveau au fur et à mesure de notre expansion.',
     },
+    waitlist: {
+      subject:  "Vous êtes sur la liste d'attente Groundwork",
+      eyebrow:  "Liste d'attente",
+      heading:  'Vous êtes sur la liste',
+      greeting: 'Bonjour {name},',
+      body1:    "Vous êtes inscrit(e) sur la liste d'attente de Groundwork. Nous vous écrirons dès l'ouverture, et vous serez parmi les premiers à entrer.",
+      body2:    "En attendant, rejoignez la communauté Jalla : c'est là que les bâtisseurs de la diaspora comparent les devis, partagent les entrepreneurs qui livrent vraiment, et posent les questions auxquelles personne ne répond honnêtement.",
+      cta:      'Rejoindre la communauté',
+      ctaNote:  "Aucun compte n'est nécessaire, et c'est gratuit.",
+    },
     contractorApplication: {
       subject:  'Nous avons bien reçu votre candidature au Réseau Fondateur',
       heading:  'Candidature reçue',
