@@ -31,7 +31,11 @@ CREATE POLICY "admins_delete_waitlist"
   USING (public.is_admin());
 
 -- ── user directory, now with a project count ─────────────
-CREATE OR REPLACE FUNCTION public.admin_list_users()
+-- Dropped first, not CREATE OR REPLACE: adding project_count changes the return type,
+-- and Postgres refuses to replace a function whose OUT parameters differ (42P13).
+DROP FUNCTION IF EXISTS public.admin_list_users();
+
+CREATE FUNCTION public.admin_list_users()
 RETURNS TABLE (
   id            uuid,
   email         text,
