@@ -5,7 +5,7 @@ import { Loader2, CheckCircle2, Briefcase, ExternalLink, X, TrendingUp, Trending
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
 import { adminStartProjectTracking } from '@/lib/supabase/tracking';
-import { formatUSDFull } from '@/lib/budget';
+import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 
@@ -17,6 +17,8 @@ interface PendingBudget {
   ownerName: string;
   country: string;
   estimate: number;
+  /** Ground-floor footprint × floors — the design fee is priced per built m². */
+  builtAreaSqm: number;
 }
 
 function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
@@ -40,7 +42,12 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
     setError(null);
     setSubmitting(true);
     try {
-      await adminStartProjectTracking(project.id, finalBudget, project.ownerId, project.name);
+      await adminStartProjectTracking(
+        project.id,
+        decomposeBudget(finalBudget, { builtAreaSqm: project.builtAreaSqm }),
+        project.ownerId,
+        project.name,
+      );
       onConfirmed(project.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not confirm budget.');
@@ -145,7 +152,7 @@ export default function AdminBudgets() {
       const [{ data }, owners] = await Promise.all([
         supabase
           .from('projects')
-          .select('id, name, user_id, country, budget_usd')
+          .select('id, name, user_id, country, budget_usd, sqm, num_floors')
           .in('tier', ['jalla_management', 'enterprise'])
           .is('tracking_started_at', null)
           .order('created_at', { ascending: true }),
@@ -162,6 +169,7 @@ export default function AdminBudgets() {
           ownerName:  profile?.name ?? '',
           country:    p.country as string,
           estimate:   Number(p.budget_usd ?? 0),
+          builtAreaSqm: Number(p.sqm ?? 0) * Number(p.num_floors ?? 1),
         };
       }));
     } finally {

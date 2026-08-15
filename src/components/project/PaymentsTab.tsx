@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { formatNumber } from '@/lib/format';
 import { motion } from 'framer-motion';
-import { CheckCircle2, CircleDashed, CircleDot, Info } from 'lucide-react';
+import { CheckCircle2, CircleDashed, CircleDot, Info, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatUSDFull, formatLocalCurrency, projectBudget } from '@/lib/budget';
 import { useT } from '@/lib/i18n';
-import { updatePaymentStatus } from '@/lib/supabase/projects';
+import { fetchProjectFees, updatePaymentStatus } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { useEffect } from 'react';
-import type { ProjectRow, ProjectStageRow, PaymentStatus, ConstructionRate } from '@/types/project';
+import type { ProjectRow, ProjectStageRow, ProjectFeeRow, PaymentStatus, ConstructionRate } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 
 // ── Payment status pill ──────────────────────────────────
@@ -128,20 +128,31 @@ interface PaymentsTabProps {
 export default function PaymentsTab({ project, stages, onPaymentUpdated }: PaymentsTabProps) {
   const t = useT();
   const [rate, setRate] = useState<ConstructionRate | null>(null);
+  const [fees, setFees] = useState<ProjectFeeRow[]>([]);
 
   useEffect(() => {
     if (!project.country) return;
     getConstructionRate(project.country).then(r => setRate(r)).catch(() => {});
   }, [project.country]);
 
+  // Permit and professional map to no stage, so they are their own milestones. Without
+  // them the schedule would sum to less than the budget printed above it.
+  useEffect(() => {
+    fetchProjectFees(project.id).then(setFees).catch(() => {});
+  }, [project.id]);
+
   const sorted = [...stages].sort((a, b) => a.stage_number - b.stage_number);
   // Resolves the confirmed budget, or the engine estimate when there isn't one — so
   // the paid percentage below is never measured against a total of zero.
   const totalBudget = projectBudget(project).total;
 
-  const paidTotal = sorted
-    .filter(s => s.payment_status === 'paid')
-    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  const paidTotal =
+    sorted
+      .filter(s => s.payment_status === 'paid')
+      .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0)
+    + fees
+      .filter(f => f.payment_status === 'paid')
+      .reduce((acc, f) => acc + Number(f.amount_usd), 0);
   const outstanding = Math.max(0, totalBudget - paidTotal);
   const paidPct = totalBudget > 0 ? Math.round((paidTotal / totalBudget) * 100) : 0;
 
@@ -217,6 +228,24 @@ export default function PaymentsTab({ project, stages, onPaymentUpdated }: Payme
             rate={rate}
             onUpdate={handleUpdate}
           />
+        ))}
+
+        {/* The two milestones that belong to no stage. */}
+        {fees.map(fee => (
+          <div key={fee.id} className="flex items-center gap-3 py-3.5">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-brand-border-grey dark:border-[#2c2c2c]">
+              <Landmark className="size-3 text-brand-mid-grey" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-brand-near-black dark:text-white">
+                {t(fee.kind === 'permit' ? 'project.costing.slicePermit' : 'project.costing.sliceProfessional')}
+              </p>
+              <p className="text-[11px] text-brand-mid-grey">{t('project.payments.notTiedToStage')}</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">
+              {formatUSDFull(Number(fee.amount_usd))}
+            </span>
+          </div>
         ))}
       </div>
 

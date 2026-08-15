@@ -5,12 +5,15 @@ import {
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
+import { BUDGET_SLICES, calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 const PREDICTED_DAYS = 196;
+
+/** The three lines added to the construction subtotal. BUDGET_SLICES minus construction. */
+const FEE_LINES = BUDGET_SLICES.filter(s => s.key !== 'construction');
 
 function addDays(date: Date, n: number): Date {
   const d = new Date(date);
@@ -73,13 +76,18 @@ function BudgetBreakdownCard() {
                 : 'Indexed from comparable markets — no verified BQ yet'}
             </p>
           </div>
+          {/*
+            The headline is the CLIENT total — construction plus design, professional and
+            permit. `detail.total` is construction alone; it is what the trade sections
+            below add up to, and it is shown as their subtotal rather than as the price.
+          */}
           <div className="text-right shrink-0">
             <p className="text-2xl font-black tabular-nums text-brand-near-black">
-              {formatUSDFull(detail.total)}
+              {formatUSDFull(detail.budget.total)}
             </p>
             {detail.currencyCode !== 'USD' && (
               <p className="text-xs text-brand-mid-grey tabular-nums mt-0.5">
-                ~{formatLocalCurrency(detail.totalLocal, detail.currencyCode)}
+                ~{formatLocalCurrency(Math.round(detail.budget.total * detail.approxFxRate), detail.currencyCode)}
                 <span className="text-[9px] ml-1">(approx.)</span>
               </p>
             )}
@@ -124,6 +132,30 @@ function BudgetBreakdownCard() {
             </motion.div>
           );
         })}
+      </div>
+
+      {/*
+        The fee lines. Kept visually apart from the trades because they are not site work
+        and are not part of what the bars above are proportioned against — the trades sum
+        to the construction subtotal, and these three are added to it.
+      */}
+      <div className="border-t border-brand-off-white px-5 py-4">
+        <div className="flex items-baseline justify-between mb-2.5">
+          <span className="text-xs font-semibold text-brand-near-black">{t('project.costing.sliceConstruction')}</span>
+          <span className="text-xs font-bold tabular-nums text-brand-near-black">{formatUSDFull(detail.budget.construction)}</span>
+        </div>
+        {FEE_LINES.map(line => (
+          <div key={line.key} className="flex items-baseline justify-between mb-1.5">
+            <span className="text-xs text-brand-mid-grey">+ {t(line.labelKey)}</span>
+            <span className="text-xs font-medium tabular-nums text-brand-near-black">
+              {formatUSDFull(detail.budget[line.key])}
+            </span>
+          </div>
+        ))}
+        <div className="mt-2.5 flex items-baseline justify-between border-t border-brand-near-black pt-2.5">
+          <span className="text-xs font-bold text-brand-near-black">{t('project.overview.explain.total')}</span>
+          <span className="text-sm font-black tabular-nums text-brand-near-black">{formatUSDFull(detail.budget.total)}</span>
+        </div>
       </div>
 
       {/* Disclaimer */}
@@ -183,7 +215,7 @@ export default function Step9Summary() {
               `${data.sqm} sqm`,
               `${data.bedrooms} bed`,
               `${data.bathrooms} bath`,
-              data.hasBoysQuarters ? `BQ ×${data.bqRooms}` : null,
+              data.hasBoysQuarters ? 'Staff quarters' : null,
             ].filter(Boolean).join(' · ')}
           />
           <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"

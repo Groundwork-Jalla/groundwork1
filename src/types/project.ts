@@ -118,14 +118,33 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
 // -------------------------------------------------------
 // Budget breakdown (calculated client-side)
 // -------------------------------------------------------
+/**
+ * The four lines a client is quoted, plus the material/labour view of the first.
+ *
+ * Two identities hold for every value this type ever takes, and both are asserted in
+ * split.test.ts:
+ *
+ *   material + labor                                   === construction
+ *   construction + permit + professional + design      === total
+ *
+ * They are what let a component render `b.total` beside `b.design` without the column
+ * failing to add up — the bug the previous six-way split kept reintroducing.
+ */
 export interface BudgetBreakdown {
+  /** What the client pays: construction + permit + professional + design. */
   total: number;
-  materials: number;
+  /** The build itself — the take-off output. Permits and fees sit on top of it. */
+  construction: number;
+  /** 60% of `construction`. A view of it, not an addition to it. */
+  material: number;
+  /** 40% of `construction`. */
   labor: number;
-  engineering: number;
-  permits: number;
-  contingency: number;
-  management: number;
+  /** 1% of `construction`. */
+  permit: number;
+  /** Flat fee: 50,000 XAF per charged construction stage. */
+  professional: number;
+  /** 5,000 XAF per built m² (footprint × floors). */
+  design: number;
 }
 
 // -------------------------------------------------------
@@ -255,12 +274,22 @@ export interface TradeSection {
 }
 
 export interface BudgetCalcDetail {
+  /** Trade sections. Their amounts sum to `total`, NOT to `budget.total`. */
   sections: TradeSection[];
+  /**
+   * The CONSTRUCTION fee — what the trade sections add up to.
+   *
+   * This is not what the client pays. Permit, professional and design sit on top of it;
+   * `budget.total` is the figure to show anyone. Keeping the two apart is what lets the
+   * section table sum to its own subtotal instead of silently missing the fee lines.
+   */
   total: number;
   totalLocal: number;
   currencyCode: string;
   approxFxRate: number;
   dataSource: 'real_bq' | 'estimated_index';
+  /** The four-line client budget built from `total`. */
+  budget: BudgetBreakdown;
 }
 
 // -------------------------------------------------------
@@ -304,13 +333,36 @@ export interface ProjectStageRow {
   /** English name, persisted at creation. Audit trail and render fallback. */
   name: string;
   status: StageStatus;
+  /** Share of the CONSTRUCTION fee, not of the client total. See migration 036. */
   budget_pct: number;
+  /**
+   * Absolute milestone, overriding `budget_pct` when set (migration 036).
+   * Used for the design fee, which is priced per built m² rather than as a share.
+   */
+  fixed_amount_usd: number | null;
   payment_milestone_usd: number | null;
   payment_status: PaymentStatus;
   completed_at: string | null;
   planned_start: string | null;
   planned_end: string | null;
   notes: string | null;
+  created_at: string;
+}
+
+/**
+ * A payment milestone that maps to no build stage.
+ *
+ * Permit and professional are charged on the project, not on site work, so they are not
+ * stages 11 and 12 of a 10-stage pipeline. The design fee is NOT here — it rides on the
+ * `designCompleted` stage via `fixed_amount_usd`. See migration 036.
+ */
+export interface ProjectFeeRow {
+  id: string;
+  project_id: string;
+  kind: 'permit' | 'professional';
+  amount_usd: number;
+  payment_status: PaymentStatus;
+  paid_at: string | null;
   created_at: string;
 }
 

@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
-import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -48,7 +47,12 @@ export default function Step6BoysQuarters() {
           </button>
         </div>
 
-        {/* BQ room count — shown only when Yes */}
+        {/*
+          A room-count stepper used to live here, priced at $8,000/room. That figure had
+          no Bill of Quantity behind it, so both it and the stepper are gone: the answer
+          is recorded for the build brief, and the note below says plainly that it is not
+          in the price rather than letting someone assume it is.
+        */}
         <AnimatePresence>
           {data.hasBoysQuarters && (
             <motion.div
@@ -58,17 +62,7 @@ export default function Step6BoysQuarters() {
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-6 rounded-xl border border-brand-border-grey">
-                <Stepper
-                  label={t('wizardFields.bqRooms')}
-                  sublabel="Each room includes a bathroom"
-                  value={data.bqRooms}
-                  onChange={v => update({ bqRooms: v })}
-                  min={1}
-                  max={6}
-                />
-              </div>
-              <p className="mt-2 text-xs text-brand-mid-grey">
+              <p className="mt-6 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
                 {t('wizard.bqCost')}
               </p>
             </motion.div>

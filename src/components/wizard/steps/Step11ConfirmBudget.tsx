@@ -5,7 +5,7 @@ import { FileUp, Loader2, Check } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { calculateBudget } from '@/lib/budget';
+import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { createProject } from '@/lib/supabase/projects';
 import { startProjectTracking } from '@/lib/supabase/tracking';
 import { uploadDocument } from '@/lib/supabase/documents';
@@ -52,7 +52,14 @@ export default function Step11ConfirmBudget() {
 
       // 2. Confirm the final figure. This re-derives every stage milestone from it and
       //    activates stage 1, so the project opens ready to work rather than gated.
-      await startProjectTracking(project.id, finalBudget);
+      //
+      //    `decomposeBudget` recovers the four lines from whatever total they typed, so
+      //    an edited budget still yields components that sum to THEIR number. The design
+      //    fee is priced per built m², hence the shape.
+      await startProjectTracking(
+        project.id,
+        decomposeBudget(finalBudget, { builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1) }),
+      );
 
       // 3. The quote, if they attached one. Only possible now that a project id exists,
       //    and deliberately not fatal — a failed upload must not lose the project.

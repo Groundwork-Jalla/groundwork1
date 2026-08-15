@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { getStageSeed } from './stage-seeds';
+import { CHARGED_STAGE_COUNT } from '@/lib/budget';
 import { en } from '@/lib/i18n/en';
 
 /**
  * The stage model is a specification, not an implementation detail — it was signed
  * off by a construction consultant, and the budget shares drive real payment
- * milestones (`payment_milestone_usd = budget_usd * budget_pct / 100`).
+ * milestones (`payment_milestone_usd = construction_fee * budget_pct / 100`).
+ *
+ * Note the denominator: the CONSTRUCTION fee, not the client total. The total also
+ * carries the permit, professional and design fees, none of which are stage work.
  *
  * Three things can break silently:
  *   · Percentages drifting off 100 — every stage amount is then quietly wrong,
@@ -24,22 +28,30 @@ describe('canonical stage model', () => {
     expect(BASE.map(s => s.stage_number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
 
-  it('budget shares total exactly 100%', () => {
+  it('budget shares total exactly 100% of the construction fee', () => {
     expect(BASE.reduce((sum, s) => sum + s.budget_pct, 0)).toBe(100);
   });
 
   it('matches the approved budget shares', () => {
-    expect(BASE.map(s => s.budget_pct)).toEqual([0, 11, 5, 16, 21, 11, 11, 10, 10, 5]);
+    expect(BASE.map(s => s.budget_pct)).toEqual([0, 0, 2, 8, 30, 8, 17, 30, 0, 5]);
   });
 
-  it('gives Land Secured no budget share', () => {
-    // Land acquisition is excluded from the construction budget by decision, so the
-    // stage is a required gate (title, survey, notary) that carries a $0 milestone.
-    // Its original 5% was redistributed across the other nine by largest-remainder,
-    // which preserves their relative weighting.
-    const land = BASE.find(s => s.key === 'landSecured')!;
-    expect(land.budget_pct).toBe(0);
-    expect(land.substages.length).toBe(5); // still gates stage 2
+  it('has exactly CHARGED_STAGE_COUNT stages carrying a share', () => {
+    // The professional fee is PROFESSIONAL_FEE_XAF × CHARGED_STAGE_COUNT. If a stage is
+    // ever added to or removed from the charged set, that fee has to move with it — this
+    // is what makes that impossible to forget.
+    expect(BASE.filter(s => s.budget_pct > 0)).toHaveLength(CHARGED_STAGE_COUNT);
+  });
+
+  it('gives the three uncharged stages no budget share', () => {
+    // land: acquisition is excluded from the budget entirely.
+    // design: paid as an absolute fee, not a percentage — see fixed_amount_usd (036).
+    // exterior: never charged; the budget covers the main building only.
+    for (const key of ['landSecured', 'designCompleted', 'exteriorWork']) {
+      expect(BASE.find(s => s.key === key)!.budget_pct).toBe(0);
+    }
+    // Land Secured still gates stage 2, so it keeps its substages.
+    expect(BASE.find(s => s.key === 'landSecured')!.substages.length).toBe(5);
   });
 
   it('has exactly 60 substages, in the approved per-stage counts', () => {

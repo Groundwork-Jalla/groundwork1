@@ -902,7 +902,7 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
         </>
       )}
       {step === 6 && data.hasBoysQuarters && (
-        <Badge key="bq" icon={<Home className="size-3.5" />} label={`Staff Quarters ×${data.bqRooms}`} pos="tr" />
+        <Badge key="bq" icon={<Home className="size-3.5" />} label="Staff Quarters" pos="tr" />
       )}
       {step === 7 && data.roofType && (
         <Badge key="roof" icon={<Wrench className="size-3.5" />} label={getRoofLabel(data.roofType)} pos="tr" />

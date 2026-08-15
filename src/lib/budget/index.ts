@@ -3,7 +3,7 @@ import type {
   ProjectRow, TradeSection, WizardFormData,
 } from '@/types/project';
 import { runTakeoff, SECTION_KEYS, type SectionKey } from './engine';
-import { BQ_ROOM_COST_USD, buildLegacyRate, legacyTotal } from './legacy';
+import { buildLegacyRate, getApproxFx, legacyTotal } from './legacy';
 import { formatMoney } from '@/lib/format';
 // Type-only: erased at build, and nothing under @/lib/i18n imports @/lib/budget,
 // so this cannot create a cycle.
@@ -26,7 +26,6 @@ const SECTION_COLORS: Record<string, string> = {
   electrical:   '#eab308', // yellow
   plumbing:     '#06b6d4', // cyan
   finishing:    '#22c55e', // green
-  bq:           '#f97316', // orange
 };
 
 /** English fallbacks. Translated consumers should key off `section.key` instead. */
@@ -54,7 +53,11 @@ export function calculateBudget(
   rate?: ConstructionRate | null,
   cityRate?: CityRate | null,
 ): BudgetBreakdown {
-  return splitBudget(calculateTotal(data, rate, cityRate));
+  const effective = rate ?? buildLegacyRate(data);
+  return composeBudget(
+    calculateTotal(data, effective, cityRate),
+    { builtAreaSqm: builtArea(data.sqm, data.floors) },
+  );
 }
 
 /**
@@ -95,30 +98,147 @@ function allocate<K extends string>(units: number, weights: Record<K, number>): 
   return out;
 }
 
+// ── The four-line client budget ────────────────────────────
+//
+// Everything below works in integer CENTS. `budget_usd` is NUMERIC(14,2) and money is
+// rendered to two places, so cents is the unit in which "the parts add up" is decidable
+// at all. Converting to dollars happens once, at the end, in `assemble`.
+
+/** Share of the construction fee that is material. Display only — it does not add cost. */
+export const MATERIAL_PCT = 60;
+/** Share of the construction fee that is labour. `MATERIAL_PCT + LABOR_PCT === 100`. */
+export const LABOR_PCT = 40;
+/** Permit fee, as a percentage of the construction fee. Charged ON TOP of it. */
+export const PERMIT_PCT_OF_BUILD = 1;
+/** Professional fee, per charged construction stage. */
+export const PROFESSIONAL_FEE_XAF = 50_000;
+/** Design fee, per built m² (footprint × floors). */
+export const DESIGN_RATE_XAF_PER_M2 = 5_000;
 /**
- * The canonical six-way breakdown of a budget.
+ * Stages that carry a non-zero share of the construction fee.
  *
- * Works in integer CENTS, because `budget_usd` is NUMERIC(14,2) and money is rendered
- * to two decimal places. For a whole-dollar total — which is every total the app
- * produces, since both `calculateTotal` and `legacyTotal` round — each share is an
- * exact number of cents and no remainder distribution is needed at all.
- *
- * Returns the SNAPPED total, not the input. That is load-bearing: parts and total come
- * out of one object, so a component rendering `b.total` beside `b.materials` cannot
- * show two figures that disagree.
+ * The professional fee is `PROFESSIONAL_FEE_XAF × CHARGED_STAGE_COUNT`, so this is not a
+ * free-floating number — stage-seeds.test.ts asserts the pipeline really does have this
+ * many charged stages, which is what stops a stage being added later without the fee
+ * following it.
  */
-export function splitBudget(total: number): BudgetBreakdown {
-  const cents = Number.isFinite(total) && total > 0 ? Math.round(total * 100) : 0;
-  const parts = allocate(cents, BUDGET_SPLIT_PCT);
+export const CHARGED_STAGE_COUNT = 7;
+
+/**
+ * Both flat fees are quoted in XAF and are the same in every country — they are
+ * Groundwork's own pricing, not a local construction cost. So they convert at the XAF
+ * rate wherever the project is, rather than at the project country's rate, which would
+ * make a Nigerian client's professional fee $218 and a Kenyan's $2,692 for identical work.
+ */
+const XAF_PER_USD = getApproxFx('CM');
+
+const toCents = (usd: number) =>
+  Number.isFinite(usd) && usd > 0 ? Math.round(usd * 100) : 0;
+
+/** The two fee lines that do NOT depend on the construction fee. In cents. */
+function flatFeeCents(builtAreaSqm: number) {
+  const area = Number.isFinite(builtAreaSqm) && builtAreaSqm > 0 ? builtAreaSqm : 0;
   return {
-    total:       cents / 100,
-    materials:   parts.materials   / 100,
-    labor:       parts.labor       / 100,
-    engineering: parts.engineering / 100,
-    permits:     parts.permits     / 100,
-    contingency: parts.contingency / 100,
-    management:  parts.management  / 100,
+    professional: Math.round(PROFESSIONAL_FEE_XAF * CHARGED_STAGE_COUNT / XAF_PER_USD * 100),
+    design:       Math.round(DESIGN_RATE_XAF_PER_M2 * area / XAF_PER_USD * 100),
   };
+}
+
+/**
+ * Build the breakdown from a construction fee, in cents.
+ *
+ * `overrideTotalCents` is how `decomposeBudget` keeps the owner's confirmed total exactly
+ * intact: the rounding remainder is pushed into the permit line rather than allowed to
+ * move the total. A cent of drift on a permit fee is invisible; a cent of drift on the
+ * number someone agreed to pay is the bug this whole module exists to prevent.
+ */
+function assemble(constructionCents: number, builtAreaSqm: number, overrideTotalCents?: number): BudgetBreakdown {
+  const flat  = flatFeeCents(builtAreaSqm);
+  const parts = allocate(constructionCents, { material: MATERIAL_PCT, labor: LABOR_PCT });
+
+  let permit = Math.round(constructionCents * PERMIT_PCT_OF_BUILD / 100);
+  let total  = constructionCents + permit + flat.professional + flat.design;
+
+  if (overrideTotalCents !== undefined) {
+    permit += overrideTotalCents - total;
+    total   = overrideTotalCents;
+  }
+
+  return {
+    total:        total              / 100,
+    construction: constructionCents  / 100,
+    material:     parts.material     / 100,
+    labor:        parts.labor        / 100,
+    permit:       permit             / 100,
+    professional: flat.professional  / 100,
+    design:       flat.design        / 100,
+  };
+}
+
+/** What the two composition functions need to know about a project's size. */
+export interface BudgetShape {
+  /** Total built area in m²: ground-floor footprint × number of floors. */
+  builtAreaSqm: number;
+}
+
+/**
+ * Forward direction: a construction fee in, the client's four-line budget out.
+ *
+ * Used wherever the budget is being *estimated* — the wizard, the public tool, and any
+ * project whose owner has not yet confirmed a figure.
+ */
+export function composeBudget(constructionUSD: number, shape: BudgetShape): BudgetBreakdown {
+  const construction = toCents(constructionUSD);
+
+  // No build, no fees. The flat lines do not depend on the construction fee, so without
+  // this the wizard would quote $583 of professional fee against an empty form before
+  // anyone has entered a size.
+  if (construction <= 0) {
+    return { total: 0, construction: 0, material: 0, labor: 0, permit: 0, professional: 0, design: 0 };
+  }
+  return assemble(construction, shape.builtAreaSqm);
+}
+
+/**
+ * Inverse direction: a confirmed total in, the same four lines out.
+ *
+ * This is what makes the model storable in one column. Neither flat fee depends on the
+ * construction fee, so
+ *
+ *     total = C + 0.01·C + P + D      ⟹      C = (total − P − D) / 1.01
+ *
+ * recovers every line from `budget_usd` plus `sqm` and `num_floors`, both already on the
+ * project row. No second source of truth for money, and nothing to keep in sync.
+ *
+ * Degenerate case: a total at or below the flat fees cannot satisfy both the fee formulas
+ * and the total. The total wins — it is the number someone agreed to — so the fees are
+ * scaled down to fit it and construction reads $0. That keeps the sum identity true for
+ * every input rather than only for sensible ones.
+ */
+export function decomposeBudget(totalUSD: number, shape: BudgetShape): BudgetBreakdown {
+  const totalCents = toCents(totalUSD);
+  const flat       = flatFeeCents(shape.builtAreaSqm);
+  const flatTotal  = flat.professional + flat.design;
+
+  if (totalCents <= flatTotal) {
+    const scaled = allocate(totalCents, { professional: flat.professional, design: flat.design });
+    return {
+      total:        totalCents        / 100,
+      construction: 0, material: 0, labor: 0, permit: 0,
+      professional: scaled.professional / 100,
+      design:       scaled.design       / 100,
+    };
+  }
+
+  const construction = Math.round(
+    (totalCents - flatTotal) * 100 / (100 + PERMIT_PCT_OF_BUILD),
+  );
+  return assemble(construction, shape.builtAreaSqm, totalCents);
+}
+
+/** Built area from a wizard payload. `sqm` is the FOOTPRINT — see geometry.ts. */
+function builtArea(sqm: number | undefined | null, floors: number | undefined | null): number {
+  return Math.max(0, Number(sqm) || 0) * Math.max(1, Number(floors) || 1);
 }
 
 /**
@@ -138,9 +258,14 @@ export function projectBudget(
   rate?: ConstructionRate | null,
   cityRate?: CityRate | null,
 ): BudgetBreakdown {
-  if (project.budget_usd != null) return splitBudget(project.budget_usd);
+  const shape = { builtAreaSqm: builtArea(project.sqm, project.num_floors) };
 
-  return splitBudget(calculateTotal({
+  // The confirmed total is authoritative. `decomposeBudget` recovers the four lines from
+  // it rather than re-pricing, so an owner who edited their budget sees components that
+  // sum to THEIR number, not to the estimate.
+  if (project.budget_usd != null) return decomposeBudget(project.budget_usd, shape);
+
+  const data: Partial<WizardFormData> = {
     country:         project.country,
     city:            project.city ?? undefined,
     floors:          project.num_floors,
@@ -150,7 +275,8 @@ export function projectBudget(
     bqRooms:         project.bq_rooms,
     sqm:             Number(project.sqm),
     finishLevel:     project.finish_level,
-  }, rate, cityRate));
+  };
+  return composeBudget(calculateTotal(data, rate ?? buildLegacyRate(data), cityRate), shape);
 }
 
 /** The fields of a `ProjectRow` that pricing actually reads. */
@@ -159,78 +285,75 @@ export type ProjectBudgetSource = Pick<ProjectRow,
   | 'has_boys_quarters' | 'bq_rooms' | 'sqm' | 'finish_level' | 'budget_usd'>;
 
 /**
- * The six-way cost split, as percentages. `calculateBudget` is the only place these are
- * applied; everything that displays a split must read from here rather than restate them.
+ * Display order, labels and colours for the four lines a client is quoted.
  *
- * Four different splits used to coexist. Two of them disagreed with the amounts they were
- * labelling — the Overview donut showed 9% permits beside a figure that was 10% of the
- * total, and 27% fees beside a figure that was 26%.
+ * The percentage column is deliberately absent. Three of these four lines are not a
+ * percentage of the total — professional is flat, design is per m², and permit is a
+ * percentage of *construction* — so printing one figure as "X% of the total" is exactly
+ * the class of statement that made the previous split untrustworthy. Components that want
+ * a share compute it from the amounts, against one denominator.
  */
-export const BUDGET_SPLIT_PCT = {
-  materials:   41,
-  labor:       23,
-  engineering: 16,
-  management:  10,
-  contingency:  8,
-  permits:      2,
-} as const;
+export const BUDGET_SLICES = [
+  { key: 'construction', labelKey: 'project.costing.sliceConstruction', color: '#1f2937' },
+  { key: 'design',       labelKey: 'project.costing.sliceDesign',       color: '#4b5563' },
+  { key: 'professional', labelKey: 'project.costing.sliceProfessional', color: '#9ca3af' },
+  { key: 'permit',       labelKey: 'project.costing.slicePermit',       color: '#d1d5db' },
+] as const satisfies readonly {
+  key: Exclude<keyof BudgetBreakdown, 'total' | 'material' | 'labor'>;
+  labelKey: TKey;
+  color: string;
+}[];
 
 /**
- * Four-way roll-up for the summary donuts, derived from the six-way split so the two can
- * never drift apart. Professional fees are engineering + management; permits are grouped
- * with contingency, matching how the Overview tab already computes its amounts.
+ * Each slice's share of the total, in tenths of a percent, summing to exactly 100.0.
+ *
+ * Derived from the amounts rather than declared, because only one of the four lines is a
+ * fixed percentage of anything. Allocated for the same reason `finalizeSections` allocates:
+ * four independent `Math.round` calls print a column that does not add to 100.
  */
-export const BUDGET_ROLLUP_PCT = {
-  materials: BUDGET_SPLIT_PCT.materials,
-  labor:     BUDGET_SPLIT_PCT.labor,
-  fees:      BUDGET_SPLIT_PCT.engineering + BUDGET_SPLIT_PCT.management,
-  permits:   BUDGET_SPLIT_PCT.permits + BUDGET_SPLIT_PCT.contingency,
-} as const;
-
-export function rollupBudget(b: BudgetBreakdown) {
+export function sliceShares(b: BudgetBreakdown): Record<BudgetSliceKey, number> {
+  const tenths = allocate(1000, {
+    construction: Math.max(0, b.construction),
+    design:       Math.max(0, b.design),
+    professional: Math.max(0, b.professional),
+    permit:       Math.max(0, b.permit),
+  });
   return {
-    materials: b.materials,
-    labor:     b.labor,
-    fees:      b.engineering + b.management,
-    permits:   b.permits + b.contingency,
+    construction: tenths.construction / 10,
+    design:       tenths.design       / 10,
+    professional: tenths.professional / 10,
+    permit:       tenths.permit       / 10,
   };
 }
 
+export type BudgetSliceKey = (typeof BUDGET_SLICES)[number]['key'];
+
 /**
- * Display order and labels for the six-way split.
+ * The material/labour view of the construction fee.
  *
- * Three components and the PDF each kept their own copy of this array with the
- * percentages typed out as literals. Import this instead — a percentage that lives in
- * two places is a percentage that will eventually disagree with itself.
+ * Kept apart from BUDGET_SLICES because these two are a *breakdown of* the construction
+ * line, not additional lines. Rendering all six together would double-count the build.
  */
-export const BUDGET_SLICES = [
-  { key: 'materials',   labelKey: 'project.costing.sliceMaterials',   pct: BUDGET_SPLIT_PCT.materials   },
-  { key: 'labor',       labelKey: 'project.costing.sliceLabor',       pct: BUDGET_SPLIT_PCT.labor       },
-  { key: 'engineering', labelKey: 'project.costing.sliceEngineering', pct: BUDGET_SPLIT_PCT.engineering },
-  { key: 'management',  labelKey: 'project.costing.sliceManagement',  pct: BUDGET_SPLIT_PCT.management  },
-  { key: 'contingency', labelKey: 'project.costing.sliceContingency', pct: BUDGET_SPLIT_PCT.contingency },
-  { key: 'permits',     labelKey: 'project.costing.slicePermits',     pct: BUDGET_SPLIT_PCT.permits     },
+export const CONSTRUCTION_SPLIT = [
+  { key: 'material', labelKey: 'project.costing.sliceMaterial', pct: MATERIAL_PCT },
+  { key: 'labor',    labelKey: 'project.costing.sliceLabor',    pct: LABOR_PCT    },
 ] as const satisfies readonly {
-  key: Exclude<keyof BudgetBreakdown, 'total'>;
+  key: Extract<keyof BudgetBreakdown, 'material' | 'labor'>;
   labelKey: TKey;
   pct: number;
 }[];
 
+/**
+ * The CONSTRUCTION fee in USD — the build itself, with no permit, professional or design
+ * fee in it. `composeBudget` is what turns this into the figure a client sees.
+ */
 function calculateTotal(
   data: Partial<WizardFormData>,
-  rate?: ConstructionRate | null,
+  effective: ConstructionRate,
   cityRate?: CityRate | null,
 ): number {
-  const effective = rate ?? buildLegacyRate(data);
-  const takeoff   = runTakeoff(data, effective, cityRate);
-
-  if (takeoff) {
-    const usd    = takeoff.totalLocal / effective.approx_fx_rate;
-    const bqCost = data.hasBoysQuarters && (data.bqRooms ?? 0) > 0
-      ? (data.bqRooms ?? 0) * BQ_ROOM_COST_USD
-      : 0;
-    return Math.round(usd + bqCost);
-  }
+  const takeoff = runTakeoff(data, effective, cityRate);
+  if (takeoff) return Math.round(takeoff.totalLocal / effective.approx_fx_rate);
   return legacyTotal(data, effective);
 }
 
@@ -251,12 +374,8 @@ export function calculateBudgetDetail(
   const takeoff   = runTakeoff(data, effective, cityRate);
   const sections: TradeSection[] = [];
 
-  const bqUSD = data.hasBoysQuarters && (data.bqRooms ?? 0) > 0
-    ? (data.bqRooms ?? 0) * BQ_ROOM_COST_USD
-    : 0;
-
   if (takeoff) {
-    const total = Math.round(takeoff.totalLocal / fx) + bqUSD;
+    const total = Math.round(takeoff.totalLocal / fx);
     for (const key of SECTION_KEYS) {
       const local = takeoff.sectionsLocal[key];
       if (local <= 0) continue;
@@ -270,7 +389,6 @@ export function calculateBudgetDetail(
         color:       SECTION_COLORS[key] ?? '#9ca3af',
       });
     }
-    pushBoysQuarters(sections, data, bqUSD, fx);
     finalizeSections(sections, total, fx);
     return {
       sections, total,
@@ -278,6 +396,7 @@ export function calculateBudgetDetail(
       currencyCode: effective.currency_code,
       approxFxRate: fx,
       dataSource:   effective.data_source,
+      budget:       composeBudget(total, { builtAreaSqm: builtArea(data.sqm, data.floors) }),
     };
   }
 
@@ -320,7 +439,6 @@ export function calculateBudgetDetail(
         extraFloors === 1 ? SECTION_LABELS.upper_floor : `Floor ${f + 1} Structure`,
         floorUSD);
   }
-  pushBoysQuarters(sections, data, bqUSD, fx);
   finalizeSections(sections, total, fx);
 
   return {
@@ -329,23 +447,8 @@ export function calculateBudgetDetail(
     currencyCode: effective.currency_code,
     approxFxRate: fx,
     dataSource:   effective.data_source,
+    budget:       composeBudget(total, { builtAreaSqm: builtArea(data.sqm, data.floors) }),
   };
-}
-
-function pushBoysQuarters(
-  sections: TradeSection[], data: Partial<WizardFormData>,
-  bqUSD: number, fx: number,
-): void {
-  if (bqUSD <= 0) return;
-  const n = data.bqRooms ?? 0;
-  sections.push({
-    key:   'bq',
-    label: `Boys' Quarters (${n} room${n > 1 ? 's' : ''})`,
-    pct:   0, // assigned by finalizeSections
-    amountUSD:   bqUSD,
-    amountLocal: bqUSD * fx,
-    color:       SECTION_COLORS.bq,
-  });
 }
 
 /**

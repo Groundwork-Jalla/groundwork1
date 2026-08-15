@@ -2,7 +2,7 @@ import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
 import { trackEvent } from '@/lib/analytics';
-import type { WizardFormData, BudgetBreakdown, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
+import type { WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
 
 // =========================================================
 // createProject
@@ -69,6 +69,12 @@ export async function createProject(
     // 3. Insert stages
     // Gated projects: every stage starts 'locked' until tracking begins (the RPC
     // activates stage 1 on budget confirmation). Ungated: stage 1 is active now.
+    // Milestones come off the CONSTRUCTION fee, not the total. The total also carries the
+    // permit, professional and design fees, and none of those are stage work — deriving
+    // from it would inflate every milestone by the whole fee stack.
+    //
+    // Design is the exception: it is an absolute amount rather than a share, so it rides
+    // on `fixed_amount_usd` and `budget_pct` stays 0. See migration 036.
     const stageRows = seeds.map(s => ({
       project_id:            project.id,
       stage_number:          s.stage_number,
@@ -77,7 +83,10 @@ export async function createProject(
       stage_key:             s.key,
       name:                  s.name,
       budget_pct:            s.budget_pct,
-      payment_milestone_usd: Math.round(budget.total * s.budget_pct / 100),
+      fixed_amount_usd:      s.key === 'designCompleted' ? budget.design : null,
+      payment_milestone_usd: s.key === 'designCompleted'
+        ? Math.round(budget.design)
+        : Math.round(budget.construction * s.budget_pct / 100),
       status:                (!gated && s.stage_number === 1) ? 'active' : 'locked',
       payment_status:        'unpaid',
     }));
@@ -107,6 +116,18 @@ export async function createProject(
       .insert(substageRows);
 
     if (substageError) throw substageError;
+
+    // 5. The two fee milestones that map to no stage.
+    // Design rides on the designCompleted stage above; permit and professional do not
+    // correspond to site work at all, so they are their own payment lines. See 036.
+    const { error: feeError } = await supabase
+      .from('project_fees')
+      .insert([
+        { project_id: project.id, kind: 'permit',       amount_usd: budget.permit       },
+        { project_id: project.id, kind: 'professional', amount_usd: budget.professional },
+      ]);
+
+    if (feeError) throw feeError;
 
     // Notify admins (fire-and-forget — never block the wizard redirect)
     notifyAdmins(
@@ -158,6 +179,27 @@ export async function fetchProjectStages(projectId: string): Promise<ProjectStag
     .order('stage_number');
 
   if (error) throw error;
+  return data ?? [];
+}
+
+// =========================================================
+// fetchProjectFees — the milestones that map to no stage
+//
+// Permit and professional only. Design lives on the designCompleted stage. Returns []
+// rather than throwing when the table is absent, so a client running ahead of migration
+// 036 degrades to "no fee lines" instead of a blank payments screen.
+// =========================================================
+export async function fetchProjectFees(projectId: string): Promise<ProjectFeeRow[]> {
+  const { data, error } = await supabase
+    .from('project_fees')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('kind');
+
+  if (error) {
+    if (error.code === '42P01') return []; // relation does not exist
+    throw error;
+  }
   return data ?? [];
 }
 

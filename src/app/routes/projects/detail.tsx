@@ -263,7 +263,7 @@ export default function ProjectDetail() {
     `${project.sqm} sqm`,
     project.bedrooms  > 0 ? `${project.bedrooms} bed`  : null,
     project.bathrooms > 0 ? `${project.bathrooms} bath` : null,
-    project.has_boys_quarters ? `BQ ×${project.bq_rooms}` : null,
+    project.has_boys_quarters ? 'Staff quarters' : null,
   ].filter(Boolean).join(' · ');
 
   const startDate  = project.target_start

@@ -10,7 +10,7 @@ import { useAuth }                    from '@/contexts/AuthContext';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
-import { formatUSDFull, BUDGET_ROLLUP_PCT, projectBudget } from '@/lib/budget';
+import { formatUSDFull, BUDGET_SLICES, projectBudget, sliceShares, type BudgetSliceKey } from '@/lib/budget';
 import { formatMoney } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
@@ -171,11 +171,14 @@ interface MoneySplit { released: number; held: number; remaining: number }
  *   · remaining — everything still locked ahead
  */
 function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
-  const { total } = projectBudget(project);
+  // `total` is what the owner owes overall; `construction` is what the stage percentages
+  // are shares OF. Using the total in the fallback would overstate every stage by the
+  // design, permit and professional fees stacked on top of it.
+  const { total, construction } = projectBudget(project);
 
   let released = 0, held = 0;
   for (const s of stages) {
-    const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, total);
+    const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, construction);
     if (s.payment_status === 'paid') released += amount;
     else if (isActive(s)) held += amount;
   }
@@ -344,20 +347,31 @@ function QuickActions({ project, unread, documentCount, contractorCount }: {
 // by its label, and the chart survives being printed or read by a colourblind user.
 const COST_SHADES = ['#1f2937', '#4b5563', '#9ca3af', '#d1d5db'];
 
+// Descriptions and shades are static; the percentages are not. Three of the four lines
+// are not a percentage of the total — design is per m², professional is flat, permit is a
+// percentage of construction — so the shares depend on the project and are derived from
+// its own amounts by `sliceShares`.
 const COST_CATS = [
-  { key: 'materials', labelKey: 'dashboard.costCats.materials.label', descKey: 'dashboard.costCats.materials.desc', shade: COST_SHADES[0], pct: BUDGET_ROLLUP_PCT.materials },
-  { key: 'labor',     labelKey: 'dashboard.costCats.labor.label',     descKey: 'dashboard.costCats.labor.desc',     shade: COST_SHADES[1], pct: BUDGET_ROLLUP_PCT.labor     },
-  { key: 'fees',      labelKey: 'dashboard.costCats.fees.label',      descKey: 'dashboard.costCats.fees.desc',      shade: COST_SHADES[2], pct: BUDGET_ROLLUP_PCT.fees      },
-  { key: 'permits',   labelKey: 'dashboard.costCats.permits.label',   descKey: 'dashboard.costCats.permits.desc',   shade: COST_SHADES[3], pct: BUDGET_ROLLUP_PCT.permits   },
-] satisfies { key: string; labelKey: TKey; descKey: TKey; shade: string; pct: number }[];
+  { key: 'construction', descKey: 'dashboard.costCats.construction.desc', shade: COST_SHADES[0] },
+  { key: 'design',       descKey: 'dashboard.costCats.design.desc',       shade: COST_SHADES[1] },
+  { key: 'professional', descKey: 'dashboard.costCats.professional.desc', shade: COST_SHADES[2] },
+  { key: 'permit',       descKey: 'dashboard.costCats.permit.desc',       shade: COST_SHADES[3] },
+] satisfies { key: BudgetSliceKey; descKey: TKey; shade: string }[];
 
 function CostingDonut({ project }: { project: ProjectRow }) {
   const t = useT();
   // projectBudget resolves budget_usd ?? engine estimate — so a project the owner
   // has not yet confirmed a budget for still shows its allocation instead of "no
   // budget", and the amounts here can never disagree with the total beside them.
-  const { total } = projectBudget(project);
-  const biggest = COST_CATS[0];
+  const budget  = projectBudget(project);
+  const total   = budget.total;
+  const shares  = sliceShares(budget);
+  const cats    = COST_CATS.map(c => ({
+    ...c,
+    pct:      shares[c.key],
+    labelKey: BUDGET_SLICES.find(s => s.key === c.key)!.labelKey,
+  }));
+  const biggest = cats[0];
 
   const r = 68, cx = 100, cy = 100, circ = 2 * Math.PI * r, GAP = 3;
   let acc = 0;
@@ -373,9 +387,9 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 
       <div className="mb-4 flex justify-center">
         <svg viewBox="0 0 200 200" className="h-40 w-40" role="img"
-          aria-label={COST_CATS.map(c => `${t(c.labelKey)} ${c.pct}%`).join(', ')}>
+          aria-label={cats.map(c => `${t(c.labelKey)} ${c.pct}%`).join(', ')}>
           <g transform={`rotate(-90, ${cx}, ${cy})`}>
-            {COST_CATS.map((cat) => {
+            {cats.map((cat) => {
               const fraction = cat.pct / 100;
               const vis = fraction * circ - GAP;
               const off = -acc;
@@ -405,7 +419,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
       </div>
 
       <div className="space-y-2.5">
-        {COST_CATS.map(cat => (
+        {cats.map(cat => (
           <div key={cat.key} className="flex items-center gap-2">
             <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.shade }} />
             <div className="min-w-0 flex-1">

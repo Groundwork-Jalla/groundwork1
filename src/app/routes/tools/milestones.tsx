@@ -32,6 +32,8 @@ export default function MilestonesTool() {
   const milestones = useMemo(() =>
     stages.map((s, i) => ({
       ...s,
+      // `budget` here is the construction fee the visitor typed, not a client total —
+      // this tool has no project and therefore no fee lines to strip out first.
       amountUsd: Math.round(budget * s.budget_pct / 100),
       durationDays: STAGE_DAYS[i],
       whenToPay: WHEN_TO_PAY[i],

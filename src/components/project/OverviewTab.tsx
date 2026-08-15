@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import {
   formatUSDFull, formatUSD,
-  BUDGET_ROLLUP_PCT, BUDGET_SPLIT_PCT, projectBudget, rollupBudget, splitBudget,
+  BUDGET_SLICES, CHARGED_STAGE_COUNT, DESIGN_RATE_XAF_PER_M2, LABOR_PCT, MATERIAL_PCT,
+  PERMIT_PCT_OF_BUILD, PROFESSIONAL_FEE_XAF, decomposeBudget, projectBudget, sliceShares,
+  type BudgetSliceKey,
 } from '@/lib/budget';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
@@ -38,25 +40,28 @@ function fmtCompact(n: number): string {
 
 // ── Budget allocation donut ──────────────────────────────
 
-// Percentages come from BUDGET_ROLLUP_PCT so they always match the amounts rendered
-// beside them. They used to be hardcoded as 27 and 9 while the figures were 26% and 10%.
+// A local copy of this list used to live here with its own percentages. It has been
+// deleted: BUDGET_SLICES is imported from @/lib/budget, and the shares are derived from
+// the amounts by `sliceShares` so the legend cannot disagree with the figures.
 //
 // Greyscale, dark to light in legend order — the same ramp the dashboard donut uses, so
 // the same four categories read identically on both screens. Colour on this page marks
 // stage state (active, awaiting review, overdue); a category is not a state, and four
 // hues competing with those made the states harder to pick out.
-const BUDGET_SLICES = [
-  { labelKey: 'project.overview.catMaterials' as TKey, pct: BUDGET_ROLLUP_PCT.materials, color: '#1f2937', descKey: 'project.overview.catMaterialsDesc' as TKey },
-  { labelKey: 'project.overview.catLabor'     as TKey, pct: BUDGET_ROLLUP_PCT.labor,     color: '#4b5563', descKey: 'project.overview.catLaborDesc'     as TKey },
-  { labelKey: 'project.overview.catFees'      as TKey, pct: BUDGET_ROLLUP_PCT.fees,      color: '#9ca3af', descKey: 'project.overview.catFeesDesc'      as TKey },
-  { labelKey: 'project.overview.catPermits'   as TKey, pct: BUDGET_ROLLUP_PCT.permits,   color: '#d1d5db', descKey: 'project.overview.catPermitsDesc'   as TKey },
-] as const;
+const SLICE_DESC: Record<BudgetSliceKey, TKey> = {
+  construction: 'project.overview.catConstructionDesc',
+  design:       'project.overview.catDesignDesc',
+  professional: 'project.overview.catProfessionalDesc',
+  permit:       'project.overview.catPermitDesc',
+};
 
 function BudgetDonut({
   total,
+  budget,
   onBreakdown,
 }: {
   total: number;
+  budget: BudgetBreakdown;
   onBreakdown: () => void;
 }) {
   const t     = useT();
@@ -67,10 +72,13 @@ function BudgetDonut({
   const sw    = 22;
   const circ  = 2 * Math.PI * r;
 
+  const shares = sliceShares(budget);
+
   let offset = 0;
   const arcs = BUDGET_SLICES.map(s => {
-    const dash = (s.pct / 100) * circ;
-    const arc  = { ...s, dash, gap: circ - dash, offset };
+    const pct  = shares[s.key];
+    const dash = (pct / 100) * circ;
+    const arc  = { ...s, pct, descKey: SLICE_DESC[s.key], dash, gap: circ - dash, offset };
     offset += dash;
     return arc;
   });
@@ -90,8 +98,8 @@ function BudgetDonut({
 
       <p className="text-xs text-brand-mid-grey -mt-3">
         {t('project.overview.biggestCostPre')}{' '}
-        <span className="font-semibold text-brand-near-black dark:text-white">{t('project.overview.catMaterials')}</span>{' '}
-        {t('project.overview.biggestCostMid')} <span className="font-semibold text-brand-near-black dark:text-white">{BUDGET_ROLLUP_PCT.materials}%</span> {t('project.overview.biggestCostPost')}
+        <span className="font-semibold text-brand-near-black dark:text-white">{t('project.costing.sliceConstruction')}</span>{' '}
+        {t('project.overview.biggestCostMid')} <span className="font-semibold text-brand-near-black dark:text-white">{shares.construction}%</span> {t('project.overview.biggestCostPost')}
       </p>
 
       <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -100,7 +108,7 @@ function BudgetDonut({
           <svg width={size} height={size} className="-rotate-90">
             {arcs.map(arc => (
               <circle
-                key={arc.labelKey}
+                key={arc.key}
                 cx={cx} cy={cy} r={r} fill="none"
                 stroke={arc.color}
                 strokeWidth={sw}
@@ -117,8 +125,8 @@ function BudgetDonut({
 
         {/* Legend with descriptions */}
         <div className="flex flex-col gap-3 flex-1 w-full">
-          {BUDGET_SLICES.map(s => (
-            <div key={s.labelKey}>
+          {arcs.map(s => (
+            <div key={s.key}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="size-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
@@ -173,9 +181,8 @@ function BudgetBreakdownModal({
 }) {
   const t = useT();
   const countryName = useDomainLabels().country(project.country);
-  const profFees    = budget.engineering + budget.management;
-  const permCont    = budget.permits + budget.contingency;
-  const paidPct     = total > 0 ? Math.round((paidTotal / total) * 100) : 0;
+  const paidPct   = total > 0 ? Math.round((paidTotal / total) * 100) : 0;
+  const builtArea = Number(project.sqm) * project.num_floors;
 
   // The shares are exact for a whole-dollar total; a total carrying cents can leave a
   // penny in the allocator, so the formula says "≈" rather than claiming a false "=".
@@ -183,8 +190,8 @@ function BudgetBreakdownModal({
 
   // Payments are recorded per STAGE, not per category, so "paid by category" is an
   // apportionment of what has been paid — not observed data. Allocating it keeps the
-  // four rows summing to `paidTotal` instead of drifting like the old 0.41/0.23/… did.
-  const paidSplit = rollupBudget(splitBudget(paidTotal));
+  // rows summing to `paidTotal` instead of drifting like the old 0.41/0.23/… did.
+  const paidSplit = decomposeBudget(paidTotal, { builtAreaSqm: builtArea });
   const floorNote   = project.num_floors > 1
     ? `Your build has ${project.num_floors} floors. Adding floors costs less than doubling everything — foundation and roof are shared — so each extra floor adds proportionally less.`
     : 'Your build is a single storey. No floor multiplier applies.';
@@ -200,35 +207,35 @@ function BudgetBreakdownModal({
     },
     {
       icon: <Package className="size-4 text-brand-mid-grey" />,
-      title: 'Work out the material cost',
-      amount: budget.materials,
-      pct: BUDGET_SPLIT_PCT.materials,
-      body: `Everything physical on site — cement, blocks, steel rebar, roofing, doors, windows, tiles, paint, pipes, electrical wiring. This is calibrated from real quantity surveyor (BQ) data for ${countryName}.`,
-      formula: `${BUDGET_SPLIT_PCT.materials}%  ×  ${formatUSDFull(total)}  ${eq}  ${formatUSDFull(budget.materials)}`,
-    },
-    {
-      icon: <Users className="size-4 text-brand-mid-grey" />,
-      title: 'Add labor',
-      amount: budget.labor,
-      pct: BUDGET_SPLIT_PCT.labor,
-      body: `Site workers: masons, carpenters, plumbers, electricians, helpers and their supervisors. In ${countryName}, skilled labor scales proportionally with materials — more material volume means more workers are needed.`,
-      formula: `${BUDGET_SPLIT_PCT.labor}%  ×  ${formatUSDFull(total)}  ${eq}  ${formatUSDFull(budget.labor)}`,
+      title: 'Price the construction itself',
+      amount: budget.construction,
+      pct: null,
+      body: `Every trade on site, measured as a quantity surveyor would measure it: excavation, foundation, blockwork, the frame, roofing, doors and windows, electrical, plumbing, plaster and paint. Priced against real Bill of Quantity data for ${countryName}. Of this, about ${MATERIAL_PCT}% is material (${formatUSDFull(budget.material)}) and ${LABOR_PCT}% is labor (${formatUSDFull(budget.labor)}).`,
+      formula: `Materials (${MATERIAL_PCT}%)  +  Labor (${LABOR_PCT}%)\n→  ${formatUSDFull(budget.material)}  +  ${formatUSDFull(budget.labor)}  ${eq}  ${formatUSDFull(budget.construction)}`,
     },
     {
       icon: <Briefcase className="size-4 text-brand-mid-grey" />,
-      title: 'Add professional fees',
-      amount: profFees,
-      pct: BUDGET_ROLLUP_PCT.fees,
-      body: 'Architect (technical drawings and planning), structural engineer (load calculations and safety sign-off), quantity surveyor (your BQ), and project manager (site visits, contractor coordination). You typically pay these partly upfront and in stages throughout the build.',
-      formula: `Engineering (${BUDGET_SPLIT_PCT.engineering}%)  +  Management (${BUDGET_SPLIT_PCT.management}%)  =  ${BUDGET_ROLLUP_PCT.fees}%\n→  ${formatUSDFull(budget.engineering)}  +  ${formatUSDFull(budget.management)}  =  ${formatUSDFull(profFees)}`,
+      title: 'Add the design fee',
+      amount: budget.design,
+      pct: null,
+      body: 'Architectural and structural drawings — the plans your contractor builds from and the permit office approves. Charged on the built area, so it scales with the size of the building rather than with what it costs to build.',
+      formula: `${DESIGN_RATE_XAF_PER_M2.toLocaleString()} XAF  ×  ${builtArea} m² built  ${eq}  ${formatUSDFull(budget.design)}`,
+    },
+    {
+      icon: <Users className="size-4 text-brand-mid-grey" />,
+      title: 'Add the professional fee',
+      amount: budget.professional,
+      pct: null,
+      body: 'Groundwork\'s own fee: stage-by-stage supervision, verification of the work before each payment is released, and coordination with your contractor. Charged per construction stage, so it does not grow with the size of your budget.',
+      formula: `${PROFESSIONAL_FEE_XAF.toLocaleString()} XAF  ×  ${CHARGED_STAGE_COUNT} stages  ${eq}  ${formatUSDFull(budget.professional)}`,
     },
     {
       icon: <Landmark className="size-4 text-brand-mid-grey" />,
-      title: 'Add government permits & contingency',
-      amount: permCont,
-      pct: BUDGET_ROLLUP_PCT.permits,
-      body: `Planning approval, building permit, lands registry, and where required, environmental clearances. Plus a contingency buffer — material prices and exchange rates shift, especially for diaspora builders in ${countryName}. The contingency is yours to keep if not used.`,
-      formula: `Permits (${BUDGET_SPLIT_PCT.permits}%)  +  Contingency (${BUDGET_SPLIT_PCT.contingency}%)  =  ${BUDGET_ROLLUP_PCT.permits}%\n→  ${formatUSDFull(budget.permits)}  +  ${formatUSDFull(budget.contingency)}  =  ${formatUSDFull(permCont)}`,
+      title: 'Add the building permit',
+      amount: budget.permit,
+      pct: null,
+      body: `Planning approval, building permit and lands registry in ${countryName}. Assessed against the value of the construction work, so it is charged as a percentage of that — not of the total above.`,
+      formula: `${PERMIT_PCT_OF_BUILD}%  ×  ${formatUSDFull(budget.construction)}  ${eq}  ${formatUSDFull(budget.permit)}`,
     },
     {
       icon: <Plus className="size-4 text-brand-mid-grey" />,
@@ -305,10 +312,10 @@ function BudgetBreakdownModal({
               <table className="w-full">
                 <tbody className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
                   {[
-                    { label: 'Materials',                   amount: budget.materials },
-                    { label: '+ Labor',                     amount: budget.labor     },
-                    { label: '+ Professional fees',         amount: profFees         },
-                    { label: '+ Permits & contingency',     amount: permCont         },
+                    { label: 'Construction',        amount: budget.construction },
+                    { label: '+ Design',            amount: budget.design       },
+                    { label: '+ Professional fee',  amount: budget.professional },
+                    { label: '+ Permit',            amount: budget.permit       },
                   ].map(r => (
                     <tr key={r.label}>
                       <td className="py-1.5 text-brand-mid-grey">{r.label}</td>
@@ -351,10 +358,10 @@ function BudgetBreakdownModal({
               </div>
               <p className="text-[10px] text-center text-brand-mid-grey mb-4">{paidPct}% of your project is funded so far</p>
               {[
-                { label: 'Materials',           planned: budget.materials, paid: paidSplit.materials },
-                { label: 'Labor',               planned: budget.labor,     paid: paidSplit.labor },
-                { label: 'Professional fees',   planned: profFees,         paid: paidSplit.fees },
-                { label: 'Permits',             planned: permCont,         paid: paidSplit.permits },
+                { label: 'Construction',      planned: budget.construction, paid: paidSplit.construction },
+                { label: 'Design',            planned: budget.design,       paid: paidSplit.design       },
+                { label: 'Professional fee',  planned: budget.professional, paid: paidSplit.professional },
+                { label: 'Permit',            planned: budget.permit,       paid: paidSplit.permit       },
               ].map(r => (
                 <div key={r.label} className="flex items-center gap-3 mb-2">
                   <span className="w-32 shrink-0 text-[10px] text-brand-mid-grey">{r.label}</span>
@@ -1139,7 +1146,7 @@ export default function OverviewTab({
 
           {/* Costing allocation donut */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-            <BudgetDonut total={totalBudget} onBreakdown={() => setShowBudgetBreakdown(true)} />
+            <BudgetDonut total={totalBudget} budget={budget} onBreakdown={() => setShowBudgetBreakdown(true)} />
           </div>
 
           {/* Payment status bar */}

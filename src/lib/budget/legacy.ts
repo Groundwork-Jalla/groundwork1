@@ -12,13 +12,10 @@ import { CM_RATE_FALLBACK } from './model';
  * overshoots other real projects by 49–146%. See 020_bq_calibration.sql.
  */
 
-export const BQ_ROOM_COST_USD = 8_000;
-
 export function legacyTotal(data: Partial<WizardFormData>, rate: ConstructionRate): number {
   const {
     sqm = 0, floors = 1, finishLevel = 'standard',
     buildingType = 'single_family', roofType = 'long_span_aluminum',
-    hasBoysQuarters = false, bqRooms = 0,
   } = data;
 
   const finishMult   = rate.finish_multipliers[finishLevel]               ?? 1.0;
@@ -27,9 +24,10 @@ export function legacyTotal(data: Partial<WizardFormData>, rate: ConstructionRat
   const extraFloors  = Math.max(0, floors - 1);
   const floorMult    = 1 + extraFloors * (rate.upper_floor_addition_pct / 100);
 
-  const base   = sqm * rate.base_rate_usd * finishMult * buildingMult * roofMult * floorMult;
-  const bqCost = hasBoysQuarters && bqRooms > 0 ? bqRooms * BQ_ROOM_COST_USD : 0;
-  return Math.round(base + bqCost);
+  // Boys' quarters used to add $8,000 per room here and in the take-off path. The figure
+  // had no Bill of Quantity behind it and was 19–27% of a typical total, so it is gone
+  // until Vanessa supplies one. The wizard still asks the question; it just costs nothing.
+  return Math.round(sqm * rate.base_rate_usd * finishMult * buildingMult * roofMult * floorMult);
 }
 
 /**

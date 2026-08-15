@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Info, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatUSDFull } from '@/lib/budget';
+import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { startProjectTracking } from '@/lib/supabase/tracking';
 import { useT } from '@/lib/i18n';
@@ -53,7 +53,10 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
     setError(null);
     setSubmitting(true);
     try {
-      await startProjectTracking(project.id, finalBudget);
+      await startProjectTracking(
+        project.id,
+        decomposeBudget(finalBudget, { builtAreaSqm: Number(project.sqm) * project.num_floors }),
+      );
       onStarted();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('project.gate.errStart'));

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Layers, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
-import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget } from '@/lib/budget';
+import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -60,14 +60,17 @@ const SLICE_SHADES = ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d
 // ── Overview budget bar (animated, expandable) ───────────────
 
 /**
- * One trade line, openable to show where that money lands across the build.
+ * One budget line, openable to show where that money lands across the build.
  *
- * Philip's note on this screen was that an owner needs the granular material and
- * labour figures without exporting a PDF first. The split shown is this slice's
- * share distributed over the stage weights — Materials is 41% of the budget, and
- * each stage takes its `budget_pct` of that — which is exactly how the milestone
- * amounts are derived, so the numbers here reconcile with the payment schedule
- * further down the page rather than being a second, differently-rounded estimate.
+ * Philip's note on this screen was that an owner needs the granular figures without
+ * exporting a PDF first. Only the CONSTRUCTION line distributes across stages — each
+ * stage takes its `budget_pct` of it, which is exactly how the milestone amounts are
+ * derived, so the numbers here reconcile with the payment schedule further down the page
+ * rather than being a second, differently-rounded estimate.
+ *
+ * The other three lines do not distribute at all: design is paid at one stage, and permit
+ * and professional are their own milestones. They render as flat rows with no disclosure,
+ * because spreading a flat fee across seven stages would be inventing a schedule.
  */
 function OverviewBar({
   label,
@@ -75,31 +78,39 @@ function OverviewBar({
   amount,
   index,
   stages,
+  distributes = false,
 }: {
   label: string;
   pct: number;
   amount: number;
   index: number;
   stages: ProjectStageRow[];
+  /** Whether this line is shared out across the stage weights. Construction only. */
+  distributes?: boolean;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
   const [open, setOpen] = useState(false);
   const color = SLICE_SHADES[index % SLICE_SHADES.length];
 
-  // Stages carrying no budget share (Land Secured is 0%) would render as $0 rows.
+  // Stages carrying no budget share (Land Secured, Design, Exterior) would be $0 rows.
   const funded = stages.filter(s => (s.budget_pct ?? 0) > 0);
 
   return (
     <div className="border-b border-brand-off-white last:border-b-0 dark:border-[#242424]">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-3 py-1.5 text-left transition-colors hover:bg-brand-off-white/60 dark:hover:bg-[#242424]"
+        onClick={() => distributes && setOpen(o => !o)}
+        aria-expanded={distributes ? open : undefined}
+        disabled={!distributes}
+        className="flex w-full items-center gap-3 py-1.5 text-left transition-colors enabled:hover:bg-brand-off-white/60 dark:enabled:hover:bg-[#242424]"
       >
         <span className="flex w-28 shrink-0 items-center gap-1.5">
-          <ChevronRight className={cn('size-3 shrink-0 text-brand-mid-grey transition-transform', open && 'rotate-90')} />
+          <ChevronRight className={cn(
+            'size-3 shrink-0 text-brand-mid-grey transition-transform',
+            open && 'rotate-90',
+            !distributes && 'invisible',
+          )} />
           <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
           <span className="truncate text-xs text-brand-mid-grey">{label}</span>
         </span>
@@ -417,6 +428,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
   // and only falls back to the engine estimate when there isn't one — so the slices
   // below are always shares of the figure printed above them.
   const budget = projectBudget(project);
+  const shares = sliceShares(budget);
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
 
@@ -460,10 +472,11 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
             <OverviewBar
               key={slice.key}
               label={t(slice.labelKey)}
-              pct={slice.pct}
+              pct={shares[slice.key]}
               amount={budget[slice.key]}
               index={i}
               stages={sortedStages}
+              distributes={slice.key === 'construction'}
             />
           ))}
         </div>

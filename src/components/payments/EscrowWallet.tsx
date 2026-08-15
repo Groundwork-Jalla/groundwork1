@@ -1,5 +1,5 @@
 import { Check, Lock } from 'lucide-react';
-import { formatUSD, formatUSDFull } from '@/lib/budget';
+import { formatUSD, formatUSDFull, projectBudget } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
@@ -46,7 +46,12 @@ export default function EscrowWallet({
   const remaining = stages.filter(s => s.payment_status !== 'paid').length;
   const releasedPct = total > 0 ? (released / total) * 100 : 0;
 
-  const amountFor = (s: ProjectStageRow) => s.payment_milestone_usd ?? ((s.budget_pct ?? 0) / 100) * total;
+  // Fallback for rows predating stored milestones. `budget_pct` is a share of the
+  // CONSTRUCTION fee, not of the total — the total also carries design, permit and
+  // professional, none of which are stage work.
+  const construction = projectBudget(project).construction;
+  const amountFor = (s: ProjectStageRow) =>
+    s.payment_milestone_usd ?? ((s.budget_pct ?? 0) / 100) * construction;
 
   return (
     <div>

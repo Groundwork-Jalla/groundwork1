@@ -158,12 +158,21 @@ describe('public API', () => {
     }
   });
 
-  it('adds boys’ quarters on top of the take-off', () => {
-    const without = calculateBudget(CAMEROON_BQS[0].input, CM_RATE).total;
-    const with2   = calculateBudget(
-      { ...CAMEROON_BQS[0].input, hasBoysQuarters: true, bqRooms: 2 }, CM_RATE,
-    ).total;
-    expect(with2 - without).toBe(16_000);
+  it('charges nothing for boys’ quarters, on either pricing path', () => {
+    // This used to assert a $16,000 difference for two rooms. The $8,000/room figure had
+    // no Bill of Quantity behind it and was 19–27% of a typical total, so it is gone
+    // until Vanessa supplies one. The wizard still asks; the answer costs nothing.
+    const takeoff = { ...CAMEROON_BQS[0].input };
+    const legacy  = { ...CAMEROON_BQS[0].input, country: 'NG' };
+
+    for (const input of [takeoff, legacy]) {
+      const without = calculateBudget(input, input === legacy ? undefined : CM_RATE).total;
+      const with2   = calculateBudget(
+        { ...input, hasBoysQuarters: true, bqRooms: 2 },
+        input === legacy ? undefined : CM_RATE,
+      ).total;
+      expect(with2 - without).toBe(0);
+    }
   });
 
   it('falls back to the legacy formula when a country has no take-off model', () => {

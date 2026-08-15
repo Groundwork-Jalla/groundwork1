@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { BUDGET_SLICES, projectBudget } from '@/lib/budget';
+import { BUDGET_SLICES, projectBudget, sliceShares } from '@/lib/budget';
 import { formatMoney, localeFor } from '@/lib/format';
 import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
 import type { Lang } from '@/lib/i18n/types';
@@ -120,15 +120,20 @@ export async function exportBudgetPDF(
   // Table rows
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
+  // Shares are derived from the amounts, not declared: only the permit line is a fixed
+  // percentage of anything, and it is a percentage of construction rather than of the
+  // total this column is printed under.
+  const shares = sliceShares(budget);
+
   let rowShade = false;
   for (const slice of BUDGET_SLICES) {
     if (rowShade) {
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN, y, COL, 6, 'F');
     }
-    doc.text(t(slice.labelKey),        MARGIN + 2,   y + 4);
-    doc.text(`${slice.pct}%`,          MARGIN + 80,  y + 4);
-    doc.text(money(budget[slice.key]), MARGIN + 100, y + 4);
+    doc.text(t(slice.labelKey),         MARGIN + 2,   y + 4);
+    doc.text(`${shares[slice.key]}%`,   MARGIN + 80,  y + 4);
+    doc.text(money(budget[slice.key]),  MARGIN + 100, y + 4);
     y += 6;
     rowShade = !rowShade;
   }

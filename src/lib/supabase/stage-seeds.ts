@@ -24,12 +24,20 @@
 // Budget shares total exactly 100%. Substages total exactly 60. Both are asserted
 // by the unit test in stage-seeds.test.ts — change them there too, deliberately.
 //
-// Land Secured carries 0%: land acquisition is excluded from the construction budget,
-// so stage 1 is a required gate (survey, title, notary) with a $0 milestone. Its
-// original 5% was redistributed across the other nine stages by largest-remainder,
-// which preserves the relative weighting Vanessa set against material and labour
-// intensity. That redistribution is a change to her signed-off numbers and needs her
-// re-approval.
+// IMPORTANT: these are shares of the CONSTRUCTION FEE, not of the total the client is
+// quoted. The client total also carries the permit, professional and design fees, which
+// are not stage work and are not derived from these percentages. Deriving a milestone
+// from the total instead of the construction fee inflates every one of them.
+//
+// Three stages carry 0%:
+//   · Land Secured    — land acquisition is excluded from the budget entirely.
+//   · Design Completed — paid as an absolute design fee, not a percentage. Its milestone
+//                        comes from project_stages.fixed_amount_usd (migration 036).
+//   · Exterior Work   — never charged; the budget covers the main building only.
+//
+// The remaining seven sum to exactly 100, and there are exactly seven of them — which is
+// where the professional fee's `50,000 XAF × 7` comes from. stage-seeds.test.ts asserts
+// the count against CHARGED_STAGE_COUNT so the two cannot drift apart.
 // =========================================================
 
 export interface StageSeed {
@@ -71,7 +79,7 @@ function baseStages(): StageSeed[] {
       stage_number: 2,
       key: 'designCompleted',
       name: 'Design Completed',
-      budget_pct: 11,
+      budget_pct: 0,
       substages: [
         { key: 'soilTest',                 name: 'Soil test' },
         { key: 'architecturalPlans',       name: 'Architectural plans' },
@@ -84,7 +92,7 @@ function baseStages(): StageSeed[] {
       stage_number: 3,
       key: 'sitePreparation',
       name: 'Site Preparation',
-      budget_pct: 5,
+      budget_pct: 2,
       substages: [
         { key: 'energySupply',             name: 'Energy supply' },
         { key: 'waterSupply',              name: 'Water supply' },
@@ -97,7 +105,7 @@ function baseStages(): StageSeed[] {
       stage_number: 4,
       key: 'foundation',
       name: 'Foundation',
-      budget_pct: 16,
+      budget_pct: 8,
       substages: [
         { key: 'excavationPitsTrenches',           name: 'Excavation of pits and trenches' },
         { key: 'backfill',                         name: 'Backfill' },
@@ -112,7 +120,7 @@ function baseStages(): StageSeed[] {
       stage_number: 5,
       key: 'structureWalls',
       name: 'Structure & Walls',
-      budget_pct: 21,
+      budget_pct: 30,
       substages: [
         { key: 'pillars',                     name: 'Pillars' },
         { key: 'beamsAndLintels',             name: 'Beams and lintels' },
@@ -128,7 +136,7 @@ function baseStages(): StageSeed[] {
       stage_number: 6,
       key: 'roofing',
       name: 'Roofing',
-      budget_pct: 11,
+      budget_pct: 8,
       substages: [
         { key: 'hardwoodTrussAssembly',   name: 'Hardwood truss assembly' },
         { key: 'purlinInstallation',      name: 'Purlin installation' },
@@ -140,7 +148,7 @@ function baseStages(): StageSeed[] {
       stage_number: 7,
       key: 'electricalPlumbing',
       name: 'Electrical & Plumbing',
-      budget_pct: 11,
+      budget_pct: 17,
       substages: [
         { key: 'electricalConduitCabling',    name: 'Electrical conduit and cabling' },
         { key: 'switchesSocketsJunctionBoxes', name: 'Switches, sockets, junction boxes' },
@@ -158,7 +166,7 @@ function baseStages(): StageSeed[] {
       stage_number: 8,
       key: 'finishing',
       name: 'Finishing',
-      budget_pct: 10,
+      budget_pct: 30,
       substages: [
         { key: 'woodenDoors',                name: 'Wooden doors' },
         { key: 'aluminiumGlassWindows',      name: 'Aluminium and glass windows' },
@@ -174,7 +182,7 @@ function baseStages(): StageSeed[] {
       stage_number: 9,
       key: 'exteriorWork',
       name: 'Exterior Work',
-      budget_pct: 10,
+      budget_pct: 0,
       substages: [
         { key: 'exteriorLightingDesign', name: 'Exterior lighting design' },
         { key: 'waterFeatures',          name: 'Water features' },

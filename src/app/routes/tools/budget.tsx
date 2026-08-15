@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
-import { BUDGET_SLICES, calculateBudget, formatUSDFull, formatUSD } from '@/lib/budget';
+import { BUDGET_SLICES, calculateBudget, formatUSDFull, formatUSD, sliceShares } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -38,6 +38,7 @@ export default function BudgetTool() {
     calculateBudget({ country, sqm, floors, finishLevel }),
     [country, sqm, floors, finishLevel],
   );
+  const shares = useMemo(() => sliceShares(budget), [budget]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
@@ -140,7 +141,7 @@ export default function BudgetTool() {
                 <div key={s.key} className="flex items-center gap-3">
                   <span className="w-28 shrink-0 text-xs text-brand-mid-grey">{t(s.labelKey)}</span>
                   <div className="flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-                    <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${s.pct}%` }} />
+                    <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${shares[s.key]}%` }} />
                   </div>
                   <span className="text-xs font-medium text-brand-near-black dark:text-white tabular-nums w-20 text-right">{formatUSD(budget[s.key])}</span>
                 </div>
