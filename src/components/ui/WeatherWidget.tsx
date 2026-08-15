@@ -29,6 +29,9 @@ const CITY_COORDS: Record<string, Coords> = {
   buea:        { lat:  4.1527, lon:  9.2920, city: 'Buea'        },
   limbe:       { lat:  4.0186, lon:  9.1950, city: 'Limbe'       },
   bamenda:     { lat:  5.9597, lon: 10.1459, city: 'Bamenda'     },
+  // Bali left the wizard's city list when it was renamed to Bamenda, but projects
+  // created before that still store 'Bali' as free text — see CITY_ALIASES in
+  // budget/model.ts. Dropping this row would leave those projects with no weather.
   bali:        { lat:  5.8833, lon: 10.0167, city: 'Bali'        },
   'ngaoundéré':{ lat:  7.3167, lon: 13.5833, city: 'Ngaoundéré'  },
   ngaoundere:  { lat:  7.3167, lon: 13.5833, city: 'Ngaoundéré'  },

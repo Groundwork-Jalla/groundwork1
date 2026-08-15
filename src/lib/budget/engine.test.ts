@@ -67,7 +67,7 @@ describe('city rate book', () => {
     expect(CITY_RATES.YAOUNDE.rc_350).toBe(180_000); // Rose
     expect(CITY_RATES.BUEA.rc_350).toBe(190_000);    // Buea
     expect(CITY_RATES.KRIBI.rc_350).toBe(179_000);   // Mpangou
-    expect(CITY_RATES.BALI.rc_350).toBe(190_000);    // Naka
+    expect(CITY_RATES.BAMENDA.rc_350).toBe(190_000); // Naka — listed as Bali until Aug 2026
   });
 
   it('resolves free-text city names, accents and trailing country', () => {
@@ -78,12 +78,34 @@ describe('city rate book', () => {
     expect(resolveCityRate('Lagos', 'NG')).toBeNull();
   });
 
-  it('prices Adamawa ~44% above Douala for an otherwise identical build', () => {
+  it('still resolves Bali, which was renamed to Bamenda', () => {
+    // `projects.city` is free text, so rows created before the rename still say 'Bali'.
+    // Without the alias they would fall through to the Douala baseline and quietly
+    // re-price by −5.3% — a budget moving because a dropdown label changed.
+    expect(resolveCityRate('Bali', 'CM')?.city_code).toBe('BAMENDA');
+    expect(resolveCityRate('bali', 'CM')?.city_code).toBe('BAMENDA');
+    expect(resolveCityRate('Bali, Cameroon', 'CM')?.city_code).toBe('BAMENDA');
+    // And it must price identically to what it did under the old name.
+    expect(resolveCityRate('Bali', 'CM')?.index_vs_baseline).toBe(1.0556);
+  });
+
+  it('prices Adamawa ~15% above Douala, down from ~44%', () => {
+    // The index was 1.4444 until Aug 2026 — the region's absolute concrete rates read as
+    // an index. Vanessa puts Adamawa at +7–8% over Douala, so it is now 1.0750.
+    //
+    // The BUILD still comes out ~15% dearer, not ~7.5%, and that is not a bug in the
+    // correction: runTakeoff prices concrete from the city's own rc_350/rc_250/lean
+    // columns and indexes only the other trades (engine.ts:56-57). Adamawa's concrete
+    // really is ~44% above Douala on inland haulage, and concrete is ~21% of a take-off.
+    //
+    // OPEN WITH VANESSA: if her +7–8% describes the finished project rather than the
+    // non-concrete trades, then the Adamawa concrete column is also overstated and this
+    // band should tighten. Asserting what the engine actually does until she says.
     const base = { ...CAMEROON_BQS[0].input };
     const douala  = runTakeoff({ ...base, city: 'Douala'  }, CM_RATE)!.totalLocal;
     const adamawa = runTakeoff({ ...base, city: 'Adamawa' }, CM_RATE)!.totalLocal;
-    expect(adamawa / douala).toBeGreaterThan(1.30);
-    expect(adamawa / douala).toBeLessThan(1.50);
+    expect(adamawa / douala).toBeGreaterThan(1.10);
+    expect(adamawa / douala).toBeLessThan(1.20);
   });
 });
 

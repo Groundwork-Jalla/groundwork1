@@ -127,8 +127,13 @@ export const CITY_RATES: Record<string, CityRate> = {
   KRIBI:   cm('KRIBI',   'Kribi',   179_000,  72_625, 54_250,  66_875, 0.9944),
   BUEA:    cm('BUEA',    'Buea',    190_000,  72_875, 52_250,  72_625, 1.0556),
   LIMBE:   cm('LIMBE',   'Limbe',   190_000,  71_250, 51_000,  70_750, 1.0556),
-  BALI:    cm('BALI',    'Bali',    190_000,  71_000, 48_500,  72_875, 1.0556),
-  ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375, 1.4444),
+  // Renamed from BALI. Same physical rate set — Vanessa's point was that the city on the
+  // list should be Bamenda, not that Bali's numbers were wrong. Legacy 'Bali' still
+  // resolves here via CITY_ALIASES below.
+  BAMENDA: cm('BAMENDA', 'Bamenda', 190_000,  71_000, 48_500,  72_875, 1.0556),
+  // Was 1.4444 (+44%). Vanessa put Adamawa at +7–8% over the Douala baseline; 1.075 is
+  // the mid-point. The concrete rates are unchanged — only the index was wrong.
+  ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375, 1.0750),
   ABUJA:   { city_code: 'ABUJA', country_code: 'NG', city_name: 'Abuja',
              rc_350: 450_000, rc_250: 119_000, lean_concrete: 77_750, mortar: 135_750,
              index_vs_baseline: 2.5000, currency_code: 'NGN', data_source: 'real_bq' },
@@ -147,8 +152,21 @@ function cm(
 
 /** Cities we hold real rates for, in the order the wizard should offer them. */
 export const CM_CITY_CODES = [
-  'DOUALA', 'YAOUNDE', 'BUEA', 'LIMBE', 'BALI', 'KRIBI', 'ADAMAWA',
+  'DOUALA', 'YAOUNDE', 'BUEA', 'LIMBE', 'BAMENDA', 'KRIBI', 'ADAMAWA',
 ] as const;
+
+/**
+ * Cities that have been renamed, old name → current code.
+ *
+ * `city` is stored as free text on every project (see resolveCityRate), so a rename that
+ * only touched the rate book would stop matching those rows — they would fall through to
+ * the Douala baseline and quietly re-price by −5.3%. A budget that moves because we
+ * relabelled a dropdown is exactly the kind of silent number change migration 020 refuses
+ * to make.
+ */
+const CITY_ALIASES: Record<string, string> = {
+  BALI: 'BAMENDA',
+};
 
 export const BASELINE_CITY = 'DOUALA';
 
@@ -165,6 +183,8 @@ export function resolveCityRate(
   if (city) {
     const key = city.trim().toUpperCase();
     if (book[key]) return book[key];
+    if (CITY_ALIASES[key] && book[CITY_ALIASES[key]]) return book[CITY_ALIASES[key]];
+
     // "Buea, Cameroon" / "Yaoundé" / "yaounde"
     const norm = stripAccents(key);
     const hit = Object.values(book).find(
@@ -173,6 +193,12 @@ export function resolveCityRate(
       r => r.country_code === countryCode && norm.startsWith(stripAccents(r.city_name.toUpperCase())),
     );
     if (hit) return hit;
+
+    // "Bali, Cameroon" — an old name carrying a country suffix, which neither the exact
+    // alias lookup nor the current-name prefix match above can catch.
+    for (const [old, code] of Object.entries(CITY_ALIASES)) {
+      if (norm.startsWith(old) && book[code]) return book[code];
+    }
   }
   if (countryCode === 'CM') return book[BASELINE_CITY] ?? null;
   return null;
