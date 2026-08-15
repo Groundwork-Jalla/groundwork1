@@ -1,6 +1,7 @@
 import type { ConstructionRate, WizardFormData } from '@/types/project';
 import { findCountry } from '@/lib/countries';
 import { CM_RATE_FALLBACK } from './model';
+import { roofMultipliers } from './roof';
 
 /**
  * The pre-take-off multiplicative estimate.
@@ -60,9 +61,9 @@ export function buildLegacyRate(data: Partial<WizardFormData>): ConstructionRate
       duplex: 1.05, multi_family: 1.15, apartment: 1.15, office: 1.25,
       retail: 1.20, warehouse_commercial: 0.85, hotel: 1.45,
     },
-    roof_type_multipliers: {
-      long_span_aluminum: 1.0, clay_tiles: 1.05, concrete_flat: 1.03, shingle: 1.04,
-    },
+    // Was clay 1.05 / concrete 1.03 / shingle 1.04 — a different set from model.ts and
+    // from the badges the wizard printed. All three now come from roof.ts.
+    roof_type_multipliers: roofMultipliers(),
     currency_code:  countryData ? getCurrencyCode(country) : 'USD',
     approx_fx_rate: countryData ? getApproxFx(country) : 1,
     data_source:    'estimated_index',

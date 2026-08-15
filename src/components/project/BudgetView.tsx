@@ -4,6 +4,7 @@ import { Download, Layers, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
+import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -485,6 +486,12 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
           {t('project.costing.disclaimer')}
         </p>
       </div>
+
+      {/*
+        What contractors actually quoted, beside what we estimated. Renders nothing until
+        a take-off has been submitted, so the tab is unchanged for projects with none.
+      */}
+      <TakeoffComparison project={project} />
 
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">

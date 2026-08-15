@@ -1,6 +1,23 @@
 import type { TakeoffGeometry, WizardFormData } from '@/types/project';
 
 /**
+ * The wizard's inputs, plus the real dimensions a contractor can supply.
+ *
+ * Every field is optional and every existing call site passes a `Partial<WizardFormData>`,
+ * so this widens the input without touching a single caller. The client wizard will never
+ * ask for length and width — it asks for an area and a room count, which is as much as
+ * someone planning from the diaspora can reasonably give.
+ */
+export interface DetailedTakeoffInput extends Partial<WizardFormData> {
+  /** Building length in metres, if measured. */
+  lengthM?: number;
+  /** Building width in metres, if measured. */
+  widthM?: number;
+  /** Measured perimeter, overriding both the L x W and the sqrt estimate. */
+  perimeterM?: number;
+}
+
+/**
  * Quantities derived from the wizard's geometry inputs.
  *
  * `footprint` is the GROUND FLOOR area, not the total built area. That distinction
@@ -26,15 +43,13 @@ export interface Quantities {
 }
 
 export function deriveQuantities(
-  data: Partial<WizardFormData>,
+  data: DetailedTakeoffInput,
   g: TakeoffGeometry,
 ): Quantities {
   const footprint = Math.max(0, data.sqm ?? 0);
   const floors    = Math.max(1, Math.round(data.floors ?? 1));
   const h         = g.storey_height_m;
-
-  // Square-ish plan. Mpangou's take-off states this outright: L 12, W 12, perimeter 48.
-  const perimeter = g.perimeter_factor * Math.sqrt(footprint);
+  const perimeter = derivePerimeter(data, g, footprint);
 
   const rooms         = countRooms(data);
   const roomsPerFloor = rooms / floors;
@@ -62,16 +77,65 @@ export function deriveQuantities(
  * Total habitable rooms. Prefers the per-floor breakdown from Step 5 when present,
  * falling back to the flat totals — the same precedence Step8Details uses.
  */
+/**
+ * Perimeter, in descending order of how much we actually know:
+ *
+ *   1. a measured perimeter                    — exact
+ *   2. length x width                          — exact for a rectangle, 2(L+W)
+ *   3. perimeter_factor x sqrt(area)           — the square-plan assumption
+ *
+ * (3) is 4 x sqrt(A), which is right only for a square. A 24 x 6 building has the same
+ * 144 m2 as a 12 x 12 one and 12 metres more wall — about 8% more blockwork, plaster and
+ * paint. That error is invisible in the client wizard, which has no way to know the shape,
+ * and unacceptable in a contractor's take-off, which does.
+ *
+ * Note `perimeter_factor` stays in the model rather than being hardcoded to 4: it is the
+ * calibrated square-plan constant, and Mpangou's own take-off states L 12, W 12,
+ * perimeter 48, which is exactly 4 x sqrt(144).
+ */
+function derivePerimeter(
+  data: DetailedTakeoffInput,
+  g: TakeoffGeometry,
+  footprint: number,
+): number {
+  const measured = data.perimeterM;
+  if (typeof measured === 'number' && Number.isFinite(measured) && measured > 0) {
+    return measured;
+  }
+  const L = data.lengthM;
+  const W = data.widthM;
+  if (typeof L === 'number' && typeof W === 'number'
+      && Number.isFinite(L) && Number.isFinite(W) && L > 0 && W > 0) {
+    return 2 * (L + W);
+  }
+  return g.perimeter_factor * Math.sqrt(footprint);
+}
+
 export function countRooms(data: Partial<WizardFormData>): number {
   const fr = data.floorRooms ?? [];
-  const hasFloorRooms = fr.length > 0 &&
-    fr.some(f => f.bedrooms + f.livingRooms + f.kitchens + f.bathrooms > 0);
-
-  if (hasFloorRooms) {
-    return fr.reduce((s, f) => s + f.bedrooms + f.bathrooms + f.livingRooms + f.kitchens, 0);
+  if (hasFloorRooms(data)) {
+    return fr.reduce((s, f) =>
+      s + f.bedrooms + f.bathrooms + f.livingRooms + f.kitchens + (f.offices ?? 0), 0);
   }
   return (data.bedrooms ?? 0) + (data.bathrooms ?? 0)
-       + (data.livingRooms ?? 0) + (data.kitchens ?? 0);
+       + (data.livingRooms ?? 0) + (data.kitchens ?? 0) + (data.offices ?? 0);
+}
+
+/**
+ * Whether the per-floor breakdown from Step 5 has anything in it.
+ *
+ * Extracted because Step8Details wrote the same predicate a second time and left
+ * bathrooms out of its version, so a floor with only bathrooms counted here and not
+ * there. One definition, used by both.
+ *
+ * `offices` is read with `?? 0`: it was added in Aug 2026 and older `floor_rooms` JSONB
+ * rows do not carry the field.
+ */
+export function hasFloorRooms(data: Partial<WizardFormData>): boolean {
+  const fr = data.floorRooms ?? [];
+  return fr.length > 0 && fr.some(
+    f => f.bedrooms + f.bathrooms + f.livingRooms + f.kitchens + (f.offices ?? 0) > 0,
+  );
 }
 
 export function countBathrooms(data: Partial<WizardFormData>): number {

@@ -46,18 +46,42 @@ export function fixtureSchedule(data: Partial<WizardFormData>): FixtureSchedule 
   };
 }
 
-/** Section 800 — Plumbing and sanitary fixtures, in local currency. */
+/**
+ * Section 800 as BQ lines — the four installation items plus one line per fixture type.
+ *
+ * Rates are UNINDEXED: the caller multiplies by the city index, exactly as the old
+ * `plumbingCost(...) * ci` did. Returning indexed rates here would double-apply it.
+ */
+export function plumbingLines(
+  data: Partial<WizardFormData>,
+  prices: Partial<FixturePrices> | null | undefined,
+): { code: '801' | '802' | '803' | '804' | '805' | '806' | '807' | '808' | '809' | '810'; qty: number; rate: number }[] {
+  const p = { ...DEFAULT_FIXTURE_PRICES, ...(prices ?? {}) };
+  const f = fixtureSchedule(data);
+  return [
+    { code: '801', qty: 1,              rate: p.supply       },
+    { code: '802', qty: 1,              rate: p.drainage     },
+    { code: '803', qty: 1,              rate: p.septic       },
+    { code: '804', qty: 1,              rate: p.accessories  },
+    { code: '805', qty: f.wc,           rate: p.wc           },
+    { code: '806', qty: f.sink,         rate: p.sink         },
+    { code: '807', qty: f.mirror,       rate: p.mirror       },
+    { code: '808', qty: f.shower,       rate: p.shower       },
+    { code: '809', qty: f.tub,          rate: p.tub          },
+    { code: '810', qty: f.kitchenSink,  rate: p.kitchen_sink },
+  ];
+}
+
+/**
+ * Section 800 total, in local currency.
+ *
+ * Kept as the sum of `plumbingLines` rather than its own expression — the old version was
+ * a separate arithmetic statement, and PLUMBING_CHECKS asserted against a formula the
+ * test recomputed in its own body rather than against the engine.
+ */
 export function plumbingCost(
   data: Partial<WizardFormData>,
   prices: Partial<FixturePrices> | null | undefined,
 ): number {
-  const p = { ...DEFAULT_FIXTURE_PRICES, ...(prices ?? {}) };
-  const f = fixtureSchedule(data);
-  return p.supply + p.drainage + p.septic + p.accessories
-       + f.wc * p.wc
-       + f.mirror * p.mirror
-       + f.sink * p.sink
-       + f.tub * p.tub
-       + f.shower * p.shower
-       + f.kitchenSink * p.kitchen_sink;
+  return plumbingLines(data, prices).reduce((s, l) => s + l.qty * l.rate, 0);
 }

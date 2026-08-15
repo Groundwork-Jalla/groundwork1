@@ -11,8 +11,18 @@ import type { TKey } from '@/lib/i18n/translate';
 
 export { CITY_RATES, CM_CITY_CODES, CM_TAKEOFF, resolveCityRate, BASELINE_CITY } from './model';
 export { fixtureSchedule, plumbingCost } from './fixtures';
-export { deriveQuantities, countRooms } from './geometry';
+export { deriveQuantities, countRooms, hasFloorRooms } from './geometry';
+export type { DetailedTakeoffInput, Quantities } from './geometry';
+export {
+  applyOverrides, sectionsFromLines, totalFromLines,
+} from './lines';
+export type { TakeoffLine, LineOverride, OverrideMap, LineKind } from './lines';
+export { BQ_ITEMS, bqItem } from './bq-items';
+export type { BqCode, BqItem } from './bq-items';
 export { runTakeoff, SECTION_KEYS } from './engine';
+export { buildLegacyRate, getApproxFx, getCurrencyCode } from './legacy';
+export { ROOF_OPTIONS, ROOF_FORMS, isFlatRoof, roofOption, roofsOfForm, roofMultipliers } from './roof';
+export type { RoofForm, RoofOption } from './roof';
 export type { SectionKey } from './engine';
 
 // ── Trade section display colours ──────────────────────────

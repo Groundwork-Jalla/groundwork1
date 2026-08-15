@@ -26,7 +26,11 @@ export type BuildingType =
   | 'mixed_retail_residential'
   | 'transit_oriented';
 
-export type RoofType = 'long_span_aluminum' | 'clay_tiles' | 'concrete_flat' | 'shingle';
+// `aluminium_deck` added Aug 2026. 003_projects.sql declares roof_type TEXT with no
+// CHECK constraint, so a new value needs no migration. See lib/budget/roof.ts.
+export type RoofType =
+  | 'long_span_aluminum' | 'clay_tiles' | 'shingle'   // pitched
+  | 'concrete_flat' | 'aluminium_deck';               // flat
 
 export type FinishLevel = 'standard' | 'premium' | 'luxury';
 
@@ -47,6 +51,8 @@ export interface FloorRoom {
   bathrooms: number;
   livingRooms: number;
   kitchens: number;
+  /** Home office / study. Added Aug 2026 — absent on rows written before then. */
+  offices: number;
 }
 
 // -------------------------------------------------------
@@ -70,6 +76,7 @@ export interface WizardFormData {
   bathrooms: number;
   livingRooms: number;
   kitchens: number;
+  offices: number;
   floorRooms: FloorRoom[];
 
   // Step 6 — Boys' quarters
@@ -102,6 +109,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   bathrooms: 0,
   livingRooms: 0,
   kitchens: 0,
+  offices: 0,
   floorRooms: [],
   hasBoysQuarters: false,
   bqRooms: 1,
@@ -313,6 +321,8 @@ export interface ProjectRow {
   bathrooms: number;
   living_rooms: number;
   kitchens: number;
+  /** Home offices / studies. Added in migration 038; defaults to 0 on older rows. */
+  offices: number;
   floor_rooms: FloorRoom[] | null;
   budget_usd: number | null;
   tier: ProjectTier;

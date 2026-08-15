@@ -1,4 +1,5 @@
 import type { CityRate, ConstructionRate, FixturePrices, TakeoffModel } from '@/types/project';
+import { roofMultipliers } from './roof';
 
 /**
  * Default quantity take-off model for Cameroon.
@@ -106,9 +107,7 @@ export const CM_RATE_FALLBACK: ConstructionRate = {
     factory: 0.85, warehouse_industrial: 0.75, industrial_complex: 0.90,
     distribution_centre: 0.78,
   },
-  roof_type_multipliers: {
-    long_span_aluminum: 1.0, clay_tiles: 1.10, concrete_flat: 1.08, shingle: 1.05,
-  },
+  roof_type_multipliers: roofMultipliers(),
   currency_code: 'XAF',
   approx_fx_rate: 600,
   data_source: 'real_bq',

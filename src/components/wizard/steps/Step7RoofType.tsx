@@ -1,6 +1,10 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
+import { ROOF_FORMS, roofOption, roofsOfForm, type RoofForm } from '@/lib/budget';
+import { cn } from '@/lib/utils';
 import type { RoofType } from '@/types/project';
 import { useT } from '@/lib/i18n';
 
@@ -120,50 +124,85 @@ function ShingleIcon() {
   );
 }
 
-// ── Options ───────────────────────────────────────────────
+function AluminiumDeckIcon() {
+  return (
+    <svg viewBox="0 0 64 40" className="w-16 h-10" fill="none" aria-hidden="true">
+      {/* Flat deck on a shallow fall, sheeted rather than cast */}
+      <path d="M4 15 L60 18" stroke="#0a0a0a" strokeWidth="1.6" strokeLinejoin="round"/>
+      <path d="M4 19 L60 22" stroke="#0a0a0a" strokeWidth="1.1" strokeOpacity="0.5"/>
+      {/* Sheet ribs running down the fall */}
+      {[10, 18, 26, 34, 42, 52].map(x => (
+        <line key={x} x1={x} y1={15 + (x - 4) * 0.054} x2={x} y2={19 + (x - 4) * 0.054}
+              stroke="#0a0a0a" strokeWidth="0.7" strokeOpacity="0.4"/>
+      ))}
+      {/* Upstand at the high edge, gutter at the low */}
+      <rect x="4" y="9" width="4" height="6" rx="0.3" stroke="#0a0a0a" strokeWidth="1.1"/>
+      <path d="M56 22 L60 22 L60 25 L56 25" stroke="#0a0a0a" strokeWidth="1" strokeOpacity="0.55"/>
+      <rect x="4" y="22" width="56" height="14" rx="0.5" stroke="#0a0a0a" strokeWidth="1.1" strokeOpacity="0.35"/>
+    </svg>
+  );
+}
 
-const OPTIONS: {
-  value: RoofType;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  note: string;
-}[] = [
-  {
-    value:       'long_span_aluminum',
-    label:       'Long Span Aluminum',
-    description: 'Corrugated metal sheet roofing — most common in West Africa',
-    icon:        <LongSpanIcon />,
-    note:        'Base cost',
-  },
-  {
-    value:       'clay_tiles',
-    label:       'Clay Tiles',
-    description: 'Traditional fired clay roofing tiles — durable and elegant',
-    icon:        <ClayTilesIcon />,
-    note:        '+5% cost',
-  },
-  {
-    value:       'concrete_flat',
-    label:       'Concrete / Flat Roof',
-    description: 'Reinforced concrete slab — ideal for rooftop terraces',
-    icon:        <ConcreteFlatIcon />,
-    note:        '+3% cost',
-  },
-  {
-    value:       'shingle',
-    label:       'Shingle',
-    description: 'Asphalt or composite shingles — popular in diaspora markets',
-    icon:        <ShingleIcon />,
-    note:        '+4% cost',
-  },
-];
+// ── Form icons ────────────────────────────────────────────
+
+function PitchedFormIcon() {
+  return (
+    <svg viewBox="0 0 64 40" className="w-16 h-10" fill="none" aria-hidden="true">
+      <path d="M4 30 L32 10 L60 30" stroke="#0a0a0a" strokeWidth="1.8" strokeLinejoin="round"/>
+      <rect x="4" y="30" width="56" height="6" rx="0.5" stroke="#0a0a0a" strokeWidth="1.2" strokeOpacity="0.5"/>
+      <path d="M32 10 L32 30" stroke="#0a0a0a" strokeWidth="0.8" strokeOpacity="0.3" strokeDasharray="3 3"/>
+    </svg>
+  );
+}
+
+function FlatFormIcon() {
+  return (
+    <svg viewBox="0 0 64 40" className="w-16 h-10" fill="none" aria-hidden="true">
+      <rect x="4" y="14" width="56" height="6" rx="0.5" stroke="#0a0a0a" strokeWidth="1.8"/>
+      <rect x="4"  y="8" width="5" height="6" rx="0.3" stroke="#0a0a0a" strokeWidth="1.1"/>
+      <rect x="55" y="8" width="5" height="6" rx="0.3" stroke="#0a0a0a" strokeWidth="1.1"/>
+      <rect x="4" y="20" width="56" height="16" rx="0.5" stroke="#0a0a0a" strokeWidth="1.1" strokeOpacity="0.35"/>
+    </svg>
+  );
+}
+
+const FORM_ICONS: Record<RoofForm, React.ReactNode> = {
+  pitched: <PitchedFormIcon />,
+  flat:    <FlatFormIcon />,
+};
+
+const MATERIAL_ICONS: Record<RoofType, React.ReactNode> = {
+  long_span_aluminum: <LongSpanIcon />,
+  clay_tiles:         <ClayTilesIcon />,
+  shingle:            <ShingleIcon />,
+  concrete_flat:      <ConcreteFlatIcon />,
+  aluminium_deck:     <AluminiumDeckIcon />,
+};
 
 // ── Component ─────────────────────────────────────────────
+//
+// Two steps, not one grid of four. Vanessa's point: a builder settles pitched-or-flat
+// before they settle what covers it, and asking both at once made people pick a material
+// without registering that they had also chosen a roof form.
+//
+// `RoofType` is still what gets persisted — the split is presentation only, so existing
+// rows and every cost multiplier are untouched.
 
 export default function Step7RoofType() {
   const t = useT();
   const { data, update, next } = useWizard();
+
+  // Derived, not stored: re-entering the step with a roof already chosen reopens on its
+  // form rather than resetting to the fork.
+  const [form, setForm] = useState<RoofForm | null>(() => roofOption(data.roofType)?.form ?? null);
+
+  function chooseForm(f: RoofForm) {
+    setForm(f);
+    // Changing form invalidates the material — a pitched choice is not a flat one.
+    if (roofOption(data.roofType)?.form !== f) update({ roofType: null });
+  }
+
+  const materials = form ? roofsOfForm(form) : [];
 
   return (
     <WizardShell canContinue={!!data.roofType} onContinue={next}>
@@ -175,22 +214,70 @@ export default function Step7RoofType() {
           {t('wizard.s7Sub')}
         </p>
 
-        <div className="mt-7 grid grid-cols-2 gap-3">
-          {OPTIONS.map(opt => (
-            <div key={opt.value} className="relative">
-              <StepCard
-                selected={data.roofType === opt.value}
-                onClick={() => update({ roofType: opt.value })}
-                icon={opt.icon}
-                label={opt.label}
-                description={opt.description}
-              />
-              <span className="absolute top-2 right-2 text-[10px] font-medium text-brand-mid-grey bg-brand-light-grey rounded-full px-1.5 py-0.5 leading-tight">
-                {opt.note}
-              </span>
-            </div>
+        {/* Step A — form */}
+        <p className="mt-7 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
+          {t('wizard.roof.stepForm')}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {ROOF_FORMS.map(f => (
+            <StepCard
+              key={f.form}
+              selected={form === f.form}
+              onClick={() => chooseForm(f.form)}
+              icon={FORM_ICONS[f.form]}
+              label={t(f.labelKey)}
+              description={t(f.descKey)}
+            />
           ))}
         </div>
+
+        {/* Step B — material, revealed once a form is chosen */}
+        <AnimatePresence>
+          {form && (
+            <motion.div
+              key={form}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <p className="mt-7 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
+                {t('wizard.roof.stepMaterial')}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {materials.map(opt => (
+                  <div key={opt.value} className="relative">
+                    <StepCard
+                      selected={data.roofType === opt.value}
+                      onClick={() => update({ roofType: opt.value })}
+                      icon={MATERIAL_ICONS[opt.value]}
+                      label={t(opt.labelKey)}
+                      description={t(opt.descKey)}
+                    />
+                    {/*
+                      Derived from roof.ts, never typed out here. These badges used to be
+                      hardcoded and disagreed with both rate cards — a client saw "+5%"
+                      for clay tiles and was charged +10%.
+                    */}
+                    <span className={cn(
+                      'absolute top-2 right-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-tight',
+                      opt.provisional
+                        ? 'border border-dashed border-brand-border-grey text-brand-mid-grey'
+                        : 'bg-brand-light-grey text-brand-mid-grey',
+                    )}>
+                      {opt.provisional
+                        ? t('wizard.roof.provisional')
+                        : opt.costDeltaPct === 0
+                          ? t('wizard.roof.baseCost')
+                          : `+${opt.costDeltaPct}%`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </WizardShell>
   );

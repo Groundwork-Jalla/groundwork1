@@ -6,7 +6,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FinishLevel, WizardFormData } from '@/types/project';
-import { CITY_RATES, CM_CITY_CODES } from '@/lib/budget';
+import { CITY_RATES, CM_CITY_CODES, hasFloorRooms } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -18,10 +18,17 @@ const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[
 ];
 
 // ── Footprint estimation ───────────────────────────────────────
-// Room benchmark sizes (sqm) — based on common African/UK residential standards
-const SQM = { bed: 14, bath: 5.5, living: 26, kitchen: 13 };
-// +22% for circulation: corridors, landings, stairs, wall thickness
-const CIRC = 1.22;
+//
+// Room benchmark sizes (sqm). Recalibrated Aug 2026 against Vanessa Gwanvoma's review:
+// the previous set (bed 14, bath 5.5, living 26, kitchen 13, circ 1.22) suggested ~95
+// sqm/floor for a 5-bed 2-storey semi-detached where she puts the real figure at 120.
+// They were UK-flat sizes applied to Cameroonian houses, which are built wider.
+//
+// Worked check for that case:
+//   (5x17 + 5x6 + 2x32 + 15) x 1.30 x 0.95 / 2 = 119.8  ->  120 ✓
+const SQM = { bed: 17, bath: 6, living: 32, kitchen: 15, office: 12 };
+// +30% for circulation: corridors, landings, stairs, wall thickness
+const CIRC = 1.30;
 
 interface SqmEstimate {
   min: number;
@@ -38,15 +45,18 @@ interface SqmEstimate {
  * to twice. The engine is calibrated against BQ footprints (slab volume ÷ 0.12), so
  * footprint is the figure that has to come out of here.
  */
-function estimateSqm(data: WizardFormData): SqmEstimate | null {
-  // Aggregate room counts across all floors
-  const hasFR = data.floorRooms.length > 0 &&
-    data.floorRooms.some(f => f.bedrooms + f.livingRooms + f.kitchens > 0);
+export function estimateSqm(data: WizardFormData): SqmEstimate | null {
+  // Aggregate room counts across all floors.
+  // `hasFloorRooms` is shared with geometry.ts — this file used to write its own version
+  // that omitted bathrooms, so a floor holding only bathrooms counted in one place and
+  // not the other.
+  const hasFR = hasFloorRooms(data);
 
-  const beds    = hasFR ? data.floorRooms.reduce((s, f) => s + f.bedrooms,    0) : data.bedrooms;
-  const baths   = hasFR ? data.floorRooms.reduce((s, f) => s + f.bathrooms,   0) : data.bathrooms;
-  const livings = hasFR ? data.floorRooms.reduce((s, f) => s + f.livingRooms, 0) : data.livingRooms;
-  const kitch   = hasFR ? data.floorRooms.reduce((s, f) => s + f.kitchens,    0) : data.kitchens;
+  const beds    = hasFR ? data.floorRooms.reduce((s, f) => s + f.bedrooms,        0) : data.bedrooms;
+  const baths   = hasFR ? data.floorRooms.reduce((s, f) => s + f.bathrooms,       0) : data.bathrooms;
+  const livings = hasFR ? data.floorRooms.reduce((s, f) => s + f.livingRooms,     0) : data.livingRooms;
+  const kitch   = hasFR ? data.floorRooms.reduce((s, f) => s + f.kitchens,        0) : data.kitchens;
+  const offices = hasFR ? data.floorRooms.reduce((s, f) => s + (f.offices ?? 0),  0) : (data.offices ?? 0);
 
   if (beds === 0 && livings === 0) return null;
 
@@ -59,7 +69,8 @@ function estimateSqm(data: WizardFormData): SqmEstimate | null {
     data.buildingType === 'retail'           ? 1.20 : 1.00;
 
   const floors  = Math.max(1, data.floors);
-  const raw     = beds * SQM.bed + baths * SQM.bath + livings * SQM.living + kitch * SQM.kitchen;
+  const raw     = beds * SQM.bed + baths * SQM.bath + livings * SQM.living
+                + kitch * SQM.kitchen + offices * SQM.office;
   // Those rooms are spread over every storey; the footprint is one storey's worth.
   const typical = Math.round((raw * CIRC * mult / floors) / 5) * 5;
   const min     = Math.round((typical * 0.80) / 5) * 5;

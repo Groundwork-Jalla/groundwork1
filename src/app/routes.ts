@@ -33,6 +33,11 @@ export default [
     route("documents",           "routes/documents.tsx"),
     route("projects",            "routes/projects/index.tsx"),
     route("projects/:id",        "routes/projects/detail.tsx"),
+    // Contractor take-off. Its own routes rather than a tab on projects/detail — that
+    // page is 7 tabs at max-w-5xl and a 30-row editable grid does not fit. Deep-linkable
+    // because "here's my BQ" is a URL a contractor sends.
+    route("projects/:id/takeoff",             "routes/projects/takeoff.tsx"),
+    route("projects/:id/takeoff/:takeoffId",  "routes/projects/takeoff.detail.tsx"),
     route("resources",           "routes/resources.tsx"),
     route("resources/:slug",     "routes/resources.detail.tsx"),
     route("contractors",         "routes/contractors.tsx"),

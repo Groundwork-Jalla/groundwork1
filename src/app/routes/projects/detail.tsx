@@ -67,11 +67,12 @@ const CONTRACTOR_TABS: { id: Tab; labelKey: TKey }[] = [
 ];
 
 function TabBar({
-  active, onChange, isContractor,
+  active, onChange, isContractor, projectId,
 }: {
   active: Tab;
   onChange: (t: Tab) => void;
   isContractor: boolean;
+  projectId: string;
 }) {
   const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
   const t = useT();
@@ -91,6 +92,18 @@ function TabBar({
           {t(tab.labelKey)}
         </button>
       ))}
+
+      {/*
+        A link, not a tab: the take-off is its own route. A 30-row editable grid does not
+        fit inside this page's max-w-5xl column, and a contractor sends "here's my BQ" as
+        a URL, which needs somewhere to point.
+      */}
+      <Link
+        to={`/projects/${projectId}/takeoff`}
+        className="shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black"
+      >
+        {t('project.tabs.takeoff')}
+      </Link>
     </div>
   );
 }
@@ -404,7 +417,7 @@ export default function ProjectDetail() {
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
           <>
-          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} />
+          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} />
 
           {/* Tab: Overview */}
           {activeTab === 'overview' && (

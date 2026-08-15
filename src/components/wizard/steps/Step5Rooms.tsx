@@ -5,7 +5,7 @@ import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
 import type { FloorRoom } from '@/types/project';
-import { useT } from '@/lib/i18n';
+import { useLanguage, type TKey } from '@/lib/i18n';
 
 function floorLabel(index: number) {
   return index === 0 ? 'GF' : `F${index}`;
@@ -15,11 +15,37 @@ function floorLongLabel(index: number) {
   return index === 0 ? 'Ground Floor' : `Floor ${index}`;
 }
 
+/**
+ * The room types a floor is composed of, in the order they are asked for.
+ *
+ * Declared once and iterated rather than written out five times: the steppers, the
+ * cross-floor totals and `computeTotals` all derive from this list, so adding a sixth
+ * type is one entry rather than four edits that can disagree.
+ *
+ * `offices` was added Aug 2026 and is absent from FloorRoom rows written before then —
+ * hence the `?? 0` at every read.
+ */
+const ROOM_TYPES = [
+  { field: 'bedrooms',    labelKey: 'wizardFields.bedrooms',    subKey: 'wizard.rooms.bedroomsSub',    unitKey: 'wizard.rooms.unitBed',     max: 20 },
+  { field: 'bathrooms',   labelKey: 'wizardFields.bathrooms',   subKey: 'wizard.rooms.bathroomsSub',   unitKey: 'wizard.rooms.unitBath',    max: 20 },
+  { field: 'livingRooms', labelKey: 'wizardFields.livingAreas', subKey: 'wizard.rooms.livingSub',      unitKey: 'wizard.rooms.unitLiving',  max: 5  },
+  { field: 'kitchens',    labelKey: 'wizardFields.kitchens',    subKey: 'wizard.rooms.kitchensSub',    unitKey: 'wizard.rooms.unitKitchen', max: 5  },
+  { field: 'offices',     labelKey: 'wizardFields.offices',     subKey: 'wizard.rooms.officesSub',     unitKey: 'wizard.rooms.unitOffice',  max: 10 },
+] as const satisfies readonly {
+  field: keyof Omit<FloorRoom, 'floor'>;
+  labelKey: TKey; subKey: TKey; unitKey: TKey; max: number;
+}[];
+
+const EMPTY_FLOOR = (i: number): FloorRoom =>
+  ({ floor: i, bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0, offices: 0 });
+
 function initFloors(count: number, existing: FloorRoom[]): FloorRoom[] {
-  return Array.from({ length: count }, (_, i) =>
-    existing.find(f => f.floor === i) ??
-    { floor: i, bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0 },
-  );
+  return Array.from({ length: count }, (_, i) => {
+    const found = existing.find(f => f.floor === i);
+    // Spread over the empty floor so a row saved before `offices` existed gains it as 0
+    // rather than undefined, which would render the stepper blank and NaN the totals.
+    return found ? { ...EMPTY_FLOOR(i), ...found } : EMPTY_FLOOR(i);
+  });
 }
 
 function computeTotals(floors: FloorRoom[]) {
@@ -29,13 +55,14 @@ function computeTotals(floors: FloorRoom[]) {
       bathrooms:   acc.bathrooms   + f.bathrooms,
       livingRooms: acc.livingRooms + f.livingRooms,
       kitchens:    acc.kitchens    + f.kitchens,
+      offices:     acc.offices     + (f.offices ?? 0),
     }),
-    { bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0 },
+    { bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0, offices: 0 },
   );
 }
 
 export default function Step5Rooms() {
-  const t = useT();
+  const { t, tPlural } = useLanguage();
   const { data, update, next } = useWizard();
   const [floors, setFloors] = useState<FloorRoom[]>(() =>
     initFloors(data.floors, data.floorRooms),
@@ -65,7 +92,8 @@ export default function Step5Rooms() {
   }
 
   const current = floors[activeTab] ?? floors[0];
-  const totalRooms = floors.reduce((s, f) => s + f.bedrooms + f.bathrooms + f.livingRooms + f.kitchens, 0);
+  const totals = computeTotals(floors);
+  const totalRooms = Object.values(totals).reduce((s, n) => s + n, 0);
 
   return (
     <WizardShell canContinue={true} onContinue={next}>
@@ -112,37 +140,17 @@ export default function Step5Rooms() {
           >
             {current && (
               <div className="mt-3 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] divide-y divide-brand-border-grey dark:divide-[#2c2c2c] overflow-hidden">
-                <Stepper
-                  label={t('wizardFields.bedrooms')}
-                  sublabel="Including master bedroom"
-                  value={current.bedrooms}
-                  onChange={v => handleRoomChange(activeTab, 'bedrooms', v)}
-                  min={0}
-                  max={20}
-                />
-                <Stepper
-                  label={t('wizardFields.bathrooms')}
-                  sublabel="Including en-suite bathrooms"
-                  value={current.bathrooms}
-                  onChange={v => handleRoomChange(activeTab, 'bathrooms', v)}
-                  min={0}
-                  max={20}
-                />
-                <Stepper
-                  label={t('wizardFields.livingAreas')}
-                  sublabel="Sitting rooms & lounges"
-                  value={current.livingRooms}
-                  onChange={v => handleRoomChange(activeTab, 'livingRooms', v)}
-                  min={0}
-                  max={5}
-                />
-                <Stepper
-                  label={t('wizardFields.kitchens')}
-                  value={current.kitchens}
-                  onChange={v => handleRoomChange(activeTab, 'kitchens', v)}
-                  min={0}
-                  max={5}
-                />
+                {ROOM_TYPES.map(rt => (
+                  <Stepper
+                    key={rt.field}
+                    label={t(rt.labelKey)}
+                    sublabel={t(rt.subKey)}
+                    value={current[rt.field] ?? 0}
+                    onChange={v => handleRoomChange(activeTab, rt.field, v)}
+                    min={0}
+                    max={rt.max}
+                  />
+                ))}
               </div>
             )}
           </motion.div>
@@ -152,18 +160,14 @@ export default function Step5Rooms() {
         {data.floors > 1 && (
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="text-[11px] text-brand-mid-grey self-center">{t('wizard.totalLabel')}</span>
-            {[
-              { count: computeTotals(floors).bedrooms,    unit: 'bed'    },
-              { count: computeTotals(floors).bathrooms,   unit: 'bath'   },
-              { count: computeTotals(floors).livingRooms, unit: 'living' },
-              { count: computeTotals(floors).kitchens,    unit: 'kitchen'},
-            ].map(({ count, unit }) => count > 0 && (
+            {ROOM_TYPES.map(rt => totals[rt.field] > 0 && (
               <span
-                key={unit}
+                key={rt.field}
                 className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2.5 py-0.5 text-xs font-medium text-brand-near-black"
               >
-                <span className="font-bold">{count}</span>
-                <span className="text-brand-mid-grey">{count === 1 ? unit : `${unit}s`}</span>
+                <span className="font-bold">{totals[rt.field]}</span>
+                {/* Pluralised by the dictionary — English adds -s, French does not always. */}
+                <span className="text-brand-mid-grey">{tPlural(rt.unitKey, totals[rt.field])}</span>
               </span>
             ))}
             {totalRooms === 0 && (

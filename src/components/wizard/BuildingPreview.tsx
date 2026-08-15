@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Building2, Layers, Ruler, Home, Wrench, CheckCircle2, DollarSign, MapPin } from 'lucide-react';
 import { useWizard } from '@/contexts/WizardContext';
-import { calculateBudget, formatUSD } from '@/lib/budget';
+import { calculateBudget, formatUSD, isFlatRoof } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/project';
 import { useT, type TKey } from '@/lib/i18n';
@@ -60,6 +60,10 @@ const BUILDING_IMAGES: Record<ImageKey, string> = {
   clay_tiles:           '/building-types/clay_tiles.webp',
   concrete_flat:        '/building-types/concrete_flat.webp',
   shingle:              'https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=900&q=80',
+  // TODO(vanessa): needs its own photo. Reusing the long-span shot because an aluminium
+  // deck IS long-span sheet, laid to a shallow fall rather than pitched — the concrete
+  // slab image would show the wrong material entirely.
+  aluminium_deck:       '/building-types/long_span_aluminum.webp',
 };
 
 // ── Image panel (steps 2, 3, 7) ────────────────────────────────
@@ -93,6 +97,7 @@ const IMAGE_SUB_GROUP: Record<ImageKey, 'projectType' | 'buildingType' | 'roofTy
   long_span_aluminum: 'roofType',
   clay_tiles: 'roofType',
   concrete_flat: 'roofType',
+  aluminium_deck: 'roofType',
   shingle: 'roofType',
 };
 
@@ -442,19 +447,22 @@ function BuildingBody({ visible, floors, buildingType }: { visible: boolean; flo
 // Extra baths → separate small cell, living → wide cell, kitchen → separate cell
 // GF = BOTTOM visual row, higher floors stack above it.
 
-type CellType = 'suite' | 'bed' | 'bath' | 'living' | 'kitchen';
+type CellType = 'suite' | 'bed' | 'bath' | 'living' | 'kitchen' | 'office';
 interface Cell { type: CellType; id: string }
 
 function buildCells(fd: FloorRoom, fi: number): Cell[] {
   const suites    = Math.min(fd.bedrooms, fd.bathrooms);
   const solobeds  = Math.max(0, fd.bedrooms  - fd.bathrooms);
   const extrabath = Math.max(0, fd.bathrooms - fd.bedrooms);
+  // `offices` postdates this component; floor_rooms rows written before Aug 2026 omit it.
+  const offices   = fd.offices ?? 0;
   return [
     ...Array.from({ length: suites },    (_, i) => ({ type: 'suite'   as CellType, id: `f${fi}-s${i}` })),
     ...Array.from({ length: solobeds },  (_, i) => ({ type: 'bed'     as CellType, id: `f${fi}-b${i}` })),
     ...Array.from({ length: extrabath }, (_, i) => ({ type: 'bath'    as CellType, id: `f${fi}-ba${i}` })),
     ...Array.from({ length: fd.livingRooms }, (_, i) => ({ type: 'living'  as CellType, id: `f${fi}-l${i}` })),
     ...Array.from({ length: fd.kitchens },    (_, i) => ({ type: 'kitchen' as CellType, id: `f${fi}-k${i}` })),
+    ...Array.from({ length: offices },        (_, i) => ({ type: 'office'  as CellType, id: `f${fi}-o${i}` })),
   ];
 }
 
@@ -645,7 +653,7 @@ function BQAnnex({ visible, floors }: { visible: boolean; floors: number }) {
   );
 }
 
-function Roof({ visible, roofType, floors }: { visible: boolean; roofType: string | null; floors: number }) {
+function Roof({ visible, roofType, floors }: { visible: boolean; roofType: RoofType | null; floors: number }) {
   const top = buildingTop(floors);
 
   return (
@@ -658,7 +666,7 @@ function Roof({ visible, roofType, floors }: { visible: boolean; roofType: strin
           exit={{ opacity: 0 }}
           transition={{ duration: 0.55, ease, type: 'spring', bounce: 0.3 }}
         >
-          {roofType === 'concrete_flat' ? (
+          {isFlatRoof(roofType) ? (
             <>
               <rect x={BL - 6} y={top - 10} width={BW + 12} height="10" rx="0.5" fill={D} fillOpacity="0.08" stroke={D} strokeWidth="2" strokeOpacity="0.7" />
               <rect x={BL + 6} y={top - 20} width="12" height="10" rx="0.5" fill={D} fillOpacity="0.1" stroke={D} strokeWidth="1.2" strokeOpacity="0.5" />
@@ -935,7 +943,7 @@ function getBuildingTypeLabel(bt: string): string {
 function getRoofLabel(rt: string): string {
   const map: Record<string, string> = {
     long_span_aluminum: 'Long Span Aluminum', clay_tiles: 'Clay Tiles',
-    concrete_flat: 'Concrete Flat', shingle: 'Shingle',
+    concrete_flat: 'Concrete Flat', aluminium_deck: 'Aluminium Deck', shingle: 'Shingle',
   };
   return map[rt] ?? rt;
 }
