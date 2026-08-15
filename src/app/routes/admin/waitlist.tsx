@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, Cloud, CloudOff } from 'lucide-react';
-import { listWaitlist, type WaitlistEntry } from '@/lib/supabase/admin-applications';
+import { Loader2, Search, Cloud, CloudOff, Trash2 } from 'lucide-react';
+import { listWaitlist, deleteWaitlistEntry, type WaitlistEntry } from '@/lib/supabase/admin-applications';
+import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 
@@ -25,6 +26,23 @@ export default function AdminWaitlist() {
   const [error, setError]     = useState<string | null>(null);
   const [query, setQuery]     = useState('');
   const [onlyUnsynced, setOnlyUnsynced] = useState(false);
+  const [target, setTarget]   = useState<WaitlistEntry | null>(null);
+  const [busy, setBusy]       = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
+
+  async function confirmDelete() {
+    if (!target) return;
+    setBusy(true); setDelError(null);
+    try {
+      await deleteWaitlistEntry(target.id);
+      setRows(prev => prev.filter(r => r.id !== target.id));
+      setTarget(null);
+    } catch {
+      setDelError(t('admin.del.failed'));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -112,6 +130,7 @@ export default function AdminWaitlist() {
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colLang')}</th>
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colCrm')}</th>
                   <th scope="col" className="px-4 py-2.5">{t('admin.wait.colJoined')}</th>
+                  <th className="w-12" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-border-grey">
@@ -139,6 +158,15 @@ export default function AdminWaitlist() {
                     <td className="px-4 py-3 whitespace-nowrap text-brand-mid-grey tabular-nums">
                       {fmt(r.createdAt)}
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button" onClick={() => setTarget(r)}
+                        aria-label={`${t('admin.del.confirm')} ${r.email}`}
+                        className="flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-state-alert"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -146,6 +174,14 @@ export default function AdminWaitlist() {
           </div>
         </>
       )}
+      <ConfirmDelete
+        open={!!target}
+        subject={target?.email ?? ''}
+        busy={busy}
+        error={delError}
+        onConfirm={confirmDelete}
+        onCancel={() => { setTarget(null); setDelError(null); }}
+      />
     </div>
   );
 }

@@ -310,6 +310,22 @@ export const en = {
       crmPending:   'Not yet forwarded to GoHighLevel. Leads are mirrored after submission; an unforwarded row can be replayed.',
     },
 
+    // ── Delete confirmations ──
+    del: {
+      title:      'Delete permanently',
+      body:       'This cannot be undone. You are about to delete',
+      confirm:    'Delete',
+      failed:     'Could not delete that. Nothing was removed.',
+      // Consequences — the part people do not expect
+      userProjects:  'This account owns {count} project(s). Deleting it destroys them and all their stages, budgets, documents, messages and history. I understand.',
+      userNoProjects:'This permanently removes the account and its profile. I understand.',
+      selfDelete:    'You cannot delete your own account.',
+      lastAdmin:     'That is the only administrator left — promote someone else first.',
+      directoryHint: 'Hiding an entry keeps its history and can be undone. Delete cannot.',
+      deleted:       'Deleted.',
+      deletedWithProjects: 'Deleted, along with {count} project(s).',
+    },
+
     // ── Contractor directory (/admin/contractors) ──
     dir: {
       title:        'Contractor Directory',
@@ -335,6 +351,7 @@ export const en = {
       emptyFiltered:'No contractors match this filter.',
       loadFailed:   'Could not load the directory. This needs migration 033.',
       updateFailed: 'Could not change that entry.',
+      deleteHint:   'Hiding keeps the entry and its link back to the application, and can be undone. Deleting cannot. I understand.',
     },
 
     // ── Waitlist (/admin/waitlist) ──

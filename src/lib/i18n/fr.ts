@@ -319,6 +319,20 @@ export const fr: Mirror<EnDict> = {
       crmPending:   "Pas encore transmise à GoHighLevel. Les contacts sont copiés après l'envoi ; une ligne non transmise peut être rejouée.",
     },
 
+    del: {
+      title:      'Supprimer définitivement',
+      body:       'Cette action est irréversible. Vous êtes sur le point de supprimer',
+      confirm:    'Supprimer',
+      failed:     "Suppression impossible. Rien n'a été supprimé.",
+      userProjects:  'Ce compte possède {count} chantier(s). Le supprimer détruit ces chantiers ainsi que toutes leurs étapes, budgets, documents, messages et historiques. Je comprends.',
+      userNoProjects:'Ceci supprime définitivement le compte et son profil. Je comprends.',
+      selfDelete:    'Vous ne pouvez pas supprimer votre propre compte.',
+      lastAdmin:     "C'est le dernier administrateur — nommez-en un autre d'abord.",
+      directoryHint: "Masquer une entrée conserve son historique et reste réversible. La suppression, non.",
+      deleted:       'Supprimé.',
+      deletedWithProjects: 'Supprimé, ainsi que {count} chantier(s).',
+    },
+
     dir: {
       title:        'Annuaire des prestataires',
       subtitle:     "La liste publiée que les clients consultent. Une entrée y apparaît lorsqu'une candidature est acceptée.",
@@ -343,6 +357,7 @@ export const fr: Mirror<EnDict> = {
       emptyFiltered:'Aucun prestataire ne correspond à ce filtre.',
       loadFailed:   "Impossible de charger l'annuaire. La migration 033 est requise.",
       updateFailed: 'Impossible de modifier cette entrée.',
+      deleteHint:   "Masquer conserve l'entrée et son lien vers la candidature, et reste réversible. La suppression, non. Je comprends.",
     },
 
     // ── Liste d'attente (/admin/waitlist) ──

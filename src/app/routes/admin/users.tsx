@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Search } from 'lucide-react';
-import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
+import { Loader2, Search, Trash2 } from 'lucide-react';
+import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin-users';
+import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 
@@ -17,6 +18,33 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [query, setQuery]     = useState('');
+  const [target, setTarget]   = useState<AdminUser | null>(null);
+  const [busy, setBusy]       = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
+  const [notice, setNotice]   = useState<string | null>(null);
+
+  async function confirmDelete() {
+    if (!target) return;
+    setBusy(true); setDelError(null);
+    try {
+      const destroyed = await deleteUser(target.id);
+      setUsers(prev => prev.filter(u => u.id !== target.id));
+      setNotice(destroyed > 0
+        ? t('admin.del.deletedWithProjects', { count: destroyed })
+        : t('admin.del.deleted'));
+      setTarget(null);
+    } catch (err) {
+      // The guards live in the database, so their messages are the authoritative ones.
+      const msg = err instanceof Error ? err.message : '';
+      setDelError(
+        msg.includes('self_delete') ? t('admin.del.selfDelete')
+        : msg.includes('last_admin') ? t('admin.del.lastAdmin')
+        : t('admin.del.failed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // Reads auth.users through the admin_list_users() RPC (migration 032). The old
   // query asked profiles for email/tier/role — none of which are columns on it — and
@@ -57,6 +85,12 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {notice && (
+        <p role="status" className="mb-4 rounded-xl border border-state-complete/30 px-4 py-2.5 text-sm text-state-complete">
+          {notice}
+        </p>
+      )}
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-brand-mid-grey">
           <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
@@ -70,8 +104,8 @@ export default function AdminUsers() {
           <table className="w-full text-sm">
             <thead className="border-b border-brand-border-grey bg-brand-off-white">
               <tr>
-                {['Name', 'Email', 'Role', 'Plan', 'Joined', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-brand-mid-grey uppercase tracking-wide">
+                {['Name', 'Email', 'Role', 'Plan', 'Joined', '', ''].map((h, i) => (
+                  <th key={`${h}-${i}`} className="text-left px-4 py-3 text-xs font-semibold text-brand-mid-grey uppercase tracking-wide">
                     {h}
                   </th>
                 ))}
@@ -96,11 +130,20 @@ export default function AdminUsers() {
                   <td className="px-4 py-3">
                     <span className="text-[10px] font-mono text-brand-mid-grey">{u.id.slice(0, 8)}…</span>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button" onClick={() => setTarget(u)}
+                      aria-label={`${t('admin.del.confirm')} ${u.email}`}
+                      className="flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-state-alert"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
                     No users match "{query}"
                   </td>
                 </tr>
@@ -109,6 +152,17 @@ export default function AdminUsers() {
           </table>
         </div>
       )}
+      <ConfirmDelete
+        open={!!target}
+        subject={target?.email ?? ''}
+        consequence={target ? (target.projectCount > 0
+          ? t('admin.del.userProjects', { count: target.projectCount })
+          : t('admin.del.userNoProjects')) : undefined}
+        busy={busy}
+        error={delError}
+        onConfirm={confirmDelete}
+        onCancel={() => { setTarget(null); setDelError(null); }}
+      />
     </div>
   );
 }

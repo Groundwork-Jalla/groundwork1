@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2 } from 'lucide-react';
+import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2 } from 'lucide-react';
 import {
-  listDirectory, setDirectoryActive, type DirectoryEntry,
+  listDirectory, setDirectoryActive, deleteDirectoryEntry, type DirectoryEntry,
 } from '@/lib/supabase/admin-applications';
+import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
 import { useRoleLabel } from './applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
@@ -32,6 +33,23 @@ export default function AdminContractors() {
   const [busy, setBusy]       = useState<string | null>(null);
   const [query, setQuery]     = useState('');
   const [onlyInactive, setOnlyInactive] = useState(false);
+  const [target, setTarget]     = useState<DirectoryEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
+
+  async function confirmDelete() {
+    if (!target) return;
+    setDeleting(true); setDelError(null);
+    try {
+      await deleteDirectoryEntry(target.id);
+      setRows(prev => prev.filter(r => r.id !== target.id));
+      setTarget(null);
+    } catch {
+      setDelError(t('admin.del.failed'));
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -124,7 +142,7 @@ export default function AdminContractors() {
                 <th scope="col" className="px-4 py-2.5">{t('admin.dir.colExperience')}</th>
                 <th scope="col" className="px-4 py-2.5">{t('admin.dir.colVisibility')}</th>
                 <th scope="col" className="px-4 py-2.5">{t('admin.dir.colAdded')}</th>
-                <th className="w-28" />
+                <th className="w-36" />
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-border-grey">
@@ -164,6 +182,13 @@ export default function AdminContractors() {
                         : r.active ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                       {r.active ? t('admin.dir.hide') : t('admin.dir.show')}
                     </button>
+                    <button
+                      type="button" onClick={() => setTarget(r)}
+                      aria-label={`${t('admin.del.confirm')} ${r.name}`}
+                      className="ml-1 inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-state-alert"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -171,6 +196,15 @@ export default function AdminContractors() {
           </table>
         </div>
       )}
+      <ConfirmDelete
+        open={!!target}
+        subject={target?.name ?? ''}
+        consequence={t('admin.dir.deleteHint')}
+        busy={deleting}
+        error={delError}
+        onConfirm={confirmDelete}
+        onCancel={() => { setTarget(null); setDelError(null); }}
+      />
     </div>
   );
 }

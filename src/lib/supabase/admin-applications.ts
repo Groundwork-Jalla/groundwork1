@@ -261,6 +261,16 @@ export async function listDirectory(): Promise<DirectoryEntry[]> {
   }));
 }
 
+/**
+ * Remove a directory entry permanently. Prefer setDirectoryActive() — hiding keeps the
+ * row, and its link back to the application it was published from, so the decision can
+ * be reversed. Delete is for entries that should never have existed.
+ */
+export async function deleteDirectoryEntry(id: string): Promise<void> {
+  const { error } = await supabase.from('contractors').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /** Take an entry down without deleting it — reviews and history stay intact. */
 export async function setDirectoryActive(id: string, active: boolean): Promise<void> {
   const { error } = await supabase.from('contractors').update({ active }).eq('id', id);
@@ -277,6 +287,12 @@ export interface WaitlistEntry {
   syncedToGhl: boolean;
   syncedToGhlAt: string | null;
   createdAt: string;
+}
+
+/** Remove someone from the waitlist. Requires migration 035 for the DELETE policy. */
+export async function deleteWaitlistEntry(id: string): Promise<void> {
+  const { error } = await supabase.from('waitlist_emails').delete().eq('id', id);
+  if (error) throw error;
 }
 
 /**
