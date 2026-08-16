@@ -12,8 +12,9 @@ import { formatUSDFull, projectBudget } from '@/lib/budget';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { atProjectLimit, countTowardLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
 
-const STARTER_LIMIT = 3;
+const STARTER_LIMIT = SELF_VERIFY_PROJECT_LIMIT;
 const TOTAL_STAGES  = 10;
 
 // Tier is an identity, not a status, so it carries no hue — colour here is reserved
@@ -121,8 +122,9 @@ export default function ProjectsIndex() {
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState('all');
 
-  const starterCount   = projects.filter(p => p.tier === 'self_verify' || (p.tier as string) === 'starter').length;
-  const atStarterLimit = starterCount >= STARTER_LIMIT;
+  // Counted the way migration 008's trigger counts: archived projects do not count.
+  const starterCount   = countTowardLimit(projects);
+  const atStarterLimit = atProjectLimit(projects);
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
 

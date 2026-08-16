@@ -16,6 +16,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { atProjectLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ const isActive   = (s: ProjectStage) => s.status === 'active' || s.status === 'p
 
 // ── Constants ──────────────────────────────────────────────
 
-const STARTER_LIMIT  = 3;
+const STARTER_LIMIT  = SELF_VERIFY_PROJECT_LIMIT;
 const TOTAL_STAGES   = 10;
 
 // Tier is an identity, not a status, so it does not get a hue. Colour on this
@@ -529,9 +530,8 @@ export default function Dashboard() {
   const nameSet    = !!user?.user_metadata?.full_name;
   const idUploaded = !!user?.user_metadata?.id_document_path;
 
-  const atStarterLimit = projects.filter(
-    p => p.tier === 'self_verify' || (p.tier as string) === 'starter'
-  ).length >= STARTER_LIMIT;
+  // Same rule as the trigger and as /projects — archived projects do not count.
+  const atStarterLimit = atProjectLimit(projects);
 
 
   const activeProject = projects
