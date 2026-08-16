@@ -230,6 +230,13 @@ GRANT EXECUTE ON FUNCTION public.admin_start_project_tracking(uuid, numeric, num
 -- SECURITY DEFINER because the admin path has no UPDATE grant on project_stages (009).
 -- Not callable directly — it does no authorisation of its own, so the grant is to the two
 -- callers' definer context only, never to a client role.
+--
+-- ⚠️ That last sentence was WRONG when written, and migration 042 fixes it.
+--    `start_project_tracking` above is SECURITY INVOKER (018 made it so, for RLS), so it
+--    ran as `authenticated` and hit `42501: permission denied for function
+--    apply_budget_milestones` on every client budget confirmation. Only the admin twin,
+--    which really is DEFINER, ever worked. 042 makes the owner-facing one DEFINER too and
+--    leaves this REVOKE in place.
 CREATE OR REPLACE FUNCTION public.apply_budget_milestones(
   p_project_id       uuid,
   p_construction_fee numeric,
