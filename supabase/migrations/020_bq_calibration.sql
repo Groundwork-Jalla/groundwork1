@@ -1,5 +1,23 @@
 -- 020_bq_calibration.sql
 --
+-- ⚠️  SUPERSEDED — DO NOT RUN. Kept for the reasoning below, which is still the record of
+--     why the engine is calibrated the way it is.
+--
+--     This file NEVER RAN anywhere. It carried a plpgsql syntax error from the day it was
+--     written: line 182 separated two DECLARE variables with a comma where a semicolon is
+--     required, so `DO $$ ... $$` failed with 42601 every time. Discovered 16 Aug 2026.
+--     The comma is fixed below so the file is at least correct, but nothing should execute
+--     it now — its work is split across two migrations that supersede it:
+--
+--       037_city_rate_corrections.sql — creates and seeds construction_city_rates, with
+--                                       Bali renamed and Adamawa's index corrected
+--       040_cm_takeoff_model.sql      — the Cameroon take-off model and finish multipliers
+--
+--     Deliberately NOT carried forward: this file's `UPDATE construction_rates SET
+--     base_rate_usd = 1600 WHERE country_code = 'NG'`. That is a 2.4x jump from the 672
+--     migration 015 seeded, against a figure countries.ts derives as 180, with no Nigerian
+--     bill of quantities behind any of the three. See question in docs/BQ-QUESTIONS.md.
+--
 -- Recalibrates the budget engine against four real Cameroonian bills of quantities
 -- instead of one, and adds the city dimension those documents make possible.
 --
@@ -179,7 +197,7 @@ DECLARE
       'per_floor', 700000,
       'per_room',   90000
     )
-  ),
+  );  -- ← was `),`. A DECLARE section separates variables with semicolons, not commas.
   -- BQ 801-810. Reproduces the plumbing total of all four documents exactly.
   v_fixtures JSONB := jsonb_build_object(
     'supply', 250000, 'drainage', 300000, 'septic', 1000000, 'accessories', 300000,

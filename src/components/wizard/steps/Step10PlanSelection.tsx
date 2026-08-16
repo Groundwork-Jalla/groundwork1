@@ -75,7 +75,13 @@ export default function Step10PlanSelection() {
     <WizardShell
       canContinue={!!data.tier}
       onContinue={handleSubmit}
-      continueLabel={t('wizard.s10CreateProject')}
+      // Only Jalla Management creates the project here. The other two go on to step 11 to
+      // confirm their budget first, so labelling their button "Create Project" promised
+      // something it did not do — and made the step that DOES create one look like a
+      // duplicate.
+      continueLabel={data.tier === 'jalla_management'
+        ? t('wizard.s10CreateProject')
+        : t('common.continue')}
       isSubmitting={submitting}
       wide
     >
@@ -164,6 +170,35 @@ export default function Step10PlanSelection() {
                     </div>
                   ))}
                 </div>
+
+                {/*
+                  A SPAN, not a button — the whole card is already the control, and nesting
+                  a button inside one is invalid and gives screen readers two targets for
+                  one choice. `aria-hidden` because the card's own `aria-pressed` already
+                  states selection; this is purely the visual affordance that was missing.
+                  Without it the cards read as a static pricing table and nothing invites
+                  the click.
+
+                  `mt-auto` pins it to the bottom so the three line up despite the feature
+                  lists being 5, 7 and 5 items long.
+                */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-5 flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5',
+                    'text-xs font-semibold transition-colors',
+                    selected
+                      ? featured
+                        ? 'bg-white text-brand-near-black'
+                        : 'bg-brand-near-black text-white'
+                      : featured
+                        ? 'border border-white/25 text-white'
+                        : 'border border-brand-border-grey text-brand-near-black',
+                  )}
+                >
+                  {selected && <Check className="size-3 stroke-3" />}
+                  {selected ? t('wizard.s10PlanSelected') : t('wizard.s10PlanSelect')}
+                </span>
               </motion.button>
             );
           })}

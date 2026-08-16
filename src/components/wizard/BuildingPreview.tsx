@@ -324,17 +324,26 @@ function Crane({ visible, step }: { visible: boolean; step: number }) {
             <line x1="316" y1="80" x2="220" y2="88" stroke={D} strokeWidth="2.5" strokeOpacity="0.4" />
             {/* Trolley */}
             <rect x="248" y="84" width="12" height="8" rx="1" fill={D} fillOpacity="0.3" stroke={D} strokeWidth="1" strokeOpacity="0.4" />
-            {/* Hook cable */}
+            {/*
+              Hook cable. Animated by scaleY, not by keyframing the `y2` attribute:
+              framer-motion drives presentation attributes through a value that is
+              undefined on the frame before the first keyframe resolves, which threw
+              `<line> attribute y2: Expected length, "undefined"` into the console on
+              every wizard load.
+
+              Rest length is 130 − 92 = 38, so each scale below is (target − 92) / 38 and
+              the cable ends exactly where the hook sits.
+            */}
             <motion.line
-              x1="254" y1="92"
-              x2="254" y2={130}
-              animate={{ y2: [130, 110, 140, 120, 130] }}
+              x1="254" y1="92" x2="254" y2="130"
+              style={{ transformOrigin: '254px 92px' }}
+              animate={{ scaleY: [1, 0.4737, 1.2632, 0.7368, 1] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
               stroke={D} strokeWidth="1" strokeOpacity="0.25"
             />
-            {/* Hook */}
+            {/* Hook — offsets match the cable's four scale steps above. */}
             <motion.path
-              animate={{ y: [0, -18, 10, -10, 0] }}
+              animate={{ y: [0, -20, 10, -10, 0] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
               d="M250 130 Q250 138 254 138 Q258 138 258 130"
               fill="none" stroke={D} strokeWidth="1.5" strokeOpacity="0.3"

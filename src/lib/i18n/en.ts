@@ -2042,6 +2042,8 @@ export const en = {
     s10Title: "Choose your plan",
     mostPopular: "Most popular",
     s10Note: "You can upgrade or change your plan at any time from settings.",
+    s10PlanSelect:   'Select this plan',
+    s10PlanSelected: 'Selected',
     s10Selected: "{plan} selected — you can switch any time from your settings.",
     s10CreateProject: "Create Project",
     s10CreateFailed: "Could not create your project. Please try again.",
