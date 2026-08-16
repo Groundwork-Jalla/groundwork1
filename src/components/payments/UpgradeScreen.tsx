@@ -7,6 +7,7 @@ import { useTierBilling } from '@/lib/tier-labels';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 
 // =========================================================
 // Design A — three plans side by side.
@@ -53,7 +54,7 @@ export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTi
     try {
       await startJallaVerifyCheckout();   // redirects to Stripe; nothing after this runs
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('project.payments.checkoutFailed'));
+      setError(errorMessage(err, t('project.payments.checkoutFailed')));
       setBusy(null);
     }
   }

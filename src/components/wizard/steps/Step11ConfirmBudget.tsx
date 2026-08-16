@@ -11,6 +11,7 @@ import { startProjectTracking } from '@/lib/supabase/tracking';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
 
 /**
  * Final wizard step — confirm the budget, then create the project.
@@ -74,7 +75,7 @@ export default function Step11ConfirmBudget() {
       reset();
       navigate(`/projects/${project.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.somethingWrong'));
+      setError(errorMessage(err, t('common.somethingWrong')));
       setBusy(false);
     }
   }

@@ -4,6 +4,7 @@ import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin
 import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-brand-off-white text-state-active',
@@ -35,7 +36,7 @@ export default function AdminUsers() {
       setTarget(null);
     } catch (err) {
       // The guards live in the database, so their messages are the authoritative ones.
-      const msg = err instanceof Error ? err.message : '';
+      const msg = errorMessage(err, '');
       setDelError(
         msg.includes('self_delete') ? t('admin.del.selfDelete')
         : msg.includes('last_admin') ? t('admin.del.lastAdmin')

@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { errorMessage } from '@/lib/errors';
 
 export async function updateProfile(updates: {
   full_name?: string;
@@ -45,7 +46,7 @@ export async function uploadIdDocument(
       })
       .catch((err: unknown) => {
         clearInterval(interval);
-        const message = err instanceof Error ? err.message : String(err);
+        const message = errorMessage(err, String(err));
         reject(new Error(`Failed to upload ID document: ${message}`));
       });
   });

@@ -11,6 +11,7 @@ import { useTierBilling } from '@/lib/tier-labels';
 import type { ProjectTier } from '@/types/project';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 
 // =========================================================
 // Design A, in selection form.
@@ -66,7 +67,7 @@ export default function Step10PlanSelection() {
       reset();
       navigate(`/projects/${project.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('wizard.s10CreateFailed'));
+      setError(errorMessage(err, t('wizard.s10CreateFailed')));
       setSubmitting(false);
     }
   }

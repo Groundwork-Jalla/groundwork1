@@ -8,6 +8,7 @@ import { adminStartProjectTracking } from '@/lib/supabase/tracking';
 import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 
 interface PendingBudget {
   id: string;
@@ -50,7 +51,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
       );
       onConfirmed(project.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not confirm budget.');
+      setError(errorMessage(err, 'Could not confirm budget.'));
       setSubmitting(false);
     }
   }

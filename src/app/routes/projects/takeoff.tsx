@@ -9,6 +9,7 @@ import { createTakeoff, fetchTakeoffs, priceTakeoff, type ProjectTakeoffRow } fr
 import { formatLocalCurrency, formatUSDFull, projectBudget } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 import type { ConstructionRate, ProjectRow } from '@/types/project';
 
 // =========================================================
@@ -62,7 +63,7 @@ export default function TakeoffList() {
         setRows(list);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('takeoff.errLoad'));
+      setError(errorMessage(err, t('takeoff.errLoad')));
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function TakeoffList() {
       }, null);
       navigate(`/projects/${id}/takeoff/${row.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('takeoff.errCreate'));
+      setError(errorMessage(err, t('takeoff.errCreate')));
       setCreating(false);
     }
   }

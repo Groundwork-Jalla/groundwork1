@@ -23,6 +23,7 @@ import {
 } from '@/lib/supabase/documents';
 import type { ProjectDocumentRow, DocumentCategory } from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { errorMessage } from '@/lib/errors';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -369,7 +370,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
         const data = await fetchDocuments(projectId);
         if (!cancelled) setDocs(data);
       } catch (err) {
-        if (!cancelled) setFetchError(err instanceof Error ? err.message : 'Failed to load documents.');
+        if (!cancelled) setFetchError(errorMessage(err, 'Failed to load documents.'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -426,7 +427,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
           getProjectStorageUsed(supabase, projectId).then(setStorageUsed).catch(() => {});
         }
       } catch (err) {
-        setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+        setUploadError(errorMessage(err, 'Upload failed. Please try again.'));
       } finally {
         setUploading(false);
         setUploadProgress(0);
@@ -456,7 +457,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       setDocs(prev => prev.filter(d => d.id !== pendingDelete.id));
       setPendingDelete(null);
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Delete failed. Please try again.');
+      setDeleteError(errorMessage(err, 'Delete failed. Please try again.'));
     } finally {
       setDeleting(false);
     }

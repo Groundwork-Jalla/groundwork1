@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
+import { errorMessage } from '@/lib/errors';
 
 // ── Status icon ───────────────────────────────────────────
 
@@ -114,7 +115,7 @@ export function SubstageRow({
     try {
       await onMarkComplete!(substage.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('project.stages.updateFailed'));
+      setError(errorMessage(err, t('project.stages.updateFailed')));
     } finally {
       setMarking(false);
     }

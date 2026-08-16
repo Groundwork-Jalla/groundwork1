@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getInviteByToken, acceptInvite } from '@/lib/supabase/invites';
 import type { InviteDetails } from '@/lib/supabase/invites';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 
 export default function InvitePage() {
   const { token }    = useParams<{ token: string }>();
@@ -38,7 +39,7 @@ export default function InvitePage() {
       const projectId = await acceptInvite(token);
       navigate(`/projects/${projectId}`, { replace: true });
     } catch (err) {
-      setAcceptErr(err instanceof Error ? err.message : t('invite.acceptError'));
+      setAcceptErr(errorMessage(err, t('invite.acceptError')));
       setAccepting(false);
     }
   }

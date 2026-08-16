@@ -15,6 +15,7 @@ import { LineGrid } from '@/components/takeoff/LineGrid';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import type { OverrideMap } from '@/lib/budget';
+import { errorMessage } from '@/lib/errors';
 import type { ConstructionRate, ProjectRow } from '@/types/project';
 
 // =========================================================
@@ -84,7 +85,7 @@ export default function TakeoffDetail() {
       }
       if (p) setRate(await getConstructionRate(p.country).catch(() => null));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('takeoff.errLoad'));
+      setError(errorMessage(err, t('takeoff.errLoad')));
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,7 @@ export default function TakeoffDetail() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('takeoff.errSave'));
+      setError(errorMessage(err, t('takeoff.errSave')));
     } finally { setBusy(null); }
   }
 
@@ -131,7 +132,7 @@ export default function TakeoffDetail() {
       await submitTakeoff(row.id, priced, effectiveRate.approx_fx_rate);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('takeoff.errSubmit'));
+      setError(errorMessage(err, t('takeoff.errSubmit')));
     } finally { setBusy(null); }
   }
 

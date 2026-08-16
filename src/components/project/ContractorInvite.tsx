@@ -4,6 +4,7 @@ import { AlertTriangle, UserPlus, X, Check } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useFormat, useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -165,7 +166,7 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
       // Roll back optimistic insert
       setInvites((prev) => prev.filter((inv) => inv.id !== optimistic.id));
       setSubmitError(
-        err instanceof Error ? err.message : 'Failed to send invite. Please try again.',
+        errorMessage(err, 'Failed to send invite. Please try again.'),
       );
     } finally {
       setSubmitting(false);

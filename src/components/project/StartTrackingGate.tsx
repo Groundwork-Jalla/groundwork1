@@ -9,6 +9,7 @@ import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { startProjectTracking } from '@/lib/supabase/tracking';
 import { useT } from '@/lib/i18n';
+import { errorMessage } from '@/lib/errors';
 import type { ProjectRow } from '@/types/project';
 
 export default function StartTrackingGate({ project, userId, onStarted }: {
@@ -41,7 +42,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
       await uploadDocument(project.id, userId, file, undefined, 'contract');
       setUploadedName(file.name);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('project.gate.errUpload'));
+      setError(errorMessage(err, t('project.gate.errUpload')));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -59,7 +60,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
       );
       onStarted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('project.gate.errStart'));
+      setError(errorMessage(err, t('project.gate.errStart')));
       setSubmitting(false);
     }
   }
