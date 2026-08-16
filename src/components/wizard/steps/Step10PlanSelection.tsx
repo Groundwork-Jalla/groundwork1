@@ -177,10 +177,11 @@ export default function Step10PlanSelection() {
                   one choice. `aria-hidden` because the card's own `aria-pressed` already
                   states selection; this is purely the visual affordance that was missing.
                   Without it the cards read as a static pricing table and nothing invites
-                  the click.
+                  the click — which is exactly what /pricing looks like, and that page has
+                  a CTA at the foot of every card. This matches it.
 
-                  `mt-auto` pins it to the bottom so the three line up despite the feature
-                  lists being 5, 7 and 5 items long.
+                  The feature list above carries `flex-1`, so this sits at the foot of the
+                  card and the three line up despite the lists being 5, 7 and 5 items long.
                 */}
                 <span
                   aria-hidden="true"
