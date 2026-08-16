@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Search, Trash2 } from 'lucide-react';
 import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin-users';
-import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
+import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';

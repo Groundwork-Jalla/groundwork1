@@ -3,7 +3,7 @@ import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2 } from 'lucide-
 import {
   listDirectory, setDirectoryActive, deleteDirectoryEntry, type DirectoryEntry,
 } from '@/lib/supabase/admin-applications';
-import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
+import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { useRoleLabel } from './applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';

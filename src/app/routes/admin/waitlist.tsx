@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search, Cloud, CloudOff, Trash2 } from 'lucide-react';
 import { listWaitlist, deleteWaitlistEntry, type WaitlistEntry } from '@/lib/supabase/admin-applications';
-import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
+import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 

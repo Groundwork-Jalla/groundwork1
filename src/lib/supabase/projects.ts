@@ -153,6 +153,75 @@ export async function createProject(
 }
 
 // =========================================================
+// archiveProject / restoreProject
+//
+// Archiving is the reversible one, and it is what frees a plan slot:
+// `check_starter_project_limit()` (008) counts projects `WHERE status != 'archived'`,
+// so a Self Verify owner at the 3-project cap can archive an old build and start a new
+// one without losing anything.
+//
+// This is deliberately offered ahead of deletion. Someone who has finished a house wants
+// it off their dashboard, not erased — and the stage history, payment record and
+// documents are the whole point of having used Groundwork.
+// =========================================================
+export async function archiveProject(projectId: string): Promise<void> {
+  const { error } = await supabase
+    .from('projects')
+    .update({ status: 'archived', updated_at: new Date().toISOString() })
+    .eq('id', projectId);
+  if (error) throw error;
+  trackEvent('project_archived', { project_id: projectId });
+}
+
+export async function restoreProject(projectId: string): Promise<void> {
+  const { error } = await supabase
+    .from('projects')
+    .update({ status: 'active', updated_at: new Date().toISOString() })
+    .eq('id', projectId);
+  if (error) throw error;
+  trackEvent('project_restored', { project_id: projectId });
+}
+
+// =========================================================
+// deleteProject — permanent
+//
+// RLS already allows this: `owner_all_projects` (003) is FOR ALL. The row's foreign keys
+// cascade to stages, substages, documents, messages, audit log, certificates, fees (036)
+// and take-offs (039), so the database cleans itself up.
+//
+// STORAGE DOES NOT CASCADE. A foreign key drops the `project_documents` ROWS and leaves
+// the actual files sitting in the bucket forever — invisible, still billed, and still
+// containing whatever the owner uploaded. `deleteDocument` removes them one at a time
+// (documents.ts:88); nothing did it in bulk until now.
+//
+// Storage is purged FIRST, deliberately. If the purge fails we stop and the project is
+// still there to try again — the reverse order would delete the row and lose the paths,
+// leaving files no query can ever find.
+// =========================================================
+export async function deleteProject(projectId: string): Promise<void> {
+  const { data: docs, error: listError } = await supabase
+    .from('project_documents')
+    .select('file_path')
+    .eq('project_id', projectId);
+
+  if (listError) throw listError;
+
+  const paths = (docs ?? [])
+    .map(d => (d as { file_path: string }).file_path)
+    .filter(Boolean);
+
+  if (paths.length > 0) {
+    const { error: storageError } = await supabase.storage.from('documents').remove(paths);
+    if (storageError) throw storageError;
+  }
+
+  const { error } = await supabase.from('projects').delete().eq('id', projectId);
+  if (error) throw error;
+
+  trackEvent('project_deleted', { project_id: projectId, documents: paths.length });
+}
+
+// =========================================================
 // fetchProject — user-scoped via RLS
 // =========================================================
 export async function fetchProject(projectId: string): Promise<ProjectRow | null> {

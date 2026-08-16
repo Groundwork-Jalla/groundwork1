@@ -2339,6 +2339,21 @@ export const en = {
       floors:    '{count} floors',
     },
 
+    danger: {
+      title:         'Manage this project',
+      archiveTitle:  'Archive',
+      archiveBody:   'Hides it from your dashboard and frees a slot on your plan. Every stage, payment and document is kept, and you can restore it at any time.',
+      archiveCta:    'Archive project',
+      restoreTitle:  'Restore',
+      restoreBody:   'Bring this project back to your active list. It will count toward your plan limit again.',
+      restoreCta:    'Restore project',
+      deleteTitle:   'Delete permanently',
+      deleteBody:    'Removes the project and everything recorded against it. This cannot be undone.',
+      deleteCta:     'Delete project',
+      deleteConsequence: 'This permanently deletes {stages} build stages, {documents} uploaded documents, and every payment record, message and contractor take-off on this project. It cannot be undone.',
+      errArchive:    'Could not update this project.',
+      errDelete:     'Could not delete this project.',
+    },
     tabs: {
       takeoff:    'Bill of Quantities',
       overview:  'Overview',

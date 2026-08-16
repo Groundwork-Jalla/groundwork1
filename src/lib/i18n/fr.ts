@@ -2336,6 +2336,21 @@ export const fr: Mirror<EnDict> = {
       floors:    '{count} niveaux',
     },
 
+    danger: {
+      title:         'Gérer ce projet',
+      archiveTitle:  'Archiver',
+      archiveBody:   'Le masque de votre tableau de bord et libère une place sur votre forfait. Toutes les étapes, paiements et documents sont conservés, et vous pouvez le restaurer à tout moment.',
+      archiveCta:    'Archiver le projet',
+      restoreTitle:  'Restaurer',
+      restoreBody:   'Remet ce projet dans votre liste active. Il comptera de nouveau dans la limite de votre forfait.',
+      restoreCta:    'Restaurer le projet',
+      deleteTitle:   'Supprimer définitivement',
+      deleteBody:    'Supprime le projet et tout ce qui y est enregistré. Cette action est irréversible.',
+      deleteCta:     'Supprimer le projet',
+      deleteConsequence: 'Ceci supprime définitivement {stages} étapes de construction, {documents} documents téléversés, ainsi que tous les paiements, messages et devis d\'entrepreneur de ce projet. Action irréversible.',
+      errArchive:    'Impossible de mettre à jour ce projet.',
+      errDelete:     'Impossible de supprimer ce projet.',
+    },
     tabs: {
       takeoff:    'Devis quantitatif',
       overview:  'Aperçu',

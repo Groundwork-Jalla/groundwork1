@@ -29,6 +29,7 @@ import TimelineTab               from '@/components/project/TimelineTab';
 import ProjectPayments          from '@/components/project/ProjectPayments';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import RelatedGuides             from '@/components/project/RelatedGuides';
+import DangerZone                from '@/components/project/DangerZone';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier, PaymentStatus,
@@ -133,6 +134,9 @@ export default function ProjectDetail() {
   const [project,   setProject]   = useState<ProjectRow | null>(null);
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
+  // Only for the delete confirmation, which states what goes with the project rather
+  // than asking "are you sure?" about nothing in particular.
+  const [documentCount, setDocumentCount] = useState(0);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -142,15 +146,19 @@ export default function ProjectDetail() {
   const loadAll = useCallback(async () => {
     if (!id) return;
     try {
-      const [p, s, sub] = await Promise.all([
+      const [p, s, sub, docs] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
+        supabase.from('project_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', id),
       ]);
       if (!p) { setError('Project not found.'); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
+      setDocumentCount(docs.count ?? 0);
     } catch {
       setError('Failed to load project.');
     }
@@ -519,6 +527,20 @@ export default function ProjectDetail() {
               />
               <RelatedGuides tab="messages" />
             </div>
+          )}
+
+          {/*
+            Owner only, and outside the tab switch so it sits at the foot of the page
+            wherever you are — a destructive action buried in one tab is a destructive
+            action people cannot find when they need it.
+          */}
+          {!isContractor && (
+            <DangerZone
+              project={project}
+              stageCount={stages.length}
+              documentCount={documentCount}
+              onChanged={loadAll}
+            />
           )}
           </>
 
