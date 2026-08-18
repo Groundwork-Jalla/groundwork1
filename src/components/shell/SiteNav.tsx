@@ -18,6 +18,9 @@ import { cn } from '@/lib/utils';
 // scrolls), but on an inner page a bar with no navigation is a dead end.
 // =========================================================
 
+// `/community` stays: it is the way into the Skool community sign-up, which is a
+// different destination from creating a Groundwork account. Only the primary CTA
+// moved to /auth/signup — see the buttons below.
 const LINKS: { to: string; labelKey: TKey }[] = [
   { to: '/pricing',   labelKey: 'nav.pricing' },
   { to: '/tools',     labelKey: 'nav.freeTools' },
@@ -95,13 +98,23 @@ export function SiteNav() {
               </Link>
             )}
           </Button>
+          {/* Returning users. Text-only so it does not compete with the sign-up
+              button, and hidden below sm where the bar is already width-critical. */}
+          <Link
+            to="/auth/login"
+            className="hidden shrink-0 px-1 text-xs font-medium text-white/55 transition-colors hover:text-white sm:block"
+          >
+            {t('landing.nav.logIn')}
+          </Link>
           <Button
             asChild
             className="group h-9 shrink-0 rounded-md bg-white px-2.5 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
           >
-            <Link to="/community" className="flex items-center gap-1.5">
-              <span className="hidden sm:inline">{t('landing.nav.joinFree')}</span>
-              <span className="sm:hidden">{t('landing.nav.joinFreeShort')}</span>
+            <Link to="/auth/signup" className="flex items-center gap-1.5">
+              {/* Short label at every width. The bar already carries the contractor
+                  CTA and the language toggle; the full "Sign Up to Groundwork" is
+                  the landing page's job, where there is room for it. */}
+              {t('landing.signup.ctaShort')}
               {/* Decorative; it is the last ~18px that pushes the bar past a 320px
                   viewport, and the button reads fine without it. */}
               <ArrowRight className="hidden size-3.5 transition-transform duration-300 group-hover:translate-x-1 sm:inline" />

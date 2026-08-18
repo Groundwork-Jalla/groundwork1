@@ -34,11 +34,18 @@ export default function CTASection() {
         </p>
 
         <Button asChild className="mt-8 w-full sm:w-auto bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
-          <Link to="/community" className="flex items-center justify-center gap-1.5">
-            {t('landing.cta.button')}
+          <Link to="/auth/signup" className="flex items-center justify-center gap-1.5">
+            {t('landing.signup.cta')}
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </Button>
+
+        <p className="mt-4 text-xs text-white/50">
+          {t('landing.signup.haveAccount')}{' '}
+          <Link to="/auth/login" className="font-semibold text-white underline underline-offset-4 hover:text-white/80">
+            {t('landing.signup.logIn')}
+          </Link>
+        </p>
 
         <div className="mt-4">
           <a
