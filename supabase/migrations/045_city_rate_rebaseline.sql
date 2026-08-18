@@ -1,5 +1,5 @@
 -- =========================================================
--- 044  City rates re-baselined on Vanessa Gwanvoma's 17 Aug 2026 review
+-- 045  City rates re-baselined on Vanessa Gwanvoma's 17 Aug 2026 review
 --
 -- Two changes, and the second is the subtle one.
 --
@@ -52,7 +52,7 @@ COMMENT ON COLUMN public.construction_city_rates.cost_delta_pct IS
 COMMENT ON COLUMN public.construction_city_rates.index_vs_baseline IS
   'Multiplier applied to NON-CONCRETE trades only. Concrete comes from this row''s own '
   'rc_350/rc_250/lean_concrete columns and is not indexed. Solved so the whole build '
-  'lands on cost_delta_pct — see migration 044.';
+  'lands on cost_delta_pct — see migration 045.';
 
 -- Garoua: a city on Vanessa's list that we did not carry. Concrete columns are
 -- Adamawa's, the nearest northern proxy, and are a guess — see the header.
@@ -62,7 +62,7 @@ INSERT INTO public.construction_city_rates
 VALUES
   ('GAROUA', 'CM', 'Garoua', 260000, 86125, 61750, 88375,
    0.9719, 10.00, 'XAF', 'estimated_index',
-   'Added 044. Vanessa: +10% overall. Concrete columns copied from Adamawa — northern proxy, no BQ.')
+   'Added 045. Vanessa: +10% overall. Concrete columns copied from Adamawa — northern proxy, no BQ.')
 ON CONFLICT (city_code) DO UPDATE SET
   city_name         = EXCLUDED.city_name,
   rc_350            = EXCLUDED.rc_350,
@@ -82,7 +82,7 @@ UPDATE public.construction_city_rates SET
   notes             = v.note,
   updated_at        = now()
 FROM (VALUES
-  ('YAOUNDE', 1.0000,  0.00, 'Baseline city for Cameroon from 044. Was tied with Douala at 1.0000.'),
+  ('YAOUNDE', 1.0000,  0.00, 'Baseline city for Cameroon from 045. Was tied with Douala at 1.0000.'),
   ('DOUALA',  0.9282, -5.00, 'Vanessa: 5% cheaper than Yaoundé. Was the baseline at 1.0000.'),
   ('BUEA',    0.9776,  0.00, 'Vanessa: same as Yaoundé. Was 1.0556 against a Douala baseline.'),
   ('BAMENDA', 1.1194, 10.00, 'Vanessa: +10%. Was 1.0556.'),
@@ -95,5 +95,5 @@ WHERE public.construction_city_rates.city_code = v.code;
 -- Nigeria is on pause for the beta and has no BQ behind it. Recorded rather than
 -- silently left null, so the column does not read as "no difference".
 UPDATE public.construction_city_rates
-   SET notes = COALESCE(notes, '') || ' cost_delta_pct unset: no Nigerian BQ (044).'
+   SET notes = COALESCE(notes, '') || ' cost_delta_pct unset: no Nigerian BQ (045).'
  WHERE country_code = 'NG' AND cost_delta_pct IS NULL;

@@ -31,8 +31,9 @@ export type BuildingType =
 // `aluminium_deck` added Aug 2026. 003_projects.sql declares roof_type TEXT with no
 // CHECK constraint, so a new value needs no migration. See lib/budget/roof.ts.
 export type RoofType =
-  | 'long_span_aluminum' | 'clay_tiles' | 'shingle'   // pitched
-  | 'concrete_flat' | 'aluminium_deck';               // flat
+  | 'long_span_aluminum' | 'clay_tiles' | 'shingle'
+  | 'stone_coated'                                    // pitched
+  | 'concrete_flat' | 'aluminium_deck';               // flat (aluminium_deck retired)
 
 export type FinishLevel = 'standard' | 'premium' | 'luxury';
 

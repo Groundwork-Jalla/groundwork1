@@ -49,6 +49,7 @@ const IMAGE_SUB_GROUP: Record<ImageKey, 'projectType' | 'buildingType' | 'roofTy
   transit_oriented: 'buildingType',
   long_span_aluminum: 'roofType',
   clay_tiles: 'roofType',
+  stone_coated: 'roofType',
   concrete_flat: 'roofType',
   aluminium_deck: 'roofType',
   shingle: 'roofType',
@@ -894,6 +895,7 @@ function getRoofLabel(rt: string): string {
   const map: Record<string, string> = {
     long_span_aluminum: 'Long Span Aluminum', clay_tiles: 'Clay Tiles',
     concrete_flat: 'Concrete Flat', aluminium_deck: 'Aluminium Deck', shingle: 'Shingle',
+    stone_coated: 'Stone-Coated Sheet',
   };
   return map[rt] ?? rt;
 }

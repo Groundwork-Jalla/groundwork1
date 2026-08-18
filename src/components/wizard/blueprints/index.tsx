@@ -47,4 +47,6 @@ export const BLUEPRINTS: Record<ImageKey, React.ReactNode> = {
   concrete_flat:                D.concrete_flat,
   shingle:                      D.shingle,
   aluminium_deck:               D.aluminium_deck,
+  // Same pitched-roof blueprint as clay until we draw the stone-coated profile.
+  stone_coated:                 D.clay_tiles,
 };

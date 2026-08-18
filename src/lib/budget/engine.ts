@@ -1,7 +1,7 @@
 import type {
   CityRate, ConstructionRate, TakeoffModel, WizardFormData,
 } from '@/types/project';
-import { CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
+import { BASELINE_CITY, CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
 import { countBedrooms, countLivingRooms, deriveQuantities, type DetailedTakeoffInput } from './geometry';
 import { plumbingLines } from './fixtures';
 import { isFlatRoof, roofCostMultiplier } from './roof';
@@ -60,7 +60,7 @@ export function runTakeoff(
 
   const city = cityRate
     ?? resolveCityRate(data.city, rate.country_code, CITY_RATES)
-    ?? CITY_RATES.DOUALA;
+    ?? CITY_RATES[BASELINE_CITY];
 
   const g = model.geometry;
   const r = model.rates;

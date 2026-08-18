@@ -59,6 +59,23 @@ export const ROOF_OPTIONS: readonly RoofOption[] = [
     labelKey: 'wizard.roof.shingle', descKey: 'wizard.roof.shingleDesc',
   },
   {
+    // The "Abuja sheet" — aluminium coated in tar and stone granules. Added Aug 2026 on
+    // Vanessa's Q1 answer, which is also where the number comes from: the Rose document
+    // was read as an outlier (806 m³ of roof timber on a 125 m² house) when it is a real
+    // build — a 45 degree hip roof in stone-coated sheet, where her other three sit at
+    // 10 degrees in plain aluminium. Her instruction: "use rose roof to determine the
+    // price for those who will desire the abuja style roof."
+    //
+    // 138% is Rose's roof section over what our long-span model prices for the same
+    // house: 6,006,200 / 2,525,000. HONEST CAVEAT, and it is on the list to put back to
+    // her: that figure bundles the covering with the 45 degree pitch, because the wizard
+    // has no pitch input to separate them. Someone wanting stone-coated sheet at a
+    // conventional 25-30 degrees is over-quoted by whatever share of the premium is
+    // pitch rather than material.
+    value: 'stone_coated', form: 'pitched', costDeltaPct: 138,
+    labelKey: 'wizard.roof.stoneCoated', descKey: 'wizard.roof.stoneCoatedDesc',
+  },
+  {
     value: 'concrete_flat', form: 'flat', costDeltaPct: 8,
     labelKey: 'wizard.roof.concreteFlat', descKey: 'wizard.roof.concreteFlatDesc',
   },

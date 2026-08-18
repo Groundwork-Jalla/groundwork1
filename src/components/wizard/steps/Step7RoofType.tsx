@@ -174,6 +174,9 @@ const FORM_ICONS: Record<RoofForm, React.ReactNode> = {
 const MATERIAL_ICONS: Record<RoofType, React.ReactNode> = {
   long_span_aluminum: <LongSpanIcon />,
   clay_tiles:         <ClayTilesIcon />,
+  // Reuses the clay-tile icon: both are a profiled, textured pitched covering, and a
+  // wrong-looking bespoke icon is worse than an honest near-match. Needs its own.
+  stone_coated:       <ClayTilesIcon />,
   shingle:            <ShingleIcon />,
   concrete_flat:      <ConcreteFlatIcon />,
   aluminium_deck:     <AluminiumDeckIcon />,

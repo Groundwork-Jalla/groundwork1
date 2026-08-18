@@ -77,7 +77,7 @@ describe('plumbing as lines', () => {
   it.each(REPRODUCED)('$name reproduces its fixture schedule', check => {
     const bq = Object.values(FIXTURE_BY_NAME).find(b => b.name.startsWith(check.name));
     expect(bq, `no fixture named ${check.name}`).toBeDefined();
-    const lines = runTakeoff(bq!.input, RATE, CITY_RATES.DOUALA)!.lines;
+    const lines = runTakeoff(bq!.input, RATE, CITY_RATES.YAOUNDE)!.lines;
 
     const qty = (code: string) => byCode(lines, code).reduce((s, l) => s + l.qty, 0);
     expect(qty('805')).toBe(check.wc);
@@ -87,28 +87,31 @@ describe('plumbing as lines', () => {
     expect(qty('809')).toBe(check.tub);
     expect(qty('810')).toBe(check.kitchenSink);
 
-    // Douala has index 1.0, so the section total is the document's figure unindexed.
+    // Yaoundé has index 1.0 (the baseline moved there in 045), so the section total is
+    // the document's figure unindexed.
     const plumbing = lines.filter(l => l.section === 'plumbing')
                           .reduce((s, l) => s + l.amount, 0);
     expect(plumbing).toBeCloseTo(check.total, 6);
   });
 
-  it('does NOT yet reproduce Mpangou, and says so', () => {
-    // Found by writing this file. Mpangou is a luxury G+3 whose document lists NO mirrors
-    // (BQ 807) while `fixtureSchedule` gives mirrors to every bathroom above standard
-    // finish. Three of the four documents reproduce to the franc; this one does not.
+  it('diverges from Mpangou on mirrors, and Vanessa says our rule is right', () => {
+    // Found by writing this file: Mpangou is a luxury G+3 whose document lists NO mirrors
+    // (BQ 807) while `fixtureSchedule` gives one to every bathroom above standard finish.
+    // Three of the four documents reproduce to the franc; this one did not.
     //
-    // Deliberately not "fixed" by special-casing the rule — which of the two is right is
-    // a question for Vanessa, and guessing would put an invented number in a document a
-    // contractor is meant to price against. This test pins the divergence so it cannot be
-    // mistaken for a passing case, and fails the moment it is resolved either way.
+    // RESOLVED 17 Aug 2026 (Q10). Not an error in either direction — the omission was
+    // deliberate: "the client proposed to import them by himself from China. So i
+    // preferred to let pass than put china prices on cameroun estimate." So the schedule
+    // is right and the document is a special case, and this stays a divergence rather
+    // than becoming a rule. Kept as a test because a future change to fixtureSchedule
+    // should still have to look at Mpangou and decide on purpose.
     const check = PLUMBING_CHECKS.find(c => c.name === 'Mpangou')!;
     const bq    = CAMEROON_BQS.find(b => b.name.startsWith('Mpangou'))!;
-    const lines = runTakeoff(bq.input, RATE, CITY_RATES.DOUALA)!.lines;
+    const lines = runTakeoff(bq.input, RATE, CITY_RATES.YAOUNDE)!.lines;
 
     const mirrors = lines.filter(l => l.code === '807').reduce((s, l) => s + l.qty, 0);
     expect(check.mirror).toBe(0);
-    expect(mirrors).toBe(3);   // ← update both sides together when Vanessa rules
+    expect(mirrors).toBe(3);   // our schedule; the document's 0 is the client's import
   });
 });
 

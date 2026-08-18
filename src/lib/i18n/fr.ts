@@ -2078,6 +2078,8 @@ export const fr: Mirror<EnDict> = {
       longSpanDesc:        'Tôle ondulée — la plus courante en Afrique de l\'Ouest',
       clayTiles:           'Tuiles en terre cuite',
       clayTilesDesc:       'Terre cuite traditionnelle — durable et élégante',
+      stoneCoated:         'Tôle gravillonnée',
+      stoneCoatedDesc:     'Aluminium enduit de bitume et de gravillons — la toiture « Abuja », à forte pente',
       shingle:             'Bardeaux',
       shingleDesc:         'Asphalte ou composite — prisés par la diaspora',
       concreteFlat:        'Dalle béton',

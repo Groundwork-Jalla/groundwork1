@@ -2094,6 +2094,8 @@ export const en = {
       longSpanDesc:        'Corrugated metal sheet — most common in West Africa',
       clayTiles:           'Clay Tiles',
       clayTilesDesc:       'Traditional fired clay — durable and elegant',
+      stoneCoated:         'Stone-Coated Sheet',
+      stoneCoatedDesc:     'Aluminium coated in tar and stone granules — the "Abuja" roof, steep-pitched',
       shingle:             'Shingle',
       shingleDesc:         'Asphalt or composite — popular in diaspora markets',
       concreteFlat:        'Concrete Slab',

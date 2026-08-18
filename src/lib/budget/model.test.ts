@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { runTakeoff } from './engine';
 import type { DetailedTakeoffInput } from './geometry';
 import { CITY_RATES, CM_CITY_CODES, CM_RATE_FALLBACK } from './model';
+import type { WizardFormData } from '@/types/project';
 
-// ── City re-baseline (migration 044) ─────────────────────
+// ── City re-baseline (migration 045) ─────────────────────
 //
 // The claim these lock is Vanessa's, not ours: an identical building in Douala costs 5%
 // less than in Yaoundé, in Bamenda 10% more, and so on. `index_vs_baseline` is solved to
@@ -42,7 +43,7 @@ describe('city cost deltas realise Vanessa 17 Aug 2026', () => {
       const base = totalIn('YAOUNDE', shape);
       for (const code of CM_CITY_CODES) {
         const drift = Math.abs((totalIn(code, shape) / base - 1) * 100 - CITY_RATES[code].cost_delta_pct!);
-        expect(drift, `${code} on ${shape.sqm}m² G+${shape.floors - 1}`).toBeLessThan(3);
+        expect(drift, `${code} on ${shape.sqm}m² G+${(shape.floors ?? 1) - 1}`).toBeLessThan(3);
       }
     }
   });

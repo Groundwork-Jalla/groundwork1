@@ -121,7 +121,7 @@ export const CM_RATE_FALLBACK: ConstructionRate = {
  * four workbooks. Mirrors the seed in migration 020; used when the DB is unreachable.
  */
 export const CITY_RATES: Record<string, CityRate> = {
-  // Baseline moved from Douala to Yaoundé in 044, on Vanessa's 17 Aug list. The two had
+  // Baseline moved from Douala to Yaoundé in 045, on Vanessa's 17 Aug list. The two had
   // sat tied at 1.0000, which is why the Douala-vs-Yaoundé question stayed open so long.
   //
   // Two numbers per city and they mean different things. `cost_delta_pct` is hers: the
@@ -144,7 +144,7 @@ export const CITY_RATES: Record<string, CityRate> = {
   // solved indices land below 1.0, i.e. northern trades cheaper than Yaoundé offsetting
   // concrete 44% dearer. The total is hers; that split is ours.
   ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375, 0.9296,   7),
-  // New in 044. On Vanessa's list, absent from our book. Concrete copied from Adamawa.
+  // New in 045. On Vanessa's list, absent from our book. Concrete copied from Adamawa.
   GAROUA:  cm('GAROUA',  'Garoua',  260_000,  86_125, 61_750,  88_375, 0.9719,  10),
   ABUJA:   { city_code: 'ABUJA', country_code: 'NG', city_name: 'Abuja',
              rc_350: 450_000, rc_250: 119_000, lean_concrete: 77_750, mortar: 135_750,
@@ -184,7 +184,15 @@ const CITY_ALIASES: Record<string, string> = {
   BALI: 'BAMENDA',
 };
 
-export const BASELINE_CITY = 'DOUALA';
+/**
+ * The city an unrecognised Cameroonian city falls back to, and the city every
+ * `cost_delta_pct` is measured against.
+ *
+ * Moved from Douala in 045. It has to move with the baseline: Douala is now solved at
+ * 0.9282, so leaving the fallback there would have quietly priced every project with an
+ * unmatched city 7% below where it had been the day before.
+ */
+export const BASELINE_CITY = 'YAOUNDE';
 
 /**
  * Resolve a free-text city to a rate row. Existing projects store city as free text, and

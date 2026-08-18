@@ -15,21 +15,37 @@ import type { WizardFormData } from '@/types/project';
  * finish     Buea and Naka have no ceiling staffing, no bath, minimal wall tiling.
  *            Rose has staffing on both floors, 2 baths, 5 mirrors and 1.5M of decoration.
  *            Mpangou has 5 baths and 5 kitchen sinks across 4 levels.
- * roof       Rose is a pitched aluminium roof (252.60 m² of sheet). The other three are
- *            parapet/flat — Buea 42.67 m², Naka 48 m², Mpangou 96 m² of sheet plus a
- *            parapet line item.
+ * roof       Rose is a pitched roof (252.60 m² of sheet). Buea is pitched too — 217.3 m²
+ *            of sheet, not the 42.67 m² printed, which is a concrete section for roof
+ *            drainage and the water tank (Q2). A PARAPET LINE DOES NOT MEAN A FLAT ROOF:
+ *            "Most buildings in Cameroon carry a parapet line... camerounians use
+ *            parapet walls to shield their roofs from access to wind." We had read the
+ *            parapet as evidence of a slab, which was wrong.
  *
- * KNOWN DEFECTS IN THE SOURCE DOCUMENTS — do not calibrate these away
- * ------------------------------------------------------------------
- * Buea     Plastering of 388.80 m²/floor is external faces only (perimeter 59.9 m ×
- *          3 m × 2 = 360 m²). Internal partitions are not measured. Its roof lists
- *          42.67 m² of sheet on a 224 m² footprint.
- * Mpangou  Footings 0.69 m³ against Naka's 11.66 m³ for the same footprint and twice the
- *          height. Preliminary 170,000 for a G+3 against Buea's 650,000 for a G+1.
- *          Paints 259.20 m², one floor of four. Its upper-floor section is one floor's
- *          quantities × 4 while labelled "first till 3rd".
- * Rose     Roof timber 806.20 m³ + 520 m³ on a 125 m² house — roughly 500 tonnes.
- *          Almost certainly linear metres recorded as m³.
+ * WHAT THE DOCUMENTS DO AND DO NOT PRICE — answered by Vanessa, 17 Aug 2026
+ * -------------------------------------------------------------------------
+ * Every variance we could not read a year ago now has an answer, and most of them are
+ * not errors. They are scope. `notComparable` below records which sections of which
+ * document cannot be held against an estimate of the whole building, and why — see
+ * `comparableSections`. Naka, the one document that measured everything, lands at -1.4%.
+ *
+ * Buea     Internal partitions deliberately excluded (Q6): some walls are glass, and the
+ *          drywall interior was to be built years later — "keep away what does not have
+ *          to do with the present work. Only areas with water fixtures like bath and
+ *          kitchen were considered." So plaster, paint and blockwork are not comparable.
+ * Mpangou  Vanessa took the project over from a technician whose structure had failed,
+ *          and priced only her own continuation (Q4): "My estimate for mpangou included
+ *          wholly only what my work continues with... it was incomplete." That covers
+ *          preliminaries and foundation. Painting covers one floor of four and should be
+ *          x4 (Q7). Partitions excluded — an American open plan where only bath and
+ *          stairs are walled (Q6). Mirrors omitted because the client was importing them
+ *          from China (Q10). G+3+tt: four levels above ground, the top being a concrete
+ *          roof terrace tiled and furnished like a floor (Q3).
+ * Rose     Roof timber of 806.20 m³ is REAL, not a unit error (Q1): a 45 degree hip roof
+ *          where the others are at 10 degrees, covered in stone-coated sheet ("the abuja
+ *          roofing sheet"), not plain aluminium. Vanessa: "use rose roof to determine the
+ *          price for those who will desire the abuja style roof." We do not carry that
+ *          covering yet, so our roof reads 58% under hers.
  */
 
 export interface BqFixture {
@@ -38,6 +54,13 @@ export interface BqFixture {
   /** How completely the document was measured. Drives the assertion tolerance. */
   quality: 'reliable' | 'partial';
   input: Partial<WizardFormData>;
+  /**
+   * Sections this document does not price on the same basis as a whole-building
+   * estimate, with the reason. Excluded from the accuracy assertions rather than
+   * silently widening the tolerance for everyone — a document that leaves out internal
+   * walls is not evidence that our walls are wrong.
+   */
+  notComparable?: Partial<Record<keyof BqFixture['actual'], string>>;
   /** Section totals in XAF, straight from the SUMMARY block. */
   actual: {
     preliminary: number;
@@ -60,7 +83,11 @@ export const CAMEROON_BQS: BqFixture[] = [
     quality: 'reliable',
     input: {
       country: 'CM', city: 'Yaoundé', sqm: 125, floors: 2,
-      finishLevel: 'premium', roofType: 'long_span_aluminum', buildingType: 'single_family',
+      // Stone-coated, not plain aluminium (Q1). This is the building Vanessa described:
+      // a 45 degree hip roof in "abuja" sheet. Note the circularity — `stone_coated`'s
+      // +138% was derived from this document's roof section, so the roof line here is
+      // reproduced by construction and is a regression lock, not evidence.
+      finishLevel: 'premium', roofType: 'stone_coated', buildingType: 'single_family',
       bedrooms: 4, bathrooms: 5, kitchens: 1, livingRooms: 2, floorRooms: [],
     },
     actual: {
@@ -82,8 +109,17 @@ export const CAMEROON_BQS: BqFixture[] = [
     quality: 'partial',
     input: {
       country: 'CM', city: 'Buea', sqm: 224, floors: 2,
-      finishLevel: 'standard', roofType: 'concrete_flat', buildingType: 'single_family',
+      // Pitched, not flat. We had inferred a slab from the parapet line; Q2 says the
+      // 42.67 m² is a concrete section for drainage and the water tank, the sheet is
+      // 217.3 m², and parapets are standard on Cameroonian pitched roofs as a windbreak.
+      finishLevel: 'standard', roofType: 'long_span_aluminum', buildingType: 'single_family',
       bedrooms: 3, bathrooms: 3, kitchens: 1, livingRooms: 2, floorRooms: [],
+    },
+    notComparable: {
+      ground_floor: 'Q6: internal partitions excluded — glass walls and drywall deferred.',
+      upper_floor:  'Q6: same.',
+      finishing:    'Q6: plaster and paint follow the partitions that were left out.',
+      roof:         'Q2: the document prints 42.67 m² of sheet where the real figure is 217.3 m², and Vanessa confirmed the error. Its roof money follows the wrong quantity, so there is nothing to compare against.',
     },
     actual: {
       preliminary:    650_000,
@@ -125,9 +161,27 @@ export const CAMEROON_BQS: BqFixture[] = [
     file: 'MPANGOU.xlsx',
     quality: 'partial',
     input: {
+      // G+3+tt (Q3): ground, 1st, 2nd, 3rd, and a concrete roof terrace "treated as a
+      // floor because it has tiles and furnitures with luxurious lighting". That is why
+      // the elevation section totals exactly 4x one floor while reading "first till 3rd"
+      // — the tt is the fourth level in it.
+      //
+      // Still FOUR here, not five. The terrace is finishes on a slab: tiles, lighting,
+      // furniture. It has no walls, windows or doors, and `floors` in our model means a
+      // walled storey — pricing it as one adds blockwork and joinery that do not exist.
+      // The consequence is that upper_floor is not comparable: their four levels against
+      // our three.
       country: 'CM', city: 'Kribi', sqm: 144, floors: 4,
       finishLevel: 'luxury', roofType: 'concrete_flat', buildingType: 'multi_family',
       bedrooms: 8, bathrooms: 3, kitchens: 5, livingRooms: 4, floorRooms: [],
+    },
+    notComparable: {
+      preliminary:  'Q4: Vanessa took the project over mid-build and priced only her own continuation.',
+      foundation:   'Q4: "it was incomplete" — the existing structure was surveyed, not re-priced.',
+      finishing:    'Q7: paints one floor of four, and Q6: no internal partitions to plaster.',
+      ground_floor: 'Q6: American open plan — only bath and stairs are walled.',
+      upper_floor:  'Q6: same; and Q3: their section spans four levels including the roof terrace, ours three walled storeys.',
+      plumbing:     'Q10: mirrors omitted because the client was importing them from China.',
     },
     actual: {
       preliminary:    170_000,

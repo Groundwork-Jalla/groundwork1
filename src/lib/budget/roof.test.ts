@@ -132,3 +132,22 @@ describe('covering affects the Cameroon take-off', () => {
     expect(roofsOfForm('flat').some(o => o.value === 'aluminium_deck')).toBe(false);
   });
 });
+
+// ── The stone-coated "Abuja" roof (Q1) ───────────────────
+describe('stone-coated sheet reproduces the Rose roof', () => {
+  it('lands on the document, because that is where the number came from', () => {
+    // Circular by construction and deliberately so: +138% IS Rose's roof section over
+    // our long-span price for the same house. This is a regression lock — if the roof
+    // rates, the pitch factor or the section boundaries move, the covering Vanessa told
+    // us to derive from this document stops matching it and someone has to re-derive.
+    const rose = CAMEROON_BQS.find(b => b.name.startsWith('Rose'))!;
+    const got  = runTakeoff(rose.input, CM_RATE_FALLBACK)!.sectionsLocal.roof;
+    expect(got / rose.actual.roof).toBeCloseTo(1, 2);
+  });
+
+  it('is much dearer than plain aluminium, and pitched', () => {
+    expect(roofOption('stone_coated')!.form).toBe('pitched');
+    expect(roofOption('stone_coated')!.costDeltaPct)
+      .toBeGreaterThan(roofOption('clay_tiles')!.costDeltaPct);
+  });
+});
