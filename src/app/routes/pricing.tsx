@@ -240,9 +240,6 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
         </Link>
       )}
       {error && <p className="mt-2 text-xs text-state-alert">{error}</p>}
-      {payAsGuest && !error && (
-        <p className="mt-2 text-center text-[11px] text-brand-mid-grey">{t('pricing.noAccountNeeded')}</p>
-      )}
     </motion.div>
   );
 }
