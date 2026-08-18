@@ -26,7 +26,7 @@ export default function Step6BoysQuarters() {
             className={cn(
               'px-8 py-3 text-sm font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-inset',
               data.hasBoysQuarters
-                ? 'bg-brand-near-black text-white'
+                ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black'
                 : 'bg-white text-brand-mid-grey hover:text-brand-near-black',
             )}
           >
@@ -39,7 +39,7 @@ export default function Step6BoysQuarters() {
             className={cn(
               'px-8 py-3 text-sm font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-inset',
               !data.hasBoysQuarters
-                ? 'bg-brand-near-black text-white'
+                ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black'
                 : 'bg-white text-brand-mid-grey hover:text-brand-near-black',
             )}
           >

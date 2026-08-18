@@ -26,10 +26,10 @@ export default function ProgressDots() {
               {current ? (
                 <motion.span
                   layoutId="wizard-dot-active"
-                  className="block size-3.5 rounded-full bg-brand-near-black ring-2 ring-brand-near-black ring-offset-2"
+                  className="block size-3.5 rounded-full bg-brand-near-black ring-2 ring-brand-near-black ring-offset-2 dark:bg-white dark:ring-white dark:ring-offset-brand-rich-black"
                 />
               ) : done ? (
-                <span className="block size-2.5 rounded-full bg-brand-near-black opacity-70 cursor-pointer hover:opacity-100 transition-opacity" />
+                <span className="block size-2.5 rounded-full bg-brand-near-black dark:bg-white opacity-70 cursor-pointer hover:opacity-100 transition-opacity" />
               ) : (
                 <span className="block size-2.5 rounded-full border border-brand-border-grey" />
               )}

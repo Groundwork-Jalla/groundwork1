@@ -601,6 +601,31 @@ export const shingle = (
   </Blueprint>
 );
 
+export const concrete_flat = (
+  <Blueprint>
+    <Ink as="line" x1={30} y1={186} x2={290} y2={186} bold />
+    {/* Slab with falls to a rainwater outlet, upstand parapets either side */}
+    <Ink as="rect" x={52} y={112} width={216} height={18} bold />
+    <Hatch x={52} y={112} w={216} h={18} gap={9} />
+    <Ink d="M 52 108 L 160 100 L 268 108" faint />
+    <Ink as="rect" x={44} y={92} width={12} height={38} />
+    <Ink as="rect" x={264} y={92} width={12} height={38} />
+    <Ink as="line" x1={44} y1={92} x2={56} y2={92} bold />
+    <Ink as="line" x1={264} y1={92} x2={276} y2={92} bold />
+    <Ink as="line" x1={64} y1={130} x2={64} y2={186} faint />
+    <Ink as="line" x1={256} y1={130} x2={256} y2={186} faint />
+    <Ink as="line" x1={160} y1={130} x2={160} y2={186} faint />
+    <Ink d="M 84 104 L 92 100" faint />
+    <Note x={100} y={96} size={6}>FALL 1:80</Note>
+    <Ink as="rect" x={222} y={126} width={8} height={10} faint />
+    <Note x={236} y={146} size={6}>RWO</Note>
+    <Note x={196} y={166} size={6}>RC SLAB ON BEAM & BLOCK</Note>
+    <Ink as="line" x1={192} y1={162} x2={176} y2={136} faint />
+    <Dim x1={52} y1={200} x2={268} y2={200} label="SPAN" />
+    <Note x={160} y={78} anchor="middle">CONCRETE FLAT SLAB — SECTION</Note>
+  </Blueprint>
+);
+
 export const aluminium_deck = (
   <Blueprint>
     <Ink as="line" x1={30} y1={186} x2={290} y2={186} bold />

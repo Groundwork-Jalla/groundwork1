@@ -23,7 +23,10 @@ function FloorStack({ floors }: { floors: number }) {
         <AnimatePresence key={i} mode="wait">
           <motion.div
             key={`bar-${i}-${count}`}
-            className="w-8 rounded-t-sm bg-brand-near-black"
+            // globals.css flips `.bg-white` and `.text-brand-near-black` in dark mode but
+            // not `.bg-brand-near-black`, so a solid near-black block stays black on a
+            // black ground. The bars have to invert explicitly.
+            className="w-8 rounded-t-sm bg-brand-near-black dark:bg-white"
             style={{ height: `${(i + 1) * 9}%` }}
             initial={{ scaleY: 0, originY: 1 }}
             animate={{ scaleY: 1 }}
@@ -60,7 +63,7 @@ export default function Step4Floors() {
         {/* Floor stack visual */}
         <div className="relative mt-10 mb-2 px-4">
           <FloorStack floors={data.floors} />
-          <div className="h-px w-full bg-brand-border-grey mt-1" />
+          <div className="h-px w-full bg-brand-border-grey dark:bg-[#3d3d3d] mt-1" />
         </div>
 
         {/* +/– Stepper */}

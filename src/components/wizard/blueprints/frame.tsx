@@ -21,7 +21,16 @@ import { motion } from 'framer-motion';
 // then openings, then annotation.
 // =========================================================
 
-export const BLUEPRINT_BG = '#0c2340';
+/**
+ * Brand near-black, not blueprint blue. A literal cyanotype was the obvious reading of
+ * "blueprint" and the wrong one here: the palette is black, white and greys, with
+ * colour reserved as a status accent. A blue field would be the only hue on the screen
+ * and would read as a status the drawing does not have.
+ *
+ * White linework on near-black keeps the technical register — it is a drawing, not a
+ * photograph — without spending the one colour channel the design system reserves.
+ */
+export const BLUEPRINT_BG = '#0a0a0a';
 
 const DRAW = {
   hidden:  { pathLength: 0, opacity: 0 },
