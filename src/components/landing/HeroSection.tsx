@@ -28,8 +28,13 @@ export default function HeroSection() {
           <p className="mt-6 text-sm lg:text-base leading-relaxed text-brand-mid-grey max-w-115">
             {t('landing.hero.body')}
           </p>
+          {/* Button and the line under it share a shrink-to-fit column, so the wider of
+              the two sets the width and the button stretches to meet it. Measuring the
+              sentence and hard-coding a width would hold only for English — the French
+              button and its log-in line differ by ~60px. */}
+          <div className="mt-8 flex w-full flex-col items-stretch sm:inline-flex sm:w-auto">
           <motion.div
-            className="mt-8 w-full sm:inline-block sm:w-auto rounded-lg"
+            className="w-full rounded-lg"
             animate={{
               boxShadow: [
                 "0 0 0 0 rgba(10,10,10,0.12)",
@@ -39,7 +44,7 @@ export default function HeroSection() {
             }}
             transition={{ duration: 2.5, repeat: Infinity }}
           >
-            <Button asChild className="w-full sm:w-auto bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
+            <Button asChild className="w-full bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
               <Link to={join} className="flex items-center justify-center gap-2">
                 {t('landing.signup.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -59,6 +64,7 @@ export default function HeroSection() {
               {t(knownUs ? 'landing.signup.createAccount' : 'landing.signup.logIn')}
             </Link>
           </p>
+          </div>
         </motion.div>
 
         <motion.div

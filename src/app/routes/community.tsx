@@ -9,7 +9,6 @@ import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import CountdownClock from "@/components/landing/CountdownClock";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useT, useLanguage } from '@/lib/i18n';
 import { SKOOL_URL } from '@/lib/community';
@@ -258,10 +257,6 @@ export default function Community() {
                   <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight mb-4">
                     {t('community.title')}
                   </h1>
-
-                  <div className="mb-4">
-                    <CountdownClock variant="dark" />
-                  </div>
 
                   <p className="text-sm text-brand-mid-grey mt-1 mb-5 leading-relaxed">
                     {t('community.body')}

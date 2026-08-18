@@ -4,7 +4,6 @@ import { Home, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { useJoinDestination } from "@/hooks/useJoinDestination";
-import CountdownClock from "./CountdownClock";
 
 export default function CTASection() {
   const t = useT();
@@ -21,14 +20,6 @@ export default function CTASection() {
         >
           <Home className="size-9" />
         </motion.div>
-        <h2 className="font-sans text-3xl sm:text-4xl font-bold text-white">
-          {t('landing.cta.title')}
-        </h2>
-
-        <div className="mt-8">
-          <CountdownClock variant="light" />
-        </div>
-
         <p className="text-sm sm:text-base text-white/60 mt-8">
           {t('landing.cta.body')}
         </p>

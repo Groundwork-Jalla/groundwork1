@@ -1370,8 +1370,8 @@ export const en = {
     },
 
     hero: {
-      titleMain:   'Introducing the new way to',
-      titleAccent: 'Build back home.',
+      titleMain:   'Introducing the New Way to',
+      titleAccent: 'Build Back Home.',
       body:        'Groundwork by Jalla gives remote home owners a structured and transparent way to fund, verify, and track construction projects back home.',
     },
 
@@ -1505,19 +1505,12 @@ export const en = {
     },
 
     cta: {
-      title:          'The New Way of Building in Africa Launches In',
       body:           'Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.',
       sub:            'Be the first to know when Groundwork is ready for full launch.',
       button:         'Join for Free',
       contractorLink: 'Are you a Construction Professional?',
     },
 
-    countdown: {
-      days:  'Days',
-      hours: 'Hours',
-      mins:  'Mins',
-      secs:  'Secs',
-    },
 
     // Text baked into the animated illustrations.
     scenes: {

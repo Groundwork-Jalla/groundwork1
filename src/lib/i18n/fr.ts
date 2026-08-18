@@ -1498,19 +1498,12 @@ export const fr: Mirror<EnDict> = {
     },
 
     cta: {
-      title:          "La nouvelle façon de bâtir en Afrique arrive dans",
       body:           'Rejoignez la communauté des Africains qui bâtissent en Afrique et soyez parmi les premiers à accéder à Groundwork by Jalla.',
       sub:            'Soyez le premier informé du lancement complet de Groundwork.',
       button:         'Rejoindre gratuitement',
       contractorLink: 'Vous êtes un professionnel du bâtiment ?',
     },
 
-    countdown: {
-      days:  'Jours',
-      hours: 'Heures',
-      mins:  'Min',
-      secs:  'Sec',
-    },
 
     scenes: {
       youAbroad:       "Vous, à l'étranger",
