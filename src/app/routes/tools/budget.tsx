@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { BUDGET_SLICES, calculateBudget, sliceShares } from '@/lib/budget';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
@@ -33,7 +33,7 @@ export default function BudgetTool() {
   // paint in French shows English figures and never corrects itself.
   const f = useFormat();
   const labels = useDomainLabels();
-  const [country, setCountry] = useState('NG');
+  const [country, setCountry] = useState(DEFAULT_COUNTRY_CODE);
   const [sqm, setSqm] = useState(150);
   const [floors, setFloors] = useState(1);
   const [finishLevel, setFinishLevel] = useState<'standard' | 'premium' | 'luxury'>('standard');

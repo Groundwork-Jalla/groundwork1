@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useLanguage, type TKey } from '@/lib/i18n';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { isValidEmail } from '@/lib/email/is-valid-email';
 import {
   CONTRACTOR_ROLES, credentialTrack, qualifies, submitContractorApplication,
@@ -164,7 +164,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone]               = useState('');
   const [email, setEmail]               = useState('');
-  const [country, setCountry]           = useState('');
+  const [country, setCountry]           = useState(DEFAULT_COUNTRY_CODE);
   const [city, setCity]                 = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   // Section 2

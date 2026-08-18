@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, Download, Printer } from 'lucide-react';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -14,7 +14,7 @@ export default function MilestonesTool() {
   const f = useFormat();
   const labels = useDomainLabels();
   const [budget, setBudget] = useState(100000);
-  const [country, setCountry] = useState('NG');
+  const [country, setCountry] = useState(DEFAULT_COUNTRY_CODE);
 
   const stages = useMemo(() => getStageSeed('residential', 'single_family', 1), []);
 
