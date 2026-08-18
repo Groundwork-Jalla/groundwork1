@@ -27,9 +27,6 @@ export function buildWaitlistWelcomeHtml(lang: Lang, fullName: string): string {
     <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#3a3a38;">
       ${esc(t('email.waitlist.body1'))}
     </p>
-    <p style="margin:0 0 4px;font-size:14px;line-height:1.6;color:#3a3a38;">
-      ${esc(t('email.waitlist.body2'))}
-    </p>
 
   `);
 }

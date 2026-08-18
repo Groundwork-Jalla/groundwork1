@@ -1355,7 +1355,6 @@ export const en = {
     // form; the secondary link is the way back for people who already have an
     // account — the button alone cannot tell the two apart.
     signup: {
-      cta:         'Join for Free',
       haveAccount: 'Already have an account?',
       logIn:       'Log in',
       // Shown instead of the pair above once this browser has signed in before, since
@@ -2845,9 +2844,7 @@ export const en = {
       heading:  "You're on the list",
       greeting: 'Hi {name},',
       body1:    "You're on the Groundwork waitlist. We'll email you the moment it opens, and you'll be among the first in.",
-      body2:    "While you wait, join the Jalla community — it's where diaspora builders compare quotes, share contractors who actually deliver, and ask the questions nobody answers honestly.",
       cta:      'Join the community',
-      ctaNote:  "You don't need an account to join, and it's free.",
     },
     contractorApplication: {
       subject:  'We received your Founding Network application',

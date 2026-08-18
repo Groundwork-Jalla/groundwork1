@@ -1352,7 +1352,6 @@ export const fr: Mirror<EnDict> = {
     },
 
     signup: {
-      cta:         'Rejoindre gratuitement',
       haveAccount: 'Vous avez déjà un compte ?',
       logIn:       'Se connecter',
       // Voir la note anglaise : l'autre porte, une fois le bouton dirigé vers la connexion.
@@ -2828,9 +2827,7 @@ export const fr: Mirror<EnDict> = {
       heading:  'Vous êtes sur la liste',
       greeting: 'Bonjour {name},',
       body1:    "Vous êtes inscrit(e) sur la liste d'attente de Groundwork. Nous vous écrirons dès l'ouverture, et vous serez parmi les premiers à entrer.",
-      body2:    "En attendant, rejoignez la communauté Jalla : c'est là que les bâtisseurs de la diaspora comparent les devis, partagent les entrepreneurs qui livrent vraiment, et posent les questions auxquelles personne ne répond honnêtement.",
       cta:      'Rejoindre la communauté',
-      ctaNote:  "Aucun compte n'est nécessaire, et c'est gratuit.",
     },
     contractorApplication: {
       subject:  'Nous avons bien reçu votre candidature au Réseau Fondateur',
