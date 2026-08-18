@@ -71,6 +71,9 @@ export default async function handler(req: any, res: any) {
     res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('[stripe] checkout session failed:', err);
-    res.status(500).json({ error: 'Could not start checkout.' });
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Could not start checkout.'
+      : (err instanceof Error ? err.message : String(err));
+    res.status(500).json({ error: message });
   }
 }
