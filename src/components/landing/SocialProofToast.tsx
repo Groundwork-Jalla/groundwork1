@@ -93,15 +93,16 @@ export default function SocialProofToast() {
               {entry.first_name}
             </p>
             <p className="text-[11px] text-brand-mid-grey mt-0.5">
-              {t('landing.social.from', { location: entry.location })}
+              {t('landing.social.from', { location: labels.country(entry.country ?? '') })}
             </p>
 
             {/* Divider */}
             <div className="w-8 h-px bg-brand-border-grey my-3" />
 
             {/* Action */}
-            <p className="text-[12px] text-brand-near-black font-medium">{t(entry.msgKey)}</p>
-            <p className="text-[10px] text-brand-mid-grey/60 mt-1">{t('landing.social.justNow')}</p>
+            <p className="text-[12px] text-brand-near-black font-medium">
+              {t('landing.social.joinedJustNow')}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

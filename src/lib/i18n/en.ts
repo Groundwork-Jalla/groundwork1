@@ -1526,10 +1526,7 @@ export const en = {
 
     social: {
       from:            'from {location}',
-      justNow:         'just now',
-      joined:          'joined',
-      signedUp:        'signed up',
-      justSignedUp:    'just signed up',
+      joinedJustNow:   'joined just now',
     },
   },
 
