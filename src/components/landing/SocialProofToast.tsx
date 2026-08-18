@@ -1,32 +1,56 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useT, type TKey } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase/client";
+import { useDomainLabels } from "@/lib/domain-labels";
+import { useT } from "@/lib/i18n";
 
-const ENTRIES: { name: string; location: string; msgKey: TKey }[] = [
-  { name: "Sarah",    location: "Lagos",   msgKey: "landing.social.signedUp" },
-  { name: "Michael",  location: "London",  msgKey: "landing.social.joined" },
-  { name: "James",    location: "Texas",   msgKey: "landing.social.justSignedUp" },
-  { name: "Anna",     location: "Nairobi", msgKey: "landing.social.justSignedUp" },
-  { name: "David",    location: "Accra",   msgKey: "landing.social.joined" },
-  { name: "Grace",    location: "Toronto", msgKey: "landing.social.signedUp" },
-  { name: "Emmanuel", location: "Douala",  msgKey: "landing.social.joined" },
-  { name: "Fatima",   location: "Dubai",   msgKey: "landing.social.justSignedUp" },
-];
+// =========================================================
+// Social proof — real signups only.
+//
+// This used to cycle eight invented people ("Sarah from Lagos", "Michael from
+// London"). On a product selling verified, accountable records, inventing the social
+// proof on the front door is the one place it cannot be done.
+//
+// Rows come from `recent_signups()` (migration 044): first name and country of people
+// who signed up in the last 30 days, nothing else, and nothing older — the toast says
+// "joined just now" and a signup from last quarter would make that untrue.
+//
+// No rows means no toast. An empty product showing nothing is honest; an empty product
+// showing fictional crowds is not.
+// =========================================================
+
+interface Signup {
+  first_name: string;
+  country: string | null;
+}
 
 export default function SocialProofToast() {
   const t = useT();
+  const labels = useDomainLabels();
+  const [entries, setEntries] = useState<Signup[]>([]);
   const [visible, setVisible] = useState(false);
   const [current, setCurrent] = useState(0);
   const indexRef = useRef(0);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase.rpc('recent_signups', { max_rows: 8 });
+      if (cancelled || error || !Array.isArray(data)) return;
+      setEntries(data.filter((d: Signup) => d.first_name));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (entries.length === 0) return;
     let showTimeout: ReturnType<typeof setTimeout>;
     let hideTimeout: ReturnType<typeof setTimeout>;
 
     function cycle() {
       const delay = 8000 + Math.random() * 4000;
       showTimeout = setTimeout(() => {
-        setCurrent(indexRef.current % ENTRIES.length);
+        setCurrent(indexRef.current % entries.length);
         indexRef.current += 1;
         setVisible(true);
         hideTimeout = setTimeout(() => {
@@ -43,9 +67,10 @@ export default function SocialProofToast() {
       clearTimeout(showTimeout);
       clearTimeout(hideTimeout);
     };
-  }, []);
+  }, [entries.length]);
 
-  const entry = ENTRIES[current];
+  const entry = entries[current];
+  if (!entry) return null;
 
   return (
     <div className="fixed bottom-6 left-6 z-40 pointer-events-none">
@@ -60,12 +85,12 @@ export default function SocialProofToast() {
           >
             {/* Avatar */}
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-near-black text-white text-base font-semibold">
-              {entry.name[0]}
+              {entry.first_name[0]?.toUpperCase()}
             </div>
 
             {/* Name + location */}
             <p className="text-[13px] font-semibold text-brand-near-black mt-3 leading-snug">
-              {entry.name}
+              {entry.first_name}
             </p>
             <p className="text-[11px] text-brand-mid-grey mt-0.5">
               {t('landing.social.from', { location: entry.location })}
