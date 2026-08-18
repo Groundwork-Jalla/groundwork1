@@ -65,7 +65,10 @@ export const TIER_ECONOMICS: Record<ProjectTier, TierEconomics> = {
     feePct: 0.03,
     hasPeriod: true,
     hasTag: true,
-    featureCount: 7,
+    // 6 since "Community access" went: the community is gone, and a paid tier must not
+    // list a benefit that no longer exists. data-keys.test.ts pins this to the number
+    // of fN keys in the dictionary.
+    featureCount: 6,
   },
   jalla_management: {
     id: 'jalla_management',

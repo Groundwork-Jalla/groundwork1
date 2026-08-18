@@ -1523,11 +1523,6 @@ export const en = {
       verifiedOnSite:  'Verified on site, 14 Jun 2026',
     },
 
-    feed: {
-      title:    'Builders Are Already Joining',
-      subtitle: 'Real people getting notified the moment we launch.',
-      empty:    'Be the first to join the community.',
-    },
 
     social: {
       from:            'from {location}',
@@ -2403,7 +2398,6 @@ export const en = {
       f4: 'Stage certificates',
       f5: '3% processing fee',
       f6: 'Weekly reports',
-      f7: 'Community access',
     },
     jallaManagement: {
       short:    'Management',

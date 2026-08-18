@@ -1515,11 +1515,6 @@ export const fr: Mirror<EnDict> = {
       verifiedOnSite:  'Vérifié sur site, 14 juin 2026',
     },
 
-    feed: {
-      title:    'Des bâtisseurs nous rejoignent déjà',
-      subtitle: 'De vraies personnes prévenues dès le lancement.',
-      empty:    'Soyez le premier à rejoindre la communauté.',
-    },
 
     social: {
       from:            'de {location}',
@@ -2387,7 +2382,6 @@ export const fr: Mirror<EnDict> = {
       f4: 'Certificats d\'étape',
       f5: '3 % de frais de traitement',
       f6: 'Rapports hebdomadaires',
-      f7: 'Accès à la communauté',
     },
     jallaManagement: {
       short:    'Gestion',
