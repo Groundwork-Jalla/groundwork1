@@ -1324,8 +1324,11 @@ export const fr: Mirror<EnDict> = {
 
     signup: {
       cta:         'Créer un compte Groundwork',
-        haveAccount: 'Vous avez déjà un compte ?',
+      haveAccount: 'Vous avez déjà un compte ?',
       logIn:       'Se connecter',
+      // Voir la note anglaise : l'autre porte, une fois le bouton dirigé vers la connexion.
+      newHere:       'Nouveau sur Groundwork ?',
+      createAccount: 'Créer un compte',
     },
 
     hero: {

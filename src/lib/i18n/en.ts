@@ -1327,8 +1327,13 @@ export const en = {
     // account — the button alone cannot tell the two apart.
     signup: {
       cta:         'Sign Up to Groundwork',
-        haveAccount: 'Already have an account?',
+      haveAccount: 'Already have an account?',
       logIn:       'Log in',
+      // Shown instead of the pair above once this browser has signed in before, since
+      // the button then leads to the log-in page and the offer under it has to be the
+      // other door, not the same one.
+      newHere:       'New to Groundwork?',
+      createAccount: 'Create an account',
     },
 
     hero: {

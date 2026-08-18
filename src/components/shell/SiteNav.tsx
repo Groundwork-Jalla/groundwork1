@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
 import { useT, type TKey } from '@/lib/i18n';
+import { useJoinDestination } from "@/hooks/useJoinDestination";
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -29,6 +30,7 @@ const LINKS: { to: string; labelKey: TKey }[] = [
 
 export function SiteNav() {
   const t = useT();
+  const join = useJoinDestination();
   const { pathname } = useLocation();
 
   // On the contractor page itself, "Join as a Contractor" would link to the page
@@ -111,7 +113,11 @@ export function SiteNav() {
             asChild
             className="group h-9 shrink-0 rounded-md bg-[#ffffff] px-3 text-[11px] font-bold text-[#0a0a0a] shadow-[0_1px_12px_rgba(255,255,255,0.18)] hover:bg-[#f0f0f0] sm:h-auto sm:px-7 sm:py-2.5 sm:text-[13px]"
           >
-            <Link to="/auth/signup" className="flex items-center gap-1.5">
+            {/* Destination follows the hero button — a browser that has signed in here
+                before gets the log-in page. The bar carries no separate log-in link, so
+                without this a returning visitor has no way back in from the top of the
+                page. See lib/auth/returning-user.ts. */}
+            <Link to={join} className="flex items-center gap-1.5">
               {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
               <span className="hidden sm:inline">{t('landing.nav.joinFree')}</span>
               <span className="sm:hidden">{t('landing.nav.joinFreeShort')}</span>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
+import { rememberAccount } from "@/lib/auth/returning-user";
 
 interface AuthContextValue {
   session: Session | null;
@@ -24,11 +25,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) rememberAccount();
       setLoading(false);
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      // One place for every route in: email, Google, magic link, session restore. Marks
+      // this browser as one that has an account, which is what the landing page's join
+      // button reads to decide between sign-up and log-in. Never cleared on sign-out —
+      // signing out does not delete the account.
+      if (session) rememberAccount();
       setLoading(false);
     });
 

@@ -3,10 +3,14 @@ import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
+import { useJoinDestination } from "@/hooks/useJoinDestination";
 import HeroScene from "./HeroScene";
 
 export default function HeroSection() {
   const t = useT();
+  // One button, two kinds of visitor. See lib/auth/returning-user.ts.
+  const join    = useJoinDestination();
+  const knownUs = join !== '/auth/signup';
 
   return (
     <section className="bg-white">
@@ -36,23 +40,23 @@ export default function HeroSection() {
             transition={{ duration: 2.5, repeat: Infinity }}
           >
             <Button asChild className="w-full sm:w-auto bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
-              <Link to="/auth/signup" className="flex items-center justify-center gap-2">
+              <Link to={join} className="flex items-center justify-center gap-2">
                 {t('landing.signup.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </Button>
           </motion.div>
 
-          {/* The button can only send everyone to one place, and new accounts are
-              what it is for. Returning users need their own way through, so the
-              log-in path sits directly under it rather than in the navbar only. */}
+          {/* The button guesses; this line is the other door, always. It flips with the
+              button so the two never point at the same page — a visitor sent to log-in
+              needs "create an account" here, not a second link to log in. */}
           <p className="mt-4 text-xs text-brand-mid-grey">
-            {t('landing.signup.haveAccount')}{' '}
+            {t(knownUs ? 'landing.signup.newHere' : 'landing.signup.haveAccount')}{' '}
             <Link
-              to="/auth/login"
+              to={knownUs ? '/auth/signup' : '/auth/login'}
               className="font-semibold text-brand-near-black underline underline-offset-4 hover:text-brand-black"
             >
-              {t('landing.signup.logIn')}
+              {t(knownUs ? 'landing.signup.createAccount' : 'landing.signup.logIn')}
             </Link>
           </p>
         </motion.div>
