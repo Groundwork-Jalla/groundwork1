@@ -10,6 +10,7 @@ import {
 } from '@/lib/supabase/notifications';
 import type { NotificationRow } from '@/lib/supabase/notifications';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -62,6 +63,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ userId }: NotificationBellProps) {
+  const t = useT();
   const [open, setOpen]               = useState(false);
   const [notifs, setNotifs]           = useState<NotificationRow[]>([]);
   const [loaded, setLoaded]           = useState(false);

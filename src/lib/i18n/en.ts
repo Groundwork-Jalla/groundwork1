@@ -287,6 +287,7 @@ export const en = {
     wizardEstimate:   'Wizard estimate',
     wizardEstimateSub:'Auto-calculated from build details',
     confirmedBudget:  'Confirmed budget',
+    estimate: 'Estimate',
     confirmBudgetCta: 'Confirm budget & start tracking',
     confirmBudgetNote:'Activates Stage 1, sets the payment schedule, and notifies the client.',
 
@@ -527,6 +528,7 @@ export const en = {
     delete:         'Delete',
     edit:           'Edit',
     loading:        'Loading…',
+    uploading:      'Uploading…',
     search:         'Search',
     viewAll:        'View all',
     learnMore:      'Learn more',
@@ -2544,6 +2546,7 @@ export const en = {
       markComplete:  'Mark complete',
       markReady:     'Mark ready for review',
       approveStage:  'Approve Stage {n}',
+      paymentRequired: 'Payment required before uploading evidence or approving this stage. Record payment in the {tab} tab.',
       requestVerify: 'Request Verification',
       confirmApproveTitle: 'Approve this stage?',
       confirmApproveBody:  'This will mark the stage complete, release the milestone payment, and unlock the next stage.',

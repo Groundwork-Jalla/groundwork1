@@ -299,6 +299,7 @@ export const fr: Mirror<EnDict> = {
     wizardEstimate:   'Estimation de l\'assistant',
     wizardEstimateSub:'Calculée automatiquement à partir des détails du chantier',
     confirmedBudget:  'Budget confirmé',
+    estimate: 'Estimation',
     confirmBudgetCta: 'Confirmer le budget et démarrer le suivi',
     confirmBudgetNote:'Active l\'étape 1, fixe l\'échéancier de paiement et notifie le client.',
 
@@ -533,6 +534,7 @@ export const fr: Mirror<EnDict> = {
     delete:         'Supprimer',
     edit:           'Modifier',
     loading:        'Chargement…',
+    uploading:      'Envoi en cours…',
     search:         'Rechercher',
     viewAll:        'Tout voir',
     learnMore:      'En savoir plus',
@@ -2528,6 +2530,7 @@ export const fr: Mirror<EnDict> = {
       markComplete:  'Marquer comme terminée',
       markReady:     'Marquer prête pour révision',
       approveStage:  "Valider l'étape {n}",
+      paymentRequired: "Le paiement est requis avant d'ajouter des justificatifs ou de valider cette étape. Enregistrez-le dans l'onglet {tab}.",
       requestVerify: 'Demander la vérification',
       confirmApproveTitle: 'Valider cette étape ?',
       confirmApproveBody:  "Cela marquera l'étape comme terminée, débloquera le paiement du jalon et ouvrira l'étape suivante.",

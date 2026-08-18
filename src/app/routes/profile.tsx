@@ -166,6 +166,7 @@ function Field({
 // ── Upload progress bar ───────────────────────────────────
 
 function UploadBar({ progress }: { progress: number }) {
+  const t = useT();
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-1">
