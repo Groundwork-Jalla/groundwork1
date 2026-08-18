@@ -50,7 +50,7 @@ function usePopupFlow(href: string, onDone: () => void) {
   useEffect(() => stop, [stop]);
 
   const open = useCallback(() => {
-    const w = window.open(href, 'jalla-management-step', 'width=560,height=760,noopener=no');
+    const w = window.open(href, 'jalla-management-step', 'popup=yes,width=560,height=760');
     setOpened(true);
     if (!w) { setBlocked(true); return; }   // blocked: the anchor fallback takes over
 
