@@ -28,7 +28,6 @@ export default [
 
   // Project wizard — full-screen, no sidebar (WizardShell owns the viewport)
   route("projects/new",          "routes/projects/new.tsx"),
-  route("__bpreview",            "routes/__bpreview.tsx"),
 
   // Protected app routes — all share the sidebar shell
   layout("routes/_layout.tsx", [
