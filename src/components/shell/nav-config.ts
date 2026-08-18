@@ -29,14 +29,16 @@ export interface NavItem {
 }
 
 /** Client app. The first five also become the mobile tab bar. */
+// Order is Favour's, set 19 Aug 2026: the money and the people move up, reference
+// material moves down. Roughly how often an owner mid-build needs each one.
 export const CLIENT_NAV: NavItem[] = [
   { to: '/dashboard',     labelKey: 'nav.dashboard',                               icon: LayoutDashboard, exact: true },
   { to: '/projects',      labelKey: 'nav.myProjects', shortKey: 'nav.projects',    icon: FolderOpen },
-  { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
-  { to: '/resources',     labelKey: 'nav.resources',                               icon: BookOpen },
-  { to: '/contractors',   labelKey: 'nav.contractors',                             icon: HardHat },
   { to: '/payments',      labelKey: 'nav.payments',                                icon: CreditCard },
+  { to: '/contractors',   labelKey: 'nav.contractors',                             icon: HardHat },
+  { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
   { to: '/notifications', labelKey: 'nav.notifications',                           icon: Bell },
+  { to: '/resources',     labelKey: 'nav.resources',                               icon: BookOpen },
   { to: '/profile',       labelKey: 'nav.settings',                                icon: Settings, exact: true },
   // Reachable from the sidebar at last — /help was a routed page with no way in.
   { to: '/help',          labelKey: 'nav.help',                                    icon: HelpCircle },

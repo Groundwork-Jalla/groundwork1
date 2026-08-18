@@ -1,3 +1,7 @@
+import { describe, expect, it } from 'vitest';
+import { runTakeoff } from './engine';
+import type { DetailedTakeoffInput } from './engine';
+import { CITY_RATES, CM_CITY_CODES, CM_RATE_FALLBACK } from './model';
 
 // ── City re-baseline (migration 044) ─────────────────────
 //
@@ -12,8 +16,8 @@ describe('city cost deltas realise Vanessa 17 Aug 2026', () => {
     roofType: 'long_span_aluminum' as const,
     livingRooms: 1, kitchens: 1, offices: 0, hasBoysQuarters: false,
   };
-  const totalIn = (code: string, shape: typeof REF = REF) =>
-    runTakeoff(shape, CM_RATE_FALLBACK, CITY_RATES[code])!.totalLocal;
+  const totalIn = (code: string, shape: Partial<typeof REF> = REF) =>
+    runTakeoff(shape as DetailedTakeoffInput, CM_RATE_FALLBACK, CITY_RATES[code])!.totalLocal;
 
   it('hits each stated delta on the reference build', () => {
     const base = totalIn('YAOUNDE');
