@@ -754,6 +754,7 @@ export const en = {
     // fees as well as the construction itself.
     estimatedCost: "Estimated project cost",
     indicative: "Indicative only. Actual costs vary by site, contractor, and local market.",
+    assumes:       "Assumes a single-family home with a pitched roof, one living room and one kitchen.",
     trackReal: "Want to track a real project?",
     trackRealBody: "Create a Groundwork account to manage stages, documents, and contractor payments.",
     milestonesTitle: "Payment Milestone Generator",

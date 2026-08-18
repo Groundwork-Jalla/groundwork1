@@ -761,6 +761,7 @@ export const fr: Mirror<EnDict> = {
     finishLevel: "Niveau de finition",
     estimatedCost: "Coût total estimé du projet",
     indicative: "À titre indicatif. Les coûts réels varient selon le terrain, l'entrepreneur et le marché local.",
+    assumes:       "Hypothèses : maison individuelle, toiture en pente, un séjour et une cuisine.",
     trackReal: "Vous voulez suivre un vrai chantier ?",
     trackRealBody: "Créez un compte Groundwork pour gérer les étapes, les documents et les paiements des entrepreneurs.",
     milestonesTitle: "Générateur d'échéancier de paiement",

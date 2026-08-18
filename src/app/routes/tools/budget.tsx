@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { BUDGET_SLICES, calculateBudget, sliceShares } from '@/lib/budget';
 import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+import type { WizardFormData } from '@/types/project';
 import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
@@ -11,6 +12,23 @@ const FINISH_LEVELS = [
   { value: 'premium',  labelKey: 'tools.finish.premium',  descKey: 'tools.finish.premiumDesc'  },
   { value: 'luxury',   labelKey: 'tools.finish.luxury',   descKey: 'tools.finish.luxuryDesc'   },
 ] as const satisfies readonly { value: string; labelKey: TKey; descKey: TKey }[];
+
+/**
+ * What the tool assumes so it can ask four questions instead of nine.
+ *
+ * `long_span_aluminum` and `single_family` are the common case in the Cameroon
+ * corridor; one living room and one kitchen match a typical family home. Surfaced
+ * to the visitor as `tools.assumes` rather than left implicit — a figure someone
+ * plans a build around should say what it priced.
+ */
+const ASSUMED = {
+  buildingType:    'single_family',
+  roofType:        'long_span_aluminum',
+  livingRooms:     1,
+  kitchens:        1,
+  offices:         0,
+  hasBoysQuarters: false,
+} as const satisfies Partial<WizardFormData>;
 
 function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   return (
@@ -36,11 +54,23 @@ export default function BudgetTool() {
   const [country, setCountry] = useState(DEFAULT_COUNTRY_CODE);
   const [sqm, setSqm] = useState(150);
   const [floors, setFloors] = useState(1);
+  const [bedrooms, setBedrooms] = useState(3);
+  const [bathrooms, setBathrooms] = useState(2);
   const [finishLevel, setFinishLevel] = useState<'standard' | 'premium' | 'luxury'>('standard');
 
+  // Room counts are not decoration here: for a country with a take-off model
+  // (Cameroon today) the engine prices doors, windows, sanitary ware and finishes
+  // off them. Passing only country/sqm/floors quoted an empty shell — 150 sqm came
+  // out at $39,072 against the wizard's $52,311 for the same build, a 34% shortfall
+  // in the direction that hurts, since someone budgets against this figure.
+  //
+  // The rest are fixed rather than asked for. They move the total far less than
+  // beds and baths do, and this page has to stay a 30-second answer; ASSUMPTIONS
+  // below is shown on the page so the number is not silently a different build
+  // from the one the visitor has in mind.
   const budget = useMemo(() =>
-    calculateBudget({ country, sqm, floors, finishLevel }),
-    [country, sqm, floors, finishLevel],
+    calculateBudget({ country, sqm, floors, finishLevel, bedrooms, bathrooms, ...ASSUMED }),
+    [country, sqm, floors, finishLevel, bedrooms, bathrooms],
   );
   const shares = useMemo(() => sliceShares(budget), [budget]);
 
@@ -97,9 +127,19 @@ export default function BudgetTool() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('tools.floors')}</label>
-              <Stepper value={floors} onChange={setFloors} min={1} max={10} />
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
+              <div>
+                <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('tools.floors')}</label>
+                <Stepper value={floors} onChange={setFloors} min={1} max={10} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('wizardFields.bedrooms')}</label>
+                <Stepper value={bedrooms} onChange={setBedrooms} min={0} max={20} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-2 uppercase tracking-wide">{t('wizardFields.bathrooms')}</label>
+                <Stepper value={bathrooms} onChange={setBathrooms} min={0} max={20} />
+              </div>
             </div>
           </div>
 
@@ -162,6 +202,9 @@ export default function BudgetTool() {
 
             <p className="mt-4 text-[10px] text-brand-mid-grey leading-relaxed">
               {t('tools.indicative')}
+            </p>
+            <p className="mt-1.5 text-[10px] text-brand-mid-grey leading-relaxed">
+              {t('tools.assumes')}
             </p>
           </div>
 
