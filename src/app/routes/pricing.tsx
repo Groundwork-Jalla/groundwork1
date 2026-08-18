@@ -1,8 +1,11 @@
-import { Link } from 'react-router';
+import { useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { useForceLight } from '@/hooks/useForceLight';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { startGuestJallaVerifyCheckout } from '@/lib/payments/subscription';
+import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────
@@ -31,6 +34,12 @@ interface Plan {
    * visitor away, so it has to answer the question itself.
    */
   ctaHrefAuthed?: string;
+  /**
+   * This plan can be paid for without an account. Stripe collects the email at
+   * checkout and the webhook provisions the account from it, so a visitor with their
+   * card out is not sent to a sign-up form first.
+   */
+  guestCheckout?: boolean;
   highlighted: boolean;
   badgeKey?: TKey;
   features: PlanFeature[];
@@ -71,8 +80,11 @@ const PLANS: Plan[] = [
     ctaKey:       'pricing.plans.jallaVerify.cta',
     // ?redirect is read by /auth/login, so someone who already has an account and is
     // merely signed out lands on checkout rather than the dashboard.
+    // Signed out this goes straight to Stripe (see guestCheckout). The href is the
+    // no-JS fallback and the destination if checkout cannot be reached.
     ctaHref: '/auth/signup?redirect=%2Fupgrade',
     ctaHrefAuthed: '/upgrade',
+    guestCheckout: true,
     highlighted: true,
     badgeKey: 'pricing.mostPopular',
     features: [
@@ -123,9 +135,26 @@ const FAQ: { q: TKey; a: TKey }[] = [
 function PlanCard({ plan, index }: { plan: Plan; index: number }) {
   const t = useT();
   const { session } = useAuth();
+  const [busy, setBusy]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // React Router renders an absolute scheme (Jalla Management's mailto:) as a plain
   // anchor, so one <Link> covers both internal and external destinations.
   const href = session && plan.ctaHrefAuthed ? plan.ctaHrefAuthed : plan.ctaHref;
+  // Only when signed out: a signed-in user goes through the authenticated endpoint so
+  // the charge lands on the Stripe customer they already have.
+  const payAsGuest = Boolean(plan.guestCheckout) && !session;
+
+  async function handleGuestCheckout() {
+    setError(null);
+    setBusy(true);
+    try {
+      await startGuestJallaVerifyCheckout();   // navigates away; nothing after this runs
+    } catch (err) {
+      setError(errorMessage(err, t('pricing.checkoutFailed')));
+      setBusy(false);
+    }
+  }
 
   return (
     <motion.div
@@ -181,18 +210,34 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
       </ul>
 
       {/* CTA */}
-      <Link
-        to={href}
-        className={[
-          'flex items-center justify-center gap-2 rounded-xl text-sm font-semibold px-4 py-3 transition-colors',
-          plan.highlighted
-            ? 'bg-brand-near-black text-white hover:bg-black'
-            : 'bg-brand-light-grey text-brand-near-black hover:bg-brand-border-grey',
-        ].join(' ')}
-      >
-        {t(plan.ctaKey)}
-        <ArrowRight className="size-3.5" />
-      </Link>
+      {payAsGuest ? (
+        <button
+          type="button"
+          onClick={handleGuestCheckout}
+          disabled={busy}
+          className="flex items-center justify-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-3 transition-colors hover:bg-black disabled:opacity-60"
+        >
+          {busy ? t('pricing.redirecting') : t(plan.ctaKey)}
+          {!busy && <ArrowRight className="size-3.5" />}
+        </button>
+      ) : (
+        <Link
+          to={href}
+          className={[
+            'flex items-center justify-center gap-2 rounded-xl text-sm font-semibold px-4 py-3 transition-colors',
+            plan.highlighted
+              ? 'bg-brand-near-black text-white hover:bg-black'
+              : 'bg-brand-light-grey text-brand-near-black hover:bg-brand-border-grey',
+          ].join(' ')}
+        >
+          {t(plan.ctaKey)}
+          <ArrowRight className="size-3.5" />
+        </Link>
+      )}
+      {error && <p className="mt-2 text-xs text-state-alert">{error}</p>}
+      {payAsGuest && !error && (
+        <p className="mt-2 text-center text-[11px] text-brand-mid-grey">{t('pricing.noAccountNeeded')}</p>
+      )}
     </motion.div>
   );
 }

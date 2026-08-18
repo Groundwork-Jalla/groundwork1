@@ -73,6 +73,26 @@ export async function startJallaVerifyCheckout(): Promise<void> {
   window.location.href = url;
 }
 
+/**
+ * Checkout for a visitor with no account. Stripe collects the email and the webhook
+ * provisions the account from it once payment succeeds — so nothing exists until money
+ * has actually moved, and an abandoned checkout leaves no trace.
+ *
+ * Unauthenticated by design; there is no token to send. A signed-in user must go
+ * through startJallaVerifyCheckout instead, or they would end up with a second Stripe
+ * customer and a split billing history.
+ */
+export async function startGuestJallaVerifyCheckout(): Promise<void> {
+  const res  = await fetch('/api/stripe/create-checkout-session-guest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok)   throw new Error(body?.error ?? 'Something went wrong. Please try again.');
+  if (!body?.url) throw new Error('No checkout URL returned.');
+  window.location.href = body.url;
+}
+
 /** Opens Stripe's hosted portal to change card, see invoices, or cancel. */
 export async function openBillingPortal(): Promise<void> {
   const { url } = await authedPost('/api/stripe/portal');

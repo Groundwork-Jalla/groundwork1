@@ -1,5 +1,5 @@
 import type Stripe from 'stripe';
-import { getStripe, getSupabaseAdmin } from '../_lib/stripe.js';
+import { findOrCreateUserByEmail, getStripe, getSupabaseAdmin, siteUrl } from '../_lib/stripe.js';
 
 /**
  * Stripe webhook — the only writer of subscription state.
@@ -91,8 +91,38 @@ export default async function handler(req: any, res: any) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode !== 'subscription') break;
-        const userId = session.metadata?.supabase_user_id ?? session.client_reference_id;
-        if (!userId || !session.subscription) break;
+        if (!session.subscription) break;
+
+        // Signed-in checkout puts the user id on the session. Guest checkout cannot —
+        // there was no session to derive one from — so the email Stripe collected is
+        // the identity, and the account is created from it now that money has actually
+        // moved. Nothing is provisioned when a guest session is merely started.
+        let userId = session.metadata?.supabase_user_id ?? session.client_reference_id;
+        if (!userId) {
+          const email = session.customer_details?.email ?? session.customer_email;
+          if (!email) {
+            console.error('[stripe] guest checkout with no email:', session.id);
+            break;
+          }
+          const { userId: resolved, created } = await findOrCreateUserByEmail(admin, email, {
+            fullName: session.customer_details?.name ?? null,
+            redirectTo: `${siteUrl(req)}/auth/callback`,
+          });
+          userId = resolved;
+          console.info('[stripe] guest checkout', created ? 'provisioned' : 'matched', email);
+
+          // Stamp the id onto the customer and subscription. Later lifecycle events
+          // reference those, and resolving them by metadata is cheaper and less
+          // ambiguous than looking the customer up every time.
+          await Promise.all([
+            stripe.customers.update(String(session.customer), {
+              metadata: { supabase_user_id: userId },
+            }),
+            stripe.subscriptions.update(String(session.subscription), {
+              metadata: { supabase_user_id: userId, source: 'guest_pricing' },
+            }),
+          ]).catch(err => console.warn('[stripe] could not backfill metadata:', err));
+        }
 
         const sub = await stripe.subscriptions.retrieve(String(session.subscription));
         await applySubscription(admin, userId, sub, event.id);
@@ -106,7 +136,11 @@ export default async function handler(req: any, res: any) {
         const userId = sub.metadata?.supabase_user_id
           ?? (await userIdForCustomer(admin, String(sub.customer)));
         if (!userId) {
-          console.warn('[stripe] no user for subscription', sub.id);
+          // Expected for guest checkout: Stripe can deliver subscription.created before
+          // checkout.session.completed, and until the latter runs there is no email on
+          // the subscription and no profile carrying the customer id. That handler
+          // applies the same state, so dropping this one loses nothing.
+          console.info('[stripe] no user yet for subscription', sub.id, '- awaiting checkout.session.completed');
           break;
         }
         await applySubscription(

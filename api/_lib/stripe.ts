@@ -69,3 +69,50 @@ export function siteUrl(req: { headers: Record<string, unknown> }): string {
   const proto = h.startsWith('localhost') ? 'http' : 'https';
   return `${proto}://${h}`;
 }
+
+/**
+ * The Supabase user that owns an email address, creating one if there is none.
+ *
+ * Used by the guest checkout path: someone can pay from the pricing page without an
+ * account, and the only identity Stripe gives us afterwards is the email they typed
+ * into Checkout. Rather than parking the subscription in a pending state and handing
+ * it out to whoever later claims that address, the account is created here and
+ * Supabase emails an invite. Control of the inbox is then proven by Supabase before
+ * anyone can sign in — which is the property a claim-by-email flow would not have if
+ * email confirmation were ever switched off.
+ *
+ * `profiles.email` is a trigger-maintained mirror of `auth.users.email` (migration
+ * 025), so it can be queried under the service role without touching the auth schema.
+ * Matching is case-insensitive: Stripe returns the address exactly as typed.
+ */
+export async function findOrCreateUserByEmail(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  email: string,
+  opts: { fullName?: string | null; redirectTo?: string } = {},
+): Promise<{ userId: string; created: boolean }> {
+  const normalized = email.trim();
+
+  const { data: existing } = await admin
+    .from('profiles')
+    .select('id')
+    .ilike('email', normalized)      // no wildcards: exact match, case-insensitive
+    .maybeSingle();
+  if (existing?.id) return { userId: existing.id, created: false };
+
+  // inviteUserByEmail both creates the row in auth.users and sends the invite, so
+  // there is no window in which an account exists that nobody can get into. The
+  // handle_new_user trigger (025) creates the matching profiles row.
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(normalized, {
+    data: opts.fullName ? { full_name: opts.fullName } : undefined,
+    redirectTo: opts.redirectTo,
+  });
+  if (error) {
+    // A racing webhook retry may have created it a moment ago. Re-read before failing.
+    const { data: retry } = await admin
+      .from('profiles').select('id').ilike('email', normalized).maybeSingle();
+    if (retry?.id) return { userId: retry.id, created: false };
+    throw error;
+  }
+  if (!data.user) throw new Error(`invite returned no user for ${normalized}`);
+  return { userId: data.user.id, created: true };
+}
