@@ -1,6 +1,6 @@
 // Vercel Serverless Function — sends contractor invite email via Resend.
 // RESEND_API_KEY must be set in Vercel environment variables.
-import { buildInviteHtml, inviteSubject } from '../src/lib/email/invite-html';
+import { buildInviteHtml, inviteSubject } from '../src/lib/email/invite-html.js';
 
 /** Only 'en' and 'fr' exist; anything else from the client falls back rather than throws. */
 function normalizeLang(value: unknown): 'en' | 'fr' {

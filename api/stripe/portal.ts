@@ -1,4 +1,4 @@
-import { getStripe, getSupabaseAdmin, requireUser, siteUrl } from '../_lib/stripe';
+import { getStripe, getSupabaseAdmin, requireUser, siteUrl } from '../_lib/stripe.js';
 
 /**
  * Stripe Billing Portal session — update card, view invoices, cancel.

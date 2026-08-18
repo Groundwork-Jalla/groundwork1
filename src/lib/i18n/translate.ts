@@ -1,6 +1,6 @@
-import { en, type EnDict } from './en';
-import { fr } from './fr';
-import type { DeepKeys, Lang } from './types';
+import { en, type EnDict } from './en.js';
+import { fr } from './fr.js';
+import type { DeepKeys, Lang } from './types.js';
 
 /** Every valid dot-path into the dictionary — "nav.dashboard", "auth.login.title", … */
 export type TKey = DeepKeys<EnDict>;

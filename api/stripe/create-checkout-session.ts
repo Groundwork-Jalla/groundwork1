@@ -1,6 +1,6 @@
 import {
   getStripe, getSupabaseAdmin, jallaVerifyPriceId, requireUser, siteUrl,
-} from '../_lib/stripe';
+} from '../_lib/stripe.js';
 
 /**
  * Start a Jalla Verify subscription.

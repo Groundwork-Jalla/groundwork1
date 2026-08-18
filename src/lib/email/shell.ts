@@ -1,5 +1,5 @@
-import { LANG_META, type Lang } from '../i18n/types';
-import { translator } from '../i18n/translate';
+import { LANG_META, type Lang } from '../i18n/types.js';
+import { translator } from '../i18n/translate.js';
 
 export function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

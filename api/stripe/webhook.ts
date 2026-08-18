@@ -1,5 +1,5 @@
 import type Stripe from 'stripe';
-import { getStripe, getSupabaseAdmin } from '../_lib/stripe';
+import { getStripe, getSupabaseAdmin } from '../_lib/stripe.js';
 
 /**
  * Stripe webhook — the only writer of subscription state.

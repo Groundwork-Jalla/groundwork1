@@ -15,7 +15,7 @@
 //   boys' quarters    → dépendance (BQ)
 // =========================================================
 
-import type { EnDict } from './en';
+import type { EnDict } from './en.js';
 
 /** Maps the EN dictionary shape to plain mutable strings. */
 type Mirror<T> = {
