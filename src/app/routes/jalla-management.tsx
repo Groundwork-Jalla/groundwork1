@@ -128,6 +128,7 @@ function StepCard({
         )}
 
         {state === 'active' && (
+          <>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             {blocked ? (
               // Popup blocked, so there is nothing to watch. Fall back to a plain link
@@ -164,6 +165,7 @@ function StepCard({
           {opened && !blocked && (
             <p className="mt-2 text-xs text-brand-mid-grey">{t('jallaManagement.waiting')}</p>
           )}
+          </>
         )}
       </div>
     </div>
