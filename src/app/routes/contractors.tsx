@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { CONTRACTORS_LOCKED_FOR_DEMO } from '@/lib/demo-gate';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -655,6 +656,9 @@ export default function ContractorsPage() {
   const [profileTarget, setProfileTarget] = useState<Contractor | null>(null);
 
   useEffect(() => {
+    // TEMPORARY (demo gate): skip the fetch entirely, so no contractor name is
+    // downloaded. Hiding them in the render would still leave them in the network tab.
+    if (CONTRACTORS_LOCKED_FOR_DEMO) { setFetchState('ready'); return; }
     supabase
       .from('contractors')
       .select('*')
@@ -672,6 +676,9 @@ export default function ContractorsPage() {
   }, []);
 
   const visible = contractors.filter(c => matchesFilter(c, activeFilter) && matchesQuery(c, query));
+
+  // TEMPORARY (demo gate) — see lib/demo-gate.ts.
+  if (CONTRACTORS_LOCKED_FOR_DEMO) return <ContractorsLocked />;
 
   return (
     <div className="bg-brand-off-white min-h-full">
@@ -827,6 +834,53 @@ export default function ContractorsPage() {
       </div>
 
       <BackToTop />
+    </div>
+  );
+}
+
+// ── TEMPORARY: demo gate prompt ────────────────────────────
+//
+// Delete this component together with lib/demo-gate.ts. It deliberately borrows the
+// page's own surface and the Lock affordance already used by the plan gate above, so
+// it reads as the same product rather than a placeholder bolted on.
+
+function ContractorsLocked() {
+  const t = useT();
+  return (
+    <div className="bg-brand-off-white min-h-full dark:bg-transparent">
+      <div className="mx-auto flex min-h-[70vh] max-w-5xl items-center justify-center px-4 py-10 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          role="dialog"
+          aria-modal="false"
+          className="w-full max-w-md rounded-2xl border border-brand-border-grey bg-white p-8 text-center shadow-[0_8px_40px_rgba(0,0,0,0.10)] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+        >
+          <span className="mx-auto mb-5 flex size-11 items-center justify-center rounded-full bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black">
+            <Lock className="size-5" />
+          </span>
+          <h1 className="text-lg font-bold text-brand-near-black dark:text-white">
+            {t('contractors.lockedTitle')}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
+            {t('contractors.lockedBody')}
+          </p>
+          <Link
+            to="/upgrade"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-brand-near-black dark:hover:bg-brand-off-white"
+          >
+            {t('contractors.lockedCta')}
+            <ChevronRight className="size-4" />
+          </Link>
+          <Link
+            to="/dashboard"
+            className="mt-3 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
+          >
+            {t('contractors.lockedBack')}
+          </Link>
+        </motion.div>
+      </div>
     </div>
   );
 }
