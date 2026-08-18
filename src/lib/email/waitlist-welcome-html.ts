@@ -1,6 +1,5 @@
 import { emailShell, esc } from './shell';
 import { translator } from '../i18n/translate';
-import { SKOOL_URL } from '../community';
 import type { Lang } from '../i18n/types';
 
 // =========================================================
@@ -39,17 +38,5 @@ export function buildWaitlistWelcomeHtml(lang: Lang, fullName: string): string {
       ${esc(t('email.waitlist.body2'))}
     </p>
 
-    <table cellpadding="0" cellspacing="0" style="margin:22px 0 6px;">
-      <tr><td style="background:#0a0a0a;border-radius:10px;">
-        <a href="${esc(SKOOL_URL)}"
-           style="display:inline-block;padding:13px 24px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
-          ${esc(t('email.waitlist.cta'))}
-        </a>
-      </td></tr>
-    </table>
-
-    <p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:#8a8a87;">
-      ${esc(t('email.waitlist.ctaNote'))}
-    </p>
   `);
 }

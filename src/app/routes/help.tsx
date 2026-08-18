@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlayCircle,
-  Users,
   Mail,
   ChevronDown,
   MessageSquare,
@@ -325,19 +323,6 @@ export default function HelpPage() {
         >
           {t('help.watchVideos')}
         </a>
-      ),
-    },
-    {
-      icon: Users,
-      title: t('help.tiles.communityTitle'),
-      desc: t('help.tiles.communityDesc'),
-      action: (
-        <Link
-          to="/community"
-          className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
-        >
-          {t('help.joinUs')}
-        </Link>
       ),
     },
     {
