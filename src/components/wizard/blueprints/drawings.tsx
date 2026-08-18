@@ -507,95 +507,97 @@ export const transit_oriented = (
 // Sectional details rather than elevations: the choice here is about build-up, and a
 // section is the only view that shows a build-up.
 
+// The three pitched coverings share a geometry — in reality they differ only in what
+// is laid on the rafters. Drawn small they were three identical triangles, so these are
+// zoomed slope details: enough of the pitch to place you, with the covering at a scale
+// where its profile is the subject rather than a texture.
+
+/** Common furniture for a slope detail: rafter, ridge and the eaves line. */
+function Slope({ label }: { label: string }) {
+  return (
+    <>
+      <Ink as="line" x1={24} y1={188} x2={296} y2={188} bold />
+      <Ink as="line" x1={40} y1={60} x2={40} y2={188} faint />
+      <Ink as="line" x1={280} y1={148} x2={280} y2={188} faint />
+      <Dim x1={40} y1={202} x2={280} y2={202} label="RAFTER SPAN" />
+      <Note x={160} y={38} anchor="middle">{label}</Note>
+    </>
+  );
+}
+
 export const long_span_aluminum = (
   <Blueprint>
-    <Ink as="line" x1={30} y1={176} x2={290} y2={176} bold />
-    <Ink d="M 40 150 L 160 78 L 280 150" bold />
-    {/* Purlins on rafters, standing-seam sheet over */}
-    {[0, 1, 2, 3, 4].map(i => (
-      <Ink key={`l${i}`} as="line" x1={52 + i * 22} y1={143 - i * 13.2} x2={58 + i * 22} y2={150 - i * 13.2} faint />
+    <Slope label="LONG-SPAN ALUMINIUM — SLOPE DETAIL" />
+    {/* Rafter, then purlins running across it, then sheet with raised standing seams */}
+    <Ink d="M 40 74 L 280 158" bold />
+    <Ink d="M 40 86 L 280 170" />
+    {Array.from({ length: 7 }, (_, i) => i).map(i => (
+      <Ink key={`p${i}`} as="rect" x={58 + i * 34} y={84 + i * 11.9} width={9} height={7} faint />
     ))}
-    {[0, 1, 2, 3, 4].map(i => (
-      <Ink key={`r${i}`} as="line" x1={262 - i * 22} y1={143 - i * 13.2} x2={256 - i * 22} y2={150 - i * 13.2} faint />
+    {/* Standing seams: the tell — upstands at every sheet joint */}
+    {Array.from({ length: 9 }, (_, i) => i).map(i => (
+      <Ink key={`s${i}`} d={`M ${50 + i * 27} ${72 + i * 9.4} l 2 -11 l 4 0 l 2 11`} />
     ))}
-    <Ink d="M 44 154 L 160 84 L 276 154" faint />
-    <Ink as="line" x1={40} y1={150} x2={160} y2={176} faint />
-    <Ink as="line" x1={280} y1={150} x2={160} y2={176} faint />
-    <Ink as="line" x1={160} y1={78} x2={160} y2={176} faint />
-    <Note x={196} y={110} size={6}>STANDING-SEAM SHEET</Note>
-    <Note x={196} y={122} size={6}>ON TIMBER PURLINS</Note>
-    <Ink as="line" x1={190} y1={107} x2={172} y2={98} faint />
-    <Dim x1={40} y1={192} x2={280} y2={192} label="SPAN" />
-    <Note x={160} y={62} anchor="middle">LONG-SPAN ALUMINIUM — SECTION</Note>
+    <Ink d="M 40 74 L 40 86" />
+    <Ink d="M 280 158 L 280 170" />
+    <Note x={196} y={104} size={6}>0.55mm PROFILED SHEET</Note>
+    <Note x={196} y={114} size={6}>ON 50x75 PURLINS @ 900</Note>
+    <Ink as="line" x1={192} y1={101} x2={168} y2={92} faint />
+    <Note x={44} y={64} size={6}>RIDGE</Note>
+    <Note x={262} y={182} size={6} anchor="end">EAVES</Note>
   </Blueprint>
 );
 
 export const clay_tiles = (
   <Blueprint>
-    <Ink as="line" x1={30} y1={176} x2={290} y2={176} bold />
-    <Ink d="M 44 148 L 160 74 L 276 148" bold />
-    {/* Lapped tile courses stepping up the pitch */}
-    {Array.from({ length: 9 }, (_, i) => i).map(i => (
-      <Ink key={`l${i}`} d={`M ${48 + i * 12} ${146 - i * 8} q 5 -4 10 0`} faint />
+    <Slope label="CLAY TILE — SLOPE DETAIL" />
+    {/* Battens on rafter, then interlocking pantiles laid to a lap */}
+    <Ink d="M 40 78 L 280 162" bold />
+    <Ink d="M 40 92 L 280 176" />
+    {Array.from({ length: 8 }, (_, i) => i).map(i => (
+      <Ink key={`b${i}`} as="rect" x={62 + i * 29} y={88 + i * 10.2} width={7} height={6} faint />
     ))}
-    {Array.from({ length: 9 }, (_, i) => i).map(i => (
-      <Ink key={`r${i}`} d={`M ${262 - i * 12} ${146 - i * 8} q -5 -4 -10 0`} faint />
+    {/* Each course a curved pantile lapping the one below — the clay tell */}
+    {Array.from({ length: 10 }, (_, i) => i).map(i => (
+      <Ink key={`t${i}`}
+        d={`M ${44 + i * 24} ${70 + i * 8.4} q 8 -9 16 0 q 8 -9 16 0`} />
     ))}
-    <Ink d="M 50 152 L 160 82 L 270 152" faint />
-    <Ink as="rect" x={152} y={68} width={16} height={8} rx={3} />
-    <Ink as="line" x1={44} y1={148} x2={38} y2={154} />
-    <Ink as="line" x1={276} y1={148} x2={282} y2={154} />
-    <Note x={198} y={112} size={6}>CLAY PANTILE, LAPPED</Note>
-    <Ink as="line" x1={194} y1={109} x2={176} y2={100} faint />
-    <Dim x1={44} y1={192} x2={276} y2={192} label="SPAN" />
-    <Note x={160} y={58} anchor="middle">CLAY TILE — SECTION</Note>
-  </Blueprint>
-);
-
-export const concrete_flat = (
-  <Blueprint>
-    <Ink as="line" x1={30} y1={186} x2={290} y2={186} bold />
-    {/* Slab with falls, upstand parapets, and a rainwater outlet */}
-    <Ink as="rect" x={52} y={112} width={216} height={18} bold />
-    <Hatch x={52} y={112} w={216} h={18} gap={9} />
-    <Ink d="M 52 108 L 160 100 L 268 108" faint />
-    <Ink as="rect" x={44} y={92} width={12} height={38} />
-    <Ink as="rect" x={264} y={92} width={12} height={38} />
-    <Ink as="line" x1={44} y1={92} x2={56} y2={92} bold />
-    <Ink as="line" x1={264} y1={92} x2={276} y2={92} bold />
-    <Ink as="line" x1={64} y1={130} x2={64} y2={186} faint />
-    <Ink as="line" x1={256} y1={130} x2={256} y2={186} faint />
-    <Ink as="line" x1={160} y1={130} x2={160} y2={186} faint />
-    <Ink d="M 84 104 L 92 100" faint />
-    <Note x={100} y={96} size={6}>FALL 1:80</Note>
-    <Ink as="rect" x={222} y={126} width={8} height={10} faint />
-    <Note x={236} y={146} size={6}>RWO</Note>
-    <Dim x1={52} y1={200} x2={268} y2={200} label="SPAN" />
-    <Note x={160} y={78} anchor="middle">CONCRETE FLAT SLAB — SECTION</Note>
+    <Ink d="M 40 78 L 40 92" />
+    <Ink d="M 280 162 L 280 176" />
+    <Note x={200} y={112} size={6}>INTERLOCKING CLAY PANTILE</Note>
+    <Note x={200} y={122} size={6}>100mm LAP ON 38x25 BATTEN</Note>
+    <Ink as="line" x1={196} y1={109} x2={172} y2={98} faint />
+    <Note x={44} y={64} size={6}>RIDGE</Note>
   </Blueprint>
 );
 
 export const shingle = (
   <Blueprint>
-    <Ink as="line" x1={30} y1={176} x2={290} y2={176} bold />
-    <Ink d="M 46 146 L 160 76 L 274 146" bold />
-    {/* Staggered shingle courses */}
-    {Array.from({ length: 8 }, (_, i) => i).map(i => (
-      <Ink key={`c${i}`} d={`M ${50 + i * 13} ${144 - i * 8.5} L ${64 + i * 13} ${135 - i * 8.5}`} faint />
+    <Slope label="SHINGLE — SLOPE DETAIL" />
+    {/* Sarking board on the rafter, then discrete plates each lapping the one below.
+        Drawn as separate tabs with a visible butt end, which is what separates a
+        shingle from the continuous sheet of long-span and the curve of a pantile. */}
+    <Ink d="M 40 78 L 280 162" bold />
+    <Ink d="M 40 90 L 280 174" />
+    {Array.from({ length: 13 }, (_, i) => i).map(i => {
+      const x = 46 + i * 18;
+      const y = 66 + i * 6.3;
+      return (
+        <Ink key={`t${i}`} d={`M ${x} ${y} l 26 9.1 l -3.5 4 l -26 -9.1 Z`} />
+      );
+    })}
+    {/* Butt shadow under each course — the depth that says these are laid, not rolled */}
+    {Array.from({ length: 13 }, (_, i) => i).map(i => (
+      <Ink key={`s${i}`} as="line" faint
+        x1={46 + i * 18 + 26} y1={66 + i * 6.3 + 9.1}
+        x2={46 + i * 18 + 22.5} y2={66 + i * 6.3 + 13.1} />
     ))}
-    {Array.from({ length: 8 }, (_, i) => i).map(i => (
-      <Ink key={`d${i}`} d={`M ${270 - i * 13} ${144 - i * 8.5} L ${256 - i * 13} ${135 - i * 8.5}`} faint />
-    ))}
-    {Array.from({ length: 4 }, (_, i) => i).map(i => (
-      <Ink key={`s${i}`} as="line" x1={70 + i * 20} y1={131 - i * 12.5} x2={78 + i * 20} y2={126 - i * 12.5} faint />
-    ))}
-    <Ink d="M 52 150 L 160 84 L 268 150" faint />
-    <Ink as="line" x1={160} y1={76} x2={160} y2={176} faint />
-    <Note x={196} y={110} size={6}>ASPHALT SHINGLE</Note>
-    <Note x={196} y={122} size={6}>ON SARKING BOARD</Note>
-    <Ink as="line" x1={192} y1={107} x2={174} y2={98} faint />
-    <Dim x1={46} y1={192} x2={274} y2={192} label="SPAN" />
-    <Note x={160} y={60} anchor="middle">SHINGLE — SECTION</Note>
+    <Ink d="M 40 78 L 40 90" />
+    <Ink d="M 280 162 L 280 174" />
+    <Note x={206} y={112} size={6}>ASPHALT SHINGLE, 3-TAB</Note>
+    <Note x={206} y={122} size={6}>ON 18mm SARKING BOARD</Note>
+    <Ink as="line" x1={202} y1={109} x2={180} y2={100} faint />
+    <Note x={44} y={62} size={6}>RIDGE</Note>
   </Blueprint>
 );
 
