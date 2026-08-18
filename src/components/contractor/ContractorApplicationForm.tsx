@@ -260,7 +260,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       void saveApplicationDraft(draftRef.current, {
         fullName, email, phone, role: role || undefined,
         payload: snapshot, progressPct,
-      }).then(() => setDraftSaved(true));
+      }).then(ok => { if (ok) setDraftSaved(true); });
     }, 2_000);
     return () => clearTimeout(timer);
     // `serialised` stands in for every field in `snapshot`.

@@ -60,14 +60,20 @@ export interface DraftSnapshot {
  * Upsert rather than insert-then-update: the first save creates the row and every
  * subsequent one replaces it, with no round trip to find out which case we are in.
  */
-export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Promise<void> {
+export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Promise<boolean> {
   try {
     await writeDraft(id, snap);
+    return true;
   } catch (err) {
     // Swallowed on purpose, including a rejected fetch. Logged so it is visible in the
     // console during testing, but never thrown — an autosave must not be able to
     // interrupt someone applying.
+    //
+    // The boolean is what stops the form claiming "Answers saved" when nothing was:
+    // before migration 043 runs, every one of these writes fails, and a badge that
+    // appears anyway would turn the disclosure above it into a false statement.
     console.warn('[draft] save failed', err);
+    return false;
   }
 }
 
@@ -137,12 +143,10 @@ export async function fetchApplicationDrafts(unsubmittedOnly = true): Promise<Dr
   if (unsubmittedOnly) q = q.is('submitted_application_id', null);
 
   const { data, error } = await q;
-  if (error) {
-    // Table absent means migration 043 has not run — degrade to empty rather than
-    // breaking the admin page.
-    if (error.code === '42P01') return [];
-    throw error;
-  }
+  // Not swallowed the way the applicant-side writes are. An admin seeing an empty list
+  // cannot tell "nobody started an application" from "migration 043 has not run", and
+  // those call for opposite actions — so the page says which.
+  if (error) throw error;
   return (data ?? []) as DraftRow[];
 }
 
