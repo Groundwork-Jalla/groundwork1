@@ -31,12 +31,12 @@ import { motion } from 'framer-motion';
  * photograph — without spending the one colour channel the design system reserves.
  */
 /**
- * Deep architectural blue. Dark enough in both themes that the white caption sitting
- * over it holds, and blue rather than the app's near-black because the panel is meant
- * to read as a drawing sheet, not as another dark surface — that contrast is the whole
- * point of the treatment.
+ * The sheet the drawings sit on. Deliberately the same surface the step 4+ panel uses
+ * (`bg-brand-off-white dark:bg-[#111]` on the aside in WizardShell) — the preview
+ * column should not change colour as the wizard advances, which a fixed blueprint blue
+ * made it do. Light paper with dark ink in light mode, the inverse in dark.
  */
-export const BLUEPRINT_BG = '#0c2340';
+export const BLUEPRINT_SURFACE = 'bg-brand-off-white dark:bg-[#111]';
 
 const DRAW = {
   hidden:  { pathLength: 0, opacity: 0 },
@@ -228,26 +228,42 @@ function Furniture() {
   );
 }
 
+/**
+ * Squared setting-out grid: a coarse 84px module with a fine 14px subdivision, the way
+ * a drawing sheet is ruled. Exported because steps 2, 3, 7 and 4+ all sit on it — step
+ * 4 previously used a dot screen, which read as a different surface mid-wizard.
+ *
+ * Two stacked layers rather than one with CSS variables: the ink colour has to invert
+ * between themes, and `dark:` on a whole layer is the one form of that Tailwind can
+ * express without a custom property.
+ */
+export function GridBackdrop() {
+  const lines = (rgb: string, coarse: number, fine: number) => ({
+    backgroundImage:
+      `linear-gradient(rgba(${rgb},${coarse}) 1px, transparent 1px),` +
+      `linear-gradient(90deg, rgba(${rgb},${coarse}) 1px, transparent 1px),` +
+      `linear-gradient(rgba(${rgb},${fine}) 1px, transparent 1px),` +
+      `linear-gradient(90deg, rgba(${rgb},${fine}) 1px, transparent 1px)`,
+    backgroundSize: '84px 84px, 84px 84px, 14px 14px, 14px 14px',
+  });
+  return (
+    <>
+      <div className="absolute inset-0 dark:hidden" style={lines('10,10,10', 0.09, 0.05)} />
+      <div className="absolute inset-0 hidden dark:block" style={lines('255,255,255', 0.075, 0.04)} />
+    </>
+  );
+}
+
 export function Blueprint({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute inset-0" style={{ backgroundColor: BLUEPRINT_BG }}>
+    <div className={`absolute inset-0 ${BLUEPRINT_SURFACE}`}>
       {/* Grid in CSS so it fills any aspect ratio, while the drawing stays centred
           and unstretched inside its own viewBox. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.075) 1px, transparent 1px),' +
-            'linear-gradient(90deg, rgba(255,255,255,0.075) 1px, transparent 1px),' +
-            'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),' +
-            'linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
-          backgroundSize: '84px 84px, 84px 84px, 14px 14px, 14px 14px',
-        }}
-      />
+      <GridBackdrop />
       <motion.svg
         viewBox="0 0 320 248"
         preserveAspectRatio="xMidYMid meet"
-        className="absolute inset-0 h-full w-full px-8 pb-24 pt-10 text-white"
+        className="absolute inset-0 h-full w-full px-8 pb-24 pt-10 text-brand-near-black dark:text-white"
         variants={CONTAINER}
         initial="hidden"
         animate="visible"
