@@ -5,13 +5,6 @@ import type { Lang } from '../i18n/types';
 // =========================================================
 // Waitlist welcome.
 //
-// Exists because the community link only appeared on the success screen, which people
-// close. Signing up and joining the community are two separate acts, and the second one
-// was only ever offered in the half-second after the first. This puts it somewhere they
-// can come back to.
-//
-// Written in the language of the signup form (waitlist_emails.lang, migration 034).
-// =========================================================
 
 export function waitlistWelcomeSubject(lang: Lang): string {
   return translator(lang)('email.waitlist.subject');

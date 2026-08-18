@@ -4,7 +4,7 @@ import { usePushForceLight } from '@/contexts/ThemeContext';
 /**
  * Pin a page to light mode for as long as it is mounted.
  *
- * The public marketing pages — landing, pricing, community, contractor-apply and
+ * The public marketing pages — landing, pricing, contractor-apply and
  * the legal pages — carry no `dark:` styling at all. Rendering them under a dark
  * `<html>` does not make them dark, it makes them a white page inside a dark
  * shell. So they opt out rather than being half-converted.
