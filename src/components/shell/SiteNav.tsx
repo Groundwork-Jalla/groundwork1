@@ -100,13 +100,15 @@ export function SiteNav() {
           </Button>
           {/* The one action the bar is for. Heavier weight, more padding and a lift
               off the dark ground, so it outranks the contractor button rather than
-              merely differing from it — white-on-black alone read as a peer. */}
+              merely differing from it — white-on-black alone read as a peer.
+
+              Literal hex rather than bg-white/text-brand-near-black: globals.css
+              carries a blanket `html.dark .bg-white { background: #1e1e1e }` for card
+              surfaces and it outranks the utility. This bar is dark in BOTH themes, so
+              that rule painted the primary CTA #1e1e1e on #0a0a0a — all but invisible
+              the moment anyone switched to dark mode. */}
           <Button
             asChild
-            // Literal hex, not bg-white/text-brand-near-black: globals.css carries a
-            // blanket `html.dark .bg-white { background: #1e1e1e }` for card surfaces,
-            // and it outranks the utility. This bar is dark in BOTH themes, so that
-            // rule turned the primary CTA into #1e1e1e on #0a0a0a — all but invisible.
             className="group h-9 shrink-0 rounded-md bg-[#ffffff] px-3 text-[11px] font-bold text-[#0a0a0a] shadow-[0_1px_12px_rgba(255,255,255,0.18)] hover:bg-[#f0f0f0] sm:h-auto sm:px-7 sm:py-2.5 sm:text-[13px]"
           >
             <Link to="/auth/signup" className="flex items-center gap-1.5">

@@ -1,3 +1,5 @@
+import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+
 // =========================================================
 // Project domain types — wizard, project records, stages
 // =========================================================
@@ -101,7 +103,7 @@ export interface WizardFormData {
 }
 
 export const WIZARD_DEFAULT_DATA: WizardFormData = {
-  country: '',
+  country: DEFAULT_COUNTRY_CODE,
   projectType: null,
   buildingType: null,
   floors: 1,

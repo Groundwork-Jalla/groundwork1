@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useTierBilling } from '@/lib/tier-labels';
 import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
+import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
@@ -226,7 +227,7 @@ export default function ProfilePage() {
     user?.user_metadata?.full_name ?? '',
   );
   const [phone, setPhone] = useState(user?.user_metadata?.phone ?? '');
-  const [country, setCountry] = useState(user?.user_metadata?.country ?? '');
+  const [country, setCountry] = useState(user?.user_metadata?.country ?? DEFAULT_COUNTRY_CODE);
   const [idDocumentPath, setIdDocumentPath] = useState(
     user?.user_metadata?.id_document_path ?? '',
   );

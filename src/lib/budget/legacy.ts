@@ -2,6 +2,7 @@ import type { ConstructionRate, WizardFormData } from '@/types/project';
 import { findCountry } from '@/lib/countries';
 import { CM_RATE_FALLBACK } from './model';
 import { roofMultipliers } from './roof';
+import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 
 /**
  * The pre-take-off multiplicative estimate.
@@ -39,7 +40,7 @@ export function legacyTotal(data: Partial<WizardFormData>, rate: ConstructionRat
  * rather than falling back to flat 1.0 finish multipliers.
  */
 export function buildLegacyRate(data: Partial<WizardFormData>): ConstructionRate {
-  const { country = 'NG', finishLevel = 'standard' } = data;
+  const { country = DEFAULT_COUNTRY_CODE, finishLevel = 'standard' } = data;
   if (country === 'CM') return CM_RATE_FALLBACK;
   const countryData = findCountry(country);
   const baseRate    = countryData

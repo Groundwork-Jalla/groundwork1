@@ -43,6 +43,19 @@ export const COUNTRIES: CountryOption[] = [
 // Popular picks shown in the grid on Step 1 — Cameroon first, then by region
 export const POPULAR_COUNTRY_CODES = ['CM', 'NG', 'GH', 'KE', 'ZA', 'UG', 'TZ', 'ET'];
 
+/**
+ * The country every picker starts on.
+ *
+ * Cameroon is the launch corridor (US diaspora clients, Cameroonian contractors),
+ * it is the only country with a calibrated take-off rate table, and it is already
+ * the `recommended: true` row above. Several pickers had independently defaulted to
+ * Nigeria, which put first-time visitors on rates we have not calibrated.
+ *
+ * Import this rather than writing 'CM' — one place to change when a second corridor
+ * opens.
+ */
+export const DEFAULT_COUNTRY_CODE = 'CM';
+
 export function findCountry(code: string): CountryOption | undefined {
   return COUNTRIES.find(c => c.code === code);
 }
