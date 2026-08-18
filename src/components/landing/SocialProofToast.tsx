@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useT, type TKey } from "@/lib/i18n";
 
 const ENTRIES: { name: string; location: string; msgKey: TKey }[] = [
-  { name: "Sarah",    location: "Lagos",   msgKey: "landing.social.joinedCommunity" },
+  { name: "Sarah",    location: "Lagos",   msgKey: "landing.social.signedUp" },
   { name: "Michael",  location: "London",  msgKey: "landing.social.joined" },
   { name: "James",    location: "Texas",   msgKey: "landing.social.justSignedUp" },
-  { name: "Anna",     location: "Nairobi", msgKey: "landing.social.waitingLaunch" },
-  { name: "David",    location: "Accra",   msgKey: "landing.social.joinedCommunity" },
+  { name: "Anna",     location: "Nairobi", msgKey: "landing.social.justSignedUp" },
+  { name: "David",    location: "Accra",   msgKey: "landing.social.joined" },
   { name: "Grace",    location: "Toronto", msgKey: "landing.social.signedUp" },
   { name: "Emmanuel", location: "Douala",  msgKey: "landing.social.joined" },
   { name: "Fatima",   location: "Dubai",   msgKey: "landing.social.justSignedUp" },

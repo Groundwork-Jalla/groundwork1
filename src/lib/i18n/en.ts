@@ -1533,10 +1533,8 @@ export const en = {
       from:            'from {location}',
       justNow:         'just now',
       joined:          'joined',
-      joinedCommunity: 'joined the community',
       signedUp:        'signed up',
       justSignedUp:    'just signed up',
-      waitingLaunch:   'is waiting for launch',
     },
   },
 

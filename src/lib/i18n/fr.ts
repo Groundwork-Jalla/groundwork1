@@ -1525,10 +1525,8 @@ export const fr: Mirror<EnDict> = {
       from:            'de {location}',
       justNow:         "à l'instant",
       joined:          'a rejoint',
-      joinedCommunity: 'a rejoint la communauté',
       signedUp:        "s'est inscrit",
       justSignedUp:    "vient de s'inscrire",
-      waitingLaunch:   'attend le lancement',
     },
   },
 

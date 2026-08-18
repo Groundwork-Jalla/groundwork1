@@ -16,11 +16,17 @@ export default function CTASection() {
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="inline-flex text-white mb-6"
+          // Block-level, not inline-flex: the Button renders as an inline-flex anchor,
+          // so an inline icon sat on the same line as it once the copy between them went.
+          className="flex justify-center text-white mb-8"
         >
           <Home className="size-9" />
         </motion.div>
-        <Button asChild className="mt-8 w-full sm:w-auto bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
+        {/* Shrink-to-fit column: the wider of the button and the line under it sets the
+            width, and the button stretches to match. Centred by the section's
+            text-center, so no extra centring is needed on the column itself. */}
+        <div className="flex w-full flex-col items-stretch sm:inline-flex sm:w-auto">
+        <Button asChild className="w-full bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
           <Link to={join} className="flex items-center justify-center gap-1.5">
             {t('landing.signup.cta')}
             <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -37,6 +43,7 @@ export default function CTASection() {
             {t(knownUs ? 'landing.signup.createAccount' : 'landing.signup.logIn')}
           </Link>
         </p>
+        </div>
 
         <div className="mt-4">
           <a
