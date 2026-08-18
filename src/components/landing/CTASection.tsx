@@ -16,17 +16,10 @@ export default function CTASection() {
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="inline-flex text-white mb-3"
+          className="inline-flex text-white mb-6"
         >
           <Home className="size-9" />
         </motion.div>
-        <p className="text-sm sm:text-base text-white/60 mt-8">
-          {t('landing.cta.body')}
-        </p>
-        <p className="text-sm text-white/40 mt-2 italic">
-          {t('landing.cta.sub')}
-        </p>
-
         <Button asChild className="mt-8 w-full sm:w-auto bg-white text-brand-near-black font-bold text-sm px-8 h-auto py-4 hover:bg-brand-pale group">
           <Link to={join} className="flex items-center justify-center gap-1.5">
             {t('landing.signup.cta')}

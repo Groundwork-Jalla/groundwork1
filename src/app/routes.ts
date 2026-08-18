@@ -6,7 +6,6 @@ export default [
   layout("routes/_public-layout.tsx", [
     route("/",                 "routes/landing.tsx"),
     route("contractor-apply",  "routes/contractor-apply.tsx"),
-    route("community",         "routes/community.tsx"),
     route("pricing",           "routes/pricing.tsx"),
     // Jalla Management enquiry. Owns the call-then-form order so the
     // questionnaire is reachable regardless of Google Calendar settings.

@@ -19,13 +19,9 @@ import { cn } from '@/lib/utils';
 // scrolls), but on an inner page a bar with no navigation is a dead end.
 // =========================================================
 
-// `/community` stays: it is the way into the Skool community sign-up, which is a
-// different destination from creating a Groundwork account. Only the primary CTA
-// moved to /auth/signup — see the buttons below.
 const LINKS: { to: string; labelKey: TKey }[] = [
   { to: '/pricing',   labelKey: 'nav.pricing' },
   { to: '/tools',     labelKey: 'nav.freeTools' },
-  { to: '/community', labelKey: 'nav.community' },
 ];
 
 export function SiteNav() {

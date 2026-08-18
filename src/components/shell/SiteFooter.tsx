@@ -12,7 +12,6 @@ import { useT, type TKey } from '@/lib/i18n';
 const LINKS: { to: string; labelKey: TKey }[] = [
   { to: '/pricing',   labelKey: 'nav.pricing' },
   { to: '/tools',     labelKey: 'nav.freeTools' },
-  { to: '/community', labelKey: 'nav.community' },
   // Google's OAuth review and Stripe both check these are reachable from the
   // public site, not merely live at their URLs.
   { to: '/privacy',   labelKey: 'legal.privacy' },
