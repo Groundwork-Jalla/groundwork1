@@ -1635,7 +1635,6 @@ export const fr: Mirror<EnDict> = {
       formTitle:   'Candidature Partenaire Fondateur',
       formSubtitle:'Remplissez vos informations ci-dessous — environ 3 minutes.',
       formName:    'Formulaire entrepreneur',
-      formEnglishOnly: "Ce formulaire de candidature n'est disponible qu'en anglais pour le moment. Une version française est en préparation — vous pouvez tout de même postuler ci-dessous, et notre équipe parle français.",
       perk1:       'Accès prioritaire aux projets financés de la diaspora',
       perk2:       'Des paiements liés à des jalons vérifiés — sans relance',
       perk3:       "Membre d'un réseau professionnel sélectionné",

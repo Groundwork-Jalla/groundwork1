@@ -1643,7 +1643,6 @@ export const en = {
       formTitle:   'Founding Partner Application',
       formSubtitle:'Fill in your details below — takes about 3 minutes.',
       formName:    'Contractor Form',
-      formEnglishOnly: 'This application form is currently only available in English. We are working on a French version — you can still apply below, and our team speaks French.',
       perk1:       'First access to funded diaspora projects',
       perk2:       'Payments tied to verified milestones — no chasing',
       perk3:       'Part of a vetted, professional network',
