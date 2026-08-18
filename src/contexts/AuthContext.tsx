@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
+import { recordSignupCountry } from "@/lib/auth/record-signup-country";
 
 interface AuthContextValue {
   session: Session | null;
@@ -25,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) rememberAccount();
+      if (session) { rememberAccount(); void recordSignupCountry(); }
       setLoading(false);
     });
 
@@ -35,7 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // this browser as one that has an account, which is what the landing page's join
       // button reads to decide between sign-up and log-in. Never cleared on sign-out —
       // signing out does not delete the account.
-      if (session) rememberAccount();
+      // Same hook records the country the account was created from, from the request
+      // IP server-side — signup never asks for one. Fire-and-forget, once per browser.
+      if (session) { rememberAccount(); void recordSignupCountry(); }
       setLoading(false);
     });
 
