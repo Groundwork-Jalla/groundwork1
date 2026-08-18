@@ -1526,7 +1526,7 @@ export const en = {
     eyebrow:   'Simple, transparent pricing',
     title:     'Build with confidence.',
     titleLine2:'Pay only when work is done.',
-    subtitle:  "Start free. Upgrade when you're ready for Jalla to verify every stage before you release a naira or dollar.",
+    subtitle:  "Start free. Upgrade when you're ready for Jalla to verify every stage before you release a dollar.",
     mostPopular: 'Most popular',
     faqTitle:  'Common questions',
     ctaTitle:  'Ready to track your build?',

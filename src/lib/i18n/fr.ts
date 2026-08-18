@@ -1518,7 +1518,7 @@ export const fr: Mirror<EnDict> = {
     eyebrow:   'Des tarifs simples et transparents',
     title:     'Bâtissez en toute confiance.',
     titleLine2:'Ne payez que le travail accompli.',
-    subtitle:  "Commencez gratuitement. Passez à la vitesse supérieure quand vous voulez que Jalla vérifie chaque étape avant que vous ne débloquiez le moindre franc.",
+    subtitle:  "Commencez gratuitement. Passez à la vitesse supérieure quand vous voulez que Jalla vérifie chaque étape avant que vous ne débloquiez le moindre dollar.",
     mostPopular: 'Le plus populaire',
     faqTitle:  'Questions fréquentes',
     ctaTitle:  'Prêt à suivre votre chantier ?',
