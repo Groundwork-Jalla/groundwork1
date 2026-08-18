@@ -229,7 +229,7 @@ export const en = {
     },
   },
   wizardFields: {
-    projectNamePlaceholder: 'e.g. Lekki Duplex Phase 2',
+    projectNamePlaceholder: 'e.g. Douala Family House',
     cityPlaceholder:        'e.g. Bamenda',
     bedrooms:               'Bedrooms',
     bathrooms:              'Bathrooms',

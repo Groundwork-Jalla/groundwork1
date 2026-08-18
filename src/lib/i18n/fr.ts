@@ -243,7 +243,7 @@ export const fr: Mirror<EnDict> = {
     },
   },
   wizardFields: {
-    projectNamePlaceholder: 'ex. Duplex Lekki phase 2',
+    projectNamePlaceholder: 'ex. Maison familiale à Douala',
     cityPlaceholder:        'ex. Bamenda',
     bedrooms:               'Chambres',
     bathrooms:              'Salles de bain',

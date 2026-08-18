@@ -1026,7 +1026,7 @@ export function BuildingPreview() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.25 }}
-                  className="text-[11px] font-semibold text-white/60 uppercase tracking-wider drop-shadow-sm"
+                  className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey dark:text-white/60"
                 >
                   {getHint(step, data, countryName)}
                 </motion.p>
@@ -1127,7 +1127,7 @@ export function BuildingPreview() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.25 }}
-              className="text-[11px] font-semibold text-white/80 uppercase tracking-wider drop-shadow-sm"
+              className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey dark:text-white/80"
             >
               {getHint(step, data, countryName)}
             </motion.p>
