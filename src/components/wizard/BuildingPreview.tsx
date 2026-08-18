@@ -7,14 +7,15 @@ import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/project';
 import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { BLUEPRINTS } from './blueprints';
+import { BLUEPRINT_BG } from './blueprints/frame';
 
-// ── Photo image map (step 2 / 3 / 7) ──────────────────────────
+// ── Preview subject (step 2 / 3 / 7) ──────────────────────────
 
 /**
- * Every value the preview panel can be asked to illustrate. Typing the map
- * against the union rather than `string` means adding a project, building or
- * roof type without an image is a compile error, not a blank panel — the
- * failure mode that previously shipped a dead URL to production.
+ * Every value the preview panel can be asked to illustrate. The drawings live in
+ * ./blueprints, keyed by this union, so adding a project, building or roof type
+ * without a sketch is a compile error rather than a blank panel.
  */
 type ImageKey = ProjectType | BuildingType | RoofType;
 
