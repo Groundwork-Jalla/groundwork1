@@ -151,7 +151,12 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
     try {
       await startGuestJallaVerifyCheckout();   // navigates away; nothing after this runs
     } catch (err) {
-      setError(errorMessage(err, t('pricing.checkoutFailed')));
+      // Log the full error for diagnostics but show only a generic message to users.
+      // The API now returns detailed errors in development; don't surface those
+      // directly in the UI to avoid leaking internals or confusing visitors.
+      // eslint-disable-next-line no-console
+      console.error('[checkout] guest checkout failed:', err);
+      setError(t('pricing.checkoutFailed'));
       setBusy(false);
     }
   }
