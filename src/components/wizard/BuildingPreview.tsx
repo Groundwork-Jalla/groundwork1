@@ -8,7 +8,7 @@ import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/pro
 import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { BLUEPRINTS } from './blueprints';
-import { BLUEPRINT_BG } from './blueprints/frame';
+import { BLUEPRINT_SURFACE, GridBackdrop } from './blueprints/frame';
 
 // ── Preview subject (step 2 / 3 / 7) ──────────────────────────
 
@@ -77,12 +77,12 @@ function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
              pan, which on vector linework reads as a wobble rather than a move. */
           BLUEPRINTS[imageKey]
         ) : (
-          <div className="absolute inset-0" style={{ backgroundColor: BLUEPRINT_BG }} />
+          <div className={`absolute inset-0 ${BLUEPRINT_SURFACE}`} />
         )}
 
         {/* Only the foot is darkened, enough to seat the caption. A full overlay would
             grey out the linework it is sitting on. */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-brand-off-white via-transparent to-transparent dark:from-black/70" />
 
         {/* Floating pill — top right */}
         <AnimatePresence mode="wait">
@@ -98,7 +98,7 @@ function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
               <motion.div
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1.5 text-[11px] font-medium"
+                className="flex items-center gap-2 rounded-full border bg-brand-near-black/5 border-brand-near-black/15 text-brand-near-black backdrop-blur-md px-3 py-1.5 text-[11px] font-medium dark:bg-white/10 dark:border-white/20 dark:text-white"
               >
                 <span className="size-1.5 rounded-full bg-state-complete animate-pulse shrink-0" />
                 {metaSub}
@@ -118,15 +118,15 @@ function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
               transition={{ duration: 0.35, delay: 0.1 }}
               className="absolute bottom-0 left-0 right-0 p-7"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">{metaSub}</p>
-              <p className="text-2xl font-black text-white leading-tight">{metaTitle}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-mid-grey mb-1 dark:text-white/50">{metaSub}</p>
+              <p className="text-2xl font-black text-brand-near-black leading-tight dark:text-white">{metaTitle}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {!imageKey && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-white/30 font-medium">{t('wizard.previewPlaceholder')}</p>
+            <p className="text-sm font-medium text-brand-mid-grey dark:text-white/30">{t('wizard.previewPlaceholder')}</p>
           </div>
         )}
       </motion.div>
@@ -1051,14 +1051,12 @@ export function BuildingPreview() {
             transition={{ duration: 0.4 }}
             className="absolute inset-0 flex flex-col"
           >
-            {/* Dot-grid background — dark-mode aware */}
-            <div
-              className="absolute inset-0 pointer-events-none dark:opacity-25"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(10,10,10,0.18) 1px, transparent 1px)',
-                backgroundSize: '28px 28px',
-              }}
-            />
+            {/* The same squared setting-out grid steps 2, 3 and 7 sit on. It was a dot
+                screen, which made the preview column look like it changed surface
+                halfway through the wizard. */}
+            <div className="absolute inset-0 pointer-events-none">
+              <GridBackdrop />
+            </div>
 
             {/* Step hint */}
             <div className="relative z-10 px-6 pt-5 pb-2 shrink-0">
