@@ -240,7 +240,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   // actually blocks submission — an admin chasing someone shown at 95% should find them
   // one field short, not ten.
   const complete = [
-    !!fullName, !!phone, !!email, !!country, !!city, !!role,
+    !!fullName, !!businessName, !!phone, !!email, !!country, !!city, !!role,
     !!years, !!operatesAs, !!whyJoin, !!differentiator, !!regions, !!concurrent,
     projectTypes.length > 0,
     files.length + pending.length > 0,
@@ -275,7 +275,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !phone || !email || !country || !city || !role
+    if (!fullName || !businessName || !phone || !email || !country || !city || !role
       || !years || !operatesAs || !whyJoin || !differentiator
       || !regions || !concurrent || !agreed
       || milestones === null || verification === null || noSidePay === null
@@ -425,8 +425,8 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         <Field label={f('fullName')} required htmlFor="ca-name">
           <Input id="ca-name" value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
         </Field>
-        <Field label={f('businessName')} hint={f('optional')} htmlFor="ca-biz">
-          <Input id="ca-biz" value={businessName} onChange={e => setBusinessName(e.target.value)} autoComplete="organization" />
+        <Field label={f('businessName')} required htmlFor="ca-biz">
+          <Input id="ca-biz" required value={businessName} onChange={e => setBusinessName(e.target.value)} autoComplete="organization" />
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label={f('phone')} required htmlFor="ca-phone">
