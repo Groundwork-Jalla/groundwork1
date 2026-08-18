@@ -30,7 +30,13 @@ import { motion } from 'framer-motion';
  * White linework on near-black keeps the technical register — it is a drawing, not a
  * photograph — without spending the one colour channel the design system reserves.
  */
-export const BLUEPRINT_BG = '#0a0a0a';
+/**
+ * Deep architectural blue. Dark enough in both themes that the white caption sitting
+ * over it holds, and blue rather than the app's near-black because the panel is meant
+ * to read as a drawing sheet, not as another dark surface — that contrast is the whole
+ * point of the treatment.
+ */
+export const BLUEPRINT_BG = '#0c2340';
 
 const DRAW = {
   hidden:  { pathLength: 0, opacity: 0 },
