@@ -15,10 +15,25 @@ a construction stage on a PaymentIntent, that is a bug — stage money belongs o
 
 ---
 
+## 0. The functions must be able to load at all
+
+`api/package.json` pins this directory to CommonJS. Without it every function carrying a
+relative import — all three Stripe endpoints — dies at module load with Vercel's
+`FUNCTION_INVOCATION_FAILED`, before reading a single environment variable. It looks
+exactly like a Stripe misconfiguration and is not one. See `api/README.md`.
+
+If Checkout fails with a 500 and the Vercel log shows no output from the handler, check
+that file exists before touching any key below.
+
 ## 1. Environment variables
 
-Server-side only. These live in Vercel project settings and in a local `.env` — never
-prefixed `VITE_`, because anything with that prefix is compiled into the browser bundle.
+Server-side only. These live in **Vercel** project settings — Settings → Environment
+Variables, applied to Production, Preview and Development — and in a local `.env` for
+`stripe listen`. Never prefixed `VITE_`, because anything with that prefix is compiled
+into the browser bundle and served to every visitor.
+
+**None of these go in Supabase.** Supabase needs migration 021 applied (step 4); the keys
+belong to the serverless functions, which run on Vercel.
 
 | Variable | Where to find it |
 |---|---|
@@ -27,7 +42,7 @@ prefixed `VITE_`, because anything with that prefix is compiled into the browser
 | `STRIPE_PRICE_JALLA_VERIFY` | created in step 2 (`price_…`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → *service_role* |
 | `SUPABASE_URL` | same page (falls back to `VITE_SUPABASE_URL`) |
-| `PUBLIC_SITE_URL` | optional; e.g. `https://app.tryjalla.com`. Derived from the request if unset |
+| `PUBLIC_SITE_URL` | set to `https://www.tryjalla.com`. Optional in principle — derived from the request when unset — but leaving it unset makes Checkout's success and cancel URLs depend on the host Stripe was reached on, which is one apex redirect away from being wrong |
 
 > The service-role key bypasses RLS. It exists in `api/` only, because the webhook is the
 > single identity allowed to move the subscription columns — see migration 021.
@@ -47,7 +62,11 @@ Do not create products for Self Verify (free — nothing to charge) or Jalla Man
 
 Stripe Dashboard → **Developers → Webhooks** → *Add endpoint*:
 
-- **URL**: `https://<your-domain>/api/stripe/webhook`
+- **URL**: `https://www.tryjalla.com/api/stripe/webhook`
+
+  Use the **`www.` host**. The apex `tryjalla.com` answers `308 Redirect` to `www`, and
+  Stripe does not follow redirects when delivering a webhook — it records the 308 as the
+  response and the event is never processed.
 - **Events**:
   - `checkout.session.completed`
   - `customer.subscription.created`
