@@ -6,7 +6,9 @@ import type { CityRate, ConstructionRate } from '@/types/project';
 // v2: rows now carry the take-off model and fixture prices from migration 020.
 // The version bump invalidates v1 entries cached before those columns existed.
 const CACHE_KEY = (code: string) => `gw_rate_v2_${code}`;
-const CITY_CACHE_KEY = (code: string) => `gw_city_v1_${code}`;
+// v2: migration 044 re-baselined every Cameroonian index onto Yaoundé and added
+// cost_delta_pct. A v1 entry would keep pricing on the old Douala baseline for a day.
+const CITY_CACHE_KEY = (code: string) => `gw_city_v2_${code}`;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheEntry {

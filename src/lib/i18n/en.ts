@@ -2077,6 +2077,12 @@ export const en = {
     totalLabel: "Total:",
     // Step 5 room composition. Sublabels and unit chips were hardcoded English until
     // Aug 2026; adding the office type was the moment to key them.
+    // City cost badge in Step 8. `delta` is the whole-building difference against the
+    // baseline city, never the internal trade index — see migration 044.
+    city: {
+      baseline: 'baseline',
+      delta:    '{sign}{pct}% to build',
+    },
     roof: {
       stepForm:     'Roof form',
       stepMaterial: 'Covering',

@@ -90,14 +90,20 @@ export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTi
                 featured
                   ? 'border-brand-near-black bg-brand-near-black text-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]'
                   : 'border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]',
+                // The plan you are on, called out before any copy is read. The disabled
+                // button at the foot said so too, but that is the last thing seen on a
+                // card and the first question this page has to answer.
+                isCurrent && 'ring-2 ring-brand-near-black ring-offset-2 dark:ring-white dark:ring-offset-[#111]',
               )}
             >
-              {d.tag && (
+              {(isCurrent || d.tag) && (
                 <span className={cn(
                   'absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.06em]',
                   featured ? 'bg-white text-brand-near-black' : 'bg-brand-near-black text-white',
                 )}>
-                  {d.tag}
+                  {/* "Most popular" is a sales line; once you are on the plan it is no
+                      longer the useful thing to say in that slot. */}
+                  {isCurrent ? t('profile.currentPlan') : d.tag}
                 </span>
               )}
 

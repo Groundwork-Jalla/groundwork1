@@ -201,7 +201,18 @@ export interface CityRate {
   rc_250: number;
   lean_concrete: number;
   mortar: number;
+  /**
+   * Multiplier on NON-CONCRETE trades only. Concrete comes from this row's own
+   * rc_350/rc_250/lean_concrete columns and bypasses it entirely (engine.ts), so this
+   * is not the whole-building difference — see `cost_delta_pct` for that.
+   */
   index_vs_baseline: number;
+  /**
+   * Whole-building cost against the country's baseline city, in percent. The
+   * client-facing figure, and the one Vanessa stated; `index_vs_baseline` is solved to
+   * realise it. Null where we have no figure (Nigeria).
+   */
+  cost_delta_pct?: number | null;
   currency_code: string;
   data_source: 'real_bq' | 'estimated_index';
   notes?: string | null;

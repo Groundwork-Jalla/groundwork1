@@ -118,8 +118,20 @@ function allocate<K extends string>(units: number, weights: Record<K, number>): 
 export const MATERIAL_PCT = 60;
 /** Share of the construction fee that is labour. `MATERIAL_PCT + LABOR_PCT === 100`. */
 export const LABOR_PCT = 40;
-/** Permit fee, as a percentage of the construction fee. Charged ON TOP of it. */
-export const PERMIT_PCT_OF_BUILD = 1;
+/**
+ * Permit fee, as a percentage of the construction fee. Charged ON TOP of it.
+ *
+ * Was 1% — the figure paid to government. Vanessa Gwanvoma's review (17 Aug 2026) is
+ * that 1% is only the government line: before it there are council site visits, and
+ * environmental-safety and fire-service compliance documents whose cost varies by city
+ * and building type. Her figure from real projects is 2-2.5% of construction; 2.25 is
+ * the mid-point, chosen by Favour.
+ *
+ * Existing projects are NOT re-priced. `project_fees.amount_usd` is written once at
+ * tracking start and a permit line someone already agreed to must not move under them —
+ * the same rule migration 020 gives for refusing to backfill `budget_usd`.
+ */
+export const PERMIT_PCT_OF_BUILD = 2.25;
 /** Professional fee, per charged construction stage. */
 export const PROFESSIONAL_FEE_XAF = 50_000;
 /** Design fee, per built m² (footprint × floors). */
@@ -215,7 +227,7 @@ export function composeBudget(constructionUSD: number, shape: BudgetShape): Budg
  * This is what makes the model storable in one column. Neither flat fee depends on the
  * construction fee, so
  *
- *     total = C + 0.01·C + P + D      ⟹      C = (total − P − D) / 1.01
+ *     total = C + 0.0225·C + P + D    ⟹      C = (total − P − D) / 1.0225
  *
  * recovers every line from `budget_usd` plus `sqm` and `num_floors`, both already on the
  * project row. No second source of truth for money, and nothing to keep in sync.

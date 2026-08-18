@@ -2062,6 +2062,11 @@ export const fr: Mirror<EnDict> = {
     s5Title: "Pièces par niveau",
     s5Sub: "Détaillez les pièces de chaque niveau. Elles déterminent le plan et l'estimation des matériaux.",
     totalLabel: "Total :",
+    // Voir la note anglaise : écart global, jamais l'indice interne.
+    city: {
+      baseline: 'référence',
+      delta:    '{sign}{pct} % à construire',
+    },
     roof: {
       stepForm:     'Forme de toiture',
       stepMaterial: 'Couverture',

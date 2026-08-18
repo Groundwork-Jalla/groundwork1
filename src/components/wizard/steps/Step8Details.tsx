@@ -174,10 +174,22 @@ export default function Step8Details() {
                         )}
                       >
                         <span className="text-sm font-semibold text-brand-near-black">{c.city_name}</span>
+                        {/*
+                          `cost_delta_pct`, not `index_vs_baseline`. The index only
+                          scales non-concrete trades, so it is not what the build
+                          actually costs here — showing it told a Limbe client "+6%
+                          materials" for a city that is 3% cheaper overall. The delta is
+                          Vanessa's stated whole-building figure and is what they pay.
+                        */}
                         <span className="text-[10px] text-brand-mid-grey tabular-nums">
-                          {c.index_vs_baseline === 1
-                            ? 'baseline'
-                            : `${c.index_vs_baseline > 1 ? '+' : ''}${Math.round((c.index_vs_baseline - 1) * 100)}% materials`}
+                          {c.cost_delta_pct == null
+                            ? ''
+                            : c.cost_delta_pct === 0
+                              ? t('wizard.city.baseline')
+                              : t('wizard.city.delta', {
+                                  sign: c.cost_delta_pct > 0 ? '+' : '−',
+                                  pct:  Math.abs(c.cost_delta_pct),
+                                })}
                         </span>
                       </button>
                     );
