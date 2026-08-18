@@ -83,7 +83,7 @@ export function SiteNav() {
           <Button
             asChild
             variant="outline"
-            className="h-9 shrink-0 rounded-md border-white/25 bg-transparent px-2.5 text-[11px] font-semibold text-white hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
+            className="h-9 shrink-0 rounded-md border-white/20 bg-transparent px-2.5 text-[11px] font-medium text-white/75 hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
           >
             {onContractorPage ? (
               <a href="#apply">
@@ -98,23 +98,21 @@ export function SiteNav() {
               </Link>
             )}
           </Button>
-          {/* Returning users. Text-only so it does not compete with the sign-up
-              button, and hidden below sm where the bar is already width-critical. */}
-          <Link
-            to="/auth/login"
-            className="hidden shrink-0 px-1 text-xs font-medium text-white/55 transition-colors hover:text-white sm:block"
-          >
-            {t('landing.nav.logIn')}
-          </Link>
+          {/* The one action the bar is for. Heavier weight, more padding and a lift
+              off the dark ground, so it outranks the contractor button rather than
+              merely differing from it — white-on-black alone read as a peer. */}
           <Button
             asChild
-            className="group h-9 shrink-0 rounded-md bg-white px-2.5 text-[11px] font-semibold text-brand-near-black hover:bg-brand-off-white sm:h-auto sm:px-6 sm:py-2 sm:text-xs"
+            // Literal hex, not bg-white/text-brand-near-black: globals.css carries a
+            // blanket `html.dark .bg-white { background: #1e1e1e }` for card surfaces,
+            // and it outranks the utility. This bar is dark in BOTH themes, so that
+            // rule turned the primary CTA into #1e1e1e on #0a0a0a — all but invisible.
+            className="group h-9 shrink-0 rounded-md bg-[#ffffff] px-3 text-[11px] font-bold text-[#0a0a0a] shadow-[0_1px_12px_rgba(255,255,255,0.18)] hover:bg-[#f0f0f0] sm:h-auto sm:px-7 sm:py-2.5 sm:text-[13px]"
           >
             <Link to="/auth/signup" className="flex items-center gap-1.5">
-              {/* Short label at every width. The bar already carries the contractor
-                  CTA and the language toggle; the full "Sign Up to Groundwork" is
-                  the landing page's job, where there is room for it. */}
-              {t('landing.signup.ctaShort')}
+              {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
+              <span className="hidden sm:inline">{t('landing.nav.joinFree')}</span>
+              <span className="sm:hidden">{t('landing.nav.joinFreeShort')}</span>
               {/* Decorative; it is the last ~18px that pushes the bar past a 320px
                   viewport, and the button reads fine without it. */}
               <ArrowRight className="hidden size-3.5 transition-transform duration-300 group-hover:translate-x-1 sm:inline" />
