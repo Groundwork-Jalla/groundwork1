@@ -1,16 +1,17 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, Download, Printer } from 'lucide-react';
-import { calculateBudget, formatUSDFull } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
 
 export default function MilestonesTool() {
   const t = useT();
+  // See budget.tsx: the bare money helpers do not follow the language toggle.
+  const f = useFormat();
   const labels = useDomainLabels();
   const [budget, setBudget] = useState(100000);
   const [country, setCountry] = useState('NG');
@@ -91,7 +92,7 @@ export default function MilestonesTool() {
       {/* Print-only header */}
       <div className="hidden print:block mb-6">
         <p className="text-lg font-black">{t('tools.scheduleTitle')}</p>
-        <p className="text-sm text-gray-500">{t('tools.printMeta', { total: formatUSDFull(budget) })}</p>
+        <p className="text-sm text-gray-500">{t('tools.printMeta', { total: f.money(budget) })}</p>
       </div>
 
       {/* Table */}
@@ -113,7 +114,7 @@ export default function MilestonesTool() {
                 <td className="px-4 py-3 text-sm font-medium text-brand-near-black dark:text-white">{t(`stages.${m.key}` as TKey)}</td>
                 <td className="px-4 py-3 text-xs text-brand-mid-grey text-right tabular-nums">{t('tools.durationShort', { days: m.durationDays })}</td>
                 <td className="px-4 py-3 text-sm font-bold text-brand-near-black dark:text-white text-right tabular-nums">
-                  {formatUSDFull(m.amountUsd)}
+                  {f.money(m.amountUsd)}
                   <span className="ml-1 text-[10px] font-normal text-brand-mid-grey">({t('tools.pctValue', { pct: m.budget_pct })})</span>
                 </td>
                 <td className="px-4 py-3 text-xs text-brand-mid-grey hidden sm:table-cell">{t(m.whenToPayKey)}</td>
@@ -123,7 +124,7 @@ export default function MilestonesTool() {
               <td className="px-4 py-3" colSpan={2}><span className="text-xs font-bold text-white">{t('tools.total')}</span></td>
               <td />
               <td className="px-4 py-3 text-right">
-                <span className="text-sm font-black text-white tabular-nums">{formatUSDFull(budget)}</span>
+                <span className="text-sm font-black text-white tabular-nums">{f.money(budget)}</span>
               </td>
               <td className="hidden sm:table-cell" />
             </tr>

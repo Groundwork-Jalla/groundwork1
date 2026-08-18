@@ -823,7 +823,7 @@ export const fr: Mirror<EnDict> = {
 
     // ── Planificateur d'étapes ──
     stageTooltip:  "Étape {n} : {pct} %",
-    daysEst:       "{days} j est.",
+    daysEst:       "env. {days} j",
     daysFull:      "{days} jours",
     pctOfBudget:   "{pct} % du budget",
     pctValue:      "{pct} %",

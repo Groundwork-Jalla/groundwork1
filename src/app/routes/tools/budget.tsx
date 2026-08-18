@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
-import { BUDGET_SLICES, calculateBudget, formatUSDFull, formatUSD, sliceShares } from '@/lib/budget';
+import { BUDGET_SLICES, calculateBudget, sliceShares } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 const FINISH_LEVELS = [
@@ -28,6 +28,10 @@ function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: n
 
 export default function BudgetTool() {
   const t = useT();
+  // useFormat rather than the bare money helpers in '@/lib/budget': those read a
+  // module-level locale that LanguageProvider only sets in an effect, so a first
+  // paint in French shows English figures and never corrects itself.
+  const f = useFormat();
   const labels = useDomainLabels();
   const [country, setCountry] = useState('NG');
   const [sqm, setSqm] = useState(150);
@@ -133,7 +137,7 @@ export default function BudgetTool() {
         <div className="lg:sticky lg:top-24 flex flex-col gap-4">
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
             <p className="text-xs text-brand-mid-grey mb-1">{t('tools.estimatedCost')}</p>
-            <p className="text-4xl font-black text-brand-near-black dark:text-white tabular-nums mb-1">{formatUSDFull(budget.total)}</p>
+            <p className="text-4xl font-black text-brand-near-black dark:text-white tabular-nums mb-1">{f.money(budget.total)}</p>
             <p className="text-xs text-brand-mid-grey mb-5">
               {t('tools.estimateMeta', {
                 sqm,
@@ -151,7 +155,7 @@ export default function BudgetTool() {
                   <div className="flex-1 h-1.5 rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
                     <div className="h-full bg-brand-near-black dark:bg-white rounded-full" style={{ width: `${shares[s.key]}%` }} />
                   </div>
-                  <span className="text-xs font-medium text-brand-near-black dark:text-white tabular-nums w-20 text-right">{formatUSD(budget[s.key])}</span>
+                  <span className="text-xs font-medium text-brand-near-black dark:text-white tabular-nums w-20 text-right">{f.money(budget[s.key])}</span>
                 </div>
               ))}
             </div>
