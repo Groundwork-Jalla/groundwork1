@@ -18,54 +18,6 @@ import { useDomainLabels } from '@/lib/domain-labels';
  */
 type ImageKey = ProjectType | BuildingType | RoofType;
 
-/**
- * Files under `/building-types/` are served from our own origin. They replace
- * hotlinked stock photos that either 404'd or showed the wrong subject; keeping
- * them in-repo means the picture can't drift away from the label it sits under.
- * Attribution for those files is in docs/IMAGE-CREDITS.md.
- */
-const BUILDING_IMAGES: Record<ImageKey, string> = {
-  // Project type (step 2)
-  residential:          'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
-  commercial:           'https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=900&q=80',
-  industrial:           '/building-types/industrial.webp',
-  mixed_use:            '/building-types/mixed_use.webp',
-
-  // Residential (step 3)
-  single_family:        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80',
-  multi_family:         'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80',
-  townhouse:            '/building-types/townhouse.webp',
-  semi_detached:        'https://images.unsplash.com/photo-1785595480634-77f4aef9280e?auto=format&fit=crop&w=900&q=80',
-
-  // Commercial (step 3)
-  office:               'https://images.unsplash.com/photo-1470075801209-17f9ec0cada6?auto=format&fit=crop&w=900&q=80',
-  retail:               '/building-types/retail.webp',
-  warehouse_commercial: 'https://images.unsplash.com/photo-1694885169342-909981fb408a?auto=format&fit=crop&w=900&q=80',
-  hotel:                '/building-types/hotel.webp',
-
-  // Industrial (step 3)
-  factory:              'https://images.unsplash.com/photo-1546185058-592ead754d27?auto=format&fit=crop&w=900&q=80',
-  warehouse_industrial: 'https://images.unsplash.com/photo-1684695749267-233af13276d0?auto=format&fit=crop&w=900&q=80',
-  industrial_complex:   'https://images.unsplash.com/photo-1669003152237-7bd1ac4c13f3?auto=format&fit=crop&w=900&q=80',
-  distribution_centre:  'https://images.unsplash.com/photo-1720811559371-7b0ebd219127?auto=format&fit=crop&w=900&q=80',
-
-  // Mixed use (step 3)
-  mixed_residential_commercial: 'https://images.unsplash.com/photo-1759299596344-cc2e0c26003a?auto=format&fit=crop&w=900&q=80',
-  live_work:            'https://images.unsplash.com/photo-1774957108662-80d697d70844?auto=format&fit=crop&w=900&q=80',
-  mixed_retail_residential:     'https://images.unsplash.com/photo-1785545830879-a7fa53345127?auto=format&fit=crop&w=900&q=80',
-  transit_oriented:     '/building-types/transit_oriented.webp',
-
-  // Roof type (step 7)
-  long_span_aluminum:   '/building-types/long_span_aluminum.webp',
-  clay_tiles:           '/building-types/clay_tiles.webp',
-  concrete_flat:        '/building-types/concrete_flat.webp',
-  shingle:              'https://images.unsplash.com/photo-1592595896551-12b371d546d5?auto=format&fit=crop&w=900&q=80',
-  // TODO(vanessa): needs its own photo. Reusing the long-span shot because an aluminium
-  // deck IS long-span sheet, laid to a shallow fall rather than pitched — the concrete
-  // slab image would show the wrong material entirely.
-  aluminium_deck:       '/building-types/long_span_aluminum.webp',
-};
-
 // ── Image panel (steps 2, 3, 7) ────────────────────────────────
 
 /**
@@ -105,15 +57,8 @@ function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
   const t = useT();
   // Titles and the sub-caption now come from the dictionary, keyed off the image key.
   const labels = useDomainLabels();
-  // A failed image falls back to the dark ground, never to a stand-in photo: an
-  // unrelated picture under a caption reading "Clay Tiles" misinforms, where an
-  // empty panel with the right caption merely underwhelms.
-  const [failed, setFailed] = useState(false);
-  useEffect(() => { setFailed(false); }, [imageKey]);
-
   const metaTitle = imageKey ? labels.previewTitle(imageKey) : null;
   const metaSub   = imageKey ? t(`preview.sub.${IMAGE_SUB_GROUP[imageKey]}` as TKey) : null;
-  const src  = imageKey && !failed ? BUILDING_IMAGES[imageKey] : null;
 
   return (
     <AnimatePresence mode="wait">
@@ -125,23 +70,18 @@ function ImagePanel({ imageKey }: { imageKey: ImageKey | null }) {
         transition={{ duration: 0.4 }}
         className="absolute inset-0 overflow-hidden"
       >
-        {src ? (
-          /* Ken Burns — slow continuous zoom + drift */
-          <motion.img
-            src={src}
-            alt={metaTitle ?? t('wizard.previewPlaceholder')}
-            className="absolute inset-0 w-full h-full object-cover origin-center"
-            style={{ willChange: 'transform' }}
-            animate={{ scale: [1.05, 1.12, 1.05], x: [-6, 6, -6] }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-            onError={() => setFailed(true)}
-          />
+        {imageKey ? (
+          /* The sketch strokes itself on. `key` on the wrapper above forces a remount
+             per selection, so the redraw IS the transition — it replaced a Ken Burns
+             pan, which on vector linework reads as a wobble rather than a move. */
+          BLUEPRINTS[imageKey]
         ) : (
-          <div className="absolute inset-0 bg-[#111]" />
+          <div className="absolute inset-0" style={{ backgroundColor: BLUEPRINT_BG }} />
         )}
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-black/10" />
+        {/* Only the foot is darkened, enough to seat the caption. A full overlay would
+            grey out the linework it is sitting on. */}
+        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
 
         {/* Floating pill — top right */}
         <AnimatePresence mode="wait">
