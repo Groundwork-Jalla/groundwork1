@@ -1301,7 +1301,6 @@ export const en = {
       forContractors: "Join as a Contractor",
       forContractorsShort: "Contractors",
       joinFreeShort:  'Join Free',
-      logIn:          'Log In',
     },
 
     // The community page is hidden for now, so every "join" CTA on the public
@@ -1310,8 +1309,7 @@ export const en = {
     // account — the button alone cannot tell the two apart.
     signup: {
       cta:         'Sign Up to Groundwork',
-      ctaShort:    'Sign Up',
-      haveAccount: 'Already have an account?',
+        haveAccount: 'Already have an account?',
       logIn:       'Log in',
     },
 

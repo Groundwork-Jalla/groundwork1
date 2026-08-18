@@ -1302,13 +1302,11 @@ export const fr: Mirror<EnDict> = {
       forContractors: "Devenir entrepreneur partenaire",
       forContractorsShort: "Entrepreneurs",
       joinFreeShort:  'Rejoindre',
-      logIn:          'Connexion',
     },
 
     signup: {
       cta:         'Créer un compte Groundwork',
-      ctaShort:    'Créer un compte',
-      haveAccount: 'Vous avez déjà un compte ?',
+        haveAccount: 'Vous avez déjà un compte ?',
       logIn:       'Se connecter',
     },
 
