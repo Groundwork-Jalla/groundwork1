@@ -8,6 +8,9 @@ export default [
     route("contractor-apply",  "routes/contractor-apply.tsx"),
     route("community",         "routes/community.tsx"),
     route("pricing",           "routes/pricing.tsx"),
+    // Jalla Management enquiry. Owns the call-then-form order so the
+    // questionnaire is reachable regardless of Google Calendar settings.
+    route("jalla-management",  "routes/jalla-management.tsx"),
     route("verify/:id",        "routes/verify.tsx"),
     // Required by Google OAuth verification and Stripe before going live.
     route("privacy",           "routes/privacy.tsx"),

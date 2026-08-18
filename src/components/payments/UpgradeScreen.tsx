@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { SUBSCRIPTIONS_ARE_PREVIEW } from '@/lib/payments/config';
 import { useTierBilling } from '@/lib/tier-labels';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
+import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 import type { ProjectTier } from '@/types/project';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -47,7 +48,8 @@ export default function UpgradeScreen({ currentTier }: { currentTier?: ProjectTi
     setError(null);
     if (tier === 'self_verify') return;
     if (tier === 'jalla_management') {
-      window.location.href = 'mailto:hello@tryjalla.com?subject=Jalla%20Management%20enquiry';
+      // Not a checkout: a negotiated engagement that starts with a call.
+      window.location.href = JALLA_MANAGEMENT_PATH;
       return;
     }
     setBusy(tier);

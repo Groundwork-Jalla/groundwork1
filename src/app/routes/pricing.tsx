@@ -6,6 +6,7 @@ import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext';
 import { startGuestJallaVerifyCheckout } from '@/lib/payments/subscription';
 import { errorMessage } from '@/lib/errors';
+import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────
@@ -105,7 +106,8 @@ const PLANS: Plan[] = [
     taglineKey: 'pricing.plans.jallaManagement.tagline',
     priceKey:   'pricing.plans.jallaManagement.price',
     ctaKey:     'pricing.plans.jallaManagement.cta',
-    ctaHref: 'mailto:hello@tryjalla.com',
+    // Books the intro call, then the project questionnaire — see lib/jalla-management.
+    ctaHref: JALLA_MANAGEMENT_PATH,
     highlighted: false,
     features: [
       { key: `${F}.unlimitedProjects`,     included: true },

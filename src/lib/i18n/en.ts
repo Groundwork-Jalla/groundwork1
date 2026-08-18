@@ -1276,6 +1276,21 @@ export const en = {
   },
 
   // ── App navigation / chrome ───────────────────────────────
+  // ── Jalla Management enquiry (/jalla-management) ──────────
+  jallaManagement: {
+    eyebrow:       'Jalla Management',
+    title:         'Let us take the build off your hands.',
+    body:          'Jalla Management is a negotiated engagement, not a plan you can check out with — the scope depends on your site, your stage and how much of the work you want us to carry. It starts with a conversation.',
+    step1Title:    'Book an intro call',
+    step1Body:     'Pick a time that suits you. Around 30 minutes, and you will speak to someone who has run builds in your corridor.',
+    step1Cta:      'Book your call',
+    step2Title:    'Tell us about your project',
+    step2Body:     'A short questionnaire — where you are building, what stage you are at, and what worries you most. Fill it in after booking so we arrive at the call already up to speed.',
+    step2Cta:      'Open the form',
+    footnote:      'Both open in a new tab. If you have already spoken to someone at Jalla, go straight to step two.',
+    backToPricing: 'Back to pricing',
+  },
+
   nav: {
     mainNavigation: "Main navigation",
     dashboard:      'Dashboard',

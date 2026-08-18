@@ -1279,6 +1279,21 @@ export const fr: Mirror<EnDict> = {
   },
 
   // ── Navigation ────────────────────────────────────────────
+  // ── Demande Jalla Management (/jalla-management) ──────────
+  jallaManagement: {
+    eyebrow:       'Jalla Management',
+    title:         'Confiez-nous la conduite du chantier.',
+    body:          "Jalla Management est un accompagnement sur mesure, pas une formule que l'on achète en ligne : le périmètre dépend de votre terrain, de votre avancement et de ce que vous souhaitez nous confier. Tout commence par un échange.",
+    step1Title:    'Réservez un premier échange',
+    step1Body:     "Choisissez le créneau qui vous convient. Environ 30 minutes, avec quelqu'un qui a déjà piloté des chantiers dans votre pays.",
+    step1Cta:      'Réserver mon créneau',
+    step2Title:    'Parlez-nous de votre projet',
+    step2Body:     "Un court questionnaire : où vous construisez, à quelle étape vous en êtes et ce qui vous préoccupe le plus. Remplissez-le après la réservation pour que nous arrivions préparés.",
+    step2Cta:      'Ouvrir le formulaire',
+    footnote:      "Les deux s'ouvrent dans un nouvel onglet. Si vous avez déjà échangé avec Jalla, passez directement à l'étape deux.",
+    backToPricing: 'Retour aux tarifs',
+  },
+
   nav: {
     mainNavigation: "Navigation principale",
     dashboard:      'Tableau de bord',

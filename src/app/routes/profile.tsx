@@ -18,6 +18,7 @@ import { useTierBilling } from '@/lib/tier-labels';
 import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import type { ProjectTier } from '@/types/project';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
@@ -956,7 +957,7 @@ export default function ProfilePage() {
                           </button>
                         ) : !isCurrent && id === 'jalla_management' ? (
                           <a
-                            href="mailto:hello@tryjalla.com?subject=Jalla%20Management%20enquiry"
+                            href={JALLA_MANAGEMENT_PATH}
                             className="inline-flex items-center text-xs font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2 transition-colors"
                           >
                             {plan.cta} &rarr;
