@@ -106,7 +106,7 @@ const PLANS: Plan[] = [
     taglineKey: 'pricing.plans.jallaManagement.tagline',
     priceKey:   'pricing.plans.jallaManagement.price',
     ctaKey:     'pricing.plans.jallaManagement.cta',
-    // Books the intro call, then the project questionnaire — see lib/jalla-management.
+    // Books the project audit, then the questionnaire — see lib/jalla-management.
     ctaHref: JALLA_MANAGEMENT_PATH,
     highlighted: false,
     features: [

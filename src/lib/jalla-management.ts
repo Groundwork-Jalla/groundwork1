@@ -1,7 +1,7 @@
 /**
  * The two things a Jalla Management enquiry has to go through, in order: book the
- * intro call, then complete the project questionnaire. Philip's flow — the form is
- * what the call is prepared from, so it is useless before a call exists to prepare.
+ * project audit, then complete the questionnaire. Philip's flow — the form is
+ * what the call is prepared from, so it is useless before an audit exists to prepare.
  *
  * Canonical URLs rather than the bit.ly links they were shared as. A shortener is a
  * third party that can expire, rate-limit or be re-pointed, and these are the entry
@@ -14,7 +14,7 @@
  * Shared because three CTAs point here — pricing, the in-app upgrade screen and the
  * profile plan list — and a stale copy in one of them sends a paying prospect nowhere.
  */
-export const JALLA_MANAGEMENT_CALL_URL =
+export const JALLA_MANAGEMENT_AUDIT_URL =
   'https://calendar.app.google/apwQF9c9rGrMCyVw6';
 
 export const JALLA_MANAGEMENT_FORM_URL =
