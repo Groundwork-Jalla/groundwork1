@@ -169,7 +169,7 @@ function UploadBar({ progress }: { progress: number }) {
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-1">
-        <span>Uploading…</span>
+        <span>{t('common.uploading')}</span>
         <span className="tabular-nums">{Math.round(progress)}%</span>
       </div>
       <div className="h-1 w-full rounded-full bg-brand-light-grey dark:bg-[#2c2c2c] overflow-hidden">

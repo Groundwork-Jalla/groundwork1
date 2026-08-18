@@ -142,7 +142,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border-grey">
-              <span className="text-xs font-semibold text-brand-near-black">Notifications</span>
+              <span className="text-xs font-semibold text-brand-near-black">{t('nav.notifications')}</span>
               {unreadCount > 0 && (
                 <button
                   type="button"
@@ -157,7 +157,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             {/* List */}
             <div className="max-h-80 overflow-y-auto divide-y divide-brand-border-grey">
               {!loaded ? (
-                <div className="px-4 py-6 text-xs text-brand-mid-grey text-center">Loading…</div>
+                <div className="px-4 py-6 text-xs text-brand-mid-grey text-center">{t('common.loading')}</div>
               ) : notifs.length === 0 ? (
                 <div className="px-4 py-8 text-xs text-brand-mid-grey text-center">
                   No notifications yet

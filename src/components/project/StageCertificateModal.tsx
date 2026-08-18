@@ -116,7 +116,7 @@ export function StageCertificateModal({
             type="button"
             onClick={onClose}
             className="text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X className="size-4" />
           </button>

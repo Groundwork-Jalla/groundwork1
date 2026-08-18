@@ -223,7 +223,7 @@ export default function AdminBudgets() {
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">Estimate</p>
+                <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('admin.estimate')}</p>
                 <p className="text-sm font-bold tabular-nums text-brand-near-black">{p.estimate > 0 ? formatUSDFull(p.estimate) : '—'}</p>
               </div>
               <button

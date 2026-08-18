@@ -237,9 +237,16 @@ function StageDetail({
           {stage.status === 'active' && !stagePaid && !isContractor && (
             <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white dark:border-state-held/40 dark:bg-state-held/30 px-3 py-2.5">
               <Lock className="size-3.5 shrink-0 text-state-held mt-0.5" />
+              {/* One key with a {tab} placeholder rather than a prefix/suffix pair:
+                  French does not put the tab name in the same position, and two
+                  half-sentences cannot be reordered by a translator. Split on the
+                  substitution so the tab name still renders bold. */}
               <p className="text-xs text-state-held dark:text-state-held leading-snug">
-                Payment required before uploading evidence or approving this stage. Record payment in the{' '}
-                <span className="font-semibold">Payments</span> tab.
+                {t('project.stages.paymentRequired', { tab: '\u0000' })
+                  .split('\u0000')
+                  .flatMap((part, i) => (i === 0
+                    ? [part]
+                    : [<span key="tab" className="font-semibold">{t('nav.payments')}</span>, part]))}
               </p>
             </div>
           )}
