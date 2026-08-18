@@ -145,13 +145,6 @@ export const fr: Mirror<EnDict> = {
     planningPhase: 'Phase de conception',
     readyToBuild:  'Prêt à construire',
   },
-  theme: {
-    darkMode:       'Mode sombre',
-    lightMode:      'Mode clair',
-    switchToDark:   'Passer en mode sombre',
-    switchToLight:  'Passer en mode clair',
-  },
-
   errors: {
     generic: 'Une erreur est survenue. Veuillez actualiser la page.',
   },
