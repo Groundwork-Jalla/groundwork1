@@ -61,6 +61,18 @@ export default async function handler(req: any, res: any) {
     }
 
     const base = siteUrl(req);
+
+    // Where Stripe sends them back to. Both outcomes returned to /profile regardless of
+    // where checkout was started, so someone who upgraded from the contractor directory
+    // landed in settings and had to find their way back.
+    //
+    // Validated rather than trusted: this value ends up in a redirect Stripe performs,
+    // so anything but a same-origin absolute path would make this an open redirect.
+    // "//evil.com" is protocol-relative and would leave the site, hence the second test.
+    const raw = typeof req.body === 'string' ? safeParse(req.body) : req.body;
+    const wanted = typeof raw?.return_to === 'string' ? raw.return_to : '';
+    const returnTo = wanted.startsWith('/') && !wanted.startsWith('//') ? wanted : '/profile';
+    const sep = returnTo.includes('?') ? '&' : '?';
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -70,8 +82,8 @@ export default async function handler(req: any, res: any) {
       client_reference_id: user.id,
       metadata: { supabase_user_id: user.id },
       subscription_data: { metadata: { supabase_user_id: user.id } },
-      success_url: `${base}/profile?billing=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${base}/profile?billing=cancelled`,
+      success_url: `${base}${returnTo}${sep}billing=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${base}${returnTo}${sep}billing=cancelled`,
       allow_promotion_codes: true,
     });
 
@@ -83,4 +95,9 @@ export default async function handler(req: any, res: any) {
       : (err instanceof Error ? err.message : String(err));
     res.status(500).json({ error: message });
   }
+}
+
+/** Vercel may hand the body through unparsed; a malformed one is simply no preference. */
+function safeParse(body: string): { return_to?: unknown } | null {
+  try { return JSON.parse(body); } catch { return null; }
 }

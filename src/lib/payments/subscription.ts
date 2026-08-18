@@ -47,12 +47,13 @@ export function isSubscriptionActive(status: SubscriptionStatus | null): boolean
       || status === 'past_due' || status === 'unpaid';
 }
 
-async function authedPost(path: string): Promise<{ url: string }> {
+async function authedPost(path: string, payload?: Record<string, unknown>): Promise<{ url: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Please sign in first.');
 
   const res = await fetch(path, {
     method: 'POST',
+    body: JSON.stringify(payload ?? {}),
     headers: {
       'Content-Type': 'application/json',
       // The server verifies this token and derives the user from it, rather than
@@ -69,7 +70,10 @@ async function authedPost(path: string): Promise<{ url: string }> {
 
 /** Redirects to hosted Stripe Checkout. No card data touches Groundwork. */
 export async function startJallaVerifyCheckout(): Promise<void> {
-  const { url } = await authedPost('/api/stripe/create-checkout-session');
+  // Come back to wherever checkout was started — upgrading from the contractor
+  // directory should return there, not to settings. The server re-validates this.
+  const returnTo = window.location.pathname + window.location.search;
+  const { url } = await authedPost('/api/stripe/create-checkout-session', { return_to: returnTo });
   window.location.href = url;
 }
 

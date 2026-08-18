@@ -12,11 +12,19 @@
 // =========================================================
 
 /**
- * Hides the contractor directory behind an upgrade prompt for everyone, regardless of
- * tier — the ask was that no contractor names are shown at all during the demo, not
- * that the existing plan gate be tightened.
+ * Puts the contractor directory behind Jalla Verify.
  *
- * The list query is skipped entirely while this is on, so the names never reach the
- * browser. Gating in the render alone would leave them in the network tab.
+ * Started life as a blanket hide for the demo. It now checks the subscription instead,
+ * because someone who upgrades from this very screen has to land back on a directory
+ * they can actually see — a paywall that stays shut after payment is worse than no
+ * paywall.
+ *
+ * Self Verify sees the upgrade prompt and no names; Jalla Verify and Jalla Management
+ * see the directory. Tier comes from `profiles.subscription_tier`, which only the
+ * Stripe webhook can write (migration 021) — not from user metadata, which the browser
+ * can set.
+ *
+ * The list query is still skipped entirely while gated, so a locked-out visitor never
+ * downloads a name.
  */
 export const CONTRACTORS_LOCKED_FOR_DEMO = true;
