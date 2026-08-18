@@ -2811,6 +2811,11 @@ export const en = {
       capReached:   'Self Verify includes 1 contractor per project. Upgrade for unlimited.',
       capNotice:    'Self Verify plan allows 1 contractor per project.',
       capUpgrade:   'Upgrade to Jalla Verify for unlimited contractors.',
+    // TEMPORARY (demo gate) — remove with lib/demo-gate.ts.
+    lockedTitle: 'Contractors are part of Jalla Verify',
+    lockedBody:  'Upgrade to see verified contractors in your region, their track record, and request quotes without leaving Groundwork.',
+    lockedCta:   'Upgrade to Jalla Verify',
+    lockedBack:  'Back to dashboard',
     },
 
     guides: {
