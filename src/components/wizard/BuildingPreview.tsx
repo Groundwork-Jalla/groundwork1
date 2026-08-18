@@ -176,7 +176,7 @@ function Badge({
       <motion.div
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="flex items-center gap-2 rounded-full bg-brand-near-black text-white shadow-[0_4px_20px_rgba(0,0,0,0.22)] px-3 py-2 text-xs font-semibold whitespace-nowrap"
+        className="flex items-center gap-2 rounded-full bg-brand-near-black text-white shadow-[0_4px_20px_rgba(0,0,0,0.22)] px-3 py-2 text-xs font-semibold whitespace-nowrap dark:bg-white dark:text-brand-near-black"
       >
         {icon}
         <span>{label}</span>
@@ -205,7 +205,7 @@ function InfoBadge({ children, pos, delay = 0 }: { children: React.ReactNode; po
       <motion.div
         animate={{ y: [0, -5, 0] }}
         transition={{ duration: 3.5 + delay, repeat: Infinity, ease: 'easeInOut', delay }}
-        className="rounded-2xl border border-brand-border-grey bg-white/90 backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.08)] px-3 py-2.5 text-[11px] text-brand-near-black font-medium"
+        className="rounded-2xl border border-brand-border-grey bg-white/90 backdrop-blur-sm shadow-[0_4px_24px_rgba(0,0,0,0.08)] px-3 py-2.5 text-[11px] text-brand-near-black font-medium dark:border-white/20 dark:bg-white/10 dark:text-white"
       >
         {children}
       </motion.div>
@@ -947,7 +947,7 @@ function RoomChangeBurst({ totalRooms, step }: { totalRooms: number; step: numbe
       initial={{ opacity: 0 }}
       className="absolute left-1/2 -translate-x-1/2 bottom-[42%] z-30 pointer-events-none"
     >
-      <span className="inline-flex items-center gap-1 rounded-full bg-brand-near-black text-white text-[10px] font-bold px-2.5 py-1 shadow-lg">
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand-near-black text-white text-[10px] font-bold px-2.5 py-1 shadow-lg dark:bg-white dark:text-brand-near-black">
         {label}
       </span>
     </motion.div>
