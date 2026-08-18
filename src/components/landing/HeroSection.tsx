@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -35,12 +36,25 @@ export default function HeroSection() {
             transition={{ duration: 2.5, repeat: Infinity }}
           >
             <Button asChild className="w-full sm:w-auto bg-brand-near-black text-white text-sm font-semibold px-8 py-4 h-auto rounded-lg hover:bg-brand-black group">
-              <a href="/community" className="flex items-center justify-center gap-2">
-                {t('landing.hero.cta')}
+              <Link to="/auth/signup" className="flex items-center justify-center gap-2">
+                {t('landing.signup.cta')}
                 <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </a>
+              </Link>
             </Button>
           </motion.div>
+
+          {/* The button can only send everyone to one place, and new accounts are
+              what it is for. Returning users need their own way through, so the
+              log-in path sits directly under it rather than in the navbar only. */}
+          <p className="mt-4 text-xs text-brand-mid-grey">
+            {t('landing.signup.haveAccount')}{' '}
+            <Link
+              to="/auth/login"
+              className="font-semibold text-brand-near-black underline underline-offset-4 hover:text-brand-black"
+            >
+              {t('landing.signup.logIn')}
+            </Link>
+          </p>
         </motion.div>
 
         <motion.div

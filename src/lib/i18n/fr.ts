@@ -145,21 +145,6 @@ export const fr: Mirror<EnDict> = {
     planningPhase: 'Phase de conception',
     readyToBuild:  'Prêt à construire',
   },
-  toolsPage: {
-    freeTitle:        'Outils de planification gratuits',
-    wantFullPicture:  'Vous voulez la vue complète ?',
-    stagePlanner:     'Planificateur d\'étapes de construction',
-    typicalDuration:  'Durée typique',
-    budgetAllocation: 'Répartition du budget',
-    paymentTiming:    'Calendrier de paiement',
-    buildingSoon:     'Vous construisez bientôt ?',
-    diyTracker:       'Suivi de projet autonome',
-    projectName:      'Nom du projet',
-    projectNamePlaceholder: 'Ma maison',
-    startDate:        'Date de début',
-    notesPlaceholder: 'Ajouter des notes sur cette étape…',
-    managingReal:     'Vous gérez un vrai projet ?',
-  },
   errors: {
     generic: 'Une erreur est survenue. Veuillez actualiser la page.',
   },
@@ -811,6 +796,74 @@ export const fr: Mirror<EnDict> = {
     sampleName: "Ma maison",
     managingReal: "Vous gérez un vrai chantier ?",
     trackerCta: "Obtenez validations d'étapes, archivage des documents, coordination des entrepreneurs et suivi des paiements avec un compte gratuit.",
+
+    // ── Page d'accueil des outils ──
+    indexHeadline2: "avant le premier coup de pioche.",
+    budgetCardDesc: "Estimez le coût de votre chantier selon le pays, la surface et le niveau de finition. Détail chiffré en quelques secondes.",
+    budgetCardCta: "Calculer le coût",
+    stagesCardDesc: "Découvrez les 10 étapes de la construction avec leur durée habituelle, leurs sous-étapes et leur part du budget.",
+    stagesCardCta: "Voir les étapes",
+    milestonesCardDesc: "Établissez un échéancier de paiement prudent, étape par étape. Ne payez jamais tout d'avance.",
+    milestonesCardCta: "Générer l'échéancier",
+    trackerCardDesc: "Suivez votre chantier sans compte. Cochez les sous-étapes, ajoutez des notes et surveillez l'avancement global.",
+    trackerCardCta: "Commencer le suivi",
+
+    // ── Calculateur de budget ──
+    finish: {
+      standard:     "Standard",
+      standardDesc: "Finitions fonctionnelles et économiques",
+      premium:      "Premium",
+      premiumDesc:  "Équipements et finitions de milieu de gamme",
+      luxury:       "Luxe",
+      luxuryDesc:   "Matériaux haut de gamme et finitions sur mesure",
+    },
+    estimateMeta:  "USD · indicatif · {sqm} m² · {floors} {floorWord} · {finish}",
+    floorSingular: "niveau",
+    floorPlural:   "niveaux",
+
+    // ── Planificateur d'étapes ──
+    stageTooltip:  "Étape {n} : {pct} %",
+    daysEst:       "{days} j est.",
+    daysFull:      "{days} jours",
+    pctOfBudget:   "{pct} % du budget",
+    durationShort: "{days} j",
+    payNote: {
+      s1:  "Payer avant le début des travaux",
+      s2:  "Payer à l'achèvement des fondations",
+      s3:  "Payer à l'achèvement des murs",
+      s4:  "Payer à l'achèvement du plancher",
+      s5:  "Payer à l'achèvement de la toiture",
+      s6:  "Payer à l'achèvement de l'enduit",
+      s7:  "Payer à la réception du premier œuvre",
+      s8:  "Payer à l'achèvement des finitions",
+      s9:  "Payer à la réception des travaux extérieurs",
+      s10: "Payer à la remise des clés",
+    },
+
+    // ── Générateur d'échéancier ──
+    whenToPay: {
+      s1:  "Avant le début des travaux",
+      s2:  "À l'achèvement des fondations",
+      s3:  "À l'achèvement des murs",
+      s4:  "À l'achèvement du plancher",
+      s5:  "À l'achèvement de la toiture",
+      s6:  "À l'achèvement de l'enduit",
+      s7:  "À la réception du premier œuvre",
+      s8:  "À l'achèvement des finitions",
+      s9:  "À la réception des travaux extérieurs",
+      s10: "À la remise des clés",
+    },
+    printMeta: "Budget total : {total} · Généré par Groundwork",
+
+    // ── Suivi de chantier autonome ──
+    resetConfirm:     "Réinitialiser toute la progression ? Cette action est irréversible.",
+    substagesDone:    "{done} sous-étapes terminées sur {total}",
+    yourProject:      "Votre chantier",
+    startedOn:        "démarré le {date}",
+    stageDone:        "{done}/{total} terminées",
+    untitledProject:  "Suivi de chantier",
+    printReportTitle: "{name} — Rapport d'avancement",
+    printReportMeta:  "Démarré le {date} · {pct} % terminé ({done}/{total} sous-étapes)",
   },
 
   // ── Noms du déroulé de chantier.
@@ -1248,6 +1301,14 @@ export const fr: Mirror<EnDict> = {
       forContractors: "Devenir entrepreneur partenaire",
       forContractorsShort: "Entrepreneurs",
       joinFreeShort:  'Rejoindre',
+      logIn:          'Connexion',
+    },
+
+    signup: {
+      cta:         'Créer un compte Groundwork',
+      ctaShort:    'Créer un compte',
+      haveAccount: 'Vous avez déjà un compte ?',
+      logIn:       'Se connecter',
     },
 
     hero: {

@@ -77,7 +77,7 @@ export default function TrackerTool() {
   }
 
   function reset() {
-    if (window.confirm('Reset all progress? This cannot be undone.')) {
+    if (window.confirm(t('tools.resetConfirm'))) {
       setState(defaultState());
     }
   }
@@ -90,25 +90,25 @@ export default function TrackerTool() {
           <ChevronLeft className="size-3.5" /> {t('tools.backToTools')}
         </Link>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">{t('toolsPage.diyTracker')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-brand-near-black dark:text-white mb-2">{t('tools.trackerTitle')}</h1>
         <p className="text-sm text-brand-mid-grey mb-8">
-          Check off substages as you go. Progress saves automatically in your browser — no account needed.
+          {t('tools.trackerSub')}
         </p>
 
         {/* Project meta */}
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
           <div>
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('toolsPage.projectName')}</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('tools.projectName')}</label>
             <input
               type="text"
               value={state.projectName}
               onChange={e => setState(prev => ({ ...prev, projectName: e.target.value }))}
-              placeholder={t('toolsPage.projectNamePlaceholder')}
+              placeholder={t('tools.sampleName')}
               className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] text-sm text-brand-near-black dark:text-white px-3 py-2.5 placeholder:text-brand-border-grey focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('toolsPage.startDate')}</label>
+            <label className="block text-xs font-semibold text-brand-near-black dark:text-white mb-1.5 uppercase tracking-wide">{t('tools.startDate')}</label>
             <input
               type="date"
               value={state.startDate}
@@ -122,7 +122,7 @@ export default function TrackerTool() {
         <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
-              {totalChecked} of {TOTAL_SUBSTAGES} substages complete
+              {t('tools.substagesDone', { done: totalChecked, total: TOTAL_SUBSTAGES })}
             </p>
             <span className="text-sm font-black text-brand-near-black dark:text-white tabular-nums">{progressPct}%</span>
           </div>
@@ -133,7 +133,9 @@ export default function TrackerTool() {
             />
           </div>
           <p className="text-xs text-brand-mid-grey mt-2">
-            {state.projectName ? `"${state.projectName}"` : 'Your project'} · started {state.startDate || '—'}
+            {state.projectName ? `"${state.projectName}"` : t('tools.yourProject')}
+            {' · '}
+            {t('tools.startedOn', { date: state.startDate || '—' })}
           </p>
         </div>
 
@@ -144,22 +146,31 @@ export default function TrackerTool() {
             onClick={() => window.print()}
             className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2 text-xs font-medium text-brand-near-black dark:text-white hover:bg-brand-off-white dark:hover:bg-[#282828] transition-colors"
           >
-            <Printer className="size-3.5" /> Export Report
+            <Printer className="size-3.5" /> {t('tools.exportReport')}
           </button>
           <button
             type="button"
             onClick={reset}
             className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-3 py-2 text-xs font-medium text-brand-mid-grey hover:text-state-alert hover:border-state-alert/30 dark:hover:border-state-alert transition-colors"
           >
-            <RotateCcw className="size-3.5" /> Reset
+            <RotateCcw className="size-3.5" /> {t('tools.reset')}
           </button>
         </div>
       </div>
 
       {/* Print-only header */}
       <div className="hidden print:block mb-6">
-        <p className="text-lg font-black">{state.projectName || 'Project Tracker'} — Progress Report</p>
-        <p className="text-sm text-gray-500">Started: {state.startDate} · {progressPct}% complete ({totalChecked}/{TOTAL_SUBSTAGES} substages)</p>
+        <p className="text-lg font-black">
+          {t('tools.printReportTitle', { name: state.projectName || t('tools.untitledProject') })}
+        </p>
+        <p className="text-sm text-gray-500">
+          {t('tools.printReportMeta', {
+            date: state.startDate,
+            pct: progressPct,
+            done: totalChecked,
+            total: TOTAL_SUBSTAGES,
+          })}
+        </p>
       </div>
 
       {/* Stage accordion */}
@@ -191,7 +202,7 @@ export default function TrackerTool() {
 
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t(`stages.${stage.key}` as TKey)}</p>
-                  <p className="text-[10px] text-brand-mid-grey mt-0.5">{doneCount}/{stageTotal} done</p>
+                  <p className="text-[10px] text-brand-mid-grey mt-0.5">{t('tools.stageDone', { done: doneCount, total: stageTotal })}</p>
                 </div>
 
                 {/* Mini progress */}
@@ -206,7 +217,7 @@ export default function TrackerTool() {
               {/* Print-visible stage header */}
               <div className="hidden print:flex items-center gap-3 px-4 py-2 bg-gray-100">
                 <span className="text-sm font-bold">{stage.stage_number}. {t(`stages.${stage.key}` as TKey)}</span>
-                <span className="text-xs text-gray-500">({doneCount}/{stageTotal} done)</span>
+                <span className="text-xs text-gray-500">({t('tools.stageDone', { done: doneCount, total: stageTotal })})</span>
               </div>
 
               {/* Substages — visible when open (interactive) or always for print */}
@@ -238,11 +249,11 @@ export default function TrackerTool() {
                   </div>
 
                   <div className="print:hidden">
-                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1.5">Notes</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1.5">{t('tools.notes')}</label>
                     <textarea
                       value={state.notes[stage.stage_number] ?? ''}
                       onChange={e => setNote(stage.stage_number, e.target.value)}
-                      placeholder={t('toolsPage.notesPlaceholder')}
+                      placeholder={t('tools.notesHint')}
                       rows={2}
                       className="w-full rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] text-xs text-brand-near-black dark:text-white px-3 py-2 placeholder:text-brand-border-grey focus:outline-none focus:ring-1 focus:ring-brand-near-black dark:focus:ring-white resize-none"
                     />
@@ -251,7 +262,7 @@ export default function TrackerTool() {
                   {/* Print notes */}
                   {state.notes[stage.stage_number] && (
                     <div className="hidden print:block mt-2">
-                      <p className="text-xs font-semibold text-gray-500">Notes:</p>
+                      <p className="text-xs font-semibold text-gray-500">{t('tools.notesColon')}</p>
                       <p className="text-xs text-gray-700">{state.notes[stage.stage_number]}</p>
                     </div>
                   )}
@@ -265,7 +276,7 @@ export default function TrackerTool() {
       {/* CTA */}
       <div className="mt-10 print:hidden rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1a1a1a] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-xs text-brand-mid-grey">
-          <span className="font-semibold text-brand-near-black dark:text-white">{t('toolsPage.managingReal')}</span> Get stage sign-offs, document storage, contractor coordination, and payment tracking with a full Groundwork account.
+          <span className="font-semibold text-brand-near-black dark:text-white">{t('tools.managingReal')}</span> {t('tools.trackerCta')}
         </p>
         <Link to="/auth/signup" className="shrink-0 inline-flex rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black px-3 py-2 text-xs font-semibold hover:opacity-90 transition-opacity">
           {t('tools.getStartedFree')}

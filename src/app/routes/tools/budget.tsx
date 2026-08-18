@@ -3,14 +3,14 @@ import { Link } from 'react-router';
 import { ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 import { BUDGET_SLICES, calculateBudget, formatUSDFull, formatUSD, sliceShares } from '@/lib/budget';
 import { COUNTRIES } from '@/lib/countries';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 const FINISH_LEVELS = [
-  { value: 'standard', label: 'Standard', desc: 'Functional, cost-effective finishes' },
-  { value: 'premium',  label: 'Premium',  desc: 'Mid-range quality fittings and finishes' },
-  { value: 'luxury',   label: 'Luxury',   desc: 'High-end materials and custom finishes' },
-] as const;
+  { value: 'standard', labelKey: 'tools.finish.standard', descKey: 'tools.finish.standardDesc' },
+  { value: 'premium',  labelKey: 'tools.finish.premium',  descKey: 'tools.finish.premiumDesc'  },
+  { value: 'luxury',   labelKey: 'tools.finish.luxury',   descKey: 'tools.finish.luxuryDesc'   },
+] as const satisfies readonly { value: string; labelKey: TKey; descKey: TKey }[];
 
 function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   return (
@@ -120,8 +120,8 @@ export default function BudgetTool() {
                       : 'border-brand-border-grey dark:border-[#555]'
                   }`} />
                   <div>
-                    <p className={`text-sm font-semibold ${finishLevel === fl.value ? 'text-white dark:text-brand-near-black' : 'text-brand-near-black dark:text-white'}`}>{fl.label}</p>
-                    <p className={`text-xs ${finishLevel === fl.value ? 'text-white/70 dark:text-brand-near-black/70' : 'text-brand-mid-grey'}`}>{fl.desc}</p>
+                    <p className={`text-sm font-semibold ${finishLevel === fl.value ? 'text-white dark:text-brand-near-black' : 'text-brand-near-black dark:text-white'}`}>{t(fl.labelKey)}</p>
+                    <p className={`text-xs ${finishLevel === fl.value ? 'text-white/70 dark:text-brand-near-black/70' : 'text-brand-mid-grey'}`}>{t(fl.descKey)}</p>
                   </div>
                 </button>
               ))}
@@ -134,7 +134,15 @@ export default function BudgetTool() {
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
             <p className="text-xs text-brand-mid-grey mb-1">{t('tools.estimatedCost')}</p>
             <p className="text-4xl font-black text-brand-near-black dark:text-white tabular-nums mb-1">{formatUSDFull(budget.total)}</p>
-            <p className="text-xs text-brand-mid-grey mb-5">USD · indicative · {sqm} sqm · {floors} floor{floors !== 1 ? 's' : ''} · {finishLevel}</p>
+            <p className="text-xs text-brand-mid-grey mb-5">
+              {t('tools.estimateMeta', {
+                sqm,
+                floors,
+                floorWord: t(floors === 1 ? 'tools.floorSingular' : 'tools.floorPlural'),
+                // The raw enum value read as English on the French page.
+                finish: t(`tools.finish.${finishLevel}` as TKey).toLowerCase(),
+              })}
+            </p>
 
             <div className="flex flex-col gap-2.5">
               {BUDGET_SLICES.map(s => (
