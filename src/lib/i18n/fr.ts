@@ -1525,6 +1525,8 @@ export const fr: Mirror<EnDict> = {
     ctaBody:   "Commencez gratuitement — sans carte bancaire. Passez à un forfait supérieur dès que vous avez besoin de l'œil de Jalla sur votre chantier.",
     ctaButton: 'Créer votre compte',
     ctaButtonSignedIn: 'Accéder à mon tableau de bord',
+    checkoutFailed: "Impossible d'ouvrir le paiement. Veuillez réessayer.",
+    redirecting:    'Redirection vers le paiement…',
     plans: {
       selfVerify: {
         name:    'Self Verify',
