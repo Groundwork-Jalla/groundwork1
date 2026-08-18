@@ -26,7 +26,11 @@ export default async function handler(req: any, res: any) {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: { user }, error: authErr } = await caller.auth.getUser();
+  // `getUser` may not be present on the typed `SupabaseAuthClient` in some
+  // versions; use a runtime call with an `any` assertion to keep TypeScript
+  // happy while preserving runtime behaviour.
+  const getUserRes = await (caller.auth as any).getUser();
+  const { data: { user } = { user: null }, error: authErr } = getUserRes ?? {};
   if (authErr || !user) {
     return res.status(401).json({ error: 'Sign in required' });
   }
