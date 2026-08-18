@@ -638,6 +638,11 @@ export const fr: Mirror<EnDict> = {
 
   // ── Annuaire des entrepreneurs ────────────────────────────
   contractors: {
+    // TEMPORAIRE (démo) — à retirer avec lib/demo-gate.ts.
+    lockedTitle: 'Les entrepreneurs font partie de Jalla Verify',
+    lockedBody:  "Passez à l'offre supérieure pour voir les entrepreneurs vérifiés de votre région, leur historique, et demander des devis sans quitter Groundwork.",
+    lockedCta:   'Passer à Jalla Verify',
+    lockedBack:  'Retour au tableau de bord',
       searchPlaceholder: 'Rechercher par nom, métier, lieu ou spécialité…',
       viewProfile: 'Voir le profil',
       verifiedProfessional: 'Professionnel vérifié',
@@ -2794,11 +2799,6 @@ export const fr: Mirror<EnDict> = {
       capReached:   'Self Verify inclut 1 entrepreneur par projet. Passez à un forfait supérieur pour un nombre illimité.',
       capNotice:    'Le forfait Self Verify autorise 1 entrepreneur par projet.',
       capUpgrade:   'Passez à Jalla Verify pour un nombre illimité.',
-    // TEMPORAIRE (démo) — à retirer avec lib/demo-gate.ts.
-    lockedTitle: 'Les entrepreneurs font partie de Jalla Verify',
-    lockedBody:  "Passez à l'offre supérieure pour voir les entrepreneurs vérifiés de votre région, leur historique, et demander des devis sans quitter Groundwork.",
-    lockedCta:   'Passer à Jalla Verify',
-    lockedBack:  'Retour au tableau de bord',
     },
 
     guides: {
