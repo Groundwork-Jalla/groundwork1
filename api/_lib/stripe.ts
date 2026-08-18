@@ -16,6 +16,14 @@ import { createClient } from '@supabase/supabase-js';
 export function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
+  // Basic sanity check: publishable keys start with `pk_`, secret keys with
+  // `sk_`. A common deployment mistake is to set the publishable key where the
+  // secret key is required. Help the operator by failing fast with a clearer
+  // message instead of letting the Stripe SDK report an authentication error.
+  if (!key.startsWith('sk_')) {
+    const shown = typeof key === 'string' ? `${key.slice(0, 8)}...` : String(key);
+    throw new Error(`STRIPE_SECRET_KEY does not look like a secret key (expected to start with 'sk_'). Value: ${shown}`);
+  }
   // No explicit apiVersion: the SDK defaults to the version its own types were generated
   // against, so the two can never disagree. Pinning a literal here means every `pnpm up
   // stripe` becomes a type error until someone edits this line.
