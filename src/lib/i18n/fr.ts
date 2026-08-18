@@ -1519,6 +1519,7 @@ export const fr: Mirror<EnDict> = {
     social: {
       from:            'de {location}',
       joinedJustNow:   "vient de nous rejoindre",
+      joinedAgo:       'a rejoint {when}',
     },
   },
 
