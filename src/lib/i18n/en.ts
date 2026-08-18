@@ -452,6 +452,22 @@ export const en = {
       filterUnsynced: 'Not forwarded',
     },
 
+    // ── Started applications (/admin/drafts) ──
+    drafts: {
+      title:      'Started applications',
+      subtitle:   'People who began the contractor application and have not sent it. Saved as they typed; the form tells them so.',
+      search:     'Search by name, email or phone…',
+      anonymous:  'No name yet',
+      submitted:  'Applied',
+      emailThem:  'Email',
+      callThem:   'Call',
+      empty:      'Nobody has a half-finished application right now.',
+      emptyFiltered: 'No started applications match this search.',
+      filterOpen: 'Not finished',
+      filterAll:  'Everyone',
+      loadFailed: 'Could not load started applications. This needs migration 043.',
+    },
+
     allUsers:         'All Users',
     usersLoadFailed:  'Could not load users.',
     roleClient:       'client',
@@ -1289,6 +1305,7 @@ export const en = {
     admin:          'Admin',
     applications:   'Applications',
     waitlist:       'Waitlist',
+    drafts:         'Started applications',
   },
 
   // ── Landing page ──────────────────────────────────────────

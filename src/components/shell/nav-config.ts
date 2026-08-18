@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FolderOpen, BookOpen, HardHat, CreditCard, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
-  FileText, Mailbox,
+  FileText, Mailbox, FilePen,
 } from 'lucide-react';
 import type { TKey } from '@/lib/i18n';
 
@@ -51,6 +51,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/contractors', labelKey: 'nav.contractors', icon: HardHat },
   { to: '/admin/applications', labelKey: 'nav.applications', icon: FileText },
   { to: '/admin/waitlist',     labelKey: 'nav.waitlist',     icon: Mailbox },
+  { to: '/admin/drafts',       labelKey: 'nav.drafts',       icon: FilePen },
 ];
 
 /**

@@ -458,6 +458,22 @@ export const fr: Mirror<EnDict> = {
       filterUnsynced: 'Non transmis',
     },
 
+    // ── Candidatures commencées (/admin/drafts) ──
+    drafts: {
+      title:      'Candidatures commencées',
+      subtitle:   'Les personnes qui ont commencé la candidature entrepreneur sans l\'envoyer. Enregistrée au fil de la saisie ; le formulaire les en informe.',
+      search:     'Rechercher par nom, e-mail ou téléphone…',
+      anonymous:  'Sans nom pour l\'instant',
+      submitted:  'Candidature envoyée',
+      emailThem:  'Envoyer un e-mail',
+      callThem:   'Appeler',
+      empty:      'Aucune candidature à moitié remplie pour le moment.',
+      emptyFiltered: 'Aucune candidature commencée ne correspond à cette recherche.',
+      filterOpen: 'Non terminées',
+      filterAll:  'Toutes',
+      loadFailed: 'Impossible de charger les candidatures commencées. Nécessite la migration 043.',
+    },
+
     allUsers:         'Tous les utilisateurs',
     usersLoadFailed:  'Impossible de charger les utilisateurs.',
     roleClient:       'client',
@@ -1290,6 +1306,7 @@ export const fr: Mirror<EnDict> = {
     admin:          'Administration',
     applications:   'Candidatures',
     waitlist:       'Liste d\'attente',
+    drafts:         'Candidatures commencées',
   },
 
   // ── Page d'accueil ────────────────────────────────────────
