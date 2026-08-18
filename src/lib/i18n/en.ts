@@ -1642,6 +1642,11 @@ export const en = {
       forList:      'Contractors · Land Lawyers · Surveyors · Engineers · Electricians · Plumbers · Skilled Trades',
       noGuarantee:  'Submission does not guarantee acceptance. All applications go through a thorough verification and review process.',
 
+      // Draft capture. This notice is not optional decoration: it is what makes saving a
+      // half-finished form honest. See 043_application_drafts.sql.
+      draftNotice:  'Your answers are saved as you go, so you can close this page and finish later on this device. Only the Groundwork team can see them.',
+      draftSaved:   'Answers saved',
+
       // Section headings
       s1: 'Basic information',
       s2: 'Professional category',

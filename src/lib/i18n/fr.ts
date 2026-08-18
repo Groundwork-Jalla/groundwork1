@@ -1636,6 +1636,10 @@ export const fr: Mirror<EnDict> = {
       forList:      'Entrepreneurs · Juristes fonciers · Géomètres · Ingénieurs · Électriciens · Plombiers · Corps de métier qualifiés',
       noGuarantee:  "Le dépôt d'une candidature ne garantit pas son acceptation. Toutes les candidatures font l'objet d'une vérification et d'un examen approfondis.",
 
+      // Voir la note anglaise : cet avis est ce qui rend l'enregistrement honnête.
+      draftNotice:  'Vos réponses sont enregistrées au fur et à mesure : vous pouvez fermer cette page et terminer plus tard sur cet appareil. Seule l\'équipe Groundwork peut les consulter.',
+      draftSaved:   'Réponses enregistrées',
+
       // Titres de section
       s1: 'Informations de base',
       s2: 'Catégorie professionnelle',

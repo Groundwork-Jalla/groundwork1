@@ -61,6 +61,17 @@ export interface DraftSnapshot {
  * subsequent one replaces it, with no round trip to find out which case we are in.
  */
 export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Promise<void> {
+  try {
+    await writeDraft(id, snap);
+  } catch (err) {
+    // Swallowed on purpose, including a rejected fetch. Logged so it is visible in the
+    // console during testing, but never thrown — an autosave must not be able to
+    // interrupt someone applying.
+    console.warn('[draft] save failed', err);
+  }
+}
+
+async function writeDraft(id: string, snap: DraftSnapshot): Promise<void> {
   const { error } = await supabase
     .from('contractor_application_drafts')
     .upsert({
@@ -74,9 +85,7 @@ export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Pro
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'id' });
 
-  // Swallowed on purpose. Logged so it is visible in the console during testing, but
-  // never thrown — an autosave must not be able to interrupt someone applying.
-  if (error) console.warn('[draft] save failed', error.message);
+  if (error) throw error;
 }
 
 /**
@@ -86,11 +95,15 @@ export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Pro
  * the RETURNING clause for the same RLS reason as everything else here.
  */
 export async function markDraftSubmitted(id: string, applicationId: string): Promise<void> {
-  const { error } = await supabase
-    .from('contractor_application_drafts')
-    .update({ submitted_application_id: applicationId, updated_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) console.warn('[draft] mark submitted failed', error.message);
+  try {
+    const { error } = await supabase
+      .from('contractor_application_drafts')
+      .update({ submitted_application_id: applicationId, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.warn('[draft] mark submitted failed', err);
+  }
 }
 
 // ── Admin side ───────────────────────────────────────────

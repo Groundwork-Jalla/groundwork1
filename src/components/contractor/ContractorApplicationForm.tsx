@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2, Upload, X, Plus, Info, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, Upload, X, Plus, Info, AlertTriangle, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,9 @@ import {
   type ContractorApplicationInput, type ContractorRole,
   type ProjectEntry, type UploadedFile,
 } from '@/lib/supabase/contractor-applications';
+import {
+  clearDraftId, draftId, markDraftSubmitted, saveApplicationDraft,
+} from '@/lib/supabase/application-drafts';
 
 // ── Shared field primitives ───────────────────────────────
 // Deliberately mirrors the auth form: Label above Input, 1.5 gap, same Input
@@ -201,6 +204,15 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   const [error, setError]           = useState<string | null>(null);
   const [done, setDone]             = useState(false);
 
+  // ── Draft capture ───────────────────────────────────────
+  // This form asks for nineteen things, three past projects and a document upload.
+  // Everyone who starts it and stops half way is a contractor we wanted and never hear
+  // from again. So what has been typed is written server-side as they go, and the
+  // notice rendered under the header is what makes that honest — it is part of the
+  // feature, not decoration. See supabase/migrations/043_application_drafts.sql.
+  const draftRef = useRef(draftId());
+  const [draftSaved, setDraftSaved] = useState(false);
+
   const track = role ? credentialTrack(role) : null;
   const setC = (k: string, v: string | string[] | boolean) => setCred(p => ({ ...p, [k]: v }));
   const toggleIn = (arr: string[], k: string) =>
@@ -208,6 +220,52 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
 
   const willDisqualify =
     milestones === false || verification === false || noSidePay === false;
+
+  // Everything the form holds, in one object. Serialised rather than listed as
+  // twenty-odd effect dependencies — what the autosave needs to know is "something
+  // changed", not which thing. File contents are not included; only their names, since
+  // the credential bucket is the place for the files themselves.
+  const snapshot = {
+    fullName, businessName, phone, email, country, city, portfolioUrl,
+    role, roleOther, years, operatesAs, teamSize, projectTypes,
+    credentials: cred,
+    uploads: files.map(x => x.label), pendingUploads: pending.map(x => x.name),
+    projects, milestones, verification, noSidePay,
+    videoUrl, whyJoin, differentiator, readyEarly, regions, concurrent, agreed,
+  };
+  const serialised = JSON.stringify(snapshot);
+
+  // The same conditions handleSubmit enforces, counted rather than checked. Keeping the
+  // two lists side by side is what stops the progress figure drifting away from what
+  // actually blocks submission — an admin chasing someone shown at 95% should find them
+  // one field short, not ten.
+  const complete = [
+    !!fullName, !!phone, !!email, !!country, !!city, !!role,
+    !!years, !!operatesAs, !!whyJoin, !!differentiator, !!regions, !!concurrent,
+    projectTypes.length > 0,
+    files.length + pending.length > 0,
+    projects.filter(p => p.name.trim() && p.location.trim()).length >= 3,
+    milestones !== null, verification !== null, noSidePay !== null,
+    readyEarly !== null, agreed,
+  ];
+  const progressPct = Math.round((100 * complete.filter(Boolean).length) / complete.length);
+
+  useEffect(() => {
+    // No contact detail means nothing to follow up on, and it also stops a row being
+    // created for every visitor who merely opens the page and reads it.
+    if (done || (!email.trim() && !phone.trim())) return;
+
+    // Two seconds after they stop typing, not on every keystroke.
+    const timer = setTimeout(() => {
+      void saveApplicationDraft(draftRef.current, {
+        fullName, email, phone, role: role || undefined,
+        payload: snapshot, progressPct,
+      }).then(() => setDraftSaved(true));
+    }, 2_000);
+    return () => clearTimeout(timer);
+    // `serialised` stands in for every field in `snapshot`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serialised, done]);
 
   function updateProject(i: number, patch: Partial<ProjectEntry>) {
     setProjects(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
@@ -287,6 +345,12 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
 
       const applicationId = await submitContractorApplication(input);
 
+      // Ties the draft to the finished application, which is what takes this person off
+      // the follow-up list. Fire-and-forget for the same reason as the mail below: they
+      // are already through, and a bookkeeping failure must not read as a failed submit.
+      void markDraftSubmitted(draftRef.current, applicationId);
+      clearDraftId();
+
       // Sends the applicant's copy AND the alert to the team inbox. Fire-and-forget:
       // the application is already saved and a mail failure must not read as a failed
       // submission. Only the id is sent — the endpoint derives both recipients from the
@@ -340,6 +404,19 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         <div className="flex items-start gap-2 rounded-xl bg-brand-off-white px-4 py-3 mt-4">
           <Info className="size-4 text-brand-mid-grey mt-0.5 shrink-0" />
           <p className="text-[11px] text-brand-mid-grey leading-relaxed">{f('noGuarantee')}</p>
+        </div>
+        {/* The disclosure for the autosave above. Shown before any field, not buried at
+            the bottom, because it has to be read before it is true of anything typed. */}
+        <div className="flex items-start gap-2 mt-3">
+          <Save className="size-3.5 text-brand-mid-grey mt-px shrink-0" />
+          <p className="text-[11px] text-brand-mid-grey leading-relaxed">
+            {f('draftNotice')}
+            {draftSaved && (
+              <span className="ml-1.5 inline-flex items-center gap-1 font-medium text-brand-near-black">
+                <CheckCircle2 className="size-3" />{f('draftSaved')}
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
