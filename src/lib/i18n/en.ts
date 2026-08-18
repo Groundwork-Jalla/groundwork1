@@ -1359,7 +1359,7 @@ export const en = {
     // form; the secondary link is the way back for people who already have an
     // account — the button alone cannot tell the two apart.
     signup: {
-      cta:         'Sign Up to Groundwork',
+      cta:         'Join for Free',
       haveAccount: 'Already have an account?',
       logIn:       'Log in',
       // Shown instead of the pair above once this browser has signed in before, since
@@ -1370,10 +1370,9 @@ export const en = {
     },
 
     hero: {
-      titleMain:   'Introducing the New Way of Building Back Home',
-      titleAccent: 'Without Losing Control.',
-      body:        'Groundwork by Jalla gives diaspora builders a structured and transparent way to fund, verify, and track construction back home. Every payment is tied to proof, every stage is independently verified for quality, and every penny is properly accounted for.',
-      cta:         'Join for Free',
+      titleMain:   'Introducing the new way to',
+      titleAccent: 'Build back home.',
+      body:        'Groundwork by Jalla gives remote home owners a structured and transparent way to fund, verify, and track construction projects back home.',
     },
 
     // Stat values keep their digits — the counter animation parses them.

@@ -1356,7 +1356,7 @@ export const fr: Mirror<EnDict> = {
     },
 
     signup: {
-      cta:         'Créer un compte Groundwork',
+      cta:         'Rejoindre gratuitement',
       haveAccount: 'Vous avez déjà un compte ?',
       logIn:       'Se connecter',
       // Voir la note anglaise : l'autre porte, une fois le bouton dirigé vers la connexion.
@@ -1365,10 +1365,9 @@ export const fr: Mirror<EnDict> = {
     },
 
     hero: {
-      titleMain:   'La nouvelle façon de bâtir au pays',
-      titleAccent: 'Sans perdre le contrôle.',
-      body:        "Groundwork by Jalla offre à la diaspora une manière structurée et transparente de financer, vérifier et suivre un chantier au pays. Chaque paiement est adossé à une preuve, chaque étape est vérifiée indépendamment, et chaque franc est justifié.",
-      cta:         'Rejoindre gratuitement',
+      titleMain:   'Voici la nouvelle façon de',
+      titleAccent: 'bâtir au pays.',
+      body:        "Groundwork by Jalla offre aux propriétaires à distance une manière structurée et transparente de financer, vérifier et suivre leurs projets de construction au pays.",
     },
 
     stats: {
