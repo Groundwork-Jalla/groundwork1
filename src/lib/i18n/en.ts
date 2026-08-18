@@ -1296,7 +1296,7 @@ export const en = {
     step2Locked:   'Book your project audit to unlock this step.',
     progress:      'Step {n} of 2',
     progressDone:  'Both steps complete',
-    waiting:       'Finish in the window that opened, then close it — this page moves on by itself.',
+    waiting:       'Finish booking in the tab that opened, then come back here — this page moves on by itself.',
     doneTitle:     "You're all set.",
     doneBody:      'We will read your answers before we meet, so the audit can start with your build rather than with the basics.',
     backToPricing: 'Back to pricing',

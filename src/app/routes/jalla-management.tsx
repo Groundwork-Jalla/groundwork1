@@ -26,46 +26,6 @@ import { JALLA_MANAGEMENT_AUDIT_URL, JALLA_MANAGEMENT_FORM_URL } from '@/lib/jal
 
 type Stage = 'call' | 'form' | 'done';
 
-/**
- * Open a booking/form page in a popup and advance when the visitor closes it.
- *
- * Google Calendar appointment schedules take no redirect_uri and post nothing back to
- * the browser, so there is no way to be *told* the booking happened. What a popup does
- * give us is `window.closed` — readable cross-origin — so finishing and closing the
- * window returns the visitor to a page that has already moved them on. That is the
- * behaviour asked for; the cost is that closing without booking advances too.
- *
- * The manual confirm stays as a fallback, because a popup can be blocked, and someone
- * may leave the window open and come back to this tab instead of closing it.
- */
-function usePopupFlow(href: string, onDone: () => void) {
-  const [opened, setOpened]   = useState(false);
-  const [blocked, setBlocked] = useState(false);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stop = useCallback(() => {
-    if (timer.current) { clearInterval(timer.current); timer.current = null; }
-  }, []);
-
-  useEffect(() => stop, [stop]);
-
-  const open = useCallback(() => {
-    const w = window.open(href, 'jalla-management-step', 'popup=yes,width=560,height=760');
-    setOpened(true);
-    if (!w) { setBlocked(true); return; }   // blocked: the anchor fallback takes over
-
-    stop();
-    timer.current = setInterval(() => {
-      if (!w.closed) return;
-      stop();
-      window.focus();
-      onDone();
-    }, 700);
-  }, [href, onDone, stop]);
-
-  return { open, opened, blocked };
-}
-
 const STORAGE_KEY = 'gw_jm_funnel';
 
 function loadStage(): Stage {
@@ -74,6 +34,54 @@ function loadStage(): Stage {
     if (raw === 'call' || raw === 'form' || raw === 'done') return raw;
   } catch { /* private mode */ }
   return 'call';
+}
+
+/**
+ * Send the visitor to a booking/form page and advance when they come back to this tab.
+ *
+ * The obvious approach — open a popup and poll `window.closed` — does not work here.
+ * Google Calendar serves `Cross-Origin-Opener-Policy: same-origin`, which severs the
+ * opener relationship the moment the popup navigates, so the handle reports `closed`
+ * immediately and the funnel jumps to step two before the visitor has booked anything.
+ * That was measured, not assumed: stage advanced 150ms after the click with the popup
+ * demonstrably still open.
+ *
+ * What COOP cannot take away is visibility of our own tab. So the link opens normally
+ * and we watch for this document becoming visible again — which is exactly the moment
+ * the visitor has finished with Google and come back.
+ *
+ * MIN_AWAY_MS guards the bounce: some browsers fire `visibilitychange` during the tab
+ * switch itself, and nobody books a call in three seconds. Returning sooner than that
+ * means they never really left, so the step stays where it was.
+ */
+const MIN_AWAY_MS = 3_000;
+
+function useReturnFlow(href: string, onDone: () => void) {
+  const [awaiting, setAwaiting] = useState(false);
+  const leftAt = useRef(0);
+
+  useEffect(() => {
+    if (!awaiting) return;
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - leftAt.current < MIN_AWAY_MS) return;
+      setAwaiting(false);
+      onDone();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [awaiting, onDone]);
+
+  const start = useCallback(() => {
+    leftAt.current = Date.now();
+    setAwaiting(true);
+  }, []);
+
+  return { start, awaiting, href };
 }
 
 function StepCard({
@@ -87,7 +95,7 @@ function StepCard({
   onConfirm: () => void;
 }) {
   const t = useT();
-  const { open, opened, blocked } = usePopupFlow(href, onConfirm);
+  const { start, awaiting } = useReturnFlow(href, onConfirm);
 
   return (
     <div
@@ -130,29 +138,18 @@ function StepCard({
         {state === 'active' && (
           <>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {blocked ? (
-              // Popup blocked, so there is nothing to watch. Fall back to a plain link
-              // and lean on the manual confirm, which is shown unconditionally below.
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
-              >
-                {t(ctaKey)}
-                <ArrowRight className="size-3.5" />
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={open}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
-              >
-                {t(ctaKey)}
-                <ArrowRight className="size-3.5" />
-              </button>
-            )}
-            {opened && (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={start}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+            >
+              {t(ctaKey)}
+              <ArrowRight className="size-3.5" />
+            </a>
+            {/* Fallback for anyone who books but leaves the other tab open. */}
+            {awaiting && (
               <button
                 type="button"
                 onClick={onConfirm}
@@ -162,7 +159,7 @@ function StepCard({
               </button>
             )}
           </div>
-          {opened && !blocked && (
+          {awaiting && (
             <p className="mt-2 text-xs text-brand-mid-grey">{t('jallaManagement.waiting')}</p>
           )}
           </>
