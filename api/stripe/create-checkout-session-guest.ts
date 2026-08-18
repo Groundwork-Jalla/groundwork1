@@ -15,6 +15,15 @@ import { getStripe, jallaVerifyPriceId, siteUrl } from '../_lib/stripe.js';
  * Stripe customer, so their billing history stays on one record.
  */
 export default async function handler(req: any, res: any) {
+  // Reply to CORS preflight so browsers don't see a 405 when issuing an OPTIONS
+  // request prior to the POST. The endpoint only performs work for POST.
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Allow', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.status(204).end();
+    return;
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
