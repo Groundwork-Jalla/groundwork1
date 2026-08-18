@@ -270,7 +270,10 @@ export default function Step7RoofType() {
                         ? t('wizard.roof.provisional')
                         : opt.costDeltaPct === 0
                           ? t('wizard.roof.baseCost')
-                          : `+${opt.costDeltaPct}%`}
+                          // "+10% roof", not "+10%". The uplift is on the roof section,
+                          // not on the build — an unqualified badge next to a six-figure
+                          // total reads as the latter and overstates it eightfold.
+                          : t('wizard.roof.upliftBadge', { pct: opt.costDeltaPct })}
                     </span>
                   </div>
                 ))}

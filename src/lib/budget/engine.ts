@@ -4,7 +4,7 @@ import type {
 import { CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
 import { countBedrooms, countLivingRooms, deriveQuantities, type DetailedTakeoffInput } from './geometry';
 import { plumbingLines } from './fixtures';
-import { isFlatRoof } from './roof';
+import { isFlatRoof, roofCostMultiplier } from './roof';
 import { BQ_ITEMS, type BqCode } from './bq-items';
 import {
   applyOverrides, sectionsFromLines, totalFromLines,
@@ -145,14 +145,20 @@ export function runTakeoff(
   }
 
   // ── 500 Roof ──
+  //
+  // `rm` is what the covering choice actually costs. Until Vanessa caught it, nothing
+  // here read the covering at all: clay tiles, shingle and long-span all produced the
+  // identical total, and flat came out cheaper than pitched instead of 8% dearer. See
+  // roofCostMultiplier in roof.ts for why it scales this section and not the build.
+  const rm = roofCostMultiplier(data.roofType);
   if (isFlatRoof(data.roofType)) {
-    add('501', q.perimeter,                  r.parapet_ml * ci);
-    add('503', A * g.flat_roof_sheet_frac,   r.roof_sheet_m2 * ci);
+    add('501', q.perimeter,                  r.parapet_ml * ci * rm);
+    add('503', A * g.flat_roof_sheet_frac,   r.roof_sheet_m2 * ci * rm);
   } else {
-    add('502', A * g.pitched_roof_factor,    r.roof_timber_m2 * ci);
-    add('503', A * g.pitched_roof_factor,    r.roof_sheet_m2 * ci);
+    add('502', A * g.pitched_roof_factor,    r.roof_timber_m2 * ci * rm);
+    add('503', A * g.pitched_roof_factor,    r.roof_sheet_m2 * ci * rm);
   }
-  add('504', 1, r.roof_accessories * ci);
+  add('504', 1, r.roof_accessories * ci * rm);
 
   // ── 600 Joinery ──
   add('601', q.rooms + 1,                                        r.door_avg * ci);

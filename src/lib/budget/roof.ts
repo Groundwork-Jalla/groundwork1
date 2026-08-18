@@ -38,6 +38,11 @@ export interface RoofOption {
    * document, so a guess has to look like a guess.
    */
   provisional?: boolean;
+  /**
+   * Withdrawn from the picker but still resolvable, so projects already saved with this
+   * covering keep pricing. Never delete a member of a persisted enum.
+   */
+  retired?: boolean;
 }
 
 export const ROOF_OPTIONS: readonly RoofOption[] = [
@@ -58,10 +63,12 @@ export const ROOF_OPTIONS: readonly RoofOption[] = [
     labelKey: 'wizard.roof.concreteFlat', descKey: 'wizard.roof.concreteFlatDesc',
   },
   {
-    // Added Aug 2026. Priced at the long-span base because it is the same aluminium
-    // sheet, decked rather than pitched — NOT because we measured it. No BQ covers this
-    // build-up yet, so it ships provisional.
+    // Added Aug 2026, withdrawn Aug 2026. We invented it: no BQ covered it, and when
+    // asked directly Vanessa answered "I really don't understand what you mean by
+    // aluminium deck" (Q12). A covering no Cameroonian quantity surveyor recognises has
+    // no business in a picker. Kept resolvable for any project saved with it.
     value: 'aluminium_deck', form: 'flat', costDeltaPct: 0, provisional: true,
+    retired: true,
     labelKey: 'wizard.roof.aluminiumDeck', descKey: 'wizard.roof.aluminiumDeckDesc',
   },
 ];
@@ -89,7 +96,25 @@ export function isFlatRoof(type: RoofType | null | undefined): boolean {
 }
 
 export function roofsOfForm(form: RoofForm): readonly RoofOption[] {
-  return ROOF_OPTIONS.filter(o => o.form === form);
+  return ROOF_OPTIONS.filter(o => o.form === form && !o.retired);
+}
+
+/**
+ * Cost multiplier for the ROOF SECTION — items 501-504 — not for the whole build.
+ *
+ * This is the correction to a bug Vanessa found while testing: "the prices still did not
+ * change when i switched between roof types". They did not, for Cameroon, because the
+ * take-off engine never read `roof_type_multipliers` at all — only `isFlatRoof`. Every
+ * pitched covering priced identically, and a flat roof came out 5% CHEAPER than
+ * long-span when it is meant to be 8% dearer.
+ *
+ * Applied to the roof section rather than the whole total, which is where legacy.ts puts
+ * it. Legacy is a single blanket multiplier over a fitted rate and its own header says
+ * not to calibrate against it; choosing clay over aluminium does not make your foundation
+ * more expensive. The badge in the wizard says "on the roof" for the same reason.
+ */
+export function roofCostMultiplier(type: RoofType | null | undefined): number {
+  return 1 + (roofOption(type)?.costDeltaPct ?? 0) / 100;
 }
 
 /**

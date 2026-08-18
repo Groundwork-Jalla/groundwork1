@@ -2075,6 +2075,7 @@ export const fr: Mirror<EnDict> = {
       aluminiumDeck:       'Platelage aluminium',
       aluminiumDeckDesc:   'Tôle en faible pente — plus léger qu\'une dalle',
       baseCost:    'Coût de base',
+      upliftBadge: '+{pct} % toiture',
       provisional: 'Coût est.',
     },
     rooms: {

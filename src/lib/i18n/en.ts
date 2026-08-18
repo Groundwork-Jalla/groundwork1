@@ -2090,6 +2090,7 @@ export const en = {
       aluminiumDeck:       'Aluminium Deck',
       aluminiumDeckDesc:   'Sheet on a shallow fall — lighter than a slab',
       baseCost:    'Base cost',
+      upliftBadge: '+{pct}% roof',
       provisional: 'Est. cost',
     },
     rooms: {
