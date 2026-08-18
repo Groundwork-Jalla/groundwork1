@@ -6,10 +6,7 @@ export default [
   layout("routes/_public-layout.tsx", [
     route("/",                 "routes/landing.tsx"),
     route("contractor-apply",  "routes/contractor-apply.tsx"),
-    // Hidden for now — sign-up replaced it. Kept registered so the /community
-    // links already out in the wild land on the sign-up form, not a 404.
-    // Restore by pointing this back at "routes/community.tsx".
-    route("community",         "routes/community-hidden.tsx"),
+    route("community",         "routes/community.tsx"),
     route("pricing",           "routes/pricing.tsx"),
     route("verify/:id",        "routes/verify.tsx"),
     // Required by Google OAuth verification and Stripe before going live.

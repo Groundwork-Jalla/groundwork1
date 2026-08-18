@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlayCircle,
@@ -10,7 +11,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n';
-import { SKOOL_URL } from '@/lib/community';
 
 // ── FAQ data ───────────────────────────────────────────────
 
@@ -332,16 +332,12 @@ export default function HelpPage() {
       title: t('help.tiles.communityTitle'),
       desc: t('help.tiles.communityDesc'),
       action: (
-        // Straight to Skool. /community now redirects to sign-up while the page
-        // is hidden, and everyone reading this tile is already signed in.
-        <a
-          href={SKOOL_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/community"
           className="text-xs font-semibold text-brand-near-black dark:text-white hover:underline mt-auto"
         >
           {t('help.joinUs')}
-        </a>
+        </Link>
       ),
     },
     {
