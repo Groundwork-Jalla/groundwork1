@@ -1532,6 +1532,7 @@ export const en = {
     ctaTitle:  'Ready to track your build?',
     ctaBody:   "Start for free — no card required. Upgrade any time once you need Jalla's eyes on your site.",
     ctaButton: 'Create your account',
+    ctaButtonSignedIn: 'Go to your dashboard',
     plans: {
       selfVerify: {
         name:    'Self Verify',

@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { useForceLight } from '@/hooks/useForceLight';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useT, type TKey } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────
@@ -18,7 +19,18 @@ interface Plan {
   priceKey: TKey;
   priceNoteKey?: TKey;
   ctaKey: TKey;
+  /** Where the CTA goes for a signed-out visitor: they need an account first. */
   ctaHref: string;
+  /**
+   * Where it goes once signed in. Omit for a destination that is the same either way
+   * (Jalla Management opens mail to sales, which does not care about a session).
+   *
+   * Without this the page sent a signed-in subscriber to /auth/signup — the paid CTA
+   * bounced the one visitor most likely to buy back to a form they had already filled
+   * in. This page is public and, unlike the landing page, does not redirect a signed-in
+   * visitor away, so it has to answer the question itself.
+   */
+  ctaHrefAuthed?: string;
   highlighted: boolean;
   badgeKey?: TKey;
   features: PlanFeature[];
@@ -36,6 +48,7 @@ const PLANS: Plan[] = [
     priceKey:   'pricing.plans.selfVerify.price',
     ctaKey:     'pricing.plans.selfVerify.cta',
     ctaHref: '/auth/signup',
+    ctaHrefAuthed: '/dashboard',
     highlighted: false,
     features: [
       { key: `${F}.upTo3Projects`,       included: true  },
@@ -56,7 +69,10 @@ const PLANS: Plan[] = [
     priceKey:     'pricing.plans.jallaVerify.price',
     priceNoteKey: 'pricing.plans.jallaVerify.period',
     ctaKey:       'pricing.plans.jallaVerify.cta',
-    ctaHref: '/auth/signup',
+    // ?redirect is read by /auth/login, so someone who already has an account and is
+    // merely signed out lands on checkout rather than the dashboard.
+    ctaHref: '/auth/signup?redirect=%2Fupgrade',
+    ctaHrefAuthed: '/upgrade',
     highlighted: true,
     badgeKey: 'pricing.mostPopular',
     features: [
@@ -106,6 +122,10 @@ const FAQ: { q: TKey; a: TKey }[] = [
 
 function PlanCard({ plan, index }: { plan: Plan; index: number }) {
   const t = useT();
+  const { session } = useAuth();
+  // React Router renders an absolute scheme (Jalla Management's mailto:) as a plain
+  // anchor, so one <Link> covers both internal and external destinations.
+  const href = session && plan.ctaHrefAuthed ? plan.ctaHrefAuthed : plan.ctaHref;
 
   return (
     <motion.div
@@ -162,7 +182,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 
       {/* CTA */}
       <Link
-        to={plan.ctaHref}
+        to={href}
         className={[
           'flex items-center justify-center gap-2 rounded-xl text-sm font-semibold px-4 py-3 transition-colors',
           plan.highlighted
@@ -182,6 +202,7 @@ function PlanCard({ plan, index }: { plan: Plan; index: number }) {
 export default function PricingPage() {
   useForceLight();
   const t = useT();
+  const { session } = useAuth();
 
   return (
     // Navbar and footer come from routes/_public-layout.tsx.
@@ -242,10 +263,10 @@ export default function PricingPage() {
             {t('pricing.ctaBody')}
           </p>
           <Link
-            to="/auth/signup"
+            to={session ? '/dashboard' : '/auth/signup'}
             className="inline-flex items-center gap-2 bg-white text-brand-near-black font-semibold text-sm px-7 py-3.5 rounded-xl hover:bg-brand-off-white transition-colors"
           >
-            {t('pricing.ctaButton')}
+            {session ? t('pricing.ctaButtonSignedIn') : t('pricing.ctaButton')}
             <ArrowRight className="size-4" />
           </Link>
         </motion.div>

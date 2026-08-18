@@ -1524,6 +1524,7 @@ export const fr: Mirror<EnDict> = {
     ctaTitle:  'Prêt à suivre votre chantier ?',
     ctaBody:   "Commencez gratuitement — sans carte bancaire. Passez à un forfait supérieur dès que vous avez besoin de l'œil de Jalla sur votre chantier.",
     ctaButton: 'Créer votre compte',
+    ctaButtonSignedIn: 'Accéder à mon tableau de bord',
     plans: {
       selfVerify: {
         name:    'Self Verify',
