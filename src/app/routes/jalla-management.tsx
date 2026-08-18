@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowRight, CalendarClock, Check, ChevronLeft, ClipboardList, Lock } from 'lucide-react';
 import { useForceLight } from '@/hooks/useForceLight';
@@ -120,6 +120,10 @@ function StepCard({
 export default function JallaManagementPage() {
   useForceLight();
   const t = useT();
+  const [params] = useSearchParams();
+  // Set when the wizard sent us here: the project exists already and is waiting on the
+  // audit before an admin can budget it. Changes the framing, not the steps.
+  const projectId = params.get('project');
   const [stage, setStage] = useState<Stage>('call');
 
   // Client-only: localStorage is not readable during the first render.
@@ -133,10 +137,11 @@ export default function JallaManagementPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
       <Link
-        to="/pricing"
+        to={projectId ? `/projects/${projectId}` : '/pricing'}
         className="mb-8 inline-flex items-center gap-1 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black"
       >
-        <ChevronLeft className="size-3.5" /> {t('jallaManagement.backToPricing')}
+        <ChevronLeft className="size-3.5" />
+        {projectId ? t('jallaManagement.backToProject') : t('jallaManagement.backToPricing')}
       </Link>
 
       <motion.div
@@ -151,7 +156,7 @@ export default function JallaManagementPage() {
           {t('jallaManagement.title')}
         </h1>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-brand-mid-grey sm:text-base">
-          {t('jallaManagement.body')}
+          {projectId ? t('jallaManagement.projectCreated') : t('jallaManagement.body')}
         </p>
       </motion.div>
 
@@ -200,6 +205,15 @@ export default function JallaManagementPage() {
         >
           <p className="text-lg font-bold">{t('jallaManagement.doneTitle')}</p>
           <p className="mt-2 text-sm text-white/70">{t('jallaManagement.doneBody')}</p>
+          {projectId && (
+            <Link
+              to={`/projects/${projectId}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
+            >
+              {t('jallaManagement.doneCtaProject')}
+              <ArrowRight className="size-3.5" />
+            </Link>
+          )}
         </motion.div>
       )}
     </div>

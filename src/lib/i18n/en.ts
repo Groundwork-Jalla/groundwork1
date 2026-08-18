@@ -1297,6 +1297,9 @@ export const en = {
     doneTitle:     "You're all set.",
     doneBody:      'We will read your answers before we meet, so the audit can start with your build rather than with the basics.',
     backToPricing: 'Back to pricing',
+    backToProject: 'Back to your project',
+    projectCreated: 'Your project is created. Before a Jalla admin can put a budget and a team behind it, we need the audit and your answers — both steps below.',
+    doneCtaProject: 'Open your project',
   },
 
   nav: {

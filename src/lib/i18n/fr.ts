@@ -1300,6 +1300,9 @@ export const fr: Mirror<EnDict> = {
     doneTitle:     'Tout est prêt.',
     doneBody:      "Nous lirons vos réponses avant de nous parler, pour que l'audit commence par votre chantier et non par les généralités.",
     backToPricing: 'Retour aux tarifs',
+    backToProject: 'Retour à votre chantier',
+    projectCreated: "Votre chantier est créé. Avant qu'un administrateur Jalla puisse y affecter un budget et une équipe, il nous faut l'audit et vos réponses — les deux étapes ci-dessous.",
+    doneCtaProject: 'Ouvrir mon chantier',
   },
 
   nav: {

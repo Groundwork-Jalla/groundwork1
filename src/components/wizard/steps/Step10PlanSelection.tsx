@@ -12,6 +12,7 @@ import type { ProjectTier } from '@/types/project';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 
 // =========================================================
 // Design A, in selection form.
@@ -54,6 +55,11 @@ export default function Step10PlanSelection() {
    * that figure after creation — so those projects are created here and open with a
    * "preparing your budget" banner. The other two tiers go on to step 11 and confirm
    * their figure before the project exists.
+   *
+   * That admin needs the project audit and the questionnaire before they can produce
+   * anything, so creation hands off to the enquiry funnel rather than dropping the
+   * owner on a project page with nothing to do. Same two gated steps the pricing page
+   * uses — one implementation, so the two entry points cannot drift.
    */
   async function handleSubmit() {
     if (!user) return;
@@ -65,7 +71,7 @@ export default function Step10PlanSelection() {
       const budget  = calculateBudget(data, constructionRate, cityRate);
       const project = await createProject(user.id, data, budget);
       reset();
-      navigate(`/projects/${project.id}`);
+      navigate(`${JALLA_MANAGEMENT_PATH}?project=${project.id}`);
     } catch (err) {
       setError(errorMessage(err, t('wizard.s10CreateFailed')));
       setSubmitting(false);
