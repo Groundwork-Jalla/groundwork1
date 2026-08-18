@@ -725,8 +725,6 @@ export const en = {
     tiles: {
       videosTitle:    'Video walkthroughs',
       videosDesc:     'Watch step-by-step guides for every feature',
-      communityTitle: 'Join the community',
-      communityDesc:  'Connect with other builders in our community',
       contactTitle:   'Contact support',
       contactDesc:    'Send us a message and we will respond within 24h',
     },
@@ -747,7 +745,6 @@ export const en = {
     sendFailed: "Something went wrong. Please try again or email us directly at hello@groundwork.build",
     watchVideos: "Watch videos",
     bookNow: "Book now",
-    joinUs: "Join us",
     sendCta: "Send a message",
   },
 
@@ -1322,7 +1319,6 @@ export const en = {
     settings:       'Settings',
     help:           'Help',
     upgradePlan:    'Upgrade Plan',
-    community:      'Community',
     pricing:        'Pricing',
     tools:          'Tools',
     freeTools:      'Free Tools',
@@ -1505,8 +1501,6 @@ export const en = {
     },
 
     cta: {
-      body:           'Join the Community of Africans Building in Africa and be one of the first to Access Groundwork By Jalla.',
-      sub:            'Be the first to know when Groundwork is ready for full launch.',
       button:         'Join for Free',
       contractorLink: 'Are you a Construction Professional?',
     },
@@ -1613,25 +1607,6 @@ export const en = {
   },
 
   // ── Community / waitlist ──────────────────────────────────
-  community: {
-    title:      'Join the Community',
-    body:       "We're putting on the finishing touches. Join the community and be one of the first to access Groundwork when we launch.",
-    fullName:   'Full name',
-    namePlaceholder: 'Your name',
-    email:      'Email address',
-    emailPlaceholder: 'you@example.com',
-    whereBuilding: 'Where are you building?',
-    wherePlaceholder: 'e.g. Lagos, Nigeria',
-    joinFree:   'Join for Free',
-    joining:    'Joining…',
-    noSpam:     'No spam. Just early access and launch updates.',
-    invalidEmail:    'That email does not look complete — check the part after the @, e.g. name@gmail.com',
-    alreadyOnList: "You're already on the list.",
-    successTitle:  "You're in.",
-    successBody:   "You'll be among the first to know when Groundwork launches. In the meantime, join the community.",
-    joinCommunity: 'Join the Community',
-    home:          'Home',
-  },
 
   // ── Contractor application page ───────────────────────────
   contractorApply: {

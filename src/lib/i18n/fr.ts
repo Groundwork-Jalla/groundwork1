@@ -734,8 +734,6 @@ export const fr: Mirror<EnDict> = {
     tiles: {
       videosTitle:    'Tutoriels vidéo',
       videosDesc:     'Des guides pas à pas pour chaque fonctionnalité',
-      communityTitle: 'Rejoindre la communauté',
-      communityDesc:  'Échangez avec d\'autres personnes qui construisent',
       contactTitle:   'Contacter le support',
       contactDesc:    'Envoyez-nous un message, réponse sous 24 h',
     },
@@ -756,7 +754,6 @@ export const fr: Mirror<EnDict> = {
     sendFailed: "Une erreur s'est produite. Réessayez ou écrivez-nous directement à hello@groundwork.build",
     watchVideos: "Voir les vidéos",
     bookNow: "Réserver",
-    joinUs: "Nous rejoindre",
     sendCta: "Envoyer un message",
   },
 
@@ -1325,7 +1322,6 @@ export const fr: Mirror<EnDict> = {
     settings:       'Paramètres',
     help:           'Aide',
     upgradePlan:    'Changer de forfait',
-    community:      'Communauté',
     pricing:        'Tarifs',
     tools:          'Outils',
     freeTools:      'Outils gratuits',
@@ -1498,8 +1494,6 @@ export const fr: Mirror<EnDict> = {
     },
 
     cta: {
-      body:           'Rejoignez la communauté des Africains qui bâtissent en Afrique et soyez parmi les premiers à accéder à Groundwork by Jalla.',
-      sub:            'Soyez le premier informé du lancement complet de Groundwork.',
       button:         'Rejoindre gratuitement',
       contractorLink: 'Vous êtes un professionnel du bâtiment ?',
     },
@@ -1605,25 +1599,6 @@ export const fr: Mirror<EnDict> = {
   },
 
   // ── Communauté / liste d'attente ──────────────────────────
-  community: {
-    title:      'Rejoignez la communauté',
-    body:       "Nous mettons la dernière main aux préparatifs. Rejoignez la communauté et soyez parmi les premiers à accéder à Groundwork dès le lancement.",
-    fullName:   'Nom complet',
-    namePlaceholder: 'Votre nom',
-    email:      'Adresse e-mail',
-    emailPlaceholder: 'vous@exemple.com',
-    whereBuilding: 'Où construisez-vous ?',
-    wherePlaceholder: 'ex. Douala, Cameroun',
-    joinFree:   'Rejoindre gratuitement',
-    joining:    'Inscription…',
-    noSpam:     "Pas de spam. Uniquement l'accès anticipé et les actualités du lancement.",
-    invalidEmail:    "Cette adresse semble incomplète — vérifiez ce qui suit le @, par ex. nom@gmail.com",
-    alreadyOnList: 'Vous êtes déjà inscrit.',
-    successTitle:  'Vous y êtes.',
-    successBody:   'Vous serez parmi les premiers informés du lancement de Groundwork. En attendant, rejoignez la communauté.',
-    joinCommunity: 'Rejoindre la communauté',
-    home:          'Accueil',
-  },
 
   // ── Candidature entrepreneur ──────────────────────────────
   contractorApply: {
