@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowRight, CalendarClock, Check, ChevronLeft, ClipboardList, Lock } from 'lucide-react';
@@ -26,6 +26,46 @@ import { JALLA_MANAGEMENT_AUDIT_URL, JALLA_MANAGEMENT_FORM_URL } from '@/lib/jal
 
 type Stage = 'call' | 'form' | 'done';
 
+/**
+ * Open a booking/form page in a popup and advance when the visitor closes it.
+ *
+ * Google Calendar appointment schedules take no redirect_uri and post nothing back to
+ * the browser, so there is no way to be *told* the booking happened. What a popup does
+ * give us is `window.closed` — readable cross-origin — so finishing and closing the
+ * window returns the visitor to a page that has already moved them on. That is the
+ * behaviour asked for; the cost is that closing without booking advances too.
+ *
+ * The manual confirm stays as a fallback, because a popup can be blocked, and someone
+ * may leave the window open and come back to this tab instead of closing it.
+ */
+function usePopupFlow(href: string, onDone: () => void) {
+  const [opened, setOpened]   = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stop = useCallback(() => {
+    if (timer.current) { clearInterval(timer.current); timer.current = null; }
+  }, []);
+
+  useEffect(() => stop, [stop]);
+
+  const open = useCallback(() => {
+    const w = window.open(href, 'jalla-management-step', 'width=560,height=760,noopener=no');
+    setOpened(true);
+    if (!w) { setBlocked(true); return; }   // blocked: the anchor fallback takes over
+
+    stop();
+    timer.current = setInterval(() => {
+      if (!w.closed) return;
+      stop();
+      window.focus();
+      onDone();
+    }, 700);
+  }, [href, onDone, stop]);
+
+  return { open, opened, blocked };
+}
+
 const STORAGE_KEY = 'gw_jm_funnel';
 
 function loadStage(): Stage {
@@ -47,9 +87,7 @@ function StepCard({
   onConfirm: () => void;
 }) {
   const t = useT();
-  // Revealed once they have actually opened the link — asking "did you book?" before
-  // they have been sent anywhere is a question with only one honest answer.
-  const [opened, setOpened] = useState(false);
+  const { open, opened, blocked } = usePopupFlow(href, onConfirm);
 
   return (
     <div
@@ -91,16 +129,28 @@ function StepCard({
 
         {state === 'active' && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpened(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
-            >
-              {t(ctaKey)}
-              <ArrowRight className="size-3.5" />
-            </a>
+            {blocked ? (
+              // Popup blocked, so there is nothing to watch. Fall back to a plain link
+              // and lean on the manual confirm, which is shown unconditionally below.
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+              >
+                {t(ctaKey)}
+                <ArrowRight className="size-3.5" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={open}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+              >
+                {t(ctaKey)}
+                <ArrowRight className="size-3.5" />
+              </button>
+            )}
             {opened && (
               <button
                 type="button"
@@ -111,6 +161,9 @@ function StepCard({
               </button>
             )}
           </div>
+          {opened && !blocked && (
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('jallaManagement.waiting')}</p>
+          )}
         )}
       </div>
     </div>

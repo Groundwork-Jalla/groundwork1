@@ -1299,6 +1299,7 @@ export const fr: Mirror<EnDict> = {
     step2Locked:   'Réservez votre audit de projet pour débloquer cette étape.',
     progress:      'Étape {n} sur 2',
     progressDone:  'Les deux étapes sont terminées',
+    waiting:       "Terminez dans la fenêtre qui s'est ouverte, puis fermez-la — cette page passera à la suite toute seule.",
     doneTitle:     'Tout est prêt.',
     doneBody:      "Nous lirons vos réponses avant de nous parler, pour que l'audit commence par votre chantier et non par les généralités.",
     backToPricing: 'Retour aux tarifs',
