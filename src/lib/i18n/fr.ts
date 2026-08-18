@@ -826,6 +826,7 @@ export const fr: Mirror<EnDict> = {
     daysEst:       "{days} j est.",
     daysFull:      "{days} jours",
     pctOfBudget:   "{pct} % du budget",
+    pctValue:      "{pct} %",
     durationShort: "{days} j",
     payNote: {
       s1:  "Payer avant le début des travaux",

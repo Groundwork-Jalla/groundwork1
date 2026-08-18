@@ -124,7 +124,7 @@ export default function TrackerTool() {
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
               {t('tools.substagesDone', { done: totalChecked, total: TOTAL_SUBSTAGES })}
             </p>
-            <span className="text-sm font-black text-brand-near-black dark:text-white tabular-nums">{progressPct}%</span>
+            <span className="text-sm font-black text-brand-near-black dark:text-white tabular-nums">{t('tools.pctValue', { pct: progressPct })}</span>
           </div>
           <div className="h-3 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
             <div
@@ -210,7 +210,7 @@ export default function TrackerTool() {
                   <div className="h-full bg-brand-near-black dark:bg-white rounded-full transition-all duration-300" style={{ width: `${stagePct}%` }} />
                 </div>
 
-                <span className="text-xs font-semibold tabular-nums text-brand-mid-grey w-8 text-right">{stagePct}%</span>
+                <span className="text-xs font-semibold tabular-nums text-brand-mid-grey w-8 text-right">{t('tools.pctValue', { pct: stagePct })}</span>
                 {isOpen ? <ChevronUp className="size-4 text-brand-mid-grey shrink-0" /> : <ChevronDown className="size-4 text-brand-mid-grey shrink-0" />}
               </button>
 

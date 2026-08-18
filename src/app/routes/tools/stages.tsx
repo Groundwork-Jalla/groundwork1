@@ -99,7 +99,7 @@ export default function StagesTool() {
                       </div>
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">{t('tools.budgetAllocation')}</p>
-                        <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stage.budget_pct}%</p>
+                        <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('tools.pctValue', { pct: stage.budget_pct })}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey mb-1">{t('tools.paymentTiming')}</p>

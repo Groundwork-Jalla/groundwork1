@@ -114,7 +114,7 @@ export default function MilestonesTool() {
                 <td className="px-4 py-3 text-xs text-brand-mid-grey text-right tabular-nums">{t('tools.durationShort', { days: m.durationDays })}</td>
                 <td className="px-4 py-3 text-sm font-bold text-brand-near-black dark:text-white text-right tabular-nums">
                   {formatUSDFull(m.amountUsd)}
-                  <span className="ml-1 text-[10px] font-normal text-brand-mid-grey">({m.budget_pct}%)</span>
+                  <span className="ml-1 text-[10px] font-normal text-brand-mid-grey">({t('tools.pctValue', { pct: m.budget_pct })})</span>
                 </td>
                 <td className="px-4 py-3 text-xs text-brand-mid-grey hidden sm:table-cell">{t(m.whenToPayKey)}</td>
               </tr>

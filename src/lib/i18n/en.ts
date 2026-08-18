@@ -821,6 +821,9 @@ export const en = {
     daysEst:       "{days}d est.",
     daysFull:      "{days} days",
     pctOfBudget:   "{pct}% of budget",
+    // A bare percentage as a value. Keyed because French sets a space before
+    // the sign and English does not, and these sit next to pctOfBudget.
+    pctValue:      "{pct}%",
     durationShort: "{days}d",
     // Stage planner phrasing ("Pay on ...") -- the milestone table uses the
     // shorter whenToPay.* set because it sits under a "When to Pay" column.
