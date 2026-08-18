@@ -12,6 +12,7 @@ import * as Sentry from "@sentry/react";
 import type { Route } from "./+types/root";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/lib/i18n";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import "@/lib/sentry";
 import { GA_ID } from "@/lib/analytics";
 import "../styles/globals.css";
@@ -96,11 +97,15 @@ function AppInner() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
-          <div id="main-content">
-            <Outlet />
-          </div>
-        </Sentry.ErrorBoundary>
+        {/* Inside AuthProvider: the theme is stored on the user's profile, so the
+            provider needs the session to read it back on a new device. */}
+        <ThemeProvider>
+          <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+            <div id="main-content">
+              <Outlet />
+            </div>
+          </Sentry.ErrorBoundary>
+        </ThemeProvider>
       </AuthProvider>
     </LanguageProvider>
   );

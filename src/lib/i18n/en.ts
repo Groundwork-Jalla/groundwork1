@@ -131,6 +131,13 @@ export const en = {
     planningPhase: 'Planning phase',
     readyToBuild:  'Ready to build',
   },
+  theme: {
+    darkMode:       'Dark mode',
+    lightMode:      'Light mode',
+    switchToDark:   'Switch to dark mode',
+    switchToLight:  'Switch to light mode',
+  },
+
   errors: {
     generic: 'Something went wrong. Please refresh the page.',
   },
