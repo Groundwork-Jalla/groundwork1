@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import StepCard from '../StepCard';
 import { useWizard } from '@/contexts/WizardContext';
-import { ROOF_FORMS, roofOption, roofsOfForm, type RoofForm } from '@/lib/budget';
+import { ROOF_FORMS, ROOF_OPTIONS, calculateBudget, roofOption, roofsOfForm, type RoofForm } from '@/lib/budget';
+import { roofChoiceBuildDelta } from '@/lib/budget/roof';
+import { estimateSqm } from './Step8Details';
 import { cn } from '@/lib/utils';
 import type { RoofType } from '@/types/project';
 import { useT } from '@/lib/i18n';
@@ -171,6 +173,19 @@ const FORM_ICONS: Record<RoofForm, React.ReactNode> = {
   flat:    <FlatFormIcon />,
 };
 
+/**
+ * Signed percentage for a covering badge.
+ *
+ * A hardcoded "+" produced "+-7.3%" on the concrete slab, which prices BELOW long-span
+ * in our model — it buys no roof timber and 30% of the sheet. Cheaper coverings are a
+ * real outcome, so the badge has to be able to say so.
+ */
+function formatDelta(frac: number): string {
+  const pct = frac * 100;
+  if (Math.abs(pct) < 0.05) return '±0%';
+  return `${pct > 0 ? '+' : '−'}${Math.abs(pct).toFixed(1)}%`;
+}
+
 const MATERIAL_ICONS: Record<RoofType, React.ReactNode> = {
   long_span_aluminum: <LongSpanIcon />,
   clay_tiles:         <ClayTilesIcon />,
@@ -198,6 +213,27 @@ export default function Step7RoofType() {
   // Derived, not stored: re-entering the step with a roof already chosen reopens on its
   // form rather than resetting to the fork.
   const [form, setForm] = useState<RoofForm | null>(() => roofOption(data.roofType)?.form ?? null);
+
+  // What each covering actually adds to THIS build, priced by the engine rather than
+  // read off a label. `costDeltaPct` is a percentage of the roof and the roof is 2-10%
+  // of a build, so the raw number beside a six-figure total overstated the effect by
+  // roughly eightfold. Memoised on the inputs that move a price.
+  const buildDeltas = useMemo(() => {
+    // The roof step runs BEFORE the footprint step, so `data.sqm` is still 0 here and
+    // every covering priced at 0 — the badges all read "+0.0%". Fall back to the same
+    // room-based estimate step 8 fills the field with, which is the figure this build is
+    // going to be priced on anyway.
+    const sqm = (data.sqm ?? 0) > 0 ? data.sqm : estimateSqm(data)?.typical ?? 0;
+    const priced = { ...data, sqm };
+    const base = calculateBudget({ ...priced, roofType: 'long_span_aluminum' }).construction;
+    const out: Partial<Record<RoofType, number>> = {};
+    for (const o of ROOF_OPTIONS) {
+      out[o.value] = roofChoiceBuildDelta(
+        calculateBudget({ ...priced, roofType: o.value }).construction, base,
+      );
+    }
+    return out;
+  }, [data]);
 
   function chooseForm(f: RoofForm) {
     setForm(f);
@@ -273,10 +309,7 @@ export default function Step7RoofType() {
                         ? t('wizard.roof.provisional')
                         : opt.costDeltaPct === 0
                           ? t('wizard.roof.baseCost')
-                          // "+10% roof", not "+10%". The uplift is on the roof section,
-                          // not on the build — an unqualified badge next to a six-figure
-                          // total reads as the latter and overstates it eightfold.
-                          : t('wizard.roof.upliftBadge', { pct: opt.costDeltaPct })}
+                          : formatDelta(buildDeltas[opt.value] ?? 0)}
                     </span>
                   </div>
                 ))}

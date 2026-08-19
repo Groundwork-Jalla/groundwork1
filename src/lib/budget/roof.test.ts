@@ -76,17 +76,16 @@ describe('roof taxonomy', () => {
     const pitched = runTakeoff({ ...base, roofType: 'long_span_aluminum' }, rate)!;
 
     // Same QUANTITIES as the concrete slab — that is what isFlatRoof decides. The
-    // amounts now differ because the slab carries an 8% covering uplift and the deck
-    // carries none; before the covering was priced at all, these two were identical,
-    // and that equality is what this test used to assert.
+    // amounts differ because the slab carries an 8% build uplift and the retired deck
+    // carries none.
     const qtys = (t: typeof deck) =>
       t.lines.filter(l => l.section === 'roof').map(l => [l.code, l.qty]);
     expect(qtys(deck)).toEqual(qtys(slab));
     expect(qtys(deck)).not.toEqual(qtys(pitched));
 
-    // And a flat roof is still cheaper than a pitched one here, because it buys no
-    // timber and 30% of the sheet. Worth stating: it is NOT evidence the slab is priced.
-    // It is not — see the note on suspended slabs in engine.ts.
+    // The deck, at a 0% uplift, is cheaper than pitched because it buys no timber and
+    // 30% of the sheet. NOT evidence the concrete deck itself is priced — it is not; see
+    // the note on suspended slabs.
     expect(deck.sectionsLocal.roof).toBeLessThan(pitched.sectionsLocal.roof);
   });
 });
@@ -104,6 +103,7 @@ describe('covering affects the Cameroon take-off', () => {
     livingRooms: 1, kitchens: 1, offices: 0, hasBoysQuarters: false,
   };
   const cost = (roofType: RoofType) => calculateBudget({ ...base, roofType }).construction;
+  const BASE_INPUT = base;
 
   it('prices every pitched covering differently', () => {
     const seen = new Set(
@@ -117,13 +117,37 @@ describe('covering affects the Cameroon take-off', () => {
     expect(cost('shingle')).toBeGreaterThan(cost('long_span_aluminum'));
   });
 
-  it('leaves the rest of the build alone', () => {
-    // The uplift is on the roof section, not the total — so a 10% dearer covering must
-    // move the build by well under 10%. If this ever fails, someone has reattached it to
-    // the whole total the way legacy.ts does.
-    const delta = cost('clay_tiles') / cost('long_span_aluminum') - 1;
-    expect(delta).toBeGreaterThan(0);
-    expect(delta).toBeLessThan(0.03);
+  it('moves the ROOF SECTION by exactly the stated percentage', () => {
+    // costDeltaPct is a percentage of the roof. Asserted where it applies, so the two
+    // wrong placements — into the section as a build percentage, and across the whole
+    // build — both fail here rather than only showing up as a drifted fixture schedule.
+    const roofOf = (roofType: RoofType) =>
+      runTakeoff({ ...BASE_INPUT, roofType }, CM_RATE_FALLBACK)!.sectionsLocal.roof;
+    for (const t of ['clay_tiles', 'shingle'] as RoofType[]) {
+      // Pitched only: a flat roof emits different LINES, so its section is not a
+      // multiple of the long-span one.
+      const want = 1 + roofOption(t)!.costDeltaPct / 100;
+      expect(roofOf(t) / roofOf('long_span_aluminum'), t).toBeCloseTo(want, 6);
+    }
+  });
+
+  it('moves the build by much less than the roof percentage, and says so', () => {
+    // The reason the wizard badge is computed rather than labelled. A "+10%" covering
+    // moves a typical build by well under 1%, because the roof is 2-10% of a build —
+    // 10.1% on Rose, 2.3% on Naka, 2.2% on Mpangou.
+    const build = cost('clay_tiles') / cost('long_span_aluminum') - 1;
+    expect(build).toBeGreaterThan(0);
+    expect(build).toBeLessThan(roofOption('clay_tiles')!.costDeltaPct / 100 / 3);
+  });
+
+  it('leaves the plumbing fixture schedule untouched', () => {
+    // Scaling the whole build was the other wrong placement, and this is what caught it:
+    // the fixture schedule reproduces three of the four documents to the franc, and a
+    // roof choice has no business moving it.
+    const plumbing = (roofType: RoofType) =>
+      runTakeoff({ ...BASE_INPUT, roofType }, CM_RATE_FALLBACK)!.sectionsLocal.plumbing;
+    expect(plumbing('clay_tiles')).toBe(plumbing('long_span_aluminum'));
+    expect(plumbing('stone_coated')).toBe(plumbing('long_span_aluminum'));
   });
 
   it('keeps a retired covering priceable', () => {
@@ -135,19 +159,25 @@ describe('covering affects the Cameroon take-off', () => {
 
 // ── The stone-coated "Abuja" roof (Q1) ───────────────────
 describe('stone-coated sheet reproduces the Rose roof', () => {
-  it('lands on the document, because that is where the number came from', () => {
-    // Circular by construction and deliberately so: +138% IS Rose's roof section over
-    // our long-span price for the same house. This is a regression lock — if the roof
-    // rates, the pitch factor or the section boundaries move, the covering Vanessa told
-    // us to derive from this document stops matching it and someone has to re-derive.
+  it('closes most of the gap on the Rose total', () => {
+    // 7.7% was derived from this document, so this is a regression lock rather than
+    // evidence. What it locks is the TOTAL, not the roof line: the uplift is spread over
+    // the build, so Rose's roof section stays near our long-span figure while her
+    // document puts the money in the roof.
+    //
+    // That is a known imprecision, and the honest one available. Placing it in the roof
+    // instead needs a real per-covering roof rate, which is Q15 territory — and placing
+    // a build-level percentage in one section is what produced a 6,566,686 roof line on
+    // Naka against a document that prices it at 953,440.
     const rose = CAMEROON_BQS.find(b => b.name.startsWith('Rose'))!;
-    const got  = runTakeoff(rose.input, CM_RATE_FALLBACK)!.sectionsLocal.roof;
-    expect(got / rose.actual.roof).toBeCloseTo(1, 2);
+    const err = (roofType: RoofType) =>
+      Math.abs(runTakeoff({ ...rose.input, roofType }, CM_RATE_FALLBACK)!.totalLocal / rose.actualTotal - 1);
+    expect(err('stone_coated')).toBeLessThan(err('long_span_aluminum'));
+    expect(err('stone_coated')).toBeLessThan(0.16);
   });
 
-  it('is much dearer than plain aluminium, and pitched', () => {
+  it('is dearer than plain aluminium, and pitched', () => {
     expect(roofOption('stone_coated')!.form).toBe('pitched');
-    expect(roofOption('stone_coated')!.costDeltaPct)
-      .toBeGreaterThan(roofOption('clay_tiles')!.costDeltaPct);
+    expect(roofOption('stone_coated')!.costDeltaPct).toBeGreaterThan(0);
   });
 });

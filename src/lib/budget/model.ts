@@ -124,28 +124,34 @@ export const CITY_RATES: Record<string, CityRate> = {
   // Baseline moved from Douala to Yaoundé in 045, on Vanessa's 17 Aug list. The two had
   // sat tied at 1.0000, which is why the Douala-vs-Yaoundé question stayed open so long.
   //
-  // Two numbers per city and they mean different things. `cost_delta_pct` is hers: the
-  // whole-building difference, and what a client is shown. `index_vs_baseline` is solved
-  // from it, because the engine indexes only the non-concrete trades — concrete comes
-  // from each row's own columns, which are measured. Setting the index to her percentage
-  // double-counts the concrete gap; that is what made Adamawa price +15.2% while
-  // carrying +7.5%.
-  YAOUNDE: cm('YAOUNDE', 'Yaoundé', 180_000,  67_250, 48_500,  69_750, 1.0000,   0),
-  DOUALA:  cm('DOUALA',  'Douala',  180_000,  70_750, 52_000,  67_250, 0.9282,  -5),
-  BUEA:    cm('BUEA',    'Buea',    190_000,  72_875, 52_250,  72_625, 0.9776,   0),
-  LIMBE:   cm('LIMBE',   'Limbe',   190_000,  71_250, 51_000,  70_750, 0.9360,  -3),
+  // TWO KINDS OF NUMBER, and only one of them is data.
+  //
+  // The concrete columns and `cost_delta_pct` are measured: the rates come from the
+  // source workbooks (each document's concrete rate matches its own city's column) and
+  // the percentage is Vanessa's statement of what a build costs in that city.
+  //
+  // `index_vs_baseline` is NOT data and is not read by the engine any more. It used to
+  // hold a value solved offline on one reference building, which meant every other shape
+  // drifted off the stated percentage by up to 2.3 points. runTakeoff now solves it per
+  // build from `cost_delta_pct`, so every city lands exactly on its figure for every
+  // building. The column is kept only because the DB row has it and older cached books
+  // carry it; treat it as vestigial.
+  YAOUNDE: cm('YAOUNDE', 'Yaoundé', 180_000,  67_250, 48_500,  69_750,   0),
+  DOUALA:  cm('DOUALA',  'Douala',  180_000,  70_750, 52_000,  67_250,  -5),
+  BUEA:    cm('BUEA',    'Buea',    190_000,  72_875, 52_250,  72_625,   0),
+  LIMBE:   cm('LIMBE',   'Limbe',   190_000,  71_250, 51_000,  70_750,  -3),
   // Renamed from BALI. Same physical rate set — Vanessa's point was that the city on the
   // list should be Bamenda, not that Bali's numbers were wrong. Legacy 'Bali' still
   // resolves here via CITY_ALIASES below.
-  BAMENDA: cm('BAMENDA', 'Bamenda', 190_000,  71_000, 48_500,  72_875, 1.1194,  10),
-  KRIBI:   cm('KRIBI',   'Kribi',   179_000,  72_625, 54_250,  66_875, 1.0703,   5),
+  BAMENDA: cm('BAMENDA', 'Bamenda', 190_000,  71_000, 48_500,  72_875,  10),
+  KRIBI:   cm('KRIBI',   'Kribi',   179_000,  72_625, 54_250,  66_875,   5),
   // Adamawa and Garoua carry the only unverified concrete columns in the book —
   // Vanessa's verification table covers Yaoundé, Buea, Bamenda and Kribi only. Their
   // solved indices land below 1.0, i.e. northern trades cheaper than Yaoundé offsetting
   // concrete 44% dearer. The total is hers; that split is ours.
-  ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375, 0.9296,   7),
+  ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375,   7),
   // New in 045. On Vanessa's list, absent from our book. Concrete copied from Adamawa.
-  GAROUA:  cm('GAROUA',  'Garoua',  260_000,  86_125, 61_750,  88_375, 0.9719,  10),
+  GAROUA:  cm('GAROUA',  'Garoua',  260_000,  86_125, 61_750,  88_375,  10),
   ABUJA:   { city_code: 'ABUJA', country_code: 'NG', city_name: 'Abuja',
              rc_350: 450_000, rc_250: 119_000, lean_concrete: 77_750, mortar: 135_750,
              index_vs_baseline: 2.5000, currency_code: 'NGN', data_source: 'real_bq' },
@@ -154,12 +160,13 @@ export const CITY_RATES: Record<string, CityRate> = {
 function cm(
   code: string, name: string,
   rc350: number, rc250: number, lean: number, mortar: number,
-  index: number, deltaPct: number,
+  deltaPct: number,
 ): CityRate {
   return {
     city_code: code, country_code: 'CM', city_name: name,
     rc_350: rc350, rc_250: rc250, lean_concrete: lean, mortar,
-    index_vs_baseline: index, cost_delta_pct: deltaPct,
+    // Vestigial — see the note above the table. The engine solves its own.
+    index_vs_baseline: 1, cost_delta_pct: deltaPct,
     currency_code: 'XAF',
     // Adamawa and Garoua concrete is a northern estimate; the rest is measured.
     data_source: code === 'ADAMAWA' || code === 'GAROUA' ? 'estimated_index' : 'real_bq',

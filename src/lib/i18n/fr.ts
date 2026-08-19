@@ -2087,7 +2087,6 @@ export const fr: Mirror<EnDict> = {
       aluminiumDeck:       'Platelage aluminium',
       aluminiumDeckDesc:   'Tôle en faible pente — plus léger qu\'une dalle',
       baseCost:    'Coût de base',
-      upliftBadge: '+{pct} % toiture',
       provisional: 'Coût est.',
     },
     rooms: {
@@ -2124,6 +2123,7 @@ export const fr: Mirror<EnDict> = {
     otherCity: "Autre…",
     doualaRates: "Tarifs de Douala",
     footprintLabel: "Emprise au sol",
+    footprintDerived: "Calculée d'après les pièces que vous avez choisies. Modifiez-la si vous disposez d'un relevé.",
     footprintRequired: "Le budget se calcule à partir de cette valeur : sans elle, impossible de chiffrer le chantier.",
     footprintUse: "Utiliser {sqm} m²",
     builtAreaAcross: "Surface construite sur {count} niveau",

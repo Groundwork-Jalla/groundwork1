@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lightbulb } from 'lucide-react';
 import WizardShell from '../WizardShell';
@@ -117,7 +117,24 @@ export default function Step8Details() {
 
   const estimate = estimateSqm(data);
 
+  // The footprint is derived from what they told us they are building — Favour: "the sqm
+  // is calculated based on what the client is building". So it is filled in from the room
+  // schedule rather than asked for, and re-derived if they go back and change the rooms.
+  //
+  // Still editable, and an edit is final: `chosen` latches the moment they type, so a
+  // later trip through the room steps cannot overwrite a figure they set deliberately.
+  // It starts latched for a project that already has one.
+  const chosen = useRef((data.sqm ?? 0) > 0);
+
+  useEffect(() => {
+    if (chosen.current || !estimate) return;
+    if (data.sqm === estimate.typical) return;
+    setSqmStr(String(estimate.typical));
+    update({ sqm: estimate.typical });
+  }, [estimate?.typical, data.sqm, update, estimate]);
+
   function handleSqmChange(val: string) {
+    chosen.current = true;
     setSqmStr(val);
     const n = parseFloat(val);
     if (!isNaN(n) && n > 0) update({ sqm: n });
@@ -260,7 +277,11 @@ export default function Step8Details() {
               </span>
             </div>
             <p className="text-xs text-brand-mid-grey">
-              {t('wizard.footprintHint')}
+              {/* Say where the number came from. A field that fills itself and does not
+                  explain why reads as a bug, and this one is editable. */}
+              {!chosen.current && (data.sqm ?? 0) > 0
+                ? t('wizard.footprintDerived')
+                : t('wizard.footprintHint')}
             </p>
             {/* Shown only while empty. A required field with a known good answer beside
                 it should let someone take that answer in one tap rather than retype the

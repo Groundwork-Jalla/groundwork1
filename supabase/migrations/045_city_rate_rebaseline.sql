@@ -18,21 +18,18 @@
 --    difference. That is exactly the bug this migration fixes for Adamawa, which
 --    priced +15.2% overall while carrying her stated +7% in the index column.
 --
---    Each index below is therefore SOLVED, on a reference build (120 m² footprint,
---    G+1, 4 bed, 3 bath, standard finish, long-span roof), so that:
+--    `cost_delta_pct` is the new column and it holds HER figure — the whole-building
+--    delta. It is the only city number the engine reads, and the only one that is a
+--    claim about the world rather than machinery.
 --
---        total(city) / total(Yaoundé)  =  her stated delta
+--    The index is SOLVED AT RUNTIME, per building, from that percentage. It is not
+--    stored, because a stored one cannot be right: how much of a build is concrete
+--    depends on the building, so a value fitted to one shape drifts on every other —
+--    measured at up to 2.3 points on Adamawa and Garoua. Solving per build puts every
+--    city exactly on its stated figure for every shape. See runTakeoff.
 --
---    where total(ci) = K + O·ci, K being concrete plus un-indexed constants (29% of
---    that build) and O the indexed trades (71%).
---
---    `cost_delta_pct` is the new column holding HER figure — the whole-building
---    delta. It is what the wizard shows a client, because that is the number they
---    experience. The index is machinery; the delta is the claim.
---
---    Calibrating on one building means other shapes drift slightly. Measured:
---    within ±0.5 percentage points across bungalow / G+1 / G+2 / G+3 / luxury /
---    flat-roof, worst case ±2.3pp on Adamawa and Garoua. Locked in model.test.ts.
+--    `index_vs_baseline` is therefore set to 1 and is vestigial. It is left on the
+--    table because older cached rate books carry it; nothing reads it.
 --
 -- NOT VERIFIED, and flagged as such: Adamawa and Garoua concrete columns
 -- (260,000 XAF/m³) have no Bill of Quantity behind them — Vanessa's verification
@@ -46,13 +43,13 @@ ALTER TABLE public.construction_city_rates
 
 COMMENT ON COLUMN public.construction_city_rates.cost_delta_pct IS
   'Whole-building cost vs the country baseline city, in percent (Yaoundé = 0 for CM). '
-  'Vanessa Gwanvoma, 17 Aug 2026. This is the client-facing figure. index_vs_baseline '
-  'is the non-concrete trade index solved to realise it — do not set them equal.';
+  'Vanessa Gwanvoma, 17 Aug 2026. The only city figure the engine reads; it solves the '
+  'trade index from this, per building, at run time.';
 
 COMMENT ON COLUMN public.construction_city_rates.index_vs_baseline IS
-  'Multiplier applied to NON-CONCRETE trades only. Concrete comes from this row''s own '
-  'rc_350/rc_250/lean_concrete columns and is not indexed. Solved so the whole build '
-  'lands on cost_delta_pct — see migration 045.';
+  'VESTIGIAL since 045. The engine solves the non-concrete trade index per building '
+  'from cost_delta_pct instead; a stored index drifts by up to 2.3 points across '
+  'building shapes. Kept only because older cached rate books carry the column.';
 
 -- Garoua: a city on Vanessa's list that we did not carry. Concrete columns are
 -- Adamawa's, the nearest northern proxy, and are a guess — see the header.
@@ -61,7 +58,7 @@ INSERT INTO public.construction_city_rates
    index_vs_baseline, cost_delta_pct, currency_code, data_source, notes)
 VALUES
   ('GAROUA', 'CM', 'Garoua', 260000, 86125, 61750, 88375,
-   0.9719, 10.00, 'XAF', 'estimated_index',
+   1.0000, 10.00, 'XAF', 'estimated_index',
    'Added 045. Vanessa: +10% overall. Concrete columns copied from Adamawa — northern proxy, no BQ.')
 ON CONFLICT (city_code) DO UPDATE SET
   city_name         = EXCLUDED.city_name,
@@ -82,13 +79,13 @@ UPDATE public.construction_city_rates SET
   notes             = v.note,
   updated_at        = now()
 FROM (VALUES
-  ('YAOUNDE', 1.0000,  0.00, 'Baseline city for Cameroon from 045. Was tied with Douala at 1.0000.'),
-  ('DOUALA',  0.9282, -5.00, 'Vanessa: 5% cheaper than Yaoundé. Was the baseline at 1.0000.'),
-  ('BUEA',    0.9776,  0.00, 'Vanessa: same as Yaoundé. Was 1.0556 against a Douala baseline.'),
-  ('BAMENDA', 1.1194, 10.00, 'Vanessa: +10%. Was 1.0556.'),
-  ('KRIBI',   1.0703,  5.00, 'Vanessa: +5%. Was 0.9944.'),
-  ('LIMBE',   0.9360, -3.00, 'Vanessa: 3% cheaper. Was 1.0556.'),
-  ('ADAMAWA', 0.9296,  7.00, 'Vanessa Q11: +7% on construction cost. Was 1.0750, which realised +15.2% because the concrete column is +44% and is not indexed. Concrete column unverified.')
+  ('YAOUNDE', 1.0000, 0.00, 'Baseline city for Cameroon from 045. Was tied with Douala at 1.0000.'),
+  ('DOUALA', 1.0000, -5.00, 'Vanessa: 5% cheaper than Yaoundé. Was the baseline at 1.0000.'),
+  ('BUEA', 1.0000, 0.00, 'Vanessa: same as Yaoundé. Was 1.0556 against a Douala baseline.'),
+  ('BAMENDA', 1.0000, 10.00, 'Vanessa: +10%. Was 1.0556.'),
+  ('KRIBI', 1.0000, 5.00, 'Vanessa: +5%. Was 0.9944.'),
+  ('LIMBE', 1.0000, -3.00, 'Vanessa: 3% cheaper. Was 1.0556.'),
+  ('ADAMAWA', 1.0000, 7.00, 'Vanessa Q11: +7% on construction cost. Was 1.0750, which realised +15.2% because the concrete column is +44% and is not indexed. Concrete column unverified.')
 ) AS v(code, idx, delta, note)
 WHERE public.construction_city_rates.city_code = v.code;
 

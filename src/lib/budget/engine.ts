@@ -4,7 +4,7 @@ import type {
 import { BASELINE_CITY, CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
 import { countBedrooms, countLivingRooms, deriveQuantities, type DetailedTakeoffInput } from './geometry';
 import { plumbingLines } from './fixtures';
-import { isFlatRoof, roofBuildDelta } from './roof';
+import { isFlatRoof, roofCoveringDelta } from './roof';
 import { BQ_ITEMS, type BqCode } from './bq-items';
 import {
   applyOverrides, sectionsFromLines, totalFromLines,
@@ -71,10 +71,17 @@ export function runTakeoff(
   const A          = q.footprint;
   const floors     = q.floors;
   const upperCount = floors - 1;
-  // Non-concrete trades (labour, blocks, tiles, paint) move with the city too. The
-  // concrete grades are read from the book directly; everything else is indexed off it.
-  const ci = city.index_vs_baseline;
   const finishMult = rate.finish_multipliers[data.finishLevel ?? 'standard'] ?? 1.0;
+
+  // ── Pricing this building in a given city, at a given trade index ──
+  //
+  // Extracted so the engine can price the SAME building more than once and solve for a
+  // figure, rather than carrying a precomputed constant. Two things are solved below:
+  // the city's trade index, and the roof covering's uplift. Neither is stored anywhere.
+  //
+  // `ci` scales the non-concrete trades only. Concrete grades come from the city's own
+  // rc_350 / rc_250 / lean columns, which are measured data and must not be scaled.
+  const priceAt = (cityBook: CityRate, ci: number, roofType = data.roofType): TakeoffLine[] => {
 
   // ── Line emission ───────────────────────────────────────
   //
@@ -108,9 +115,9 @@ export function runTakeoff(
   // ── 200 Foundation ──
   add('201', A * g.exc_m3_per_m2,       r.excavation_m3 * ci);
   add('202', A * g.exc_m3_per_m2 * 0.8, r.backfill_m3 * ci);
-  add('203', A * g.lean_m3_per_m2,      city.lean_concrete);
-  add('204', A * g.footing_m3_per_m2 * (1 + g.footing_floor_uplift * upperCount), city.rc_350);
-  add('205', q.groundSlabVolume,        city.rc_250);
+  add('203', A * g.lean_m3_per_m2,      cityBook.lean_concrete);
+  add('204', A * g.footing_m3_per_m2 * (1 + g.footing_floor_uplift * upperCount), cityBook.rc_350);
+  add('205', q.groundSlabVolume,        cityBook.rc_250);
   add('206', q.perimeter * 0.6,         r.fdn_block_m2 * ci);
   add('207', A, r.dpm_m2 * ci);
   add('208', A, r.sand_bed_m2 * ci);
@@ -122,21 +129,21 @@ export function runTakeoff(
   const bathsPerFloor = (data.bathrooms ?? 0) / floors;
   const ceilingRate   = r.ceiling_m2 * Math.max(0, finishMult - 1) / 0.7 * ci;
 
-  add('301', A * g.col_m3_per_m2,  city.rc_350);
-  add('302', A * g.beam_m3_per_m2, city.rc_350);
+  add('301', A * g.col_m3_per_m2,  cityBook.rc_350);
+  add('302', A * g.beam_m3_per_m2, cityBook.rc_350);
   add('305', q.wallPerFloor,       r.blockwork_m2 * ci);
   add('306', q.plasterPerFloor,    r.plaster_m2 * ci);
   add('309', A,                    r.floor_tiles_m2 * ci);
   add('310', bathsPerFloor * 12,   r.wall_tiles_m2 * ci);
   add('311', A,                    ceilingRate);
   // Ground-only
-  add('303', q.slabVolume,                        city.rc_350);
+  add('303', q.slabVolume,                        cityBook.rc_350);
   add('307', A,                                   r.deck_plaster_m2 * ci);
-  add('308', floors > 1 ? g.stair_m3 : 0,         city.rc_350);
+  add('308', floors > 1 ? g.stair_m3 : 0,         cityBook.rc_350);
 
   if (upperCount > 0) {
-    add('401', A * g.col_m3_per_m2  * upperCount, city.rc_350);
-    add('402', A * g.beam_m3_per_m2 * upperCount, city.rc_350);
+    add('401', A * g.col_m3_per_m2  * upperCount, cityBook.rc_350);
+    add('402', A * g.beam_m3_per_m2 * upperCount, cityBook.rc_350);
     add('405', q.wallPerFloor       * upperCount, r.blockwork_m2 * ci);
     add('406', q.plasterPerFloor    * upperCount, r.plaster_m2 * ci);
     add('409', A                    * upperCount, r.floor_tiles_m2 * ci);
@@ -149,7 +156,7 @@ export function runTakeoff(
   // Emitted at the LONG-SPAN rate. The covering's uplift is applied further down, once
   // the rest of the build is priced — it is expressed against the total, so there is
   // nothing to take a percentage of yet. See the roof-uplift block below.
-  if (isFlatRoof(data.roofType)) {
+  if (isFlatRoof(roofType)) {
     add('501', q.perimeter,                  r.parapet_ml * ci);
     add('503', A * g.flat_roof_sheet_frac,   r.roof_sheet_m2 * ci);
   } else {
@@ -193,25 +200,6 @@ export function runTakeoff(
   // Must run BEFORE the contingency line is pushed, so applyOverrides evaluates it over
   // the uplifted basis. Moving it after would leave the contingency priced on a roof
   // nobody is building.
-  const roofDelta = roofBuildDelta(data.roofType);
-  if (roofDelta !== 0) {
-    const c        = g.contingency_pct;
-    const works    = L.reduce((s, l) => s + l.amount, 0);
-    const basis    = L.filter(l => (CONTINGENCY_BASIS as readonly string[]).includes(l.section))
-                      .reduce((s, l) => s + l.amount, 0);
-    const t0       = works + basis * c;
-    const roofBase = L.filter(l => l.section === 'roof').reduce((s, l) => s + l.amount, 0);
-    // A roof section of zero has nothing to scale — a footprint too small to emit a line.
-    if (roofBase > 0) {
-      const scale = 1 + (t0 * roofDelta) / (1 + c) / roofBase;
-      for (const l of L) {
-        if (l.section !== 'roof') continue;
-        l.rate   *= scale;
-        l.amount *= scale;
-      }
-    }
-  }
-
   // Contingency is a percentage of the works BEFORE finishing — the section it sits in.
   // Emitted last so `applyOverrides` evaluates it against final line amounts.
   L.push({
@@ -221,7 +209,71 @@ export function runTakeoff(
     basis: CONTINGENCY_BASIS,
   });
 
-  const lines         = applyOverrides(L, overrides);
+    return L;
+  };
+
+  // ── Solve the city's trade index ─────────────────────────
+  //
+  // Nothing is stored for this. `cost_delta_pct` is the datum — Vanessa's statement that
+  // an identical building in Douala costs 5% less than in Yaoundé — and the index that
+  // realises it is computed here, for THIS building.
+  //
+  // It has to be computed rather than looked up because the concrete columns are not
+  // indexed: how much of a build is concrete depends on the building, so one stored index
+  // lands on the stated figure for one shape and drifts on every other. Solving per build
+  // makes every city land exactly on its percentage, for every building.
+  //
+  //   T(ci) = C + O·ci        C = concrete + un-indexed, O = indexed trades at ci = 1
+  //   T(1) and T(2) give O = T(2) − T(1) and C = T(1) − O
+  const sum = (ls: TakeoffLine[]) => totalFromLines(applyOverrides(ls, null));
+  const baseline = CITY_RATES[BASELINE_CITY] ?? city;
+  const delta    = (city.cost_delta_pct ?? 0) / 100;
+
+  let ci = 1;
+  if (city.city_code !== baseline.city_code || delta !== 0) {
+    const t1 = sum(priceAt(city, 1));
+    const t2 = sum(priceAt(city, 2));
+    const O  = t2 - t1;
+    const C  = t1 - O;
+    const target = sum(priceAt(baseline, 1)) * (1 + delta);
+    // O is the indexed share and is never zero for a real building; the guard is for a
+    // degenerate input that emitted nothing but concrete.
+    if (O > 0) ci = Math.max(0, (target - C) / O);
+  }
+
+  // ── Apply the roof covering's uplift ─────────────────────
+  //
+  // Scales the ROOF SECTION. Two other placements were tried against the real documents
+  // and both are wrong, which is worth recording so they are not tried again:
+  //
+  //   Charging a build-level percentage INTO the roof section wrecks the section. On
+  //   Naka, whose document prices its flat roof at 953,440, +8% of the build produced a
+  //   roof line of 6,566,686. We print this as a line-by-line BQ for contractors to lay
+  //   beside a real quotation; one absurd line discards the document.
+  //
+  //   Scaling the WHOLE BUILD instead inflates lines that must not move — the plumbing
+  //   fixture schedule reproduces three of the four documents to the franc, and a 10%
+  //   uplift on the roof has no business touching it.
+  //
+  // The deciding evidence is the roof's share of a real build: 10.1% on Rose, 2.3% on
+  // Naka, 2.2% on Mpangou. A covering premium of "+10%" cannot be a percentage of the
+  // build — at Naka's share that would be four times the entire roof. Vanessa was
+  // answering a table of roof coverings, so it is a percentage of the roof.
+  //
+  // The consequence is that a covering choice moves a TOTAL by well under its badge, so
+  // the badge must not print the raw number. Step7RoofType asks the engine what the
+  // choice actually costs this build. See roofCoveringDelta in roof.ts.
+  const priced    = priceAt(city, ci);
+  const roofScale = 1 + roofCoveringDelta(data.roofType);
+  if (roofScale !== 1) {
+    for (const l of priced) {
+      if (l.section !== 'roof') continue;
+      l.rate   *= roofScale;
+      l.amount *= roofScale;
+    }
+  }
+
+  const lines         = applyOverrides(priced, overrides);
   const sectionsLocal = sectionsFromLines(lines, SECTION_KEYS);
 
   return {

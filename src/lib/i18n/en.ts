@@ -2103,7 +2103,6 @@ export const en = {
       aluminiumDeck:       'Aluminium Deck',
       aluminiumDeckDesc:   'Sheet on a shallow fall — lighter than a slab',
       baseCost:    'Base cost',
-      upliftBadge: '+{pct}% roof',
       provisional: 'Est. cost',
     },
     rooms: {
@@ -2142,6 +2141,7 @@ export const en = {
     otherCity: "Other…",
     doualaRates: "Douala rates",
     footprintLabel: "Ground floor footprint",
+    footprintDerived: "Worked out from the rooms you chose. Change it if you have a measured figure.",
     footprintRequired: "The budget is calculated from this — we cannot price the build without it.",
     footprintUse: "Use {sqm} sqm",
     builtAreaAcross: "Total built area across {count} floor",

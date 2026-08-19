@@ -31,13 +31,16 @@ export interface RoofOption {
   labelKey: TKey;
   descKey: TKey;
   /**
-   * Cost uplift over long-span aluminium, in percent OF THE WHOLE BUILD.
+   * Cost uplift over long-span aluminium, in percent OF THE ROOF.
    *
-   * Not of the roof section. That is the reading Vanessa signed off in Q12 and the one
-   * a client makes looking at the badge, and it is what Favour asked for: "when a client
-   * selects the roofing type, the price should reflect in cases where it is higher."
-   * Charged to the roof section — see `roofSectionMultiplier` in engine.ts, which solves
-   * the section multiplier that realises this figure on the total.
+   * Not of the build. Settled by measuring the roof's share of the four source
+   * documents — 10.1% on Rose, 2.3% on Naka, 2.2% on Mpangou. A "+10%" covering premium
+   * cannot be a share of the build when the whole roof is 2.3% of it, so Vanessa's Q12
+   * table is what it looks like: percentages of the roof.
+   *
+   * What this means for the client is that switching covering moves a total by much less
+   * than the number here. Never print it raw beside a total — ask the engine what the
+   * choice costs THIS build (`roofChoiceBuildDelta`).
    */
   costDeltaPct: number;
   /**
@@ -74,12 +77,14 @@ export const ROOF_OPTIONS: readonly RoofOption[] = [
     // 10 degrees in plain aluminium. Her instruction: "use rose roof to determine the
     // price for those who will desire the abuja style roof."
     //
-    // 138% is Rose's roof section over what our long-span model prices for the same
-    // house: 6,006,200 / 2,525,000. HONEST CAVEAT, and it is on the list to put back to
-    // her: that figure bundles the covering with the 45 degree pitch, because the wizard
-    // has no pitch input to separate them. Someone wanting stone-coated sheet at a
-    // conventional 25-30 degrees is over-quoted by whatever share of the premium is
-    // pitch rather than material.
+    // 138% of the roof: Rose's roof section of 6,006,200 over the 2,525,000 our
+    // long-span model prices for the same house. On her build that is about 6% on the
+    // total, which is the figure a client sees — the engine works it out per build.
+    //
+    // HONEST CAVEAT, on the list to put back to her: this bundles the covering with the
+    // 45 degree pitch, because the wizard has no pitch input to separate them. Someone
+    // wanting stone-coated sheet at a conventional 25-30 degrees is over-quoted by
+    // whatever share of the premium is pitch rather than material.
     value: 'stone_coated', form: 'pitched', costDeltaPct: 138,
     labelKey: 'wizard.roof.stoneCoated', descKey: 'wizard.roof.stoneCoatedDesc',
   },
@@ -134,13 +139,13 @@ export function roofsOfForm(form: RoofForm): readonly RoofOption[] {
  * came out CHEAPER than long-span. Vanessa found it in testing: "the prices still did
  * not change when i switched between roof types."
  *
- * Second: the first fix scaled the roof SECTION by this percentage, which moved a build
- * by 0.7% for a covering badged "+10%". Physically defensible — a roof choice does not
- * make your foundation dearer — but it is not what the number means to the two people
- * who set it. Favour: "the price should reflect in cases where it is higher." So the
- * figure is a build uplift, and the roof section is where it is charged.
+ * Second: what the percentage is OF. Favour: "when a client selects the roofing type,
+ * the price should reflect in cases where it is higher." It now does — but the honest
+ * size of that effect is small, because the roof is 2-10% of a build. Reading these as
+ * build percentages was tried and breaks the source documents; see the note in
+ * engine.ts, which records both failed placements so they are not retried.
  */
-export function roofBuildDelta(type: RoofType | null | undefined): number {
+export function roofCoveringDelta(type: RoofType | null | undefined): number {
   return (roofOption(type)?.costDeltaPct ?? 0) / 100;
 }
 
@@ -154,4 +159,20 @@ export function roofMultipliers(): Record<string, number> {
   return Object.fromEntries(
     ROOF_OPTIONS.map(o => [o.value, 1 + o.costDeltaPct / 100]),
   );
+}
+
+/**
+ * What choosing `type` instead of long-span actually adds to THIS build, as a fraction.
+ *
+ * Computed, never labelled. `costDeltaPct` is a percentage of the roof, and the roof is a
+ * small and highly variable share of a build — 10.1% on Rose, 2.3% on Naka — so the same
+ * covering moves a bungalow and a G+3 by different amounts. Printing the raw number
+ * beside a total overstated it roughly eightfold.
+ *
+ * Takes the priced totals rather than a builder function so it stays free of engine
+ * imports; roof.ts is imported by legacy.ts and the rate cards.
+ */
+export function roofChoiceBuildDelta(totalWithRoof: number, totalWithLongSpan: number): number {
+  if (!(totalWithLongSpan > 0)) return 0;
+  return totalWithRoof / totalWithLongSpan - 1;
 }
