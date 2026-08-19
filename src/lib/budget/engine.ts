@@ -4,7 +4,7 @@ import type {
 import { BASELINE_CITY, CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
 import { countBedrooms, countLivingRooms, deriveQuantities, type DetailedTakeoffInput } from './geometry';
 import { plumbingLines } from './fixtures';
-import { isFlatRoof, roofCostMultiplier } from './roof';
+import { isFlatRoof, roofBuildDelta } from './roof';
 import { BQ_ITEMS, type BqCode } from './bq-items';
 import {
   applyOverrides, sectionsFromLines, totalFromLines,
@@ -146,19 +146,17 @@ export function runTakeoff(
 
   // ── 500 Roof ──
   //
-  // `rm` is what the covering choice actually costs. Until Vanessa caught it, nothing
-  // here read the covering at all: clay tiles, shingle and long-span all produced the
-  // identical total, and flat came out cheaper than pitched instead of 8% dearer. See
-  // roofCostMultiplier in roof.ts for why it scales this section and not the build.
-  const rm = roofCostMultiplier(data.roofType);
+  // Emitted at the LONG-SPAN rate. The covering's uplift is applied further down, once
+  // the rest of the build is priced — it is expressed against the total, so there is
+  // nothing to take a percentage of yet. See the roof-uplift block below.
   if (isFlatRoof(data.roofType)) {
-    add('501', q.perimeter,                  r.parapet_ml * ci * rm);
-    add('503', A * g.flat_roof_sheet_frac,   r.roof_sheet_m2 * ci * rm);
+    add('501', q.perimeter,                  r.parapet_ml * ci);
+    add('503', A * g.flat_roof_sheet_frac,   r.roof_sheet_m2 * ci);
   } else {
-    add('502', A * g.pitched_roof_factor,    r.roof_timber_m2 * ci * rm);
-    add('503', A * g.pitched_roof_factor,    r.roof_sheet_m2 * ci * rm);
+    add('502', A * g.pitched_roof_factor,    r.roof_timber_m2 * ci);
+    add('503', A * g.pitched_roof_factor,    r.roof_sheet_m2 * ci);
   }
-  add('504', 1, r.roof_accessories * ci * rm);
+  add('504', 1, r.roof_accessories * ci);
 
   // ── 600 Joinery ──
   add('601', q.rooms + 1,                                        r.door_avg * ci);
@@ -179,6 +177,41 @@ export function runTakeoff(
   // ── 900 Finishing ──
   add('901', q.plasterPerFloor * floors, r.paint_m2 * ci);
   add('907', 1, 500_000 * finishMult);
+  // ── Roof covering uplift ─────────────────────────────
+  //
+  // `costDeltaPct` is a percentage of the WHOLE BUILD (roof.ts). It is charged to the
+  // roof section, so the section multiplier has to be solved rather than assumed.
+  //
+  // Adding X to the roof adds X to the works AND X x c to the contingency, because roof
+  // is in CONTINGENCY_BASIS. So to move the total by `delta`:
+  //
+  //     X (1 + c) = T0 x delta      =>      X = T0 x delta / (1 + c)
+  //
+  // where T0 is the total at the long-span rate. That makes the realised total exactly
+  // T0 x (1 + delta) — asserted in roof.test.ts rather than left to trust.
+  //
+  // Must run BEFORE the contingency line is pushed, so applyOverrides evaluates it over
+  // the uplifted basis. Moving it after would leave the contingency priced on a roof
+  // nobody is building.
+  const roofDelta = roofBuildDelta(data.roofType);
+  if (roofDelta !== 0) {
+    const c        = g.contingency_pct;
+    const works    = L.reduce((s, l) => s + l.amount, 0);
+    const basis    = L.filter(l => (CONTINGENCY_BASIS as readonly string[]).includes(l.section))
+                      .reduce((s, l) => s + l.amount, 0);
+    const t0       = works + basis * c;
+    const roofBase = L.filter(l => l.section === 'roof').reduce((s, l) => s + l.amount, 0);
+    // A roof section of zero has nothing to scale — a footprint too small to emit a line.
+    if (roofBase > 0) {
+      const scale = 1 + (t0 * roofDelta) / (1 + c) / roofBase;
+      for (const l of L) {
+        if (l.section !== 'roof') continue;
+        l.rate   *= scale;
+        l.amount *= scale;
+      }
+    }
+  }
+
   // Contingency is a percentage of the works BEFORE finishing — the section it sits in.
   // Emitted last so `applyOverrides` evaluates it against final line amounts.
   L.push({

@@ -6,7 +6,7 @@ import {
   CalendarDays, BadgeCheck, ShieldCheck, Briefcase,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
-import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 import { supabase }              from '@/lib/supabase/client';
 import {
   fetchProject,
@@ -129,7 +129,6 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const t        = useT();
-  const { suggestLangForCountry } = useLanguage();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
@@ -167,12 +166,6 @@ export default function ProjectDetail() {
   useEffect(() => {
     loadAll().finally(() => setLoading(false));
   }, [loadAll]);
-
-  // Default a francophone-market project to French. Only applies when the user
-  // has never picked a language themselves — an explicit choice always wins.
-  useEffect(() => {
-    suggestLangForCountry(project?.country);
-  }, [project?.country, suggestLangForCountry]);
 
   // Real-time: update stage payment_status when it changes in Supabase
   useEffect(() => {

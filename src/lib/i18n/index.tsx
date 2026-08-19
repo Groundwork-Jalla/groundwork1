@@ -81,12 +81,6 @@ interface LanguageContextValue {
   lang: Lang;
   setLang: (next: Lang) => void;
   toggle: () => void;
-  /**
-   * Suggest French for a francophone-market country — used when a project's
-   * build country becomes known. No-op if the user has already chosen a
-   * language, so it can never override an explicit preference.
-   */
-  suggestLangForCountry: (countryCode: string | null | undefined) => void;
   /** Translate a key, with optional {placeholder} interpolation. */
   t: (key: TKey, params?: Record<string, string | number>) => string;
   /** Translate with English/French plural rules driven by `count`. */
@@ -135,22 +129,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     });
   }, [persistChoice]);
 
-  const suggestLangForCountry = useCallback((countryCode: string | null | undefined) => {
-    if (!countryCode) return;
-    // An explicit choice always wins — never override the user.
-    if (hasExplicitLangChoice()) return;
-    if (!FRENCH_DEFAULT_COUNTRIES.includes(countryCode.toUpperCase())) return;
-
-    setLangState(prev => {
-      if (prev === 'fr') return prev;
-      if (typeof document !== 'undefined') {
-        document.documentElement.lang = LANG_META.fr.htmlLang;
-      }
-      return 'fr';
-    });
-    // Deliberately NOT persisted — this is a suggestion, not a choice. If the
-    // user flips the toggle, that gets stored and wins from then on.
-  }, []);
+  // REMOVED Aug 2026: `suggestLangForCountry`, which flipped the UI to French when a
+  // project's build country was francophone. Reported by Favour — "you create your
+  // project and get into the project dashboard, it changes to French even if you haven't
+  // changed the language."
+  //
+  // It did exactly that, to everyone. Cameroon is the DEFAULT build country, so every
+  // project tripped it, and the "explicit choice wins" guard only protected people who
+  // had already used the toggle — almost nobody. Two further reasons not to bring it
+  // back in another form: Cameroon is officially bilingual and our beta is concentrated
+  // in the anglophone South-West and North-West, and the build country says nothing
+  // about the reader, who is typically diaspora.
+  //
+  // Choosing a language for outbound email is a different problem, because there is no
+  // toggle in an inbox — that still uses resolveRecipientLang in translate.ts.
 
   const t = useCallback(
     (key: TKey, params?: Record<string, string | number>) => {
@@ -170,8 +162,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<LanguageContextValue>(
-    () => ({ lang, setLang, toggle, suggestLangForCountry, t, tPlural }),
-    [lang, setLang, toggle, suggestLangForCountry, t, tPlural],
+    () => ({ lang, setLang, toggle, t, tPlural }),
+    [lang, setLang, toggle, t, tPlural],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

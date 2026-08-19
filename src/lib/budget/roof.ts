@@ -30,7 +30,15 @@ export interface RoofOption {
   form: RoofForm;
   labelKey: TKey;
   descKey: TKey;
-  /** Cost uplift over long-span aluminium, in percent. 0 is the base case. */
+  /**
+   * Cost uplift over long-span aluminium, in percent OF THE WHOLE BUILD.
+   *
+   * Not of the roof section. That is the reading Vanessa signed off in Q12 and the one
+   * a client makes looking at the badge, and it is what Favour asked for: "when a client
+   * selects the roofing type, the price should reflect in cases where it is higher."
+   * Charged to the roof section — see `roofSectionMultiplier` in engine.ts, which solves
+   * the section multiplier that realises this figure on the total.
+   */
   costDeltaPct: number;
   /**
    * True when we have no Bill of Quantity behind the uplift. Surfaced in the UI as a
@@ -117,21 +125,23 @@ export function roofsOfForm(form: RoofForm): readonly RoofOption[] {
 }
 
 /**
- * Cost multiplier for the ROOF SECTION — items 501-504 — not for the whole build.
+ * The covering's uplift on the total build, as a fraction. 0 for long-span.
  *
- * This is the correction to a bug Vanessa found while testing: "the prices still did not
- * change when i switched between roof types". They did not, for Cameroon, because the
- * take-off engine never read `roof_type_multipliers` at all — only `isFlatRoof`. Every
- * pitched covering priced identically, and a flat roof came out 5% CHEAPER than
- * long-span when it is meant to be 8% dearer.
+ * Two corrections live behind this one line.
  *
- * Applied to the roof section rather than the whole total, which is where legacy.ts puts
- * it. Legacy is a single blanket multiplier over a fitted rate and its own header says
- * not to calibrate against it; choosing clay over aluminium does not make your foundation
- * more expensive. The badge in the wizard says "on the roof" for the same reason.
+ * First: until Aug 2026 the Cameroon take-off never read the covering at all — only
+ * `isFlatRoof` — so clay, shingle and long-span priced identically and a concrete slab
+ * came out CHEAPER than long-span. Vanessa found it in testing: "the prices still did
+ * not change when i switched between roof types."
+ *
+ * Second: the first fix scaled the roof SECTION by this percentage, which moved a build
+ * by 0.7% for a covering badged "+10%". Physically defensible — a roof choice does not
+ * make your foundation dearer — but it is not what the number means to the two people
+ * who set it. Favour: "the price should reflect in cases where it is higher." So the
+ * figure is a build uplift, and the roof section is where it is charged.
  */
-export function roofCostMultiplier(type: RoofType | null | undefined): number {
-  return 1 + (roofOption(type)?.costDeltaPct ?? 0) / 100;
+export function roofBuildDelta(type: RoofType | null | undefined): number {
+  return (roofOption(type)?.costDeltaPct ?? 0) / 100;
 }
 
 /**

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import type { FinishLevel, WizardFormData } from '@/types/project';
 import { CITY_RATES, CM_CITY_CODES, hasFloorRooms } from '@/lib/budget';
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useT, useLanguage } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[] = [
@@ -95,6 +95,7 @@ const isKnownCity = (city: string) =>
 
 export default function Step8Details() {
   const t = useT();
+  const { tPlural } = useLanguage();
   const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
   const [sqmStr, setSqmStr] = useState(data.sqm > 0 ? String(data.sqm) : '');
@@ -105,9 +106,14 @@ export default function Step8Details() {
     () => showCityPicker && data.city.length > 0 && !isKnownCity(data.city),
   );
 
+  // Footprint is required, not optional. It was labelled "(optional)" and not gated,
+  // so someone could continue without it and reach a budget computed from a zero-sized
+  // building — Favour: "you need to pick the square meter for the budget to be
+  // calculated". Nothing downstream can price a build without an area.
   const canContinue =
     data.projectName.trim().length >= 2 &&
-    data.city.trim().length >= 2;
+    data.city.trim().length >= 2 &&
+    (data.sqm ?? 0) > 0;
 
   const estimate = estimateSqm(data);
 
@@ -219,10 +225,7 @@ export default function Step8Details() {
                     onChange={e => update({ city: e.target.value })}
                   />
                 )}
-                <p className="text-xs text-brand-mid-grey">
-                  Material costs vary by up to 45% across Cameroon — cement and steel carry
-                  the haulage inland.
-                </p>
+                <p className="text-xs text-brand-mid-grey">{t('wizard.cityVariance')}</p>
               </>
             ) : (
               <Input
@@ -238,8 +241,8 @@ export default function Step8Details() {
           {/* Ground floor footprint */}
           <div className="space-y-1.5">
             <Label htmlFor="sqm" className="text-sm font-medium text-brand-near-black">
-              Ground floor footprint{' '}
-              <span className="font-normal text-brand-mid-grey">(optional)</span>
+              {t('wizard.footprintLabel')}
+              <span className="text-state-alert">*</span>
             </Label>
             <div className="relative">
               <Input
@@ -259,12 +262,29 @@ export default function Step8Details() {
             <p className="text-xs text-brand-mid-grey">
               {t('wizard.footprintHint')}
             </p>
+            {/* Shown only while empty. A required field with a known good answer beside
+                it should let someone take that answer in one tap rather than retype the
+                number from the hint card below. */}
+            {!((data.sqm ?? 0) > 0) && (
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-state-alert">{t('wizard.footprintRequired')}</p>
+                {estimate && (
+                  <button
+                    type="button"
+                    onClick={applyEstimate}
+                    className="shrink-0 rounded-lg border border-brand-border-grey px-2 py-1 text-[11px] font-semibold text-brand-near-black transition-colors hover:border-brand-near-black"
+                  >
+                    {t('wizard.footprintUse', { sqm: estimate.typical })}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Derived total built area — read-only, so the two figures can't drift */}
             {data.sqm > 0 && (
               <div className="flex items-center justify-between rounded-lg bg-brand-off-white px-3 py-2">
                 <span className="text-xs text-brand-mid-grey">
-                  Total built area across {data.floors} floor{data.floors !== 1 ? 's' : ''}
+                  {tPlural('wizard.builtAreaAcross', data.floors, { count: data.floors })}
                 </span>
                 <span className="text-xs font-semibold text-brand-near-black tabular-nums">
                   {(data.sqm * Math.max(1, data.floors)).toLocaleString()} sqm

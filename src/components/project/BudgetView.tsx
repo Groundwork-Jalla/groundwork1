@@ -4,6 +4,7 @@ import { Download, Layers, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
+import { sliceDerivation, type SliceDerivation } from '@/lib/budget/derivation';
 import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
@@ -61,17 +62,23 @@ const SLICE_SHADES = ['#1f2937', '#374151', '#4b5563', '#6b7280', '#9ca3af', '#d
 // ── Overview budget bar (animated, expandable) ───────────────
 
 /**
- * One budget line, openable to show where that money lands across the build.
+ * One budget line, openable to show how it was arrived at.
  *
  * Philip's note on this screen was that an owner needs the granular figures without
- * exporting a PDF first. Only the CONSTRUCTION line distributes across stages — each
- * stage takes its `budget_pct` of it, which is exactly how the milestone amounts are
- * derived, so the numbers here reconcile with the payment schedule further down the page
- * rather than being a second, differently-rounded estimate.
+ * exporting a PDF first.
  *
- * The other three lines do not distribute at all: design is paid at one stage, and permit
- * and professional are their own milestones. They render as flat rows with no disclosure,
- * because spreading a flat fee across seven stages would be inventing a schedule.
+ * EVERY line opens now. Only construction distributes across stages — each stage takes
+ * its `budget_pct` of it, which is exactly how the milestone amounts are derived, so
+ * those figures reconcile with the payment schedule below rather than being a second,
+ * differently-rounded estimate. Spreading a flat fee across seven stages would still be
+ * inventing a schedule, so the other three do not get one.
+ *
+ * What they get instead is their derivation, which is what was actually missing. Favour:
+ * the tab "only has a drop down for the construction... it doesn't have a drop down for
+ * design... professional fees or permits", and construction itself "doesn't show the
+ * breakdown between actual construction, material cost, and labor cost". A fee with no
+ * visible arithmetic reads as arbitrary, which is the opposite of the point of the
+ * screen. See lib/budget/derivation.ts.
  */
 function OverviewBar({
   label,
@@ -80,6 +87,7 @@ function OverviewBar({
   index,
   stages,
   distributes = false,
+  derivation,
 }: {
   label: string;
   pct: number;
@@ -88,6 +96,8 @@ function OverviewBar({
   stages: ProjectStageRow[];
   /** Whether this line is shared out across the stage weights. Construction only. */
   distributes?: boolean;
+  /** How this line is calculated. Every slice has one. */
+  derivation?: SliceDerivation | null;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
@@ -96,21 +106,22 @@ function OverviewBar({
 
   // Stages carrying no budget share (Land Secured, Design, Exterior) would be $0 rows.
   const funded = stages.filter(s => (s.budget_pct ?? 0) > 0);
+  const openable = distributes || !!derivation;
 
   return (
     <div className="border-b border-brand-off-white last:border-b-0 dark:border-[#242424]">
       <button
         type="button"
-        onClick={() => distributes && setOpen(o => !o)}
-        aria-expanded={distributes ? open : undefined}
-        disabled={!distributes}
+        onClick={() => openable && setOpen(o => !o)}
+        aria-expanded={openable ? open : undefined}
+        disabled={!openable}
         className="flex w-full items-center gap-3 py-1.5 text-left transition-colors enabled:hover:bg-brand-off-white/60 dark:enabled:hover:bg-[#242424]"
       >
         <span className="flex w-28 shrink-0 items-center gap-1.5">
           <ChevronRight className={cn(
             'size-3 shrink-0 text-brand-mid-grey transition-transform',
             open && 'rotate-90',
-            !distributes && 'invisible',
+            !openable && 'invisible',
           )} />
           <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: color }} />
           <span className="truncate text-xs text-brand-mid-grey">{label}</span>
@@ -142,6 +153,31 @@ function OverviewBar({
             className="overflow-hidden"
           >
             <div className="pb-3 pl-9 pr-2 pt-1">
+              {/* The arithmetic first — it explains the figure on the row above. The
+                  stage schedule below it answers a different question (when), and only
+                  construction has one. */}
+              {derivation && (
+                <div className={cn('flex flex-col gap-1', distributes && 'mb-3')}>
+                  {derivation.rows.map(row => (
+                    <div key={row.labelKey} className="flex items-baseline justify-between gap-3 text-[11px]">
+                      <span className="min-w-0 text-brand-mid-grey">{t(row.labelKey, row.params)}</span>
+                      {row.amount != null && (
+                        <span className="w-20 shrink-0 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
+                          {formatUSDFull(row.amount)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {derivation.noteKey && (
+                    <p className="mt-1 text-[10px] leading-relaxed text-brand-mid-grey">
+                      {t(derivation.noteKey)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {distributes && (
+              <>
               <p className="mb-2 text-[10px] text-brand-mid-grey">
                 {t('project.costing.acrossStages', { label })}
               </p>
@@ -161,6 +197,8 @@ function OverviewBar({
                     </div>
                   ))}
                 </div>
+              )}
+              </>
               )}
             </div>
           </motion.div>
@@ -430,6 +468,9 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
   // below are always shares of the figure printed above them.
   const budget = projectBudget(project);
   const shares = sliceShares(budget);
+  // Footprint x floors — the same built area the design fee is charged on, so the
+  // dropdown shows the figure the fee was actually calculated from.
+  const builtAreaSqm = (project.sqm ?? 0) * (project.num_floors ?? 1);
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
 
@@ -478,6 +519,7 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
               index={i}
               stages={sortedStages}
               distributes={slice.key === 'construction'}
+              derivation={sliceDerivation(slice.key, budget, builtAreaSqm)}
             />
           ))}
         </div>

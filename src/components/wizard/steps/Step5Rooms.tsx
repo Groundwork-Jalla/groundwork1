@@ -95,8 +95,17 @@ export default function Step5Rooms() {
   const totals = computeTotals(floors);
   const totalRooms = Object.values(totals).reduce((s, n) => s + n, 0);
 
+  /** Rooms on one floor — drives the per-tab badge and the empty-floor notice. */
+  const roomsOn = (f: FloorRoom) =>
+    ROOM_TYPES.reduce((sum, rt) => sum + (f[rt.field] ?? 0), 0);
+  const emptyFloors = floors.filter(f => roomsOn(f) === 0);
+
+  // A building with no rooms prices as an empty shell: room counts drive doors, windows,
+  // sanitary ware, wall tiling and internal partitions. The same omission in the public
+  // estimator was measured at a 34% shortfall (see routes/tools/budget.tsx), and this
+  // step used to pass `canContinue={true}` unconditionally.
   return (
-    <WizardShell canContinue={true} onContinue={next}>
+    <WizardShell canContinue={totalRooms > 0} onContinue={next}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           {t('wizard.s5Title')}
@@ -120,6 +129,16 @@ export default function Step5Rooms() {
               )}
             >
               {floorLabel(i)}
+              {/* The count is the point of the tab strip: without it you have to open
+                  every floor to find the one you have not filled in yet. */}
+              <span className={cn(
+                'ml-1.5 tabular-nums',
+                roomsOn(f) === 0
+                  ? 'text-state-alert'
+                  : activeTab === i ? 'opacity-60' : 'text-brand-mid-grey',
+              )}>
+                {roomsOn(f)}
+              </span>
             </button>
           ))}
         </div>
@@ -174,6 +193,19 @@ export default function Step5Rooms() {
               <span className="text-xs text-brand-mid-grey italic">{t('wizard.noRooms')}</span>
             )}
           </div>
+        )}
+
+        {/* Why the Continue button is off, and which floor to go to. Shown against the
+            floor count from step 4, because an empty floor usually means that count is
+            wrong rather than that the floor is genuinely empty. */}
+        {totalRooms === 0 ? (
+          <p className="mt-4 text-xs text-state-alert">{t('wizard.rooms.needOne')}</p>
+        ) : emptyFloors.length > 0 && (
+          <p className="mt-4 text-xs text-brand-mid-grey">
+            {tPlural('wizard.rooms.emptyFloors', emptyFloors.length, {
+              floors: emptyFloors.map(f => floorLabel(f.floor)).join(', '),
+            })}
+          </p>
         )}
       </div>
     </WizardShell>
