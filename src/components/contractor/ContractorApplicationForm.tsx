@@ -244,7 +244,10 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     !!years, !!operatesAs, !!whyJoin, !!differentiator, !!regions, !!concurrent,
     projectTypes.length > 0,
     files.length + pending.length > 0,
-    projects.filter(p => p.name.trim() && p.location.trim()).length >= 3,
+    // A project only counts once its reference is contactable — see handleSubmit, which
+    // enforces the same three conditions. References are verified before anyone is
+    // accepted, so an unreachable one makes the project useless as evidence.
+    projects.filter(p => p.name.trim() && p.location.trim() && isValidEmail(p.refEmail.trim())).length >= 3,
     milestones !== null, verification !== null, noSidePay !== null,
     readyEarly !== null, agreed,
   ];
@@ -298,9 +301,27 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       setError(f('errorDocuments'));
       return;
     }
-    const filled = projects.filter(p => p.name.trim() && p.location.trim());
+    // Indexes are kept against `projects`, not against a filtered copy, because every
+    // number in these messages is a row the applicant has to scroll back to. Saying
+    // "project 2" about the second *surviving* row sends them to the wrong card.
+    const touched = (p: ProjectEntry) => Object.values(p).some(v => v.trim());
+    const isFilled = (p: ProjectEntry) => !!(p.name.trim() && p.location.trim());
+
+    const filled = projects.filter(isFilled);
     if (filled.length < 3) {
-      setError(f('errorProjects'));
+      // A row with a reference typed into it but no name or location is dropped by the
+      // count, so a bare "add three projects" would be read as "the three I entered
+      // didn't count" with nothing to act on. Name the half-finished row instead.
+      const partial = projects.findIndex(p => touched(p) && !isFilled(p));
+      setError(partial === -1 ? f('errorProjects') : f('errorProjectIncomplete', { n: partial + 1 }));
+      return;
+    }
+    // Separate from the count so the two failures read differently: "you gave us fewer
+    // than three projects" and "project 2's reference cannot be reached" are different
+    // problems, and one message covering both tells the applicant neither.
+    const unreachable = projects.findIndex(p => isFilled(p) && !isValidEmail(p.refEmail.trim()));
+    if (unreachable !== -1) {
+      setError(f('errorRefEmail', { n: unreachable + 1 }));
       return;
     }
 
@@ -394,7 +415,11 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   const legalKeys = ['land_verification','contract_drafting','property_transfer','dispute_resolution','title_review','other'];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-7">
+    // noValidate: the browser's own bubbles would otherwise pre-empt handleSubmit for
+    // every type="email"/type="url" field here, and they are untranslated and point at a
+    // field that is usually scrolled off-screen. This form already writes its own message
+    // for each of those cases — errorEmail existed and was unreachable until now.
+    <form onSubmit={handleSubmit} noValidate className="space-y-7">
       {/* Header */}
       <div>
         <h2 className="font-sans text-xl font-bold text-brand-near-black leading-snug">{f('title')}</h2>
@@ -514,6 +539,12 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
                 : track === 'technical' ? f('upTechnical')
                 : f('upTrade')}
             </p>
+            {/* The input has always accepted several files and repeated picks accumulate,
+                but nothing said so — the plurality was only implied by "documents",
+                "Choose files" and "max 10 MB each". */}
+            <p className="text-[11px] text-brand-mid-grey leading-relaxed mt-1.5">
+              {f('uploadMultiple')}
+            </p>
             <input
               ref={fileRef}
               type="file"
@@ -533,7 +564,13 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
             >
               <Upload className="size-3.5" /> {f('uploadCta')}
             </button>
-            <p className="text-[10px] text-brand-mid-grey mt-1.5">{f('uploadHint')}</p>
+            <p className="text-[10px] text-brand-mid-grey mt-1.5">
+              {f('uploadHint')}
+              {/* `uploadedCount` was already translated in both dictionaries and wired to
+                  nothing. It demonstrates the multi-file behaviour rather than only
+                  asserting it. */}
+              {pending.length > 0 && <> · {f('uploadedCount', { n: pending.length })}</>}
+            </p>
 
             {pending.length > 0 && (
               <div className="mt-3 space-y-1.5">
@@ -640,7 +677,12 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label={f('refName')}><Input value={p.refName} onChange={e => updateProject(i, { refName: e.target.value })} /></Field>
               <Field label={f('refPhone')}><Input value={p.refPhone} onChange={e => updateProject(i, { refPhone: e.target.value })} type="tel" /></Field>
-              <Field label={f('refEmail')} hint={f('optional')}><Input value={p.refEmail} onChange={e => updateProject(i, { refEmail: e.target.value })} type="email" /></Field>
+              {/* Required, unlike name and phone: references are verified before anyone is
+                  accepted, and an address is the one contact detail we can actually use
+                  from here. It was optional and was arriving blank. The asterisk is the
+                  only marker — no `required` attribute, matching projName/projLocation, so
+                  the message stays ours and stays translated instead of a native bubble. */}
+              <Field label={f('refEmail')} required><Input value={p.refEmail} onChange={e => updateProject(i, { refEmail: e.target.value })} type="email" /></Field>
             </div>
           </div>
         ))}
