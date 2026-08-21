@@ -125,6 +125,14 @@ export default function AuthCallback() {
         return;
       }
 
+      // A recovery link proves control of the mailbox, not knowledge of the password —
+      // so it must end at "set a new one", never at the dashboard. Routing it like a
+      // normal sign-in is what made "Forgot password?" silently a no-op.
+      if (type === 'recovery') {
+        navigate("/auth/new-password", { replace: true });
+        return;
+      }
+
       // Process any pending invite (stored in localStorage before signup)
       const token = localStorage.getItem("pendingInvite");
       if (token) {

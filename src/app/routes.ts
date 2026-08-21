@@ -21,6 +21,7 @@ export default [
     route("auth/login",          "routes/auth/login.tsx"),
     route("auth/signup",         "routes/auth/signup.tsx"),
     route("auth/reset-password", "routes/auth/reset-password.tsx"),
+    route("auth/new-password",   "routes/auth/new-password.tsx"),
     route("auth/callback",       "routes/auth/callback.tsx"),
     route("onboarding",          "routes/onboarding.tsx"),
     route("invite/:token",       "routes/invite.tsx"),
