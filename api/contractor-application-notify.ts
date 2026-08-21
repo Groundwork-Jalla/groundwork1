@@ -25,7 +25,10 @@ function esc(s: unknown): string {
 }
 
 /** Compact internal summary. English only — this one goes to the team, not the applicant. */
-function internalHtml(a: Record<string, any>, appUrl: string): string {
+// Exported so src/lib/email/render-previews.test.ts can render it for the email audit.
+// It is the one template that lives in a handler rather than src/lib/email — kept here
+// because it is internal-only and deliberately not translated (see below).
+export function internalHtml(a: Record<string, any>, appUrl: string): string {
   const row = (label: string, value: unknown) =>
     value === null || value === undefined || value === '' ? '' :
     `<tr>
@@ -109,9 +112,6 @@ export default async function handler(req: any, res: any) {
   const appUrl = process.env.PUBLIC_SITE_URL ?? 'https://www.tryjalla.com';
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
 
-  const { buildContractorApplicationHtml, contractorApplicationSubject } =
-    await import('../src/lib/email/contractor-application-html');
-
   async function send(to: string, subject: string, html: string) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -121,11 +121,21 @@ export default async function handler(req: any, res: any) {
     if (!r.ok) throw new Error(`resend ${r.status}`);
   }
 
+  // The applicant's copy is the only one that needs the shared template, so the import
+  // lives in its own arm of the settle. It used to sit above this block, where a failed
+  // resolution was an unhandled rejection that took the team alert down with it — which
+  // is precisely the coupling the comment below says must not exist.
+  async function sendApplicantCopy() {
+    const { buildContractorApplicationHtml, contractorApplicationSubject } =
+      await import('../src/lib/email/contractor-application-html.js');
+    await send(app.email, contractorApplicationSubject(lang),
+               buildContractorApplicationHtml(lang, app as any));
+  }
+
   // Reported independently: the team alert is what stops an application sitting unseen,
   // so it must not be skipped because the applicant's own copy bounced.
   const results = await Promise.allSettled([
-    send(app.email, contractorApplicationSubject(lang),
-         buildContractorApplicationHtml(lang, app as any)),
+    sendApplicantCopy(),
     send(TEAM_INBOX, `New contractor application — ${app.full_name}`,
          internalHtml(app, appUrl)),
   ]);

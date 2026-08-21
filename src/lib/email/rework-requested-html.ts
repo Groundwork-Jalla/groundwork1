@@ -1,6 +1,6 @@
-import type { Lang } from '../i18n/types';
-import { translatePlural, translator } from '../i18n/translate';
-import { emailShell, esc, primaryButton } from './shell';
+import type { Lang } from '../i18n/types.js';
+import { translatePlural, translator } from '../i18n/translate.js';
+import { emailShell, esc, primaryButton } from './shell.js';
 
 export interface ReworkEmail {
   ownerName: string;

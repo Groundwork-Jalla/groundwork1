@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { trackEvent } from '@/lib/analytics';
-import type { Lang } from '@/lib/i18n/types';
+import { credentialTrack, qualifies, type ContractorApplicationInput, type UploadedFile }
+  from '@/lib/contractor/application-types';
 
 // =========================================================
 // Contractor application — submission pipeline
@@ -13,97 +14,15 @@ import type { Lang } from '@/lib/i18n/types';
 // application into a visible error for the person applying.
 // =========================================================
 
-export const CONTRACTOR_ROLES = [
-  'general_contractor', 'land_lawyer', 'structural_engineer', 'architect',
-  'quantity_surveyor', 'land_surveyor', 'electrician', 'plumber', 'mason',
-  'carpenter', 'roofing', 'interior_finishing', 'other',
-] as const;
-export type ContractorRole = typeof CONTRACTOR_ROLES[number];
-
-/**
- * Which Section-4 credential block a role sees. The spec groups thirteen roles
- * into four credential paths — this is that mapping in one place, so the form
- * and the email agree on what was asked.
- */
-export type CredentialTrack = 'contractor' | 'lawyer' | 'technical' | 'trade';
-
-export function credentialTrack(role: ContractorRole): CredentialTrack {
-  switch (role) {
-    case 'land_lawyer':
-      return 'lawyer';
-    case 'structural_engineer':
-    case 'architect':
-    case 'quantity_surveyor':
-    case 'land_surveyor':
-      return 'technical';
-    case 'electrician':
-    case 'plumber':
-    case 'mason':
-    case 'carpenter':
-    case 'roofing':
-    case 'interior_finishing':
-      return 'trade';
-    default:
-      return 'contractor';
-  }
-}
-
-export interface ProjectEntry {
-  name: string;
-  location: string;
-  budget: string;
-  role: string;
-  year: string;
-  refName: string;
-  refPhone: string;
-  refEmail: string;
-}
-
-export interface UploadedFile {
-  label: string;
-  path: string;
-  size: number;
-}
-
-export interface ContractorApplicationInput {
-  // Section 1
-  fullName: string;
-  businessName: string;
-  phone: string;
-  email: string;
-  country: string;
-  city: string;
-  portfolioUrl: string;
-  // Section 2
-  role: ContractorRole;
-  roleOther: string;
-  // Section 3
-  yearsExperience: string;
-  operatesAs: string;
-  teamSize: string;
-  projectTypes: string[];
-  // Section 4 (shape depends on credentialTrack)
-  credentials: Record<string, unknown>;
-  uploads: UploadedFile[];
-  // Section 5
-  projects: ProjectEntry[];
-  // Section 6
-  acceptsMilestones: boolean;
-  acceptsVerification: boolean;
-  acceptsNoSidePay: boolean;
-  // Section 7
-  videoUrl: string;
-  whyJoin: string;
-  differentiator: string;
-  readyForEarly: boolean;
-  // Section 8
-  regions: string;
-  concurrentProjects: string;
-  // Section 9
-  agreedToTerms: boolean;
-  // Meta
-  lang: Lang;
-}
+// The roles, credential tracks, input shape and `qualifies` predicate now live in
+// a browser-free module so the email template can reach them from a Vercel
+// function without dragging the Supabase client along. Re-exported here because
+// this is where the rest of the app has always imported them from.
+export {
+  CONTRACTOR_ROLES, credentialTrack, qualifies,
+  type ContractorRole, type CredentialTrack,
+  type ProjectEntry, type UploadedFile, type ContractorApplicationInput,
+} from '@/lib/contractor/application-types';
 
 /**
  * Upload one credential file to the private `contractor-docs` bucket.
@@ -126,11 +45,6 @@ export async function uploadCredential(
 
   if (error) throw error;
   return { label, path, size: file.size };
-}
-
-/** True when every Section-6 standard was accepted. */
-export function qualifies(input: ContractorApplicationInput): boolean {
-  return input.acceptsMilestones && input.acceptsVerification && input.acceptsNoSidePay;
 }
 
 /**

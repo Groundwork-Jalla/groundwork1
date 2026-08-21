@@ -8,3 +8,6 @@ build
 supabase/.temp
 .claude/
 __pycache__/
+
+# Rendered email previews — build output of src/lib/email/render-previews.test.ts
+.email-previews/

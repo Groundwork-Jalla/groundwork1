@@ -2012,6 +2012,8 @@ export const fr: Mirror<EnDict> = {
       errorTitle: "Une erreur s'est produite",
       backToLogin:'Retour à la connexion',
       expired:    "Ce lien de connexion a expiré ou a déjà été utilisé. Veuillez en demander un nouveau.",
+      requestNew: 'Envoyez-moi un nouvel e-mail de confirmation',
+      wrongDevice: "Nous n'avons pas pu terminer votre connexion à partir de ce lien. Les liens de connexion ne fonctionnent que dans le navigateur d'où vous êtes parti : si vous avez créé votre compte sur un ordinateur et ouvert l'e-mail sur votre téléphone, revenez à l'ordinateur et connectez-vous avec votre mot de passe. Sinon, le lien a expiré — demandez-en un nouveau.",
     },
   },
 

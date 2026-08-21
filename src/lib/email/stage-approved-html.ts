@@ -1,6 +1,6 @@
-import type { Lang } from '../i18n/types';
-import { translator } from '../i18n/translate';
-import { emailShell, esc, primaryButton, secondaryButton } from './shell';
+import type { Lang } from '../i18n/types.js';
+import { translator } from '../i18n/translate.js';
+import { emailShell, esc, primaryButton, secondaryButton } from './shell.js';
 
 export interface StageApprovedEmail {
   ownerName: string;

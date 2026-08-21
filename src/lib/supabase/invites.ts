@@ -46,6 +46,11 @@ export async function inviteContractor(
   // Attempt to send email — always resolve, never block the invite from being shown.
   let emailSent = false;
   try {
+    // Production reads every one of these from the invite row instead, keyed on the
+    // token — the endpoint used to trust the body and had no auth at all. They are
+    // still sent because the vite dev middleware (vite.config.ts) is a separate
+    // implementation that does read them, and dev has no service-role key to look
+    // the row up with.
     const r = await fetch('/api/send-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,7 @@
-import type { Lang } from '../i18n/types';
-import { translator, type TKey } from '../i18n/translate';
-import { emailShell, esc, primaryButton } from './shell';
-import { credentialTrack, type ContractorApplicationInput } from '../supabase/contractor-applications';
+import type { Lang } from '../i18n/types.js';
+import { translator, type TKey } from '../i18n/translate.js';
+import { emailShell, esc, primaryButton } from './shell.js';
+import { credentialTrack, type ContractorApplicationInput } from '../contractor/application-types.js';
 
 /**
  * Applicant's copy of a submitted contractor application.

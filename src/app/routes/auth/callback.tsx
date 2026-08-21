@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import type { Session } from "@supabase/supabase-js";
+import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
@@ -48,29 +48,79 @@ function waitForSession(timeoutMs = 15000) {
   });
 }
 
+/**
+ * A `token_hash` link is device-independent, and that is the whole point of it.
+ *
+ * The client runs the PKCE flow, which stores a code verifier in the localStorage of
+ * whichever browser called signUp(). A `?code=` link can therefore only be completed in
+ * that same browser. Signing up on a laptop and confirming from the phone — an ordinary
+ * thing to do, since that is where email is — leaves the phone with no verifier, the
+ * exchange fails, and the page says the link expired when it is perfectly good.
+ *
+ * verifyOtp needs no verifier, so it works wherever the mail is opened. It only runs if
+ * the Supabase email template has been switched to send `token_hash`; see the note in
+ * docs/. Until then these links keep arriving as `?code=` and fall through below.
+ */
+const OTP_TYPES: EmailOtpType[] = ['signup', 'invite', 'magiclink', 'recovery', 'email_change'];
+
+function otpType(raw: string | null): EmailOtpType | null {
+  return OTP_TYPES.includes(raw as EmailOtpType) ? (raw as EmailOtpType) : null;
+}
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const t = useT();
   const [error, setError] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     async function run() {
       const params = new URLSearchParams(window.location.search);
 
-      // Supabase reports provider/consent failures as query params, not as a
-      // failed exchange — surface those rather than waiting for a session that
-      // is never coming.
-      const authError = params.get("error_description") ?? params.get("error");
-      if (authError) { setError(authError); return; }
+      // Supabase reports a rejected token or a provider refusal by redirecting here with
+      // the reason attached, rather than by failing an exchange — surface it rather than
+      // waiting for a session that is never coming. It arrives in the query on the PKCE
+      // flow and in the fragment on the implicit one, and only the query was being read,
+      // so an implicit-flow failure silently became a redirect to the login page.
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const authError = params.get("error_description") ?? params.get("error")
+        ?? hash.get("error_description") ?? hash.get("error");
+      if (authError) {
+        setError(authError);
+        // otp_expired is the one we can actually act on: the link was single-use and is
+        // now spent, so the way out is a fresh email, not a login they cannot complete.
+        setExpired((params.get("error_code") ?? hash.get("error_code")) === "otp_expired");
+        return;
+      }
 
+      const tokenHash = params.get("token_hash");
+      const type = otpType(params.get("type"));
       const hasCode = !!params.get("code");
 
-      const session = hasCode
-        ? await waitForSession()
-        : (await supabase.auth.getSession()).data.session;
+      let session: Session | null = null;
+
+      if (tokenHash && type) {
+        // Supabase's own message is accurate here — it distinguishes a genuinely
+        // expired or already-used token from a malformed one — so surface it rather
+        // than replacing it with a guess.
+        const { data, error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash, type,
+        });
+        if (otpError) { setError(otpError.message); return; }
+        session = data.session;
+      } else if (hasCode) {
+        session = await waitForSession();
+      } else {
+        session = (await supabase.auth.getSession()).data.session;
+      }
 
       if (!session) {
-        if (hasCode) { setError(t('auth.callback.expired')); return; }
+        // Reached only on the `?code=` path. The two ways to get here are a link that
+        // really has expired and a link opened in a different browser from the one that
+        // started sign-up, and the client cannot tell them apart — the verifier is
+        // simply absent either way. So say what is true of both and give them the move
+        // that works: go back and sign in.
+        if (hasCode) { setError(t('auth.callback.wrongDevice')); return; }
         navigate("/auth/login", { replace: true });
         return;
       }
@@ -104,12 +154,24 @@ export default function AuthCallback() {
           {t('auth.callback.errorTitle')}
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{error}</p>
-        <Link
-          to="/auth/login"
-          className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"
-        >
-          {t('auth.callback.backToLogin')}
-        </Link>
+        <div className="mt-6 flex flex-col items-center gap-3">
+          {/* A spent link left only "Back to login", which is a dead end — they cannot log
+              in until the address is confirmed, and confirming needs a new email. */}
+          {expired && (
+            <Link
+              to="/auth/signup"
+              className="text-sm font-medium text-brand-near-black underline underline-offset-4"
+            >
+              {t('auth.callback.requestNew')}
+            </Link>
+          )}
+          <Link
+            to="/auth/login"
+            className="text-sm text-brand-mid-grey underline underline-offset-4"
+          >
+            {t('auth.callback.backToLogin')}
+          </Link>
+        </div>
       </div>
     );
   }

@@ -94,12 +94,13 @@ export default async function handler(req: any, res: any) {
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
   const siteUrl = process.env.PUBLIC_SITE_URL ?? 'https://www.tryjalla.com';
 
-  // Templates live in src/lib/email so the app and this function build the same message.
-  const [{ buildApplicationDecisionHtml, applicationDecisionSubject }] = await Promise.all([
-    import('../src/lib/email/application-decision-html'),
-  ]);
-
   try {
+    // Templates live in src/lib/email so the app and this function build the same message.
+    // Inside the try: this import previously sat above it, so a resolution failure became
+    // an unhandled rejection and a bare 500 rather than the 502 the admin UI understands.
+    const { buildApplicationDecisionHtml, applicationDecisionSubject } =
+      await import('../src/lib/email/application-decision-html.js');
+
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },

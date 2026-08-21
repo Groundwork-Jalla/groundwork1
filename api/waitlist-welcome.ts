@@ -103,7 +103,7 @@ export default async function handler(req: any, res: any) {
   // deliberately the non-identifying half of the pair. A missing name is fine: the
   // template drops the greeting line rather than saying "Hi ,".
   const { buildWaitlistWelcomeHtml, waitlistWelcomeSubject } =
-    await import('../src/lib/email/waitlist-welcome-html');
+    await import('../src/lib/email/waitlist-welcome-html.js');
 
   const lang: 'en' | 'fr' = row.lang === 'fr' ? 'fr' : 'en';
   const name     = typeof req.body?.name === 'string'     ? req.body.name.slice(0, 80)     : '';

@@ -2025,6 +2025,8 @@ export const en = {
       errorTitle: 'Something went wrong',
       backToLogin:'Back to login',
       expired:    'This sign-in link has expired or has already been used. Please request a new one.',
+      requestNew: 'Send me a new confirmation email',
+      wrongDevice: 'We could not finish signing you in from this link. Sign-in links only work in the browser you started from, so if you signed up on a computer and opened the email on your phone, go back to the computer and sign in with your password. If that is not it, the link has expired — request a new one.',
     },
   },
 

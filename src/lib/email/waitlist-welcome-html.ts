@@ -1,6 +1,6 @@
-import { emailShell, esc } from './shell';
-import { translator } from '../i18n/translate';
-import type { Lang } from '../i18n/types';
+import { emailShell, esc } from './shell.js';
+import { translator } from '../i18n/translate.js';
+import type { Lang } from '../i18n/types.js';
 
 // =========================================================
 // Waitlist welcome.
