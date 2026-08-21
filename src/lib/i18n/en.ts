@@ -2894,13 +2894,6 @@ export const en = {
       rejectedBody1:    'Thank you for applying to the Founding Network, and for the time you put into the application. On this occasion we are not taking it further.',
       rejectedBody2:    'The network is still early and we are onboarding a small number of professionals per region. You are welcome to apply again as we expand.',
     },
-    waitlist: {
-      subject:  "You're on the Groundwork waitlist",
-      eyebrow:  'Waitlist',
-      heading:  "You're on the list",
-      greeting: 'Hi {name},',
-      body1:    "You're on the Groundwork waitlist. We'll email you the moment it opens, and you'll be among the first in.",
-    },
     contractorApplication: {
       subject:  'We received your Founding Network application',
       heading:  'Application received',

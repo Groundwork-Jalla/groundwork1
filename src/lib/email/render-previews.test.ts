@@ -7,7 +7,6 @@ import { buildApplicationDecisionHtml, applicationDecisionSubject } from './appl
 import { buildInviteHtml, inviteSubject } from './invite-html';
 import { buildStageApprovedHtml, stageApprovedSubject } from './stage-approved-html';
 import { buildReworkHtml, reworkSubject } from './rework-requested-html';
-import { buildWaitlistWelcomeHtml, waitlistWelcomeSubject } from './waitlist-welcome-html';
 import { internalHtml } from '../../../api/contractor-application-notify';
 import { translate } from '../i18n/translate';
 import { en } from '../i18n/en';
@@ -156,11 +155,6 @@ const PREVIEWS: Preview[] = [
       status: 'pending',
       id: '00000000-0000-4000-8000-000000000003',
     }, siteUrl()),
-  },
-  {
-    id: 'waitlist-welcome',
-    subject: l => waitlistWelcomeSubject(l),
-    html: l => buildWaitlistWelcomeHtml(l, 'Marie Ateba'),
   },
 ];
 

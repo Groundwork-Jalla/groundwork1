@@ -1,7 +1,7 @@
 /**
  * Contractor application → GoHighLevel.
  *
- * Server-side proxy for a GHL inbound-webhook workflow, mirroring api/ghl/waitlist.ts.
+ * Server-side proxy for a GHL inbound-webhook workflow.
  * The webhook URL is the only secret involved and it stays on the server — anything
  * named `VITE_*` is compiled into the browser bundle, so a public URL would let anyone
  * inject contacts into the CRM.
