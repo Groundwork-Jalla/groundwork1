@@ -11,6 +11,7 @@ import { buildWaitlistWelcomeHtml, waitlistWelcomeSubject } from './waitlist-wel
 import { internalHtml } from '../../../api/contractor-application-notify';
 import { translate } from '../i18n/translate';
 import { en } from '../i18n/en';
+import { siteUrl } from '../site-url';
 import type { Lang } from '../i18n/types';
 import type { ContractorApplicationInput } from '../contractor/application-types';
 
@@ -98,12 +99,12 @@ const PREVIEWS: Preview[] = [
   {
     id: 'decision-accepted',
     subject: l => applicationDecisionSubject(l, 'accepted'),
-    html: l => buildApplicationDecisionHtml(l, 'accepted', 'Ngo Bala Etienne', 'https://www.tryjalla.com'),
+    html: l => buildApplicationDecisionHtml(l, 'accepted', 'Ngo Bala Etienne', siteUrl()),
   },
   {
     id: 'decision-rejected',
     subject: l => applicationDecisionSubject(l, 'rejected'),
-    html: l => buildApplicationDecisionHtml(l, 'rejected', 'Ngo Bala Etienne', 'https://www.tryjalla.com'),
+    html: l => buildApplicationDecisionHtml(l, 'rejected', 'Ngo Bala Etienne', siteUrl()),
   },
   {
     id: 'project-invite',
@@ -154,7 +155,7 @@ const PREVIEWS: Preview[] = [
       uploads: APPLICATION.uploads,
       status: 'pending',
       id: '00000000-0000-4000-8000-000000000003',
-    }, 'https://www.tryjalla.com'),
+    }, siteUrl()),
   },
   {
     id: 'waitlist-welcome',

@@ -15,6 +15,8 @@
 
 type Decision = 'accepted' | 'rejected';
 
+import { siteUrl } from '../src/lib/site-url.js';
+
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
 function admin() {
@@ -92,7 +94,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
-  const siteUrl = process.env.PUBLIC_SITE_URL ?? 'https://www.tryjalla.com';
+  const site = siteUrl();
 
   try {
     // Templates live in src/lib/email so the app and this function build the same message.
@@ -109,7 +111,7 @@ export default async function handler(req: any, res: any) {
         to: [app.email],
         subject: applicationDecisionSubject(lang, decision as Decision),
         html: buildApplicationDecisionHtml(
-          lang, decision as Decision, app.full_name ?? '', siteUrl,
+          lang, decision as Decision, app.full_name ?? '', site,
         ),
       }),
     });

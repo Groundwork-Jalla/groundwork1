@@ -1,6 +1,7 @@
 import type { Lang } from '../i18n/types.js';
 import { translator, type TKey } from '../i18n/translate.js';
 import { emailShell, esc, primaryButton } from './shell.js';
+import { siteUrl } from '../site-url.js';
 import { credentialTrack, type ContractorApplicationInput } from '../contractor/application-types.js';
 
 /**
@@ -164,7 +165,7 @@ export function buildContractorApplicationHtml(
     </table>
 
     <div style="height:20px;"></div>
-    ${primaryButton('https://tryjalla.com', t('email.contractorApplication.ctaSite'))}`;
+    ${primaryButton(siteUrl(), t('email.contractorApplication.ctaSite'))}`;
 
   return emailShell(lang, body);
 }

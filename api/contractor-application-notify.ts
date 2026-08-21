@@ -15,6 +15,8 @@
  * an open relay on the brand's sending domain.
  */
 
+import { siteUrl } from '../src/lib/site-url.js';
+
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
 
@@ -109,7 +111,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const appUrl = process.env.PUBLIC_SITE_URL ?? 'https://www.tryjalla.com';
+  const appUrl = siteUrl();
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
 
   async function send(to: string, subject: string, html: string) {

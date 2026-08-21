@@ -12,6 +12,8 @@
  * That is the same shape as /api/contractor-application-notify.
  */
 
+import { siteUrl } from '../src/lib/site-url.js';
+
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
 
@@ -108,7 +110,7 @@ export default async function handler(req: any, res: any) {
   const lang: 'en' | 'fr' = row.lang === 'fr' ? 'fr' : 'en';
   const name     = typeof req.body?.name === 'string'     ? req.body.name.slice(0, 80)     : '';
   const location = typeof req.body?.location === 'string' ? req.body.location.slice(0, 120) : '';
-  const siteUrl  = process.env.PUBLIC_SITE_URL ?? 'https://www.tryjalla.com';
+  const site     = siteUrl();
 
   async function send(to: string, subject: string, html: string) {
     const r = await fetch('https://api.resend.com/emails', {
@@ -123,7 +125,7 @@ export default async function handler(req: any, res: any) {
   const results = await Promise.allSettled([
     send(row.email, waitlistWelcomeSubject(lang), buildWaitlistWelcomeHtml(lang, name)),
     send(TEAM_INBOX, `New waitlist signup — ${name || row.email}`,
-         teamAlertHtml(row.email, name, location, lang, siteUrl)),
+         teamAlertHtml(row.email, name, location, lang, site)),
   ]);
 
   const welcome = results[0].status === 'fulfilled';

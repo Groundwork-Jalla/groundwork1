@@ -1,5 +1,6 @@
 import { LANG_META, type Lang } from '../i18n/types.js';
 import { translator } from '../i18n/translate.js';
+import { siteUrl } from '../site-url.js';
 
 export function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,7 +40,7 @@ export function emailShell(lang: Lang, bodyHtml: string): string {
           <td style="padding:16px 32px;border-top:1px solid #f0f0f0;">
             <p style="margin:0;font-size:11px;color:#bbb;">
               ${esc(t('email.footer'))} &middot;
-              <a href="https://tryjalla.com" style="color:#bbb;text-decoration:none;">tryjalla.com</a>
+              <a href="${siteUrl()}" style="color:#bbb;text-decoration:none;">tryjalla.com</a>
             </p>
           </td>
         </tr>

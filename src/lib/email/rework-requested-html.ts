@@ -1,6 +1,7 @@
 import type { Lang } from '../i18n/types.js';
 import { translatePlural, translator } from '../i18n/translate.js';
 import { emailShell, esc, primaryButton } from './shell.js';
+import { siteLink } from '../site-url.js';
 
 export interface ReworkEmail {
   ownerName: string;
@@ -21,7 +22,7 @@ export interface ReworkEmail {
  */
 export function buildReworkHtml(lang: Lang, e: ReworkEmail): string {
   const t = translator(lang);
-  const link = `https://tryjalla.com/projects/${e.projectId}`;
+  const link = siteLink(`projects/${e.projectId}`);
 
   const body = `
     <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a;">${esc(t('email.rework.heading'))}</h1>

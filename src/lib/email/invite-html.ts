@@ -1,6 +1,7 @@
 import type { Lang } from '../i18n/types.js';
 import { translator } from '../i18n/translate.js';
 import { emailShell, esc, primaryButton } from './shell.js';
+import { siteLink } from '../site-url.js';
 
 /**
  * Contractor invite.
@@ -18,7 +19,7 @@ export function buildInviteHtml(
   const t = translator(lang);
   const n = esc(inviterName);
   const p = esc(projectName);
-  const link = `https://tryjalla.com/invite/${encodeURIComponent(inviteToken)}`;
+  const link = siteLink(`invite/${encodeURIComponent(inviteToken)}`);
 
   // The body copy carries <strong> around the interpolated names, so the names are
   // escaped above and the template itself is trusted markup from our own dictionary.

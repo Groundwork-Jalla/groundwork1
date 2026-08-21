@@ -1,6 +1,7 @@
 import type { Lang } from '../i18n/types.js';
 import { translator } from '../i18n/translate.js';
 import { emailShell, esc, primaryButton, secondaryButton } from './shell.js';
+import { siteLink } from '../site-url.js';
 
 export interface StageApprovedEmail {
   ownerName: string;
@@ -23,8 +24,8 @@ export interface StageApprovedEmail {
  */
 export function buildStageApprovedHtml(lang: Lang, e: StageApprovedEmail): string {
   const t = translator(lang);
-  const link = `https://tryjalla.com/projects/${e.projectId}`;
-  const certLink = e.certificateId ? `https://tryjalla.com/verify/${e.certificateId}` : null;
+  const link = siteLink(`projects/${e.projectId}`);
+  const certLink = e.certificateId ? siteLink(`verify/${e.certificateId}`) : null;
 
   const body = `
     <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1a1a1a;">${esc(t('email.stageApproved.heading'))} &#10003;</h1>
