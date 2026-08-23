@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -156,6 +156,18 @@ const PREVIEWS: Preview[] = [
       id: '00000000-0000-4000-8000-000000000003',
     }, siteUrl()),
   },
+  {
+    // Supabase sends this one, but the HTML is ours — docs/supabase-email-templates.
+    // Rendered here so the audit can show it rather than describe it. English only:
+    // a Supabase template is one document per email type with no per-recipient
+    // language, which is the finding, not an oversight in the markup.
+    id: 'password-reset',
+    subject: () => 'Reset your password',
+    html: () => readFileSync(
+      resolve(__dirname, '../../../docs/supabase-email-templates/reset-password.html'), 'utf8')
+      .replace(/\{\{ \.SiteURL \}\}/g, siteUrl())
+      .replace(/\{\{ \.TokenHash \}\}/g, 'sample-token'),
+  },
 ];
 
 describe('email previews', () => {
@@ -175,7 +187,8 @@ describe('email previews', () => {
         expect(html, `${p.id}.${lang} body`).not.toMatch(RAW_KEY);
         expect(subject, `${p.id}.${lang} subject`).not.toMatch(RAW_KEY);
         expect(subject.length, `${p.id}.${lang} subject`).toBeGreaterThan(5);
-        expect(html).toContain('<html');
+        // The Supabase template is a body fragment — Supabase supplies the document.
+        if (p.id !== 'password-reset') expect(html).toContain('<html');
 
         const file = `${p.id}.${lang}.html`;
         writeFileSync(join(OUT, file), html, 'utf8');
