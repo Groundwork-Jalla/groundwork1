@@ -92,6 +92,7 @@ export default async function handler(req: any, res: any) {
     // and a bare 500. See api/README.md on the .js extension.
     const { buildContractorApplicationHtml, contractorApplicationSubject } =
       await import('../src/lib/email/contractor-application-html.js');
+    const { applicationFromRow } = await import('../src/lib/contractor/application-types.js');
 
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -100,7 +101,7 @@ export default async function handler(req: any, res: any) {
         from: FROM,
         to: [app.email],
         subject: contractorApplicationSubject(lang),
-        html: buildContractorApplicationHtml(lang, app as any),
+        html: buildContractorApplicationHtml(lang, applicationFromRow(app)),
       }),
     });
 

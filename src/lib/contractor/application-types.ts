@@ -109,3 +109,57 @@ export interface ContractorApplicationInput {
 export function qualifies(input: ContractorApplicationInput): boolean {
   return input.acceptsMilestones && input.acceptsVerification && input.acceptsNoSidePay;
 }
+
+/**
+ * A stored `contractor_applications` row, as the templates need it.
+ *
+ * The table is snake_case and the form's shape is camelCase, and the email templates were
+ * being handed the row directly with `as any`. Most fields silently came out blank, and
+ * `a.projectTypes.length` threw outright — so every applicant acknowledgement failed with
+ * a 502 long after the import bug above it was fixed. Two independent faults on the same
+ * line of code, which is why fixing the first one changed nothing visible.
+ *
+ * `as any` is what hid it: the compiler had the answer and was told not to look.
+ */
+export function applicationFromRow(row: Record<string, any>): ContractorApplicationInput {
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
+  return {
+    fullName:     str(row.full_name),
+    businessName: str(row.business_name),
+    phone:        str(row.phone),
+    email:        str(row.email),
+    country:      str(row.country),
+    city:         str(row.city),
+    portfolioUrl: str(row.portfolio_url),
+
+    role:      (row.role ?? 'other') as ContractorRole,
+    roleOther: str(row.role_other),
+
+    yearsExperience: str(row.years_experience),
+    operatesAs:      str(row.operates_as),
+    teamSize:        str(row.team_size),
+    projectTypes:    arr<string>(row.project_types),
+
+    credentials: (row.credentials && typeof row.credentials === 'object'
+                   ? row.credentials : {}) as Record<string, unknown>,
+    uploads:  arr<UploadedFile>(row.uploads),
+    projects: arr<ProjectEntry>(row.projects),
+
+    acceptsMilestones:   row.accepts_milestones === true,
+    acceptsVerification: row.accepts_verification === true,
+    acceptsNoSidePay:    row.accepts_no_side_pay === true,
+
+    videoUrl:       str(row.video_url),
+    whyJoin:        str(row.why_join),
+    differentiator: str(row.differentiator),
+    readyForEarly:  row.ready_for_early === true,
+
+    regions:            str(row.regions),
+    concurrentProjects: str(row.concurrent_projects),
+
+    agreedToTerms: row.agreed_to_terms === true,
+    lang: row.lang === 'fr' ? 'fr' : 'en',
+  };
+}

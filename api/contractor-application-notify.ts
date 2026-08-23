@@ -130,8 +130,9 @@ export default async function handler(req: any, res: any) {
   async function sendApplicantCopy() {
     const { buildContractorApplicationHtml, contractorApplicationSubject } =
       await import('../src/lib/email/contractor-application-html.js');
+    const { applicationFromRow } = await import('../src/lib/contractor/application-types.js');
     await send(app.email, contractorApplicationSubject(lang),
-               buildContractorApplicationHtml(lang, app as any));
+               buildContractorApplicationHtml(lang, applicationFromRow(app)));
   }
 
   // Reported independently: the team alert is what stops an application sitting unseen,
