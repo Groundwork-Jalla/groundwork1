@@ -228,6 +228,11 @@ async function applySubscription(
       subscription_status: sub.status,
       subscription_tier: (profile.subscription_tier as string | null) ?? '',
       period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : '',
+    }, {
+      variant: sub.status,
+      // Keyed on the Stripe event, so a Stripe retry is one CRM update rather than two,
+      // while a genuine later change still gets its own row.
+      dedupeKey: `subscription_changed:${eventId}`,
     });
   }
 }

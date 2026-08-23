@@ -136,6 +136,10 @@ export default async function handler(req: any, res: any) {
       decision,
       application_id: applicationId,
       application_url: `${site}/admin/applications/${applicationId}`,
+    }, {
+      // Accepted and rejected are opposite ends of a pipeline, not one event.
+      variant: decision,
+      dedupeKey: `application_decision:${applicationId}:${decision}`,
     });
 
     res.status(200).json({ ok: true });

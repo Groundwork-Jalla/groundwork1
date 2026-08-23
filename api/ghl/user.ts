@@ -40,7 +40,7 @@ export default async function handler(req: any, res: any) {
 
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('full_name, email, country, preferred_lang, synced_to_ghl')
+    .select('full_name, email, country, preferred_lang, synced_to_ghl, ghl_contact_id')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -68,6 +68,10 @@ export default async function handler(req: any, res: any) {
     lang:     profile.preferred_lang as string | null,
   }, {
     user_id: user.id,
+  }, {
+    // One row per person: signing in on a new browser should not re-announce them.
+    dedupeKey: `user_signup:${user.id}`,
+    contactId: profile.ghl_contact_id as string | null,
   });
 
   if (!result.ok) {
@@ -79,7 +83,13 @@ export default async function handler(req: any, res: any) {
 
   const { error: stampErr } = await admin
     .from('profiles')
-    .update({ synced_to_ghl: true, synced_to_ghl_at: new Date().toISOString() })
+    .update({
+      synced_to_ghl: true,
+      synced_to_ghl_at: new Date().toISOString(),
+      // Only present on the API path. This is the id every later event needs to address
+      // the same contact instead of hoping GHL dedupes — the point of Phase 2.
+      ...(result.contactId ? { ghl_contact_id: result.contactId } : {}),
+    })
     .eq('id', user.id);
 
   if (stampErr) {

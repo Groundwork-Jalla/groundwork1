@@ -73,6 +73,8 @@ export default async function handler(req: any, res: any) {
     project_tier: (project.tier as string | null) ?? '',
     build_country: (project.country as string | null) ?? '',
     build_city:    (project.city as string | null) ?? '',
+  }, {
+    dedupeKey: `project_created:${project.id}`,
   });
 
   // 200 either way: the project exists and the caller is fire-and-forget. The reason is
