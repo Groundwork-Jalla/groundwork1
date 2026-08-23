@@ -51,8 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Resolve admin status against user_roles (canonical, RLS-trusted source),
   // not JWT metadata — so adding an admin is just a user_roles insert.
+  //
+  // `loading` gates this, and that guard is load-bearing. Without it, the first pass on a
+  // hard refresh sees no session yet — it has not been restored from storage — and used to
+  // announce `adminChecked = true, isAdmin = false`. That is not an answer, it is the
+  // absence of a question, and the admin layout believed it: React runs a child's effects
+  // before its parent's, so the moment the session arrived AdminLayout read that stale
+  // pair and redirected to /dashboard before this effect could re-run for the real user.
+  // Refreshing any admin page bounced you out of the admin area.
+  //
+  // So: while the session is unknown, say nothing. `adminChecked` stays false, the layout
+  // keeps showing its spinner, and the redirect cannot fire on a guess.
   useEffect(() => {
     let cancelled = false;
+    if (loading) return;
+
     const uid = session?.user?.id;
     if (!uid) { setIsAdmin(false); setAdminChecked(true); return; }
 
@@ -65,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
 
     return () => { cancelled = true; };
-  }, [session?.user?.id]);
+  }, [loading, session?.user?.id]);
 
   async function signOut() {
     await supabase.auth.signOut();
