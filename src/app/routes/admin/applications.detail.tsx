@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
-  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, AlertTriangle, Check,
+  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, AlertTriangle, Check, Mail,
 } from 'lucide-react';
 import {
   getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
   sendDecisionEmail,
+  sendAcknowledgement,
   ASSIGNABLE_STATUSES, type ApplicationDetail,
 } from '@/lib/supabase/admin-applications';
-import { StatusPill, useRoleLabel } from './applications';
+import { StatusPill, useRoleLabel, fmtDate } from './applications';
 import { cn } from '@/lib/utils';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
 // =========================================================
 // /admin/applications/:id
@@ -99,12 +100,14 @@ function CredentialRow({ label, path, size }: { label: string; path: string; siz
 
 export default function AdminApplicationDetail() {
   const t = useT();
+  const { lang } = useLanguage();
   const roleLabel = useRoleLabel();
   const { id } = useParams<{ id: string }>();
 
   const [app, setApp]         = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
+  const [sendingAck, setSendingAck] = useState(false);
   const [notice, setNotice]   = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -169,6 +172,28 @@ export default function AdminApplicationDetail() {
     }
   }
 
+  /**
+   * Send the "we received your application" email by hand.
+   *
+   * Separate from decide(): this is not a decision, it is the acknowledgement the
+   * applicant should have got at submission and didn't while the notify endpoint was
+   * crashing. Kept available even once sent, because a bounced or lost email is a real
+   * reason to send a second one — the timestamp below is what stops that being blind.
+   */
+  async function acknowledge() {
+    if (!id) return;
+    setSendingAck(true); setNotice(null);
+    try {
+      const sentAt = await sendAcknowledgement(id);
+      setApp(prev => (prev ? { ...prev, acknowledgedAt: sentAt } : prev));
+      setNotice({ ok: true, text: t('admin.apps.ackSent') });
+    } catch {
+      setNotice({ ok: false, text: t('admin.apps.ackFailed') });
+    } finally {
+      setSendingAck(false);
+    }
+  }
+
   const yn = (v: boolean) => (v ? t('admin.apps.yes') : t('admin.apps.no'));
 
   if (loading) {
@@ -222,6 +247,27 @@ export default function AdminApplicationDetail() {
                 {t(`admin.apps.mark${s.charAt(0).toUpperCase()}${s.slice(1)}` as TKey)}
               </button>
             ))}
+          </div>
+
+          {/* The acknowledgement is normally automatic. This is the manual send for the
+              applicants it never reached, and the timestamp is how you tell them apart —
+              "never" is the backlog, a date is done. */}
+          <div className="mt-3 flex flex-col items-end gap-1">
+            <button
+              type="button" disabled={sendingAck}
+              onClick={acknowledge}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+            >
+              {sendingAck
+                ? <Loader2 className="size-3.5 animate-spin" />
+                : <Mail className="size-3.5" />}
+              {app.acknowledgedAt ? t('admin.apps.ackResend') : t('admin.apps.ackSend')}
+            </button>
+            <p className={cn('text-[11px]', app.acknowledgedAt ? 'text-brand-mid-grey' : 'text-state-held')}>
+              {app.acknowledgedAt
+                ? t('admin.apps.ackLastSent', { date: fmtDate(app.acknowledgedAt, lang) })
+                : t('admin.apps.ackNever')}
+            </p>
           </div>
         </div>
       </header>

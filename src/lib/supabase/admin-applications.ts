@@ -38,6 +38,8 @@ export interface ApplicationSummary {
   status: ApplicationStatus;
   lang: 'en' | 'fr';
   syncedToGhl: boolean;
+  /** When the applicant was told we received it. NULL = never; they are owed one. */
+  acknowledgedAt: string | null;
   createdAt: string;
 }
 
@@ -67,7 +69,7 @@ export interface ApplicationDetail extends ApplicationSummary {
 
 const LIST_COLUMNS =
   'id, full_name, business_name, email, phone, country, city, role, ' +
-  'years_experience, status, lang, synced_to_ghl, created_at';
+  'years_experience, status, lang, synced_to_ghl, acknowledged_at, created_at';
 
 type Row = Record<string, unknown>;
 const s  = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -88,6 +90,7 @@ function toSummary(r: Row): ApplicationSummary {
                        ? (r.status as ApplicationStatus) : 'pending',
     lang:            r.lang === 'fr' ? 'fr' : 'en',
     syncedToGhl:     r.synced_to_ghl === true,
+    acknowledgedAt:  sn(r.acknowledged_at),
     createdAt:       s(r.created_at),
   };
 }
@@ -188,6 +191,33 @@ export async function promoteApplication(applicationId: string): Promise<string>
     .rpc('admin_promote_application', { p_application_id: applicationId });
   if (error) throw error;
   return String(data ?? '');
+}
+
+/**
+ * Re-send the "we received your application" email to one applicant.
+ *
+ * The recovery path for everyone the automatic send missed while
+ * contractor-application-notify was failing. Sends the applicant's copy only — the team
+ * has long since seen these — and stamps `acknowledged_at` so the backlog shrinks
+ * visibly instead of being tracked in someone's head.
+ *
+ * Returns the timestamp so the page can show it without a refetch.
+ */
+export async function sendAcknowledgement(applicationId: string): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('not signed in');
+
+  const r = await fetch('/api/send-application-acknowledgement', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ applicationId }),
+  });
+  if (!r.ok) throw new Error(`acknowledgement email failed: ${r.status}`);
+  const body = await r.json().catch(() => ({}));
+  return typeof body.sentAt === 'string' ? body.sentAt : new Date().toISOString();
 }
 
 /**

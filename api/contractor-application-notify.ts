@@ -147,5 +147,24 @@ export default async function handler(req: any, res: any) {
   if (!applicant) console.error('[notify] applicant copy failed:', (results[0] as any).reason);
   if (!team)      console.error('[notify] team alert failed:', (results[1] as any).reason);
 
+  // Stamp only when Resend actually accepted the applicant's copy.
+  //
+  // This is what makes "Not acknowledged" in the admin list mean something. The whole
+  // failure that went unnoticed for a month was invisible precisely because nothing
+  // recorded whether the mail went: the row looked identical either way, and the browser
+  // had already thrown the error away. With this, a failed send leaves acknowledged_at
+  // NULL and the application shows up flagged next to the ones nobody has emailed yet —
+  // so the recovery button doubles as the alarm.
+  //
+  // Never stamped on failure, and never stamped for the team alert: a false "sent" here
+  // hides exactly the person who needs chasing.
+  if (applicant) {
+    const { error: stampErr } = await svc
+      .from('contractor_applications')
+      .update({ acknowledged_at: new Date().toISOString() })
+      .eq('id', applicationId);
+    if (stampErr) console.error('[notify] sent but could not stamp acknowledged_at:', stampErr);
+  }
+
   res.status(applicant || team ? 200 : 502).json({ ok: applicant && team, applicant, team });
 }

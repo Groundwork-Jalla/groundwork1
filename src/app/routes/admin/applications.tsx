@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2, Search, ArrowUpRight, CloudOff, Cloud } from 'lucide-react';
+import { Loader2, Search, ArrowUpRight, CloudOff, Cloud, MailWarning } from 'lucide-react';
 import {
   listApplications, APPLICATION_STATUSES,
   type ApplicationSummary, type ApplicationStatus,
@@ -58,7 +58,7 @@ export function StatusPill({ status }: { status: ApplicationStatus }) {
  * not how an admin reads a date. Keying off it made one row in an English table read
  * "5 août 2026".
  */
-function fmtDate(iso: string, lang: string): string {
+export function fmtDate(iso: string, lang: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
@@ -81,6 +81,8 @@ export default function AdminApplications() {
   const [error, setError]     = useState<string | null>(null);
   const [query, setQuery]     = useState('');
   const [filter, setFilter]   = useState<ApplicationStatus | 'all'>('all');
+  /** Narrows the table to the people still owed an acknowledgement. */
+  const [showUnackedOnly, setShowUnackedOnly] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -94,12 +96,24 @@ export default function AdminApplications() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return apps.filter(a => {
+      if (showUnackedOnly && a.acknowledgedAt) return false;
       if (filter !== 'all' && a.status !== filter) return false;
       if (!q) return true;
       return [a.fullName, a.email, a.businessName ?? '', a.city, a.country]
         .some(v => v.toLowerCase().includes(q));
     });
-  }, [apps, query, filter]);
+  }, [apps, query, filter, showUnackedOnly]);
+
+  /**
+   * Applicants who have not been told we received their application.
+   *
+   * The send is automatic, so this is normally zero. It is not decoration: the endpoint
+   * stamps acknowledged_at only when Resend accepts the mail, so anything counted here
+   * is someone who applied and heard nothing — the exact failure that ran unnoticed for
+   * a month because no row recorded it. A number at the top is the difference between
+   * noticing that and not.
+   */
+  const unacknowledged = useMemo(() => apps.filter(a => !a.acknowledgedAt).length, [apps]);
 
   const counts = useMemo(() => {
     const m = {} as Record<ApplicationStatus, number>;
@@ -113,6 +127,25 @@ export default function AdminApplications() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.apps.title')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.apps.subtitle')}</p>
+
+        {unacknowledged > 0 && (
+          <button
+            type="button"
+            onClick={() => { setFilter('all'); setShowUnackedOnly((v: boolean) => !v); }}
+            className={cn(
+              'mt-3 flex items-start gap-2 rounded-xl border px-4 py-2.5 text-left text-sm transition-colors',
+              showUnackedOnly
+                ? 'border-state-held bg-state-held/5 text-state-held'
+                : 'border-state-held/30 text-state-held hover:bg-state-held/5',
+            )}
+          >
+            <MailWarning className="mt-0.5 size-4 shrink-0" />
+            <span>
+              {t('admin.apps.ackBacklog', { n: unacknowledged })}
+              {showUnackedOnly && ` · ${t('admin.apps.ackShowingOnly')}`}
+            </span>
+          </button>
+        )}
       </header>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -195,6 +228,13 @@ export default function AdminApplications() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-brand-mid-grey tabular-nums">
                       {fmtDate(a.createdAt, lang)}
+                      {/* Marks the people the automatic acknowledgement never reached, so
+                          the backlog is visible from the list instead of one row at a time. */}
+                      {!a.acknowledgedAt && (
+                        <span className="mt-0.5 flex items-center gap-1 text-[11px] text-state-held">
+                          <MailWarning className="size-3" /> {t('admin.apps.ackNeverShort')}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Link

@@ -1,0 +1,136 @@
+/**
+ * Send the "we received your application" email to one applicant, on purpose.
+ *
+ * This is the recovery tool for the applicants who never got it. Between the 20 August
+ * meeting and 21 August 11:32, contractor-application-notify died before it could send
+ * and the browser threw the error away, so those people submitted an application and
+ * heard nothing at all.
+ *
+ * Two deliberate differences from the automatic send:
+ *
+ *   - **Applicant only.** The automatic path also alerts the team inbox. Re-alerting
+ *     the team about an application they have had for weeks is noise, and noise in the
+ *     inbox that is supposed to mean "someone new applied" is worse than useless.
+ *   - **Admin only.** The automatic endpoint has to accept anonymous callers, because
+ *     applicants have no account. This one is a deliberate act by a person, so it is
+ *     gated the same way the accept/reject mail is — and gating it keeps a button that
+ *     sends mail from our domain out of anonymous hands.
+ *
+ * The recipient, name and language all come from the stored row. Nothing about who
+ * receives mail is taken from the request.
+ */
+import { siteUrl } from '../src/lib/site-url.js';
+
+const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+
+function config() {
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return url && key ? { url, key } : null;
+}
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const { applicationId } = req.body ?? {};
+  if (typeof applicationId !== 'string' || !applicationId) {
+    res.status(400).json({ error: 'applicationId is required' });
+    return;
+  }
+
+  const cfg = config();
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!cfg || !apiKey) {
+    console.error('[ack] missing SUPABASE_SERVICE_ROLE_KEY / RESEND_API_KEY');
+    res.status(500).json({ error: 'Server is not configured' });
+    return;
+  }
+
+  const token = String(req.headers?.authorization ?? '').replace(/^Bearer /i, '');
+  if (!token) {
+    res.status(401).json({ error: 'Sign in required' });
+    return;
+  }
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY ?? cfg.key;
+
+  // Authorise as the caller: is_admin() reads auth.uid(), which a service-role client
+  // does not have. Same pattern as api/send-application-decision.ts.
+  const asCaller = createClient(cfg.url, anonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: isAdmin, error: adminErr } = await asCaller.rpc('is_admin');
+  if (adminErr || isAdmin !== true) {
+    res.status(403).json({ error: 'Admins only' });
+    return;
+  }
+
+  const svc = createClient(cfg.url, cfg.key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: app, error } = await svc
+    .from('contractor_applications')
+    .select('*')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  if (error || !app) {
+    res.status(404).json({ error: 'Application not found' });
+    return;
+  }
+
+  const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
+
+  try {
+    // Inside the try: a failure to resolve this module used to be an unhandled rejection
+    // and a bare 500. See api/README.md on the .js extension.
+    const { buildContractorApplicationHtml, contractorApplicationSubject } =
+      await import('../src/lib/email/contractor-application-html.js');
+
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: FROM,
+        to: [app.email],
+        subject: contractorApplicationSubject(lang),
+        html: buildContractorApplicationHtml(lang, app as any),
+      }),
+    });
+
+    if (!r.ok) {
+      const detail = await r.json().catch(() => ({}));
+      console.error('[ack] Resend rejected the message:', r.status, detail);
+      res.status(502).json({ error: 'Could not send the email' });
+      return;
+    }
+
+    // Stamped only after Resend accepts it. Stamping first would mark someone as
+    // contacted who never was, and this column is the only record of who still needs
+    // chasing — a false positive there is exactly the failure this is meant to end.
+    const sentAt = new Date().toISOString();
+    const { error: stampErr } = await svc
+      .from('contractor_applications')
+      .update({ acknowledged_at: sentAt })
+      .eq('id', applicationId);
+
+    if (stampErr) {
+      // The mail went. Say so, and say the bookkeeping did not — silently reporting
+      // success would leave the row looking unsent and invite a duplicate.
+      console.error('[ack] sent but could not stamp acknowledged_at:', stampErr);
+      res.status(200).json({ ok: true, sentAt, stamped: false });
+      return;
+    }
+
+    res.status(200).json({ ok: true, sentAt, stamped: true });
+  } catch (err) {
+    console.error('[ack] send failed:', err);
+    res.status(502).json({ error: 'Could not send the email' });
+  }
+}
