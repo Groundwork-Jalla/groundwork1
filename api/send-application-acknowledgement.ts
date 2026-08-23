@@ -87,28 +87,47 @@ export default async function handler(req: any, res: any) {
 
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
 
+  // Building the message and sending it are reported separately.
+  //
+  // They were one try/catch returning one 502, so "the template threw on a row shape it
+  // could not read" and "Resend refused the address" were the same message on screen —
+  // which is why the last failure needed the network tab and a repro to identify. The
+  // admin cannot fix either, but knowing which one it is decides whether to retry or to
+  // call someone.
+  let subject: string;
+  let html: string;
   try {
-    // Inside the try: a failure to resolve this module used to be an unhandled rejection
+    // Inside a try: a failure to resolve this module used to be an unhandled rejection
     // and a bare 500. See api/README.md on the .js extension.
     const { buildContractorApplicationHtml, contractorApplicationSubject } =
       await import('../src/lib/email/contractor-application-html.js');
     const { applicationFromRow } = await import('../src/lib/contractor/application-types.js');
 
+    subject = contractorApplicationSubject(lang);
+    html = buildContractorApplicationHtml(lang, applicationFromRow(app));
+  } catch (err) {
+    // Not retryable: the same row will fail the same way every time.
+    console.error('[ack] could not build the message for', applicationId, err);
+    res.status(500).json({ error: 'Could not build the email', stage: 'template' });
+    return;
+  }
+
+  try {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: FROM,
         to: [app.email],
-        subject: contractorApplicationSubject(lang),
-        html: buildContractorApplicationHtml(lang, applicationFromRow(app)),
+        subject,
+        html,
       }),
     });
 
     if (!r.ok) {
       const detail = await r.json().catch(() => ({}));
       console.error('[ack] Resend rejected the message:', r.status, detail);
-      res.status(502).json({ error: 'Could not send the email' });
+      res.status(502).json({ error: 'Could not send the email', stage: 'send' });
       return;
     }
 
@@ -131,7 +150,7 @@ export default async function handler(req: any, res: any) {
 
     res.status(200).json({ ok: true, sentAt, stamped: true });
   } catch (err) {
-    console.error('[ack] send failed:', err);
-    res.status(502).json({ error: 'Could not send the email' });
+    console.error('[ack] could not reach Resend:', err);
+    res.status(502).json({ error: 'Could not reach the email service', stage: 'network' });
   }
 }

@@ -387,6 +387,7 @@ export const en = {
       crmResynced:     'Sent to the CRM.',
       crmResyncFailed: 'The CRM did not accept it. Try again shortly.',
       crmBacklog:      '{n} application(s) never reached the CRM.',
+      ackFailedBuild: 'This application could not be turned into an email. Retrying will not help — send this page to Favour.',
       ackSend:     'Send acknowledgement',
       ackResend:   'Send it again',
       ackLastSent: 'Acknowledgement sent {date}',

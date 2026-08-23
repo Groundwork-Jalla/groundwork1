@@ -396,6 +396,7 @@ export const fr: Mirror<EnDict> = {
       crmResynced:     'Envoyé au CRM.',
       crmResyncFailed: "Le CRM ne l'a pas accepté. Réessayez dans un instant.",
       crmBacklog:      "{n} candidature(s) ne sont jamais arrivées au CRM.",
+      ackFailedBuild: "Cette candidature n'a pas pu être transformée en e-mail. Réessayer ne changera rien — envoyez cette page à Favour.",
       ackSend:     "Envoyer l'accusé de réception",
       ackResend:   'Envoyer à nouveau',
       ackLastSent: 'Accusé de réception envoyé le {date}',

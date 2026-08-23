@@ -189,8 +189,13 @@ export default function AdminApplicationDetail() {
       const sentAt = await sendAcknowledgement(id);
       setApp(prev => (prev ? { ...prev, acknowledgedAt: sentAt } : prev));
       setNotice({ ok: true, text: t('admin.apps.ackSent') });
-    } catch {
-      setNotice({ ok: false, text: t('admin.apps.ackFailed') });
+    } catch (err) {
+      // A template failure will repeat for ever on this row, so telling the admin to
+      // "try again" would be a lie. Retrying a refused or unreachable send is worth it.
+      const stage = err instanceof Error ? err.message : 'send';
+      setNotice({ ok: false, text: t(stage === 'template'
+        ? 'admin.apps.ackFailedBuild'
+        : 'admin.apps.ackFailed') });
     } finally {
       setSendingAck(false);
     }

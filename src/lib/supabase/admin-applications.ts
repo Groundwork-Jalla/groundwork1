@@ -238,8 +238,12 @@ export async function sendAcknowledgement(applicationId: string): Promise<string
     },
     body: JSON.stringify({ applicationId }),
   });
-  if (!r.ok) throw new Error(`acknowledgement email failed: ${r.status}`);
-  const body = await r.json().catch(() => ({}));
+  const body = await r.json().catch(() => ({} as Record<string, unknown>));
+  if (!r.ok) {
+    // The stage tells the admin whether retrying can possibly help. Thrown as the
+    // message so the caller can map it to copy without unpacking an error subclass.
+    throw new Error(typeof body.stage === 'string' ? body.stage : 'send');
+  }
   return typeof body.sentAt === 'string' ? body.sentAt : new Date().toISOString();
 }
 
