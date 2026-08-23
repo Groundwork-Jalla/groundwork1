@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT, type TKey } from "@/lib/i18n";
+import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 
 const checks: { key: TKey; test: (pw: string) => boolean }[] = [
   { key: "auth.signup.check8",      test: (pw: string) => pw.length >= 8 },
@@ -111,6 +112,9 @@ export default function Signup() {
       return;
     }
 
+    // So /auth/callback can resend to this address if the link is spent, rather than
+    // sending them somewhere generic.
+    rememberEmailRequest('signup', email);
     setSubmitted(true);
   }
 

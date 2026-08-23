@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/lib/i18n";
+import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 
 export default function ResetPassword() {
   const t = useT();
@@ -27,6 +28,9 @@ export default function ResetPassword() {
       setError(error.message);
       return;
     }
+    // So /auth/callback can offer a real resend if this link is spent or opened on
+    // another device, instead of guessing the flow and sending them to signup.
+    rememberEmailRequest('recovery', email);
     setSent(true);
   }
 

@@ -6,6 +6,7 @@ import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
+import { readEmailRequest, type AuthEmailFlow } from "@/lib/auth/last-email-request";
 
 /**
  * Wait for the session the client is establishing from the URL.
@@ -72,6 +73,21 @@ export default function AuthCallback() {
   const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
+  // What this browser last asked for. A `?code=` link carries no `type`, so without this
+  // a spent reset and a spent signup are indistinguishable — which is how a password
+  // reset came to offer "confirm your email" and land on the signup page.
+  const [pending] = useState(() => readEmailRequest());
+  const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+
+  async function resendLink(flow: AuthEmailFlow, email: string) {
+    setResend('sending');
+    const origin = window.location.origin;
+    const { error: sendError } = flow === 'recovery'
+      ? await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback` })
+      : await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${origin}/auth/callback` } });
+    setResend(sendError ? 'failed' : 'sent');
+  }
+
 
   useEffect(() => {
     async function run() {
@@ -163,15 +179,30 @@ export default function AuthCallback() {
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{error}</p>
         <div className="mt-6 flex flex-col items-center gap-3">
-          {/* A spent link left only "Back to login", which is a dead end — they cannot log
-              in until the address is confirmed, and confirming needs a new email. */}
-          {expired && (
-            <Link
-              to="/auth/signup"
-              className="text-sm font-medium text-brand-near-black underline underline-offset-4"
+          {/* A spent link used to leave only "Back to login", which is a dead end: they
+              cannot log in until the link's job is done. Resend for real where we know
+              the address, and send them to the right form where we do not — never to
+              signup for someone who was resetting a password. */}
+          {pending && resend !== 'sent' && (
+            <button
+              type="button"
+              disabled={resend === 'sending'}
+              onClick={() => resendLink(pending.flow, pending.email)}
+              className="text-sm font-medium text-brand-near-black underline underline-offset-4 disabled:opacity-50"
             >
-              {t('auth.callback.requestNew')}
-            </Link>
+              {resend === 'sending'
+                ? t('auth.callback.resending')
+                : t(pending.flow === 'recovery' ? 'auth.callback.resendReset' : 'auth.callback.resendConfirm',
+                    { email: pending.email })}
+            </button>
+          )}
+          {resend === 'sent' && (
+            <p className="text-sm text-brand-near-black">
+              {t('auth.callback.resent', { email: pending?.email ?? '' })}
+            </p>
+          )}
+          {resend === 'failed' && (
+            <p className="text-sm text-state-alert">{t('auth.callback.resendFailed')}</p>
           )}
           <Link
             to="/auth/login"
