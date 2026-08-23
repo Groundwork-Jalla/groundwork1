@@ -193,9 +193,10 @@ export default function AdminApplicationDetail() {
       // A template failure will repeat for ever on this row, so telling the admin to
       // "try again" would be a lie. Retrying a refused or unreachable send is worth it.
       const stage = err instanceof Error ? err.message : 'send';
-      setNotice({ ok: false, text: t(stage === 'template'
-        ? 'admin.apps.ackFailedBuild'
-        : 'admin.apps.ackFailed') });
+      const key = stage === 'template'    ? 'admin.apps.ackFailedBuild'
+                : stage === 'credentials' ? 'admin.apps.ackFailedAuth'
+                : 'admin.apps.ackFailed';
+      setNotice({ ok: false, text: t(key as TKey) });
     } finally {
       setSendingAck(false);
     }

@@ -127,7 +127,14 @@ export default async function handler(req: any, res: any) {
     if (!r.ok) {
       const detail = await r.json().catch(() => ({}));
       console.error('[ack] Resend rejected the message:', r.status, detail);
-      res.status(502).json({ error: 'Could not send the email', stage: 'send' });
+      // The upstream *status* comes back, the body does not. A 401 or 403 means our
+      // credentials, not this application — an admin clicking "try again" for ever
+      // cannot fix a revoked key, and nothing on screen was telling them that.
+      res.status(502).json({
+        error: 'Could not send the email',
+        stage: r.status === 401 || r.status === 403 ? 'credentials' : 'send',
+        upstreamStatus: r.status,
+      });
       return;
     }
 
