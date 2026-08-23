@@ -16,6 +16,7 @@
 type Decision = 'accepted' | 'rejected';
 
 import { siteUrl } from '../src/lib/site-url.js';
+import { forwardToGhl } from './ghl/_forward.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -122,6 +123,20 @@ export default async function handler(req: any, res: any) {
       res.status(502).json({ error: 'Could not send the email' });
       return;
     }
+
+    // Tell the CRM the outcome. Without this a contractor stays a fresh application in
+    // GHL for ever — accepted or rejected months ago, still sitting in the same stage.
+    // Awaited but never fatal: the decision and the applicant's email are already done,
+    // and a CRM outage must not turn a completed decision into a 502.
+    await forwardToGhl('application_decision', {
+      email: app.email,
+      fullName: app.full_name,
+      lang: lang,
+    }, {
+      decision,
+      application_id: applicationId,
+      application_url: `${site}/admin/applications/${applicationId}`,
+    });
 
     res.status(200).json({ ok: true });
   } catch (err) {

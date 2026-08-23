@@ -115,6 +115,14 @@ export default function AdminApplications() {
    */
   const unacknowledged = useMemo(() => apps.filter(a => !a.acknowledgedAt).length, [apps]);
 
+  /**
+   * Applications that never reached GoHighLevel.
+   *
+   * The push at submission is fire-and-forget and the browser throws the error away, so
+   * a CRM outage loses the lead with nothing on screen to say so. This is that count.
+   */
+  const unsynced = useMemo(() => apps.filter(a => !a.syncedToGhl).length, [apps]);
+
   const counts = useMemo(() => {
     const m = {} as Record<ApplicationStatus, number>;
     for (const s of APPLICATION_STATUSES) m[s] = 0;
@@ -145,6 +153,13 @@ export default function AdminApplications() {
               {showUnackedOnly && ` · ${t('admin.apps.ackShowingOnly')}`}
             </span>
           </button>
+        )}
+
+        {unsynced > 0 && (
+          <p className="mt-2 flex items-start gap-2 rounded-xl border border-brand-border-grey px-4 py-2.5 text-sm text-brand-mid-grey">
+            <CloudOff className="mt-0.5 size-4 shrink-0" />
+            <span>{t('admin.apps.crmBacklog', { n: unsynced })}</span>
+          </p>
         )}
       </header>
 

@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
+import { recordCrmContact } from "@/lib/auth/record-crm-contact";
 
 interface AuthContextValue {
   session: Session | null;
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) { rememberAccount(); void recordSignupCountry(); }
+      if (session) { rememberAccount(); void recordSignupCountry(); void recordCrmContact(); }
       setLoading(false);
     });
 
@@ -38,7 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // signing out does not delete the account.
       // Same hook records the country the account was created from, from the request
       // IP server-side — signup never asks for one. Fire-and-forget, once per browser.
-      if (session) { rememberAccount(); void recordSignupCountry(); }
+      // And it puts the person in the CRM: GoHighLevel knew only about contractors, so
+      // every homeowner was invisible to whoever answers the phone. Also fire-and-forget,
+      // also once per browser — a CRM outage must never affect signing in.
+      if (session) { rememberAccount(); void recordSignupCountry(); void recordCrmContact(); }
       setLoading(false);
     });
 

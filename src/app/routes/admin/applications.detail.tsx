@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
-  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, AlertTriangle, Check, Mail,
+  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, Cloud, AlertTriangle, Check, Mail,
 } from 'lucide-react';
 import {
   getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
   sendDecisionEmail,
   sendAcknowledgement,
+  resyncApplicationToCrm,
   ASSIGNABLE_STATUSES, type ApplicationDetail,
 } from '@/lib/supabase/admin-applications';
 import { StatusPill, useRoleLabel, fmtDate } from './applications';
@@ -108,6 +109,7 @@ export default function AdminApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [sendingAck, setSendingAck] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [notice, setNotice]   = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -191,6 +193,21 @@ export default function AdminApplicationDetail() {
       setNotice({ ok: false, text: t('admin.apps.ackFailed') });
     } finally {
       setSendingAck(false);
+    }
+  }
+
+  /** Retry the CRM push that was thrown away at submission. */
+  async function resyncCrm() {
+    if (!id) return;
+    setResyncing(true); setNotice(null);
+    try {
+      await resyncApplicationToCrm(id);
+      setApp(prev => (prev ? { ...prev, syncedToGhl: true } : prev));
+      setNotice({ ok: true, text: t('admin.apps.crmResynced') });
+    } catch {
+      setNotice({ ok: false, text: t('admin.apps.crmResyncFailed') });
+    } finally {
+      setResyncing(false);
     }
   }
 
@@ -290,10 +307,19 @@ export default function AdminApplicationDetail() {
       )}
 
       {!app.syncedToGhl && (
-        <p className="mb-4 flex items-start gap-2 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-mid-grey">
-          <CloudOff className="mt-0.5 size-4 shrink-0" />
-          {t('admin.apps.crmPending')}
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-mid-grey">
+          <CloudOff className="size-4 shrink-0" />
+          <span className="flex-1">{t('admin.apps.crmPending')}</span>
+          {/* The push at submission is discarded on failure, so this is the only way the
+              lead ever reaches the CRM. A notice without it was just bad news. */}
+          <button
+            type="button" disabled={resyncing} onClick={resyncCrm}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-light-grey disabled:opacity-40"
+          >
+            {resyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Cloud className="size-3.5" />}
+            {t('admin.apps.crmResend')}
+          </button>
+        </div>
       )}
 
       <div className="flex flex-col gap-4">

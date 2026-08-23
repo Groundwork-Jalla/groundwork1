@@ -138,6 +138,23 @@ export async function createProject(
       { project_id: project.id },
     ).catch(() => {});
 
+    // Mirror into the CRM. Only the id is sent — the endpoint checks ownership and
+    // reads the rest itself, so the browser cannot describe someone else's project.
+    // Fire-and-forget for the same reason as the admin notice above: the project is
+    // saved, and the wizard must not wait on a CRM.
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch('/api/ghl/project', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+    })().catch(() => { /* mirror only — never blocks the build */ });
+
     trackEvent('project_created', {
       project_type: formData.projectType,
       country: formData.country,

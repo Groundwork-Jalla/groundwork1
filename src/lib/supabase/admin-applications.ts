@@ -194,6 +194,29 @@ export async function promoteApplication(applicationId: string): Promise<string>
 }
 
 /**
+ * Send one application to the CRM again.
+ *
+ * The push at submission is fire-and-forget and the browser discards the error, so an
+ * outage loses the lead silently. `synced_to_ghl` records the miss; this acts on it.
+ */
+export async function resyncApplicationToCrm(applicationId: string): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('not signed in');
+
+  const r = await fetch('/api/ghl/resync-application', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ applicationId }),
+  });
+  if (!r.ok) throw new Error(`crm resync failed: ${r.status}`);
+  const body = await r.json().catch(() => ({}));
+  return typeof body.syncedAt === 'string' ? body.syncedAt : new Date().toISOString();
+}
+
+/**
  * Re-send the "we received your application" email to one applicant.
  *
  * The recovery path for everyone the automatic send missed while

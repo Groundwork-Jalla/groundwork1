@@ -1,5 +1,6 @@
 import type Stripe from 'stripe';
 import { findOrCreateUserByEmail, getStripe, getSupabaseAdmin, siteUrl } from '../_lib/stripe.js';
+import { forwardToGhl } from '../ghl/_forward.js';
 
 /**
  * Stripe webhook — the only writer of subscription state.
@@ -201,6 +202,34 @@ async function applySubscription(
     .from('billing_events')
     .update({ user_id: userId, stripe_customer_id: String(sub.customer) })
     .eq('stripe_event_id', eventId);
+
+  // Mirror the change into the CRM. This is the single funnel every subscription state
+  // passes through — new, upgraded, cancelled, past_due — so one hook here covers all of
+  // them, and the team can see who is paying without opening Stripe.
+  //
+  // Read after the write so the tier reflects what was just applied rather than what the
+  // row held a moment ago. Never allowed to fail the webhook: Stripe retries on a
+  // non-2xx, and retrying a payment event because a CRM was down would replay the
+  // billing side too.
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('full_name, email, country, preferred_lang, subscription_tier')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profile?.email) {
+    await forwardToGhl('subscription_changed', {
+      email: profile.email as string,
+      fullName: profile.full_name as string | null,
+      country: profile.country as string | null,
+      lang: profile.preferred_lang as string | null,
+    }, {
+      user_id: userId,
+      subscription_status: sub.status,
+      subscription_tier: (profile.subscription_tier as string | null) ?? '',
+      period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : '',
+    });
+  }
 }
 
 async function userIdForCustomer(
