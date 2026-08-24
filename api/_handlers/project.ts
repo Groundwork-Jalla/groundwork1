@@ -1,5 +1,5 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
-import { forwardToGhl } from './_forward.js';
+import { forwardToGhl } from '../ghl/_forward.js';
 
 /**
  * Project created → GoHighLevel.
@@ -13,7 +13,7 @@ import { forwardToGhl } from './_forward.js';
  * or push their details into the CRM — the id is a UUID, but guessing is not the only
  * way someone comes to hold one.
  */
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

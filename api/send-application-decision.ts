@@ -17,6 +17,7 @@ type Decision = 'accepted' | 'rejected';
 
 import { siteUrl } from '../src/lib/site-url.js';
 import { forwardToGhl } from './ghl/_forward.js';
+import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -37,8 +38,15 @@ export default async function handler(req: any, res: any) {
     res.status(400).json({ error: 'applicationId is required' });
     return;
   }
+
+  // Same endpoint, because Vercel's Hobby plan allows 12 serverless functions and every
+  // file under api/ is one — see the note in api/events.ts. Both actions are "an admin
+  // acted on an application and the applicant should hear about it", so they sit
+  // together rather than in a grab-bag.
+  if (decision === 'acknowledge') return acknowledge(req, res);
+
   if (decision !== 'accepted' && decision !== 'rejected') {
-    res.status(400).json({ error: 'decision must be "accepted" or "rejected"' });
+    res.status(400).json({ error: 'decision must be "accepted", "rejected" or "acknowledge"' });
     return;
   }
 

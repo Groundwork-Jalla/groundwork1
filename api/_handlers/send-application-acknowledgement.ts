@@ -19,7 +19,7 @@
  * The recipient, name and language all come from the stored row. Nothing about who
  * receives mail is taken from the request.
  */
-import { siteUrl } from '../src/lib/site-url.js';
+import { siteUrl } from '../../src/lib/site-url.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -29,7 +29,7 @@ function config() {
   return url && key ? { url, key } : null;
 }
 
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -100,8 +100,8 @@ export default async function handler(req: any, res: any) {
     // Inside a try: a failure to resolve this module used to be an unhandled rejection
     // and a bare 500. See api/README.md on the .js extension.
     const { buildContractorApplicationHtml, contractorApplicationSubject } =
-      await import('../src/lib/email/contractor-application-html.js');
-    const { applicationFromRow } = await import('../src/lib/contractor/application-types.js');
+      await import('../../src/lib/email/contractor-application-html.js');
+    const { applicationFromRow } = await import('../../src/lib/contractor/application-types.js');
 
     subject = contractorApplicationSubject(lang);
     html = buildContractorApplicationHtml(lang, applicationFromRow(app));

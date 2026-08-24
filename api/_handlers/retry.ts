@@ -1,4 +1,4 @@
-import { deliver, type GhlEvent } from './_forward.js';
+import { deliver, type GhlEvent } from '../ghl/_forward.js';
 
 /**
  * Replay everything the CRM never received.
@@ -28,7 +28,7 @@ function isEvent(v: unknown): v is GhlEvent {
       || v === 'subscription_changed' || v === 'project_created';
 }
 
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

@@ -29,7 +29,7 @@ export async function recordCrmContact(): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const r = await fetch('/api/ghl/user', {
+    const r = await fetch('/api/events?action=crm-user', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}` },
     });

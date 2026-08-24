@@ -1,4 +1,4 @@
-import { buildContractorPayload, markApplicationSynced } from './_contractor-payload.js';
+import { buildContractorPayload, markApplicationSynced } from '../ghl/_contractor-payload.js';
 
 /**
  * Send one contractor application to the CRM again.
@@ -16,7 +16,7 @@ import { buildContractorPayload, markApplicationSynced } from './_contractor-pay
  * have no account; this one is a person deciding to retry, so it is gated like the rest of
  * the admin actions.
  */
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

@@ -203,7 +203,7 @@ export async function resyncApplicationToCrm(applicationId: string): Promise<str
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('not signed in');
 
-  const r = await fetch('/api/ghl/resync-application', {
+  const r = await fetch('/api/events?action=crm-resync', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -230,13 +230,15 @@ export async function sendAcknowledgement(applicationId: string): Promise<string
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('not signed in');
 
-  const r = await fetch('/api/send-application-acknowledgement', {
+  // Folded into the decision endpoint: same actor, same subject, and entry points are
+  // the scarce resource on the Hobby plan. See api/events.ts.
+  const r = await fetch('/api/send-application-decision', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ applicationId }),
+    body: JSON.stringify({ applicationId, decision: 'acknowledge' }),
   });
   const body = await r.json().catch(() => ({} as Record<string, unknown>));
   if (!r.ok) {

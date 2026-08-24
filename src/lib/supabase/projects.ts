@@ -145,7 +145,7 @@ export async function createProject(
     void (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await fetch('/api/ghl/project', {
+      await fetch('/api/events?action=crm-project', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

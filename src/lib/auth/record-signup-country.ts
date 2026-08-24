@@ -27,7 +27,9 @@ export async function recordSignupCountry(): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    await fetch('/api/profile-geo', {
+    // One endpoint, many actions — Vercel's Hobby plan caps serverless functions at 12
+    // and every file under api/ is one. See api/events.ts.
+    await fetch('/api/events?action=profile-geo', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session.access_token}` },
     });

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
-import { forwardToGhl } from './_forward.js';
+import { forwardToGhl } from '../ghl/_forward.js';
 
 /**
  * Homeowner / client → GoHighLevel.
@@ -17,7 +17,7 @@ import { forwardToGhl } from './_forward.js';
  * without duplicating contacts. The flag is only set once GHL has accepted the contact,
  * so a failed push leaves the row findable rather than silently marked done.
  */
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

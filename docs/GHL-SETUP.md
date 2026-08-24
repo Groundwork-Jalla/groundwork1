@@ -95,7 +95,7 @@ GHL_INBOUND_SECRET=<a long random string>
 ```
 
 In any workflow, add a **Webhook** action pointing at
-`https://www.tryjalla.com/api/ghl/inbound`, with a custom header:
+`https://www.tryjalla.com/api/events?action=crm-inbound`, with a custom header:
 
 ```
 X-Groundwork-Secret: <the same string>
@@ -118,7 +118,7 @@ SELECT event, email, attempts, last_error, created_at
   FROM ghl_outbox WHERE status <> 'sent' ORDER BY created_at;
 ```
 
-Admins can replay the backlog by POSTing to `/api/ghl/retry` (25 at a time, and it stops
+Admins can replay the backlog by POSTing to `/api/events?action=crm-retry` (25 at a time, and it stops
 early if the CRM is still down rather than burning the batch). Individual contractor
 applications also have a **Send to CRM now** button on their admin page.
 

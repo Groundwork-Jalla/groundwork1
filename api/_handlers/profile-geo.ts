@@ -1,4 +1,4 @@
-import { getSupabaseAdmin, requireUser } from './_lib/stripe.js';
+import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 
 /**
  * Record the country an account was created from, taken from the request IP.
@@ -16,7 +16,7 @@ import { getSupabaseAdmin, requireUser } from './_lib/stripe.js';
  * `profiles.country` — that is the country the user states about themselves, and an IP
  * guess must not overwrite it.
  */
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
