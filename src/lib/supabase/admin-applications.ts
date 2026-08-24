@@ -374,3 +374,66 @@ export async function listWaitlist(): Promise<WaitlistEntry[]> {
     createdAt:     s(r.created_at),
   }));
 }
+
+// =========================================================
+// CRM plumbing — the admin's view of GoHighLevel
+// =========================================================
+
+export interface CrmStatus {
+  contractorWebhook: boolean;
+  eventWebhook: boolean;
+  apiToken: boolean;
+  locationId: boolean;
+  pipelineId: boolean;
+  stageMapValid: boolean;
+  stageKeys: string[];
+  inboundSecret: boolean;
+  mode: 'api' | 'webhook' | 'off';
+}
+
+async function bearer(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('not signed in');
+  return session.access_token;
+}
+
+/** Which parts of the CRM are configured. Booleans only — no secret ever leaves the server. */
+export async function getCrmStatus(): Promise<CrmStatus> {
+  const r = await fetch('/api/events?action=crm-status', {
+    method: 'POST', headers: { Authorization: `Bearer ${await bearer()}` },
+  });
+  if (!r.ok) throw new Error(`crm status failed: ${r.status}`);
+  return r.json() as Promise<CrmStatus>;
+}
+
+export interface OutboxRow {
+  id: string;
+  event: string;
+  email: string;
+  status: string;
+  attempts: number;
+  last_error: string | null;
+  created_at: string;
+}
+
+/**
+ * Events the CRM has not accepted yet.
+ *
+ * Read through a SECURITY DEFINER function rather than the table: the payload holds
+ * phone numbers and addresses, so `ghl_outbox` has no read policy at all.
+ */
+export async function listCrmBacklog(): Promise<OutboxRow[]> {
+  const { data, error } = await supabase.rpc('admin_ghl_outbox', { limit_n: 200 });
+  if (error) throw error;
+  return (data ?? []) as OutboxRow[];
+}
+
+/** Replay the backlog. Returns how many were sent and how many failed again. */
+export async function retryCrmBacklog(): Promise<{ sent: number; failed: number; considered: number }> {
+  const r = await fetch('/api/events?action=crm-retry', {
+    method: 'POST', headers: { Authorization: `Bearer ${await bearer()}` },
+  });
+  if (!r.ok) throw new Error(`crm retry failed: ${r.status}`);
+  const b = await r.json().catch(() => ({}));
+  return { sent: b.sent ?? 0, failed: b.failed ?? 0, considered: b.considered ?? 0 };
+}

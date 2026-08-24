@@ -312,6 +312,33 @@ export const en = {
     },
 
     // ── Contractor applications review (/admin/applications) ──
+    crm: {
+      title:    'CRM',
+      subtitle: 'What Go High Level has been told, and whether it is set up to hear it.',
+      config:   'Configuration',
+      loadFailed: 'Could not read the CRM status.',
+      statusUnavailable: 'Status unavailable.',
+      contractorWebhook: 'Contractor applications webhook',
+      eventWebhook:      'Lifecycle events webhook',
+      apiToken:          'API token',
+      locationId:        'Location id',
+      pipelineId:        'Pipeline',
+      stageMap:          'Pipeline stages mapped ({n})',
+      stageMapBroken:    'Not valid JSON — no one is being moved',
+      inboundSecret:     'Inbound webhook secret',
+      offNote: 'Nothing is reaching the CRM. Set either the events webhook or the API token and location id.',
+      backlog:      'Waiting to reach the CRM ({n})',
+      backlogEmpty: 'Everything has reached the CRM.',
+      retry:        'Send them now',
+      retryDone:    '{sent} sent, {failed} still failing.',
+      retryFailed:  'The retry could not run. Try again shortly.',
+      attempts:     '{n} attempt(s)',
+      mode: {
+        api:     'Using the API',
+        webhook: 'Using webhooks',
+        off:     'Not configured',
+      },
+    },
     apps: {
       title:        'Contractor Applications',
       subtitle:     'Founding-network applications. Supabase holds the full record; GoHighLevel has a lead summary.',
@@ -1355,6 +1382,7 @@ export const en = {
     applications:   'Applications',
     waitlist:       'Waitlist',
     drafts:         'Started applications',
+    crm:         'CRM',
   },
 
   // ── Landing page ──────────────────────────────────────────

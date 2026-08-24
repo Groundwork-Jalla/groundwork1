@@ -76,6 +76,7 @@ export default [
     // every CRM record as `application_url`.
     route("admin/applications",     "routes/admin/applications.tsx"),
     route("admin/applications/:id", "routes/admin/applications.detail.tsx"),
+    route("admin/crm",              "routes/admin/crm.tsx"),
     route("admin/waitlist",         "routes/admin/waitlist.tsx"),
     route("admin/drafts",           "routes/admin/drafts.tsx"),
   ]),

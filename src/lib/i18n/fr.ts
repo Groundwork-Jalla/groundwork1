@@ -322,6 +322,33 @@ export const fr: Mirror<EnDict> = {
     },
 
     // ── Candidatures de prestataires (/admin/applications) ──
+    crm: {
+      title:    'CRM',
+      subtitle: "Ce que Go High Level a reçu, et s'il est configuré pour le recevoir.",
+      config:   'Configuration',
+      loadFailed: "Impossible de lire l'état du CRM.",
+      statusUnavailable: 'État indisponible.',
+      contractorWebhook: 'Webhook des candidatures',
+      eventWebhook:      'Webhook des événements',
+      apiToken:          'Jeton API',
+      locationId:        'Identifiant de compte',
+      pipelineId:        'Pipeline',
+      stageMap:          'Étapes du pipeline associées ({n})',
+      stageMapBroken:    "JSON invalide — personne n'est déplacé",
+      inboundSecret:     'Secret du webhook entrant',
+      offNote: "Rien n'arrive au CRM. Définissez le webhook des événements, ou le jeton API et l'identifiant de compte.",
+      backlog:      'En attente d\'envoi au CRM ({n})',
+      backlogEmpty: 'Tout est arrivé au CRM.',
+      retry:        'Envoyer maintenant',
+      retryDone:    '{sent} envoyé(s), {failed} toujours en échec.',
+      retryFailed:  "La relance n'a pas pu s'exécuter. Réessayez dans un instant.",
+      attempts:     '{n} tentative(s)',
+      mode: {
+        api:     "Via l'API",
+        webhook: 'Via les webhooks',
+        off:     'Non configuré',
+      },
+    },
     apps: {
       title:        'Candidatures de prestataires',
       subtitle:     'Candidatures au réseau fondateur. Supabase conserve le dossier complet ; GoHighLevel en a un résumé.',
@@ -1356,6 +1383,7 @@ export const fr: Mirror<EnDict> = {
     applications:   'Candidatures',
     waitlist:       'Liste d\'attente',
     drafts:         'Candidatures commencées',
+    crm:         'CRM',
   },
 
   // ── Page d'accueil ────────────────────────────────────────
