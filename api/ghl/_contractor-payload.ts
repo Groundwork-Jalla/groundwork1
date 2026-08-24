@@ -1,4 +1,5 @@
 import { siteUrl } from '../../src/lib/site-url.js';
+import { contractorTags } from './_pipeline.js';
 
 /**
  * The contractor-application payload, in one place.
@@ -50,6 +51,8 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
   // GHL stores first and last name separately, so send both alongside the full string.
   // The form asks for one "Full name" field on purpose — splitting on the first space is
   // a heuristic, not a truth. `full_name` stays authoritative and is what to display.
+  const tags = contractorTags(lead.status, lead.lang);
+
   const fullName = str(lead.fullName) ?? '';
   const spaceAt  = fullName.indexOf(' ');
   const firstName = spaceAt === -1 ? fullName : fullName.slice(0, spaceAt);
@@ -85,6 +88,12 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
     // Deep link back to the full application — the part GHL deliberately does not hold.
     application_id:  lead.applicationId,
     application_url: `${appUrl}/admin/applications/${lead.applicationId}`,
+
+    // Same tag vocabulary as every other lead, so one filter finds them all. `tags_csv`
+    // is what GHL's "Add Tag" action can actually consume — an array arrives there as
+    // unusable JSON.
+    tags,
+    tags_csv: tags.join(','),
 
     source: 'groundwork_contractor_application',
     submitted_at: new Date().toISOString(),

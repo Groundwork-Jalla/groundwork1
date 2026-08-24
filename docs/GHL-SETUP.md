@@ -1,136 +1,214 @@
-# Go High Level — what has to exist on the GHL side
+# Go High Level — setup, step by step
 
-The code is built. None of it does anything visible until the account is configured, and
-every step below is in the GHL console, not the codebase.
+The code is finished. Nothing here is engineering: every step is either a value pasted
+into Vercel or a thing built inside the GHL console.
 
-Nothing here is required all at once. **Phase 1 works with just the two webhooks**;
-everything under Phase 2 upgrades the same code path without a redeploy.
+**Check your work as you go at `/admin/crm`.** That page reads the live configuration and
+shows a tick per item, plus which route events are currently taking. Every value below
+fails *silently* if it is wrong — the app logs a warning nobody reads and carries on,
+because a CRM outage must never break a signup — so that page is the only way to tell
+"working" from "quietly doing nothing".
+
+Work top to bottom. You can stop after Step 2 and have something useful.
 
 ---
 
-## Phase 1 — webhooks (already partly done)
+## Step 0 — run two migrations (5 min)
 
-| Env var | Where it comes from |
-|---|---|
-| `GHL_CONTRACTOR_WEBHOOK_URL` | Already set. The existing contractor-application workflow. Leave it alone. |
-| `GHL_EVENT_WEBHOOK_URL` | **New.** Automation → Workflows → new workflow → trigger **Inbound Webhook** → copy the URL. |
+Supabase → **SQL Editor** → paste each file and run, in order:
 
-One webhook carries every new event — signups, application decisions, subscription
-changes, projects created. Each payload has an `event` field, so branch on it inside the
-workflow rather than building four webhooks.
+1. `supabase/migrations/049_profiles_ghl_sync.sql`
+2. `supabase/migrations/050_ghl_contact_and_outbox.sql`
 
-Values of `event`:
+Without these, nothing can be recorded and every event is lost the moment it fails.
 
-- `user_signup` — a homeowner or client created an account
-- `application_decision` — plus `decision: accepted | rejected`
-- `subscription_changed` — plus `subscription_status` and `subscription_tier`
-- `project_created` — plus `project_name`, `project_tier`, `build_country`
+**Check:** `/admin/crm` loads without an error banner.
 
-Every payload also carries `email`, `full_name`, `first_name`, `last_name`, `phone`,
+---
+
+## Step 1 — one webhook for lifecycle events (10 min)
+
+This is the fastest thing that produces value. It carries signups, application decisions,
+subscription changes and new projects.
+
+1. GHL → **Automation → Workflows → Create Workflow → Start from scratch**
+2. Add trigger → **Inbound Webhook**
+3. Copy the webhook URL it gives you
+4. Vercel → project → **Settings → Environment Variables** → add:
+
+   ```
+   GHL_EVENT_WEBHOOK_URL = <the URL you copied>
+   ```
+
+5. **Redeploy** — Vercel does not apply new variables to the running deployment
+
+**Check:** `/admin/crm` shows a tick on *Lifecycle events webhook*, and the badge reads
+**Using webhooks**.
+
+### Branching inside the workflow
+
+Every payload carries an `event` field. Add an **If/Else** on it:
+
+| `event` | Means | Also carries |
+|---|---|---|
+| `user_signup` | a homeowner created an account | — |
+| `application_decision` | a contractor was accepted or rejected | `decision` |
+| `subscription_changed` | someone paid, upgraded or cancelled | `subscription_status`, `subscription_tier` |
+| `project_created` | a signup actually started a build | `project_name`, `project_tier`, `build_country` |
+
+Everything also carries `email`, `full_name`, `first_name`, `last_name`, `phone`,
 `country`, `lang` and `source`.
 
-**Until a workflow acts on them, the data arrives and sits there.** That is the half of
-Phase 1 that is not engineering.
+> **Until the workflow does something with these, the data arrives and sits there.**
+> Creating the contact is the minimum useful action.
 
 ---
 
-## Phase 2 — the API
+## Step 2 — check it actually works (5 min)
 
-Setting these switches the same events from webhooks to the v2 API. The difference is
-that the API answers: it returns a contact id, which is what makes tags, pipeline moves
-and one-record-per-person possible. Unset, the webhooks keep working exactly as before.
+1. Sign up on the site with an address you control
+2. GHL → **Contacts** — the contact should appear within seconds
+3. If it does not: `/admin/crm` → **Waiting to reach the CRM**. Anything listed there
+   shows its error and can be resent with one button
 
-### 1. A Private Integration Token
+Nothing is ever lost. Every event is written down *before* it is attempted, so a failure
+leaves a row to retry rather than nothing at all.
 
-Settings → **Private Integrations** → create one, scoped to this location only.
+**You can stop here.** Steps 3–6 are worth doing, but this alone closes the gap that
+started all of it: homeowners were invisible to whoever picks up the phone.
 
-Scopes needed: `contacts.write`, `contacts.readonly`, `opportunities.write`,
-`opportunities.readonly`.
+---
 
-```
-GHL_API_TOKEN=pit-...
-GHL_LOCATION_ID=...        # Settings → Business Profile, or the URL of your sub-account
-```
+## Step 3 — the API token (15 min)
 
-A PIT was chosen over an OAuth app deliberately: no refresh tokens to store or renew, at
-the cost of rotating it by hand if it ever leaks. Rotating means creating a new one and
-replacing the env var — nothing in the code changes.
+Webhooks are one-way: GHL cannot tell us the id of the contact it just made, so nothing
+can ever be *updated* afterwards — no tags, no pipeline moves, no second event attaching
+to the same person. The API fixes that.
 
-### 2. Custom fields
+1. GHL → **Settings → Private Integrations → Create new integration**
+2. Scopes: `contacts.write`, `contacts.readonly`, `opportunities.write`,
+   `opportunities.readonly`
+3. Copy the token (shown once)
+4. Location id: GHL → **Settings → Business Profile**, or take it from your sub-account URL
+5. Vercel → Environment Variables:
 
-The upsert sends these as custom fields. Create them once in Settings → Custom Fields, or
-they are silently dropped:
+   ```
+   GHL_API_TOKEN   = pit-...
+   GHL_LOCATION_ID = ...
+   ```
 
-`user_id`, `application_id`, `application_url`, `decision`, `subscription_status`,
-`subscription_tier`, `period_end`, `project_id`, `project_name`, `project_tier`,
-`build_country`, `build_city`, `lang`
+6. Redeploy
 
-### 3. Pipeline and stages
+**Check:** `/admin/crm` badge flips to **Using the API**.
 
-```
-GHL_PIPELINE_ID=...
-GHL_STAGE_MAP={"user_signup":"stg_a","application_decision:accepted":"stg_b"}
-```
+A Private Integration Token rather than an OAuth app, deliberately: no refresh tokens to
+store or renew. The cost is rotating it by hand if it leaks — create a new one, replace
+the variable, redeploy. No code changes.
 
-`GHL_STAGE_MAP` is one JSON object so adding a stage is an env change rather than a
-deploy. Keys are the event name, optionally suffixed `:variant`:
+---
 
-- `user_signup`
-- `application_decision:accepted` / `application_decision:rejected`
-- `subscription_changed:active` / `:canceled` / `:past_due`
-- `project_created`
+## Step 4 — custom fields (10 min)
 
-**Anything not in the map moves nobody.** That is the safe default — a half-configured
-pipeline should leave the board alone rather than pile every contact into whichever stage
-happened to be listed first. Start with two or three keys.
-
-Tags are chosen by us, not configured here: `groundwork:signup`,
-`groundwork:contractor`, `groundwork:subscriber`, `groundwork:building`, plus
-`groundwork:accepted` / `groundwork:rejected` on a decision.
-
-### 4. Letting GHL talk back
+The API sends these alongside each contact. **Fields you have not created are silently
+dropped**, so create them once: GHL → **Settings → Custom Fields**, type *Text* for all.
 
 ```
-GHL_INBOUND_SECRET=<a long random string>
+user_id              application_id        application_url
+decision             subscription_status   subscription_tier
+period_end           project_id            project_name
+project_tier         build_country         build_city
+lang
 ```
 
-In any workflow, add a **Webhook** action pointing at
-`https://www.tryjalla.com/api/events?action=crm-inbound`, with a custom header:
+**Check:** accept a test application, then look at that contact in GHL — `decision` and
+`application_url` should be filled in.
+
+---
+
+## Step 5 — pipeline stages (15 min)
+
+Optional, and safe to leave until you want it.
+
+1. GHL → **Opportunities → Pipelines**. Note the pipeline id and the id of each stage
+   (both are in the URL when you open them)
+2. Vercel:
+
+   ```
+   GHL_PIPELINE_ID = <pipeline id>
+   GHL_STAGE_MAP   = {"user_signup":"<stage id>","application_decision:accepted":"<stage id>"}
+   ```
+
+3. Redeploy
+
+Keys you can use — start with two or three, add more later:
 
 ```
-X-Groundwork-Secret: <the same string>
+user_signup
+application_decision:accepted     application_decision:rejected
+subscription_changed:active       subscription_changed:canceled
+subscription_changed:past_due     project_created
 ```
 
-GHL does not sign its outbound webhooks the way Stripe does, so a shared header is the
-strongest check available. That is why **this endpoint only records** — events land in
-`ghl_inbound_events` and change nothing. Acting on one is a separate, deliberate piece of
-work; weaker authentication must not be able to accept a contractor.
+**Anything not in the map moves nobody.** That is deliberate: a half-configured pipeline
+should leave your board alone rather than pile every contact into whichever stage
+happened to be listed first.
+
+**Check:** `/admin/crm` shows *Pipeline stages mapped (2)* and lists your keys. If the
+JSON has a typo it says so — a broken map disables every move and otherwise looks exactly
+like "not set up yet".
+
+Tags are chosen by us, not configured here: `groundwork:signup`, `groundwork:contractor`,
+`groundwork:subscriber`, `groundwork:building`, plus `groundwork:accepted` /
+`groundwork:rejected` on a decision.
+
+---
+
+## Step 6 — letting GHL talk back (10 min)
+
+Optional. Lets a booked appointment or a reply reach the app instead of living only in GHL.
+
+1. Invent a long random string
+2. Vercel: `GHL_INBOUND_SECRET = <that string>` → redeploy
+3. In any GHL workflow, add a **Webhook** action:
+
+   - URL: `https://www.tryjalla.com/api/events?action=crm-inbound`
+   - Method: POST
+   - Custom header: `X-Groundwork-Secret: <the same string>`
+
+**Check:** `/admin/crm` shows a tick on *Inbound webhook secret*.
+
+> **These events are recorded and nothing else.** GHL does not sign its outbound webhooks
+> the way Stripe does, so a shared header is the strongest check available — and
+> something authenticated that weakly must never be able to accept a contractor. Events
+> land in `ghl_inbound_events` inert. Acting on one is a separate, deliberate decision.
 
 ---
 
 ## When something does not arrive
 
-Nothing is lost. Every event is written to `ghl_outbox` *before* it is attempted, so a
-failure leaves a row rather than nothing:
+`/admin/crm` → **Waiting to reach the CRM** lists every event that has not landed, with
+its error and how many attempts it has had. **Send them now** replays up to 25 at a time,
+and stops early if the CRM is still down rather than burning the batch.
+
+Individual contractor applications also have **Send to CRM now** on their own admin page.
+
+By hand, if you prefer:
 
 ```sql
 SELECT event, email, attempts, last_error, created_at
   FROM ghl_outbox WHERE status <> 'sent' ORDER BY created_at;
 ```
 
-Admins can replay the backlog by POSTing to `/api/events?action=crm-retry` (25 at a time, and it stops
-early if the CRM is still down rather than burning the batch). Individual contractor
-applications also have a **Send to CRM now** button on their admin page.
-
 ---
 
-## A caveat worth reading before the first live run
+## Two things worth knowing
 
-The v2 API details in `api/ghl/_client.ts` — the base URL, the `Version` header and every
-path — were written from GoHighLevel's published documentation, without a token to test
-against. They are our transcription of someone else's contract, and any of it can be
-wrong or can change.
+**Every environment variable needs a redeploy.** Vercel does not apply new values to a
+running deployment. If `/admin/crm` still shows a cross after you have added something,
+this is almost always why.
 
-They are deliberately all in one block at the top of that file. If the first real call
-returns a 404 or a 422, check there first: it is a five-line correction, not a search
-through the codebase.
+**The v2 API details are unverified.** The base URL, version header and paths in
+`api/ghl/_client.ts` were written from GoHighLevel's published documentation without a
+token to test against — our transcription of someone else's contract. They are all in one
+block at the top of that file, so if the first real call returns a 404 or 422, that is a
+five-line correction rather than an investigation.

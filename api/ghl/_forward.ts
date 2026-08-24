@@ -195,7 +195,7 @@ export async function deliver(
   const cfg = ghlConfig();
   return cfg
     ? deliverViaApi(cfg, event, email, contact, fields, opts)
-    : deliverViaWebhook(event, email, contact, fields);
+    : deliverViaWebhook(event, email, contact, fields, opts.variant);
 }
 
 async function deliverViaApi(
@@ -207,7 +207,7 @@ async function deliverViaApi(
   opts: GhlForwardOptions,
 ): Promise<GhlForwardResult> {
   const { first, last } = splitName(contact.fullName);
-  const tags = tagsFor(event, opts.variant);
+  const tags = tagsFor(event, opts.variant, contact.lang);
 
   const up = await upsertContact(cfg, {
     email,
@@ -252,6 +252,7 @@ async function deliverViaWebhook(
   email: string,
   contact: GhlContact,
   fields: Record<string, string | number | boolean | null>,
+  variant?: string,
 ): Promise<GhlForwardResult> {
   const webhookUrl = process.env.GHL_EVENT_WEBHOOK_URL;
   if (!webhookUrl) {
@@ -262,6 +263,7 @@ async function deliverViaWebhook(
   }
 
   const { first, last } = splitName(contact.fullName);
+  const tags = tagsFor(event, variant, contact.lang);
 
   try {
     const r = await fetch(webhookUrl, {
@@ -278,6 +280,11 @@ async function deliverViaWebhook(
         country:    contact.country ?? null,
         lang:       contact.lang === 'fr' ? 'fr' : 'en',
         source:     `groundwork_${event}`,
+        // Tags travel with the payload so the workflow can apply them without a rule
+        // per event. `tags_csv` exists because GHL's "Add Tag" action takes a single
+        // text value — an array arrives as unusable JSON there.
+        tags,
+        tags_csv:   tags.join(','),
         submitted_at: new Date().toISOString(),
         ...fields,
       }),

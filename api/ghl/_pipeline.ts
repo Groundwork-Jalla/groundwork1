@@ -17,21 +17,62 @@ import type { GhlEvent } from './_forward.js';
  * every contact into whichever stage happened to be listed first.
  */
 
-/** Tags are ours to choose, so they live here rather than in the environment. */
-const TAGS: Record<GhlEvent, string> = {
+/**
+ * Tags every contact carries, so the CRM can be worked rather than just filled.
+ *
+ * Three layers, and each answers a different question:
+ *
+ *   `groundwork`          — came from the product at all. One tag that selects every
+ *                           contact we created, which is what makes the rest safe to
+ *                           filter on: without it you cannot tell our contacts from
+ *                           anything imported by hand or captured by another form.
+ *   `groundwork:<source>` — how they arrived. A contractor who applied and a homeowner
+ *                           who signed up want different conversations.
+ *   `groundwork:<state>`  — what has happened since. Accepted, rejected, paying, building.
+ *
+ * Plus a language tag. The product is bilingual and Cameroon-first, so "everyone I can
+ * write to in French" is a real audience, and GHL has no other way to know.
+ *
+ * Chosen here rather than in the environment on purpose: a tag renamed in Vercel would
+ * silently split an audience in two, with the old name still attached to everyone who
+ * arrived before the change.
+ */
+const BASE_TAG = 'groundwork';
+
+const SOURCE: Record<GhlEvent, string> = {
   user_signup:          'groundwork:signup',
   application_decision: 'groundwork:contractor',
   subscription_changed: 'groundwork:subscriber',
   project_created:      'groundwork:building',
 };
 
-export function tagsFor(event: GhlEvent, variant?: string): string[] {
-  const base = TAGS[event];
-  const tags = base ? [base] : [];
+/** `lang` is optional: a contact with no known language should not be tagged as English. */
+export function tagsFor(event: GhlEvent, variant?: string, lang?: string | null): string[] {
+  const tags = [BASE_TAG];
+
+  const source = SOURCE[event];
+  if (source) tags.push(source);
+
   // A decision is worth its own tag — "contractor" and "contractor we turned down" are
-  // not the same audience for anything the team might later send.
-  if (event === 'application_decision' && variant) tags.push(`groundwork:${variant}`);
-  if (event === 'subscription_changed' && variant) tags.push(`groundwork:${variant}`);
+  // not the same audience for anything the team might later send. Same for a subscriber
+  // who has cancelled.
+  if ((event === 'application_decision' || event === 'subscription_changed') && variant) {
+    tags.push(`groundwork:${variant}`);
+  }
+
+  if (lang === 'fr' || lang === 'en') tags.push(`groundwork:${lang}`);
+
+  return tags;
+}
+
+/**
+ * The contractor application has its own webhook and its own workflow, predating the
+ * rest — but a lead is a lead, so it carries the same base and language tags.
+ */
+export function contractorTags(status?: string | null, lang?: string | null): string[] {
+  const tags = [BASE_TAG, 'groundwork:contractor', 'groundwork:applied'];
+  if (status === 'disqualified') tags.push('groundwork:screened-out');
+  if (lang === 'fr' || lang === 'en') tags.push(`groundwork:${lang}`);
   return tags;
 }
 
