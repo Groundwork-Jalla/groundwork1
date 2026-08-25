@@ -73,12 +73,13 @@ export default async function handler(req: any, res: any) {
   try {
     const { applicationFromRow } = await import('../../src/lib/contractor/application-types.js');
     const { signDocuments } = await import('./_documents.js');
+    const application = applicationFromRow(row);
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildContractorPayload({
-        ...applicationFromRow(row),
+        ...application,
         applicationId,
         status: row.status,
         documentUrls: await signDocuments(svc, row.uploads),
@@ -95,7 +96,24 @@ export default async function handler(req: any, res: any) {
 
     await markApplicationSynced(applicationId);
 
-    res.status(200).json({ ok: true });
+    // The webhook kept Philip's existing workflow running. This adds what a webhook
+    // structurally cannot: a contact id, the full field set, and the documents
+    // themselves. Skipped silently when the API is not configured.
+    const { syncContractorToApi } = await import('./_contractor-sync.js');
+    const api = await syncContractorToApi(application, applicationId, row.status, svc);
+
+    if (api.ok && api.contactId) {
+      // Remember who they are in GHL, so a later event can address the same contact
+      // instead of hoping the CRM dedupes.
+      await svc.from('contractor_applications')
+        .update({ ghl_contact_id: api.contactId })
+        .eq('id', applicationId);
+    }
+
+    res.status(200).json({
+      ok: true,
+      api: api.ok ? { contactId: api.contactId, documents: api.documentsUploaded } : api.skipped ?? api.reason,
+    });
   } catch (err) {
     console.error('[ghl] could not forward the application:', err);
     res.status(502).json({ error: 'Could not reach the CRM' });

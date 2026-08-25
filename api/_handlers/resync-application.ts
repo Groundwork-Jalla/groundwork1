@@ -80,6 +80,7 @@ export async function handler(req: any, res: any) {
   try {
     const { applicationFromRow } = await import('../../src/lib/contractor/application-types.js');
     const { signDocuments } = await import('../ghl/_documents.js');
+    const application = applicationFromRow(app);
 
     // Identical to the submission path, from the same row through the same builder — a
     // retry that sent a different shape would land as a half-populated contact that
@@ -88,7 +89,7 @@ export async function handler(req: any, res: any) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildContractorPayload({
-        ...applicationFromRow(app),
+        ...application,
         applicationId,
         status: app.status,
         documentUrls: await signDocuments(svc, app.uploads),
@@ -102,7 +103,22 @@ export async function handler(req: any, res: any) {
     }
 
     await markApplicationSynced(applicationId);
-    res.status(200).json({ ok: true, syncedAt: new Date().toISOString() });
+
+    // Identical to the submission path, so a retry lands the same contact, the same
+    // fields and the same documents rather than a thinner version of them.
+    const { syncContractorToApi } = await import('../ghl/_contractor-sync.js');
+    const api = await syncContractorToApi(application, applicationId, app.status, svc);
+    if (api.ok && api.contactId) {
+      await svc.from('contractor_applications')
+        .update({ ghl_contact_id: api.contactId })
+        .eq('id', applicationId);
+    }
+
+    res.status(200).json({
+      ok: true,
+      syncedAt: new Date().toISOString(),
+      api: api.ok ? { contactId: api.contactId, documents: api.documentsUploaded } : api.skipped ?? api.reason,
+    });
   } catch (err) {
     console.error('[ghl] resync could not reach the CRM:', err);
     res.status(502).json({ error: 'Could not reach the CRM. Try again shortly.' });

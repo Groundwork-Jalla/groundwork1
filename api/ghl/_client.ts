@@ -33,6 +33,7 @@ const PATHS = {
   searchOpportunity: '/opportunities/search',
   createOpportunity: '/opportunities/',
   updateOpportunity: (id: string) => `/opportunities/${id}`,
+  uploadMedia:       '/medias/upload-file',
 };
 
 export interface GhlConfig {
@@ -228,4 +229,42 @@ export async function moveToStage(
   return id
     ? { ok: true, status: r.status, data: { opportunityId: id, created: true } }
     : { ok: false, status: r.status, error: 'no_opportunity_id' };
+}
+
+// ── Media (the applicant's documents) ─────────────────────────────────────────────────
+
+/**
+ * Hand GHL a file by URL and let it keep its own copy.
+ *
+ * `hosted: true` asks GHL to fetch the bytes itself rather than us streaming a multipart
+ * body. That is the whole point of the short-lived signed links in `_documents.ts`: the
+ * link lives just long enough for this call, GHL stores the file under its own access
+ * control, and the temporary URL dies. What ends up in the CRM is a document behind
+ * GHL's login, not a bearer URL that works for anyone who ever sees it.
+ *
+ * **Unverified, like the rest of this file.** The path and body shape come from
+ * GoHighLevel's documentation, written without a token to test against. If uploads 404
+ * or 422, this and the PATHS block above are the two places to look.
+ */
+export async function uploadMediaFromUrl(
+  cfg: GhlConfig,
+  fileUrl: string,
+  name: string,
+): Promise<GhlResult<{ url: string; fileId?: string }>> {
+  const r = await ghlFetch<{ url?: string; fileUrl?: string; id?: string; fileId?: string }>(
+    cfg, PATHS.uploadMedia, {
+      method: 'POST',
+      body: { hosted: true, fileUrl, name, locationId: cfg.locationId },
+    });
+
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  // Shape has been seen both ways in GHL's own docs; accept either rather than losing
+  // the file we just uploaded.
+  const url = r.data?.url ?? r.data?.fileUrl;
+  if (!url) {
+    console.error('[ghl-api] media uploaded but returned no url', r.data);
+    return { ok: false, status: r.status, error: 'no_media_url' };
+  }
+  return { ok: true, status: r.status, data: { url, fileId: r.data?.id ?? r.data?.fileId } };
 }
