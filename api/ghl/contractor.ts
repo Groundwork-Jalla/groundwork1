@@ -18,8 +18,6 @@
 
 import { buildContractorPayload, markApplicationSynced } from './_contractor-payload.js';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -35,33 +33,55 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const b = req.body ?? {};
-
-  if (typeof b.email !== 'string' || !EMAIL_RE.test(b.email)) {
-    res.status(400).json({ error: 'A valid email is required' });
-    return;
-  }
-  if (typeof b.applicationId !== 'string' || !b.applicationId) {
+  const applicationId = req.body?.applicationId;
+  if (typeof applicationId !== 'string' || !applicationId) {
     res.status(400).json({ error: 'applicationId is required' });
     return;
   }
 
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error('[ghl] SUPABASE_SERVICE_ROLE_KEY is not set');
+    res.status(500).json({ error: 'Server is not configured' });
+    return;
+  }
+
+  // Read the whole application rather than taking fields from the request.
+  //
+  // This used to build the payload from the browser's body, which meant GHL only ever
+  // saw the dozen fields the client bothered to send — no project history, no
+  // credentials, no documents. It also meant the browser decided what the CRM believed
+  // about an applicant. Reading the row fixes both, and makes this identical to the
+  // admin resync, so a retry cannot drift from the original send.
+  const { createClient } = await import('@supabase/supabase-js');
+  const svc = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: row, error } = await svc
+    .from('contractor_applications')
+    .select('*')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  if (error || !row) {
+    res.status(404).json({ error: 'Application not found' });
+    return;
+  }
+
   try {
+    const { applicationFromRow } = await import('../../src/lib/contractor/application-types.js');
+    const { signDocuments } = await import('./_documents.js');
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Shared with the admin resync so both send the identical shape — Philip's
-      // workflow maps these exact field names.
       body: JSON.stringify(buildContractorPayload({
-        applicationId: b.applicationId,
-        email: b.email,
-        fullName: b.fullName, phone: b.phone, country: b.country, city: b.city,
-        businessName: b.businessName, role: b.role, roleOther: b.roleOther,
-        yearsExperience: b.yearsExperience, operatesAs: b.operatesAs,
-        concurrentProjects: b.concurrentProjects, regions: b.regions,
-        portfolioUrl: b.portfolioUrl, videoUrl: b.videoUrl,
-        projectCount: b.projectCount, uploadCount: b.uploadCount,
-        status: b.status, lang: b.lang,
+        ...applicationFromRow(row),
+        applicationId,
+        status: row.status,
+        documentUrls: await signDocuments(svc, row.uploads),
       })),
     });
 
@@ -73,11 +93,11 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    await markApplicationSynced(b.applicationId);
+    await markApplicationSynced(applicationId);
 
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('[ghl] webhook unreachable:', err);
-    res.status(502).json({ error: 'Upstream unreachable' });
+    console.error('[ghl] could not forward the application:', err);
+    res.status(502).json({ error: 'Could not reach the CRM' });
   }
 }

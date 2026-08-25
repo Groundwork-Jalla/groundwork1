@@ -114,27 +114,11 @@ export async function submitContractorApplication(
   void fetch('/api/ghl/contractor', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      applicationId: id,
-      fullName:  input.fullName.trim(),
-      email:     input.email.trim().toLowerCase(),
-      phone:     input.phone.trim(),
-      businessName: input.businessName.trim() || null,
-      country:   input.country.trim(),
-      city:      input.city.trim(),
-      role:      input.role,
-      roleOther: input.roleOther.trim() || null,
-      yearsExperience:    input.yearsExperience,
-      operatesAs:         input.operatesAs,
-      concurrentProjects: input.concurrentProjects,
-      regions:      input.regions.trim(),
-      portfolioUrl: input.portfolioUrl.trim() || null,
-      videoUrl:     input.videoUrl.trim() || null,
-      projectCount: input.projects.length,
-      uploadCount:  input.uploads.length,
-      status,
-      lang: input.lang,
-    }),
+    // Only the id. The endpoint reads the row it was just given and builds the payload
+    // from that, so the CRM sees the whole application — project history, credentials,
+    // documents — rather than the dozen fields this call used to hand-pick. It also
+    // stops the browser deciding what the CRM believes about an applicant.
+    body: JSON.stringify({ applicationId: id }),
   }).catch(() => { /* mirror only — never blocks the applicant */ });
 
   trackEvent('contractor_application_submitted', { role: input.role, status });

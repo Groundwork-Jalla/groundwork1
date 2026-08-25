@@ -78,29 +78,20 @@ export async function handler(req: any, res: any) {
   }
 
   try {
+    const { applicationFromRow } = await import('../../src/lib/contractor/application-types.js');
+    const { signDocuments } = await import('../ghl/_documents.js');
+
+    // Identical to the submission path, from the same row through the same builder — a
+    // retry that sent a different shape would land as a half-populated contact that
+    // looks like a data problem rather than a retry.
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(buildContractorPayload({
+        ...applicationFromRow(app),
         applicationId,
-        email:              app.email,
-        fullName:           app.full_name,
-        phone:              app.phone,
-        country:            app.country,
-        city:               app.city,
-        businessName:       app.business_name,
-        role:               app.role,
-        roleOther:          app.role_other,
-        yearsExperience:    app.years_experience,
-        operatesAs:         app.operates_as,
-        concurrentProjects: app.concurrent_projects,
-        regions:            app.regions,
-        portfolioUrl:       app.portfolio_url,
-        videoUrl:           app.video_url,
-        projectCount:       Array.isArray(app.projects) ? app.projects.length : 0,
-        uploadCount:        Array.isArray(app.uploads)  ? app.uploads.length  : 0,
-        status:             app.status,
-        lang:               app.lang,
+        status: app.status,
+        documentUrls: await signDocuments(svc, app.uploads),
       })),
     });
 
