@@ -5,6 +5,7 @@ import { handler as crmRetry }    from './_handlers/retry.js';
 import { handler as crmInbound }  from './_handlers/inbound.js';
 import { handler as profileGeo }  from './_handlers/profile-geo.js';
 import { handler as crmStatus }   from './_handlers/crm-status.js';
+import { handler as crmDiagnose } from './_handlers/crm-diagnose.js';
 
 /**
  * One endpoint, several actions.
@@ -34,7 +35,7 @@ import { handler as crmStatus }   from './_handlers/crm-status.js';
 
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
-  | 'crm-status' | 'profile-geo';
+  | 'crm-status' | 'crm-diagnose' | 'profile-geo';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -43,6 +44,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-retry':   crmRetry,
   'crm-inbound': crmInbound,
   'crm-status':  crmStatus,
+  'crm-diagnose': crmDiagnose,
   'profile-geo': profileGeo,
 };
 

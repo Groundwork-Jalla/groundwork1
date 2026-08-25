@@ -437,3 +437,16 @@ export async function retryCrmBacklog(): Promise<{ sent: number; failed: number;
   const b = await r.json().catch(() => ({}));
   return { sent: b.sent ?? 0, failed: b.failed ?? 0, considered: b.considered ?? 0 };
 }
+
+/**
+ * Ask GHL directly why document uploads are failing, and return what it said.
+ *
+ * The media endpoint was written from documentation without a token to test against.
+ * This is the difference between one round trip and a deploy per guess.
+ */
+export async function diagnoseCrmDocuments(): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-diagnose', {
+    method: 'POST', headers: { Authorization: `Bearer ${await bearer()}` },
+  });
+  return r.json();
+}

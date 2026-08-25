@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import {
-  getCrmStatus, listCrmBacklog, retryCrmBacklog,
+  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments,
   type CrmStatus, type OutboxRow,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,8 @@ export default function AdminCrm() {
   const [error, setError]     = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [notice, setNotice]   = useState<string | null>(null);
+  const [diagnosis, setDiagnosis] = useState<string | null>(null);
+  const [diagnosing, setDiagnosing] = useState(false);
 
   async function load() {
     setLoading(true); setError(null);
@@ -75,6 +77,22 @@ export default function AdminCrm() {
       setNotice(t('admin.crm.retryFailed'));
     } finally {
       setRetrying(false);
+    }
+  }
+
+  /**
+   * Document uploads are the one part of this integration written against documentation
+   * rather than a live token. When they fail, this asks GHL and prints the answer
+   * verbatim — far quicker than reading deploy logs.
+   */
+  async function diagnose() {
+    setDiagnosing(true); setDiagnosis(null);
+    try {
+      setDiagnosis(JSON.stringify(await diagnoseCrmDocuments(), null, 2));
+    } catch {
+      setDiagnosis(t('admin.crm.diagnoseFailed'));
+    } finally {
+      setDiagnosing(false);
     }
   }
 
@@ -134,6 +152,24 @@ export default function AdminCrm() {
             </div>
           ) : (
             <p className="text-sm text-brand-mid-grey">{t('admin.crm.statusUnavailable')}</p>
+          )}
+
+          {status?.mode === 'api' && (
+            <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
+              <button
+                type="button" disabled={diagnosing} onClick={diagnose}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+              >
+                {diagnosing ? <Loader2 className="size-3.5 animate-spin" /> : <AlertTriangle className="size-3.5" />}
+                {t('admin.crm.diagnose')}
+              </button>
+              <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.diagnoseHint')}</p>
+              {diagnosis && (
+                <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
+{diagnosis}
+                </pre>
+              )}
+            </div>
           )}
 
           {status?.mode === 'off' && (
