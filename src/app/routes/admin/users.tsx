@@ -105,7 +105,7 @@ export default function AdminUsers() {
           <table className="w-full text-sm">
             <thead className="border-b border-brand-border-grey bg-brand-off-white">
               <tr>
-                {['Name', 'Email', 'Role', 'Plan', 'Joined', '', ''].map((h, i) => (
+                {['Name', 'Email', 'Role', 'Plan', 'Projects', 'Joined', '', ''].map((h, i) => (
                   <th key={`${h}-${i}`} className="text-left px-4 py-3 text-xs font-semibold text-brand-mid-grey uppercase tracking-wide">
                     {h}
                   </th>
@@ -124,7 +124,11 @@ export default function AdminUsers() {
                       {u.roles || t('admin.roleClient')}
                     </span>
                   </td>
+                  {/* "Plan" is the most recent project's tier, so it is blank for anyone
+                      with no projects — which reads as a billing gap when it is really a
+                      signup that never started anything. The count next to it says which. */}
                   <td className="px-4 py-3 text-brand-mid-grey">{u.tier ? labels.tier(u.tier) : '—'}</td>
+                  <td className="px-4 py-3 text-brand-mid-grey tabular-nums">{u.projectCount}</td>
                   <td className="px-4 py-3 text-brand-mid-grey text-xs">
                     {new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
@@ -144,7 +148,7 @@ export default function AdminUsers() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
+                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
                     No users match "{query}"
                   </td>
                 </tr>

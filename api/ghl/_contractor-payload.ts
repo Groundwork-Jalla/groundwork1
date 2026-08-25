@@ -19,7 +19,13 @@ import type { ContractorApplicationInput } from '../../src/lib/contractor/applic
 
 /** How many repeatable rows are flattened. Beyond this, the deep link is the answer. */
 const MAX_PROJECTS = 5;
-const MAX_DOCUMENTS = 6;
+/**
+ * Raised from 6 after a real applicant sent 8. The upload field is `multiple` with no
+ * limit, so no number here is ever the fix — every document is listed with its link in
+ * `documents_summary` regardless of this cap. These numbered fields exist so GHL can
+ * filter and automate on a document; the summary exists so none is ever unreachable.
+ */
+const MAX_DOCUMENTS = 8;
 
 export interface ContractorLead extends ContractorApplicationInput {
   applicationId: string;
@@ -51,7 +57,8 @@ function flat(v: unknown): string | null {
  *   credentials  → cred_<key>, since the keys differ per credential track
  *   uploads      → document_1_label / _url, … up to MAX_DOCUMENTS
  *
- * Anything past those caps stays reachable through `application_url`. A contact record is
+ * Anything past those caps stays reachable through `application_url`, and every document
+ * — capped or not — is listed with its link in `documents_summary`. A contact record is
  * a summary; the application itself is the record.
  */
 export function buildContractorPayload(lead: ContractorLead): Record<string, unknown> {
@@ -167,8 +174,14 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
     if (urls[i]) out[`document_${n}_url`] = urls[i];
   });
 
+  // Every document, not just the flattened ones, each with its link where we have one.
+  // Uploads past MAX_DOCUMENTS are still pushed to GHL's media storage by the sync, so
+  // without this they would sit there with nothing on the contact pointing at them.
   out.documents_summary = uploads.length
-    ? uploads.map((d, i) => `${i + 1}. ${d.label || 'Document'}`).join('\n')
+    ? uploads.map((d, i) => {
+        const line = `${i + 1}. ${d.label || 'Document'}`;
+        return urls[i] ? `${line} — ${urls[i]}` : line;
+      }).join('\n')
     : null;
 
   return out;
