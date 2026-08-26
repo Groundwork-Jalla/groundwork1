@@ -1,4 +1,7 @@
-import { ghlConfig, upsertContact, addContactTags, uploadMediaFromUrl } from './_client.js';
+import {
+  ghlConfig, upsertContact, addContactTags, uploadMediaFromUrl,
+  ensureFolder, folderNameFor,
+} from './_client.js';
 import { buildContractorPayload } from './_contractor-payload.js';
 import { signDocuments, mediaName } from './_documents.js';
 import { contractorTags } from './_pipeline.js';
@@ -50,6 +53,13 @@ export async function syncContractorToApi(
     const signed = await signDocuments(storage, application.uploads);
     const uploads = Array.isArray(application.uploads) ? application.uploads : [];
 
+    // One folder per applicant, resolved once. Null means GHL would not give us one, in
+    // which case everything still uploads — flat, and still named for the person.
+    const folderId = await ensureFolder(
+      cfg,
+      folderNameFor(application.fullName || application.businessName, applicationId),
+    );
+
     const hosted: string[] = [];
     let failed = 0;
 
@@ -66,7 +76,7 @@ export async function syncContractorToApi(
         i,
       );
 
-      const up = await uploadMediaFromUrl(cfg, url, name);
+      const up = await uploadMediaFromUrl(cfg, url, name, folderId);
       if (up.ok && up.data) {
         hosted.push(up.data.url);
       } else {

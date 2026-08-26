@@ -549,7 +549,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
               ref={fileRef}
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
               className="hidden"
               onChange={e => {
                 const picked = Array.from(e.target.files ?? []);

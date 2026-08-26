@@ -1,4 +1,4 @@
-import { ghlConfig } from '../ghl/_client.js';
+import { ghlConfig, ensureFolder, folderNameFor } from '../ghl/_client.js';
 import { signDocuments } from '../ghl/_documents.js';
 
 /**
@@ -123,6 +123,28 @@ export async function handler(req: any, res: any) {
   const name     = `diagnose-${withDocs.id.slice(0, 8)}`;
   const filename = `${name}${ext}`;
 
+  // ── Folders ──
+  // Uploading into a folder is documented; creating one is not, so this reports what
+  // actually happened rather than assuming. The raw listing is included because if the
+  // parsing in `findFolder` is wrong, that is where it will be visible.
+  const folderName = folderNameFor('Diagnostic Contractor', String(withDocs.id));
+  let folderId: string | null = null;
+  let folderListing = '';
+  try {
+    const list = await fetch(
+      `${API_BASE}/medias/files?altId=${encodeURIComponent(cfg.locationId)}&altType=location&limit=100`,
+      { headers: { Authorization: `Bearer ${cfg.token}`, Version: API_VERSION, Accept: 'application/json' } },
+    );
+    folderListing = `${list.status} ${(await list.text()).slice(0, 400)}`;
+  } catch (err) {
+    folderListing = String(err).slice(0, 200);
+  }
+  try {
+    folderId = await ensureFolder(cfg, folderName);
+  } catch (err) {
+    folderListing += ` | ensureFolder threw: ${String(err).slice(0, 150)}`;
+  }
+
   const variants: Array<{ label: string; url: string; body: FormData }> = [];
 
   if (bytes) {
@@ -131,6 +153,7 @@ export async function handler(req: any, res: any) {
     a.append('file', new Blob([bytes], { type: contentType }), filename);
     a.append('name', name);
     a.append('locationId', cfg.locationId);
+    if (folderId) a.append('parentId', folderId);
     variants.push({ label: 'multipart · file · locationId in form', url: API_BASE + UPLOAD_PATH, body: a });
 
     // B — the bytes, with the location as altId/altType, which is how v2 addresses a
@@ -181,6 +204,9 @@ export async function handler(req: any, res: any) {
     applicationId: withDocs.id,
     documentCount: uploads.length,
     signedLinkStatus: reachable,   // 200 = our storage is serving it correctly
+    folderName,
+    folderId,                      // null = GHL would not make one; uploads go flat
+    folderListing,                 // raw, so a wrong assumption about the shape is visible
     fileBytes: bytes ? bytes.byteLength : 0,
     contentType,
     winner: attempts.find(a => typeof a.status === 'number' && (a.status as number) >= 200 && (a.status as number) < 300)?.variant ?? null,

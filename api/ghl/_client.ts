@@ -34,6 +34,12 @@ const PATHS = {
   createOpportunity: '/opportunities/',
   updateOpportunity: (id: string) => `/opportunities/${id}`,
   uploadMedia:       '/medias/upload-file',
+  listMedia:         '/medias/files',
+  // Folder creation is not part of GHL's published v2 media surface the way uploading is.
+  // These are the plausible routes; `ensureFolder` tries them in order and remembers the
+  // one that answers, and /admin/crm reports which. If all of them fail the upload still
+  // happens, flat.
+  createFolder:      ['/medias/create-folder', '/medias/folder', '/medias/folders'],
 };
 
 export interface GhlConfig {
@@ -247,6 +253,86 @@ export async function moveToStage(
  * or 422, this and the PATHS block above are the two places to look.
  */
 /**
+ * One folder per applicant in GHL's media library.
+ *
+ * ── Why this is worth the trouble ────────────────────────────────────────────────────
+ * Media Storage is a single flat library shared by the entire account — every applicant's
+ * documents, every marketing image, every screenshot, in one scrolling grid. Good filenames
+ * make an individual file identifiable; they do not make the library navigable. Once there
+ * are thirty contractors with four documents each, "find Pierre's tax clearance" is a
+ * scroll, not a lookup.
+ *
+ * ── The honest state of this ─────────────────────────────────────────────────────────
+ * Uploading *into* a folder is supported and documented: `parentId` on the upload. Folder
+ * *creation* is not published in v2 the way uploading is, so `PATHS.createFolder` holds
+ * several candidates and this tries them in order, remembering whichever answers.
+ *
+ * **It never fails a sync.** A null return means "upload it flat" — a document that landed
+ * in the wrong place is recoverable, a document that never uploaded because a folder call
+ * 404'd is not. Filenames still identify the owner either way.
+ */
+const folderCache = new Map<string, string>();
+
+/** Names the folder an applicant's documents belong in. Short id keeps namesakes apart. */
+export function folderNameFor(who: string, applicationId: string): string {
+  const person = who.replace(/[^a-zA-Z0-9 ._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 50);
+  return `${person || 'Contractor'} (${applicationId.slice(0, 8)})`;
+}
+
+/** Reads the media library and returns the id of a folder with this name, if one exists. */
+async function findFolder(cfg: GhlConfig, name: string): Promise<string | null> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.listMedia, {
+    method: 'GET',
+    query: { altId: cfg.locationId, altType: 'location', limit: '100' },
+  });
+  if (!r.ok || !r.data) return null;
+
+  // Shape is not pinned down, so accept the containers GHL has been seen to use rather
+  // than depending on one of them.
+  const d = r.data as { files?: unknown; medias?: unknown; data?: unknown };
+  const rows = [d.files, d.medias, d.data, r.data].find(Array.isArray) as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (!rows) return null;
+
+  const hit = rows.find(row => {
+    const isFolder = row.type === 'folder' || row.isFolder === true || row.kind === 'folder';
+    return isFolder && typeof row.name === 'string' && row.name === name;
+  });
+  const id = hit?._id ?? hit?.id;
+  return typeof id === 'string' ? id : null;
+}
+
+/** Returns a folder id, creating the folder if it does not exist. Null = upload flat. */
+export async function ensureFolder(cfg: GhlConfig, name: string): Promise<string | null> {
+  const key = `${cfg.locationId}:${name}`;
+  const cached = folderCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const existing = await findFolder(cfg, name);
+    if (existing) { folderCache.set(key, existing); return existing; }
+
+    for (const path of PATHS.createFolder) {
+      const r = await ghlFetch<Record<string, unknown>>(cfg, path, {
+        method: 'POST',
+        body: { name, altId: cfg.locationId, altType: 'location', locationId: cfg.locationId },
+      });
+      if (!r.ok) continue;
+
+      const d = (r.data ?? {}) as Record<string, unknown>;
+      const nested = (d.folder ?? d.data ?? {}) as Record<string, unknown>;
+      const id = d._id ?? d.id ?? nested._id ?? nested.id;
+      if (typeof id === 'string') { folderCache.set(key, id); return id; }
+    }
+  } catch (err) {
+    console.warn('[ghl-api] folder lookup failed, uploading flat', err);
+  }
+
+  return null;
+}
+
+/**
  * Put a file into GHL's media library and return the URL it will live at.
  *
  * ── This does NOT send JSON, and that is the whole point ─────────────────────────────
@@ -271,6 +357,8 @@ export async function uploadMediaFromUrl(
   cfg: GhlConfig,
   fileUrl: string,
   name: string,
+  /** Folder to drop it in. Omitted or null uploads to the top level. */
+  parentId?: string | null,
 ): Promise<GhlResult<{ url: string; fileId?: string }>> {
   let bytes: ArrayBuffer;
   let contentType = 'application/octet-stream';
@@ -289,6 +377,7 @@ export async function uploadMediaFromUrl(
   form.append('file', new Blob([bytes], { type: contentType }), ext && !name.endsWith(ext) ? `${name}${ext}` : name);
   form.append('name', name);
   form.append('locationId', cfg.locationId);
+  if (parentId) form.append('parentId', parentId);
 
   try {
     const r = await fetch(API_BASE + PATHS.uploadMedia, {
