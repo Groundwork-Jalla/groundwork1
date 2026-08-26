@@ -107,10 +107,14 @@ the variable, redeploy. No code changes.
 
 ---
 
-## Step 4 — custom fields (10 min)
+## Step 4 — custom fields (20 min)
 
 The API sends these alongside each contact. **Fields you have not created are silently
-dropped**, so create them once: GHL → **Settings → Custom Fields**, type *Text* for all.
+dropped** — no error, and on the contact a missing field looks exactly like a question the
+applicant left blank. Create them once: GHL → **Settings → Custom Fields**, object
+*Contact*, type *Text* for all.
+
+### 4a — account, project and billing events
 
 ```
 user_id              application_id        application_url
@@ -120,8 +124,20 @@ project_tier         build_country         build_city
 lang
 ```
 
+### 4b — contractor applications
+
+A contractor application carries **104 fields**, far too many to list here and more than
+you want to create by hand. They are enumerated and *prioritised* in
+**[GHL-CUSTOM-FIELDS.md](./GHL-CUSTOM-FIELDS.md)** — the first 24 carry nearly all the
+value, including `projects_summary` and `documents_summary`, which hold the applicant's
+whole project history and every uploaded document in two fields.
+
+Start with Tier 1 there and stop. Add more only when you want GHL to filter or automate on
+a specific value.
+
 **Check:** accept a test application, then look at that contact in GHL — `decision` and
-`application_url` should be filled in.
+`application_url` should be filled in. For a contractor, `/admin/applications/<id>` →
+**Send to CRM again**, then confirm `documents_summary` is populated on the contact.
 
 ---
 

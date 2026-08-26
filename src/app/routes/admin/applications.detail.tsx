@@ -312,21 +312,22 @@ export default function AdminApplicationDetail() {
         </p>
       )}
 
-      {!app.syncedToGhl && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-mid-grey">
-          <CloudOff className="size-4 shrink-0" />
-          <span className="flex-1">{t('admin.apps.crmPending')}</span>
-          {/* The push at submission is discarded on failure, so this is the only way the
-              lead ever reaches the CRM. A notice without it was just bad news. */}
-          <button
-            type="button" disabled={resyncing} onClick={resyncCrm}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-light-grey disabled:opacity-40"
-          >
-            {resyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Cloud className="size-3.5" />}
-            {t('admin.apps.crmResend')}
-          </button>
-        </div>
-      )}
+      {/* Offered whether or not the row is marked synced. "Synced" only ever meant the
+          contact was created — document uploads failed silently for weeks (they were sent
+          as JSON, which GHL rejects), so every application forwarded before that fix has a
+          contact in GHL with none of its files. Gating this on !syncedToGhl left exactly
+          those applications with no way to be repaired. */}
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-mid-grey">
+        {app.syncedToGhl ? <Cloud className="size-4 shrink-0" /> : <CloudOff className="size-4 shrink-0" />}
+        <span className="flex-1">{t(app.syncedToGhl ? 'admin.apps.crmSynced' : 'admin.apps.crmPending')}</span>
+        <button
+          type="button" disabled={resyncing} onClick={resyncCrm}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-light-grey disabled:opacity-40"
+        >
+          {resyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Cloud className="size-3.5" />}
+          {t(app.syncedToGhl ? 'admin.apps.crmResendAgain' : 'admin.apps.crmResend')}
+        </button>
+      </div>
 
       <div className="flex flex-col gap-4">
         <Section title={t('admin.apps.sBasic')}>

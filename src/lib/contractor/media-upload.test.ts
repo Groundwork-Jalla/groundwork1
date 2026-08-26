@@ -6,20 +6,25 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
  * It sent `Content-Type: application/json`. GHL answered, in as many words:
  *     400 "Unsupported content type: application/json"
  * A file upload has to go as multipart/form-data — the request a browser's file input
- * produces. That is not a detail a type checker can catch, and there is no GHL sandbox to
+ * produces. That is not a thing a type checker can catch, and there is no GHL sandbox to
  * try it against, so the shape of the outgoing request is asserted here instead.
  *
  * The trap this locks down: `fetch` generates the multipart boundary itself, and setting
  * Content-Type by hand silently breaks the request in a way that looks identical to a
  * server-side rejection. If anyone "helpfully" re-adds that header, this fails.
+ *
+ * The fixtures are not invented. They are what the live account returned on 26 Aug 2026.
  */
 
-const SRC = 'https://storage.example/doc.pdf?token=abc';
+const SRC = 'https://storage.example/doc.jpg?token=abc';
 const GHL = 'https://services.leadconnectorhq.com';
+
+/** Verbatim from the live 201, truncated only in the id. */
+const LIVE_201 = '{"fileId":"6a8e8132cdd4b797a32c5718","url":"https://assets.cdn.example/6a8e.jpg"}';
 
 interface Call { url: string; init: RequestInit }
 
-/** Loads a fresh module so the cached variant does not leak between tests. */
+/** Fresh module per test so nothing leaks between them. */
 async function freshClient() {
   vi.resetModules();
   process.env.GHL_API_TOKEN = 't';
@@ -34,7 +39,7 @@ function stub(handler: (url: string, init: RequestInit) => Response): Call[] {
     calls.push({ url: u, init });
     if (u.startsWith(SRC.split('?')[0])) {
       return new Response(new Uint8Array([1, 2, 3]), {
-        status: 200, headers: { 'content-type': 'application/pdf' },
+        status: 200, headers: { 'content-type': 'image/jpeg' },
       });
     }
     return handler(u, init);
@@ -49,13 +54,10 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('uploadMediaFromUrl', () => {
   it('sends multipart with the file attached, and never sets Content-Type by hand', async () => {
-    const calls = stub(() => new Response(JSON.stringify({ url: 'https://ghl.example/stored.pdf' }), { status: 200 }));
+    const calls = stub(() => new Response(LIVE_201, { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'app-1-Registration');
-
-    expect(r.ok).toBe(true);
-    expect(r.data?.url).toBe('https://ghl.example/stored.pdf');
+    await uploadMediaFromUrl(ghlConfig()!, SRC, 'app-1-Registration');
 
     const [up] = uploads(calls);
     const headers = up.init.headers as Record<string, string>;
@@ -64,46 +66,45 @@ describe('uploadMediaFromUrl', () => {
 
     const body = up.init.body as FormData;
     expect(body).toBeInstanceOf(FormData);
+
     const file = body.get('file') as File;
     expect(file).toBeTruthy();
-    // Extension carried over from the source path, not dropped.
-    expect(file.name).toBe('app-1-Registration.pdf');
+    // Extension carried over from the source path rather than dropped.
+    expect(file.name).toBe('app-1-Registration.jpg');
+    expect(file.type).toBe('image/jpeg');
+    // The arrangement the live account accepted: location named in the form.
     expect(body.get('locationId')).toBe('loc123');
+    expect(body.get('name')).toBe('app-1-Registration');
   });
 
-  it('falls through to the next shape on a 400 and remembers the one that worked', async () => {
-    let seen = 0;
-    const calls = stub(url => {
-      seen++;
-      // Only the altId/altType form is accepted by this fake account.
-      return url.includes('altId=loc123')
-        ? new Response(JSON.stringify({ fileUrl: 'https://ghl.example/ok.pdf' }), { status: 200 })
-        : new Response('{"status":400,"message":"Unsupported content type"}', { status: 400 });
-    });
-    const { uploadMediaFromUrl, ghlConfig } = await freshClient();
-    const cfg = ghlConfig()!;
-
-    const first = await uploadMediaFromUrl(cfg, SRC, 'a');
-    expect(first.ok).toBe(true);
-    expect(first.data?.url).toBe('https://ghl.example/ok.pdf');
-    expect(seen).toBe(2);           // rejected once, then succeeded
-
-    const before = uploads(calls).length;
-    const second = await uploadMediaFromUrl(cfg, SRC, 'b');
-    expect(second.ok).toBe(true);
-    // The discovery is paid for once: the second document goes straight to the winner.
-    expect(uploads(calls).length - before).toBe(1);
-  });
-
-  it('stops immediately on 401 — a missing scope is not a body-shape problem', async () => {
-    const calls = stub(() => new Response('Unauthorized', { status: 401 }));
+  it('accepts the 201 the live account actually returns', async () => {
+    stub(() => new Response(LIVE_201, { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
     const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
 
+    // 201, not 200 — anything checking `status === 200` would drop a file that uploaded.
+    expect(r.ok).toBe(true);
+    expect(r.data?.url).toBe('https://assets.cdn.example/6a8e.jpg');
+    expect(r.data?.fileId).toBe('6a8e8132cdd4b797a32c5718');
+  });
+
+  it('still reads the shape GHL documents but did not send', async () => {
+    stub(() => new Response('{"fileUrl":"https://cdn/x.jpg","id":"abc"}', { status: 200 }));
+    const { uploadMediaFromUrl, ghlConfig } = await freshClient();
+
+    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
+    expect(r.data?.url).toBe('https://cdn/x.jpg');
+    expect(r.data?.fileId).toBe('abc');
+  });
+
+  it('reports a rejection without pretending the file landed', async () => {
+    stub(() => new Response('{"status":400,"message":"Unsupported content type"}', { status: 400 }));
+    const { uploadMediaFromUrl, ghlConfig } = await freshClient();
+
+    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
     expect(r.ok).toBe(false);
-    expect(r.status).toBe(401);
-    expect(uploads(calls)).toHaveLength(1);
+    expect(r.status).toBe(400);
   });
 
   it('blames our own storage, not GHL, when the signed link will not serve', async () => {

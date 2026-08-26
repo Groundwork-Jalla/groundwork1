@@ -247,26 +247,22 @@ export async function moveToStage(
  * or 422, this and the PATHS block above are the two places to look.
  */
 /**
- * Which multipart shape this account accepts, remembered for the life of a warm function.
- * The first document pays for the discovery; every one after it goes straight there.
- */
-let mediaVariant: number | null = null;
-
-/**
  * Put a file into GHL's media library and return the URL it will live at.
  *
  * ── This does NOT send JSON, and that is the whole point ─────────────────────────────
- * It used to. GHL answered, plainly:
+ * It used to. GHL answered, in as many words:
  *     400 "Unsupported content type: application/json"
  * `/medias/upload-file` wants the request a browser's file input produces —
- * multipart/form-data. Note that Content-Type is never set by hand below: `fetch` has to
- * generate the multipart boundary itself, and setting the header manually is exactly what
- * silently breaks that.
+ * multipart/form-data, the file as an attachment, the location named in the form.
  *
- * What GHL's docs are not explicit about is where the location goes, and whether it wants
- * the bytes or a URL it can fetch. So the shapes are tried in order and the first success
- * is cached. `/admin/crm` → "Test a document upload" reports which one won; once that is
- * known for good this collapses to a single request.
+ * Note that Content-Type is never set by hand below: `fetch` has to generate the
+ * multipart boundary itself, and setting the header manually silently breaks the request
+ * in a way indistinguishable from a server-side rejection. That is the whole bug.
+ *
+ * Confirmed against the live account on 26 Aug 2026 via /admin/crm → "Test a document
+ * upload": a 3 MB image/jpeg returned **201** with `{ fileId, url }`. Two other plausible
+ * arrangements were tried in that run and are no longer carried here; `crm-diagnose.ts`
+ * still tries all of them, so if GHL ever moves this the button re-answers the question.
  *
  * Takes a signed URL rather than bytes because that is what the caller already has, and
  * fetches it here — the link is short-lived by design (see `_documents.ts`).
@@ -289,82 +285,38 @@ export async function uploadMediaFromUrl(
   }
 
   const ext = fileUrl.split('?')[0].match(/\.[a-zA-Z0-9]+$/)?.[0] ?? '';
-  const filename = ext && !name.endsWith(ext) ? `${name}${ext}` : name;
-  const file = new Blob([bytes], { type: contentType });
+  const form = new FormData();
+  form.append('file', new Blob([bytes], { type: contentType }), ext && !name.endsWith(ext) ? `${name}${ext}` : name);
+  form.append('name', name);
+  form.append('locationId', cfg.locationId);
 
-  const variants: Array<() => { url: string; body: FormData }> = [
-    () => {
-      const f = new FormData();
-      f.append('file', file, filename);
-      f.append('name', name);
-      f.append('locationId', cfg.locationId);
-      return { url: API_BASE + PATHS.uploadMedia, body: f };
-    },
-    () => {
-      const f = new FormData();
-      f.append('file', file, filename);
-      f.append('name', name);
-      return {
-        url: `${API_BASE}${PATHS.uploadMedia}?altId=${encodeURIComponent(cfg.locationId)}&altType=location`,
-        body: f,
-      };
-    },
-    () => {
-      const f = new FormData();
-      f.append('hosted', 'true');
-      f.append('fileUrl', fileUrl);
-      f.append('name', name);
-      f.append('locationId', cfg.locationId);
-      return { url: API_BASE + PATHS.uploadMedia, body: f };
-    },
-  ];
+  try {
+    const r = await fetch(API_BASE + PATHS.uploadMedia, {
+      method: 'POST',
+      // No Content-Type here. See above.
+      headers: {
+        Authorization: `Bearer ${cfg.token}`,
+        Version: API_VERSION,
+        Accept: 'application/json',
+      },
+      body: form,
+    });
 
-  const all = variants.map((_, i) => i);
-  const order = mediaVariant === null ? all : [mediaVariant, ...all.filter(i => i !== mediaVariant)];
+    const text = await r.text();
+    if (!r.ok) return { ok: false, status: r.status, error: text.slice(0, 200) || `http_${r.status}` };
 
-  let lastStatus = 0;
-  let lastError = 'media_upload_failed';
+    let data: { url?: string; fileUrl?: string; id?: string; fileId?: string } = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { /* handled below */ }
 
-  for (const i of order) {
-    const { url, body } = variants[i]();
-    try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${cfg.token}`,
-          Version: API_VERSION,
-          Accept: 'application/json',
-        },
-        body,
-      });
-
-      const text = await r.text();
-      if (!r.ok) {
-        lastStatus = r.status;
-        lastError = text.slice(0, 200) || `http_${r.status}`;
-        // 401/403 is the token, not the shape — trying other shapes cannot help.
-        if (r.status === 401 || r.status === 403) break;
-        continue;
-      }
-
-      mediaVariant = i;
-
-      let data: { url?: string; fileUrl?: string; id?: string; fileId?: string } = {};
-      try { data = text ? JSON.parse(text) : {}; } catch { /* handled below */ }
-
-      // Shape has been seen both ways in GHL's own docs; accept either rather than
-      // losing the file we just uploaded.
-      const hosted = data.url ?? data.fileUrl;
-      if (!hosted) {
-        console.error('[ghl-api] media uploaded but returned no url', text.slice(0, 200));
-        return { ok: false, status: r.status, error: 'no_media_url' };
-      }
-      return { ok: true, status: r.status, data: { url: hosted, fileId: data.id ?? data.fileId } };
-    } catch (err) {
-      lastStatus = 0;
-      lastError = String(err).slice(0, 200);
+    // The live response uses `url` and `fileId`; GHL's own docs also show `fileUrl` and
+    // `id`. Accept either rather than losing a file that did upload.
+    const hosted = data.url ?? data.fileUrl;
+    if (!hosted) {
+      console.error('[ghl-api] media uploaded but returned no url', text.slice(0, 200));
+      return { ok: false, status: r.status, error: 'no_media_url' };
     }
+    return { ok: true, status: r.status, data: { url: hosted, fileId: data.fileId ?? data.id } };
+  } catch (err) {
+    return { ok: false, status: 0, error: String(err).slice(0, 200) };
   }
-
-  return { ok: false, status: lastStatus, error: lastError };
 }

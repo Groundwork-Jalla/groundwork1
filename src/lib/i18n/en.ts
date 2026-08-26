@@ -414,6 +414,7 @@ export const en = {
       ackBacklog:     '{n} applicant(s) have not been told we received their application.',
       ackShowingOnly: 'showing only these',
       crmResend:       'Send to CRM now',
+      crmResendAgain:  'Send to CRM again',
       crmResynced:     'Sent to the CRM.',
       crmResyncFailed: 'The CRM did not accept it. Try again shortly.',
       crmBacklog:      '{n} application(s) never reached the CRM.',
@@ -434,6 +435,7 @@ export const en = {
       publishFailed: 'Accepted, but publishing to the directory failed. Press Accept again to retry.',
       disqualifiedNote: 'Auto-disqualified — answered No to a professional standard. Recorded rather than discarded.',
       crmPending:   'Not yet forwarded to GoHighLevel. Leads are mirrored after submission; an unforwarded row can be replayed.',
+      crmSynced:    'In GoHighLevel. Sending again updates the contact and re-uploads its documents.',
     },
 
     // ── Delete confirmations ──

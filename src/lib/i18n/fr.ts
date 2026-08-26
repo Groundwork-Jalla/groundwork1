@@ -423,6 +423,7 @@ export const fr: Mirror<EnDict> = {
       ackBacklog:     "{n} candidat(s) n'ont pas été informés que nous avons reçu leur candidature.",
       ackShowingOnly: 'affichage limité à ceux-ci',
       crmResend:       'Envoyer au CRM maintenant',
+      crmResendAgain:  'Renvoyer au CRM',
       crmResynced:     'Envoyé au CRM.',
       crmResyncFailed: "Le CRM ne l'a pas accepté. Réessayez dans un instant.",
       crmBacklog:      "{n} candidature(s) ne sont jamais arrivées au CRM.",
@@ -443,6 +444,7 @@ export const fr: Mirror<EnDict> = {
       publishFailed: "Acceptée, mais la publication dans l'annuaire a échoué. Appuyez à nouveau sur Accepter pour réessayer.",
       disqualifiedNote: "Disqualifiée automatiquement — a répondu Non à une norme professionnelle. Conservée plutôt que supprimée.",
       crmPending:   "Pas encore transmise à GoHighLevel. Les contacts sont copiés après l'envoi ; une ligne non transmise peut être rejouée.",
+      crmSynced:    "Dans GoHighLevel. Un nouvel envoi met à jour le contact et téléverse à nouveau ses documents.",
     },
 
     del: {
