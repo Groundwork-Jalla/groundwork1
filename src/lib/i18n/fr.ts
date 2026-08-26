@@ -1716,6 +1716,9 @@ export const fr: Mirror<EnDict> = {
       s7: 'Vision commune',
       s8: 'Capacité régionale',
       s9: 'Accord final',
+      stepOf:       'Étape {n} sur {total}',
+      back:         'Retour',
+      continueStep: 'Continuer',
 
       // Section 1
       fullName:      'Nom complet',
@@ -1848,6 +1851,7 @@ export const fr: Mirror<EnDict> = {
 
       // Section 6
       milestonesQ:    'Êtes-vous à l\'aise avec un système structuré fondé sur des jalons ?',
+      milestonesHint: "Cela signifie que vous êtes payé par étapes, au fur et à mesure de l'avancement, et non en une seule fois. Lorsqu'une étape — fondations, murs, toiture — est terminée et vérifiée, le paiement correspondant vous est versé. L'argent est conservé en sécurité entre-temps : vous n'avez jamais à le réclamer.",
       verificationQ:  "Acceptez-vous de travailler selon les normes de vérification et de responsabilité de Jalla ?",
       noSidePayQ:     "Acceptez-vous d'éviter tout arrangement de paiement direct en dehors du système Jalla pour les projets gérés par Jalla ?",
       disqualifyWarn: "Répondre « Non » à l'une de ces questions signifie que nous ne pourrons pas donner suite à votre candidature pour le moment. Vous pouvez tout de même la soumettre pour nos archives.",
@@ -1884,7 +1888,7 @@ export const fr: Mirror<EnDict> = {
       successBody: "Merci — nous vous en avons envoyé une copie par e-mail. Notre équipe examine chaque candidature manuellement et vous contactera pour la vérification et les prochaines étapes.",
       successToast:'Candidature envoyée — une copie vous a été adressée par e-mail.',
       errorGeneric:"Une erreur s'est produite lors de l'envoi de votre candidature. Veuillez réessayer.",
-      errorRequired:'Veuillez remplir tous les champs obligatoires avant de soumettre.',
+      errorRequired:'Veuillez remplir tous les champs obligatoires de cette étape.',
       errorProjects:'Veuillez détailler au moins 3 projets précédents.',
     },
     without: {

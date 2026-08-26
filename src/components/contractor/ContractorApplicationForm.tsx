@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2, Upload, X, Plus, Info, AlertTriangle, Save } from 'lucide-react';
+import { CheckCircle2, Loader2, Upload, X, Plus, Info, AlertTriangle, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage, type TKey } from '@/lib/i18n';
 import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { isValidEmail } from '@/lib/email/is-valid-email';
+import { STEPS } from '@/lib/contractor/application-steps';
 import {
   CONTRACTOR_ROLES, credentialTrack, qualifies, submitContractorApplication,
   uploadCredential,
@@ -37,13 +38,15 @@ function Field({ label, hint, required, htmlFor, children }: {
   );
 }
 
-function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+/**
+ * The numeric badge that used to sit here is gone. It counted 1..9 through the sections,
+ * which now sit across six steps — so "3" appearing under "Step 2 of 6" read as a
+ * contradiction. Numbering belongs to the step header; a section keeps its name.
+ */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2.5 pt-2">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-near-black text-[11px] font-bold text-white tabular-nums">
-          {n}
-        </span>
         <h3 className="text-sm font-bold text-brand-near-black">{title}</h3>
         <div className="flex-1 h-px bg-brand-border-grey" />
       </div>
@@ -51,6 +54,7 @@ function Section({ n, title, children }: { n: number; title: string; children: R
     </section>
   );
 }
+
 
 function Textarea({ id, value, onChange, rows = 3 }: {
   id?: string; value: string; onChange: (v: string) => void; rows?: number;
@@ -81,13 +85,21 @@ function Select({ id, value, onChange, children }: {
   );
 }
 
-function YesNo({ label, value, onChange }: {
-  label: string; value: boolean | null; onChange: (v: boolean) => void;
+function YesNo({ label, hint, value, onChange }: {
+  label: string; hint?: string; value: boolean | null; onChange: (v: boolean) => void;
 }) {
   const { t } = useLanguage();
   return (
     <div className="space-y-1.5">
       <Label>{label}<span className="text-state-alert">*</span></Label>
+      {/* Sits between the question and the answer on purpose. A term someone does not
+          know is not a detail to be footnoted — if they have to guess what they are
+          agreeing to, the answer we get back is worthless. */}
+      {hint && (
+        <p className="rounded-xl bg-brand-off-white px-3.5 py-2.5 text-[11px] leading-relaxed text-brand-mid-grey">
+          {hint}
+        </p>
+      )}
       <div className="flex gap-2">
         {[true, false].map(v => (
           <button
@@ -253,6 +265,94 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   ];
   const progressPct = Math.round((100 * complete.filter(Boolean).length) / complete.length);
 
+  const [step, setStep] = useState(0);
+  /**
+   * Progress through the *steps*, which is what the bar shows. Deliberately not the
+   * field-level `progressPct` above: that one jumps around as optional fields are filled,
+   * and a bar that moves backwards is worse than no bar. This one only ever advances.
+   */
+
+  const stepTop = useRef<HTMLDivElement>(null);
+  const lastStep = STEPS.length - 1;
+  const stepPct  = Math.round(((step + 1) / STEPS.length) * 100);
+
+  /**
+   * The rules, per step — and the only copy of them.
+   *
+   * `handleSubmit` runs this across every step rather than repeating the checks, because
+   * the two drifting apart is the failure that matters here: a final submit that demands
+   * something the wizard never asked for leaves the applicant reading an error about a
+   * page they cannot see.
+   */
+  function stepError(i: number): string | null {
+    switch (STEPS[i]?.key) {
+      case 'identity':
+        if (!fullName || !businessName || !phone || !email || !country || !city || !role) return f('errorRequired');
+        if (!isValidEmail(email)) return f('errorEmail');
+        return null;
+
+      case 'experience':
+        if (!years || !operatesAs) return f('errorRequired');
+        if (projectTypes.length === 0) return f('errorProjectTypes');
+        return null;
+
+      case 'credentials':
+        // Credentials are what makes an application reviewable — a role's documents are
+        // the only evidence behind every other claim on the form. Checked before the
+        // upload loop so nobody waits on a transfer only to be told it was needed.
+        if (files.length + pending.length === 0) return f('errorDocuments');
+        if (!agreed) return f('errorRequired');
+        return null;
+
+      case 'projects': {
+        // Indexes are kept against `projects`, not a filtered copy, because every number
+        // in these messages is a row the applicant has to scroll back to.
+        const touched  = (pr: ProjectEntry) => Object.values(pr).some(v => v.trim());
+        const isFilled = (pr: ProjectEntry) => !!(pr.name.trim() && pr.location.trim());
+
+        if (projects.filter(isFilled).length < 3) {
+          const partial = projects.findIndex(pr => touched(pr) && !isFilled(pr));
+          return partial === -1 ? f('errorProjects') : f('errorProjectIncomplete', { n: partial + 1 });
+        }
+        // Separate from the count so the two failures read differently: "fewer than three
+        // projects" and "project 2's reference cannot be reached" are different problems.
+        const unreachable = projects.findIndex(pr => isFilled(pr) && !isValidEmail(pr.refEmail.trim()));
+        if (unreachable !== -1) return f('errorRefEmail', { n: unreachable + 1 });
+        return null;
+      }
+
+      case 'standards':
+        if (milestones === null || verification === null || noSidePay === null) return f('errorRequired');
+        if (!whyJoin || !differentiator || readyEarly === null) return f('errorRequired');
+        return null;
+
+      case 'capacity':
+        if (!regions || !concurrent) return f('errorRequired');
+        return null;
+
+      default:
+        return null;
+    }
+  }
+
+  /** Is section `n` on the step being shown? Sections are wrapped in this, not sliced. */
+  const onStep = (n: number) => STEPS[step]?.sections.includes(n) ?? false;
+
+  function goTo(i: number) {
+    setStep(Math.max(0, Math.min(lastStep, i)));
+    setError(null);
+    // Without this a step opens scrolled to wherever the previous one ended, which on a
+    // phone is usually somewhere past its own heading.
+    requestAnimationFrame(() => stepTop.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
+
+  function next() {
+    const problem = stepError(step);
+    if (problem) { setError(problem); return; }
+    goTo(step + 1);
+  }
+
+
   useEffect(() => {
     // No contact detail means nothing to follow up on, and it also stops a row being
     // created for every visitor who merely opens the page and reads it.
@@ -278,51 +378,16 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !businessName || !phone || !email || !country || !city || !role
-      || !years || !operatesAs || !whyJoin || !differentiator
-      || !regions || !concurrent || !agreed
-      || milestones === null || verification === null || noSidePay === null
-      || readyEarly === null) {
-      setError(f('errorRequired'));
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setError(f('errorEmail'));
-      return;
-    }
-    if (projectTypes.length === 0) {
-      setError(f('errorProjectTypes'));
-      return;
-    }
-    // Credentials are what makes an application reviewable — a role's documents are
-    // the only evidence behind every other claim on the form. Checked before the
-    // upload loop so nobody waits on a transfer only to be told it was needed.
-    if (files.length + pending.length === 0) {
-      setError(f('errorDocuments'));
-      return;
-    }
-    // Indexes are kept against `projects`, not against a filtered copy, because every
-    // number in these messages is a row the applicant has to scroll back to. Saying
-    // "project 2" about the second *surviving* row sends them to the wrong card.
-    const touched = (p: ProjectEntry) => Object.values(p).some(v => v.trim());
-    const isFilled = (p: ProjectEntry) => !!(p.name.trim() && p.location.trim());
-
-    const filled = projects.filter(isFilled);
-    if (filled.length < 3) {
-      // A row with a reference typed into it but no name or location is dropped by the
-      // count, so a bare "add three projects" would be read as "the three I entered
-      // didn't count" with nothing to act on. Name the half-finished row instead.
-      const partial = projects.findIndex(p => touched(p) && !isFilled(p));
-      setError(partial === -1 ? f('errorProjects') : f('errorProjectIncomplete', { n: partial + 1 }));
-      return;
-    }
-    // Separate from the count so the two failures read differently: "you gave us fewer
-    // than three projects" and "project 2's reference cannot be reached" are different
-    // problems, and one message covering both tells the applicant neither.
-    const unreachable = projects.findIndex(p => isFilled(p) && !isValidEmail(p.refEmail.trim()));
-    if (unreachable !== -1) {
-      setError(f('errorRefEmail', { n: unreachable + 1 }));
-      return;
+    // Every step in order, so the first thing wrong is also the earliest thing wrong —
+    // and the applicant is taken to the page that holds it rather than being told about
+    // a field that is not on screen.
+    for (let i = 0; i < STEPS.length; i++) {
+      const problem = stepError(i);
+      if (problem) {
+        goTo(i);
+        setError(problem);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -349,6 +414,19 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         setError(f('errorUploadFailed'));
         return;
       }
+
+      // `stepError` has already established these four are answered — but that proof
+      // lives inside a function and the compiler cannot follow it there. Re-checking is
+      // cheap and keeps the payload honestly typed instead of asserted with `!`.
+      if (milestones === null || verification === null || noSidePay === null || readyEarly === null) {
+        setSubmitting(false);
+        setError(f('errorRequired'));
+        return;
+      }
+
+      // Rows that count as a project: the same test `stepError` used to require three.
+      // Half-filled rows are dropped rather than submitted as empty history.
+      const filled = projects.filter(pr => pr.name.trim() && pr.location.trim());
 
       const input: ContractorApplicationInput = {
         fullName, businessName, phone, email, country, city, portfolioUrl,
@@ -419,7 +497,21 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     // every type="email"/type="url" field here, and they are untranslated and point at a
     // field that is usually scrolled off-screen. This form already writes its own message
     // for each of those cases — errorEmail existed and was unreachable until now.
-    <form onSubmit={handleSubmit} noValidate className="space-y-7">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-7"
+      onKeyDown={e => {
+        // Enter used to submit from anywhere. On a stepped form that means validating
+        // pages the applicant has not reached yet and throwing them back to step one.
+        // Here it does the obvious thing instead: moves on.
+        if (e.key !== 'Enter' || step >= lastStep) return;
+        const el = e.target as HTMLElement;
+        if (el.tagName === 'TEXTAREA' || el.tagName === 'BUTTON') return;
+        e.preventDefault();
+        next();
+      }}
+    >
       {/* Header */}
       <div>
         <h2 className="font-sans text-xl font-bold text-brand-near-black leading-snug">{f('title')}</h2>
@@ -445,88 +537,119 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         </div>
       </div>
 
+      {/* Progress. The whole point of the steps: something that says how much is left,
+          since "too long" was never about the number of questions but about not being
+          able to see the end of them. */}
+      <div ref={stepTop} className="scroll-mt-24 space-y-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-near-black">
+            {f('stepOf', { n: step + 1, total: STEPS.length })}
+          </p>
+          <p className="text-[11px] text-brand-mid-grey tabular-nums">{stepPct}%</p>
+        </div>
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-brand-light-grey"
+          role="progressbar"
+          aria-valuenow={step + 1}
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-label={f('stepOf', { n: step + 1, total: STEPS.length })}
+        >
+          <div
+            className="h-full rounded-full bg-brand-near-black transition-[width] duration-300 ease-out"
+            style={{ width: `${stepPct}%` }}
+          />
+        </div>
+      </div>
+
       {/* 1 — Basic information */}
-      <Section n={1} title={f('s1')}>
-        <Field label={f('fullName')} required htmlFor="ca-name">
-          <Input id="ca-name" value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
-        </Field>
-        <Field label={f('businessName')} required htmlFor="ca-biz">
-          <Input id="ca-biz" required value={businessName} onChange={e => setBusinessName(e.target.value)} autoComplete="organization" />
-        </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={f('phone')} required htmlFor="ca-phone">
-            <Input id="ca-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" />
+      {onStep(1) && (
+        <Section title={f('s1')}>
+          <Field label={f('fullName')} required htmlFor="ca-name">
+            <Input id="ca-name" value={fullName} onChange={e => setFullName(e.target.value)} autoComplete="name" />
           </Field>
-          <Field label={f('email')} required htmlFor="ca-email">
-            <Input id="ca-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+          <Field label={f('businessName')} required htmlFor="ca-biz">
+            <Input id="ca-biz" required value={businessName} onChange={e => setBusinessName(e.target.value)} autoComplete="organization" />
           </Field>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={f('country')} required htmlFor="ca-country">
-            <Select id="ca-country" value={country} onChange={setCountry}>
-              <option value="">—</option>
-              {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label={f('phone')} required htmlFor="ca-phone">
+              <Input id="ca-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" />
+            </Field>
+            <Field label={f('email')} required htmlFor="ca-email">
+              <Input id="ca-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label={f('country')} required htmlFor="ca-country">
+              <Select id="ca-country" value={country} onChange={setCountry}>
+                <option value="">—</option>
+                {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </Select>
+            </Field>
+            <Field label={f('city')} required htmlFor="ca-city">
+              <Input id="ca-city" value={city} onChange={e => setCity(e.target.value)} />
+            </Field>
+          </div>
+          <Field label={f('portfolio')} hint={f('portfolioHint')} htmlFor="ca-portfolio">
+            <Input id="ca-portfolio" type="url" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} placeholder="https://" />
           </Field>
-          <Field label={f('city')} required htmlFor="ca-city">
-            <Input id="ca-city" value={city} onChange={e => setCity(e.target.value)} />
-          </Field>
-        </div>
-        <Field label={f('portfolio')} hint={f('portfolioHint')} htmlFor="ca-portfolio">
-          <Input id="ca-portfolio" type="url" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} placeholder="https://" />
-        </Field>
-      </Section>
+        </Section>
+      )}
 
       {/* 2 — Professional category */}
-      <Section n={2} title={f('s2')}>
-        <Field label={f('roleQ')} required htmlFor="ca-role">
-          <Select id="ca-role" value={role} onChange={v => setRole(v as ContractorRole)}>
-            <option value="">{f('rolePlaceholder')}</option>
-            {roleOpts.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-          </Select>
-        </Field>
-        {role === 'other' && (
-          <Field label={f('roleOther')} htmlFor="ca-role-other">
-            <Input id="ca-role-other" value={roleOther} onChange={e => setRoleOther(e.target.value)} />
+      {onStep(2) && (
+        <Section title={f('s2')}>
+          <Field label={f('roleQ')} required htmlFor="ca-role">
+            <Select id="ca-role" value={role} onChange={v => setRole(v as ContractorRole)}>
+              <option value="">{f('rolePlaceholder')}</option>
+              {roleOpts.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </Select>
           </Field>
-        )}
-      </Section>
+          {role === 'other' && (
+            <Field label={f('roleOther')} htmlFor="ca-role-other">
+              <Input id="ca-role-other" value={roleOther} onChange={e => setRoleOther(e.target.value)} />
+            </Field>
+          )}
+        </Section>
+      )}
 
       {/* 3 — Experience & operations */}
-      <Section n={3} title={f('s3')}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={f('yearsQ')} required htmlFor="ca-years">
-            <Select id="ca-years" value={years} onChange={setYears}>
-              <option value="">—</option>
-              {['under1','y1_3','y3_5','y5_10','y10'].map(k => (
-                <option key={k} value={k}>{f(`years.${k}`)}</option>
-              ))}
-            </Select>
+      {onStep(3) && (
+        <Section title={f('s3')}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label={f('yearsQ')} required htmlFor="ca-years">
+              <Select id="ca-years" value={years} onChange={setYears}>
+                <option value="">—</option>
+                {['under1','y1_3','y3_5','y5_10','y10'].map(k => (
+                  <option key={k} value={k}>{f(`years.${k}`)}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label={f('operatesQ')} required htmlFor="ca-operates">
+              <Select id="ca-operates" value={operatesAs} onChange={setOperatesAs}>
+                <option value="">—</option>
+                {['registered','independent','small_team','larger_firm'].map(k => (
+                  <option key={k} value={k}>{f(`operates.${k}`)}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label={f('teamSize')} hint={f('optional')} htmlFor="ca-team">
+            <Input id="ca-team" value={teamSize} onChange={e => setTeamSize(e.target.value)} inputMode="numeric" />
           </Field>
-          <Field label={f('operatesQ')} required htmlFor="ca-operates">
-            <Select id="ca-operates" value={operatesAs} onChange={setOperatesAs}>
-              <option value="">—</option>
-              {['registered','independent','small_team','larger_firm'].map(k => (
-                <option key={k} value={k}>{f(`operates.${k}`)}</option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        <Field label={f('teamSize')} hint={f('optional')} htmlFor="ca-team">
-          <Input id="ca-team" value={teamSize} onChange={e => setTeamSize(e.target.value)} inputMode="numeric" />
-        </Field>
-        <CheckGroup
-          label={f('projectTypesQ')}
-          required
-          options={typeKeys.map(k => ({ key: k, label: f(`projectType.${k}`) }))}
-          selected={projectTypes}
-          onToggle={k => setProjectTypes(p => toggleIn(p, k))}
-        />
-      </Section>
+          <CheckGroup
+            label={f('projectTypesQ')}
+            required
+            options={typeKeys.map(k => ({ key: k, label: f(`projectType.${k}`) }))}
+            selected={projectTypes}
+            onToggle={k => setProjectTypes(p => toggleIn(p, k))}
+          />
+        </Section>
+      )}
 
       {/* 4 — Credentials (dynamic by role) */}
-      {track && (
-        <Section n={4} title={f('s4')}>
+      {onStep(4) && track && (
+        <Section title={f('s4')}>
           <div className="rounded-xl bg-brand-off-white px-4 py-3">
             <p className="text-[11px] font-semibold text-brand-near-black mb-1">
               {f('uploadsTitle')}
@@ -650,134 +773,167 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       )}
 
       {/* 5 — Project history */}
-      <Section n={5} title={f('s5')}>
-        <p className="text-xs text-brand-mid-grey">{f('projectsIntro')}</p>
-        {projects.map((p, i) => (
-          <div key={i} className="rounded-xl border border-brand-border-grey p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-brand-near-black">{f('projectN', { n: i + 1 })}</p>
-              {projects.length > 3 && (
-                <button
-                  type="button"
-                  onClick={() => setProjects(ps => ps.filter((_, x) => x !== i))}
-                  className="text-[11px] text-brand-mid-grey hover:text-brand-near-black underline underline-offset-2"
-                >
-                  {f('removeProject')}
-                </button>
-              )}
+      {onStep(5) && (
+        <Section title={f('s5')}>
+          <p className="text-xs text-brand-mid-grey">{f('projectsIntro')}</p>
+          {projects.map((p, i) => (
+            <div key={i} className="rounded-xl border border-brand-border-grey p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-brand-near-black">{f('projectN', { n: i + 1 })}</p>
+                {projects.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setProjects(ps => ps.filter((_, x) => x !== i))}
+                    className="text-[11px] text-brand-mid-grey hover:text-brand-near-black underline underline-offset-2"
+                  >
+                    {f('removeProject')}
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label={f('projName')} required><Input value={p.name} onChange={e => updateProject(i, { name: e.target.value })} /></Field>
+                <Field label={f('projLocation')} required><Input value={p.location} onChange={e => updateProject(i, { location: e.target.value })} /></Field>
+                <Field label={f('projBudget')}><Input value={p.budget} onChange={e => updateProject(i, { budget: e.target.value })} /></Field>
+                <Field label={f('projRole')}><Input value={p.role} onChange={e => updateProject(i, { role: e.target.value })} /></Field>
+                <Field label={f('projYear')}><Input value={p.year} onChange={e => updateProject(i, { year: e.target.value })} inputMode="numeric" /></Field>
+              </div>
+              <p className="text-[11px] font-semibold text-brand-mid-grey pt-1">{f('refTitle', { n: i + 1 })}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Field label={f('refName')}><Input value={p.refName} onChange={e => updateProject(i, { refName: e.target.value })} /></Field>
+                <Field label={f('refPhone')}><Input value={p.refPhone} onChange={e => updateProject(i, { refPhone: e.target.value })} type="tel" /></Field>
+                {/* Required, unlike name and phone: references are verified before anyone is
+                    accepted, and an address is the one contact detail we can actually use
+                    from here. It was optional and was arriving blank. The asterisk is the
+                    only marker — no `required` attribute, matching projName/projLocation, so
+                    the message stays ours and stays translated instead of a native bubble. */}
+                <Field label={f('refEmail')} required><Input value={p.refEmail} onChange={e => updateProject(i, { refEmail: e.target.value })} type="email" /></Field>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label={f('projName')} required><Input value={p.name} onChange={e => updateProject(i, { name: e.target.value })} /></Field>
-              <Field label={f('projLocation')} required><Input value={p.location} onChange={e => updateProject(i, { location: e.target.value })} /></Field>
-              <Field label={f('projBudget')}><Input value={p.budget} onChange={e => updateProject(i, { budget: e.target.value })} /></Field>
-              <Field label={f('projRole')}><Input value={p.role} onChange={e => updateProject(i, { role: e.target.value })} /></Field>
-              <Field label={f('projYear')}><Input value={p.year} onChange={e => updateProject(i, { year: e.target.value })} inputMode="numeric" /></Field>
-            </div>
-            <p className="text-[11px] font-semibold text-brand-mid-grey pt-1">{f('refTitle', { n: i + 1 })}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Field label={f('refName')}><Input value={p.refName} onChange={e => updateProject(i, { refName: e.target.value })} /></Field>
-              <Field label={f('refPhone')}><Input value={p.refPhone} onChange={e => updateProject(i, { refPhone: e.target.value })} type="tel" /></Field>
-              {/* Required, unlike name and phone: references are verified before anyone is
-                  accepted, and an address is the one contact detail we can actually use
-                  from here. It was optional and was arriving blank. The asterisk is the
-                  only marker — no `required` attribute, matching projName/projLocation, so
-                  the message stays ours and stays translated instead of a native bubble. */}
-              <Field label={f('refEmail')} required><Input value={p.refEmail} onChange={e => updateProject(i, { refEmail: e.target.value })} type="email" /></Field>
-            </div>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => setProjects(p => [...p, emptyProject()])}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-near-black hover:underline underline-offset-4"
-        >
-          <Plus className="size-3.5" /> {f('addProject')}
-        </button>
-      </Section>
+          ))}
+          <button
+            type="button"
+            onClick={() => setProjects(p => [...p, emptyProject()])}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-near-black hover:underline underline-offset-4"
+          >
+            <Plus className="size-3.5" /> {f('addProject')}
+          </button>
+        </Section>
+      )}
 
       {/* 6 — Professional standards */}
-      <Section n={6} title={f('s6')}>
-        <YesNo label={f('milestonesQ')}   value={milestones}   onChange={setMilestones} />
-        <YesNo label={f('verificationQ')} value={verification} onChange={setVerification} />
-        <YesNo label={f('noSidePayQ')}    value={noSidePay}    onChange={setNoSidePay} />
-        {willDisqualify && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white px-4 py-3">
-            <AlertTriangle className="size-4 text-state-held mt-0.5 shrink-0" />
-            <p className="text-[11px] text-state-held leading-relaxed">{f('disqualifyWarn')}</p>
-          </div>
-        )}
-      </Section>
+      {onStep(6) && (
+        <Section title={f('s6')}>
+          <YesNo label={f('milestonesQ')} hint={f('milestonesHint')} value={milestones} onChange={setMilestones} />
+          <YesNo label={f('verificationQ')} value={verification} onChange={setVerification} />
+          <YesNo label={f('noSidePayQ')}    value={noSidePay}    onChange={setNoSidePay} />
+          {willDisqualify && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white px-4 py-3">
+              <AlertTriangle className="size-4 text-state-held mt-0.5 shrink-0" />
+              <p className="text-[11px] text-state-held leading-relaxed">{f('disqualifyWarn')}</p>
+            </div>
+          )}
+        </Section>
+      )}
 
       {/* 7 — Future alignment */}
-      <Section n={7} title={f('s7')}>
-        <p className="text-xs text-brand-mid-grey leading-relaxed">{f('videoIntro')}</p>
-        <Field label={f('videoUrl')} hint={f('videoHint')} htmlFor="ca-video">
-          <Input id="ca-video" type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://" />
-        </Field>
-        <Field label={f('whyJoinQ')} required htmlFor="ca-why">
-          <Textarea id="ca-why" rows={4} value={whyJoin} onChange={setWhyJoin} />
-        </Field>
-        <Field label={f('differentiatorQ')} required htmlFor="ca-diff">
-          <Textarea id="ca-diff" rows={4} value={differentiator} onChange={setDifferentiator} />
-        </Field>
-        <YesNo label={f('readyQ')} value={readyEarly} onChange={setReadyEarly} />
-      </Section>
+      {onStep(7) && (
+        <Section title={f('s7')}>
+          <p className="text-xs text-brand-mid-grey leading-relaxed">{f('videoIntro')}</p>
+          <Field label={f('videoUrl')} hint={f('videoHint')} htmlFor="ca-video">
+            <Input id="ca-video" type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://" />
+          </Field>
+          <Field label={f('whyJoinQ')} required htmlFor="ca-why">
+            <Textarea id="ca-why" rows={4} value={whyJoin} onChange={setWhyJoin} />
+          </Field>
+          <Field label={f('differentiatorQ')} required htmlFor="ca-diff">
+            <Textarea id="ca-diff" rows={4} value={differentiator} onChange={setDifferentiator} />
+          </Field>
+          <YesNo label={f('readyQ')} value={readyEarly} onChange={setReadyEarly} />
+        </Section>
+      )}
 
       {/* 8 — Regional capacity */}
-      <Section n={8} title={f('s8')}>
-        <Field label={f('regionsQ')} required htmlFor="ca-regions">
-          <Textarea id="ca-regions" rows={2} value={regions} onChange={setRegions} />
-        </Field>
-        <Field label={f('concurrentQ')} required htmlFor="ca-concurrent">
-          <Select id="ca-concurrent" value={concurrent} onChange={setConcurrent}>
-            <option value="">—</option>
-            {['one','two_three','four_five','five_plus'].map(k => (
-              <option key={k} value={k}>{f(`concurrent.${k}`)}</option>
-            ))}
-          </Select>
-        </Field>
-      </Section>
+      {onStep(8) && (
+        <Section title={f('s8')}>
+          <Field label={f('regionsQ')} required htmlFor="ca-regions">
+            <Textarea id="ca-regions" rows={2} value={regions} onChange={setRegions} />
+          </Field>
+          <Field label={f('concurrentQ')} required htmlFor="ca-concurrent">
+            <Select id="ca-concurrent" value={concurrent} onChange={setConcurrent}>
+              <option value="">—</option>
+              {['one','two_three','four_five','five_plus'].map(k => (
+                <option key={k} value={k}>{f(`concurrent.${k}`)}</option>
+              ))}
+            </Select>
+          </Field>
+        </Section>
+      )}
 
       {/* 9 — Final agreement */}
-      <Section n={9} title={f('s9')}>
-        <div className="rounded-xl bg-brand-off-white px-4 py-3">
-          <p className="text-xs font-semibold text-brand-near-black mb-2">{f('agreeIntro')}</p>
-          <ul className="space-y-1.5">
-            {['agree1','agree2','agree3','agree4'].map(k => (
-              <li key={k} className="flex items-start gap-2 text-[11px] text-brand-mid-grey leading-relaxed">
-                <span className="mt-1.5 size-1 rounded-full bg-brand-mid-grey shrink-0" />
-                {f(k)}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <button
-          type="button"
-          onClick={() => setAgreed(a => !a)}
-          className="flex items-start gap-2.5 text-left w-full"
-        >
-          <span className={cn(
-            'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border',
-            agreed ? 'border-brand-near-black bg-brand-near-black' : 'border-brand-border-grey',
-          )}>
-            {agreed && <CheckCircle2 className="size-3 text-white" />}
-          </span>
-          <span className="text-xs text-brand-near-black">
-            {f('agreeCheckbox')}<span className="text-state-alert">*</span>
-          </span>
-        </button>
-      </Section>
+      {onStep(9) && (
+        <Section title={f('s9')}>
+          <div className="rounded-xl bg-brand-off-white px-4 py-3">
+            <p className="text-xs font-semibold text-brand-near-black mb-2">{f('agreeIntro')}</p>
+            <ul className="space-y-1.5">
+              {['agree1','agree2','agree3','agree4'].map(k => (
+                <li key={k} className="flex items-start gap-2 text-[11px] text-brand-mid-grey leading-relaxed">
+                  <span className="mt-1.5 size-1 rounded-full bg-brand-mid-grey shrink-0" />
+                  {f(k)}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAgreed(a => !a)}
+            className="flex items-start gap-2.5 text-left w-full"
+          >
+            <span className={cn(
+              'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border',
+              agreed ? 'border-brand-near-black bg-brand-near-black' : 'border-brand-border-grey',
+            )}>
+              {agreed && <CheckCircle2 className="size-3 text-white" />}
+            </span>
+            <span className="text-xs text-brand-near-black">
+              {f('agreeCheckbox')}<span className="text-state-alert">*</span>
+            </span>
+          </button>
+        </Section>
+      )}
 
-      {/* Submit */}
+      {/* Navigation. Back stays available on every step, including the last two: someone
+          who spots a typo in their own email on the final page must be able to fix it,
+          and nothing is lost by going back — the draft holds every answer. */}
       <div className="pt-2 space-y-3">
         {error && (
           <p className="text-xs text-state-alert bg-brand-off-white rounded-lg px-3 py-2">{error}</p>
         )}
-        <Button type="submit" disabled={submitting} className="w-full h-auto py-3.5 font-semibold">
-          {submitting && <Loader2 className="size-4 animate-spin" />}
-          {submitting ? f('submitting') : f('submit')}
-        </Button>
-        <p className="text-[11px] text-brand-mid-grey text-center leading-relaxed">{f('reviewNote')}</p>
+        <div className="flex items-center gap-3">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={() => goTo(step - 1)}
+              className="inline-flex items-center gap-1 rounded-xl border border-brand-border-grey px-4 py-3.5 text-sm font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
+            >
+              <ChevronLeft className="size-4" />
+              {f('back')}
+            </button>
+          )}
+          {step < lastStep ? (
+            <Button type="button" onClick={next} className="flex-1 h-auto py-3.5 font-semibold">
+              {f('continueStep')}
+              <ChevronRight className="size-4" />
+            </Button>
+          ) : (
+            <Button type="submit" disabled={submitting} className="flex-1 h-auto py-3.5 font-semibold">
+              {submitting && <Loader2 className="size-4 animate-spin" />}
+              {submitting ? f('submitting') : f('submit')}
+            </Button>
+          )}
+        </div>
+        {step === lastStep && (
+          <p className="text-[11px] text-brand-mid-grey text-center leading-relaxed">{f('reviewNote')}</p>
+        )}
       </div>
     </form>
   );

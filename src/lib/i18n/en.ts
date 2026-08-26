@@ -1725,6 +1725,11 @@ export const en = {
       s7: 'Future alignment',
       s8: 'Regional capacity',
       s9: 'Final agreement',
+      // Step chrome. The form is nine sections across six steps; contractors told us
+      // seeing all of it at once was the problem, not the number of questions.
+      stepOf:       'Step {n} of {total}',
+      back:         'Back',
+      continueStep: 'Continue',
 
       // Section 1
       fullName:      'Full name',
@@ -1857,6 +1862,10 @@ export const en = {
 
       // Section 6
       milestonesQ:    'Are you comfortable operating within a structured milestone-based system?',
+      // "Milestone payments" is industry vocabulary, and applicants were answering a
+      // question they had not understood. Written for someone who has never met the term,
+      // and answering the thing a contractor actually wants to know: when do I get paid.
+      milestonesHint: 'This means you are paid in stages as the work is done, not all at once. When a stage — foundation, walls, roofing — is finished and checked, that stage\'s payment is released to you. The money is held safely in between, so you are never chasing it.',
       verificationQ:  "Are you willing to operate under Jalla's verification and accountability standards?",
       noSidePayQ:     'Are you willing to avoid direct payment arrangements outside the Jalla system for Jalla-managed projects?',
       disqualifyWarn: 'Answering "No" to any of the above means we cannot proceed with your application at this time. You may still submit it for our records.',
@@ -1893,7 +1902,9 @@ export const en = {
       successBody: "Thank you — we've sent a copy to your email. Our team reviews every application manually and will be in touch about verification and next steps.",
       successToast:'Application submitted — check your email for a copy.',
       errorGeneric:'Something went wrong sending your application. Please try again.',
-      errorRequired:'Please fill in all required fields before submitting.',
+      // Reads on every step, not just the last: this now fires on Continue too, where
+      // "before submitting" named an action the applicant was not taking.
+      errorRequired:'Please fill in all the required fields on this step.',
       errorProjects:'Please provide details for at least 3 previous projects.',
     },
     without: {
