@@ -287,8 +287,13 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   function stepError(i: number): string | null {
     switch (STEPS[i]?.key) {
       case 'identity':
-        if (!fullName || !businessName || !phone || !email || !country || !city || !role) return f('errorRequired');
+        if (!fullName || !businessName || !phone || !email || !country || !city) return f('errorRequired');
         if (!isValidEmail(email)) return f('errorEmail');
+        return null;
+
+      case 'category':
+        // Role gates the credential questions further on, so it cannot be skipped.
+        if (!role) return f('errorRequired');
         return null;
 
       case 'experience':
@@ -323,6 +328,9 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
 
       case 'standards':
         if (milestones === null || verification === null || noSidePay === null) return f('errorRequired');
+        return null;
+
+      case 'alignment':
         if (!whyJoin || !differentiator || readyEarly === null) return f('errorRequired');
         return null;
 
