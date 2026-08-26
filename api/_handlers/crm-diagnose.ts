@@ -119,7 +119,8 @@ export async function handler(req: any, res: any) {
   const uploads = Array.isArray(withDocs.uploads) ? withDocs.uploads : [];
   const source  = (uploads[idx] ?? {}) as { label?: string; path?: string };
   const ext      = (source.path?.match(/\.[a-zA-Z0-9]+$/)?.[0]) ?? '';
-  const name     = `diagnose-${withDocs.id}`;
+  // Short, and clearly marked as a test upload so it is safe to delete from Media Storage.
+  const name     = `diagnose-${withDocs.id.slice(0, 8)}`;
   const filename = `${name}${ext}`;
 
   const variants: Array<{ label: string; url: string; body: FormData }> = [];

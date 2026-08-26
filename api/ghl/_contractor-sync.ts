@@ -1,6 +1,6 @@
 import { ghlConfig, upsertContact, addContactTags, uploadMediaFromUrl } from './_client.js';
 import { buildContractorPayload } from './_contractor-payload.js';
-import { signDocuments } from './_documents.js';
+import { signDocuments, mediaName } from './_documents.js';
 import { contractorTags } from './_pipeline.js';
 import type { ContractorApplicationInput } from '../../src/lib/contractor/application-types.js';
 
@@ -57,9 +57,14 @@ export async function syncContractorToApi(
       const url = signed[i];
       if (!url) { hosted.push(''); failed++; continue; }
 
-      const name = `${applicationId}-${i + 1}-${(uploads[i]?.label ?? 'document')
-        .replace(/[^a-zA-Z0-9._-]+/g, '-')
-        .slice(0, 60)}`;
+      // Named for the person, not the row id — Media Storage is one flat library for
+      // the whole account, and a UUID there identifies nobody. See `mediaName`.
+      const name = mediaName(
+        application.fullName || application.businessName,
+        uploads[i]?.label ?? '',
+        applicationId,
+        i,
+      );
 
       const up = await uploadMediaFromUrl(cfg, url, name);
       if (up.ok && up.data) {

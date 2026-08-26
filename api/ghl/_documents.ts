@@ -66,3 +66,29 @@ export async function signDocuments(
     }
   }));
 }
+
+/**
+ * What a document is called once it is in GHL's media library.
+ *
+ * The first version led with the application id, so every file in Media Storage read as
+ * `2538b51e-3d7a-4f22-8c2e-f9c714a692d6-1-…` — the UUID consumed the whole visible
+ * filename and every applicant's documents looked identical. Media Storage is a flat,
+ * shared library across the whole account; a name that does not say *whose* document it
+ * is makes it unusable as soon as there is more than one contractor.
+ *
+ * So: who, then what, then a short id to keep two applications from the same person
+ * apart. The extension is appended by the uploader from the source path.
+ */
+export function mediaName(
+  who: string,
+  label: string,
+  applicationId: string,
+  index: number,
+): string {
+  const slug = (v: string, max: number) =>
+    v.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, max).replace(/-+$/, '');
+
+  const person = slug(who, 40) || 'contractor';
+  const what   = slug(label, 40) || `document-${index + 1}`;
+  return `${person}-${what}-${applicationId.slice(0, 8)}`;
+}
