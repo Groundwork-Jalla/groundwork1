@@ -246,25 +246,125 @@ export async function moveToStage(
  * GoHighLevel's documentation, written without a token to test against. If uploads 404
  * or 422, this and the PATHS block above are the two places to look.
  */
+/**
+ * Which multipart shape this account accepts, remembered for the life of a warm function.
+ * The first document pays for the discovery; every one after it goes straight there.
+ */
+let mediaVariant: number | null = null;
+
+/**
+ * Put a file into GHL's media library and return the URL it will live at.
+ *
+ * ── This does NOT send JSON, and that is the whole point ─────────────────────────────
+ * It used to. GHL answered, plainly:
+ *     400 "Unsupported content type: application/json"
+ * `/medias/upload-file` wants the request a browser's file input produces —
+ * multipart/form-data. Note that Content-Type is never set by hand below: `fetch` has to
+ * generate the multipart boundary itself, and setting the header manually is exactly what
+ * silently breaks that.
+ *
+ * What GHL's docs are not explicit about is where the location goes, and whether it wants
+ * the bytes or a URL it can fetch. So the shapes are tried in order and the first success
+ * is cached. `/admin/crm` → "Test a document upload" reports which one won; once that is
+ * known for good this collapses to a single request.
+ *
+ * Takes a signed URL rather than bytes because that is what the caller already has, and
+ * fetches it here — the link is short-lived by design (see `_documents.ts`).
+ */
 export async function uploadMediaFromUrl(
   cfg: GhlConfig,
   fileUrl: string,
   name: string,
 ): Promise<GhlResult<{ url: string; fileId?: string }>> {
-  const r = await ghlFetch<{ url?: string; fileUrl?: string; id?: string; fileId?: string }>(
-    cfg, PATHS.uploadMedia, {
-      method: 'POST',
-      body: { hosted: true, fileUrl, name, locationId: cfg.locationId },
-    });
-
-  if (!r.ok) return { ok: false, status: r.status, error: r.error };
-
-  // Shape has been seen both ways in GHL's own docs; accept either rather than losing
-  // the file we just uploaded.
-  const url = r.data?.url ?? r.data?.fileUrl;
-  if (!url) {
-    console.error('[ghl-api] media uploaded but returned no url', r.data);
-    return { ok: false, status: r.status, error: 'no_media_url' };
+  let bytes: ArrayBuffer;
+  let contentType = 'application/octet-stream';
+  try {
+    const src = await fetch(fileUrl);
+    // Our own storage failing is not a GHL failure, and must not be reported as one.
+    if (!src.ok) return { ok: false, status: src.status, error: 'source_unreadable' };
+    bytes = await src.arrayBuffer();
+    contentType = src.headers.get('content-type') || contentType;
+  } catch {
+    return { ok: false, status: 0, error: 'source_unreachable' };
   }
-  return { ok: true, status: r.status, data: { url, fileId: r.data?.id ?? r.data?.fileId } };
+
+  const ext = fileUrl.split('?')[0].match(/\.[a-zA-Z0-9]+$/)?.[0] ?? '';
+  const filename = ext && !name.endsWith(ext) ? `${name}${ext}` : name;
+  const file = new Blob([bytes], { type: contentType });
+
+  const variants: Array<() => { url: string; body: FormData }> = [
+    () => {
+      const f = new FormData();
+      f.append('file', file, filename);
+      f.append('name', name);
+      f.append('locationId', cfg.locationId);
+      return { url: API_BASE + PATHS.uploadMedia, body: f };
+    },
+    () => {
+      const f = new FormData();
+      f.append('file', file, filename);
+      f.append('name', name);
+      return {
+        url: `${API_BASE}${PATHS.uploadMedia}?altId=${encodeURIComponent(cfg.locationId)}&altType=location`,
+        body: f,
+      };
+    },
+    () => {
+      const f = new FormData();
+      f.append('hosted', 'true');
+      f.append('fileUrl', fileUrl);
+      f.append('name', name);
+      f.append('locationId', cfg.locationId);
+      return { url: API_BASE + PATHS.uploadMedia, body: f };
+    },
+  ];
+
+  const all = variants.map((_, i) => i);
+  const order = mediaVariant === null ? all : [mediaVariant, ...all.filter(i => i !== mediaVariant)];
+
+  let lastStatus = 0;
+  let lastError = 'media_upload_failed';
+
+  for (const i of order) {
+    const { url, body } = variants[i]();
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.token}`,
+          Version: API_VERSION,
+          Accept: 'application/json',
+        },
+        body,
+      });
+
+      const text = await r.text();
+      if (!r.ok) {
+        lastStatus = r.status;
+        lastError = text.slice(0, 200) || `http_${r.status}`;
+        // 401/403 is the token, not the shape — trying other shapes cannot help.
+        if (r.status === 401 || r.status === 403) break;
+        continue;
+      }
+
+      mediaVariant = i;
+
+      let data: { url?: string; fileUrl?: string; id?: string; fileId?: string } = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { /* handled below */ }
+
+      // Shape has been seen both ways in GHL's own docs; accept either rather than
+      // losing the file we just uploaded.
+      const hosted = data.url ?? data.fileUrl;
+      if (!hosted) {
+        console.error('[ghl-api] media uploaded but returned no url', text.slice(0, 200));
+        return { ok: false, status: r.status, error: 'no_media_url' };
+      }
+      return { ok: true, status: r.status, data: { url: hosted, fileId: data.id ?? data.fileId } };
+    } catch (err) {
+      lastStatus = 0;
+      lastError = String(err).slice(0, 200);
+    }
+  }
+
+  return { ok: false, status: lastStatus, error: lastError };
 }

@@ -9,8 +9,17 @@ import { signDocuments } from '../ghl/_documents.js';
  * from here means a deploy per guess and a person clicking through GHL each time to check.
  *
  * This asks GHL directly and returns **the actual status and response body**, which names
- * the fault in one round trip: a 404 is the path, a 401 or 403 is a missing scope, a 422
- * is the body shape.
+ * the fault in one round trip: a 404 is the path, a 401 or 403 is a missing scope, a 400
+ * or 422 is the body shape.
+ *
+ * ── What the first run answered ──────────────────────────────────────────────────────
+ *   400 "Unsupported content type: application/json"
+ * The path and the token were both fine; `/medias/upload-file` does not take JSON at all.
+ * It wants the request a browser's file input produces — multipart/form-data. What it is
+ * not explicit about is *where* the location goes and whether it wants the bytes or a URL
+ * it can fetch, so the variants below are tried in order and the first success wins. Note
+ * that Content-Type is never set by hand for these: fetch must generate the multipart
+ * boundary itself, and setting the header manually is what silently breaks that.
  *
  * ── Why this one returns the upstream body when nothing else does ────────────────────
  * Everywhere else we deliberately withhold it, because upstream errors can name account
@@ -25,8 +34,7 @@ import { signDocuments } from '../ghl/_documents.js';
 const API_BASE = 'https://services.leadconnectorhq.com';
 const API_VERSION = '2021-07-28';
 
-/** Tried in order, first success wins. GHL has moved this endpoint between versions. */
-const CANDIDATE_PATHS = ['/medias/upload-file'];
+const UPLOAD_PATH = '/medias/upload-file';
 
 export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -83,7 +91,8 @@ export async function handler(req: any, res: any) {
   }
 
   const signed = await signDocuments(svc, withDocs.uploads);
-  const fileUrl = signed.find(Boolean);
+  const idx = signed.findIndex(Boolean);
+  const fileUrl = idx >= 0 ? signed[idx] : '';
   if (!fileUrl) {
     res.status(200).json({
       step: 'sign', ok: false,
@@ -92,46 +101,88 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  // Confirm the signed link actually serves the file before blaming GHL for not
-  // fetching it — otherwise a storage problem reads as an API problem.
+  // Fetch the bytes once, and confirm our own storage serves them before blaming GHL —
+  // otherwise a storage problem reads as an API problem. The bytes are then reused by the
+  // variants that send the file itself rather than a link to it.
   let reachable = 0;
+  let bytes: ArrayBuffer | null = null;
+  let contentType = 'application/octet-stream';
   try {
     const probe = await fetch(fileUrl, { method: 'GET' });
     reachable = probe.status;
+    if (probe.ok) {
+      bytes = await probe.arrayBuffer();
+      contentType = probe.headers.get('content-type') || contentType;
+    }
   } catch { reachable = 0; }
+
+  const uploads = Array.isArray(withDocs.uploads) ? withDocs.uploads : [];
+  const source  = (uploads[idx] ?? {}) as { label?: string; path?: string };
+  const ext      = (source.path?.match(/\.[a-zA-Z0-9]+$/)?.[0]) ?? '';
+  const name     = `diagnose-${withDocs.id}`;
+  const filename = `${name}${ext}`;
+
+  const variants: Array<{ label: string; url: string; body: FormData }> = [];
+
+  if (bytes) {
+    // A — the bytes, with the location named in the form.
+    const a = new FormData();
+    a.append('file', new Blob([bytes], { type: contentType }), filename);
+    a.append('name', name);
+    a.append('locationId', cfg.locationId);
+    variants.push({ label: 'multipart · file · locationId in form', url: API_BASE + UPLOAD_PATH, body: a });
+
+    // B — the bytes, with the location as altId/altType, which is how v2 addresses a
+    // location on several of its non-contact routes.
+    const b = new FormData();
+    b.append('file', new Blob([bytes], { type: contentType }), filename);
+    b.append('name', name);
+    variants.push({
+      label: 'multipart · file · altId/altType query',
+      url: `${API_BASE}${UPLOAD_PATH}?altId=${encodeURIComponent(cfg.locationId)}&altType=location`,
+      body: b,
+    });
+  }
+
+  // C — hand GHL the link and let it fetch. Works only while the signed URL is alive,
+  // which is minutes, but costs us no egress if it is supported.
+  const c = new FormData();
+  c.append('hosted', 'true');
+  c.append('fileUrl', fileUrl);
+  c.append('name', name);
+  c.append('locationId', cfg.locationId);
+  variants.push({ label: 'multipart · hosted fileUrl', url: API_BASE + UPLOAD_PATH, body: c });
 
   const attempts: Array<Record<string, unknown>> = [];
 
-  for (const path of CANDIDATE_PATHS) {
+  for (const v of variants) {
     try {
-      const r = await fetch(API_BASE + path, {
+      const r = await fetch(v.url, {
         method: 'POST',
+        // No Content-Type: fetch must set it, boundary and all.
         headers: {
           Authorization: `Bearer ${cfg.token}`,
           Version: API_VERSION,
-          'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({
-          hosted: true,
-          fileUrl,
-          name: `diagnose-${withDocs.id}`,
-          locationId: cfg.locationId,
-        }),
+        body: v.body,
       });
       const body = await r.text();
-      attempts.push({ path, status: r.status, body: body.slice(0, 600) });
+      attempts.push({ variant: v.label, status: r.status, body: body.slice(0, 600) });
       if (r.ok) break;
     } catch (err) {
-      attempts.push({ path, status: 0, body: String(err).slice(0, 300) });
+      attempts.push({ variant: v.label, status: 0, body: String(err).slice(0, 300) });
     }
   }
 
   res.status(200).json({
     step: 'upload',
     applicationId: withDocs.id,
-    documentCount: Array.isArray(withDocs.uploads) ? withDocs.uploads.length : 0,
+    documentCount: uploads.length,
     signedLinkStatus: reachable,   // 200 = our storage is serving it correctly
+    fileBytes: bytes ? bytes.byteLength : 0,
+    contentType,
+    winner: attempts.find(a => typeof a.status === 'number' && (a.status as number) >= 200 && (a.status as number) < 300)?.variant ?? null,
     attempts,
   });
 }
