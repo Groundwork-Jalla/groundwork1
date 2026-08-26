@@ -112,6 +112,12 @@ export interface UpsertContactInput {
   firstName?: string | null;
   lastName?: string | null;
   name?: string | null;
+  /**
+   * GHL's *native* company field, which is what the Contacts list "Business name" column
+   * reads. Distinct from the `business_name` custom field: setting one does not fill the
+   * other, and for a contractor the trading name is how you recognise them in a list.
+   */
+  companyName?: string | null;
   phone?: string | null;
   country?: string | null;
   city?: string | null;
@@ -144,8 +150,9 @@ export async function upsertContact(
       email: input.email,
       firstName: input.firstName ?? undefined,
       lastName:  input.lastName  ?? undefined,
-      name:      input.name      ?? undefined,
-      phone:     input.phone     ?? undefined,
+      name:        input.name        ?? undefined,
+      companyName: input.companyName ?? undefined,
+      phone:       input.phone       ?? undefined,
       country:   input.country   ?? undefined,
       city:      input.city      ?? undefined,
       tags:      input.tags?.length ? input.tags : undefined,

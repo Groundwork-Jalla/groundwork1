@@ -113,6 +113,10 @@ export async function syncContractorToApi(
       firstName: String(payload.first_name ?? '') || null,
       lastName:  String(payload.last_name ?? '') || null,
       name:      String(payload.full_name ?? '') || null,
+      // The old GHL workflow set this and the API did not, so every contact the API
+      // created showed a blank Business name in the contacts list while the duplicate
+      // beside it showed the trading name.
+      companyName: application.businessName || null,
       phone:     application.phone || null,
       country:   application.country || null,
       city:      application.city || null,

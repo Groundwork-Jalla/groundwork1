@@ -82,3 +82,37 @@ Useful for debugging, rarely for people.
 `/admin/applications/<id>` → **Send to CRM again**, then open the contact in GHL. Anything
 you created appears; anything you did not is simply absent. Compare against this list rather
 than against the contact, because an absent field and an empty one look the same.
+
+---
+
+## The fields that are *not* ours
+
+On a contractor contact you will also see things like:
+
+> What country is your project in? · What is your estimated total budget? · What stage is
+> your project in? · Are you currently sending monthly funds from salary? · Revenue Range ·
+> Biggest revenue challenge · Reason for seeking support · Desired outcome · Best time for
+> call
+
+**None of these come from Groundwork.** Nothing in this codebase sends them. They are custom
+fields that already exist in the GHL sub-account — from the homeowner intake questions and
+from other products sharing the location — and GHL shows **every** custom field on **every**
+contact, whether or not it applies. A contractor has no answer to "what is your estimated
+total budget?", so it renders as `--`.
+
+There is no per-contact-type field view in GHL's standard contact detail, so this is fixed
+by configuration, not by code. Three options, cheapest first:
+
+1. **Hide empty fields.** In the contact detail, next to *Search fields and folders*, there
+   is a filter control. Toggling empty fields off removes every `--` row at once and changes
+   no settings. This is almost certainly what you want.
+2. **Group ours into a folder.** Settings → Custom Fields → new folder, e.g.
+   *Contractor Application*, and move the fields from Tiers 1–4 above into it. The contact
+   detail then shows collapsible folders, so unrelated groups fold away. The account already
+   uses folders — *General Info* and *Additional Info* are two of them.
+3. **Delete what is genuinely dead.** Only for fields no form, workflow or automation still
+   writes to. Deleting a field deletes its stored answers on every contact, so check before
+   removing anything that another product is still filling in.
+
+**Match on the key, not the label.** A field displayed as "Language" is only filled by our
+`lang` if its *key* is `lang`. Two fields can share a label and behave completely differently.
