@@ -207,3 +207,46 @@ export async function markApplicationSynced(applicationId: string): Promise<void
     console.warn('[ghl] application forwarded but could not be marked synced:', err);
   }
 }
+
+/** Every credential key the form can set, across all four credential tracks. */
+const CRED_KEYS = [
+  'avgProject', 'diaspora', 'diasporaProperty', 'legalServices',
+  'paymentStructure', 'services', 'software', 'tradeProjects', 'workStyle',
+];
+
+/**
+ * Every custom field a contractor application can ever set.
+ *
+ * Derived by running the builder over a maximal application rather than written out by
+ * hand. A hand-written list drifts the moment someone adds a field, and the consequence
+ * of drift here is invisible: **GoHighLevel silently discards a value whose field does
+ * not exist**, so a missing name shows up as a blank on the contact — identical to a
+ * question the applicant skipped. Projects 1–3 were being dropped this way for weeks.
+ *
+ * Used by the admin "create missing fields" action, which is the only sane way to get a
+ * hundred-odd fields into GHL.
+ */
+export function contractorFieldKeys(): string[] {
+  const pad = (n: number, make: (i: number) => unknown) => Array.from({ length: n }, (_, i) => make(i));
+
+  const payload = buildContractorPayload({
+    applicationId: 'x', status: 'pending',
+    fullName: 'x x', businessName: 'x', phone: 'x', email: 'x@x.x',
+    country: 'CM', city: 'x', portfolioUrl: 'x',
+    role: 'general_contractor', roleOther: 'x',
+    yearsExperience: 'x', operatesAs: 'x', teamSize: 'x', projectTypes: ['x'],
+    credentials: Object.fromEntries(CRED_KEYS.map(k => [k, 'x'])),
+    uploads:  pad(MAX_DOCUMENTS, i => ({ label: `x${i}`, path: `x${i}.pdf`, size: 1 })) as never,
+    projects: pad(MAX_PROJECTS,  i => ({
+      name: `x${i}`, location: 'x', budget: 'x', role: 'x', year: 'x',
+      refName: 'x', refPhone: 'x', refEmail: 'x@x.x',
+    })) as never,
+    acceptsMilestones: true, acceptsVerification: true, acceptsNoSidePay: true,
+    videoUrl: 'x', whyJoin: 'x', differentiator: 'x', readyForEarly: true,
+    regions: 'x', concurrentProjects: 'x', agreedToTerms: true, lang: 'en',
+    documentUrls: pad(MAX_DOCUMENTS, i => `https://x/${i}`) as string[],
+  });
+
+  // `tags` is an array handled separately by the upsert, not a custom field.
+  return Object.keys(payload).filter(k => k !== 'tags').sort();
+}

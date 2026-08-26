@@ -91,3 +91,62 @@ describe('buildContractorPayload — documents', () => {
     expect(out.documents_summary).toBeNull();
   });
 });
+
+/**
+ * The list that tells the admin action which custom fields GoHighLevel needs.
+ *
+ * GHL discards a value whose field does not exist — silently, with a 200 — so on the
+ * contact it renders as a blank, identical to a question the applicant skipped. Project
+ * references 1, 2 and 3 were dropped this way for weeks before anyone noticed.
+ *
+ * The list is derived from the builder rather than typed out, so the failure it guards
+ * against is a field that the builder emits only on some branch and the list never sees.
+ */
+describe('contractorFieldKeys', () => {
+  it('covers every key a real application actually produces', async () => {
+    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+    const canonical = new Set(contractorFieldKeys());
+
+    const real = buildContractorPayload({
+      ...base({
+        uploads: docs(3),
+        projects: [
+          { name: 'Villa', location: 'Douala', budget: '1', role: 'GC', year: '2024',
+            refName: 'R', refPhone: '1', refEmail: 'r@x.c' },
+        ] as never,
+        credentials: { diaspora: true, workStyle: 'x', software: 'y' },
+      }),
+      applicationId: 'a', status: 'pending', documentUrls: urls(3),
+    });
+
+    const uncovered = Object.keys(real).filter(k => k !== 'tags' && !canonical.has(k));
+    expect(uncovered).toEqual([]);
+  });
+
+  it('includes the project reference fields that were being dropped', async () => {
+    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+    const keys = contractorFieldKeys();
+
+    for (const n of [1, 2, 3]) {
+      expect(keys).toContain(`project_${n}_name`);
+      expect(keys).toContain(`project_${n}_ref_email`);
+      expect(keys).toContain(`project_${n}_ref_phone`);
+    }
+    // The two that make a contact readable without opening the admin console.
+    expect(keys).toContain('projects_summary');
+    expect(keys).toContain('documents_summary');
+  });
+
+  it('emits keys GHL can actually address', async () => {
+    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+    for (const k of contractorFieldKeys()) {
+      // No spaces, no dots — a dot collides with GHL's own `contact.` prefixing.
+      expect(k).toMatch(/^[a-zA-Z0-9_]+$/);
+    }
+  });
+
+  it('never offers `tags` as a custom field — it is an array the upsert handles', async () => {
+    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+    expect(contractorFieldKeys()).not.toContain('tags');
+  });
+});

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import {
-  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments,
+  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields,
   type CrmStatus, type OutboxRow,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,9 @@ export default function AdminCrm() {
   const [notice, setNotice]   = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
+  const [fields, setFields] = useState<string | null>(null);
+  const [fieldsBusy, setFieldsBusy] = useState(false);
+  const [missingCount, setMissingCount] = useState<number | null>(null);
 
   async function load() {
     setLoading(true); setError(null);
@@ -93,6 +96,24 @@ export default function AdminCrm() {
       setDiagnosis(t('admin.crm.diagnoseFailed'));
     } finally {
       setDiagnosing(false);
+    }
+  }
+
+  /**
+   * Two presses, deliberately. The first only reports what GHL is missing; the second
+   * writes a hundred-odd fields into a live CRM, which should never happen because a
+   * button happened to be under the cursor.
+   */
+  async function checkFields(create: boolean) {
+    setFieldsBusy(true);
+    try {
+      const r = await syncCrmFields(create) as { missingCount?: number; createdCount?: number };
+      setFields(JSON.stringify(r, null, 2));
+      setMissingCount(create ? null : (typeof r.missingCount === 'number' ? r.missingCount : null));
+    } catch {
+      setFields(t('admin.crm.fieldsFailed'));
+    } finally {
+      setFieldsBusy(false);
     }
   }
 
@@ -164,6 +185,35 @@ export default function AdminCrm() {
                 {t('admin.crm.diagnose')}
               </button>
               <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.diagnoseHint')}</p>
+
+              {/* Custom fields. The single biggest cause of "the data is not in GHL":
+                  a field that does not exist there is dropped on arrival, and shows on
+                  the contact as a blank rather than as an error. */}
+              <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button" disabled={fieldsBusy} onClick={() => void checkFields(false)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                  >
+                    {fieldsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                    {t('admin.crm.fieldsCheck')}
+                  </button>
+                  {missingCount !== null && missingCount > 0 && (
+                    <button
+                      type="button" disabled={fieldsBusy} onClick={() => void checkFields(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    >
+                      {t('admin.crm.fieldsCreate', { n: missingCount })}
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.fieldsHint')}</p>
+                {fields && (
+                  <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
+{fields}
+                  </pre>
+                )}
+              </div>
               {diagnosis && (
                 <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
 {diagnosis}

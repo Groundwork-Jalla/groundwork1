@@ -450,3 +450,19 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
   });
   return r.json();
 }
+
+/**
+ * Ask GoHighLevel which of our custom fields it is missing, and optionally create them.
+ *
+ * GHL discards a value whose field does not exist — silently, with a 200 — so a field
+ * nobody created looks exactly like a question the applicant skipped. Without `create`
+ * this only reports; nothing is written to the CRM.
+ */
+export async function syncCrmFields(create = false): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-fields', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ create }),
+  });
+  return r.json();
+}

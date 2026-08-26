@@ -330,6 +330,13 @@ export const en = {
       backlog:      'Waiting to reach the CRM ({n})',
       diagnose:     'Test a document upload',
       diagnoseHint: 'Uploads one real document and prints exactly what Go High Level answered.',
+      // GHL drops a value whose field it does not have — silently, with a 200 — so the
+      // contact shows a blank rather than an error. This is how project references went
+      // missing for weeks.
+      fieldsCheck:  'Check custom fields',
+      fieldsCreate: 'Create {n} missing fields',
+      fieldsHint:   'Go High Level silently discards any field it does not already have, so a missing field looks exactly like a blank answer. Checking changes nothing; creating adds only what is absent.',
+      fieldsFailed: 'Could not reach Go High Level to check its fields.',
       diagnoseFailed: 'The test could not run.',
       backlogEmpty: 'Everything has reached the CRM.',
       retry:        'Send them now',

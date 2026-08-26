@@ -35,6 +35,7 @@ const PATHS = {
   updateOpportunity: (id: string) => `/opportunities/${id}`,
   uploadMedia:       '/medias/upload-file',
   listMedia:         '/medias/files',
+  customFields:      (locationId: string) => `/locations/${locationId}/customFields`,
   // Folder creation is not part of GHL's published v2 media surface the way uploading is.
   // These are the plausible routes; `ensureFolder` tries them in order and remembers the
   // one that answers, and /admin/crm reports which. If all of them fail the upload still
@@ -259,6 +260,75 @@ export async function moveToStage(
  * GoHighLevel's documentation, written without a token to test against. If uploads 404
  * or 422, this and the PATHS block above are the two places to look.
  */
+/**
+ * The custom fields a location has, and creating the ones it does not.
+ *
+ * ── Why this is worth an API call ────────────────────────────────────────────────────
+ * GHL drops any custom field it does not already have, silently and with a 200. On the
+ * contact, a field that was never created looks exactly like a question the applicant
+ * skipped. A contractor application carries over a hundred fields; three project
+ * references went missing this way for weeks before anyone noticed, because "blank"
+ * and "discarded" render identically.
+ *
+ * Creating a hundred fields by hand in the GHL console is not a reasonable ask, and doing
+ * it by hand is also how two of them end up misspelled — at which point they are dropped
+ * forever and look, again, like blanks.
+ */
+export interface GhlCustomField {
+  id: string;
+  /** The addressable key. GHL prefixes stored keys with `contact.`; compared without it. */
+  key: string;
+  name: string;
+}
+
+/** Strips GHL's `contact.` prefix so a key can be compared with what we send. */
+const bareKey = (k: string) => k.replace(/^contact\./, '');
+
+export async function listCustomFields(cfg: GhlConfig): Promise<GhlResult<GhlCustomField[]>> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.customFields(cfg.locationId), {
+    method: 'GET',
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as { customFields?: unknown; customField?: unknown };
+  const rows = [d.customFields, d.customField, r.data].find(Array.isArray) as
+    | Array<Record<string, unknown>>
+    | undefined;
+
+  const fields = (rows ?? []).map(row => ({
+    id:   String(row.id ?? row._id ?? ''),
+    key:  bareKey(String(row.fieldKey ?? row.key ?? '')),
+    name: String(row.name ?? ''),
+  })).filter(f => f.key);
+
+  return { ok: true, status: r.status, data: fields };
+}
+
+/**
+ * Creates one text custom field on the contact object.
+ *
+ * Everything is created as TEXT deliberately. The payload flattens numbers, booleans and
+ * lists to text before sending (`buildContractorPayload`), so a typed field would reject
+ * values it should accept — a NUMERICAL `upload_count` refusing an empty string, say —
+ * and a rejected value is another silent blank.
+ */
+export async function createCustomField(
+  cfg: GhlConfig,
+  key: string,
+  name: string,
+): Promise<GhlResult<{ id: string }>> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.customFields(cfg.locationId), {
+    method: 'POST',
+    body: { name, fieldKey: `contact.${key}`, dataType: 'TEXT', model: 'contact', placeholder: '' },
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as Record<string, unknown>;
+  const nested = (d.customField ?? d.field ?? {}) as Record<string, unknown>;
+  const id = d.id ?? d._id ?? nested.id ?? nested._id;
+  return { ok: true, status: r.status, data: { id: String(id ?? '') } };
+}
+
 /**
  * One folder per applicant in GHL's media library.
  *
