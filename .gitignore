@@ -6,7 +6,11 @@ build
 .DS_Store
 .vercel
 supabase/.temp
-.claude/
+# Claude Code. Everything local stays local — settings.json holds a permission
+# allowlist with machine-specific paths and a GoHighLevel webhook URL — but the AGENT
+# definitions are shared work and belong in review like any other code.
+.claude/*
+!.claude/agents/
 __pycache__/
 
 # Rendered email previews — build output of src/lib/email/render-previews.test.ts
