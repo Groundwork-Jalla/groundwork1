@@ -248,4 +248,58 @@ describe('no component re-derives its own total', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it('has no wizard component pricing off the bundled rate card', async () => {
+    // The same bug in its second disguise, found in beta testing on 25 Aug 2026: step 9
+    // showed $144,769.23 in the summary panel and $75,462.32 on the badge over the
+    // building, for one project.
+    //
+    // `calculateBudget(data)` with no rate argument silently falls back to the bundled
+    // card, while anything reading `useWizard()` has the FETCHED rates sitting right
+    // there in context. The two agree only while the database matches the bundle, so
+    // this diverges the moment a rate migration is written and before it is run — which
+    // is exactly the window the tester hit.
+    //
+    // Scoped to files that already have the fetched rates in hand. Elsewhere the bare
+    // call is legitimate: /tools/budget prices for an anonymous visitor with no project
+    // and no context to read from.
+    const { readdir, readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+
+    const offenders: string[] = [];
+
+    async function walk(dir: string): Promise<void> {
+      for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) { await walk(path); continue; }
+        if (!/\.tsx?$/.test(entry.name)) continue;
+        if (/\.test\.tsx?$/.test(entry.name)) continue;
+        const raw = await readFile(path, 'utf8');
+        if (!raw.includes('useWizard()')) continue;
+        // Comments blanked, not stripped, so reported line numbers still line up. A note
+        // explaining why the bare call was wrong should not itself read as the bare call.
+        const src = raw
+          .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+          .replace(/\/\/[^\n]*/g, m => ' '.repeat(m.length));
+        // Every `calculateBudget(...)` call in such a file must be handed the rates.
+        // Checked by walking to the matching bracket rather than by regex, because the
+        // first argument is usually an object literal — `{ ...data, roofType: x }` — and
+        // a naive `[^)]*` stops at the wrong paren and passes anything.
+        for (const m of src.matchAll(/\bcalculateBudget\s*\(/g)) {
+          let depth = 1;
+          let i = m.index! + m[0].length;
+          for (; i < src.length && depth > 0; i++) {
+            if ('([{'.includes(src[i])) depth++;
+            else if (')]}'.includes(src[i])) depth--;
+          }
+          if (!src.slice(m.index!, i).includes('constructionRate')) {
+            offenders.push(`${path}:${src.slice(0, m.index!).split('\n').length}`);
+          }
+        }
+      }
+    }
+    await walk('src');
+
+    expect(offenders).toEqual([]);
+  });
 });

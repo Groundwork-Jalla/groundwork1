@@ -200,43 +200,29 @@ export async function restoreProject(projectId: string): Promise<void> {
 }
 
 // =========================================================
-// deleteProject — permanent
+// There is no deleteProject, and this note is here so nobody writes one back.
 //
-// RLS already allows this: `owner_all_projects` (003) is FOR ALL. The row's foreign keys
-// cascade to stages, substages, documents, messages, audit log, certificates, fees (036)
-// and take-offs (039), so the database cleans itself up.
+// Removed 25 Aug 2026 (migration 053). Favour: "i dont want them to be able to delete
+// any projects free plan or not". The free plan allows three projects "archived or not,
+// deleted or not", and a row that cannot disappear is what makes the second half of
+// that sentence enforceable without a tombstone table or a counter.
 //
-// STORAGE DOES NOT CASCADE. A foreign key drops the `project_documents` ROWS and leaves
-// the actual files sitting in the bucket forever — invisible, still billed, and still
-// containing whatever the owner uploaded. `deleteDocument` removes them one at a time
-// (documents.ts:88); nothing did it in bulk until now.
+// 053 also split `owner_all_projects` (which was FOR ALL) into SELECT/INSERT/UPDATE, so
+// this is not merely absent from the client — the privilege is gone. A DELETE written
+// here would fail at the database, which is the correct outcome.
 //
-// Storage is purged FIRST, deliberately. If the purge fails we stop and the project is
-// still there to try again — the reverse order would delete the row and lose the paths,
-// leaving files no query can ever find.
+// Two things the old implementation knew, worth keeping if deletion ever returns:
+//
+//   · STORAGE DOES NOT CASCADE. Foreign keys drop the `project_documents` rows and leave
+//     the files in the bucket forever — invisible, still billed, still containing
+//     whatever the owner uploaded. They must be purged explicitly.
+//   · Purge storage FIRST. If it fails, stop, and the project is still there to retry.
+//     The reverse order deletes the row, loses the paths, and orphans the files.
+//
+// `admin_delete_user()` (035) still removes an account and cascades its projects. It is
+// SECURITY DEFINER, so RLS does not apply, and it is now the only route by which a
+// project row disappears.
 // =========================================================
-export async function deleteProject(projectId: string): Promise<void> {
-  const { data: docs, error: listError } = await supabase
-    .from('project_documents')
-    .select('file_path')
-    .eq('project_id', projectId);
-
-  if (listError) throw listError;
-
-  const paths = (docs ?? [])
-    .map(d => (d as { file_path: string }).file_path)
-    .filter(Boolean);
-
-  if (paths.length > 0) {
-    const { error: storageError } = await supabase.storage.from('documents').remove(paths);
-    if (storageError) throw storageError;
-  }
-
-  const { error } = await supabase.from('projects').delete().eq('id', projectId);
-  if (error) throw error;
-
-  trackEvent('project_deleted', { project_id: projectId, documents: paths.length });
-}
 
 // =========================================================
 // fetchProject — user-scoped via RLS

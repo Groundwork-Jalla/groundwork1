@@ -530,14 +530,22 @@ export default function Dashboard() {
   const nameSet    = !!user?.user_metadata?.full_name;
   const idUploaded = !!user?.user_metadata?.id_document_path;
 
-  // Same rule as the trigger and as /projects — archived projects do not count.
+  // Same rule as the trigger and as /projects — every free-tier project counts, archived
+  // included (migration 053).
+  const usedSlots      = countTowardLimit(projects);
   const atStarterLimit = atProjectLimit(projects);
 
+  // Archived projects come off the dashboard. They stayed in the grid until now, which
+  // is what the first beta tester read as "archiving does not free a plan slot" — the
+  // card sitting there looked like the slot sitting there. The slot line below answers
+  // the question the grid was being asked to answer.
+  const visibleProjects = projects.filter(p => p.status !== 'archived');
+  const archivedCount   = projects.length - visibleProjects.length;
 
-  const activeProject = projects
+  const activeProject = visibleProjects
     .filter(p => p.status === 'active')
     .sort((a, b) => new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime())[0]
-    ?? projects[0];
+    ?? visibleProjects[0];
 
 
   useEffect(() => {

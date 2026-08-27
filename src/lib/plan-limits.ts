@@ -3,16 +3,16 @@ import type { ProjectRow } from '@/types/project';
 // =========================================================
 // Plan limits, counted the way the DATABASE counts them.
 //
-// `check_starter_project_limit()` (migration 008) is the only authority here:
+// `check_starter_project_limit()` (migration 053) is the only authority here:
 //
 //     SELECT COUNT(*) FROM public.projects
 //     WHERE user_id = NEW.user_id
 //       AND tier = 'self_verify'
-//       AND status != 'archived'          <-- this line
 //     >= 3  -> RAISE
 //
-// The UI counted every Self Verify project regardless of status, which disagreed with
-// the trigger in both directions and produced two visible bugs:
+// It used to carry `AND status != 'archived'`, and the UI used to count every project
+// regardless of status. Disagreeing with the trigger in either direction is what this
+// file exists to prevent — it produced two visible bugs while they were out of step:
 //
 //   · "5 / 3 Self Verify projects used — limit reached" while the database happily
 //     allowed a fourth, because two of the five were archived.
@@ -20,8 +20,9 @@ import type { ProjectRow } from '@/types/project';
 //     button, because `!atStarterLimit` gated it on the wrong number. The one action
 //     that fixes the problem appeared not to work.
 //
-// One function, used by every screen that shows or gates on the limit, so the client can
-// only ever be wrong in the same way the server is.
+// 053 settled it the other way, on Favour's call: archived projects DO count, and owners
+// can no longer delete, so the count never falls. Whichever way the rule goes, the rule
+// lives in one function on each side and the two are kept identical on purpose.
 // =========================================================
 
 export const SELF_VERIFY_PROJECT_LIMIT = 3;
@@ -34,11 +35,16 @@ function isFreeTier(project: Pick<ProjectRow, 'tier'>): boolean {
 /**
  * Free-plan projects that count against the cap.
  *
- * Archived projects are excluded — that is the whole point of archiving, and it is what
- * the trigger checks.
+ * EVERY free-tier project counts, archived included — matching migration 053's trigger.
+ * Archiving hides a project; it does not give a slot back, and owners can no longer
+ * delete at all, so this number only ever goes up.
+ *
+ * `status` stays in the signature. It is what makes the change from "excluding archived"
+ * to "counting everything" a one-line edit here rather than a hunt through call sites,
+ * and both callers already pass whole rows.
  */
 export function countTowardLimit(projects: Pick<ProjectRow, 'tier' | 'status'>[]): number {
-  return projects.filter(p => isFreeTier(p) && p.status !== 'archived').length;
+  return projects.filter(isFreeTier).length;
 }
 
 export function atProjectLimit(projects: Pick<ProjectRow, 'tier' | 'status'>[]): boolean {

@@ -135,7 +135,6 @@ export default function ProjectDetail() {
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   // Only for the delete confirmation, which states what goes with the project rather
   // than asking "are you sure?" about nothing in particular.
-  const [documentCount, setDocumentCount] = useState(0);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -145,19 +144,16 @@ export default function ProjectDetail() {
   const loadAll = useCallback(async () => {
     if (!id) return;
     try {
-      const [p, s, sub, docs] = await Promise.all([
+      // The document count went with the delete confirmation it was counting for (053).
+      const [p, s, sub] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
-        supabase.from('project_documents')
-          .select('id', { count: 'exact', head: true })
-          .eq('project_id', id),
       ]);
       if (!p) { setError('Project not found.'); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
-      setDocumentCount(docs.count ?? 0);
     } catch {
       setError('Failed to load project.');
     }
@@ -528,12 +524,7 @@ export default function ProjectDetail() {
             action people cannot find when they need it.
           */}
           {!isContractor && (
-            <DangerZone
-              project={project}
-              stageCount={stages.length}
-              documentCount={documentCount}
-              onChanged={loadAll}
-            />
+            <DangerZone project={project} onChanged={loadAll} />
           )}
           </>
 

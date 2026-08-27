@@ -208,7 +208,7 @@ const MATERIAL_ICONS: Record<RoofType, React.ReactNode> = {
 
 export default function Step7RoofType() {
   const t = useT();
-  const { data, update, next } = useWizard();
+  const { data, update, next, constructionRate, cityRate } = useWizard();
 
   // Derived, not stored: re-entering the step with a roof already chosen reopens on its
   // form rather than resetting to the fork.
@@ -225,15 +225,18 @@ export default function Step7RoofType() {
     // going to be priced on anyway.
     const sqm = (data.sqm ?? 0) > 0 ? data.sqm : estimateSqm(data)?.typical ?? 0;
     const priced = { ...data, sqm };
-    const base = calculateBudget({ ...priced, roofType: 'long_span_aluminum' }).construction;
+    // Priced off the FETCHED rate card, like every other step. These are ratios, so the
+    // rate card mostly cancels — but not exactly, and a badge computed from a different
+    // card than the summary is the same class of bug as the two totals on step 9.
+    const cost = (roofType: RoofType) =>
+      calculateBudget({ ...priced, roofType }, constructionRate, cityRate).construction;
+    const base = cost('long_span_aluminum');
     const out: Partial<Record<RoofType, number>> = {};
     for (const o of ROOF_OPTIONS) {
-      out[o.value] = roofChoiceBuildDelta(
-        calculateBudget({ ...priced, roofType: o.value }).construction, base,
-      );
+      out[o.value] = roofChoiceBuildDelta(cost(o.value), base);
     }
     return out;
-  }, [data]);
+  }, [data, constructionRate, cityRate]);
 
   function chooseForm(f: RoofForm) {
     setForm(f);
