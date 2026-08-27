@@ -169,3 +169,24 @@ export function countLivingRooms(data: Partial<WizardFormData>): number {
   }
   return data.livingRooms ?? 0;
 }
+
+/**
+ * Doors and windows, as the take-off counts them (BQ items 601 and 605).
+ *
+ * Nothing asks the client for these — they fall out of the room schedule, the same way
+ * the footprint does. The formulas are duplicated from `engine.ts` deliberately NOT at
+ * all: this is the single definition, and engine.ts calls it.
+ *
+ * Surfaced because the beta test script tells testers to choose a number of windows and
+ * there is no such control (25 Aug 2026). Windows were always priced; they were simply
+ * never shown, so the figure looked missing rather than derived.
+ *
+ * The +1 on each is the front door and the window that goes with it — a building has one
+ * more opening than it has rooms.
+ */
+export function countOpenings(data: Partial<WizardFormData>): { doors: number; windows: number } {
+  return {
+    doors:   countRooms(data) + 1,
+    windows: countBedrooms(data) + countLivingRooms(data) + 1,
+  };
+}

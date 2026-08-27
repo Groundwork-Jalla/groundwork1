@@ -16,7 +16,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { atProjectLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
+import { atProjectLimit, countTowardLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -599,7 +599,7 @@ export default function Dashboard() {
       .then(({ count }) => setContractorCount(count ?? 0));
   }, [user, projects]);
 
-  const otherProjects = projects.filter(p => p.id !== activeProject?.id);
+  const otherProjects = visibleProjects.filter(p => p.id !== activeProject?.id);
 
   return (
     // Design B: focus-forward. One active build owns the top of the page; everything
@@ -611,12 +611,24 @@ export default function Dashboard() {
           <p className="text-xs text-brand-mid-grey">{t(greetingKey())}</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-near-black dark:text-white">{displayName}</h1>
         </div>
-        {!isContractor && !atStarterLimit && (
-          <Link to="/projects/new"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
-            <Plus className="size-4" /> {t('dashboard.newProject')}
-          </Link>
-        )}
+        {/* Slots, stated. Without this the only way to learn whether archiving freed
+            one was to try to create a project and see — which is exactly what the first
+            beta tester did, and they drew the wrong conclusion. Shown only on the free
+            plan, where a cap exists, and only once something has loaded. */}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          {!isContractor && !loading && usedSlots > 0 && (
+            <p className="text-[11px] tabular-nums text-brand-mid-grey">
+              {t('dashboard.slotsUsed', { used: usedSlots, limit: STARTER_LIMIT })}
+              {archivedCount > 0 && ` · ${t('dashboard.slotsArchived', { count: archivedCount })}`}
+            </p>
+          )}
+          {!isContractor && !atStarterLimit && (
+            <Link to="/projects/new"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
+              <Plus className="size-4" /> {t('dashboard.newProject')}
+            </Link>
+          )}
+        </div>
       </div>
 
       {!loading && !isContractor && (

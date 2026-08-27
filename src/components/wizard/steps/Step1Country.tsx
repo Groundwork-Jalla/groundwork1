@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Info, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
+import { hasLocalBq } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -136,6 +137,21 @@ export default function Step1Country() {
               {t('wizard.change')}
             </button>
           </motion.div>
+        )}
+
+        {/* Said here, where the choice is made, rather than only on step 9 after ten
+            screens of work. Cameroon is the only country with real Bills of Quantity
+            behind it; everywhere else is a regional index, and a beta tester filing a
+            pricing report against Tanzania has no way to know that from the picker. */}
+        {data.country && !showSearch && !hasLocalBq(data.country) && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-brand-mid-grey"
+          >
+            <Info className="mt-px size-3.5 shrink-0" />
+            {t('wizard.countryUnverified', { country: country(data.country) })}
+          </motion.p>
         )}
       </div>
     </WizardShell>

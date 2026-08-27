@@ -5,7 +5,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { calculateBudgetDetail, formatUSD, isFlatRoof } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/project';
-import { useT, type TKey } from '@/lib/i18n';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { BLUEPRINTS } from './blueprints';
 import { BLUEPRINT_SURFACE, GridBackdrop } from './blueprints/frame';
@@ -827,7 +827,8 @@ function Signpost({ visible, name }: { visible: boolean; name: string }) {
 
 function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useWizard>['data'] }) {
   const t = useT();
-  const countryName = useDomainLabels().country(data.country);
+  const labels = useDomainLabels();
+  const countryName = labels.country(data.country);
   // The SAME rates the summary panel prices with. This used to be a bare
   // `calculateBudget(data)`, which falls back to the bundled rate card while
   // Step9Summary priced off the fetched one — so step 9 showed two different totals for
@@ -841,13 +842,13 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
   return (
     <AnimatePresence mode="popLayout">
       {step === 1 && data.country && (
-        <Badge key="loc" icon={<MapPin className="size-3.5" />} label={`Building in ${countryName}`} pos="tr" />
+        <Badge key="loc" icon={<MapPin className="size-3.5" />} label={t('buildPreview.hint.buildingIn', { country: countryName })} pos="tr" />
       )}
       {step === 2 && (
-        <Badge key="type" icon={<Building2 className="size-3.5" />} label={t('buildPreview.planningPhase')} sub="Foundation next" pos="tr" />
+        <Badge key="type" icon={<Building2 className="size-3.5" />} label={t('buildPreview.planningPhase')} sub={t('buildPreview.foundationNext')} pos="tr" />
       )}
       {step === 3 && data.buildingType && (
-        <Badge key="bt" icon={<Building2 className="size-3.5" />} label={getBuildingTypeLabel(data.buildingType)} pos="tr" />
+        <Badge key="bt" icon={<Building2 className="size-3.5" />} label={labels.buildingType(data.buildingType)} pos="tr" />
       )}
       {step === 4 && (
         <>
@@ -884,14 +885,14 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
         <Badge key="bq" icon={<Home className="size-3.5" />} label="Staff Quarters" pos="tr" />
       )}
       {step === 7 && data.roofType && (
-        <Badge key="roof" icon={<Wrench className="size-3.5" />} label={getRoofLabel(data.roofType)} pos="tr" />
+        <Badge key="roof" icon={<Wrench className="size-3.5" />} label={labels.roofType(data.roofType)} pos="tr" />
       )}
       {step === 8 && data.projectName && (
         <Badge key="name" icon={<Building2 className="size-3.5" />} label={data.projectName} sub={data.city || undefined} pos="tr" />
       )}
       {step === 9 && budget && (
         <>
-          <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub="est." pos="tr" />
+          <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub={t('buildPreview.estAbbrev')} pos="tr" />
           <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label={t('buildPreview.readyToBuild')} pos="bl" />
         </>
       )}
@@ -899,40 +900,40 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
   );
 }
 
-function getBuildingTypeLabel(bt: string): string {
-  const map: Record<string, string> = {
-    single_family: 'Single Family', multi_family: 'Multi-Family', townhouse: 'Townhouse',
-    semi_detached: 'Semi-Detached', office: 'Office Building', retail: 'Retail',
-    warehouse_commercial: 'Warehouse', hotel: 'Hotel', factory: 'Factory',
-    warehouse_industrial: 'Industrial', industrial_complex: 'Industrial Complex',
-    distribution_centre: 'Distribution Centre', mixed_residential_commercial: 'Mixed Use',
-    live_work: 'Live / Work', mixed_retail_residential: 'Retail + Residential', transit_oriented: 'Transit-Oriented',
-  };
-  return map[bt] ?? bt;
-}
-
-function getRoofLabel(rt: string): string {
-  const map: Record<string, string> = {
-    long_span_aluminum: 'Long Span Aluminum', clay_tiles: 'Clay Tiles',
-    concrete_flat: 'Concrete Flat', aluminium_deck: 'Aluminium Deck', shingle: 'Shingle',
-    stone_coated: 'Stone-Coated Sheet',
-  };
-  return map[rt] ?? rt;
-}
-
 // ── Step hint text ─────────────────────────────────────────────
+//
+// This whole panel was hardcoded English, including the two labels a beta tester
+// circled on 25 Aug 2026 after switching to French: "MAIN BUILDING ONLY" and the
+// dimension beneath the building. Every string here now goes through the dictionary,
+// and the building-type and roof labels through `useDomainLabels`, which resolves the
+// same `buildingType.*` / `roofType.*` keys the rest of the app already uses — rather
+// than a second private map that can drift from them.
 
-function getHint(step: number, data: ReturnType<typeof useWizard>['data'], countryName: string): string {
+function useStepHint(
+  step: number,
+  data: ReturnType<typeof useWizard>['data'],
+  countryName: string,
+): string {
+  const t = useT();
+  const { tPlural } = useLanguage();
+  const labels = useDomainLabels();
+
   switch (step) {
-    case 1: return data.country ? `Building in ${countryName}` : 'Choose your location';
-    case 2: return 'What kind of project?';
-    case 3: return 'Defining the building type';
-    case 4: return `${data.floors} ${data.floors === 1 ? 'storey' : 'storeys'}`;
-    case 5: return 'Rooms per floor';
-    case 6: return data.hasBoysQuarters ? 'Including staff annex' : 'Main building only';
-    case 7: return data.roofType ? getRoofLabel(data.roofType) : 'Choose a roof type';
-    case 8: return data.projectName || 'Name your project';
-    case 9: return 'Ready to build';
+    case 1: return data.country
+      ? t('buildPreview.hint.buildingIn', { country: countryName })
+      : t('buildPreview.hint.chooseLocation');
+    case 2: return t('buildPreview.hint.whatKind');
+    case 3: return t('buildPreview.hint.definingType');
+    case 4: return tPlural('buildPreview.hint.storeys', data.floors, { count: data.floors });
+    case 5: return t('buildPreview.hint.roomsPerFloor');
+    case 6: return t(data.hasBoysQuarters
+      ? 'buildPreview.hint.withAnnex'
+      : 'buildPreview.hint.mainOnly');
+    case 7: return data.roofType
+      ? labels.roofType(data.roofType)
+      : t('buildPreview.hint.chooseRoof');
+    case 8: return data.projectName || t('buildPreview.hint.nameProject');
+    case 9: return t('buildPreview.hint.readyToBuild');
     default: return '';
   }
 }
@@ -982,6 +983,8 @@ export function BuildingPreview() {
   const { step, data } = useWizard();
   const { country } = useDomainLabels();
   const countryName = country(data.country);
+  // Computed once — it is rendered at three breakpoints and must not differ between them.
+  const stepHint = useStepHint(step, data, countryName);
 
   const isMapStep      = step === 1;
   const isImageStep    = step === 2 || step === 3 || step === 7;
@@ -1050,7 +1053,7 @@ export function BuildingPreview() {
                   transition={{ duration: 0.25 }}
                   className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey dark:text-white/60"
                 >
-                  {getHint(step, data, countryName)}
+                  {stepHint}
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -1091,7 +1094,7 @@ export function BuildingPreview() {
                   transition={{ duration: 0.25 }}
                   className="text-[11px] font-semibold text-brand-mid-grey dark:text-white/40 uppercase tracking-wider"
                 >
-                  {getHint(step, data, countryName)}
+                  {stepHint}
                 </motion.p>
               </AnimatePresence>
             </div>
@@ -1151,7 +1154,7 @@ export function BuildingPreview() {
               transition={{ duration: 0.25 }}
               className="text-[11px] font-semibold uppercase tracking-wider text-brand-mid-grey dark:text-white/80"
             >
-              {getHint(step, data, countryName)}
+              {stepHint}
             </motion.p>
           </AnimatePresence>
         </div>

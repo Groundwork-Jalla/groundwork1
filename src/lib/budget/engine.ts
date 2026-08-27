@@ -2,7 +2,7 @@ import type {
   CityRate, ConstructionRate, TakeoffModel, WizardFormData,
 } from '@/types/project';
 import { BASELINE_CITY, CITY_RATES, CM_TAKEOFF, resolveCityRate } from './model';
-import { countBedrooms, countLivingRooms, deriveQuantities, type DetailedTakeoffInput } from './geometry';
+import { countOpenings, deriveQuantities, type DetailedTakeoffInput } from './geometry';
 import { plumbingLines } from './fixtures';
 import { isFlatRoof, roofCoveringDelta } from './roof';
 import { BQ_ITEMS, type BqCode } from './bq-items';
@@ -166,8 +166,9 @@ export function runTakeoff(
   add('504', 1, r.roof_accessories * ci);
 
   // ── 600 Joinery ──
-  add('601', q.rooms + 1,                                        r.door_avg * ci);
-  add('605', countBedrooms(data) + countLivingRooms(data) + 1,   r.window * ci);
+  const openings = countOpenings(data);
+  add('601', openings.doors,   r.door_avg * ci);
+  add('605', openings.windows, r.window * ci);
   add('606', upperCount * g.railing_ml_per_floor,                r.railing_ml * ci);
 
   // ── 700 Electrical ──

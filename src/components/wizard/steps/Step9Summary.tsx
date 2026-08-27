@@ -162,9 +162,8 @@ function BudgetBreakdownCard() {
       <div className="px-5 pb-4">
         <p className="text-[10px] text-brand-mid-grey leading-relaxed bg-brand-off-white rounded-lg px-3 py-2.5">
           <strong className="text-brand-near-black">{t('wizard.indicative')}</strong>{' '}
-          Actual costs vary by city, contractor, and current material prices.
-          Confirm final figures with a certified quantity surveyor.
-          {!isVerified && ' Regional estimate — no verified BQ data for this country yet.'}
+          {t('wizard.indicativeBody')}
+          {!isVerified && ` ${t('wizard.noLocalBq')}`}
         </p>
       </div>
     </div>

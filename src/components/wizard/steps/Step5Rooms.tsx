@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
+import { countOpenings } from '@/lib/budget';
 import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
@@ -94,6 +95,8 @@ export default function Step5Rooms() {
   const current = floors[activeTab] ?? floors[0];
   const totals = computeTotals(floors);
   const totalRooms = Object.values(totals).reduce((s, n) => s + n, 0);
+  // From the engine, not recomputed here — one definition of what a door count is.
+  const openings   = countOpenings({ ...data, floorRooms: floors });
 
   /** Rooms on one floor — drives the per-tab badge and the empty-floor notice. */
   const roomsOn = (f: FloorRoom) =>
@@ -193,6 +196,19 @@ export default function Step5Rooms() {
               <span className="text-xs text-brand-mid-grey italic">{t('wizard.noRooms')}</span>
             )}
           </div>
+        )}
+
+        {/* Doors and windows are DERIVED, never asked. The beta test script tells testers
+            to choose a number of windows and no such control exists — they were always
+            priced (BQ items 601 and 605), just never shown, so the figure read as
+            missing rather than worked out. Same treatment as the footprint. */}
+        {totalRooms > 0 && (
+          <p className="mt-4 text-[11px] leading-relaxed text-brand-mid-grey">
+            {t('wizard.rooms.openings', {
+              doors:   openings.doors,
+              windows: openings.windows,
+            })}
+          </p>
         )}
 
         {/* Why the Continue button is off, and which floor to go to. Shown against the

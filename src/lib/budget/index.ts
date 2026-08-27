@@ -9,9 +9,9 @@ import { formatMoney } from '@/lib/format';
 // so this cannot create a cycle.
 import type { TKey } from '@/lib/i18n/translate';
 
-export { CITY_RATES, CM_CITY_CODES, CM_TAKEOFF, resolveCityRate, BASELINE_CITY } from './model';
+export { CITY_RATES, CM_CITY_CODES, CM_TAKEOFF, resolveCityRate, BASELINE_CITY, hasLocalBq } from './model';
 export { fixtureSchedule, plumbingCost } from './fixtures';
-export { deriveQuantities, countRooms, hasFloorRooms } from './geometry';
+export { deriveQuantities, countRooms, countOpenings, hasFloorRooms } from './geometry';
 export type { DetailedTakeoffInput, Quantities } from './geometry';
 export {
   applyOverrides, sectionsFromLines, totalFromLines,

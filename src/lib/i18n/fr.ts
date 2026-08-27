@@ -144,6 +144,23 @@ export const fr: Mirror<EnDict> = {
   buildPreview: {
     planningPhase: 'Phase de conception',
     readyToBuild:  'Prêt à construire',
+    foundationNext: 'Fondations ensuite',
+    estAbbrev:     'est.',
+    // Voir la note anglaise : légendes sous le croquis, une par étape.
+    hint: {
+      buildingIn:     'Construction au {country}',
+      chooseLocation: 'Choisissez votre localisation',
+      whatKind:       'Quel type de projet ?',
+      definingType:   'Définition du type de bâtiment',
+      storeys:        '{count} niveau',
+      storeys_plural: '{count} niveaux',
+      roomsPerFloor:  'Pièces par niveau',
+      withAnnex:      'Avec dépendance',
+      mainOnly:       'Bâtiment principal uniquement',
+      chooseRoof:     'Choisissez un type de toiture',
+      nameProject:    'Nommez votre projet',
+      readyToBuild:   'Prêt à construire',
+    },
   },
   errors: {
     generic: 'Une erreur est survenue. Veuillez actualiser la page.',
@@ -1196,6 +1213,8 @@ export const fr: Mirror<EnDict> = {
     transit_oriented: "Quartier de gare",
   },
   roofType: {
+    stone_coated: "Tôle gravillonnée",
+    aluminium_deck: "Bac aluminium",
     long_span_aluminum: "Bac aluminium grande longueur",
     clay_tiles: "Tuiles en terre cuite",
     concrete_flat: "Toit-terrasse béton",
@@ -2187,6 +2206,7 @@ export const fr: Mirror<EnDict> = {
       unitOffice:         'bureau',
       // Voir la note anglaise : pourquoi « Continuer » est désactivé, et quel niveau reste à remplir.
       needOne:            "Ajoutez au moins une pièce pour continuer : l'estimation en dépend.",
+      openings: "Votre estimation comprend {doors} portes et {windows} fenêtres, calculées à partir de ces pièces.",
       emptyFloors:        "Aucune pièce au {floors} pour l'instant. Si ce niveau ne fait pas partie du chantier, revenez modifier le nombre de niveaux.",
       emptyFloorsPlural:  "Aucune pièce aux niveaux suivants : {floors}. S'ils ne font pas partie du chantier, revenez modifier le nombre de niveaux.",
       unitOffice_plural:  'bureaux',
@@ -2217,6 +2237,9 @@ export const fr: Mirror<EnDict> = {
     verifiedData: "Données vérifiées",
     regionalEstimate: "Estimation régionale",
     indicative: "Estimation indicative.",
+    indicativeBody: "Les coûts réels varient selon la ville, l'entrepreneur et les prix des matériaux du moment. Faites confirmer les chiffres définitifs par un métreur certifié.",
+    noLocalBq:      "Estimation régionale — aucun devis quantitatif vérifié pour ce pays à ce jour.",
+    countryUnverified: "Nous n'avons pas encore de devis quantitatif vérifié pour {country} : cette estimation provient d'un indice régional de coûts. Les chiffres du Cameroun reposent sur de vrais devis locaux.",
     timelineTitle: "Durée prévisionnelle du chantier",
     timelineSub: "Sur la base d'une construction résidentielle standard en 10 étapes. La durée réelle dépend du rythme de l'entrepreneur et des conditions du terrain.",
     s10Title: "Choisissez votre forfait",
@@ -2298,6 +2321,10 @@ export const fr: Mirror<EnDict> = {
     activeBuilds:  'Vous avez {count} chantier en cours.',
     activeBuilds_plural: 'Vous avez {count} chantiers en cours.',
     newProject:    'Nouveau projet',
+    // Voir la note anglaise : les projets archivés restent décomptés (migration 053).
+    slotsUsed:     '{used} projets sur {limit}',
+    slotsArchived: '{count} archivé',
+    slotsArchived_plural: '{count} archivés',
     stats: {
       projects:      'Projets',
       totalBudget:   'Budget total',
@@ -2773,6 +2800,7 @@ export const fr: Mirror<EnDict> = {
 
     // ── Onglet Paiements ────────────────────────────────────
     payments: {
+      recordPayment: 'Enregistrer le paiement',
       wallet:        'Portefeuille',
       history:       'Historique',
       upgradePlan:   'Changer de forfait',

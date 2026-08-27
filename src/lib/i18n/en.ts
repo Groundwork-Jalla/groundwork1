@@ -130,6 +130,24 @@ export const en = {
   buildPreview: {
     planningPhase: 'Planning phase',
     readyToBuild:  'Ready to build',
+    foundationNext: 'Foundation next',
+    estAbbrev:     'est.',
+    // Captions under the sketch, one per wizard step. Hardcoded English until a beta
+    // tester switched to French and found them still in English (25 Aug 2026).
+    hint: {
+      buildingIn:     'Building in {country}',
+      chooseLocation: 'Choose your location',
+      whatKind:       'What kind of project?',
+      definingType:   'Defining the building type',
+      storeys:        '{count} storey',
+      storeys_plural: '{count} storeys',
+      roomsPerFloor:  'Rooms per floor',
+      withAnnex:      'Including staff annex',
+      mainOnly:       'Main building only',
+      chooseRoof:     'Choose a roof type',
+      nameProject:    'Name your project',
+      readyToBuild:   'Ready to build',
+    },
   },
   errors: {
     generic: 'Something went wrong. Please refresh the page.',
@@ -1201,6 +1219,8 @@ export const en = {
     transit_oriented: "Transit-Oriented",
   },
   roofType: {
+    stone_coated: "Stone-Coated Sheet",
+    aluminium_deck: "Aluminium Deck",
     long_span_aluminum: "Long Span Aluminum",
     clay_tiles: "Clay Tiles",
     concrete_flat: "Concrete / Flat Roof",
@@ -2218,6 +2238,7 @@ export const en = {
       // drive doors, windows, sanitary ware and partitions — a roomless building prices
       // as an empty shell.
       needOne:            'Add at least one room before continuing — the estimate is built from them.',
+      openings: "Your estimate includes {doors} doors and {windows} windows, worked out from these rooms.",
       emptyFloors:        'No rooms on {floors} yet. If that floor is not part of the build, go back and change the floor count.',
       emptyFloorsPlural:  'No rooms on {floors} yet. If those floors are not part of the build, go back and change the floor count.',
       unitOffice_plural:  'offices',
@@ -2248,6 +2269,9 @@ export const en = {
     verifiedData: "Verified data",
     regionalEstimate: "Regional estimate",
     indicative: "Indicative estimate.",
+    indicativeBody: "Actual costs vary by city, contractor, and current material prices. Confirm final figures with a certified quantity surveyor.",
+    noLocalBq:      "Regional estimate — no verified Bill of Quantity for this country yet.",
+    countryUnverified: "We have no verified Bill of Quantity for {country} yet, so this estimate comes from a regional cost index. Cameroon figures are built from real local BQs.",
     timelineTitle: "Predicted Build Timeline",
     timelineSub: "Based on standard 10-stage residential construction. Actual duration depends on contractor pace, weather, approvals, and material availability.",
     s10Title: "Choose your plan",
@@ -2329,6 +2353,11 @@ export const en = {
     activeBuilds:  'You have {count} active build in progress.',
     activeBuilds_plural: 'You have {count} active builds in progress.',
     newProject:    'New Project',
+    // Free-plan slots. Archived projects count (migration 053), so this is the only
+    // place a client can see that archiving did not give a slot back.
+    slotsUsed:     '{used} of {limit} projects',
+    slotsArchived: '{count} archived',
+    slotsArchived_plural: '{count} archived',
     stats: {
       projects:      'Projects',
       totalBudget:   'Total Budget',
@@ -2807,6 +2836,7 @@ export const en = {
 
     // ── Payments tab ────────────────────────────────────────
     payments: {
+      recordPayment: 'Record payment',
       wallet:        'Wallet',
       history:       'History',
       upgradePlan:   'Upgrade plan',

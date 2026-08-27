@@ -152,9 +152,14 @@ export const CITY_RATES: Record<string, CityRate> = {
   ADAMAWA: cm('ADAMAWA', 'Adamawa', 260_000,  86_125, 61_750,  88_375,   7),
   // New in 045. On Vanessa's list, absent from our book. Concrete copied from Adamawa.
   GAROUA:  cm('GAROUA',  'Garoua',  260_000,  86_125, 61_750,  88_375,  10),
+  // `estimated_index`, not `real_bq`. There is no Nigerian Bill of Quantity — asking for
+  // one is still an open item in docs/BQ-QUESTIONS.md, and we hold three unreconciled
+  // Nigerian base rates (672, 1,600 and 180 USD/m²). Mislabelled as verified until
+  // 25 Aug 2026, which put a "Verified data" shield on step 9 over a number nobody can
+  // defend. The rates below stay as they are; only the claim about them changes.
   ABUJA:   { city_code: 'ABUJA', country_code: 'NG', city_name: 'Abuja',
              rc_350: 450_000, rc_250: 119_000, lean_concrete: 77_750, mortar: 135_750,
-             index_vs_baseline: 2.5000, currency_code: 'NGN', data_source: 'real_bq' },
+             index_vs_baseline: 2.5000, currency_code: 'NGN', data_source: 'estimated_index' },
 };
 
 function cm(
@@ -239,4 +244,24 @@ function stripAccents(s: string): string {
   // U+0300-U+036F is the combining diacritical marks block, so "Yaoundé" matches "yaounde".
   // Written as escapes rather than literal marks so re-encoding the file can't break it.
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Does this country have a real Bill of Quantity behind its rates?
+ *
+ * Cameroon does — four documents from Vanessa Gwanvoma, and the take-off model is
+ * calibrated line by line against them. Everywhere else is a regional index derived from
+ * country-level cost data, which is a guess with a method rather than a measurement.
+ *
+ * Read off `data_source` rather than a hand-kept country list, so a country cannot be
+ * called verified in one place and estimated in another — which is exactly what happened
+ * to Nigeria, whose ABUJA row claimed `real_bq` while docs/BQ-QUESTIONS.md was still
+ * asking for a Nigerian BQ.
+ */
+export function hasLocalBq(countryCode: string | null | undefined): boolean {
+  if (!countryCode) return false;
+  const code = countryCode.toUpperCase();
+  return Object.values(CITY_RATES).some(
+    c => c.country_code === code && c.data_source === 'real_bq',
+  );
 }

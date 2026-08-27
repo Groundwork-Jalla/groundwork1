@@ -16,11 +16,22 @@ import type { ProjectRow, ProjectStageRow, PaymentStatus, ConstructionRate } fro
 type View = 'wallet' | 'history';
 
 export default function ProjectPayments({
-  project, stages, onPaymentUpdated,
+  project, stages, onPaymentUpdated, openPayStageId, onOpenPayStageHandled,
 }: {
   project: ProjectRow;
   stages: ProjectStageRow[];
   onPaymentUpdated: (stageId: string, status: PaymentStatus) => void;
+  /**
+   * Open the payment modal for this stage as soon as the tab mounts.
+   *
+   * How "Record payment" on a blocked stage arrives here. The button does not open its
+   * own modal: a second copy would mean a second confirm path for money, and the two
+   * would drift. It switches to this tab and names the stage instead, so there stays
+   * exactly one place a payment is written.
+   */
+  openPayStageId?: string | null;
+  /** Called once the request has been honoured, so it does not re-fire on every render. */
+  onOpenPayStageHandled?: () => void;
 }) {
   const t = useT();
   const [view, setView]   = useState<View>('wallet');
@@ -30,6 +41,13 @@ export default function ProjectPayments({
   const [contractor, setContractor]   = useState('Your contractor');
 
   const tier = normalizeTier(project.tier);
+
+  useEffect(() => {
+    if (!openPayStageId) return;
+    const target = stages.find(s => s.id === openPayStageId);
+    if (target) setPayStage(target);
+    onOpenPayStageHandled?.();
+  }, [openPayStageId, stages, onOpenPayStageHandled]);
 
   useEffect(() => {
     getConstructionRate(project.country).then(setRate).catch(() => {});

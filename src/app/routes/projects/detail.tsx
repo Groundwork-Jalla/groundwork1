@@ -133,11 +133,12 @@ export default function ProjectDetail() {
   const [project,   setProject]   = useState<ProjectRow | null>(null);
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
-  // Only for the delete confirmation, which states what goes with the project rather
-  // than asking "are you sure?" about nothing in particular.
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // Set by "Record payment" on a blocked stage: switch to Payments and open that stage's
+  // modal. The button does not carry its own modal — one confirm path for money.
+  const [payStageId, setPayStageId] = useState<string | null>(null);
 
   // ── Data fetching ──────────────────────────────────────
 
@@ -453,6 +454,7 @@ export default function ProjectDetail() {
                 ownerName={
                   user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner'
                 }
+                onRecordPayment={stage => { setPayStageId(stage.id); setActiveTab('payments'); }}
                 onMarkSubstageComplete={handleMarkSubstageComplete}
                 onEvidenceUploaded={handleEvidenceUploaded}
                 onApproveStage={handleApproveStage}
@@ -489,6 +491,8 @@ export default function ProjectDetail() {
                 project={project}
                 stages={stages}
                 onPaymentUpdated={handleStagePaymentUpdate}
+                openPayStageId={payStageId}
+                onOpenPayStageHandled={() => setPayStageId(null)}
               />
               <RelatedGuides tab="payments" />
             </div>
