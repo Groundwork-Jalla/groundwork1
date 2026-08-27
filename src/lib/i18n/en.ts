@@ -566,6 +566,7 @@ export const en = {
 
       errTitle:    'Give it a short title so it can be found later.',
       loadFailed:  'Could not load requests. This needs migration 054.',
+      needsMigration: 'This page is ready but its database table is not — migration 054 still needs to be run. Nothing you typed has been lost; send it again once that is done.',
       saveFailed:  'Could not save that request.',
       copyFailed:  'Could not copy to the clipboard.',
 

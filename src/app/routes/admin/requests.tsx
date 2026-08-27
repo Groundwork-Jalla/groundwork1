@@ -8,7 +8,7 @@ import {
   type AgentId, type AgentRequestRow, type RequestLanguage, type RequestStatus,
 } from '@/lib/supabase/agent-requests';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
-import { errorMessage } from '@/lib/errors';
+import { errorMessage, isMissingTable } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
@@ -64,7 +64,9 @@ export default function AdminRequests() {
     setLoading(true);
     fetchAgentRequests()
       .then(r => { setRows(r); setError(null); })
-      .catch(e => setError(errorMessage(e, t('admin.requests.loadFailed'))))
+      .catch(e => setError(isMissingTable(e)
+        ? t('admin.requests.needsMigration')
+        : errorMessage(e, t('admin.requests.loadFailed'))))
       .finally(() => setLoading(false));
   };
   useEffect(load, [t]);
@@ -77,7 +79,12 @@ export default function AdminRequests() {
   async function setStatus(r: AgentRequestRow, status: RequestStatus) {
     setRows(prev => prev.map(x => (x.id === r.id ? { ...x, status } : x)));
     try { await updateAgentRequest(r.id, { status }); }
-    catch (e) { setError(errorMessage(e, t('admin.requests.saveFailed'))); load(); }
+    catch (e) {
+      setError(isMissingTable(e)
+        ? t('admin.requests.needsMigration')
+        : errorMessage(e, t('admin.requests.saveFailed')));
+      load();
+    }
   }
 
   async function confirmDelete() {
@@ -335,7 +342,11 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
       });
       onCreated();
     } catch (e2) {
-      setErr(errorMessage(e2, t('admin.requests.saveFailed')));
+      // Nothing typed is lost: the form stays open with its values and the button
+      // re-enables, so the same brief can be sent once the migration is run.
+      setErr(isMissingTable(e2)
+        ? t('admin.requests.needsMigration')
+        : errorMessage(e2, t('admin.requests.saveFailed')));
       setSaving(false);
     }
   }

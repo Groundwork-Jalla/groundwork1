@@ -567,6 +567,7 @@ export const fr: Mirror<EnDict> = {
 
       errTitle:    'Donnez-lui un titre court pour la retrouver plus tard.',
       loadFailed:  'Impossible de charger les demandes. Nécessite la migration 054.',
+      needsMigration: "Cette page est prête mais sa table n'existe pas encore : la migration 054 doit être exécutée. Rien de ce que vous avez saisi n'est perdu ; renvoyez la demande une fois que ce sera fait.",
       saveFailed:  "Impossible d'enregistrer cette demande.",
       copyFailed:  'Impossible de copier dans le presse-papiers.',
 

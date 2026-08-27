@@ -36,3 +36,22 @@ export function errorMessage(err: unknown, fallback: string): string {
   if (typeof err === 'string' && err.trim()) return err;
   return fallback;
 }
+
+/**
+ * Is this "the table does not exist yet"?
+ *
+ * The one error class where the raw message is the WRONG thing to show. Everything else
+ * benefits from Postgres's own wording — a failed CHECK and an RLS refusal need different
+ * fixes and only the real message tells them apart. But a missing table has exactly one
+ * cause and one fix: a migration that has not been run. "Could not find the table
+ * 'public.agent_requests' in the schema cache (PGRST205)" is precise, actionable for a
+ * developer, and meaningless to the CEO looking at the screen.
+ *
+ * `PGRST205` is PostgREST's schema-cache miss; `42P01` is Postgres's own undefined_table,
+ * which surfaces through RPCs and raw SQL.
+ */
+export function isMissingTable(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const code = (err as Record<string, unknown>).code;
+  return code === 'PGRST205' || code === '42P01';
+}
