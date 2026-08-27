@@ -564,6 +564,7 @@ export const fr: Mirror<EnDict> = {
       copyBrief:        'Copier le brief',
       copied:           'Copié',
       openOutput:       'Ouvrir le résultat',
+      download:       'Télécharger',
 
       errTitle:    'Donnez-lui un titre court pour la retrouver plus tard.',
       loadFailed:  'Impossible de charger les demandes. Nécessite la migration 054.',

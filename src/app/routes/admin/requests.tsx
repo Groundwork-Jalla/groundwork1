@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Loader2, Plus, Copy, Check, Trash2, ExternalLink, Clapperboard,
+  Loader2, Plus, Copy, Check, Trash2, ExternalLink, Download, Clapperboard,
 } from 'lucide-react';
 import {
   AGENT_IDS, ENABLED_AGENTS, PRESETS, briefFor,
@@ -25,6 +25,21 @@ import { useT, useLanguage, type TKey } from '@/lib/i18n';
 // CEO for a shot list gets empty fields; asking what he is trying to achieve gets an
 // answer in ninety seconds.
 // =========================================================
+
+/**
+ * A URL that saves rather than opens.
+ *
+ * Supabase Storage reads `?download=<name>` and answers with Content-Disposition:
+ * attachment. The filename is derived from the request title so what lands in Downloads
+ * is "investor-demo.mp4" rather than a timestamped upload key.
+ */
+function downloadUrl(url: string, title: string): string {
+  const ext = url.split('?')[0].split('.').pop() ?? '';
+  const name = title.trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'groundwork';
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}download=${encodeURIComponent(ext ? `${name}.${ext}` : name)}`;
+}
 
 const STATUS_META: Record<RequestStatus, { labelKey: TKey; cls: string }> = {
   new:         { labelKey: 'admin.requests.statusNew',        cls: 'bg-brand-near-black text-white' },
@@ -246,14 +261,26 @@ function RequestCard({
           )}
 
           {row.output_url && (
-            <a
-              href={row.output_url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-near-black underline underline-offset-2"
-            >
-              <ExternalLink className="size-3.5" /> {t('admin.requests.openOutput')}
-            </a>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <a
+                href={row.output_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-near-black underline underline-offset-2"
+              >
+                <ExternalLink className="size-3.5" /> {t('admin.requests.openOutput')}
+              </a>
+              {/* Supabase Storage turns `?download=` into a Content-Disposition
+                  attachment header, so the browser saves the file instead of playing
+                  it inline. The HTML `download` attribute alone would not do it — it is
+                  ignored cross-origin, and the bucket is on a different host. */}
+              <a
+                href={downloadUrl(row.output_url, row.title)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-near-black underline underline-offset-2"
+              >
+                <Download className="size-3.5" /> {t('admin.requests.download')}
+              </a>
+            </div>
           )}
           {row.output_note && (
             <p className="mt-1.5 text-[11px] leading-relaxed text-brand-mid-grey">{row.output_note}</p>

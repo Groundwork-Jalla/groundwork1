@@ -563,6 +563,7 @@ export const en = {
       copyBrief:        'Copy brief',
       copied:           'Copied',
       openOutput:       'Open the result',
+      download:       'Download',
 
       errTitle:    'Give it a short title so it can be found later.',
       loadFailed:  'Could not load requests. This needs migration 054.',

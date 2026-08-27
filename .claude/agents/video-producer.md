@@ -1,6 +1,6 @@
 ---
 name: video-producer
-description: Records screen-capture videos and screenshots of the Groundwork app by driving it in headless Chrome over CDP. Use for walkthroughs, demos, beta-tester guides, investor clips, bug reproductions, or any request to "record", "film", "capture", or "make a video of" a Groundwork flow. Also for stills — wizard screenshots, feature shots, before/after comparisons.
+description: Produces screen-capture media of the Groundwork app by driving it in headless Chrome over CDP — video, stills, and slide decks or documents built from those stills. Use for walkthroughs, demos, beta-tester guides, investor clips, bug reproductions, PowerPoint decks, and any request to "record", "film", "capture", "make a video of" or "make a deck about" a Groundwork flow.
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -64,12 +64,14 @@ sees on the page. Silence reads as "still working on it" indefinitely.
 
 ```bash
 npx vite dev --port 5199        # gw.py hardcodes PORT = 5199. Not configurable by env.
-python3 -c "import imageio_ffmpeg"   # if this fails: pip install --user imageio-ffmpeg
+python3 -c "import imageio_ffmpeg, pptx, docx"   # all three are usually MISSING
+pip install --user imageio-ffmpeg python-pptx python-docx
 ```
 
-`websocket` is installed system-wide. `imageio_ffmpeg` usually is **not** — it lives in a
-venv that does not survive between sessions. There is no system `ffmpeg`. Install it
-before you start recording, not after you have 900 frames and nowhere to put them.
+`websocket` and `PIL` are installed system-wide. **`imageio_ffmpeg`, `python-pptx` and
+`python-docx` are not** — they lived in a venv that does not survive between sessions, and
+there is no system `ffmpeg`. Install them before you start, not after you have 900 frames
+and nowhere to put them.
 
 Run scripts from the repo root with `sys.path.insert(0, 'docs/recording')`.
 
@@ -180,6 +182,58 @@ Pacing: hold 2–3 seconds on anything a viewer must read. Capture at 1440×810 
 at encode time. Deliverables go in `docs/` as `Groundwork-<Subject>.mp4`.
 
 ---
+
+## Decks and documents
+
+The same screenshots that make a walkthrough video make a walkthrough deck, and the
+builders already exist — read them before writing a new one:
+
+| Script | Produces |
+|---|---|
+| `docs/build-beta-deck.py` | `Groundwork-Beta-Walkthrough.pptx` — python-pptx |
+| `docs/build-beta-guide.py` | `Groundwork-Beta-Testing-Guide.docx` — python-docx |
+| `docs/build-bq-questions.py` | The BQ questions document for Vanessa |
+
+**Render it and look at it, exactly as with video.** Layout defects in these are invisible
+from the code and were all found by rendering to PDF and reading the result: fragmented
+callouts (fixed with one-cell tables), numbering that continued across sections (manual
+numbers), ignored column widths (`w:tblLayout` fixed), tables splitting mid-row
+(`cantSplit` + `tblHeader`), and text collisions on two slides.
+
+```bash
+libreoffice --headless --convert-to pdf --outdir /tmp docs/Your-Deck.pptx
+```
+
+Then convert the PDF pages to images and Read them. A deck that compiles is not a deck
+that reads.
+
+## Audio
+
+ffmpeg muxes an audio track in at encode time:
+
+```bash
+"$ff" -y -framerate 12 -i frames/f%05d.png -i voice.mp3 \
+      -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest out.mp4
+```
+
+`-shortest` matters: without it a music bed longer than the footage leaves the video
+frozen on its last frame until the audio ends.
+
+**There is no text-to-speech on this machine** — no espeak, piper or flite — so you cannot
+generate narration from nothing. What works:
+
+- **A supplied file.** Someone records a voiceover or picks a music bed; you mux it. This
+  is the normal case and needs nothing new.
+- **A TTS API** (ElevenLabs, OpenAI, Google). Needs a key that does not exist yet. Ask
+  before assuming one is available.
+
+If a brief asks for narration and no audio file came with it, **say so and deliver the
+silent cut** rather than guessing at a voice. Do not ship a video with a robotic local
+voice to an investor; silence with on-screen text is better and takes less explaining.
+
+Where a brief just wants pace and mood, on-screen captions plus deliberate holds usually
+beat a soundtrack, and they survive being watched muted — which is how most of this gets
+watched on WhatsApp and LinkedIn.
 
 ## Look at what you made
 

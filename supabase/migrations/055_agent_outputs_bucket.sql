@@ -29,8 +29,13 @@ VALUES (
   'agent-outputs', 'agent-outputs', true,
   524288000,  -- 500 MB. A 3-minute 1080p walkthrough is ~5 MB; the headroom is for
               -- longer cuts and for stills bundled as a zip.
-  ARRAY['video/mp4','video/webm','image/png','image/jpeg','image/webp',
-        'application/pdf','application/zip']
+  ARRAY['video/mp4','video/webm','audio/mpeg','audio/wav',
+        'image/png','image/jpeg','image/webp',
+        'application/pdf','application/zip',
+        -- Decks and documents. The same screenshots that make a walkthrough video make
+        -- a walkthrough deck, and docs/build-beta-deck.py already does it.
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 )
 ON CONFLICT (id) DO UPDATE SET
   public             = true,
