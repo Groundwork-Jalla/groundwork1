@@ -13,5 +13,11 @@ supabase/.temp
 !.claude/agents/
 __pycache__/
 
+# Python venv for the media pipeline (imageio-ffmpeg, python-pptx, python-docx).
+# Debian blocks `pip install --user` under PEP 668, so the recording and deck scripts
+# run on .venv/bin/python. Created with --system-site-packages so the system-installed
+# `websocket` and `PIL` stay visible. Recreate with `npm run media:setup`.
+.venv/
+
 # Rendered email previews — build output of src/lib/email/render-previews.test.ts
 .email-previews/

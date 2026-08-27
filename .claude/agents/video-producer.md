@@ -64,14 +64,24 @@ sees on the page. Silence reads as "still working on it" indefinitely.
 
 ```bash
 npx vite dev --port 5199        # gw.py hardcodes PORT = 5199. Not configurable by env.
-python3 -c "import imageio_ffmpeg, pptx, docx"   # all three are usually MISSING
-pip install --user imageio-ffmpeg python-pptx python-docx
+.venv/bin/python -c "import imageio_ffmpeg, pptx, docx, websocket, PIL"
+npm run media:setup             # only if that import fails
 ```
 
-`websocket` and `PIL` are installed system-wide. **`imageio_ffmpeg`, `python-pptx` and
-`python-docx` are not** — they lived in a venv that does not survive between sessions, and
-there is no system `ffmpeg`. Install them before you start, not after you have 900 frames
-and nowhere to put them.
+**Run every Python script on `.venv/bin/python`, not `python3`.**
+
+`imageio_ffmpeg` (which supplies the ffmpeg binary — there is no system one),
+`python-pptx` and `python-docx` live in `.venv` at the repo root. They cannot be
+installed any other way: this is Debian, and `pip install --user` is refused under
+PEP 668 with `externally-managed-environment`. The venv is created with
+`--system-site-packages`, so the system `websocket` and `PIL` that `gw.py` imports
+remain visible alongside them.
+
+`.venv/` is gitignored, so on a fresh clone — or if it is ever deleted — `npm run
+media:setup` rebuilds it in one step and prints `media pipeline ready`.
+
+LibreOffice is installed, which is what lets you PDF-render a deck and actually look at
+it (see below).
 
 Run scripts from the repo root with `sys.path.insert(0, 'docs/recording')`.
 

@@ -9,7 +9,8 @@
     "typecheck": "react-router typegen && tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "agent:queue": "node --env-file=.env scripts/agent-queue.mjs"
+    "agent:queue": "node --env-file=.env scripts/agent-queue.mjs",
+    "media:setup": "python3 -m venv --system-site-packages .venv && .venv/bin/pip install -q imageio-ffmpeg python-pptx python-docx && .venv/bin/python -c \"import imageio_ffmpeg,pptx,docx,websocket,PIL;print('media pipeline ready')\""
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.10",
