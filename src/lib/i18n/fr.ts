@@ -1708,6 +1708,7 @@ export const fr: Mirror<EnDict> = {
 
       // Voir la note anglaise : cet avis est ce qui rend l'enregistrement honnête.
       draftNotice:  'Vos réponses sont enregistrées au fur et à mesure : vous pouvez fermer cette page et terminer plus tard sur cet appareil. Seule l\'équipe Groundwork peut les consulter.',
+      resumedNotice: "Nous avons restauré les réponses que vous aviez enregistrées et rouvert l'étape où vous vous étiez arrêté. Les documents joints précédemment devront être joints à nouveau.",
       draftSaved:   'Réponses enregistrées',
 
       // Titres de section

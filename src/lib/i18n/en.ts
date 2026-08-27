@@ -1720,6 +1720,10 @@ export const en = {
       // Draft capture. This notice is not optional decoration: it is what makes saving a
       // half-finished form honest. See 043_application_drafts.sql.
       draftNotice:  'Your answers are saved as you go, so you can close this page and finish later on this device. Only the Groundwork team can see them.',
+      // Shown instead of draftNotice once a saved draft has actually been restored.
+      // Says what came back and what did not, because a form that silently refills itself
+      // is unsettling, and attached documents are the one thing a browser cannot restore.
+      resumedNotice: 'We have brought back the answers you saved earlier, and opened the step you had reached. Any documents you attached before will need attaching again.',
       draftSaved:   'Answers saved',
 
       // Section headings

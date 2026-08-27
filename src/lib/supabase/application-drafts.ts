@@ -38,6 +38,26 @@ export function draftId(): string {
   }
 }
 
+/**
+ * This browser's draft id **without minting one**.
+ *
+ * `draftId()` creates and stores an id when none exists, which is right for saving and
+ * wrong for resuming: a first-time visitor has nothing to restore, and asking the server
+ * about a UUID invented microseconds ago is a guaranteed miss. Worse, it is a *visible*
+ * miss — the browser logs the failed request to the console whether or not the caller
+ * handles it, so every new applicant would see errors from a lookup that could not have
+ * succeeded.
+ *
+ * Null means "has not been here before". Don't ask.
+ */
+export function existingDraftId(): string | null {
+  try {
+    return localStorage.getItem(DRAFT_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /** Forget this browser's draft — called once the application is actually submitted. */
 export function clearDraftId(): void {
   try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
@@ -154,4 +174,26 @@ export async function deleteApplicationDraft(id: string): Promise<void> {
   const { error } = await supabase
     .from('contractor_application_drafts').delete().eq('id', id);
   if (error) throw error;
+}
+
+/**
+ * The saved answers for this browser's draft, or null if there is nothing to resume.
+ *
+ * Goes through `get_contractor_draft` (migration 052) rather than a table read: the
+ * applicant is anonymous and the only SELECT policy on the table is admin-only. The id
+ * itself is the credential, which is the same basis on which they are already allowed to
+ * write to the row.
+ *
+ * Null covers every uninteresting case — no draft, already submitted, older than thirty
+ * days, RPC missing because the migration has not been applied — because the caller does
+ * the same thing in all of them: start with an empty form.
+ */
+export async function fetchDraftPayload(id: string): Promise<Record<string, unknown> | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_contractor_draft', { p_id: id });
+    if (error || !data || typeof data !== 'object' || Array.isArray(data)) return null;
+    return data as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }

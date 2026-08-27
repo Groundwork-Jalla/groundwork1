@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Building2, Layers, Ruler, Home, Wrench, CheckCircle2, DollarSign, MapPin } from 'lucide-react';
 import { useWizard } from '@/contexts/WizardContext';
-import { calculateBudget, formatUSD, isFlatRoof } from '@/lib/budget';
+import { calculateBudgetDetail, formatUSD, isFlatRoof } from '@/lib/budget';
 import { CountryMap, MapEmptyState } from './CountryMap';
 import type { FloorRoom, ProjectType, BuildingType, RoofType } from '@/types/project';
 import { useT, type TKey } from '@/lib/i18n';
@@ -299,7 +299,17 @@ function Crane({ visible, step }: { visible: boolean; step: number }) {
   );
 }
 
-function Foundation({ visible }: { visible: boolean }) {
+function Foundation({ visible, sqm }: { visible: boolean; sqm: number }) {
+  // Approximate frontage from the footprint, the same square assumption geometry.ts makes
+  // for the perimeter (4 x sqrt(A)). Rounded to a whole metre, because a decimal on a
+  // figure this rough claims a precision it does not have.
+  //
+  // This label used to read `{BW / 10}m width`, where BW is the SVG drawing width in
+  // pixels — so every project, at every size, displayed "20.6m width". A 145 m2 house is
+  // about 12 m across. Caught in beta testing, 25 Aug 2026, and worth more than the
+  // translation bug beside it: an invented measurement next to a real price is the kind
+  // of thing that costs the whole document its credibility.
+  const widthM = sqm > 0 ? Math.round(Math.sqrt(sqm)) : null;
   return (
     <AnimatePresence>
       {visible && (
@@ -319,14 +329,16 @@ function Foundation({ visible }: { visible: boolean }) {
               stroke={D} strokeWidth="0.8" strokeOpacity="0.15"
             />
           ))}
-          {/* Dimension line */}
+          {/* Dimension line — drawn only once there is a footprint to measure. */}
           <g opacity="0.45">
             <line x1={BL} y1={GY + 22} x2={BL + BW} y2={GY + 22} stroke={D} strokeWidth="1" />
             <line x1={BL} y1={GY + 18} x2={BL} y2={GY + 26} stroke={D} strokeWidth="1" />
             <line x1={BL + BW} y1={GY + 18} x2={BL + BW} y2={GY + 26} stroke={D} strokeWidth="1" />
-            <text x={CX} y={GY + 35} textAnchor="middle" fontSize="9" fill={D} fontFamily="'Plus Jakarta Sans', sans-serif">
-              {BW / 10}m width
-            </text>
+            {widthM !== null && (
+              <text x={CX} y={GY + 35} textAnchor="middle" fontSize="9" fill={D} fontFamily="'Plus Jakarta Sans', sans-serif">
+                ≈{widthM}m
+              </text>
+            )}
           </g>
         </motion.g>
       )}
@@ -816,7 +828,15 @@ function Signpost({ visible, name }: { visible: boolean; name: string }) {
 function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useWizard>['data'] }) {
   const t = useT();
   const countryName = useDomainLabels().country(data.country);
-  const budget = step === 9 ? calculateBudget(data) : null;
+  // The SAME rates the summary panel prices with. This used to be a bare
+  // `calculateBudget(data)`, which falls back to the bundled rate card while
+  // Step9Summary priced off the fetched one — so step 9 showed two different totals for
+  // one building, $144,769.23 on the left and $75,462.32 on the badge. Reported in beta
+  // testing, 25 Aug 2026.
+  const { constructionRate, cityRate } = useWizard();
+  const budget = step === 9
+    ? calculateBudgetDetail(data, constructionRate, cityRate).budget
+    : null;
 
   return (
     <AnimatePresence mode="popLayout">
@@ -1092,7 +1112,7 @@ export function BuildingPreview() {
               >
                 <BlueprintGrid />
                 <Crane visible={showCrane} step={step} />
-                <Foundation visible={showFoundation} />
+                <Foundation visible={showFoundation} sqm={data.sqm ?? 0} />
                 <AnimatePresence>
                   {showBody && (
                     <BuildingBody visible={showBody} floors={data.floors} buildingType={data.buildingType} />

@@ -16,7 +16,7 @@ import {
   type ProjectEntry, type UploadedFile,
 } from '@/lib/supabase/contractor-applications';
 import {
-  clearDraftId, draftId, markDraftSubmitted, saveApplicationDraft,
+  clearDraftId, draftId, markDraftSubmitted, saveApplicationDraft, fetchDraftPayload, existingDraftId,
 } from '@/lib/supabase/application-drafts';
 
 // ── Shared field primitives ───────────────────────────────
@@ -222,8 +222,13 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   // from again. So what has been typed is written server-side as they go, and the
   // notice rendered under the header is what makes that honest — it is part of the
   // feature, not decoration. See supabase/migrations/043_application_drafts.sql.
+  // Read BEFORE draftRef, and that ordering is load-bearing: `draftId()` mints and stores
+  // an id when none exists, so once the next line has run every visitor looks like a
+  // returning one. This is the only moment the answer is still knowable.
+  const hadDraftRef = useRef(existingDraftId());
   const draftRef = useRef(draftId());
   const [draftSaved, setDraftSaved] = useState(false);
+  const [resumed, setResumed] = useState(false);
 
   const track = role ? credentialTrack(role) : null;
   const setC = (k: string, v: string | string[] | boolean) => setCred(p => ({ ...p, [k]: v }));
@@ -346,6 +351,23 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   /** Is section `n` on the step being shown? Sections are wrapped in this, not sliced. */
   const onStep = (n: number) => STEPS[step]?.sections.includes(n) ?? false;
 
+  /**
+   * After a resume, open the step they had actually got to.
+   *
+   * Restoring seven screens of answers and then showing step 1 makes someone re-walk the
+   * whole form to find where they were. Runs after the restore has committed — `resumed`
+   * flipping is what schedules it — and picks the first step that is still incomplete,
+   * which is a better answer than a stored cursor: it survives the steps being reordered
+   * and it lands on a real gap rather than on wherever they happened to close the tab.
+   */
+  useEffect(() => {
+    if (!resumed) return;
+    const firstGap = STEPS.findIndex((_, i) => stepError(i) !== null);
+    setStep(firstGap === -1 ? lastStep : firstGap);
+    // Only when a resume happens; `stepError` reads state that is settled by then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumed]);
+
   function goTo(i: number) {
     setStep(Math.max(0, Math.min(lastStep, i)));
     setError(null);
@@ -360,6 +382,83 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     goTo(step + 1);
   }
 
+
+  /**
+   * Resume where they left off.
+   *
+   * The form has always promised this — "you can close this page and finish later" — and
+   * until migration 052 it was not true: drafts were write-only, so everybody started
+   * again from blank. With eight steps that is seven screens of work thrown away by
+   * closing a tab to go and find a reference's phone number.
+   *
+   * Runs once, and only onto an untouched form. If the draft is slow to arrive and the
+   * applicant has already started typing, their typing wins — overwriting what someone is
+   * in the middle of is worse than not restoring at all.
+   *
+   * Documents are the one thing that cannot come back: a browser cannot rehydrate a File,
+   * and the draft only ever stored their names. They are on the last step, so this costs
+   * nothing unless the applicant had already reached it.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      // Only ask if this browser had an id before the page loaded.
+      const prior = hadDraftRef.current;
+      if (!prior) return;
+
+      const saved = await fetchDraftPayload(prior);
+      if (cancelled || !saved) return;
+
+      const str  = (v: unknown) => (typeof v === 'string' ? v : '');
+      const bool = (v: unknown) => (typeof v === 'boolean' ? v : null);
+      const list = <T,>(v: unknown) => (Array.isArray(v) ? (v as T[]) : null);
+
+      setFullName(prev => (prev ? prev : str(saved.fullName)));
+      setBusinessName(prev => (prev ? prev : str(saved.businessName)));
+      setPhone(prev => (prev ? prev : str(saved.phone)));
+      setEmail(prev => (prev ? prev : str(saved.email)));
+      setCity(prev => (prev ? prev : str(saved.city)));
+      setPortfolioUrl(prev => (prev ? prev : str(saved.portfolioUrl)));
+      setRoleOther(prev => (prev ? prev : str(saved.roleOther)));
+      setYears(prev => (prev ? prev : str(saved.years)));
+      setOperatesAs(prev => (prev ? prev : str(saved.operatesAs)));
+      setTeamSize(prev => (prev ? prev : str(saved.teamSize)));
+      setVideoUrl(prev => (prev ? prev : str(saved.videoUrl)));
+      setWhyJoin(prev => (prev ? prev : str(saved.whyJoin)));
+      setDifferentiator(prev => (prev ? prev : str(saved.differentiator)));
+      setRegions(prev => (prev ? prev : str(saved.regions)));
+      setConcurrent(prev => (prev ? prev : str(saved.concurrent)));
+
+      // Country is pre-filled with Cameroon, so "untouched" cannot be tested by emptiness.
+      if (str(saved.country)) setCountry(str(saved.country));
+      // `role` is a union, not a string: only restore a value the form still offers.
+      const savedRole = str(saved.role) as ContractorRole | '';
+      if (savedRole && (CONTRACTOR_ROLES as readonly string[]).includes(savedRole)) {
+        setRole(prev => (prev ? prev : savedRole));
+      }
+
+      const types = list<string>(saved.projectTypes);
+      if (types) setProjectTypes(prev => (prev.length ? prev : types));
+
+      const projs = list<ProjectEntry>(saved.projects);
+      if (projs?.length) setProjects(prev => (prev.some(x => Object.values(x).some(v => v.trim())) ? prev : projs));
+
+      if (saved.credentials && typeof saved.credentials === 'object') {
+        setCred(prev => (Object.keys(prev).length ? prev : saved.credentials as Record<string, string | string[] | boolean>));
+      }
+
+      setMilestones(prev => (prev === null ? bool(saved.milestones) : prev));
+      setVerification(prev => (prev === null ? bool(saved.verification) : prev));
+      setNoSidePay(prev => (prev === null ? bool(saved.noSidePay) : prev));
+      setReadyEarly(prev => (prev === null ? bool(saved.readyEarly) : prev));
+      if (saved.agreed === true) setAgreed(prev => prev || true);
+
+      setResumed(true);
+    })();
+    return () => { cancelled = true; };
+    // Once, on mount. `draftRef` is a ref and never changes identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // No contact detail means nothing to follow up on, and it also stops a row being
@@ -535,7 +634,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
         <div className="flex items-start gap-2 mt-3">
           <Save className="size-3.5 text-brand-mid-grey mt-px shrink-0" />
           <p className="text-[11px] text-brand-mid-grey leading-relaxed">
-            {f('draftNotice')}
+            {resumed ? f('resumedNotice') : f('draftNotice')}
             {draftSaved && (
               <span className="ml-1.5 inline-flex items-center gap-1 font-medium text-brand-near-black">
                 <CheckCircle2 className="size-3" />{f('draftSaved')}

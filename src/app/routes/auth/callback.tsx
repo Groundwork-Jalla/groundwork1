@@ -6,7 +6,7 @@ import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
-import { readEmailRequest, type AuthEmailFlow } from "@/lib/auth/last-email-request";
+import { forgetEmailRequest, readEmailRequest, type AuthEmailFlow } from "@/lib/auth/last-email-request";
 
 /**
  * Wait for the session the client is establishing from the URL.
@@ -113,6 +113,21 @@ export default function AuthCallback() {
       const type = otpType(params.get("type"));
       const hasCode = !!params.get("code");
 
+      // Is this a password reset? Three sources, because only the first is reliable and
+      // it is the one Supabase does NOT send on the PKCE path.
+      //
+      //   type=recovery      the token_hash path, present only on the OTP-style link
+      //   flow=recovery      our own marker on redirectTo, added in reset-password.tsx
+      //   readEmailRequest   what this browser last asked for, as a final fallback
+      //
+      // Beta testing, 25 Aug 2026: a reset link arrived as `?code=` with no `type`, so
+      // the check below never fired and the user was signed in and sent to onboarding
+      // with their old password intact.
+      const isRecovery =
+        type === 'recovery'
+        || params.get("flow") === 'recovery'
+        || readEmailRequest()?.flow === 'recovery';
+
       let session: Session | null = null;
 
       if (tokenHash && type) {
@@ -144,7 +159,12 @@ export default function AuthCallback() {
       // A recovery link proves control of the mailbox, not knowledge of the password —
       // so it must end at "set a new one", never at the dashboard. Routing it like a
       // normal sign-in is what made "Forgot password?" silently a no-op.
-      if (type === 'recovery') {
+      //
+      // Cleared here rather than in new-password.tsx: the remembered request is now one
+      // of the signals above, so leaving it set would send this browser's NEXT sign-up
+      // confirmation to the password form too.
+      if (isRecovery) {
+        forgetEmailRequest();
         navigate("/auth/new-password", { replace: true });
         return;
       }

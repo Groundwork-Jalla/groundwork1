@@ -20,8 +20,13 @@ export default function ResetPassword() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+    // `?flow=recovery` is load-bearing, not decoration. Supabase's PKCE reply carries a
+    // `?code=` and NO `type` parameter, so /auth/callback had nothing to distinguish a
+    // password reset from an ordinary sign-in: it established the session and routed to
+    // onboarding, leaving the old password in place. "Forgot password?" silently did
+    // nothing. Found in beta testing, 25 Aug 2026.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/auth/callback?flow=recovery`,
     });
     setSubmitting(false);
     if (error) {
