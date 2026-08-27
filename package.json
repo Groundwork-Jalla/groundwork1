@@ -8,7 +8,8 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "agent:queue": "node --env-file=.env scripts/agent-queue.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.10",

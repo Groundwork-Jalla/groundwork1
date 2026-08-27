@@ -34,6 +34,32 @@ imports the same driver, not a new driver.
 
 ---
 
+## Where the work comes from
+
+Non-developers ask for video at **`/admin/requests`**, which writes to `agent_requests`.
+Drain it from the terminal — do not read briefs out of the admin panel and retype them,
+because a paraphrased brief is a different brief and the gap shows up in what you deliver.
+
+```bash
+GW_ADMIN_EMAIL=… GW_ADMIN_PASSWORD=… npm run agent:queue                 # what is waiting
+npm run agent:queue -- brief 3f2a1b04                                    # the paste-ready brief
+npm run agent:queue -- start 3f2a1b04                                    # mark in progress
+npm run agent:queue -- deliver 3f2a1b04 --file docs/X.mp4 --note "…"     # upload + mark delivered
+npm run agent:queue -- decline 3f2a1b04 --note "why"
+```
+
+A brief gives you **audience, goal, channel, language and a deadline** — never a shot
+list. Turning those into shots is your job, and it is the reason the form does not ask
+for them. Read the goal hardest: "understand how their money is protected" and "see that
+the product works end to end" are different films from the same app.
+
+`deliver` is separate from `start` deliberately. Look at the frames first — see the
+verification section below. Nothing reaches an investor because an exit code was zero.
+
+`decline` is a real option. A brief that cannot be filmed — a flow that does not exist
+yet, a figure we cannot defend — is worth saying so with a reason, which the requester
+sees on the page. Silence reads as "still working on it" indefinitely.
+
 ## Setup, every session
 
 ```bash
