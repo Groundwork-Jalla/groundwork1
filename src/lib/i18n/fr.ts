@@ -527,6 +527,74 @@ export const fr: Mirror<EnDict> = {
       filterUnsynced: 'Non transmis',
     },
 
+    // ── Demandes aux agents (/admin/requests) ──
+    // Voir la note anglaise : le formulaire demande l'INTENTION, pas un plan de tournage.
+    requests: {
+      title:      'Demandes aux agents',
+      subtitle:   "Confiez un travail à l'un des agents Groundwork. Dites pour qui c'est et ce que cela doit accomplir — le déroulé, c'est leur affaire, pas la vôtre.",
+      newCta:     'Nouvelle demande',
+      openCount:  '{open} en cours · {total} au total',
+      emptyTitle: 'Aucune demande pour le moment',
+      emptyBody:  "Demandez une démonstration, une vidéo pour un rendez-vous investisseurs, ou un clip qui explique un point aux entrepreneurs. Décrivez le résultat attendu et il sera produit.",
+      askingAgent: 'Demande adressée à {agent}.',
+      neededBy:   'pour le {date}',
+
+      fAgent:         'Agent',
+      fPreset:        "À quoi cela va-t-il servir ?",
+      fTitle:         'Titre court',
+      fAudience:      'Qui va la regarder',
+      fAudienceHint:  'ex. investisseurs, clients de la diaspora, entrepreneurs à Douala',
+      fGoal:          'Ce qu’ils doivent pouvoir faire ensuite',
+      fGoalHint:      'ex. comprendre comment leur argent est protégé',
+      fChannel:       'Où vous allez la diffuser',
+      fChannelHint:   'ex. rendez-vous investisseurs, WhatsApp, le site',
+      fLanguage:      'Langue',
+      fNeededBy:      'Pour le',
+      fNotes:         'À inclure ou à éviter',
+      fNotesHint:     'Des écrans précis, un chiffre à mettre en avant, quelque chose à ne pas montrer encore…',
+      submit:         'Envoyer la demande',
+
+      langEn: 'Anglais', langFr: 'Français', langBoth: 'Les deux',
+
+      statusNew:        'Nouvelle',
+      statusInProgress: 'En cours',
+      statusDelivered:  'Livrée',
+      statusDeclined:   'Refusée',
+      changeStatus:     'Changer le statut',
+      copyBrief:        'Copier le brief',
+      copied:           'Copié',
+      openOutput:       'Ouvrir le résultat',
+
+      errTitle:    'Donnez-lui un titre court pour la retrouver plus tard.',
+      loadFailed:  'Impossible de charger les demandes. Nécessite la migration 054.',
+      saveFailed:  "Impossible d'enregistrer cette demande.",
+      copyFailed:  'Impossible de copier dans le presse-papiers.',
+
+      preset: {
+        investorDemo:            'Démo investisseurs',
+        investorDemoHint:        "De bout en bout, pour montrer que le produit fonctionne vraiment. En général le parcours complet : inscription, création de projet, suivi d'une étape, versement.",
+        clientExplainer:         'Explication client',
+        clientExplainerHint:     "Pour un acheteur de la diaspora qui hésite à nous faire confiance. Répond à une seule question : comment puis-je savoir que mon argent est en sécurité.",
+        contractorOnboarding:    'Intégration entrepreneur',
+        contractorOnboardingHint:"Pour un professionnel qui rejoint le réseau : candidature, vérification, puis le flux des étapes et des paiements.",
+        testInstructions:        'Consignes de test',
+        testInstructionsHint:    "Montre au testeur exactement quel parcours suivre et ce qu'il doit voir à chaque étape.",
+        featureUpdate:           'Nouveautés',
+        featureUpdateHint:       "Ce qui a changé cette semaine. Court, un seul sujet, pour l'équipe ou pour les clients.",
+        socialClip:              'Clip court',
+        socialClipHint:          'Moins d’une minute, pour WhatsApp ou LinkedIn. Vertical, compréhensible sans le son, souvent dans les deux langues.',
+        custom:                  'Autre chose',
+        customHint:              "Décrivez-le ci-dessous. Si ce n'est pas dans la liste, c'est utile à savoir : la liste est une hypothèse et sera réduite à ce qui est réellement demandé.",
+      },
+
+      agent: {
+        videoProducer: 'Production vidéo',
+        budgetAnalyst: 'Analyse budgétaire',
+        qsLiaison:     'Métré / quantitatif',
+        betaTriage:    'Tri des retours bêta',
+        opsDesk:       'Support opérationnel',
+      },
+    },
     // ── Candidatures commencées (/admin/drafts) ──
     drafts: {
       title:      'Candidatures commencées',
@@ -1411,6 +1479,7 @@ export const fr: Mirror<EnDict> = {
     applications:   'Candidatures',
     waitlist:       'Liste d\'attente',
     drafts:         'Candidatures commencées',
+    requests:       'Demandes aux agents',
     crm:         'CRM',
   },
 

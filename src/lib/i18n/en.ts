@@ -525,6 +525,75 @@ export const en = {
       filterUnsynced: 'Not forwarded',
     },
 
+    // ── Agent requests (/admin/requests) ──
+    // The brief desk. Copy asks for INTENT — who watches it, what they should be able to
+    // do afterwards — because a busy person can answer that and cannot write a shot list.
+    requests: {
+      title:      'Agent requests',
+      subtitle:   'Ask one of the Groundwork agents for a piece of work. Say who it is for and what it needs to achieve — the shot list is their job, not yours.',
+      newCta:     'New request',
+      openCount:  '{open} open · {total} in total',
+      emptyTitle: 'Nothing requested yet',
+      emptyBody:  'Ask for a walkthrough, a demo for an investor call, or a clip explaining one thing to contractors. Describe what you need it to do and it gets built for you.',
+      askingAgent: 'Asking {agent}.',
+      neededBy:   'needed by {date}',
+
+      fAgent:         'Agent',
+      fPreset:        'What is this for?',
+      fTitle:         'Short title',
+      fAudience:      'Who watches it',
+      fAudienceHint:  'e.g. investors, diaspora clients, contractors in Douala',
+      fGoal:          'What they should be able to do afterwards',
+      fGoalHint:      'e.g. understand how their money is protected',
+      fChannel:       'Where you will show it',
+      fChannelHint:   'e.g. investor call, WhatsApp, the website',
+      fLanguage:      'Language',
+      fNeededBy:      'Needed by',
+      fNotes:         'Anything to include or avoid',
+      fNotesHint:     'Specific screens, a figure to feature, something not to show yet…',
+      submit:         'Send request',
+
+      langEn: 'English', langFr: 'French', langBoth: 'Both',
+
+      statusNew:        'New',
+      statusInProgress: 'In progress',
+      statusDelivered:  'Delivered',
+      statusDeclined:   'Declined',
+      changeStatus:     'Change status',
+      copyBrief:        'Copy brief',
+      copied:           'Copied',
+      openOutput:       'Open the result',
+
+      errTitle:    'Give it a short title so it can be found later.',
+      loadFailed:  'Could not load requests. This needs migration 054.',
+      saveFailed:  'Could not save that request.',
+      copyFailed:  'Could not copy to the clipboard.',
+
+      preset: {
+        investorDemo:            'Investor demo',
+        investorDemoHint:        'End to end, showing the product genuinely works. Usually the full journey: sign up, create a project, track a stage, release a payment.',
+        clientExplainer:         'Client explainer',
+        clientExplainerHint:     'For a diaspora buyer deciding whether to trust us. Answers one question: how do I know my money is safe.',
+        contractorOnboarding:    'Contractor onboarding',
+        contractorOnboardingHint:'For a builder joining the network — applying, getting verified, and working through the stage and payment flow.',
+        testInstructions:        'Test instructions',
+        testInstructionsHint:    'Shows a beta tester exactly which flow to run and what they should see at each step.',
+        featureUpdate:           'Feature update',
+        featureUpdateHint:       'What changed this week. Short, one thing, for the team or for customers.',
+        socialClip:              'Short social clip',
+        socialClipHint:          'Under a minute, for WhatsApp or LinkedIn. Vertical, works with the sound off, usually wants both languages.',
+        custom:                  'Something else',
+        customHint:              'Describe it below. If it is not on this list that is useful to know — the list is a guess and gets pruned to what people actually ask for.',
+      },
+
+      agent: {
+        videoProducer: 'Video producer',
+        budgetAnalyst: 'Budget analyst',
+        qsLiaison:     'Quantity surveying',
+        betaTriage:    'Beta triage',
+        opsDesk:       'Ops desk',
+      },
+    },
     // ── Started applications (/admin/drafts) ──
     drafts: {
       title:      'Started applications',
@@ -1414,6 +1483,7 @@ export const en = {
     applications:   'Applications',
     waitlist:       'Waitlist',
     drafts:         'Started applications',
+    requests:       'Agent Requests',
     crm:         'CRM',
   },
 

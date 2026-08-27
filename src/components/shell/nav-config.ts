@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FolderOpen, BookOpen, HardHat, CreditCard, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
-  FileText, Mailbox, FilePen, Radio } from 'lucide-react';
+  FileText, Mailbox, FilePen, Radio, Clapperboard } from 'lucide-react';
 import type { TKey } from '@/lib/i18n';
 
 // =========================================================
@@ -53,6 +53,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/applications', labelKey: 'nav.applications', icon: FileText },
   { to: '/admin/waitlist',     labelKey: 'nav.waitlist',     icon: Mailbox },
   { to: '/admin/drafts',       labelKey: 'nav.drafts',       icon: FilePen },
+  { to: '/admin/requests',     labelKey: 'nav.requests',     icon: Clapperboard },
   { to: '/admin/crm',          labelKey: 'nav.crm',          icon: Radio },
 ];
 
