@@ -530,11 +530,11 @@ export const en = {
     // do afterwards — because a busy person can answer that and cannot write a shot list.
     requests: {
       title:      'Agent requests',
-      subtitle:   'Ask one of the Groundwork agents for a piece of work. Say who it is for and what it needs to achieve — the shot list is their job, not yours.',
+      subtitle:   'Ask for a piece of work — a video, a deck, a set of screenshots. Say who it is for and what it needs to achieve; the shot list is not your job. Someone on the team picks it up and builds it.',
       newCta:     'New request',
       openCount:  '{open} open · {total} in total',
       emptyTitle: 'Nothing requested yet',
-      emptyBody:  'Ask for a walkthrough, a demo for an investor call, or a clip explaining one thing to contractors. Describe what you need it to do and it gets built for you.',
+      emptyBody:  'Ask for a walkthrough, a demo for an investor call, or a clip explaining one thing to contractors. Describe what you need it to do, and someone on the team picks it up and builds it.',
       askingAgent: 'Asking {agent}.',
       neededBy:   'needed by {date}',
 
@@ -555,7 +555,13 @@ export const en = {
 
       langEn: 'English', langFr: 'French', langBoth: 'Both',
 
-      statusNew:        'New',
+      statusNew:        'Waiting',
+      // Said on every unstarted request. The page used to imply the work happened by
+      // itself — briefs were filed and someone waited six hours for a video that was
+      // never coming, because nothing runs until a person drains the queue. If that ever
+      // becomes automatic, this line is the thing to delete.
+      waitingHelp:    'Not started yet. These are produced by hand, so allow a working day unless you have flagged it as urgent.',
+      inProgressHelp: 'Someone is working on this now.',
       statusInProgress: 'In progress',
       statusDelivered:  'Delivered',
       statusDeclined:   'Declined',
@@ -2326,7 +2332,7 @@ export const en = {
     projectName: "Project name",
     cityLocation: "City / location",
     otherCity: "Other…",
-    doualaRates: "Douala rates",
+    baselineRates: "{city} rates",
     footprintLabel: "Ground floor footprint",
     footprintDerived: "Worked out from the rooms you chose. Change it if you have a measured figure.",
     footprintRequired: "The budget is calculated from this — we cannot price the build without it.",

@@ -243,6 +243,17 @@ function RequestCard({
           </div>
           <p className="mt-2 text-sm font-semibold text-brand-near-black">{row.title}</p>
 
+          {/* What happens next, on the card itself. Without this the badge says
+              "Waiting" and the requester has no idea whether that means minutes,
+              a day, or that nobody will ever look at it. */}
+          {(row.status === 'new' || row.status === 'in_progress') && (
+            <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">
+              {t(row.status === 'new'
+                ? 'admin.requests.waitingHelp'
+                : 'admin.requests.inProgressHelp')}
+            </p>
+          )}
+
           {/* The brief, as answered. Shown in full rather than behind a disclosure: it is
               three short lines and it is the thing anyone opening this card came to read. */}
           <dl className="mt-2 grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2">

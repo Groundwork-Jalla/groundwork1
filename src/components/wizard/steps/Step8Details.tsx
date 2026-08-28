@@ -6,7 +6,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FinishLevel, WizardFormData } from '@/types/project';
-import { CITY_RATES, CM_CITY_CODES, hasFloorRooms } from '@/lib/budget';
+import { BASELINE_CITY, CITY_RATES, CM_CITY_CODES, hasFloorRooms } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -96,6 +96,8 @@ const isKnownCity = (city: string) =>
 export default function Step8Details() {
   const t = useT();
   const { tPlural } = useLanguage();
+  // Whichever city the rate book is currently based on.
+  const baselineCityName = CITY_RATES[BASELINE_CITY]?.city_name ?? BASELINE_CITY;
   const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
   const [sqmStr, setSqmStr] = useState(data.sqm > 0 ? String(data.sqm) : '');
@@ -229,7 +231,13 @@ export default function Step8Details() {
                     )}
                   >
                     <span className="text-sm font-semibold text-brand-near-black">{t('wizard.otherCity')}</span>
-                    <span className="text-[10px] text-brand-mid-grey">{t('wizard.doualaRates')}</span>
+                    {/* Named from BASELINE_CITY, not written into the copy. This said
+                        "Douala rates" until migration 045 moved the Cameroon baseline to
+                        Yaoundé and left the label behind — visible on screen, quietly
+                        wrong, and the kind of thing a contractor notices. */}
+                    <span className="text-[10px] text-brand-mid-grey">
+                      {t('wizard.baselineRates', { city: baselineCityName })}
+                    </span>
                   </button>
                 </div>
                 {cityOther && (

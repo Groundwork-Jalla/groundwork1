@@ -1,0 +1,96 @@
+name: Agent requests
+
+# Three ways in, on purpose:
+#   repository_dispatch  the instant path — /api/agent-dispatch fires this when someone
+#                        files a request at /admin/requests
+#   schedule             the safety net. If the webhook is not configured, or a call is
+#                        lost, nothing is stranded: pending work is collected within ~15
+#                        minutes. A request desk nobody drains is worse than no desk, and
+#                        that is exactly how this feature failed the first time.
+#   workflow_dispatch    a human re-run, optionally for one request id
+on:
+  repository_dispatch:
+    types: [agent-request]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: 'Request id (blank = everything pending)'
+        required: false
+
+# One producer at a time. Two runners recording at once would fight over the recording
+# account's project cap and both could half-create a project.
+concurrency:
+  group: agent-request
+  cancel-in-progress: false
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 has a global WebSocket, so supabase-js needs no `ws` shim here.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+
+      # imageio-ffmpeg brings its own ffmpeg binary; the runner has no system one, same
+      # as the dev machine. --system-site-packages is not needed here because nothing is
+      # preinstalled to inherit.
+      - name: Media pipeline
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet imageio-ffmpeg python-pptx python-docx \
+                                        websocket-client pillow
+          .venv/bin/python -c "import imageio_ffmpeg,pptx,docx,websocket,PIL; print('media ready')"
+
+      # Chrome is preinstalled on ubuntu-latest. Confirmed loudly rather than assumed —
+      # a missing browser otherwise surfaces as a driver that films about:blank.
+      - name: Check Chrome
+        run: google-chrome --version
+
+      - name: Start the app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          printf 'VITE_SUPABASE_URL=%s\nVITE_SUPABASE_ANON_KEY=%s\n' \
+            "$VITE_SUPABASE_URL" "$VITE_SUPABASE_ANON_KEY" > .env
+          npx vite dev --port 5199 > /tmp/vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:5199/ && { echo "app up"; exit 0; }
+            sleep 2
+          done
+          echo "app never came up"; tail -40 /tmp/vite.log; exit 1
+
+      - name: Produce
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          GW_ADMIN_EMAIL: ${{ secrets.GW_ADMIN_EMAIL }}
+          GW_ADMIN_PASSWORD: ${{ secrets.GW_ADMIN_PASSWORD }}
+          GW_REC_EMAIL: ${{ secrets.GW_REC_EMAIL }}
+          GW_REC_PASSWORD: ${{ secrets.GW_REC_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node scripts/agent-produce.mjs "${{ github.event.client_payload.request_id || inputs.request_id }}"
+
+      # Kept whatever happened. When a video fails its checks this is how you find out
+      # why without re-running anything.
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            out/
+            /tmp/vite.log

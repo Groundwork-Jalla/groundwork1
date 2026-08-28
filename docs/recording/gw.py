@@ -128,13 +128,22 @@ class Chrome:
         'Overview' — and its parent is then the only place we look.
         """
         return self.js(f"""(()=>{{
+          // Accent-insensitive: 'Aperçu' must match 'apercu', and the French tab labels
+          // ('Étapes', 'Coûts') must match whether or not the caller typed the accent.
+          const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                             .toLowerCase().trim();
           const all = [...document.querySelectorAll('button')].filter(e => e.offsetParent);
-          const anchor = all.find(e => (e.innerText||'').trim().toLowerCase() === 'overview');
+          // The anchor is the one tab the sidebar does not also carry. Both languages,
+          // because looking only for 'overview' meant every French run returned
+          // 'no tabbar' and silently clicked nothing — the last 24 seconds of the first
+          // French walkthrough was a frozen Overview page nobody noticed.
+          const ANCHORS = ['overview', 'apercu'];
+          const anchor = all.find(e => ANCHORS.includes(norm(e.innerText)));
           if (!anchor) return 'no tabbar';
           const bar = anchor.parentElement;
-          const want = {json.dumps(text)}.toLowerCase().trim();
+          const want = norm({json.dumps(text)});
           const hit = [...bar.querySelectorAll('button, a')]
-            .find(e => (e.innerText||'').trim().toLowerCase() === want);
+            .find(e => norm(e.innerText) === want);
           if (!hit) return 'no tab ' + want;
           hit.click(); return true;
         }})()""")
@@ -201,7 +210,12 @@ def login(c, email, password):
     c.type_into('#email', email)
     c.type_into('#password', password)
     time.sleep(0.3)
-    c.click_text('log in')
+    # Both languages. 'log in' alone left every French run sitting on the sign-in page,
+    # and because the callers only check the path much later, the failure surfaced as an
+    # empty project page rather than as a failed login.
+    for label in ('log in', 'Se connecter', 'connexion'):
+        if c.click_text(label) is True:
+            break
     for _ in range(24):
         time.sleep(1.0)
         if c.path() not in ('/auth/login', None):

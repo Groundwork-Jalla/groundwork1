@@ -531,11 +531,11 @@ export const fr: Mirror<EnDict> = {
     // Voir la note anglaise : le formulaire demande l'INTENTION, pas un plan de tournage.
     requests: {
       title:      'Demandes aux agents',
-      subtitle:   "Confiez un travail à l'un des agents Groundwork. Dites pour qui c'est et ce que cela doit accomplir — le déroulé, c'est leur affaire, pas la vôtre.",
+      subtitle:   "Demandez un travail : une vidéo, une présentation, des captures d'écran. Dites pour qui c'est et ce que cela doit accomplir ; le déroulé n'est pas votre affaire. Quelqu'un de l'équipe s'en charge et le réalise.",
       newCta:     'Nouvelle demande',
       openCount:  '{open} en cours · {total} au total',
       emptyTitle: 'Aucune demande pour le moment',
-      emptyBody:  "Demandez une démonstration, une vidéo pour un rendez-vous investisseurs, ou un clip qui explique un point aux entrepreneurs. Décrivez le résultat attendu et il sera produit.",
+      emptyBody:  "Demandez une démonstration, une vidéo pour un rendez-vous investisseurs, ou un clip qui explique un point aux entrepreneurs. Décrivez le résultat attendu : quelqu'un de l'équipe s'en charge et le réalise.",
       askingAgent: 'Demande adressée à {agent}.',
       neededBy:   'pour le {date}',
 
@@ -556,7 +556,10 @@ export const fr: Mirror<EnDict> = {
 
       langEn: 'Anglais', langFr: 'Français', langBoth: 'Les deux',
 
-      statusNew:        'Nouvelle',
+      statusNew:        'En attente',
+      // Voir la note anglaise : rien ne se lance tout seul, il faut le dire.
+      waitingHelp:    "Pas encore commencé. Ces travaux sont réalisés à la main : comptez un jour ouvré, sauf si vous avez signalé l'urgence.",
+      inProgressHelp: "Quelqu'un y travaille en ce moment.",
       statusInProgress: 'En cours',
       statusDelivered:  'Livrée',
       statusDeclined:   'Refusée',
@@ -2293,7 +2296,7 @@ export const fr: Mirror<EnDict> = {
     projectName: "Nom du chantier",
     cityLocation: "Ville / localité",
     otherCity: "Autre…",
-    doualaRates: "Tarifs de Douala",
+    baselineRates: "Tarifs de {city}",
     footprintLabel: "Emprise au sol",
     footprintDerived: "Calculée d'après les pièces que vous avez choisies. Modifiez-la si vous disposez d'un relevé.",
     footprintRequired: "Le budget se calcule à partir de cette valeur : sans elle, impossible de chiffrer le chantier.",

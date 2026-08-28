@@ -19,5 +19,9 @@ __pycache__/
 # `websocket` and `PIL` stay visible. Recreate with `npm run media:setup`.
 .venv/
 
+# Agent runner working directory: shot list, encoded video, QC samples.
+out/
+frames_*/
+
 # Rendered email previews — build output of src/lib/email/render-previews.test.ts
 .email-previews/
