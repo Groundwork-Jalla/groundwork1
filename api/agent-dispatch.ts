@@ -38,8 +38,23 @@ const GH_TOKEN = process.env.GH_DISPATCH_TOKEN;
 const SECRET   = process.env.AGENT_DISPATCH_SECRET;
 
 export default async function handler(req: any, res: any) {
+  // GET is a setup check: which pieces are configured, never their values.
+  //
+  // Worth having because an unset secret and a wrong secret both answer 401 — correct
+  // security, useless while wiring the thing up. Booleans only: knowing that a secret
+  // exists gets an attacker nothing, and not knowing costs an afternoon.
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      endpoint: 'ok',
+      secret_configured:   !!SECRET,
+      github_configured:   !!GH_TOKEN,
+      resend_configured:   !!process.env.RESEND_API_KEY,
+      notify_inbox:        TEAM_INBOX.replace(/^(.).*(@.*)$/, '$1***$2'),
+    });
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, GET');
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
