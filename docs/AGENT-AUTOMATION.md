@@ -30,6 +30,28 @@ call is lost, nothing is stranded.
 
 ---
 
+## Notifications — the part worth setting up first
+
+Every filed request emails the team inbox with the whole brief and the exact command to
+produce it. This is independent of automatic production, and it is the half that matters
+most: with production off, an email is the only thing between a brief and silence.
+
+**To get notifications you need three things, and none of them is an API key:**
+
+1. Migrations **054** (the table) and **056** (the trigger) applied.
+2. `AGENT_DISPATCH_SECRET` set on Vercel — any long random string.
+3. The two database settings under *§3*, using that same secret.
+
+`RESEND_API_KEY` is already configured. `GH_DISPATCH_TOKEN` and `ANTHROPIC_API_KEY` are
+**not** needed — without them the GitHub half simply reports "not configured" and the
+email still sends, because the two run under `Promise.allSettled`.
+
+Mail goes to `AGENT_REQUEST_INBOX`, falling back to `TEAM_INBOX`, falling back to
+`contact@tryjalla.com`. Set the first if requests should reach a different address from
+contractor applications.
+
+---
+
 ## 1. GitHub secrets
 
 `Settings → Secrets and variables → Actions`
@@ -47,7 +69,8 @@ call is lost, nothing is stranded.
 | Variable | What |
 |---|---|
 | `GH_DISPATCH_TOKEN` | GitHub fine-grained PAT on this repo, **Contents: read and write** — that is the permission `repository_dispatch` requires |
-| `AGENT_DISPATCH_SECRET` | any long random string |
+| `AGENT_DISPATCH_SECRET` | any long random string — **needed for notifications too** |
+| `AGENT_REQUEST_INBOX` | optional; where request emails go (defaults to `TEAM_INBOX`) |
 | `GH_AGENT_REPO` | optional; defaults to `Groundwork-Jalla/groundwork1` |
 
 ## 3. Database settings
@@ -91,6 +114,18 @@ be inspected without re-running anything.
 One Claude call per request (a page of JSON), plus GitHub Actions minutes — roughly
 8–12 minutes per video. The 15-minute poll is nearly free; it exits immediately when the
 queue is empty.
+
+## Currently dormant
+
+`ANTHROPIC_API_KEY` is not configured, so **automatic production is off**. That is a
+supported state, not a half-finished one:
+
+- The runner exits 0 with a one-line explanation, so the 15-minute schedule does not
+  turn the Actions tab red.
+- Requests are left untouched at `new`. Nothing is consumed, nothing is declined.
+- `npm run agent:queue` still works exactly as before — file, brief, record, deliver.
+
+Add the key as a GitHub secret and it switches on with no other change.
 
 ## What is not yet proven
 

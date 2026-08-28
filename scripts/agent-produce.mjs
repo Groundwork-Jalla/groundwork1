@@ -32,13 +32,28 @@ const {
   VITE_SUPABASE_URL: URL_, VITE_SUPABASE_ANON_KEY: ANON,
   GW_ADMIN_EMAIL: EMAIL, GW_ADMIN_PASSWORD: PASS,
   GW_REC_EMAIL, GW_REC_PASSWORD,
-  ANTHROPIC_API_KEY, AGENT_MODEL = 'claude-sonnet-5',
+  // Opus 5 by default. I had picked Sonnet unprompted, which is a cost decision that
+  // belongs to whoever pays the bill — and the difference here is about a penny a video,
+  // because the planner writes one page of JSON. Override with AGENT_MODEL if you want it.
+  ANTHROPIC_API_KEY, AGENT_MODEL = 'claude-opus-5',
   PY = '.venv/bin/python',
 } = process.env;
 
+// Missing credentials and "not switched on yet" are different situations and get
+// different exits.
 for (const [k, v] of Object.entries({ VITE_SUPABASE_URL: URL_, VITE_SUPABASE_ANON_KEY: ANON,
-  GW_ADMIN_EMAIL: EMAIL, GW_ADMIN_PASSWORD: PASS, ANTHROPIC_API_KEY })) {
-  if (!v) { console.error(`missing ${k}`); process.exit(1); }
+  GW_ADMIN_EMAIL: EMAIL, GW_ADMIN_PASSWORD: PASS })) {
+  if (!v) { console.error(`missing ${k}`); process.exit(1); }   // broken config — fail loudly
+}
+
+// No planner key means automatic production is not enabled. That is a normal state, not
+// a fault: exit 0 so the 15-minute schedule does not paint the Actions tab red while the
+// key is still being sorted out. Requests stay `new` and `npm run agent:queue` still
+// drains them by hand, which is exactly how they were produced before this existed.
+if (!ANTHROPIC_API_KEY) {
+  console.log('ANTHROPIC_API_KEY is not set — automatic production is off.');
+  console.log('Requests are untouched; drain them with `npm run agent:queue`.');
+  process.exit(0);
 }
 const recEmail = GW_REC_EMAIL || EMAIL;
 const recPass  = GW_REC_PASSWORD || PASS;
