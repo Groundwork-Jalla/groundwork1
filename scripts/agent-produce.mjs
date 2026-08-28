@@ -147,12 +147,28 @@ for (const r of rows) {
     console.log(`  planned ${plan.scenes.length} scenes:`,
                 plan.scenes.map(s => s.action).join(' → '));
 
-    // 2. Record
-    execFileSync(PY, ['docs/recording/play_plan.py', 'out/plan.json', video], {
+    // 2. Record, and build a deck if one was asked for.
+    //
+    // The deck is not a second production run — it is built from stills captured during
+    // the same drive, so "both" costs one extra pass rather than doubling the work (and,
+    // on a capped recording account, does not risk a second project being created).
+    const fmt = r.output_format ?? 'mp4';
+    const wantVideo = fmt === 'mp4' || fmt === 'both';
+    const wantDeck  = fmt === 'pptx' || fmt === 'both';
+
+    execFileSync(PY, ['docs/recording/play_plan.py', 'out/plan.json', video,
+                      ...(wantDeck ? ['--stills', 'out/stills'] : [])], {
       stdio: 'inherit',
       env: { ...process.env, GW_REC_EMAIL: recEmail, GW_REC_PASSWORD: recPass },
       timeout: 20 * 60_000,
     });
+
+    let deck = null;
+    if (wantDeck) {
+      deck = `out/${slug}.pptx`;
+      execFileSync(PY, ['docs/build-plan-deck.py', 'out/plan.json', 'out/stills', deck],
+                   { stdio: 'inherit', timeout: 5 * 60_000 });
+    }
 
     // 3. Check — this is what replaces a person looking at the frames
     const qc = JSON.parse(execFileSync(PY,
@@ -160,13 +176,20 @@ for (const r of rows) {
     console.log('  qc:', qc.ok ? 'pass' : `FAIL — ${qc.problems.join('; ')}`);
 
     // 4. Deliver either way. A failed video that nobody can see teaches nobody anything.
-    const url = await upload(r.id, video);
+    //
+    // When both were asked for, the DECK is the link on the card and the video goes in
+    // the note: a deck is the thing someone forwards, and the note is read by whoever
+    // opens the request anyway.
+    const videoUrl = wantVideo ? await upload(r.id, video, 'video/mp4') : null;
+    const deckUrl  = deck ? await upload(r.id, deck, PPTX_MIME) : null;
+    const url = deckUrl ?? videoUrl;
+    const extra = deckUrl && videoUrl ? ` Video: ${videoUrl}` : '';
     await db.from('agent_requests').update({
       status: qc.ok ? 'delivered' : 'declined',
       output_url: url,
-      output_note: qc.ok
+      output_note: (qc.ok
         ? `Produced automatically. ${qc.stats.samples * 2}s. Checked for blank frames, a stalled driver and length — all clear.`
-        : `Produced automatically but it did NOT pass checks: ${qc.problems.join('; ')}. The file is attached so you can see what went wrong; ask again once it is fixed.`,
+        : `Produced automatically but it did NOT pass checks: ${qc.problems.join('; ')}. The file is attached so you can see what went wrong; ask again once it is fixed.`) + extra,
     }).eq('id', r.id);
     if (!qc.ok) failures++;
     console.log('  ->', url);
@@ -212,11 +235,14 @@ async function planFor(brief) {
   return plan;
 }
 
-async function upload(requestId, file) {
+const PPTX_MIME =
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+async function upload(requestId, file, contentType = 'video/mp4') {
   const bytes = readFileSync(file);
   const path = `${requestId}/${Date.now()}-${file.split('/').pop()}`;
   const { error: e } = await db.storage.from('agent-outputs')
-    .upload(path, bytes, { contentType: 'video/mp4', upsert: false });
+    .upload(path, bytes, { contentType, upsert: false });
   if (e) throw new Error(`upload failed: ${e.message}`);
   return db.storage.from('agent-outputs').getPublicUrl(path).data.publicUrl;
 }

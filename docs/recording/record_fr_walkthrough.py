@@ -64,9 +64,21 @@ try:
 
     beat('assistant de projet')
     c.goto('/projects/new', 3.5); french(); hold(1.2)
-    path = run_wizard(c, hold, log=lambda m: print('   ', m, flush=True))
+    # create=False: the account is at its 3-project cap and slots can never be freed
+    # (053), so the walkthrough shows every step and stops on the confirm screen. The
+    # project pages below come from a build that already exists.
+    path = run_wizard(c, hold, log=lambda m: print('   ', m, flush=True), create=False)
     print('    -> ', path, flush=True)
     hold(2.5)
+
+    if not path:
+        beat('projet existant')
+        c.goto('/projects', 3.0); french(); hold(2.0)
+        c.js("""(()=>{const a=[...document.querySelectorAll('a')]
+            .find(x=>/^\\/projects\\/[0-9a-f-]{8,}/.test(new URL(x.href).pathname));
+            if(a){a.click();return 1}return 0})()""")
+        hold(4.0); french(); hold(1.0)
+        path = c.path()
 
     if path and path.startswith('/projects/'):
         c.wait_for("document.querySelectorAll('button').length > 6 ? 1 : 0", timeout=20)
@@ -89,7 +101,7 @@ try:
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([ff, '-y', '-framerate', str(FPS), '-i', 'frames_fr/f%05d.png',
                     '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-                    '-vf', 'scale=1920:1080:flags=lanczos', '-crf', '21',
+                    '-vf', 'scale=1920:1080:flags=lanczos:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black', '-crf', '21',
                     '-preset', 'medium', OUT], check=True, capture_output=True)
     print('wrote', OUT, os.path.getsize(OUT), 'bytes', flush=True)
     print('duration ~', round(rec.n / FPS, 1), 's', flush=True)

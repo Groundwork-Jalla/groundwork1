@@ -45,6 +45,20 @@ class Chrome:
         self.lock = threading.Lock()      # frame capture runs on another thread
         self.cmd('Runtime.enable'); self.cmd('Page.enable'); self.cmd('DOM.enable')
 
+        # Force the VIEWPORT, do not trust --window-size.
+        #
+        # `--window-size=1440,810` sizes the window; the viewport that
+        # Page.captureScreenshot returns came out 1440x667 — 143px short. Every frame was
+        # therefore 2.16:1, and the encoders' `scale=1920:1080` squashed it back to 16:9,
+        # stretching the whole picture horizontally. It looks like a bad font before it
+        # looks like a bad aspect ratio, which is why it survived several rounds of
+        # frame-checking: text is where the eye notices distortion first.
+        #
+        # setDeviceMetricsOverride sets the layout viewport exactly, so what is captured
+        # is what was asked for.
+        self.cmd('Emulation.setDeviceMetricsOverride',
+                 width=W, height=H, deviceScaleFactor=1, mobile=False)
+
     def cmd(self, method, **params):
         with self.lock:
             self.id += 1; mid = self.id

@@ -50,7 +50,8 @@ def write_srt(marks, total_frames, path):
     return os.path.abspath(path)
 
 
-def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
+def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330,
+         stills_dir=None):
     lang = plan.get('language', 'en')
     c    = Chrome(cdp=cdp, start='/', profile_prefix='gw-auto-')
     rec  = Recorder(c, outdir=frames_dir, fps=FPS)
@@ -62,6 +63,10 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
     signed_in = False
     project_path = None
     marks = []          # (start_frame, caption) per scene that has one
+    stills = []         # (path, caption) — one clean frame per scene, for the deck
+
+    if stills_dir:
+        os.makedirs(stills_dir, exist_ok=True)
 
     try:
         time.sleep(2.5)
@@ -161,6 +166,17 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
                 else:
                     log(f'unknown action {action!r} — skipped')
 
+                # A still taken at the END of the scene, once the page has settled —
+                # the same picture a deck wants. Free: the browser is already there.
+                if stills_dir:
+                    try:
+                        p = os.path.join(stills_dir, f'{len(stills):02d}.png')
+                        with open(p, 'wb') as fh:
+                            fh.write(c.shot())
+                        stills.append((p, scene.get('caption') or beat))
+                    except Exception as e:
+                        log(f'still failed: {e}')
+
             except Exception as e:                       # one bad scene, not one bad run
                 log(f'scene failed: {e}')
 
@@ -181,7 +197,16 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
         # strips subtitle tracks entirely. A soft track would be silently dropped exactly
         # where it is needed most. Burnt-in text also survives being re-encoded by
         # whatever the recipient forwards it through.
-        vf = 'scale=1920:1080:flags=lanczos'
+        # force_original_aspect_ratio + pad, never a bare scale.
+        #
+        # A bare `scale=1920:1080` DISTORTS whenever the source is not exactly 16:9, and
+        # it does so silently. That is what happened: the driver captured 1440x667 while
+        # declaring 1440x810, and every video went out horizontally stretched. The
+        # viewport is pinned now (gw.py), but this makes the encoder safe regardless —
+        # a wrong capture size becomes black bars, which is obvious, instead of stretched
+        # text, which reads as a font problem.
+        vf = ('scale=1920:1080:flags=lanczos:force_original_aspect_ratio=decrease,'
+              'pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black')
         srt = write_srt(marks, rec.n, os.path.join(frames_dir, 'captions.srt'))
         if srt:
             # BorderStyle=3 draws an opaque box, and libass sizes that box from
@@ -190,18 +215,19 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
             # project screens, which is the worst kind of bug: invisible in review,
             # obvious to the one person you sent it to.
             #
-            # PlayResY pins the coordinate space so FontSize means the same thing
-            # whatever the output resolution; without it libass assumes 288 and the text
-            # comes out roughly four times too large at 1080p.
+            # BOTH axes pinned. PlayResY alone leaves libass to assume a PlayResX that
+            # is not 16:9, which widens the glyphs slightly — a small effect that was
+            # masked by the much larger capture-aspect bug above.
             style = ('FontName=DejaVu Sans,FontSize=42,PrimaryColour=&H00FFFFFF,'
                      'BorderStyle=3,Outline=8,Shadow=0,BackColour=&HD0000000,'
-                     'Alignment=2,MarginV=60,PlayResY=1080')
+                     'Alignment=2,MarginV=60,PlayResX=1920,PlayResY=1080')
             vf += f",subtitles='{srt}':force_style='{style}'"
         cmd += ['-c:v', 'libx264', '-pix_fmt', 'yuv420p',
                 '-vf', vf, '-crf', '21', '-preset', 'medium', out_path]
         subprocess.run(cmd, check=True, capture_output=True)
         return {'frames': rec.n, 'seconds': round(rec.n / FPS, 1),
                 'project_path': project_path,
+                'stills': len(stills),
                 'bytes': os.path.getsize(out_path)}
     finally:
         try: rec.stop()
@@ -211,5 +237,7 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
 
 if __name__ == '__main__':
     plan = json.load(open(sys.argv[1]))
-    res = play(plan, os.environ['GW_REC_EMAIL'], os.environ['GW_REC_PASSWORD'], sys.argv[2])
+    stills = sys.argv[sys.argv.index('--stills') + 1] if '--stills' in sys.argv else None
+    res = play(plan, os.environ['GW_REC_EMAIL'], os.environ['GW_REC_PASSWORD'], sys.argv[2],
+               stills_dir=stills)
     print(json.dumps(res))

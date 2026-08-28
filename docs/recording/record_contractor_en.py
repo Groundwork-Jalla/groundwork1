@@ -104,7 +104,7 @@ try:
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([ff, '-y', '-framerate', str(FPS), '-i', 'frames_con/f%05d.png',
                     '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-                    '-vf', 'scale=1920:1080:flags=lanczos', '-crf', '21',
+                    '-vf', 'scale=1920:1080:flags=lanczos:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=black', '-crf', '21',
                     '-preset', 'medium', OUT], check=True, capture_output=True)
     print('wrote', OUT, os.path.getsize(OUT), 'bytes', flush=True)
     print('duration ~', round(rec.n / FPS, 1), 's', flush=True)

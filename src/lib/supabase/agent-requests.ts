@@ -17,6 +17,15 @@ export type RequestStatus = 'new' | 'in_progress' | 'delivered' | 'declined';
 export type RequestLanguage = 'en' | 'fr' | 'both';
 
 /**
+ * The shape of the deliverable.
+ *
+ * Driven by the channel, not the content — an investor call wants a deck to send ahead
+ * and talk over; a website or a WhatsApp forward wants a video. The requester knows the
+ * channel, so the producer honours this rather than inferring it from the brief.
+ */
+export type OutputFormat = 'mp4' | 'pptx' | 'both';
+
+/**
  * Which agents can be asked for work today.
  *
  * `video-producer` only, to start. The table accepts all five and the form is built to
@@ -62,6 +71,7 @@ export interface AgentRequestRow {
   goal: string | null;
   channel: string | null;
   language: RequestLanguage;
+  output_format: OutputFormat;
   needed_by: string | null;
   notes: string | null;
   status: RequestStatus;
@@ -79,6 +89,7 @@ export interface NewAgentRequest {
   goal?: string | null;
   channel?: string | null;
   language: RequestLanguage;
+  outputFormat: OutputFormat;
   neededBy?: string | null;
   notes?: string | null;
 }
@@ -104,8 +115,9 @@ export async function createAgentRequest(req: NewAgentRequest): Promise<string> 
     audience:   req.audience?.trim() || null,
     goal:       req.goal?.trim() || null,
     channel:    req.channel?.trim() || null,
-    language:   req.language,
-    needed_by:  req.neededBy || null,
+    language:      req.language,
+    output_format: req.outputFormat,
+    needed_by:     req.neededBy || null,
     notes:      req.notes?.trim() || null,
   });
   if (error) throw error;
@@ -164,6 +176,7 @@ export function briefFor(r: AgentRequestRow): string {
     line('They should be able to', r.goal) +
     line('Shown on', r.channel) +
     `Language: ${r.language}\n` +
+    `Deliver as: ${r.output_format === 'both' ? 'video AND slide deck' : r.output_format}\n` +
     line('Needed by', r.needed_by) +
     line('Notes', r.notes)
   );

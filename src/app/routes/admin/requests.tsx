@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Loader2, Plus, Copy, Check, Trash2, ExternalLink, Download, Clapperboard,
+  Presentation, Layers,
 } from 'lucide-react';
 import {
   AGENT_IDS, ENABLED_AGENTS, PRESETS, briefFor,
   createAgentRequest, deleteAgentRequest, fetchAgentRequests, updateAgentRequest,
-  type AgentId, type AgentRequestRow, type RequestLanguage, type RequestStatus,
+  type AgentId, type AgentRequestRow, type OutputFormat, type RequestLanguage,
+  type RequestStatus,
 } from '@/lib/supabase/agent-requests';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { errorMessage, isMissingTable } from '@/lib/errors';
@@ -52,6 +54,14 @@ const LANGUAGES: { id: RequestLanguage; labelKey: TKey }[] = [
   { id: 'en',   labelKey: 'admin.requests.langEn'   },
   { id: 'fr',   labelKey: 'admin.requests.langFr'   },
   { id: 'both', labelKey: 'admin.requests.langBoth' },
+];
+
+// Video first because it is what every request so far has asked for; "both" last
+// because it is the considered choice, not the default one.
+const FORMATS: { id: OutputFormat; labelKey: TKey; icon: React.ReactNode }[] = [
+  { id: 'mp4',  labelKey: 'admin.requests.fmtVideo', icon: <Clapperboard className="size-3.5" /> },
+  { id: 'pptx', labelKey: 'admin.requests.fmtDeck',  icon: <Presentation className="size-3.5" /> },
+  { id: 'both', labelKey: 'admin.requests.fmtBoth',  icon: <Layers className="size-3.5" /> },
 ];
 
 const AGENT_LABEL: Record<AgentId, TKey> = {
@@ -235,6 +245,12 @@ function RequestCard({
             <span className="rounded-full bg-brand-off-white px-2 py-0.5 text-[11px] text-brand-mid-grey">
               {t(AGENT_LABEL[row.agent])}
             </span>
+            {/* What was asked for, not what came back — visible before delivery, which
+                is when it matters for whoever picks the request up. */}
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-off-white px-2 py-0.5 text-[11px] text-brand-mid-grey">
+              {FORMATS.find(f => f.id === (row.output_format ?? 'mp4'))?.icon}
+              {t(FORMATS.find(f => f.id === (row.output_format ?? 'mp4'))!.labelKey)}
+            </span>
             {row.needed_by && (
               <span className="text-[11px] text-brand-mid-grey">
                 {t('admin.requests.neededBy', { date: fmtDate(row.needed_by) })}
@@ -354,6 +370,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
   const [goal, setGoal]         = useState('');
   const [channel, setChannel]   = useState('');
   const [language, setLanguage] = useState<RequestLanguage>('en');
+  const [format, setFormat]     = useState<OutputFormat>('mp4');
   const [neededBy, setNeededBy] = useState('');
   const [notes, setNotes]       = useState('');
   const [saving, setSaving]     = useState(false);
@@ -376,6 +393,7 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
     try {
       await createAgentRequest({
         agent, preset, title, audience, goal, channel, language,
+        outputFormat: format,
         neededBy: neededBy || null, notes,
       });
       onCreated();
@@ -461,6 +479,31 @@ function ComposeForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
               </button>
             ))}
           </div>
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-brand-near-black">{t('admin.requests.fFormat')}</span>
+          <div className="flex gap-1.5">
+            {FORMATS.map(f => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFormat(f.id)}
+                aria-pressed={format === f.id}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-medium transition-colors',
+                  format === f.id
+                    ? 'border-brand-near-black bg-brand-near-black text-white'
+                    : 'border-brand-border-grey text-brand-mid-grey hover:border-brand-dark-grey',
+                )}
+              >
+                {f.icon}{t(f.labelKey)}
+              </button>
+            ))}
+          </div>
+          <span className="mt-1.5 block text-[11px] leading-relaxed text-brand-mid-grey">
+            {t('admin.requests.fFormatHint')}
+          </span>
         </label>
 
         <label className="block">

@@ -191,8 +191,15 @@ HANDLERS = [
 ]
 
 
-def run_wizard(c, hold, log=print):
-    """Walk the whole wizard. Returns the final path."""
+def run_wizard(c, hold, log=print, create=True):
+    """Walk the wizard. Returns the final path.
+
+    `create=False` walks every step and stops ON the confirm screen without pressing the
+    button. The whole flow is still filmed — which is what a walkthrough needs — but no
+    project is created and no plan slot is consumed. That matters because slots can no
+    longer be freed: archived projects count and owner deletion was removed (053), so a
+    free-tier recording account is finished after three takes.
+    """
     seen = []
     for _ in range(20):
         h = heading(c)
@@ -204,6 +211,11 @@ def run_wizard(c, hold, log=print):
         for key, fn in HANDLERS:
             if key in hl:
                 handler = fn; break
+
+        if handler is step_confirm and not create:
+            log('   · stopping on the confirm screen (create=False)')
+            hold(3.0)
+            return None
         if handler is None:
             log(f'   ! no handler for {h!r}')
             if not _continue(c, hold):
