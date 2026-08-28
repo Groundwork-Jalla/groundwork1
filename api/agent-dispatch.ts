@@ -128,6 +128,14 @@ async function notify(r: Record<string, any>, id: string) {
   // a deadline discovered late.
   const due = r.needed_by ? ` — needed by ${esc(r.needed_by)}` : '';
 
+  // The format belongs in the subject as well as the body. "New request" tells you
+  // nothing about how long it will take; "video + deck" tells you whether this is a
+  // twenty-minute job or a two-minute one, which is what decides when you pick it up.
+  const FORMAT_LABEL: Record<string, string> = {
+    mp4: 'video', pptx: 'deck', both: 'video + deck',
+  };
+  const fmt = FORMAT_LABEL[String(r.output_format ?? 'mp4')] ?? 'video';
+
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;">
       <tr><td style="background:#0a0a0a;padding:20px 28px;">
@@ -141,6 +149,7 @@ async function notify(r: Record<string, any>, id: string) {
           ${row('So they can', r.goal)}
           ${row('Shown on', r.channel)}
           ${row('Language', r.language)}
+          ${row('Deliver as', fmt)}
           ${row('Needed by', r.needed_by)}
           ${row('Notes', r.notes)}
         </table>
@@ -148,7 +157,8 @@ async function notify(r: Record<string, any>, id: string) {
           <a href="${link}" style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Open the queue</a>
         </p>
         <p style="margin:16px 0 0;font-size:11px;line-height:1.6;color:#8a8a87;">
-          Produce it with <code style="background:#f4f4f4;padding:1px 5px;border-radius:4px;">npm run agent:queue -- brief ${esc(String(id).slice(0, 8))}</code>
+          Pick it up with <code style="background:#f4f4f4;padding:1px 5px;border-radius:4px;">npm run agent:queue -- brief ${esc(String(id).slice(0, 8))}</code>,
+          then deliver with <code style="background:#f4f4f4;padding:1px 5px;border-radius:4px;">… -- deliver ${esc(String(id).slice(0, 8))} --file &lt;path&gt;</code>
         </p>
       </td></tr>
     </table>
@@ -160,7 +170,7 @@ async function notify(r: Record<string, any>, id: string) {
     body: JSON.stringify({
       from: FROM,
       to: [TEAM_INBOX],
-      subject: `New video request: ${String(r.title ?? 'Untitled').slice(0, 80)}${due}`,
+      subject: `New ${fmt} request: ${String(r.title ?? 'Untitled').slice(0, 80)}${due}`,
       html,
     }),
   });
