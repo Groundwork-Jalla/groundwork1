@@ -50,6 +50,26 @@ Mail goes to `AGENT_REQUEST_INBOX`, falling back to `TEAM_INBOX`, falling back t
 `contact@tryjalla.com`. Set the first if requests should reach a different address from
 contractor applications.
 
+## Captions, not narration
+
+There is no voice track. Every scene carries a short `caption` written in the brief's
+language, burnt into the picture for that scene's duration.
+
+Burnt in rather than attached as a subtitle track, because these are watched on WhatsApp
+and LinkedIn — muted, in feeds that strip subtitle tracks — so a soft track would be
+silently dropped exactly where it is needed. Burnt-in text also survives whatever
+re-encoding a recipient forwards it through.
+
+The style draws an opaque box: `BorderStyle=3` with a **non-zero** `Outline`, which is
+what libass sizes the box from. Without the box, white text reads fine over the dark
+project screens and is **completely invisible** over the white landing page — a defect
+that does not show up in review, only in whatever you sent. `PlayResY` is pinned so the
+font size means the same thing regardless of output resolution.
+
+Audio is still possible: set `audio` on the plan to a file path and the player muxes it
+with `-shortest`. Nothing generates one — there is no TTS on the runner, and Anthropic
+does not provide it. A music bed or a recorded voiceover would have to be supplied.
+
 ---
 
 ## 1. GitHub secrets

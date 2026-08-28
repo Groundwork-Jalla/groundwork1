@@ -73,8 +73,16 @@ You return ONLY a JSON object. No prose, no markdown fence.
   "scenes": [ ... ]
 }
 
+Every scene takes an optional "caption": one short viewer-facing line, burnt onto the
+video for that scene's duration. Write captions in the brief's language. They are the
+only narration these videos have — there is no voice track, and they are watched muted
+on WhatsApp and LinkedIn, so a video whose scenes have no captions explains nothing.
+Caption the substance ("Payments are held until the work is verified"), not the
+mechanics ("clicking the payments tab"). Keep them under about 60 characters. "beat" is
+internal shorthand and is never shown.
+
 Allowed scenes — use nothing else:
-  {"beat":"...", "action":"visit", "path":"/", "hold":2.5, "scrolls":[1200,1200]}
+  {"beat":"...", "caption":"...", "action":"visit", "path":"/", "hold":2.5, "scrolls":[1200,1200]}
   {"beat":"...", "action":"estimator", "values":[90,150,240]}
   {"beat":"...", "action":"login"}
   {"beat":"...", "action":"wizard_preview", "steps":3}
@@ -94,6 +102,8 @@ Rules:
 - "login" must come before dashboard, wizard, project or tabs scenes.
 - French briefs: tabs are ["Étapes","Coûts","Paiements"]. English: ["Stages","Costing","Payments"].
 - 8-12 scenes. Total dwell 60-120s. Hold 2-3s on anything a viewer must read.
+- Caption every scene. A caption must stay on screen at least a second, so do not use
+  captions on scenes you have given a very short hold.
 - Open with what the audience cares about, close with what you want them to do.`;
 
 const db = createClient(URL_, ANON, { auth: { persistSession: false } });

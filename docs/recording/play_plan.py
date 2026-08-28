@@ -16,6 +16,40 @@ from wizard import run_wizard
 
 FPS = 12
 
+
+def _ts(frame, fps=FPS):
+    """Frame index -> SRT timestamp."""
+    total_ms = int(frame * 1000 / fps)
+    h, rem = divmod(total_ms, 3_600_000)
+    m, rem = divmod(rem, 60_000)
+    sec, ms = divmod(rem, 1000)
+    return f'{h:02d}:{m:02d}:{sec:02d},{ms:03d}'
+
+
+def write_srt(marks, total_frames, path):
+    """Write captions, each running until the next one starts.
+
+    Returns the path, or None when there is nothing to write — a plan with no captions
+    should encode without a subtitles filter rather than with an empty one, which libass
+    treats as an error.
+    """
+    if not marks:
+        return None
+    lines = []
+    for i, (start, text) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else total_frames
+        # A caption that flashes for under a second is unreadable; borrow from the gap
+        # rather than showing it at all.
+        if end - start < FPS:
+            continue
+        lines.append(f'{len(lines) + 1}\n{_ts(start)} --> {_ts(end)}\n{text}\n')
+    if not lines:
+        return None
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write('\n'.join(lines))
+    return os.path.abspath(path)
+
+
 def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
     lang = plan.get('language', 'en')
     c    = Chrome(cdp=cdp, start='/', profile_prefix='gw-auto-')
@@ -27,6 +61,7 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
 
     signed_in = False
     project_path = None
+    marks = []          # (start_frame, caption) per scene that has one
 
     try:
         time.sleep(2.5)
@@ -37,6 +72,12 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
             action = scene.get('action', 'visit')
             beat   = scene.get('beat', action)
             print(f'  [{rec.n:5d}] {i+1}. {beat}', flush=True)
+
+            # `caption` is viewer-facing and written in the brief's language; `beat` is
+            # internal shorthand ("tabs", "open_project") and must never be shown. A
+            # scene without a caption simply has no subtitle over it.
+            if scene.get('caption'):
+                marks.append((rec.n, str(scene['caption'])))
 
             try:
                 if action == 'visit':
@@ -133,9 +174,31 @@ def play(plan, email, password, out_path, frames_dir='frames_auto', cdp=9330):
         audio = plan.get('audio')
         if audio and os.path.exists(audio):
             cmd += ['-i', audio, '-c:a', 'aac', '-shortest']
+
+        # Captions are burnt in, not attached as a track.
+        #
+        # These videos are watched on WhatsApp and LinkedIn, muted, often in a feed that
+        # strips subtitle tracks entirely. A soft track would be silently dropped exactly
+        # where it is needed most. Burnt-in text also survives being re-encoded by
+        # whatever the recipient forwards it through.
+        vf = 'scale=1920:1080:flags=lanczos'
+        srt = write_srt(marks, rec.n, os.path.join(frames_dir, 'captions.srt'))
+        if srt:
+            # BorderStyle=3 draws an opaque box, and libass sizes that box from
+            # `Outline` — so Outline=0 means no box at all. White text then vanishes
+            # completely over the white landing page while looking fine over the dark
+            # project screens, which is the worst kind of bug: invisible in review,
+            # obvious to the one person you sent it to.
+            #
+            # PlayResY pins the coordinate space so FontSize means the same thing
+            # whatever the output resolution; without it libass assumes 288 and the text
+            # comes out roughly four times too large at 1080p.
+            style = ('FontName=DejaVu Sans,FontSize=42,PrimaryColour=&H00FFFFFF,'
+                     'BorderStyle=3,Outline=8,Shadow=0,BackColour=&HD0000000,'
+                     'Alignment=2,MarginV=60,PlayResY=1080')
+            vf += f",subtitles='{srt}':force_style='{style}'"
         cmd += ['-c:v', 'libx264', '-pix_fmt', 'yuv420p',
-                '-vf', 'scale=1920:1080:flags=lanczos', '-crf', '21',
-                '-preset', 'medium', out_path]
+                '-vf', vf, '-crf', '21', '-preset', 'medium', out_path]
         subprocess.run(cmd, check=True, capture_output=True)
         return {'frames': rec.n, 'seconds': round(rec.n / FPS, 1),
                 'project_path': project_path,
