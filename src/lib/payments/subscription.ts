@@ -69,10 +69,14 @@ async function authedPost(path: string, payload?: Record<string, unknown>): Prom
 }
 
 /** Redirects to hosted Stripe Checkout. No card data touches Groundwork. */
-export async function startJallaVerifyCheckout(): Promise<void> {
+export async function startJallaVerifyCheckout(returnTo?: string): Promise<void> {
   // Come back to wherever checkout was started — upgrading from the contractor
   // directory should return there, not to settings. The server re-validates this.
-  const returnTo = window.location.pathname + window.location.search;
+  //
+  // `returnTo` overrides that for the wizard, which needs to land on the project just
+  // created rather than back on /projects/new — a wizard that starts over after a
+  // successful payment is the worst possible first impression of the paid plan.
+  returnTo ??= window.location.pathname + window.location.search;
   const { url } = await authedPost('/api/stripe/create-checkout-session', { return_to: returnTo });
   window.location.href = url;
 }

@@ -30,25 +30,39 @@ call is lost, nothing is stranded.
 
 ---
 
-## Notifications — the part worth setting up first
+## Notifications — working, and independent of everything else
 
-Every filed request emails the team inbox with the whole brief and the exact command to
-produce it. This is independent of automatic production, and it is the half that matters
-most: with production off, an email is the only thing between a brief and silence.
+Every filed request emails whoever is set as `notify_email` with the whole brief and the
+command to produce it. **The database sends this itself**, calling Resend directly from
+the `agent_requests` insert trigger. It does not touch Vercel, GitHub or Anthropic.
 
-**To get notifications you need three things, and none of them is an API key:**
+That was not the original design. It routed through `/api/agent-dispatch` on Vercel with
+a shared secret, which failed for two reasons worth recording:
 
-1. Migrations **054** (the table) and **056** (the trigger) applied.
-2. `AGENT_DISPATCH_SECRET` set on Vercel — any long random string.
-3. The two database settings under *§3*, using that same secret.
+- **Vercel would not take more environment variables** on the free plan, so the shared
+  secret had nowhere to live.
+- The apex domain **308-redirects to `www`**, and `pg_net` does not follow redirects —
+  so the original URL would have swallowed every notification silently.
 
-`RESEND_API_KEY` is already configured. `GH_DISPATCH_TOKEN` and `ANTHROPIC_API_KEY` are
-**not** needed — without them the GitHub half simply reports "not configured" and the
-email still sends, because the two run under `Promise.allSettled`.
+Cutting the hop removed both problems and a redeploy step. Settings live in `app_config`
+(058), which has RLS on and no policies, so only `SECURITY DEFINER` functions can read
+it. To change the recipient:
 
-Mail goes to `AGENT_REQUEST_INBOX`, falling back to `TEAM_INBOX`, falling back to
-`contact@tryjalla.com`. Set the first if requests should reach a different address from
-contractor applications.
+```sql
+UPDATE public.app_config SET value = 'someone@example.com', updated_at = now()
+ WHERE key = 'notify_email';
+```
+
+If mail stops, this is the log of every outbound call Postgres made:
+
+```sql
+SELECT id, status_code, left(content, 250) AS response, created
+FROM net._http_response ORDER BY created DESC LIMIT 5;
+```
+
+Rows with `200` mean Resend accepted it and the problem is delivery. No rows at all means
+the trigger is not firing — check it exists with `SELECT tgname FROM pg_trigger WHERE
+tgrelid = 'public.agent_requests'::regclass AND NOT tgisinternal;`
 
 ## Captions, not narration
 
@@ -89,18 +103,29 @@ does not provide it. A music bed or a recorded voiceover would have to be suppli
 | Variable | What |
 |---|---|
 | `GH_DISPATCH_TOKEN` | GitHub fine-grained PAT on this repo, **Contents: read and write** — that is the permission `repository_dispatch` requires |
-| `AGENT_DISPATCH_SECRET` | any long random string — **needed for notifications too** |
-| `AGENT_REQUEST_INBOX` | optional; where request emails go (defaults to `TEAM_INBOX`) |
+| `AGENT_DISPATCH_SECRET` | any long random string. **Not needed for notifications** — those go straight from the database |
+| `AGENT_REQUEST_INBOX` | unused now; the recipient is `notify_email` in `app_config` |
 | `GH_AGENT_REPO` | optional; defaults to `Groundwork-Jalla/groundwork1` |
 
 ## 3. Database settings
 
-Run once, then reconnect — database settings only apply to new sessions:
+In `app_config`, not as database parameters — Supabase refuses `ALTER DATABASE ... SET`
+for custom parameters (`42501: permission denied to set parameter`), because the
+dashboard role is not superuser.
+
+Already set for notifications: `resend_api_key`, `notify_email`.
+
+Only needed when turning the GitHub half on:
 
 ```sql
-ALTER DATABASE postgres SET app.agent_dispatch_url    = 'https://tryjalla.com/api/agent-dispatch';
-ALTER DATABASE postgres SET app.agent_dispatch_secret = '<the same AGENT_DISPATCH_SECRET>';
+INSERT INTO public.app_config (key, value) VALUES
+  ('agent_dispatch_url',    'https://www.tryjalla.com/api/agent-dispatch'),
+  ('agent_dispatch_secret', '<the same AGENT_DISPATCH_SECRET as Vercel>')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
 ```
+
+**`www`, not the apex** — `tryjalla.com` 308s to `www.tryjalla.com` and `pg_net` does not
+follow redirects.
 
 ## 4. The recording account — do this, or the automation dies
 

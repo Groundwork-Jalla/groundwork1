@@ -14,15 +14,20 @@ export async function createProject(
   formData: WizardFormData,
   budget: BudgetBreakdown,
 ): Promise<ProjectRow> {
-  // Only Jalla Management is gated at creation. Its budget is produced and confirmed by
-  // a Jalla admin (admin_start_project_tracking), so the project opens still awaiting
-  // tracking and shows a banner.
+  // ALWAYS created on the free plan. A paid tier is granted by payment, never by the
+  // plan someone selected — the wizard sends them to Stripe straight after this, and the
+  // subscription webhook upgrades the project through profiles.subscription_tier (021).
   //
-  // Self Verify and Jalla Verify confirm their budget in the final wizard step, which
-  // calls start_project_tracking immediately after this — they are created gated for the
-  // instant in between, so a failure there leaves a coherent project rather than one with
-  // an active stage and an unconfirmed budget.
-  const tier  = formData.tier as ProjectTier;
+  // The database clamps this anyway (061). Sending the honest value regardless: a client
+  // that lies and leans on the server to correct it is a client whose behaviour changes
+  // the day somebody loosens the trigger.
+  const tier: ProjectTier = 'self_verify';
+
+  // Every project is created gated, whatever the plan. The final wizard step calls
+  // start_project_tracking immediately after this, so the gate exists only for the
+  // instant in between — long enough that a failure there leaves a coherent project
+  // rather than one with an active stage and an unconfirmed budget. Jalla Management
+  // stays gated for longer: an admin produces and confirms its budget.
   const gated = true;
 
   // 1. Insert project
@@ -158,7 +163,11 @@ export async function createProject(
     trackEvent('project_created', {
       project_type: formData.projectType,
       country: formData.country,
-      tier: formData.tier,
+      // Both, because they are now different questions: `tier` is what the project was
+      // created on, `tier_selected` is what they wanted. The gap between the two is the
+      // checkout funnel, and it is worth being able to measure.
+      tier,
+      tier_selected: formData.tier,
     });
 
     return project;
