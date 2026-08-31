@@ -21,6 +21,7 @@
  */
 import { siteUrl } from '../../src/lib/site-url.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
+import { logEmailToCrm } from '../ghl/_email-log.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -160,6 +161,14 @@ export async function handler(req: any, res: any) {
       });
       return;
     }
+
+    // Onto the applicant's GHL contact. Placed before the stamping and not awaited, so
+    // it happens on both exits below — the note is as useful when the `acknowledged_at`
+    // write fails as when it succeeds, and arguably more so.
+    void logEmailToCrm({
+      to: app.email, subject, html,
+      kind: 'contractor_application_received', name: app.full_name ?? null,
+    });
 
     // Stamped only after Resend accepts it. Stamping first would mark someone as
     // contacted who never was, and this column is the only record of who still needs

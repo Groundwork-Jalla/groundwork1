@@ -16,6 +16,7 @@ import { contractorTags } from './_pipeline.js';
  */
 
 import type { ContractorApplicationInput } from '../../src/lib/contractor/application-types.js';
+import { normalisePhone } from './_phone.js';
 
 /** How many repeatable rows are flattened. Beyond this, the deep link is the answer. */
 const MAX_PROJECTS = 5;
@@ -88,7 +89,10 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
     first_name: firstName || null,
     last_name:  lastName  || null,
     email:      lead.email,
-    phone:      str(lead.phone),
+    // E.164, so GHL can actually message them. A number stored the way people type it
+    // — `670 00 00 00` — looks like a filled-in phone field and cannot be reached by
+    // WhatsApp or SMS. Falls back to the raw string when it cannot be placed.
+    phone:      normalisePhone(lead.phone, lead.country) ?? str(lead.phone),
     country:    str(lead.country),
     city:       str(lead.city),
 

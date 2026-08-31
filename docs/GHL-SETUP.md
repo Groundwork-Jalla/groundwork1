@@ -230,6 +230,83 @@ Optional. Lets a booked appointment or a reply reach the app instead of living o
 
 ---
 
+## Step 7 — WhatsApp for talking to contractors (30 min, mostly waiting on Meta)
+
+**Do Step 3 first.** WhatsApp messages attach to a contact, and without the API there are
+no contact ids to attach them to.
+
+### The part only you can do
+
+WhatsApp Business is not something an app can switch on — Meta has to approve the
+business, and that approval is tied to your company, not to this codebase.
+
+1. GHL → **Settings → Conversation Providers → WhatsApp** (some accounts show it under
+   **Settings → Integrations**)
+2. Connect a number. Two routes, and the choice matters:
+   - **GHL's own WhatsApp** — they handle the Meta approval. Fastest, and billed per
+     conversation.
+   - **Your own Meta WhatsApp Business account** — more setup, cheaper at volume, and the
+     number stays yours if you ever leave GHL.
+3. The number **cannot already be on the WhatsApp app**. A number in use on a personal or
+   Business-app WhatsApp has to be deleted from it first, and that is irreversible for
+   that number's chat history. Use a fresh SIM rather than the one on someone's phone.
+4. Meta review is typically 1–3 days.
+
+### Before the first message: templates
+
+Outside a 24-hour window from the contact's last message, WhatsApp only permits
+**pre-approved template messages**. A free-text first contact will simply not deliver.
+Submit templates in GHL → **Marketing → Templates**, and expect a day for approval.
+
+Worth having, in English and French, given who they go to:
+
+- application received
+- application accepted / declined
+- documents missing, please send X
+- you have been invited to a project
+
+### What the code already does for this
+
+**Phone numbers are now normalised to E.164** (`api/ghl/_phone.ts`). This is not
+cosmetic. WhatsApp addresses a person by `+237670000000`; the form takes free text and
+Cameroonians write `670 00 00 00`, which is what was being sent. **Every contact already
+in GHL has a phone field that looks filled in and cannot be messaged.**
+
+New and re-synced contacts are fixed automatically. To fix the ones already there:
+
+- Contractors: `/admin/applications/<id>` → **Send to CRM again**
+- Everyone else: they are corrected on their next lifecycle event, or via
+  `/admin/crm` → **Send them now**
+
+Numbers the normaliser cannot confidently place are passed through unchanged rather than
+guessed at — a wrong number in a CRM reaches a stranger, which is worse than one that
+visibly fails.
+
+---
+
+## Step 8 — seeing our emails on the contact (nothing to configure)
+
+Already on, provided Step 3 is done.
+
+Every email the product sends a client or contractor is written onto that person's GHL
+contact as a **note**: what it was, when it went, the subject, and a readable excerpt of
+the body. Acknowledgements, decisions, project invitations, and anything sent through the
+generic sender.
+
+So the question that follow-up actually turns on — *what have we already said to this
+person?* — is answerable in GHL, by whoever is holding the phone, without asking a
+developer.
+
+**A note, not a logged email, deliberately.** GHL's conversation view expects mail sent
+through GHL's own sending domain. Moving transactional mail there would mean
+re-verifying deliverability for password resets and invitations — real risk, to put the
+record in a slightly prettier place. A note lands on the same timeline and is searchable.
+
+If the API is not configured, nothing is written and nothing breaks: the email still
+sends. Notes never block or fail a send.
+
+---
+
 ## When something does not arrive
 
 `/admin/crm` → **Waiting to reach the CRM** lists every event that has not landed, with

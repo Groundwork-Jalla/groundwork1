@@ -32,6 +32,7 @@ const API_VERSION = '2021-07-28';
 const PATHS = {
   upsertContact:     '/contacts/upsert',
   addTags:           (contactId: string) => `/contacts/${contactId}/tags`,
+  contactNotes:      (contactId: string) => `/contacts/${contactId}/notes`,
   searchOpportunity: '/opportunities/search',
   createOpportunity: '/opportunities/',
   updateOpportunity: (id: string) => `/opportunities/${id}`,
@@ -192,6 +193,40 @@ export async function addContactTags(
 ): Promise<GhlResult<unknown>> {
   if (!tags.length) return { ok: true, status: 200 };
   return ghlFetch(cfg, PATHS.addTags(contactId), { method: 'POST', body: { tags } });
+}
+
+// ── Notes (the follow-up trail) ───────────────────────────────────────────────────────
+
+/**
+ * Write a note onto a contact's timeline in GHL.
+ *
+ * ── Why every outgoing email becomes one ─────────────────────────────────────────────
+ * Transactional mail goes out through Resend, which GHL knows nothing about. So whoever
+ * picks up the phone sees a contact with tags and custom fields and no idea that the
+ * person was told two days ago their application was accepted — and either repeats it or
+ * contradicts it. Asking "what have we already said to this person?" is most of what
+ * follow-up is, and until now the CRM could not answer it.
+ *
+ * A note rather than a logged email: GHL's conversation surface expects mail sent through
+ * GHL's own sending domain, which would mean moving transactional mail off Resend and
+ * re-verifying deliverability for password resets and invites. A note appears on the same
+ * timeline, is searchable, and costs nothing to keep in step.
+ */
+export async function addContactNote(
+  cfg: GhlConfig,
+  contactId: string,
+  body: string,
+): Promise<GhlResult<{ noteId?: string }>> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.contactNotes(contactId), {
+    method: 'POST',
+    body: { body },
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as Record<string, unknown>;
+  const nested = (d.note ?? {}) as Record<string, unknown>;
+  const id = d.id ?? d._id ?? nested.id ?? nested._id;
+  return { ok: true, status: r.status, data: { noteId: id ? String(id) : undefined } };
 }
 
 // ── Opportunities (the sales pipeline) ────────────────────────────────────────────────

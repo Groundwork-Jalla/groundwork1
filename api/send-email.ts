@@ -1,5 +1,7 @@
 // Vercel Serverless Function — sends transactional email via Resend.
 // RESEND_API_KEY must be set in Vercel environment variables.
+import { logEmailToCrm } from './ghl/_email-log.js';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -62,6 +64,10 @@ export default async function handler(req: any, res: any) {
   const data = await r.json().catch(() => ({}));
 
   if (r.ok) {
+    // Onto the recipient's GHL contact. This endpoint is the generic one — it does not
+    // know what it just sent — so the note carries the subject and body and a neutral
+    // label rather than pretending to a category it cannot determine.
+    void logEmailToCrm({ to, subject, html, kind: 'other' });
     return res.status(200).json({ success: true });
   }
   return res.status(500).json({ error: 'Resend API error', details: data });

@@ -19,6 +19,7 @@ import { siteUrl } from '../src/lib/site-url.js';
 import { isValidEmail } from '../src/lib/email/is-valid-email.js';
 import { forwardToGhl } from './ghl/_forward.js';
 import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
+import { logEmailToCrm } from './ghl/_email-log.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -127,17 +128,15 @@ export default async function handler(req: any, res: any) {
     const { buildApplicationDecisionHtml, applicationDecisionSubject } =
       await import('../src/lib/email/application-decision-html.js');
 
+    const subject = applicationDecisionSubject(lang, decision as Decision);
+    const html = buildApplicationDecisionHtml(
+      lang, decision as Decision, app.full_name ?? '', site,
+    );
+
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: FROM,
-        to: [app.email],
-        subject: applicationDecisionSubject(lang, decision as Decision),
-        html: buildApplicationDecisionHtml(
-          lang, decision as Decision, app.full_name ?? '', site,
-        ),
-      }),
+      body: JSON.stringify({ from: FROM, to: [app.email], subject, html }),
     });
 
     if (!r.ok) {
@@ -167,6 +166,13 @@ export default async function handler(req: any, res: any) {
       // Accepted and rejected are opposite ends of a pipeline, not one event.
       variant: decision,
       dedupeKey: `application_decision:${applicationId}:${decision}`,
+    });
+
+    // The single most useful note on a contractor's timeline: an accepted applicant who
+    // rings up should not be asked whether they have heard from us yet.
+    void logEmailToCrm({
+      to: app.email, subject, html,
+      kind: 'contractor_application_decision', name: app.full_name ?? null,
     });
 
     res.status(200).json({ ok: true });

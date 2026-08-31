@@ -16,6 +16,7 @@
 // row, server decides what goes in the message and where it goes.
 import { buildInviteHtml, inviteSubject } from '../src/lib/email/invite-html.js';
 import { resolveRecipientLang } from '../src/lib/i18n/translate.js';
+import { logEmailToCrm } from './ghl/_email-log.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -77,18 +78,16 @@ export default async function handler(req: any, res: any) {
     const inviterName = inviter?.full_name?.trim() || 'A Groundwork client';
     const projectName = project?.name?.trim() || 'a Groundwork project';
 
+    const subject = inviteSubject(lang, inviterName);
+    const html = buildInviteHtml(lang, inviterName, projectName, inviteToken);
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: FROM,
-        to: [invite.email],
-        subject: inviteSubject(lang, inviterName),
-        html: buildInviteHtml(lang, inviterName, projectName, inviteToken),
-      }),
+      body: JSON.stringify({ from: FROM, to: [invite.email], subject, html }),
     });
 
     if (!response.ok) {
@@ -97,6 +96,11 @@ export default async function handler(req: any, res: any) {
       res.status(502).json({ error: 'Could not send the email' });
       return;
     }
+
+    // On the contact in GHL, so whoever follows up can see the invitation was sent
+    // without asking anyone. Deliberately not awaited — the email has gone, and a CRM
+    // problem must not turn a successful send into a 500.
+    void logEmailToCrm({ to: invite.email, subject, html, kind: 'contractor_invite' });
 
     res.status(200).json({ success: true });
   } catch (err) {

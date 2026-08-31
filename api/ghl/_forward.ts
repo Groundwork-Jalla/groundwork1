@@ -1,6 +1,7 @@
 import { ghlConfig, upsertContact, addContactTags, moveToStage } from './_client.js';
 import type { GhlConfig } from './_client.js';
 import { ghlSettings } from './_config.js';
+import { normalisePhone } from './_phone.js';
 import { tagsFor, stageFor } from './_pipeline.js';
 import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
 
@@ -239,7 +240,7 @@ async function deliverViaApi(
     firstName: first || null,
     lastName:  last  || null,
     name:      (contact.fullName ?? '').trim() || null,
-    phone:     contact.phone ?? null,
+    phone:     normalisePhone(contact.phone, contact.country) ?? contact.phone ?? null,
     country:   contact.country ?? null,
     city:      contact.city ?? null,
     tags,
