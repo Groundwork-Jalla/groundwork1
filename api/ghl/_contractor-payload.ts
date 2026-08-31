@@ -230,8 +230,29 @@ const CRED_KEYS = [
  * Used by the admin "create missing fields" action, which is the only sane way to get a
  * hundred-odd fields into GHL.
  */
+/**
+ * Payload keys that GoHighLevel already has a **native** contact field for.
+ *
+ * `upsertContact` sends each of these as a real contact property — the boxes GHL's own
+ * UI shows at the top of a contact, and the ones its features read. Sending them a
+ * second time as custom fields would give every contact two Phones, two Emails and two
+ * Cities, one of which is the real one.
+ *
+ * That is not merely untidy. WhatsApp and SMS address the **native** phone: a duplicate
+ * custom `phone` beside it is the field someone will read, copy, and wonder why the
+ * message never arrived. Duplicates on a CRM record are a support burden forever.
+ *
+ * So these are stripped from the custom-field payload and excluded from the list the
+ * "create missing fields" action offers — nothing is lost, because the native field
+ * carries the same value.
+ */
+export const NATIVE_CONTACT_FIELDS = new Set([
+  'email', 'first_name', 'last_name', 'full_name', 'phone', 'country', 'city', 'source',
+]);
+
 export function contractorFieldKeys(): string[] {
   const pad = (n: number, make: (i: number) => unknown) => Array.from({ length: n }, (_, i) => make(i));
+
 
   const payload = buildContractorPayload({
     applicationId: 'x', status: 'pending',
@@ -251,6 +272,9 @@ export function contractorFieldKeys(): string[] {
     documentUrls: pad(MAX_DOCUMENTS, i => `https://x/${i}`) as string[],
   });
 
-  // `tags` is an array handled separately by the upsert, not a custom field.
-  return Object.keys(payload).filter(k => k !== 'tags').sort();
+  // `tags` is an array handled separately by the upsert, not a custom field, and the
+  // native fields already exist on every GHL contact — see NATIVE_CONTACT_FIELDS.
+  return Object.keys(payload)
+    .filter(k => k !== 'tags' && !NATIVE_CONTACT_FIELDS.has(k))
+    .sort();
 }

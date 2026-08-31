@@ -104,7 +104,8 @@ describe('buildContractorPayload — documents', () => {
  */
 describe('contractorFieldKeys', () => {
   it('covers every key a real application actually produces', async () => {
-    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+    const { contractorFieldKeys, NATIVE_CONTACT_FIELDS } =
+      await import('../../../api/ghl/_contractor-payload');
     const canonical = new Set(contractorFieldKeys());
 
     const real = buildContractorPayload({
@@ -119,8 +120,23 @@ describe('contractorFieldKeys', () => {
       applicationId: 'a', status: 'pending', documentUrls: urls(3),
     });
 
-    const uncovered = Object.keys(real).filter(k => k !== 'tags' && !canonical.has(k));
+    // Every key must land somewhere: a custom field we create, a native contact
+    // property GHL already has, or `tags`. A key in none of those is silently discarded
+    // by GHL and shows on the contact as a blank — the exact failure this guards.
+    const uncovered = Object.keys(real).filter(
+      k => k !== 'tags' && !canonical.has(k) && !NATIVE_CONTACT_FIELDS.has(k),
+    );
     expect(uncovered).toEqual([]);
+  });
+
+  it('does not offer to create a custom field GHL already has natively', async () => {
+    const { contractorFieldKeys, NATIVE_CONTACT_FIELDS } =
+      await import('../../../api/ghl/_contractor-payload');
+
+    // A custom `phone` beside the native one is the field somebody copies into WhatsApp,
+    // where it does not work. Same for a second email or city on every contact.
+    const duplicated = contractorFieldKeys().filter(k => NATIVE_CONTACT_FIELDS.has(k));
+    expect(duplicated).toEqual([]);
   });
 
   it('includes the project reference fields that were being dropped', async () => {

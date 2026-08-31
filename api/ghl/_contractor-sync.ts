@@ -2,10 +2,11 @@ import {
   ghlConfig, upsertContact, addContactTags, uploadMediaFromUrl,
   ensureFolder, folderNameFor,
 } from './_client.js';
-import { buildContractorPayload } from './_contractor-payload.js';
+import { buildContractorPayload, NATIVE_CONTACT_FIELDS } from './_contractor-payload.js';
 import { signDocuments, mediaName } from './_documents.js';
 import { contractorTags } from './_pipeline.js';
 import type { ContractorApplicationInput } from '../../src/lib/contractor/application-types.js';
+import { normalisePhone } from './_phone.js';
 
 /**
  * Put a contractor application into GoHighLevel through the API, documents and all.
@@ -101,6 +102,10 @@ export async function syncContractorToApi(
     const customFields: Record<string, string | number | boolean | null> = {};
     for (const [key, value] of Object.entries(payload)) {
       if (key === 'tags') continue;
+      // Sent below as real contact properties. Duplicating them here would put a second
+      // Phone and a second Email on every contact, and the duplicate phone is the one
+      // someone would copy into WhatsApp — where it would not work.
+      if (NATIVE_CONTACT_FIELDS.has(key)) continue;
       if (value === null || value === undefined) continue;
       if (typeof value === 'object') continue;
       customFields[key] = value as string | number | boolean;
@@ -117,7 +122,10 @@ export async function syncContractorToApi(
       // created showed a blank Business name in the contacts list while the duplicate
       // beside it showed the trading name.
       companyName: application.businessName || null,
-      phone:     application.phone || null,
+      // E.164. This is the field WhatsApp and SMS actually address, so it is the one
+      // that has to be normalised — a contractor stored as `670000000` cannot be
+      // messaged at all, however complete the rest of the contact looks.
+      phone:     normalisePhone(application.phone, application.country) ?? application.phone ?? null,
       country:   application.country || null,
       city:      application.city || null,
       tags,
