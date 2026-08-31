@@ -20,6 +20,7 @@
  * receives mail is taken from the request.
  */
 import { siteUrl } from '../../src/lib/site-url.js';
+import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 
@@ -85,6 +86,22 @@ export async function handler(req: any, res: any) {
     return;
   }
 
+  // Checked before anything is built or sent, because a malformed address is the one
+  // failure that no amount of retrying can clear, and it looked exactly like a transient
+  // one on screen. `ngamfonjoel.@gmail.com` — a trailing dot on the local part — passed
+  // the old, looser rule at submission, so it was stored, and Resend then answered 422
+  // to every send. The admin saw "Try again" and did, for ever. Reported as its own
+  // stage so the page can say what is actually wrong and who can fix it.
+  if (!isValidEmail(String(app.email ?? ''))) {
+    console.error('[ack] stored address is not deliverable:', applicationId, app.email);
+    res.status(422).json({
+      error: 'The stored address is not a valid email address',
+      stage: 'address',
+      address: app.email ?? null,
+    });
+    return;
+  }
+
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
 
   // Building the message and sending it are reported separately.
@@ -130,9 +147,15 @@ export async function handler(req: any, res: any) {
       // The upstream *status* comes back, the body does not. A 401 or 403 means our
       // credentials, not this application — an admin clicking "try again" for ever
       // cannot fix a revoked key, and nothing on screen was telling them that.
-      res.status(502).json({
+      // 422 is Resend refusing the address itself, not the send — the guard above
+      // catches the shapes we know about, and this catches the rest rather than
+      // filing them under "try again".
+      const stage = r.status === 401 || r.status === 403 ? 'credentials'
+                  : r.status === 422                     ? 'address'
+                  : 'send';
+      res.status(r.status === 422 ? 422 : 502).json({
         error: 'Could not send the email',
-        stage: r.status === 401 || r.status === 403 ? 'credentials' : 'send',
+        stage,
         upstreamStatus: r.status,
       });
       return;

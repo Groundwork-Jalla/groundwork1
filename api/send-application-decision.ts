@@ -16,6 +16,7 @@
 type Decision = 'accepted' | 'rejected';
 
 import { siteUrl } from '../src/lib/site-url.js';
+import { isValidEmail } from '../src/lib/email/is-valid-email.js';
 import { forwardToGhl } from './ghl/_forward.js';
 import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
 
@@ -102,6 +103,20 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // Same guard as the acknowledgement, for the same reason: an address Resend will
+  // never accept is not a failed send, it is a row that can never be emailed, and
+  // "press the button again to retry" is the wrong thing to tell someone about it.
+  // See the note in src/lib/email/is-valid-email.ts.
+  if (!isValidEmail(String(app.email ?? ''))) {
+    console.error('[decision] stored address is not deliverable:', applicationId, app.email);
+    res.status(422).json({
+      error: 'The stored address is not a valid email address',
+      stage: 'address',
+      address: app.email ?? null,
+    });
+    return;
+  }
+
   const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
   const site = siteUrl();
 
@@ -128,7 +143,11 @@ export default async function handler(req: any, res: any) {
     if (!r.ok) {
       const detail = await r.json().catch(() => ({}));
       console.error('[decision] Resend rejected the message:', r.status, detail);
-      res.status(502).json({ error: 'Could not send the email' });
+      const stage = r.status === 401 || r.status === 403 ? 'credentials'
+                  : r.status === 422                     ? 'address'
+                  : 'send';
+      res.status(r.status === 422 ? 422 : 502)
+         .json({ error: 'Could not send the email', stage, upstreamStatus: r.status });
       return;
     }
 
@@ -153,6 +172,6 @@ export default async function handler(req: any, res: any) {
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error('[decision] Resend unreachable:', err);
-    res.status(502).json({ error: 'Could not send the email' });
+    res.status(502).json({ error: 'Could not send the email', stage: 'network' });
   }
 }

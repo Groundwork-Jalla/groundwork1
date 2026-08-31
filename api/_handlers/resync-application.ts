@@ -1,4 +1,5 @@
 import { buildContractorPayload, markApplicationSynced } from '../ghl/_contractor-payload.js';
+import { ghlSettings } from '../ghl/_config.js';
 
 /**
  * Send one contractor application to the CRM again.
@@ -28,7 +29,7 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  const webhookUrl = process.env.GHL_CONTRACTOR_WEBHOOK_URL;
+  const webhookUrl = (await ghlSettings()).GHL_CONTRACTOR_WEBHOOK_URL.value;
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {

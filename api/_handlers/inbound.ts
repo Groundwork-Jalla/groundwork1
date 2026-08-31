@@ -20,6 +20,8 @@
  * one is a later, deliberate step with its own review.
  */
 
+import { ghlSettings } from '../ghl/_config.js';
+
 const MAX_BODY = 64 * 1024;
 
 /** Constant-time compare, so a wrong secret cannot be found a character at a time. */
@@ -36,7 +38,7 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  const expected = process.env.GHL_INBOUND_SECRET;
+  const expected = (await ghlSettings()).GHL_INBOUND_SECRET.value;
   if (!expected) {
     // Refuse rather than accept anonymously. An unconfigured inbound endpoint that took
     // anything offered would be a public write into our database.

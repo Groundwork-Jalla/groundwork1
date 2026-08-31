@@ -67,7 +67,7 @@ describe('ensureFolder', () => {
     });
     const { ensureFolder, ghlConfig } = await fresh();
 
-    expect(await ensureFolder(ghlConfig()!, 'Ada Mbeki (abcd1234)')).toBe('fold99');
+    expect(await ensureFolder((await ghlConfig())!, 'Ada Mbeki (abcd1234)')).toBe('fold99');
     // Found by listing: no creation attempt at all.
     expect(calls.some(c => c.url.includes('create-folder'))).toBe(false);
   });
@@ -83,7 +83,7 @@ describe('ensureFolder', () => {
       return new Response('nope', { status: 404 });
     });
     const { ensureFolder, ghlConfig } = await fresh();
-    const cfg = ghlConfig()!;
+    const cfg = (await ghlConfig())!;
 
     expect(await ensureFolder(cfg, 'Ada Mbeki (abcd1234)')).toBe('newfold');
     const after = calls.length;
@@ -101,13 +101,13 @@ describe('ensureFolder', () => {
       return new Response('Not Found', { status: 404 });
     });
     const { ensureFolder, ghlConfig } = await fresh();
-    expect(await ensureFolder(ghlConfig()!, 'X (abcd1234)')).toBe('f3');
+    expect(await ensureFolder((await ghlConfig())!, 'X (abcd1234)')).toBe('f3');
   });
 
   it('returns null rather than throwing when GHL will not make folders at all', async () => {
     stub(() => new Response('Not Found', { status: 404 }));
     const { ensureFolder, ghlConfig } = await fresh();
-    expect(await ensureFolder(ghlConfig()!, 'X (abcd1234)')).toBeNull();
+    expect(await ensureFolder((await ghlConfig())!, 'X (abcd1234)')).toBeNull();
   });
 });
 
@@ -116,7 +116,7 @@ describe('uploadMediaFromUrl with a folder', () => {
     const calls = stub(() => new Response('{"fileId":"a","url":"https://cdn/x"}', { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await fresh();
 
-    await uploadMediaFromUrl(ghlConfig()!, SRC, 'doc', 'fold99');
+    await uploadMediaFromUrl((await ghlConfig())!, SRC, 'doc', 'fold99');
 
     const up = calls.find(c => c.url.includes('upload-file'))!;
     expect((up.init.body as FormData).get('parentId')).toBe('fold99');
@@ -126,7 +126,7 @@ describe('uploadMediaFromUrl with a folder', () => {
     const calls = stub(() => new Response('{"fileId":"a","url":"https://cdn/x"}', { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await fresh();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'doc', null);
+    const r = await uploadMediaFromUrl((await ghlConfig())!, SRC, 'doc', null);
 
     expect(r.ok).toBe(true);
     const up = calls.find(c => c.url.includes('upload-file'))!;

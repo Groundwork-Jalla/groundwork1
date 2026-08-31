@@ -1,14 +1,17 @@
 import type { GhlEvent } from './_forward.js';
+import { ghlSettings } from './_config.js';
 
 /**
  * Which tag and which pipeline stage each event means.
  *
  * The stage ids are configuration, not code, because they are Philip's — they exist in
- * his GHL account and nobody here can know them. `GHL_STAGE_MAP` is one JSON env var
- * rather than six separate ones so adding a stage is an edit in Vercel, not a deploy.
+ * his GHL account and nobody here can know them. The map is one JSON value rather than
+ * six separate settings so adding a stage is a single edit.
  *
- *   GHL_PIPELINE_ID=abc123
- *   GHL_STAGE_MAP={"user_signup":"stg_1","application_decision:accepted":"stg_4"}
+ *   ghl_pipeline_id = abc123
+ *   ghl_stage_map   = {"user_signup":"stg_1","application_decision:accepted":"stg_4"}
+ *
+ * Read from `app_config` first, then the environment — see `_config.ts`.
  *
  * Keys are the event name, optionally suffixed `:variant` for events whose meaning
  * splits — an accepted application and a rejected one are the same event and opposite
@@ -84,9 +87,10 @@ export interface StageTarget {
 let warned = false;
 
 /** Null when this event has no stage configured — the common, harmless case. */
-export function stageFor(event: GhlEvent, variant?: string): StageTarget | null {
-  const pipelineId = process.env.GHL_PIPELINE_ID;
-  const raw = process.env.GHL_STAGE_MAP;
+export async function stageFor(event: GhlEvent, variant?: string): Promise<StageTarget | null> {
+  const cfg = await ghlSettings();
+  const pipelineId = cfg.GHL_PIPELINE_ID.value;
+  const raw = cfg.GHL_STAGE_MAP.value;
   if (!pipelineId || !raw) return null;
 
   let map: Record<string, string>;
@@ -95,7 +99,7 @@ export function stageFor(event: GhlEvent, variant?: string): StageTarget | null 
   } catch {
     // Once per cold start: a malformed map is a config typo that would otherwise be
     // invisible, and silently never moving anyone looks identical to "not set up yet".
-    if (!warned) { console.error('[ghl] GHL_STAGE_MAP is not valid JSON — no stage moves'); warned = true; }
+    if (!warned) { console.error('[ghl] the stage map is not valid JSON — no stage moves'); warned = true; }
     return null;
   }
 

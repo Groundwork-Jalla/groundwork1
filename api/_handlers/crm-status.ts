@@ -1,10 +1,24 @@
+import { ghlSettings, type ConfigSource } from '../ghl/_config.js';
+import { ghlConfig, ghlFetch } from '../ghl/_client.js';
+
 /**
  * Is the CRM actually configured?
  *
- * Setting this up means pasting six or seven values into Vercel, and every one of them
- * fails *silently* when it is missing — the forwarder logs a warning nobody reads and
- * carries on, because a CRM outage must never break a signup. So there is no way to tell
+ * Setting this up means supplying six or seven values, and every one of them fails
+ * *silently* when it is missing — the forwarder logs a warning nobody reads and carries
+ * on, because a CRM outage must never break a signup. So there is no way to tell
  * "working" from "quietly doing nothing" without this.
+ *
+ * ── Set is not the same as accepted ──────────────────────────────────────────────────
+ * This page used to answer only "is there a value?", which put a green tick beside a
+ * token GoHighLevel was refusing. On 31 Aug 2026 that tick sat above a 401 for an hour.
+ * So `tokenAccepted` asks GHL itself with one cheap authenticated call, and the answer
+ * is a third state — accepted, rejected, or not applicable — never a tick.
+ *
+ * ── Where each value came from ───────────────────────────────────────────────────────
+ * Settings now resolve from `app_config` before the environment, so "I changed it and
+ * nothing happened" is a real possibility. Each row carries its source, which turns that
+ * from a mystery into a word on the screen.
  *
  * **Booleans only. No values ever leave here.** A token, a webhook URL and a location id
  * are all credentials: the webhook URL alone lets anyone inject contacts into the CRM.
@@ -42,9 +56,13 @@ export async function handler(req: any, res: any) {
     return;
   }
 
+  const cfg = await ghlSettings();
+  const has = (k: keyof typeof cfg) => !!cfg[k].value;
+  const src = (k: keyof typeof cfg): ConfigSource => cfg[k].source;
+
   let stageKeys: string[] = [];
   let stageMapValid = true;
-  const rawMap = process.env.GHL_STAGE_MAP;
+  const rawMap = cfg.GHL_STAGE_MAP.value;
   if (rawMap) {
     try {
       const parsed = JSON.parse(rawMap) as Record<string, string>;
@@ -56,22 +74,63 @@ export async function handler(req: any, res: any) {
     }
   }
 
+  // Ask GoHighLevel whether it accepts the token, rather than assuming a set variable is
+  // a working one. `/contacts/upsert` would create data, so this reads the location's
+  // custom fields — authenticated, harmless, and the same call the fields button makes,
+  // which means a 401 here reproduces the fields button's 401 for the same reason.
+  let tokenAccepted: boolean | null = null;
+  let tokenError: string | null = null;
+  const api = await ghlConfig();
+  if (api) {
+    const probe = await ghlFetch(api, `/locations/${api.locationId}/customFields`, { method: 'GET' });
+    tokenAccepted = probe.ok;
+    if (!probe.ok) {
+      // The status is the whole diagnosis: 401/403 is the token or its scopes, 404 is the
+      // location id, anything else is GHL having a bad day.
+      tokenError = probe.status === 401 || probe.status === 403
+        ? 'rejected'
+        : probe.status === 404 ? 'location_not_found'
+        : probe.status === 0   ? 'unreachable'
+        : `http_${probe.status}`;
+    }
+  }
+
   res.status(200).json({
     // Phase 1 — the webhooks
-    contractorWebhook: !!process.env.GHL_CONTRACTOR_WEBHOOK_URL,
-    eventWebhook:      !!process.env.GHL_EVENT_WEBHOOK_URL,
+    contractorWebhook: has('GHL_CONTRACTOR_WEBHOOK_URL'),
+    eventWebhook:      has('GHL_EVENT_WEBHOOK_URL'),
     // Phase 2 — the API. Both are needed; one alone does nothing.
-    apiToken:          !!process.env.GHL_API_TOKEN,
-    locationId:        !!process.env.GHL_LOCATION_ID,
+    apiToken:          has('GHL_API_TOKEN'),
+    locationId:        has('GHL_LOCATION_ID'),
     // Pipeline moves
-    pipelineId:        !!process.env.GHL_PIPELINE_ID,
+    pipelineId:        has('GHL_PIPELINE_ID'),
     stageMapValid,
     stageKeys,
     // Inbound
-    inboundSecret:     !!process.env.GHL_INBOUND_SECRET,
-    // Which path events are taking right now
-    mode: process.env.GHL_API_TOKEN && process.env.GHL_LOCATION_ID
+    inboundSecret:     has('GHL_INBOUND_SECRET'),
+
+    /** Does GHL actually accept the token? null = no API configured, so not asked. */
+    tokenAccepted,
+    tokenError,
+
+    /**
+     * Where each value resolved from. Never the value itself — a webhook URL alone lets
+     * anyone inject contacts, and the token is a credential.
+     */
+    sources: {
+      contractorWebhook: src('GHL_CONTRACTOR_WEBHOOK_URL'),
+      eventWebhook:      src('GHL_EVENT_WEBHOOK_URL'),
+      apiToken:          src('GHL_API_TOKEN'),
+      locationId:        src('GHL_LOCATION_ID'),
+      pipelineId:        src('GHL_PIPELINE_ID'),
+      stageMap:          src('GHL_STAGE_MAP'),
+      inboundSecret:     src('GHL_INBOUND_SECRET'),
+    },
+
+    // Which path events are taking right now. A rejected token reads as 'webhook',
+    // because that is now genuinely where events go — see the fallback in _forward.ts.
+    mode: api && tokenAccepted !== false
       ? 'api'
-      : process.env.GHL_EVENT_WEBHOOK_URL ? 'webhook' : 'off',
+      : has('GHL_EVENT_WEBHOOK_URL') ? 'webhook' : 'off',
   });
 }

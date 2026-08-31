@@ -65,7 +65,7 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  const cfg = ghlConfig();
+  const cfg = await ghlConfig();
   if (!cfg) {
     res.status(200).json({ ok: false, detail: 'GHL_API_TOKEN / GHL_LOCATION_ID not set' });
     return;

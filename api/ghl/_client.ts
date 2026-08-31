@@ -24,6 +24,8 @@
  * see docs/GHL-SETUP.md for what has to exist on the GHL side.
  */
 
+import { ghlSettings } from './_config.js';
+
 // ── The remote contract. Check these first if anything 404s or 422s. ──────────────────
 const API_BASE = 'https://services.leadconnectorhq.com';
 const API_VERSION = '2021-07-28';
@@ -48,10 +50,18 @@ export interface GhlConfig {
   locationId: string;
 }
 
-/** Null when the API is not set up — callers fall back to the Phase 1 webhook. */
-export function ghlConfig(): GhlConfig | null {
-  const token = process.env.GHL_API_TOKEN;
-  const locationId = process.env.GHL_LOCATION_ID;
+/**
+ * Null when the API is not set up — callers fall back to the Phase 1 webhook.
+ *
+ * Async because the token and location id now come from `app_config` before the
+ * environment (see `_config.ts`), so they can be changed or rotated without a redeploy.
+ * The lookup is cached for a minute, so this is a table read per warm container, not
+ * per call.
+ */
+export async function ghlConfig(): Promise<GhlConfig | null> {
+  const cfg = await ghlSettings();
+  const token = cfg.GHL_API_TOKEN.value;
+  const locationId = cfg.GHL_LOCATION_ID.value;
   return token && locationId ? { token, locationId } : null;
 }
 

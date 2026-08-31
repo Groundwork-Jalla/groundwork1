@@ -5,6 +5,7 @@ import { AlertTriangle, UserPlus, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFormat, useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import { isValidEmail } from '@/lib/email/is-valid-email';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -21,10 +22,6 @@ interface ContractorInviteProps {
   userId: string;
   projectName: string;
   projectTier: string;
-}
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 // Dates are rendered through useFormat() so they follow the active language.

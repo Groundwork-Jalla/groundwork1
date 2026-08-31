@@ -45,7 +45,7 @@ export async function syncContractorToApi(
   status: string | null,
   storage: Parameters<typeof signDocuments>[0],
 ): Promise<ContractorSyncResult> {
-  const cfg = ghlConfig();
+  const cfg = await ghlConfig();
   if (!cfg) return { ok: false, skipped: 'not_configured' };
 
   try {

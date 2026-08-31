@@ -17,6 +17,7 @@
  */
 
 import { buildContractorPayload, markApplicationSynced } from './_contractor-payload.js';
+import { ghlSettings } from './_config.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -24,7 +25,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const webhookUrl = process.env.GHL_CONTRACTOR_WEBHOOK_URL;
+  const webhookUrl = (await ghlSettings()).GHL_CONTRACTOR_WEBHOOK_URL.value;
   if (!webhookUrl) {
     // Not configured yet. Report it, but as a soft failure — the caller ignores the
     // response either way and the application is already saved.

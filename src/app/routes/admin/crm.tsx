@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import {
   getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields,
-  type CrmStatus, type OutboxRow,
+  type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
@@ -22,7 +22,17 @@ import { fmtDate } from './applications';
 //   2. What has not arrived, and can I send it?
 // =========================================================
 
-function Row({ ok, label, hint }: { ok: boolean; label: string; hint?: string }) {
+/**
+ * One setting.
+ *
+ * `source` matters because a value can now come from two places — the `app_config` table
+ * or the deployment environment — and the table wins. Without saying which, "I changed
+ * it and nothing happened" has no answer on the screen.
+ */
+function Row({ ok, label, hint, source }: {
+  ok: boolean; label: string; hint?: string; source?: ConfigSource;
+}) {
+  const t = useT();
   return (
     <div className="flex items-start gap-3 py-2">
       <span className={cn(
@@ -32,7 +42,14 @@ function Row({ ok, label, hint }: { ok: boolean; label: string; hint?: string })
         {ok ? <Check className="size-3" /> : <X className="size-3" />}
       </span>
       <div>
-        <p className={cn('text-sm', ok ? 'text-brand-near-black' : 'text-brand-mid-grey')}>{label}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className={cn('text-sm', ok ? 'text-brand-near-black' : 'text-brand-mid-grey')}>{label}</p>
+          {ok && source && source !== 'unset' && (
+            <span className="rounded-full bg-brand-light-grey px-1.5 py-px text-[10px] font-medium text-brand-mid-grey">
+              {source === 'database' ? t('admin.crm.fromDatabase') : t('admin.crm.fromEnv')}
+            </span>
+          )}
+        </div>
         {hint && <p className="text-[11px] text-brand-mid-grey">{hint}</p>}
       </div>
     </div>
@@ -159,17 +176,18 @@ export default function AdminCrm() {
 
           {status ? (
             <div className="divide-y divide-brand-border-grey/60">
-              <Row ok={status.contractorWebhook} label={t('admin.crm.contractorWebhook')} hint="GHL_CONTRACTOR_WEBHOOK_URL" />
-              <Row ok={status.eventWebhook}      label={t('admin.crm.eventWebhook')}      hint="GHL_EVENT_WEBHOOK_URL" />
-              <Row ok={status.apiToken}          label={t('admin.crm.apiToken')}          hint="GHL_API_TOKEN" />
-              <Row ok={status.locationId}        label={t('admin.crm.locationId')}        hint="GHL_LOCATION_ID" />
-              <Row ok={status.pipelineId}        label={t('admin.crm.pipelineId')}        hint="GHL_PIPELINE_ID" />
+              <Row ok={status.contractorWebhook} label={t('admin.crm.contractorWebhook')} hint="ghl_contractor_webhook_url" source={status.sources?.contractorWebhook} />
+              <Row ok={status.eventWebhook}      label={t('admin.crm.eventWebhook')}      hint="ghl_event_webhook_url"      source={status.sources?.eventWebhook} />
+              <Row ok={status.apiToken}          label={t('admin.crm.apiToken')}          hint="ghl_api_token"              source={status.sources?.apiToken} />
+              <Row ok={status.locationId}        label={t('admin.crm.locationId')}        hint="ghl_location_id"            source={status.sources?.locationId} />
+              <Row ok={status.pipelineId}        label={t('admin.crm.pipelineId')}        hint="ghl_pipeline_id"            source={status.sources?.pipelineId} />
               <Row
                 ok={status.stageMapValid && status.stageKeys.length > 0}
                 label={t('admin.crm.stageMap', { n: status.stageKeys.length })}
-                hint={status.stageMapValid ? status.stageKeys.join(', ') || 'GHL_STAGE_MAP' : t('admin.crm.stageMapBroken')}
+                hint={status.stageMapValid ? status.stageKeys.join(', ') || 'ghl_stage_map' : t('admin.crm.stageMapBroken')}
+                source={status.sources?.stageMap}
               />
-              <Row ok={status.inboundSecret}     label={t('admin.crm.inboundSecret')}     hint="GHL_INBOUND_SECRET" />
+              <Row ok={status.inboundSecret}     label={t('admin.crm.inboundSecret')}     hint="ghl_inbound_secret"         source={status.sources?.inboundSecret} />
             </div>
           ) : (
             <p className="text-sm text-brand-mid-grey">{t('admin.crm.statusUnavailable')}</p>
@@ -219,6 +237,25 @@ export default function AdminCrm() {
 {diagnosis}
                 </pre>
               )}
+            </div>
+          )}
+
+          {/* A token can be present and still refused. That combination used to render as
+              a row of green ticks over a CRM that was silently rejecting every event, so
+              it gets a banner rather than a tick. */}
+          {status?.tokenAccepted === false && (
+            <div className="mt-3 rounded-xl border border-state-blocked/30 bg-state-blocked/5 px-3 py-2.5">
+              <p className="flex items-start gap-2 text-[12px] font-semibold text-state-blocked">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                {t('admin.crm.tokenRejected')}
+              </p>
+              <p className="mt-1 pl-5 text-[11px] leading-relaxed text-brand-mid-grey">
+                {status.tokenError === 'location_not_found'
+                  ? t('admin.crm.tokenLocationBad')
+                  : status.tokenError === 'unreachable'
+                    ? t('admin.crm.tokenUnreachable')
+                    : t('admin.crm.tokenScopes')}
+              </p>
             </div>
           )}
 

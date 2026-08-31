@@ -36,7 +36,7 @@ describe('upsertContact', () => {
   it('sends the native companyName so the contacts list is not blank', async () => {
     const { upsertContact, ghlConfig } = await fresh();
 
-    await upsertContact(ghlConfig()!, {
+    await upsertContact((await ghlConfig())!, {
       email: 'a@b.c',
       name: 'Ada Mbeki',
       companyName: 'Mbeki Build Ltd',
@@ -51,7 +51,7 @@ describe('upsertContact', () => {
   it('omits it rather than blanking an existing value when the applicant gave none', async () => {
     const { upsertContact, ghlConfig } = await fresh();
 
-    await upsertContact(ghlConfig()!, { email: 'a@b.c', companyName: null });
+    await upsertContact((await ghlConfig())!, { email: 'a@b.c', companyName: null });
 
     // Absent, not empty string: an upsert with '' would wipe a name already on the contact.
     expect('companyName' in sent).toBe(false);

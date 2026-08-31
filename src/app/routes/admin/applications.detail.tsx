@@ -160,10 +160,15 @@ export default function AdminApplicationDetail() {
             ok: prev?.ok ?? true,
             text: `${prev?.text ?? ''} ${t('admin.apps.applicantNotified')}`.trim(),
           }));
-        } catch {
+        } catch (err) {
+          // An address Resend will not accept fails identically every time, so the
+          // "press the button again" wording would send the admin round a loop.
+          const stage = err instanceof Error ? err.message : 'send';
+          const key = stage === 'address' ? 'admin.apps.ackFailedAddress'
+                                          : 'admin.apps.notifyFailed';
           setNotice(prev => ({
             ok: false,
-            text: `${prev?.text ?? ''} ${t('admin.apps.notifyFailed')}`.trim(),
+            text: `${prev?.text ?? ''} ${t(key as TKey, { email: app?.email ?? '' })}`.trim(),
           }));
         }
       }
@@ -190,13 +195,17 @@ export default function AdminApplicationDetail() {
       setApp(prev => (prev ? { ...prev, acknowledgedAt: sentAt } : prev));
       setNotice({ ok: true, text: t('admin.apps.ackSent') });
     } catch (err) {
-      // A template failure will repeat for ever on this row, so telling the admin to
-      // "try again" would be a lie. Retrying a refused or unreachable send is worth it.
+      // A template failure, refused credentials or an address Resend will not accept
+      // all repeat for ever on this row, so telling the admin to "try again" would be a
+      // lie. Retrying a refused or unreachable send is worth it; those three are not.
       const stage = err instanceof Error ? err.message : 'send';
       const key = stage === 'template'    ? 'admin.apps.ackFailedBuild'
                 : stage === 'credentials' ? 'admin.apps.ackFailedAuth'
+                : stage === 'address'     ? 'admin.apps.ackFailedAddress'
                 : 'admin.apps.ackFailed';
-      setNotice({ ok: false, text: t(key as TKey) });
+      // The address is named in the message because it is the thing to act on and it
+      // sits below the fold — the notice is at the top of the page.
+      setNotice({ ok: false, text: t(key as TKey, { email: app?.email ?? '' }) });
     } finally {
       setSendingAck(false);
     }

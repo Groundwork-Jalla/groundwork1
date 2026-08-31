@@ -1,7 +1,13 @@
 # Go High Level — setup, step by step
 
 The code is finished. Nothing here is engineering: every step is either a value pasted
-into Vercel or a thing built inside the GHL console.
+into Supabase or a thing built inside the GHL console.
+
+**Settings live in the `app_config` table, not in Vercel** (migration 064). Two reasons:
+the free plan has run out of environment variables, and a value in Vercel needs a
+redeploy before it does anything — which is the single most common reason a tick stays a
+cross after someone has "already added it". A row in `app_config` takes effect within a
+minute. Values still in Vercel keep working; a row in the table overrides one.
 
 **Check your work as you go at `/admin/crm`.** That page reads the live configuration and
 shows a tick per item, plus which route events are currently taking. Every value below
@@ -34,13 +40,15 @@ subscription changes and new projects.
 1. GHL → **Automation → Workflows → Create Workflow → Start from scratch**
 2. Add trigger → **Inbound Webhook**
 3. Copy the webhook URL it gives you
-4. Vercel → project → **Settings → Environment Variables** → add:
+4. Supabase → **SQL Editor**:
 
-   ```
-   GHL_EVENT_WEBHOOK_URL = <the URL you copied>
+   ```sql
+   INSERT INTO public.app_config (key, value)
+   VALUES ('ghl_event_webhook_url', '<the URL you copied>')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
    ```
 
-5. **Redeploy** — Vercel does not apply new variables to the running deployment
+5. Wait a minute. No redeploy.
 
 **Check:** `/admin/crm` shows a tick on *Lifecycle events webhook*, and the badge reads
 **Using webhooks**.
@@ -86,20 +94,34 @@ can ever be *updated* afterwards — no tags, no pipeline moves, no second event
 to the same person. The API fixes that.
 
 1. GHL → **Settings → Private Integrations → Create new integration**
-2. Scopes: `contacts.write`, `contacts.readonly`, `opportunities.write`,
-   `opportunities.readonly`
+2. Scopes — **all six**. A missing scope does not degrade gracefully: GHL answers `401`,
+   which looks exactly like a bad token.
+
+   ```
+   contacts.readonly              contacts.write
+   opportunities.readonly         opportunities.write
+   locations/customFields.readonly    locations/customFields.write
+   medias.readonly                medias.write
+   ```
+
+   The custom-field scopes are the ones people miss, because nothing needs them until you
+   press **Check custom fields** — and then the whole integration looks broken.
 3. Copy the token (shown once)
 4. Location id: GHL → **Settings → Business Profile**, or take it from your sub-account URL
-5. Vercel → Environment Variables:
+5. Supabase → **SQL Editor**:
 
+   ```sql
+   INSERT INTO public.app_config (key, value) VALUES
+     ('ghl_api_token',   'pit-...'),
+     ('ghl_location_id', 'your-location-id')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
    ```
-   GHL_API_TOKEN   = pit-...
-   GHL_LOCATION_ID = ...
-   ```
 
-6. Redeploy
+   No redeploy. Takes effect within a minute.
 
-**Check:** `/admin/crm` badge flips to **Using the API**.
+**Check:** `/admin/crm` badge flips to **Using the API** — and no red banner. A tick on
+*API token* only means a value is present; the page separately asks GHL whether it
+*accepts* it, and says so if not.
 
 A Private Integration Token rather than an OAuth app, deliberately: no refresh tokens to
 store or renew. The cost is rotating it by hand if it leaks — create a new one, replace
@@ -107,37 +129,37 @@ the variable, redeploy. No code changes.
 
 ---
 
-## Step 4 — custom fields (20 min)
+## Step 4 — custom fields (2 min, one button)
 
-The API sends these alongside each contact. **Fields you have not created are silently
-dropped** — no error, and on the contact a missing field looks exactly like a question the
-applicant left blank. Create them once: GHL → **Settings → Custom Fields**, object
-*Contact*, type *Text* for all.
+**This step used to be 20 minutes of typing. It is now a button** — read on only if you
+want to know what it does.
 
-### 4a — account, project and billing events
+GHL **discards any custom field the location does not already have, silently, with a
+200**. On the contact, a field that was never created looks exactly like a question the
+applicant left blank. Project references 1, 2 and 3 went missing that way for weeks
+before anyone noticed. A contractor application carries 104 fields, and hand-typing 104
+keys is also how two end up misspelled — after which they are dropped forever and look,
+again, like blanks.
 
-```
-user_id              application_id        application_url
-decision             subscription_status   subscription_tier
-period_end           project_id            project_name
-project_tier         build_country         build_city
-lang
-```
+So the app creates them:
 
-### 4b — contractor applications
+1. `/admin/crm` → **Check custom fields**. Nothing is created; it reports what is missing.
+2. If anything is missing, a second button appears: **Create the N missing fields**.
 
-A contractor application carries **104 fields**, far too many to list here and more than
-you want to create by hand. They are enumerated and *prioritised* in
-**[GHL-CUSTOM-FIELDS.md](./GHL-CUSTOM-FIELDS.md)** — the first 24 carry nearly all the
-value, including `projects_summary` and `documents_summary`, which hold the applicant's
-whole project history and every uploaded document in two fields.
+It compares by key and creates only what is absent, so it is safe to run repeatedly and
+safe against a location where someone already made some by hand. It never edits or
+deletes an existing field.
 
-Start with Tier 1 there and stop. Add more only when you want GHL to filter or automate on
-a specific value.
+Both buttons need Step 3 done — they use the API, not the webhook.
 
-**Check:** accept a test application, then look at that contact in GHL — `decision` and
-`application_url` should be filled in. For a contractor, `/admin/applications/<id>` →
-**Send to CRM again**, then confirm `documents_summary` is populated on the contact.
+**Check:** run **Check custom fields** again; it should report nothing missing. Then accept
+a test application and look at that contact in GHL — `decision` and `application_url`
+should be filled in. For a contractor, `/admin/applications/<id>` → **Send to CRM again**,
+then confirm `documents_summary` is populated.
+
+The full field list, with which ones carry the most value, is in
+**[GHL-CUSTOM-FIELDS.md](./GHL-CUSTOM-FIELDS.md)**. You no longer need it to set this up —
+it is there for deciding what GHL should filter or automate on.
 
 ---
 
@@ -147,14 +169,16 @@ Optional, and safe to leave until you want it.
 
 1. GHL → **Opportunities → Pipelines**. Note the pipeline id and the id of each stage
    (both are in the URL when you open them)
-2. Vercel:
+2. Supabase → **SQL Editor**:
 
-   ```
-   GHL_PIPELINE_ID = <pipeline id>
-   GHL_STAGE_MAP   = {"user_signup":"<stage id>","application_decision:accepted":"<stage id>"}
+   ```sql
+   INSERT INTO public.app_config (key, value) VALUES
+     ('ghl_pipeline_id', '<pipeline id>'),
+     ('ghl_stage_map',   '{"user_signup":"<stage id>","application_decision:accepted":"<stage id>"}')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
    ```
 
-3. Redeploy
+3. No redeploy.
 
 Keys you can use — start with two or three, add more later:
 
@@ -184,7 +208,13 @@ Tags are chosen by us, not configured here: `groundwork:signup`, `groundwork:con
 Optional. Lets a booked appointment or a reply reach the app instead of living only in GHL.
 
 1. Invent a long random string
-2. Vercel: `GHL_INBOUND_SECRET = <that string>` → redeploy
+2. Supabase → **SQL Editor**:
+
+   ```sql
+   INSERT INTO public.app_config (key, value)
+   VALUES ('ghl_inbound_secret', '<that string>')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+   ```
 3. In any GHL workflow, add a **Webhook** action:
 
    - URL: `https://www.tryjalla.com/api/events?action=crm-inbound`
@@ -219,9 +249,14 @@ SELECT event, email, attempts, last_error, created_at
 
 ## Two things worth knowing
 
-**Every environment variable needs a redeploy.** Vercel does not apply new values to a
-running deployment. If `/admin/crm` still shows a cross after you have added something,
-this is almost always why.
+**Settings are cached for a minute.** A row written in Supabase takes effect on the next
+minute, with no redeploy. Anything still living in Vercel's environment *does* need one —
+which is the reason to move it.
+
+**A tick is not a working credential.** The rows say whether a value is *set*. The token
+is separately tested against GHL, and a refused one gets a red banner. If you see that
+banner, the token has expired, been revoked, or is missing a scope — Step 3 lists all six.
+Events fall back to the webhook while it is broken, so nothing is lost.
 
 **The v2 API details are unverified.** The base URL, version header and paths in
 `api/ghl/_client.ts` were written from GoHighLevel's published documentation without a

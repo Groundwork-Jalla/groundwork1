@@ -57,7 +57,7 @@ describe('uploadMediaFromUrl', () => {
     const calls = stub(() => new Response(LIVE_201, { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    await uploadMediaFromUrl(ghlConfig()!, SRC, 'app-1-Registration');
+    await uploadMediaFromUrl((await ghlConfig())!, SRC, 'app-1-Registration');
 
     const [up] = uploads(calls);
     const headers = up.init.headers as Record<string, string>;
@@ -81,7 +81,7 @@ describe('uploadMediaFromUrl', () => {
     stub(() => new Response(LIVE_201, { status: 201 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
+    const r = await uploadMediaFromUrl((await ghlConfig())!, SRC, 'a');
 
     // 201, not 200 — anything checking `status === 200` would drop a file that uploaded.
     expect(r.ok).toBe(true);
@@ -93,7 +93,7 @@ describe('uploadMediaFromUrl', () => {
     stub(() => new Response('{"fileUrl":"https://cdn/x.jpg","id":"abc"}', { status: 200 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
+    const r = await uploadMediaFromUrl((await ghlConfig())!, SRC, 'a');
     expect(r.data?.url).toBe('https://cdn/x.jpg');
     expect(r.data?.fileId).toBe('abc');
   });
@@ -102,7 +102,7 @@ describe('uploadMediaFromUrl', () => {
     stub(() => new Response('{"status":400,"message":"Unsupported content type"}', { status: 400 }));
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
+    const r = await uploadMediaFromUrl((await ghlConfig())!, SRC, 'a');
     expect(r.ok).toBe(false);
     expect(r.status).toBe(400);
   });
@@ -114,7 +114,7 @@ describe('uploadMediaFromUrl', () => {
     });
     const { uploadMediaFromUrl, ghlConfig } = await freshClient();
 
-    const r = await uploadMediaFromUrl(ghlConfig()!, SRC, 'a');
+    const r = await uploadMediaFromUrl((await ghlConfig())!, SRC, 'a');
     expect(r.ok).toBe(false);
     expect(r.error).toBe('source_unreadable');
   });

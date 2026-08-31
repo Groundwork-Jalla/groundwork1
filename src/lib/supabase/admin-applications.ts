@@ -269,7 +269,13 @@ export async function sendDecisionEmail(
     },
     body: JSON.stringify({ applicationId, decision }),
   });
-  if (!r.ok) throw new Error(`decision email failed: ${r.status}`);
+  if (!r.ok) {
+    // The stage, thrown as the message, the same way sendAcknowledgement does it: the
+    // decision UI used to say "press the button again to retry" for every failure,
+    // including the one kind that will never succeed — an address Resend refuses.
+    const body = await r.json().catch(() => ({} as Record<string, unknown>));
+    throw new Error(typeof body.stage === 'string' ? body.stage : 'send');
+  }
 }
 
 // ── Contractor directory ───────────────────────────────────
@@ -379,6 +385,9 @@ export async function listWaitlist(): Promise<WaitlistEntry[]> {
 // CRM plumbing — the admin's view of GoHighLevel
 // =========================================================
 
+/** Where a setting resolved from. `app_config` overrides the deployment environment. */
+export type ConfigSource = 'database' | 'environment' | 'unset';
+
 export interface CrmStatus {
   contractorWebhook: boolean;
   eventWebhook: boolean;
@@ -389,6 +398,25 @@ export interface CrmStatus {
   stageKeys: string[];
   inboundSecret: boolean;
   mode: 'api' | 'webhook' | 'off';
+  /**
+   * Whether GoHighLevel actually accepts the token, asked of GHL rather than inferred
+   * from the variable being set. `null` when there is no API config to test.
+   *
+   * These are different questions and the difference is not academic: a token GHL was
+   * refusing sat under a green tick while every event failed.
+   */
+  tokenAccepted?: boolean | null;
+  tokenError?: 'rejected' | 'location_not_found' | 'unreachable' | string | null;
+  /** Per-setting origin, so "I changed it and nothing happened" is answerable. */
+  sources?: {
+    contractorWebhook: ConfigSource;
+    eventWebhook: ConfigSource;
+    apiToken: ConfigSource;
+    locationId: ConfigSource;
+    pipelineId: ConfigSource;
+    stageMap: ConfigSource;
+    inboundSecret: ConfigSource;
+  };
 }
 
 async function bearer(): Promise<string> {

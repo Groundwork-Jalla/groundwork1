@@ -1,5 +1,8 @@
 import { ghlConfig, upsertContact, addContactTags, moveToStage } from './_client.js';
+import type { GhlConfig } from './_client.js';
+import { ghlSettings } from './_config.js';
 import { tagsFor, stageFor } from './_pipeline.js';
+import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
 
 /**
  * One way in to GoHighLevel.
@@ -67,14 +70,14 @@ export interface GhlForwardOptions {
 export interface GhlForwardResult {
   ok: boolean;
   /** 'not_configured' is a soft miss, not a fault. */
-  reason?: 'not_configured' | 'no_email' | 'rejected' | 'unreachable';
+  reason?: 'not_configured' | 'no_email' | 'rejected' | 'unreachable'
+    /** Delivered, but only because the API refused our credentials first. */
+    | 'api_rejected';
   status?: number;
   /** Present when the API path ran — store it, it is the point of Phase 2. */
   contactId?: string;
   via?: 'api' | 'webhook';
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Split a display name the way the contractor payload does, so both streams map onto the
@@ -192,14 +195,36 @@ export async function deliver(
   fields: Record<string, string | number | boolean | null>,
   opts: GhlForwardOptions = {},
 ): Promise<GhlForwardResult> {
-  const cfg = ghlConfig();
-  return cfg
-    ? deliverViaApi(cfg, event, email, contact, fields, opts)
-    : deliverViaWebhook(event, email, contact, fields, opts.variant);
+  const cfg = await ghlConfig();
+  if (!cfg) return deliverViaWebhook(event, email, contact, fields, opts.variant);
+
+  const viaApi = await deliverViaApi(cfg, event, email, contact, fields, opts);
+  if (viaApi.ok) return viaApi;
+
+  // ── A rejected token must not be worse than no token ───────────────────────────────
+  // The API path used to be chosen on the mere *presence* of a token, with no way back.
+  // So a token that GHL refuses — expired, revoked, or missing a scope — sent every
+  // event to the outbox while a working webhook sat unused, and `/admin/crm` showed a
+  // tick beside the thing that was broken, because "set" and "accepted" are not the same
+  // question. Observed live on 31 Aug 2026: a 401 from the custom-fields endpoint.
+  //
+  // Only for 401/403. A 404 or a 422 means our request was wrong and the webhook would
+  // not do better; retrying those would double every call for nothing.
+  if (viaApi.status === 401 || viaApi.status === 403) {
+    console.error(
+      `[ghl] API credentials rejected (${viaApi.status}) — falling back to the webhook. ` +
+      'Check the token and its scopes at /admin/crm.');
+    const viaHook = await deliverViaWebhook(event, email, contact, fields, opts.variant);
+    // Report the fallback's outcome, but keep the original fault visible: silently
+    // succeeding would hide a broken token for as long as the webhook holds up.
+    return viaHook.ok ? { ...viaHook, reason: 'api_rejected' } : viaHook;
+  }
+
+  return viaApi;
 }
 
 async function deliverViaApi(
-  cfg: NonNullable<ReturnType<typeof ghlConfig>>,
+  cfg: GhlConfig,
   event: GhlEvent,
   email: string,
   contact: GhlContact,
@@ -232,7 +257,7 @@ async function deliverViaApi(
   // an audience someone is sending to. This call is additive by definition.
   await addContactTags(cfg, contactId, tags);
 
-  const stage = stageFor(event, opts.variant);
+  const stage = await stageFor(event, opts.variant);
   if (stage) {
     await moveToStage(cfg, {
       contactId,
@@ -254,11 +279,11 @@ async function deliverViaWebhook(
   fields: Record<string, string | number | boolean | null>,
   variant?: string,
 ): Promise<GhlForwardResult> {
-  const webhookUrl = process.env.GHL_EVENT_WEBHOOK_URL;
+  const webhookUrl = (await ghlSettings()).GHL_EVENT_WEBHOOK_URL.value;
   if (!webhookUrl) {
     // Soft: an unconfigured deploy should not fail requests or fill logs with errors.
     // The outbox row stays unsent, so the backlog is visible either way.
-    console.warn(`[ghl] no API token and no GHL_EVENT_WEBHOOK_URL — "${event}" not forwarded`);
+    console.warn(`[ghl] no usable API token and no event webhook — "${event}" not forwarded`);
     return { ok: false, reason: 'not_configured' };
   }
 
