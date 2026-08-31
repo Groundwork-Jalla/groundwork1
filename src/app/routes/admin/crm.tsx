@@ -193,7 +193,10 @@ export default function AdminCrm() {
             <p className="text-sm text-brand-mid-grey">{t('admin.crm.statusUnavailable')}</p>
           )}
 
-          {status?.mode === 'api' && (
+          {/* Gated on the API being *configured*, not on it working. These two buttons
+              are how you find out why a token is being refused, so hiding them when it
+              is refused is precisely backwards. */}
+          {(status?.apiConfigured ?? status?.mode === 'api') && (
             <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
               <button
                 type="button" disabled={diagnosing} onClick={diagnose}

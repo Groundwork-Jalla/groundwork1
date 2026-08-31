@@ -114,6 +114,16 @@ export async function handler(req: any, res: any) {
     tokenError,
 
     /**
+     * Is there an API token and location id at all — regardless of whether GHL accepts
+     * them. Distinct from `mode`, which says where events are actually going.
+     *
+     * The admin page gates its diagnostic tools on this rather than on `mode`. Gating
+     * them on `mode` hid the upload test and the field checker the moment a token was
+     * rejected, which is the one moment they are needed.
+     */
+    apiConfigured: !!api,
+
+    /**
      * Where each value resolved from. Never the value itself — a webhook URL alone lets
      * anyone inject contacts, and the token is a credential.
      */

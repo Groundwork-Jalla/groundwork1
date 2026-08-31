@@ -407,6 +407,12 @@ export interface CrmStatus {
    */
   tokenAccepted?: boolean | null;
   tokenError?: 'rejected' | 'location_not_found' | 'unreachable' | string | null;
+  /**
+   * Token and location id are both present. Not the same as them working — that is
+   * `tokenAccepted` — and not the same as `mode`, which says where events go. The
+   * diagnostics gate on this, so they stay reachable while the token is broken.
+   */
+  apiConfigured?: boolean;
   /** Per-setting origin, so "I changed it and nothing happened" is answerable. */
   sources?: {
     contractorWebhook: ConfigSource;
