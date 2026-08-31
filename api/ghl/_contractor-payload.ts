@@ -140,9 +140,19 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
   };
 
   // ── Credentials: keys differ per role, so they cannot be a fixed list ──
+  //
+  // LOWERCASED, because GoHighLevel folds custom-field keys to lower case and there is
+  // no way to make it keep a capital. The credential keys are camelCase in our own model
+  // (`avgProject`, `workStyle`), so sending them unchanged asked GHL for a field it can
+  // never create: six of them failed on 31 Aug 2026 while the three already-lowercase
+  // ones succeeded, which is what made the rule visible.
+  //
+  // The important half is not the create. It is that the upsert addresses fields by this
+  // same key, so a camelCase key would have been silently discarded on every sync — a
+  // blank on the contact, indistinguishable from a question the applicant skipped.
   for (const [key, value] of Object.entries(lead.credentials ?? {})) {
     const v = flat(value);
-    if (v !== null) out[`cred_${key}`] = v;
+    if (v !== null) out[`cred_${key.toLowerCase()}`] = v;
   }
 
   // ── Project history ──

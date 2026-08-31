@@ -129,6 +129,17 @@ describe('contractorFieldKeys', () => {
     expect(uncovered).toEqual([]);
   });
 
+  it('emits only keys GoHighLevel can actually store', async () => {
+    const { contractorFieldKeys } = await import('../../../api/ghl/_contractor-payload');
+
+    // GHL folds custom-field keys to lower case. A key with a capital in it can never be
+    // created, and — worse — the upsert addresses fields by this key, so every value
+    // sent under one is silently discarded and shows on the contact as a blank.
+    // Six `cred_*` keys were camelCase and failed exactly this way.
+    const unstorable = contractorFieldKeys().filter(k => !/^[a-z0-9_]+$/.test(k));
+    expect(unstorable).toEqual([]);
+  });
+
   it('does not offer to create a custom field GHL already has natively', async () => {
     const { contractorFieldKeys, NATIVE_CONTACT_FIELDS } =
       await import('../../../api/ghl/_contractor-payload');
