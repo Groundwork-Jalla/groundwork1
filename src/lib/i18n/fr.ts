@@ -353,6 +353,7 @@ export const fr: Mirror<EnDict> = {
       stageMap:          'Étapes du pipeline associées ({n})',
       stageMapBroken:    "JSON invalide — personne n'est déplacé",
       inboundSecret:     'Secret du webhook entrant',
+      fieldsRepair:      'Supprimer {n} champs inutilisables',
       fromDatabase:      'depuis Supabase',
       fromEnv:           'depuis Vercel',
       tokenRejected:     'Go High Level rejette ce jeton',

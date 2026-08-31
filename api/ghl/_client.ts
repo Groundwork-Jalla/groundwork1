@@ -361,17 +361,52 @@ export async function createCustomField(
   cfg: GhlConfig,
   key: string,
   name: string,
-): Promise<GhlResult<{ id: string }>> {
+): Promise<GhlResult<{ id: string; key: string }>> {
+  // ── SEND THE KEY BARE. GHL ADDS THE `contact.` NAMESPACE ITSELF. ────────────────────
+  // This used to prefix the key with `contact.`, reasoning that the stored keys come
+  // back prefixed so they must go in prefixed. They do not. GHL strips the dot and keeps
+  // the rest as the key, so `contact.project_1_location` became the field
+  // `contact.contactproject_1_location` — 101 of them, on 31 Aug 2026.
+  //
+  // A doubled prefix is not a cosmetic problem. The upsert addresses fields by the key
+  // WE choose, so every value would have been dropped on arrival and shown on the
+  // contact as a blank — precisely the failure this whole module exists to prevent.
   const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.customFields(cfg.locationId), {
     method: 'POST',
-    body: { name, fieldKey: `contact.${key}`, dataType: 'TEXT', model: 'contact', placeholder: '' },
+    body: { name, fieldKey: key, dataType: 'TEXT', model: 'contact', placeholder: '' },
   });
   if (!r.ok) return { ok: false, status: r.status, error: r.error };
 
   const d = (r.data ?? {}) as Record<string, unknown>;
   const nested = (d.customField ?? d.field ?? {}) as Record<string, unknown>;
   const id = d.id ?? d._id ?? nested.id ?? nested._id;
-  return { ok: true, status: r.status, data: { id: String(id ?? '') } };
+
+  // Report the key GHL ACTUALLY assigned, not the one we asked for. A 200 here means
+  // "a field was created", not "the field you wanted was created" — and the caller
+  // counted 101 successes for 101 unusable fields because nothing checked.
+  const assigned = bareKey(String(
+    d.fieldKey ?? d.key ?? nested.fieldKey ?? nested.key ?? '',
+  ));
+
+  return {
+    ok: true,
+    status: r.status,
+    data: { id: String(id ?? ''), key: assigned || key },
+  };
+}
+
+/**
+ * Remove a custom field.
+ *
+ * Only ever used to undo a field this code created wrongly. Deleting a field deletes
+ * every value stored in it across every contact, so callers must match on an exact known
+ * key rather than a pattern — see the repair path in crm-fields.ts.
+ */
+export async function deleteCustomField(
+  cfg: GhlConfig,
+  id: string,
+): Promise<GhlResult<unknown>> {
+  return ghlFetch(cfg, `${PATHS.customFields(cfg.locationId)}/${id}`, { method: 'DELETE' });
 }
 
 /**

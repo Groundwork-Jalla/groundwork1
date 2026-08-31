@@ -492,11 +492,21 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
  * nobody created looks exactly like a question the applicant skipped. Without `create`
  * this only reports; nothing is written to the CRM.
  */
-export async function syncCrmFields(create = false): Promise<unknown> {
+export type CrmFieldsMode = 'check' | 'create' | 'repair';
+
+/**
+ * Check, create, or repair the custom fields GHL needs.
+ *
+ * `repair` deletes fields this code created with a doubled `contact.` prefix, which can
+ * never receive a value. It matches exact known keys only, never a pattern.
+ */
+export async function syncCrmFields(mode: CrmFieldsMode | boolean = 'check'): Promise<unknown> {
+  // `true`/`false` kept working: this was a boolean before repair existed.
+  const m: CrmFieldsMode = typeof mode === 'boolean' ? (mode ? 'create' : 'check') : mode;
   const r = await fetch('/api/events?action=crm-fields', {
     method: 'POST',
     headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ create }),
+    body: JSON.stringify({ create: m === 'create', repair: m === 'repair' }),
   });
   return r.json();
 }

@@ -344,6 +344,7 @@ export const en = {
       stageMap:          'Pipeline stages mapped ({n})',
       stageMapBroken:    'Not valid JSON — no one is being moved',
       inboundSecret:     'Inbound webhook secret',
+      fieldsRepair:      'Remove {n} unusable fields',
       fromDatabase:      'from Supabase',
       fromEnv:           'from Vercel',
       tokenRejected:     'Go High Level is rejecting this token',

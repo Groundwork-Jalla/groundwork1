@@ -65,6 +65,7 @@ export default function AdminCrm() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [corruptedCount, setCorruptedCount] = useState<number | null>(null);
   const [notice, setNotice]   = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -121,12 +122,19 @@ export default function AdminCrm() {
    * writes a hundred-odd fields into a live CRM, which should never happen because a
    * button happened to be under the cursor.
    */
-  async function checkFields(create: boolean) {
+  async function checkFields(mode: 'check' | 'create' | 'repair') {
     setFieldsBusy(true);
     try {
-      const r = await syncCrmFields(create) as { missingCount?: number; createdCount?: number };
+      const r = await syncCrmFields(mode) as {
+        missingCount?: number; createdCount?: number; corruptedCount?: number;
+      };
       setFields(JSON.stringify(r, null, 2));
-      setMissingCount(create ? null : (typeof r.missingCount === 'number' ? r.missingCount : null));
+      // Counts come only from a check. After a create or a repair they are stale by
+      // definition, so they are cleared and the admin re-checks — which is also what
+      // proves the run did what it claimed.
+      const isCheck = mode === 'check';
+      setMissingCount(isCheck && typeof r.missingCount === 'number' ? r.missingCount : null);
+      setCorruptedCount(isCheck && typeof r.corruptedCount === 'number' ? r.corruptedCount : null);
     } catch {
       setFields(t('admin.crm.fieldsFailed'));
     } finally {
@@ -213,7 +221,7 @@ export default function AdminCrm() {
               <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    type="button" disabled={fieldsBusy} onClick={() => void checkFields(false)}
+                    type="button" disabled={fieldsBusy} onClick={() => void checkFields('check')}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
                   >
                     {fieldsBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
@@ -221,10 +229,21 @@ export default function AdminCrm() {
                   </button>
                   {missingCount !== null && missingCount > 0 && (
                     <button
-                      type="button" disabled={fieldsBusy} onClick={() => void checkFields(true)}
+                      type="button" disabled={fieldsBusy} onClick={() => void checkFields('create')}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                     >
                       {t('admin.crm.fieldsCreate', { n: missingCount })}
+                    </button>
+                  )}
+                  {/* Only ever appears when a previous run left unusable fields behind.
+                      Destructive, so it is styled as such and never the default action. */}
+                  {corruptedCount !== null && corruptedCount > 0 && (
+                    <button
+                      type="button" disabled={fieldsBusy} onClick={() => void checkFields('repair')}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-state-blocked/40 bg-state-blocked/5 px-3 py-1.5 text-xs font-medium text-state-blocked transition-colors hover:bg-state-blocked/10 disabled:opacity-40"
+                    >
+                      <AlertTriangle className="size-3.5" />
+                      {t('admin.crm.fieldsRepair', { n: corruptedCount })}
                     </button>
                   )}
                 </div>

@@ -1,4 +1,6 @@
-import { ghlConfig, listCustomFields, createCustomField } from '../ghl/_client.js';
+import {
+  ghlConfig, listCustomFields, createCustomField, deleteCustomField,
+} from '../ghl/_client.js';
 import { contractorFieldKeys } from '../ghl/_contractor-payload.js';
 
 /**
@@ -84,11 +86,47 @@ export async function handler(req: any, res: any) {
   const have = new Set(existing.data.map(f => f.key));
   const missing = wanted.filter(k => !have.has(k));
 
+  // ── Fields this code created with a doubled prefix ──────────────────────────────────
+  // `createCustomField` used to send `contact.<key>`; GHL strips the dot and keeps the
+  // rest, so the field landed as `contact<key>`. Those fields can never receive a value,
+  // because the upsert addresses them by `<key>`.
+  //
+  // Matched against the exact wanted list, never a pattern. A field is only offered for
+  // deletion when its key is precisely `contact` + a key we know we asked for — a
+  // regex over "starts with contact" would happily delete `contact_person`, which
+  // somebody may have made by hand and filled in.
+  const corrupted = existing.data.filter(f => {
+    if (!f.key.startsWith('contact')) return false;
+    return wanted.includes(f.key.slice('contact'.length));
+  });
+
+  if (req.body?.repair === true) {
+    const removed: string[] = [];
+    const kept: Array<{ key: string; error?: string }> = [];
+    for (const f of corrupted) {
+      const r = await deleteCustomField(cfg, f.id);
+      if (r.ok) removed.push(f.key);
+      else kept.push({ key: f.key, error: r.error?.slice(0, 120) });
+    }
+    res.status(200).json({
+      ok: kept.length === 0,
+      repaired: true,
+      removedCount: removed.length,
+      removed,
+      failed: kept.slice(0, 20),
+    });
+    return;
+  }
+
   if (req.body?.create !== true) {
     res.status(200).json({
       ok: true, dryRun: true,
       total: wanted.length, present: wanted.length - missing.length,
       missingCount: missing.length, missing,
+      // Surfaced so the admin page can offer to clean them up. Empty on a healthy
+      // location, which is why it is reported rather than silently repaired.
+      corruptedCount: corrupted.length,
+      corrupted: corrupted.map(f => f.key).slice(0, 20),
     });
     return;
   }
@@ -98,10 +136,21 @@ export async function handler(req: any, res: any) {
 
   for (const k of missing) {
     const r = await createCustomField(cfg, k, humanise(k));
-    if (r.ok) created.push(k);
-    // One rejected field must not cost the other hundred — a partial run is still an
-    // improvement, and re-running picks up whatever failed.
-    else failed.push({ key: k, error: r.error?.slice(0, 120) });
+    if (!r.ok) {
+      // One rejected field must not cost the other hundred — a partial run is still an
+      // improvement, and re-running picks up whatever failed.
+      failed.push({ key: k, error: r.error?.slice(0, 120) });
+      continue;
+    }
+
+    // VERIFY THE KEY, do not assume it. A 200 means "a field was created", not "the
+    // field you asked for was created". Trusting the status is how 101 fields with
+    // unusable keys were reported as 101 successes.
+    if (r.data && r.data.key !== k) {
+      failed.push({ key: k, error: `GHL assigned the key "${r.data.key}"` });
+      continue;
+    }
+    created.push(k);
   }
 
   res.status(200).json({
