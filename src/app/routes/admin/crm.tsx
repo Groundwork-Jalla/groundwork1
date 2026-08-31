@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, X, RefreshCw, AlertTriangle, Search } from 'lucide-react';
 import {
-  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields,
+  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
@@ -66,6 +66,8 @@ export default function AdminCrm() {
   const [error, setError]     = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [corruptedCount, setCorruptedCount] = useState<number | null>(null);
+  const [audit, setAudit] = useState<string | null>(null);
+  const [auditing, setAuditing] = useState(false);
   const [notice, setNotice]   = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -122,6 +124,17 @@ export default function AdminCrm() {
    * writes a hundred-odd fields into a live CRM, which should never happen because a
    * button happened to be under the cursor.
    */
+  async function runAudit() {
+    setAuditing(true);
+    try {
+      setAudit(JSON.stringify(await auditCrm(), null, 2));
+    } catch {
+      setAudit(t('admin.crm.auditFailed'));
+    } finally {
+      setAuditing(false);
+    }
+  }
+
   async function checkFields(mode: 'check' | 'create' | 'repair') {
     setFieldsBusy(true);
     try {
@@ -254,6 +267,24 @@ export default function AdminCrm() {
                   </pre>
                 )}
               </div>
+              {/* Read-only. Counts misrouted numbers and duplicate records before
+                  anybody deletes anything — see api/_handlers/crm-audit.ts. */}
+              <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
+                <button
+                  type="button" disabled={auditing} onClick={() => void runAudit()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                >
+                  {auditing ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                  {t('admin.crm.audit')}
+                </button>
+                <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.auditHint')}</p>
+                {audit && (
+                  <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
+{audit}
+                  </pre>
+                )}
+              </div>
+
               {diagnosis && (
                 <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
 {diagnosis}

@@ -492,6 +492,16 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
  * nobody created looks exactly like a question the applicant skipped. Without `create`
  * this only reports; nothing is written to the CRM.
  */
+/** Read-only. Counts what is wrong in the CRM; changes nothing. */
+export async function auditCrm(): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-audit', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  return r.json();
+}
+
 export type CrmFieldsMode = 'check' | 'create' | 'repair';
 
 /**

@@ -38,6 +38,7 @@ const PATHS = {
   updateOpportunity: (id: string) => `/opportunities/${id}`,
   uploadMedia:       '/medias/upload-file',
   listMedia:         '/medias/files',
+  searchContacts:    '/contacts/search',
   customFields:      (locationId: string) => `/locations/${locationId}/customFields`,
   // Folder creation is not part of GHL's published v2 media surface the way uploading is.
   // These are the plausible routes; `ensureFolder` tries them in order and remembers the
@@ -288,6 +289,83 @@ export async function moveToStage(
   return id
     ? { ok: true, status: r.status, data: { opportunityId: id, created: true } }
     : { ok: false, status: r.status, error: 'no_opportunity_id' };
+}
+
+// ── Reading the contact book ──────────────────────────────────────────────────────────
+
+export interface GhlContactRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  tags: string[];
+  source: string;
+  createdAt: string;
+}
+
+/**
+ * Every contact in the location, a page at a time.
+ *
+ * Read-only, and used only by the audit. Pagination is the whole difficulty: an
+ * unpaginated read looked fine against 10 custom fields and was wrong against 111, and
+ * there is no reason to repeat that lesson against 600-odd contacts.
+ *
+ * `POST /contacts/search` is the documented v2 route for this. Like everything else in
+ * this file it is our transcription of someone else's contract, so the response is read
+ * tolerantly and a page that returns nothing recognisable ends the walk rather than
+ * looping.
+ */
+export async function listContacts(
+  cfg: GhlConfig,
+  opts: { max?: number } = {},
+): Promise<GhlResult<GhlContactRow[]>> {
+  const max = opts.max ?? 2000;
+  const out: GhlContactRow[] = [];
+  let searchAfter: unknown[] | undefined;
+  let lastStatus = 200;
+
+  // Hard cap on iterations as well as on rows: a misread response shape must not become
+  // an endless loop against someone's API quota.
+  for (let page = 0; page < 40 && out.length < max; page++) {
+    const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.searchContacts, {
+      method: 'POST',
+      body: {
+        locationId: cfg.locationId,
+        pageLimit: 100,
+        ...(searchAfter ? { searchAfter } : {}),
+      },
+    });
+    lastStatus = r.status;
+    if (!r.ok) return out.length
+      ? { ok: true, status: r.status, data: out }   // partial beats nothing
+      : { ok: false, status: r.status, error: r.error };
+
+    const d = (r.data ?? {}) as Record<string, unknown>;
+    const rows = [d.contacts, d.data, r.data].find(Array.isArray) as
+      | Array<Record<string, unknown>>
+      | undefined;
+    if (!rows?.length) break;
+
+    for (const row of rows) {
+      out.push({
+        id:    String(row.id ?? row._id ?? ''),
+        name:  String(row.contactName ?? row.name ?? '').trim(),
+        email: String(row.email ?? '').trim().toLowerCase(),
+        phone: String(row.phone ?? '').trim(),
+        tags:  Array.isArray(row.tags) ? row.tags.map(String) : [],
+        source: String(row.source ?? ''),
+        createdAt: String(row.dateAdded ?? row.createdAt ?? ''),
+      });
+    }
+
+    // GHL pages by echoing back the sort cursor of the last row.
+    const last = rows[rows.length - 1] as Record<string, unknown>;
+    const cursor = last.searchAfter;
+    if (!Array.isArray(cursor) || cursor.length === 0) break;
+    searchAfter = cursor;
+  }
+
+  return { ok: true, status: lastStatus, data: out };
 }
 
 // ── Media (the applicant's documents) ─────────────────────────────────────────────────
