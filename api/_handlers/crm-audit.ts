@@ -49,14 +49,20 @@ export function isMisroutedCameroonian(phone: string): boolean {
 }
 
 /**
- * The records the legacy webhook left behind.
+ * Contacts the Groundwork API never touched.
  *
- * Identity comes from what the contact *lacks*, which is country-independent: the
- * workflow does not map the email, applies no tags, and sets no contact source. The API
- * path sets all three on every contact it touches. So a contact missing all three was
- * not created by us through the API, whatever its phone looks like.
+ * ── NECESSARY BUT NOT SUFFICIENT ─────────────────────────────────────────────────────
+ * This is an ABSENCE test, and on its own it is the same class of mistake as selecting
+ * on phone shape. It selects everything the API never wrote to — which includes the
+ * entire pre-Groundwork Jalla base: contacts added by hand, and ones the phone system
+ * created from an inbound call it could not name.
  *
- * Country-agnostic on purpose — see the note above.
+ * The tag list is dated March–May 2026 (`jalla-travel-lead`, `cost-guide-by-country`,
+ * `founding_member_exit_popup`, the Skool imports). Those records are safe because they
+ * carry tags. Their untagged contemporaries are not.
+ *
+ * So this narrows the field, and `deletable` below adds the positive test that actually
+ * decides. Nothing is ever deleted on this predicate alone.
  */
 export function isOrphanRecord(c: { email: string; tags: string[]; source: string }): boolean {
   return !c.email
@@ -111,8 +117,33 @@ export async function handler(req: any, res: any) {
   }
   const contacts = people.data;
 
-  // ── The selection rule: what the record lacks, not what its phone looks like ──
+  // ── Narrow the field (absence), then prove membership (presence) ──
   const orphans = contacts.filter(isOrphanRecord);
+
+  // Every record the legacy webhook made has a contractor application behind it. Match
+  // on the last nine digits, which survives both the `+1`/`+237` mangling and the
+  // Nigerian case — it is the part of the number GHL never rewrites.
+  //
+  // This is the difference between "lacks our markers" and "provably came from the
+  // duplicate path". A hand-added Jalla contact from March cannot match it.
+  const svc = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: apps } = await svc
+    .from('contractor_applications')
+    .select('phone, business_name')
+    .limit(5000);
+
+  const applicationPhones = new Set(
+    (apps ?? [])
+      .map(a => digitsOf(String((a as { phone: unknown }).phone ?? '')).slice(-9))
+      .filter(d => d.length === 9),
+  );
+
+  const deletable = orphans.filter(c => applicationPhones.has(localKey(c.phone)));
+  // Orphans we could NOT tie to an application. These are the pre-Groundwork records
+  // the absence test would have swept up. They are reported, never selected.
+  const unprovable = orphans.filter(c => !applicationPhones.has(localKey(c.phone)));
 
   // ── Corroboration only ──
   const misrouted = contacts.filter(c => c.phone && isMisroutedCameroonian(c.phone));
@@ -157,13 +188,35 @@ export async function handler(req: any, res: any) {
      * independent, so it catches a mangled Nigerian number too — which the phone-shape
      * rule cannot, because `+1` plus ten digits is a valid US number.
      */
+    /**
+     * THE DELETABLE SET. Lacks every Groundwork marker AND has a contractor application
+     * behind it, matched on the last nine digits of the phone. Both conditions.
+     */
+    deletableRecords: deletable.length,
+
+    /**
+     * Orphans with no application behind them — almost certainly the pre-Groundwork
+     * Jalla base (manual adds, phone-system contacts). REPORTED, NEVER SELECTED. If this
+     * is large, the absence test alone would have deleted real contacts.
+     */
+    unprovableRecords: unprovable.length,
+    unprovableSample: unprovable.slice(0, 10).map(c => ({
+      id: c.id, name: c.name, phone: c.phone, created: c.createdAt,
+    })),
+
+    /**
+     * The cheap check: deletable rows carrying no business name. A contractor
+     * application without one is unusual, so an empty subset means the filter is clean.
+     */
+    deletableWithoutBusinessName: deletable.filter(c => !c.name).length,
+
     orphanRecords: orphans.length,
     /**
      * Capped at 15 for reading on screen. `{ "export": true }` returns the whole set
      * instead — deletion is irreversible and a sample is not something you can check
      * afterwards against what actually went.
      */
-    orphanSample: (req.body?.export === true ? orphans : orphans.slice(0, 15)).map(c => ({
+    orphanSample: (req.body?.export === true ? deletable : deletable.slice(0, 15)).map(c => ({
       id: c.id, name: c.name, phone: c.phone, email: c.email,
       tags: c.tags.join(' '), source: c.source, created: c.createdAt,
       // Present only when the shape proves it. Absent is not evidence of innocence —

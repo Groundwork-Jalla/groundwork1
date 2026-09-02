@@ -43,7 +43,11 @@ REVOKE ALL ON public.ghl_sync_failures FROM PUBLIC, anon, authenticated;
 CREATE OR REPLACE FUNCTION public.admin_ghl_sync_failures()
 RETURNS SETOF public.ghl_sync_failures
 LANGUAGE plpgsql STABLE SECURITY DEFINER
-SET search_path = public
+-- Empty, not `public`. With a schema on the path a caller can create an object that
+-- shadows an unqualified reference inside this body and have it run as the owner.
+-- Every reference below is schema-qualified, which is what makes '' safe. Supabase's
+-- own linter flags the `= public` form.
+SET search_path = ''
 AS $$
 BEGIN
   IF NOT public.is_admin() THEN

@@ -492,6 +492,32 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
  * nobody created looks exactly like a question the applicant skipped. Without `create`
  * this only reports; nothing is written to the CRM.
  */
+export interface SyncFailureRow {
+  id: string;
+  kind: string;
+  application_id: string | null;
+  email: string | null;
+  reason: string | null;
+  fell_back: boolean;
+  created_at: string;
+}
+
+/**
+ * Syncs that failed and left something needing a human.
+ *
+ * Surfaced on /admin/crm because a table nobody queries fails exactly the way the log
+ * line it replaced did. Returns [] when migration 065 has not been run yet, so the page
+ * degrades rather than erroring.
+ */
+export async function listSyncFailures(): Promise<SyncFailureRow[]> {
+  const { data, error } = await supabase.rpc('admin_ghl_sync_failures');
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202') return []; // not migrated
+    throw error;
+  }
+  return (data ?? []) as SyncFailureRow[];
+}
+
 /**
  * Read-only. Counts what is wrong in the CRM; changes nothing.
  *

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download } from 'lucide-react';
 import {
   getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm,
+  listSyncFailures, type SyncFailureRow,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ export default function AdminCrm() {
   const [audit, setAudit] = useState<string | null>(null);
   const [auditing, setAuditing] = useState(false);
   const [orphanCount, setOrphanCount] = useState<number | null>(null);
+  const [failures, setFailures] = useState<SyncFailureRow[]>([]);
   const [notice, setNotice]   = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -80,9 +82,12 @@ export default function AdminCrm() {
     setLoading(true); setError(null);
     try {
       // Independently: a failed status read should not hide the backlog, and vice versa.
-      const [s, b] = await Promise.allSettled([getCrmStatus(), listCrmBacklog()]);
+      const [s, b, f] = await Promise.allSettled([
+        getCrmStatus(), listCrmBacklog(), listSyncFailures(),
+      ]);
       if (s.status === 'fulfilled') setStatus(s.value);
       if (b.status === 'fulfilled') setRows(b.value);
+      if (f.status === 'fulfilled') setFailures(f.value);
       if (s.status === 'rejected' && b.status === 'rejected') setError(t('admin.crm.loadFailed'));
     } finally {
       setLoading(false);
@@ -373,6 +378,38 @@ export default function AdminCrm() {
             </p>
           )}
         </section>
+
+        {/* ── Syncs that need a human ──
+            Top of the page, not buried: a queue nobody sees fails exactly the way the
+            log line it replaced did. Each row is a contractor whose API sync failed —
+            `fell_back` true means there is a defective record in GHL to correct, false
+            means nothing reached the CRM at all. See migration 065. */}
+        {failures.length > 0 && (
+          <section className="rounded-2xl border border-state-blocked/40 bg-state-blocked/5 p-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-state-blocked">
+              <AlertTriangle className="size-4" />
+              {t('admin.crm.failures', { n: failures.length })}
+            </h2>
+            <p className="mt-1 text-[12px] text-brand-mid-grey">{t('admin.crm.failuresHint')}</p>
+            <div className="mt-3 divide-y divide-brand-border-grey/60">
+              {failures.slice(0, 10).map(f => (
+                <div key={f.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+                  <span className="text-sm font-medium text-brand-near-black">{f.email ?? '—'}</span>
+                  <span className={cn(
+                    'rounded-full px-1.5 py-px text-[10px] font-medium',
+                    f.fell_back
+                      ? 'bg-state-held/10 text-state-held'
+                      : 'bg-brand-light-grey text-brand-mid-grey',
+                  )}>
+                    {f.fell_back ? t('admin.crm.failureInCrm') : t('admin.crm.failureNotSent')}
+                  </span>
+                  <span className="text-[11px] text-brand-mid-grey">{f.reason}</span>
+                  <span className="ml-auto text-[11px] text-brand-mid-grey">{fmtDate(f.created_at, lang)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Backlog ── */}
         <section className="rounded-2xl border border-brand-border-grey p-5">
