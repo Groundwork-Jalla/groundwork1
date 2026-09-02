@@ -162,10 +162,11 @@ export async function handler(req: any, res: any) {
       return;
     }
 
-    // Onto the applicant's GHL contact. Placed before the stamping and not awaited, so
-    // it happens on both exits below — the note is as useful when the `acknowledged_at`
-    // write fails as when it succeeds, and arguably more so.
-    void logEmailToCrm({
+    // Onto the applicant's GHL contact, before the stamping so it happens on both exits
+    // below — the note is as useful when the `acknowledged_at` write fails as when it
+    // succeeds, and arguably more so. Awaited, not `void`: this handler responds a few
+    // lines down and Vercel freezes the instance at that point. See ghl/_email-log.ts.
+    const noted = await logEmailToCrm({
       to: app.email, subject, html,
       kind: 'contractor_application_received', name: app.full_name ?? null,
     });
@@ -183,11 +184,11 @@ export async function handler(req: any, res: any) {
       // The mail went. Say so, and say the bookkeeping did not — silently reporting
       // success would leave the row looking unsent and invite a duplicate.
       console.error('[ack] sent but could not stamp acknowledged_at:', stampErr);
-      res.status(200).json({ ok: true, sentAt, stamped: false });
+      res.status(200).json({ ok: true, sentAt, stamped: false, notedInCrm: noted });
       return;
     }
 
-    res.status(200).json({ ok: true, sentAt, stamped: true });
+    res.status(200).json({ ok: true, sentAt, stamped: true, notedInCrm: noted });
   } catch (err) {
     console.error('[ack] could not reach Resend:', err);
     res.status(502).json({ error: 'Could not reach the email service', stage: 'network' });

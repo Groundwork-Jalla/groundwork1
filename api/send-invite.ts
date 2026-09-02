@@ -98,11 +98,14 @@ export default async function handler(req: any, res: any) {
     }
 
     // On the contact in GHL, so whoever follows up can see the invitation was sent
-    // without asking anyone. Deliberately not awaited — the email has gone, and a CRM
-    // problem must not turn a successful send into a 500.
-    void logEmailToCrm({ to: invite.email, subject, html, kind: 'contractor_invite' });
+    // without asking anyone. Awaited before responding: Vercel freezes the instance when
+    // the handler returns, so a floating promise never reaches the note. It cannot throw
+    // and cannot fail the send — see the header of ghl/_email-log.ts.
+    const noted = await logEmailToCrm({
+      to: invite.email, subject, html, kind: 'contractor_invite',
+    });
 
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, notedInCrm: noted });
   } catch (err) {
     console.error('[invite] send failed:', err);
     res.status(500).json({ error: 'Failed to send email' });

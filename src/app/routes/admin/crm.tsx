@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download } from 'lucide-react';
+import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download, Mail } from 'lucide-react';
 import {
   getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm,
-  listSyncFailures, type SyncFailureRow,
+  listSyncFailures, testCrmEmailLog, type SyncFailureRow,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
 import { cn } from '@/lib/utils';
@@ -77,6 +77,8 @@ export default function AdminCrm() {
   const [fields, setFields] = useState<string | null>(null);
   const [fieldsBusy, setFieldsBusy] = useState(false);
   const [missingCount, setMissingCount] = useState<number | null>(null);
+  const [mailTest, setMailTest] = useState<{ ok: boolean; text: string } | null>(null);
+  const [mailTesting, setMailTesting] = useState(false);
 
   async function load() {
     setLoading(true); setError(null);
@@ -122,6 +124,29 @@ export default function AdminCrm() {
       setDiagnosis(t('admin.crm.diagnoseFailed'));
     } finally {
       setDiagnosing(false);
+    }
+  }
+
+  /**
+   * Prove that emails are reaching the CRM timeline.
+   *
+   * The email log cannot report its own failure anywhere a person would see it — it is
+   * built never to break a send, so a CRM that has been silently recording nothing looks
+   * exactly like one that is working. This runs the real function and writes the note to
+   * the admin's own contact, never to a contractor's.
+   */
+  async function runMailTest() {
+    setMailTesting(true); setMailTest(null);
+    try {
+      const r = await testCrmEmailLog();
+      setMailTest({
+        ok: r.ok,
+        text: r.detail ?? (r.ok ? t('admin.crm.mailTestOk') : t('admin.crm.mailTestFailed')),
+      });
+    } catch {
+      setMailTest({ ok: false, text: t('admin.crm.mailTestFailed') });
+    } finally {
+      setMailTesting(false);
     }
   }
 
@@ -312,6 +337,27 @@ export default function AdminCrm() {
                   <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
 {fields}
                   </pre>
+                )}
+              </div>
+              {/* Whether emails are landing on contact timelines at all. Its own block
+                  because it answers a different question from the field and document
+                  checks: not "can we write to GHL" but "is the follow-up trail real". */}
+              <div className="mt-4 border-t border-brand-border-grey/60 pt-3">
+                <button
+                  type="button" disabled={mailTesting} onClick={() => void runMailTest()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                >
+                  {mailTesting ? <Loader2 className="size-3.5 animate-spin" /> : <Mail className="size-3.5" />}
+                  {t('admin.crm.mailTest')}
+                </button>
+                <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.mailTestHint')}</p>
+                {mailTest && (
+                  <p className={cn('mt-2 rounded-lg px-3 py-2 text-[11px] leading-relaxed',
+                    mailTest.ok
+                      ? 'bg-state-complete/5 text-state-complete'
+                      : 'bg-state-alert/5 text-state-alert')}>
+                    {mailTest.text}
+                  </p>
                 )}
               </div>
               {/* Read-only. Counts misrouted numbers and duplicate records before

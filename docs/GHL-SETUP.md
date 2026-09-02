@@ -290,12 +290,40 @@ Already on, provided Step 3 is done.
 
 Every email the product sends a client or contractor is written onto that person's GHL
 contact as a **note**: what it was, when it went, the subject, and a readable excerpt of
-the body. Acknowledgements, decisions, project invitations, and anything sent through the
-generic sender.
+the body.
+
+| On the timeline | Sent by |
+| --- | --- |
+| Application acknowledgement — automatic, and the manual re-send | `contractor-application-notify`, `send-application-acknowledgement` |
+| Application decision — accepted or rejected | `send-application-decision` |
+| Project invitation | `send-invite` |
+| Stage approved, rework requested | `send-email`, labelled `stage_update` |
 
 So the question that follow-up actually turns on — *what have we already said to this
 person?* — is answerable in GHL, by whoever is holding the phone, without asking a
 developer.
+
+### What is deliberately *not* there
+
+Worth knowing, because an empty stretch of timeline otherwise reads as "we never
+contacted them".
+
+- **Account emails — password resets, sign-up confirmations, magic links.** Supabase
+  sends these itself, from its own service; our code never sees them, so nothing can log
+  them. A contact with no notes may still have had three password resets.
+- **The team alert** when an application arrives. It goes to our own inbox, and the
+  logger creates a contact for any address it does not recognise — logging it would file
+  our ops inbox in the contact book as a lead.
+
+### Checking it actually works
+
+`/admin/crm` → **Test the email log**. It runs the real code path — the same lookup,
+upsert and notes call the acknowledgement emails use — and writes one note to *your own*
+contact, never a contractor's. Nothing is emailed.
+
+Worth pressing after any change to the token, because every failure in this path is
+silent by design: a note that cannot be written must never break a password reset, so a
+CRM that has been recording nothing for a month looks exactly like one that is working.
 
 **A note, not a logged email, deliberately.** GHL's conversation view expects mail sent
 through GHL's own sending domain. Moving transactional mail there would mean
@@ -303,7 +331,9 @@ re-verifying deliverability for password resets and invitations — real risk, t
 record in a slightly prettier place. A note lands on the same timeline and is searchable.
 
 If the API is not configured, nothing is written and nothing breaks: the email still
-sends. Notes never block or fail a send.
+sends. Notes never block or fail a send — but they *are* awaited before the endpoint
+answers, because Vercel freezes the function the moment it responds and an unawaited note
+never gets written. `src/lib/email/crm-email-log.test.ts` enforces both halves of that.
 
 ---
 

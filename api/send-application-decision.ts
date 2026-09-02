@@ -169,13 +169,15 @@ export default async function handler(req: any, res: any) {
     });
 
     // The single most useful note on a contractor's timeline: an accepted applicant who
-    // rings up should not be asked whether they have heard from us yet.
-    void logEmailToCrm({
+    // rings up should not be asked whether they have heard from us yet. Awaited for the
+    // same reason `forwardToGhl` above is — the instance is frozen the moment this
+    // handler responds, and a floating promise never gets to write the note.
+    const noted = await logEmailToCrm({
       to: app.email, subject, html,
       kind: 'contractor_application_decision', name: app.full_name ?? null,
     });
 
-    res.status(200).json({ ok: true });
+    res.status(200).json({ ok: true, notedInCrm: noted });
   } catch (err) {
     console.error('[decision] Resend unreachable:', err);
     res.status(502).json({ error: 'Could not send the email', stage: 'network' });

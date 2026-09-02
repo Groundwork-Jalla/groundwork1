@@ -16,6 +16,7 @@
  */
 
 import { siteUrl } from '../src/lib/site-url.js';
+import { logEmailToCrm } from './ghl/_email-log.js';
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
@@ -127,12 +128,18 @@ export default async function handler(req: any, res: any) {
   // lives in its own arm of the settle. It used to sit above this block, where a failed
   // resolution was an unhandled rejection that took the team alert down with it — which
   // is precisely the coupling the comment below says must not exist.
-  async function sendApplicantCopy() {
+  //
+  // Returns what it sent so the CRM note below can quote it. Built here rather than a
+  // second time later: the note has to say what the applicant actually received, and two
+  // renderings that drift are worse than none.
+  async function sendApplicantCopy(): Promise<{ subject: string; html: string }> {
     const { buildContractorApplicationHtml, contractorApplicationSubject } =
       await import('../src/lib/email/contractor-application-html.js');
     const { applicationFromRow } = await import('../src/lib/contractor/application-types.js');
-    await send(app.email, contractorApplicationSubject(lang),
-               buildContractorApplicationHtml(lang, applicationFromRow(app)));
+    const subject = contractorApplicationSubject(lang);
+    const html = buildContractorApplicationHtml(lang, applicationFromRow(app));
+    await send(app.email, subject, html);
+    return { subject, html };
   }
 
   // Reported independently: the team alert is what stops an application sitting unseen,
@@ -167,5 +174,29 @@ export default async function handler(req: any, res: any) {
     if (stampErr) console.error('[notify] sent but could not stamp acknowledged_at:', stampErr);
   }
 
-  res.status(applicant || team ? 200 : 502).json({ ok: applicant && team, applicant, team });
+  // ── Onto the applicant's GHL contact ────────────────────────────────────────────────
+  // This is the email nearly every contractor gets, and the only one most of them ever
+  // get, so a CRM that does not show it cannot answer "have we said anything to this
+  // person yet?" for the bulk of the pipeline.
+  //
+  // The applicant's copy only. The team alert goes to an ops inbox, and `logEmailToCrm`
+  // creates the contact when it does not recognise the address — logging that one would
+  // put our own inbox in the contact book as a lead.
+  //
+  // Awaited, like every other caller: Vercel freezes the instance at `res`, so a floating
+  // promise never reaches GHL. See the header of ghl/_email-log.ts.
+  let noted = false;
+  if (applicant) {
+    const sent = (results[0] as PromiseFulfilledResult<{ subject: string; html: string }>).value;
+    noted = await logEmailToCrm({
+      to: app.email,
+      subject: sent.subject,
+      html: sent.html,
+      kind: 'contractor_application_received',
+      name: app.full_name ?? null,
+    });
+  }
+
+  res.status(applicant || team ? 200 : 502)
+     .json({ ok: applicant && team, applicant, team, notedInCrm: noted });
 }

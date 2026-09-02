@@ -485,6 +485,34 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
   return r.json();
 }
 
+export interface CrmEmailTestResult {
+  ok: boolean;
+  email?: string;
+  reason?: string | null;
+  detail?: string;
+  ms?: number;
+}
+
+/**
+ * Write a test note onto your own GoHighLevel contact, through the real code path.
+ *
+ * Every part of the email→CRM path fails silently on purpose — a note that cannot be
+ * written must never break a password reset — so "it is working" and "it has been doing
+ * nothing for a month" look identical from the outside. This is the only thing that
+ * tells them apart without reading function logs.
+ *
+ * The note goes on the caller's own contact; the endpoint takes the address from their
+ * session, never from here.
+ */
+export async function testCrmEmailLog(): Promise<CrmEmailTestResult> {
+  const r = await fetch('/api/events?action=crm-email-test', {
+    method: 'POST', headers: { Authorization: `Bearer ${await bearer()}` },
+  });
+  const b = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof b.error === 'string' ? b.error : `crm email test failed: ${r.status}`);
+  return b as CrmEmailTestResult;
+}
+
 /**
  * Ask GoHighLevel which of our custom fields it is missing, and optionally create them.
  *

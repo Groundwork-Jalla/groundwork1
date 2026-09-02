@@ -1,6 +1,7 @@
 // Vercel Serverless Function — sends transactional email via Resend.
 // RESEND_API_KEY must be set in Vercel environment variables.
 import { logEmailToCrm } from './ghl/_email-log.js';
+import { callerEmailKind } from '../src/lib/email/email-kind.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -37,7 +38,7 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: 'Sign in required' });
   }
 
-  const { to, subject, html } = req.body ?? {};
+  const { to, subject, html, kind } = req.body ?? {};
   if (!to || !subject || !html) {
     return res.status(400).json({ error: 'Missing required fields: to, subject, html' });
   }
@@ -64,11 +65,12 @@ export default async function handler(req: any, res: any) {
   const data = await r.json().catch(() => ({}));
 
   if (r.ok) {
-    // Onto the recipient's GHL contact. This endpoint is the generic one — it does not
-    // know what it just sent — so the note carries the subject and body and a neutral
-    // label rather than pretending to a category it cannot determine.
-    void logEmailToCrm({ to, subject, html, kind: 'other' });
-    return res.status(200).json({ success: true });
+    // Onto the recipient's GHL contact. This endpoint is the generic one, so the caller
+    // says what it sent — narrowly, through `callerEmailKind`, because the label is as
+    // caller-controlled as the body is and an admin's browser should not be able to file
+    // a note as an application decision. Awaited: see ghl/_email-log.ts.
+    const noted = await logEmailToCrm({ to, subject, html, kind: callerEmailKind(kind) });
+    return res.status(200).json({ success: true, notedInCrm: noted });
   }
   return res.status(500).json({ error: 'Resend API error', details: data });
 }

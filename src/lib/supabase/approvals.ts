@@ -292,6 +292,9 @@ export async function adminApproveStage(
             projectId,
             certificateId: certId,
           }),
+          // Heads the note on the owner's GHL contact. Without it every one of these
+          // reads as a bare "Email" on the timeline.
+          'stage_update',
         ).catch(() => {});
       }
     }).catch(() => {});
@@ -373,6 +376,7 @@ export async function adminRequestRework(
           flaggedCount: flaggedCount ?? 0,
           projectId,
         }),
+        'stage_update',
       ).catch(() => {});
     }).catch(() => {});
   }

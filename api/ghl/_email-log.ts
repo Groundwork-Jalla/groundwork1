@@ -11,7 +11,19 @@
  * ── Best-effort, always ──────────────────────────────────────────────────────────────
  * Nothing here can fail a send. The email has already gone by the time this runs; the
  * note is bookkeeping, and bookkeeping that can break a password reset is worse than no
- * bookkeeping. Every path returns rather than throws, and callers use `void`.
+ * bookkeeping. Every path returns rather than throws — there is no `catch` for a caller
+ * to forget, and the boolean is the whole error channel.
+ *
+ * ── AWAIT IT. `void logEmailToCrm(...)` DOES NOT WORK HERE ───────────────────────────
+ * Every caller is a Vercel serverless function, and Vercel freezes the instance the
+ * moment the handler responds and returns. A floating promise is suspended mid-flight:
+ * this one needs a Supabase read and one or two GHL round trips, so it never gets to the
+ * note. It looks exactly like a CRM that is refusing us — nothing on the timeline, no
+ * error anywhere, and the send itself succeeding every time.
+ *
+ * Awaiting is safe *because* of the paragraph above: this cannot throw and cannot fail a
+ * send, it can only make one slower by a few hundred milliseconds. That is the entire
+ * cost, and it is the same trade `forwardToGhl` already makes in the decision endpoint.
  *
  * ── It will create the contact if it has to ──────────────────────────────────────────
  * An email to someone GHL has never seen upserts them first. That is deliberate: the
@@ -20,22 +32,12 @@
  */
 
 import { ghlConfig, upsertContact, addContactNote } from './_client.js';
+// The kinds and their labels live under src/ because the browser names them too, when it
+// calls /api/send-email. One vocabulary, so a note cannot be labelled one thing on the
+// way out and another on arrival.
+import { EMAIL_KIND_LABEL as LABEL, type EmailKind } from '../../src/lib/email/email-kind.js';
 
-/** What the note says happened. Keep these short — they are the first line in GHL. */
-export type EmailKind =
-  | 'contractor_application_received'
-  | 'contractor_application_decision'
-  | 'contractor_invite'
-  | 'stage_update'
-  | 'other';
-
-const LABEL: Record<EmailKind, string> = {
-  contractor_application_received: 'Application acknowledgement',
-  contractor_application_decision: 'Application decision',
-  contractor_invite:               'Project invitation',
-  stage_update:                    'Stage update',
-  other:                           'Email',
-};
+export type { EmailKind };
 
 /**
  * HTML to something readable in a CRM note.
@@ -148,8 +150,10 @@ export interface LogEmailOptions {
 /**
  * Record an email on the recipient's contact. Never throws.
  *
- * Returns whether a note was written, which is worth having in tests and logs but is
- * deliberately ignored by every caller — see the note about bookkeeping above.
+ * Returns whether a note was written. False is not an error — an unconfigured API, a
+ * contact GHL would not create, a rejected note: all of them mean "no timeline entry",
+ * and none of them mean the email failed. Callers `await` it and may ignore the answer,
+ * but they must not use `void` — see the header.
  */
 export async function logEmailToCrm(opts: LogEmailOptions): Promise<boolean> {
   try {
