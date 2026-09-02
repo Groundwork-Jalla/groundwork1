@@ -49,9 +49,23 @@ const SOURCE: Record<GhlEvent, string> = {
   project_created:      'groundwork:building',
 };
 
+/**
+ * Events that mean "this person is building, not building for someone else".
+ *
+ * They all carry a flat `groundwork:homeowner` as well as their own tag. Without it,
+ * "everyone who is not a contractor" is a three-way OR over signup/building/subscriber —
+ * which reads as lifecycle rather than identity, and silently drops anybody the day a
+ * fourth stage is added. One flat tag makes the smart list one condition.
+ */
+const HOMEOWNER_EVENTS: ReadonlySet<GhlEvent> = new Set([
+  'user_signup', 'project_created', 'subscription_changed',
+]);
+
 /** `lang` is optional: a contact with no known language should not be tagged as English. */
 export function tagsFor(event: GhlEvent, variant?: string, lang?: string | null): string[] {
   const tags = [BASE_TAG];
+
+  if (HOMEOWNER_EVENTS.has(event)) tags.push('groundwork:homeowner');
 
   const source = SOURCE[event];
   if (source) tags.push(source);

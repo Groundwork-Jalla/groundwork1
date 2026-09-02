@@ -357,6 +357,7 @@ export const fr: Mirror<EnDict> = {
       audit:             'Auditer le carnet de contacts',
       auditHint:         'Lecture seule. Compte les numéros mal routés et les doublons ; ne modifie rien.',
       auditFailed:       "L'audit n'a pas pu être exécuté.",
+      auditExport:       "Exporter d'abord {n} enregistrements",
       fromDatabase:      'depuis Supabase',
       fromEnv:           'depuis Vercel',
       tokenRejected:     'Go High Level rejette ce jeton',

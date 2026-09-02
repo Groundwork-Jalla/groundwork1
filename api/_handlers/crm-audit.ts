@@ -27,15 +27,41 @@ const CM_MOBILE = /^6\d{8}$/;
 const digitsOf = (phone: string) => phone.replace(/\D/g, '');
 
 /**
- * A number that is almost certainly Cameroonian wearing a US country code.
+ * A number that is *provably* Cameroonian wearing a US country code.
  *
- * Deliberately narrow. `+1` followed by exactly the shape of a CM mobile is the specific
- * corruption we know GHL produces; a genuine US number is `+1` plus ten digits and does
- * not match. Being narrow here means a real American contact is never counted as junk.
+ * ── This is a confirmation signal, NOT the selection rule ────────────────────────────
+ * `+1` followed by exactly nine digits starting with 6 cannot be a North American
+ * number — those are `+1` plus ten — so there are no false positives here. But it does
+ * not generalise, and selecting on it would be wrong in two directions:
+ *
+ *   · Groundwork is diaspora-facing. Legitimate homeowners in the US and Canada are
+ *     `+1` contacts, and they are the actual customer base. Deleting on a `+1` rule is
+ *     deleting customers.
+ *   · A Nigerian mobile is ten digits. Mangled the same way it becomes `+1` + ten,
+ *     which is indistinguishable by shape from a real US number. Nigeria is next after
+ *     Cameroon across thirteen countries, so those are coming.
+ *
+ * So the junk is selected by the compound state below, and this only corroborates it.
  */
 export function isMisroutedCameroonian(phone: string): boolean {
   const d = digitsOf(phone);
   return d.startsWith('1') && CM_MOBILE.test(d.slice(1));
+}
+
+/**
+ * The records the legacy webhook left behind.
+ *
+ * Identity comes from what the contact *lacks*, which is country-independent: the
+ * workflow does not map the email, applies no tags, and sets no contact source. The API
+ * path sets all three on every contact it touches. So a contact missing all three was
+ * not created by us through the API, whatever its phone looks like.
+ *
+ * Country-agnostic on purpose — see the note above.
+ */
+export function isOrphanRecord(c: { email: string; tags: string[]; source: string }): boolean {
+  return !c.email
+    && !c.tags.some(t => t.startsWith('groundwork'))
+    && !c.source;
 }
 
 /** The last nine digits — what two records for the same person share. */
@@ -85,8 +111,12 @@ export async function handler(req: any, res: any) {
   }
   const contacts = people.data;
 
-  // ── Misrouted numbers ──
+  // ── The selection rule: what the record lacks, not what its phone looks like ──
+  const orphans = contacts.filter(isOrphanRecord);
+
+  // ── Corroboration only ──
   const misrouted = contacts.filter(c => c.phone && isMisroutedCameroonian(c.phone));
+  const orphansWithMangledPhone = orphans.filter(c => c.phone && isMisroutedCameroonian(c.phone));
 
   // ── Duplicates: two records whose phones end in the same nine digits ──
   const byLocal = new Map<string, GhlContactRow[]>();
@@ -122,13 +152,40 @@ export async function handler(req: any, res: any) {
   res.status(200).json({
     ok: true,
     contacts: contacts.length,
-    // The headline. Every one of these is a real US number we could message by mistake.
-    misroutedPhones: misrouted.length,
-    misroutedSample: misrouted.slice(0, 10).map(c => ({
-      id: c.id, name: c.name, phone: c.phone,
-      shouldBe: `+237${digitsOf(c.phone).slice(1)}`,
-      hasEmail: !!c.email, source: c.source,
+    /**
+     * THE DELETABLE SET: no email, no groundwork tag, no contact source. Country-
+     * independent, so it catches a mangled Nigerian number too — which the phone-shape
+     * rule cannot, because `+1` plus ten digits is a valid US number.
+     */
+    orphanRecords: orphans.length,
+    /**
+     * Capped at 15 for reading on screen. `{ "export": true }` returns the whole set
+     * instead — deletion is irreversible and a sample is not something you can check
+     * afterwards against what actually went.
+     */
+    orphanSample: (req.body?.export === true ? orphans : orphans.slice(0, 15)).map(c => ({
+      id: c.id, name: c.name, phone: c.phone, email: c.email,
+      tags: c.tags.join(' '), source: c.source, created: c.createdAt,
+      // Present only when the shape proves it. Absent is not evidence of innocence —
+      // a mangled Nigerian number looks exactly like a real US one.
+      mangledFrom: isMisroutedCameroonian(c.phone) ? `+237${digitsOf(c.phone).slice(1)}` : null,
     })),
+    exported: req.body?.export === true,
+
+    /**
+     * Corroboration, not selection. How much of the orphan set the Cameroon phone-shape
+     * rule independently confirms — a high overlap means the theory holds; the shortfall
+     * is the non-Cameroonian numbers the shape rule structurally cannot see.
+     */
+    misroutedCameroonianPhones: misrouted.length,
+    orphansConfirmedByPhoneShape: orphansWithMangledPhone.length,
+
+    /**
+     * Contacts with a mangled-looking phone that are NOT orphans. Should be zero. Any
+     * number here is a contact we would have deleted on a phone-shape rule and should
+     * not have — review before touching anything.
+     */
+    misroutedButNotOrphaned: misrouted.filter(c => !isOrphanRecord(c)).length,
     duplicateGroupCount: duplicateGroups.length,
     duplicateRecords: duplicateGroups.reduce((n, g) => n + g.rows.length - 1, 0),
     duplicateSample: duplicateGroups.slice(0, 10),

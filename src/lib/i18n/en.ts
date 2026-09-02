@@ -348,6 +348,7 @@ export const en = {
       audit:             'Audit the contact book',
       auditHint:         'Read-only. Counts misrouted phone numbers and duplicate records; changes nothing.',
       auditFailed:       'The audit could not be run.',
+      auditExport:       'Export {n} records first',
       fromDatabase:      'from Supabase',
       fromEnv:           'from Vercel',
       tokenRejected:     'Go High Level is rejecting this token',

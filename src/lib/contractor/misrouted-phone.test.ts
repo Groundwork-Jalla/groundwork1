@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMisroutedCameroonian } from '../../../api/_handlers/crm-audit';
+import { isMisroutedCameroonian, isOrphanRecord } from '../../../api/_handlers/crm-audit';
 
 /**
  * This predicate decides which contacts get shown as junk, and eventually which get
@@ -34,5 +34,46 @@ describe('isMisroutedCameroonian', () => {
     expect(isMisroutedCameroonian('+1233456789')).toBe(false);  // starts 2, not 6
     expect(isMisroutedCameroonian('+165489671')).toBe(false);   // 8 digits
     expect(isMisroutedCameroonian('')).toBe(false);
+  });
+});
+
+/**
+ * The rule that actually decides what gets deleted.
+ *
+ * Phone shape cannot do this job. Groundwork is diaspora-facing, so legitimate US and
+ * Canadian homeowners are `+1` contacts — they are the customer base. And a mangled
+ * Nigerian mobile is `+1` plus ten digits, indistinguishable from a real US number.
+ * What the record *lacks* is country-independent.
+ */
+describe('isOrphanRecord', () => {
+  const orphan  = { email: '', tags: [], source: '' };
+  const real    = { email: 'a@b.c', tags: ['groundwork', 'groundwork:contractor'], source: 'groundwork_contractor_application' };
+
+  it('selects the record the legacy webhook leaves behind', () => {
+    expect(isOrphanRecord(orphan)).toBe(true);
+  });
+
+  it('never selects a contact the API created', () => {
+    expect(isOrphanRecord(real)).toBe(false);
+  });
+
+  it('protects a legitimate US diaspora homeowner', () => {
+    // A real +1 customer. Phone shape would say nothing either way; this must not match.
+    expect(isOrphanRecord({
+      email: 'diaspora@example.com', tags: ['groundwork', 'groundwork:homeowner'], source: 'groundwork_user_signup',
+    })).toBe(false);
+  });
+
+  it('catches a mangled NIGERIAN number, which phone shape cannot', () => {
+    // +1 plus ten digits is a valid US number by shape. Only the compound state sees it.
+    const nigerian = { email: '', tags: [], source: '' };
+    expect(isMisroutedCameroonian('+18031234567')).toBe(false); // shape rule is blind
+    expect(isOrphanRecord(nigerian)).toBe(true);                // compound rule is not
+  });
+
+  it('spares anything carrying even one sign of us', () => {
+    expect(isOrphanRecord({ email: 'x@y.z', tags: [], source: '' })).toBe(false);
+    expect(isOrphanRecord({ email: '', tags: ['groundwork'], source: '' })).toBe(false);
+    expect(isOrphanRecord({ email: '', tags: [], source: 'groundwork_user_signup' })).toBe(false);
   });
 });

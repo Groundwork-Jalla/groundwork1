@@ -492,12 +492,17 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
  * nobody created looks exactly like a question the applicant skipped. Without `create`
  * this only reports; nothing is written to the CRM.
  */
-/** Read-only. Counts what is wrong in the CRM; changes nothing. */
-export async function auditCrm(): Promise<unknown> {
+/**
+ * Read-only. Counts what is wrong in the CRM; changes nothing.
+ *
+ * `full` returns every orphan record rather than a 15-row sample, for the export taken
+ * before anything is deleted.
+ */
+export async function auditCrm(full = false): Promise<unknown> {
   const r = await fetch('/api/events?action=crm-audit', {
     method: 'POST',
     headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
-    body: '{}',
+    body: JSON.stringify({ export: full }),
   });
   return r.json();
 }

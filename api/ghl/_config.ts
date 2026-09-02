@@ -39,6 +39,19 @@ export const GHL_KEYS = [
   'GHL_PIPELINE_ID',
   'GHL_STAGE_MAP',
   'GHL_INBOUND_SECRET',
+  /**
+   * What to do with the legacy contractor webhook now that the API works.
+   *
+   *   'off'      — API only. The end state, once Philip's workflow is rebuilt on the
+   *                `groundwork:applied` tag trigger.
+   *   'fallback' — API first; the webhook runs only if the API sync fails. The default,
+   *                because it stops new duplicates immediately.
+   *   'always'   — both, every time. The old behaviour, and a duplicate factory.
+   *
+   * Here rather than in code so it can be changed with one UPDATE and no deploy — the
+   * decision depends on what Philip's workflow does, which is not knowable from here.
+   */
+  'GHL_CONTRACTOR_WEBHOOK_MODE',
 ] as const;
 
 export type GhlKey = (typeof GHL_KEYS)[number];

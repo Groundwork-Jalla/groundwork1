@@ -76,3 +76,23 @@ COMMENT ON TABLE public.app_config IS
 --     FROM public.app_config
 --    WHERE key LIKE 'ghl%'
 --    ORDER BY key;
+
+
+-- ── Added 2 Sep 2026: the legacy contractor webhook ──────
+--
+-- Every contractor application used to POST the legacy webhook AND run the API sync.
+-- Philip's workflow creates a contact from the fields it maps — without the email, so
+-- GHL cannot dedupe it, and with a raw phone that GHL stamps `+1` because the
+-- sub-account is registered in Maryland. The API then creates the real record. Two
+-- contacts per contractor, and the `+1` half is unreachable: a Cameroonian mobile
+-- wearing a US country code belongs to a stranger.
+--
+--   ghl_contractor_webhook_mode
+--     'fallback'  API first; webhook only if the API sync fails.  ← default, no row needed
+--     'off'       API only. The end state, once Philip's workflow is rebuilt on the
+--                 `groundwork:applied` tag trigger instead of the webhook.
+--     'always'    both, every time. The old behaviour. Restores the duplicates.
+--
+-- INSERT INTO public.app_config (key, value) VALUES
+--   ('ghl_contractor_webhook_mode', 'off')
+-- ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();

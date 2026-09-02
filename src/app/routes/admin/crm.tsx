@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Check, X, RefreshCw, AlertTriangle, Search } from 'lucide-react';
+import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download } from 'lucide-react';
 import {
   getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm,
   type CrmStatus, type OutboxRow, type ConfigSource,
@@ -68,6 +68,7 @@ export default function AdminCrm() {
   const [corruptedCount, setCorruptedCount] = useState<number | null>(null);
   const [audit, setAudit] = useState<string | null>(null);
   const [auditing, setAuditing] = useState(false);
+  const [orphanCount, setOrphanCount] = useState<number | null>(null);
   const [notice, setNotice]   = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -127,7 +128,48 @@ export default function AdminCrm() {
   async function runAudit() {
     setAuditing(true);
     try {
-      setAudit(JSON.stringify(await auditCrm(), null, 2));
+      const r = await auditCrm() as { orphanRecords?: number };
+      setAudit(JSON.stringify(r, null, 2));
+      setOrphanCount(typeof r.orphanRecords === 'number' ? r.orphanRecords : null);
+    } catch {
+      setAudit(t('admin.crm.auditFailed'));
+      setOrphanCount(null);
+    } finally {
+      setAuditing(false);
+    }
+  }
+
+  /**
+   * The whole deletable set, as a file, before anything is deleted.
+   *
+   * GHL keeps a restore window on bulk deletes, but a window is not a record of what was
+   * in there — and a 15-row sample cannot be checked afterwards against what actually
+   * went. Written client-side from the response: it never touches disk on the server.
+   */
+  async function exportOrphans() {
+    setAuditing(true);
+    try {
+      const r = await auditCrm(true) as {
+        orphanSample?: Array<Record<string, unknown>>;
+      };
+      const rows = r.orphanSample ?? [];
+      if (!rows.length) return;
+
+      const cols = Object.keys(rows[0]);
+      // Quote everything and double any embedded quote: names carry commas, and a CSV
+      // that splits a name across two columns is worse than no export.
+      const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const csv = [
+        cols.join(','),
+        ...rows.map(row => cols.map(c => cell(row[c])).join(',')),
+      ].join('\n');
+
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ghl-orphan-contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch {
       setAudit(t('admin.crm.auditFailed'));
     } finally {
@@ -277,6 +319,18 @@ export default function AdminCrm() {
                   {auditing ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
                   {t('admin.crm.audit')}
                 </button>
+                {/* Only after an audit has actually found something. Deletion is
+                    irreversible and the restore window is not a record of what was in
+                    there — take the file first. */}
+                {orphanCount !== null && orphanCount > 0 && (
+                  <button
+                    type="button" disabled={auditing} onClick={() => void exportOrphans()}
+                    className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                  >
+                    <Download className="size-3.5" />
+                    {t('admin.crm.auditExport', { n: orphanCount })}
+                  </button>
+                )}
                 <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.auditHint')}</p>
                 {audit && (
                   <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
