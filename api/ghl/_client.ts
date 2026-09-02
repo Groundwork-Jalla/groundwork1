@@ -39,6 +39,7 @@ const PATHS = {
   uploadMedia:       '/medias/upload-file',
   listMedia:         '/medias/files',
   searchContacts:    '/contacts/search',
+  pipelines:         '/opportunities/pipelines',
   // Puts a message on the contact's Conversations thread. `/inbound` is not a typo: it
   // is the endpoint for messages that happened *outside* GHL, and it takes a `direction`
   // — `/outbound` is call logs only. See `addConversationEmail`.
@@ -446,6 +447,52 @@ export async function listContacts(
   }
 
   return { ok: true, status: lastStatus, data: out };
+}
+
+// ── Pipelines ─────────────────────────────────────────────────────────────────────────
+
+export interface GhlPipeline {
+  id: string;
+  name: string;
+  stages: Array<{ id: string; name: string }>;
+}
+
+/**
+ * The pipelines and their stage ids.
+ *
+ * Exists because GoHighLevel puts the pipeline id in the URL and the stage ids nowhere a
+ * person can reach — the usual advice is to open devtools and read them off the DOM,
+ * which is a poor thing to ask of whoever is setting this up. `ghl_stage_map` needs them
+ * exactly right, and a mistyped id disables every move while looking identical to "not
+ * configured yet".
+ */
+export async function listPipelines(cfg: GhlConfig): Promise<GhlResult<GhlPipeline[]>> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.pipelines, {
+    method: 'GET',
+    query: { locationId: cfg.locationId },
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as { pipelines?: unknown };
+  const rows = [d.pipelines, r.data].find(Array.isArray) as
+    | Array<Record<string, unknown>>
+    | undefined;
+
+  const out = (rows ?? []).map(p => {
+    const stages = [p.stages, p.pipelineStages].find(Array.isArray) as
+      | Array<Record<string, unknown>>
+      | undefined;
+    return {
+      id:   String(p.id ?? p._id ?? ''),
+      name: String(p.name ?? ''),
+      stages: (stages ?? []).map(st => ({
+        id:   String(st.id ?? st._id ?? ''),
+        name: String(st.name ?? ''),
+      })),
+    };
+  });
+
+  return { ok: true, status: r.status, data: out };
 }
 
 // ── Media (the applicant's documents) ─────────────────────────────────────────────────

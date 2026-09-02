@@ -1,4 +1,6 @@
-import { ghlConfig, listContacts, listCustomFields, type GhlContactRow } from '../ghl/_client.js';
+import {
+  ghlConfig, listContacts, listCustomFields, listPipelines, type GhlContactRow,
+} from '../ghl/_client.js';
 import { contractorFieldKeys } from '../ghl/_contractor-payload.js';
 
 /**
@@ -107,6 +109,49 @@ export async function handler(req: any, res: any) {
   const cfg = await ghlConfig();
   if (!cfg) {
     res.status(200).json({ ok: false, detail: 'The GHL API is not configured' });
+    return;
+  }
+
+  // ── Pipeline ids, for ghl_stage_map ──
+  // Folded into the audit rather than given its own route: it needs the same admin check
+  // and the same config, and it is answering the same question — what is actually set up
+  // in there. `{ "pipelines": true }` skips the contact walk entirely, so it is instant.
+  if (req.body?.pipelines === true) {
+    const pipes = await listPipelines(cfg);
+    if (!pipes.ok || !pipes.data) {
+      res.status(200).json({ ok: false, step: 'pipelines', status: pipes.status, detail: pipes.error });
+      return;
+    }
+    res.status(200).json({
+      ok: true,
+      pipelines: pipes.data,
+      // Paste-ready, PER PIPELINE. This used to fill in only when there was exactly one
+      // pipeline, which is the case that never happens: this account has two contractor
+      // pipelines, one from June and one made yesterday, and picking the wrong one
+      // splits contractors across two boards where neither shows the whole picture.
+      // Naming each suggestion means the choice is visible instead of assumed.
+      suggestions: pipes.data.map(pipe => ({
+        pipelineName: pipe.name,
+        pipelineId: pipe.id,
+        stageCount: pipe.stages.length,
+        stageMap: pipe.stages.reduce<Record<string, string>>((map, st) => {
+          const n = st.name.toLowerCase();
+          const key = n.includes('applied')  ? 'contractor_application'
+                    : n.includes('accepted') ? 'application_decision:accepted'
+                    : n.includes('rejected') || n.includes('declined')
+                                             ? 'application_decision:rejected'
+                    : null;
+          if (key) map[key] = st.id;
+          return map;
+        }, {}),
+        // Named so an unmatched stage is visible rather than silently dropped — a
+        // pipeline whose stages are called something else produces an empty map, and
+        // that should look different from "no pipelines found".
+        unmappedStages: pipe.stages
+          .filter(st => !/applied|accepted|rejected|declined/i.test(st.name))
+          .map(st => st.name),
+      })),
+    });
     return;
   }
 

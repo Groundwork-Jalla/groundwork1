@@ -363,6 +363,7 @@ export const fr: Mirror<EnDict> = {
       mailTestFailed:    "Rien n'a été écrit : les e-mails n'arrivent pas du tout sur les fiches contact.",
       auditFailed:       "L'audit n'a pas pu être exécuté.",
       auditExport:       "Exporter d'abord {n} enregistrements",
+      pipelineIds:       'Afficher les identifiants de pipeline et étapes',
       failures:          '{n} synchronisations à traiter',
       failuresHint:      "Une candidature dont la synchronisation API a échoué. Elles ne se résolvent pas toutes seules.",
       failureInCrm:      'fiche défectueuse dans le CRM',

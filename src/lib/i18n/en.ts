@@ -354,6 +354,7 @@ export const en = {
       mailTestFailed:    'Nothing was written, so emails are not reaching contacts at all.',
       auditFailed:       'The audit could not be run.',
       auditExport:       'Export {n} records first',
+      pipelineIds:       'Show pipeline & stage ids',
       failures:          '{n} syncs need a human',
       failuresHint:      'A contractor application whose API sync failed. These do not resolve themselves.',
       failureInCrm:      'defective record in the CRM',

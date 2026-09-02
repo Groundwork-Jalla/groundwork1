@@ -566,6 +566,22 @@ export async function auditCrm(full = false): Promise<unknown> {
   return r.json();
 }
 
+/**
+ * The pipelines and their stage ids, with a paste-ready `ghl_stage_map`.
+ *
+ * GHL shows the pipeline id in the URL and the stage ids nowhere — the usual answer is
+ * to read them off the DOM in devtools, which is not a reasonable ask and is how one
+ * mistyped character ends up silently disabling every stage move.
+ */
+export async function listCrmPipelines(): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-audit', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pipelines: true }),
+  });
+  return r.json();
+}
+
 export type CrmFieldsMode = 'check' | 'create' | 'repair';
 
 /**

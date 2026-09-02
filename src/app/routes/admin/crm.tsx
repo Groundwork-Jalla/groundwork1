@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download, Mail } from 'lucide-react';
 import {
-  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm,
+  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm, listCrmPipelines,
   listSyncFailures, testCrmEmailLog, type SyncFailureRow,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
@@ -179,6 +179,18 @@ export default function AdminCrm() {
    * in there — and a 15-row sample cannot be checked afterwards against what actually
    * went. Written client-side from the response: it never touches disk on the server.
    */
+  async function showPipelines() {
+    setAuditing(true);
+    try {
+      setAudit(JSON.stringify(await listCrmPipelines(), null, 2));
+      setOrphanCount(null);
+    } catch {
+      setAudit(t('admin.crm.auditFailed'));
+    } finally {
+      setAuditing(false);
+    }
+  }
+
   async function exportOrphans() {
     setAuditing(true);
     try {
@@ -388,6 +400,15 @@ export default function AdminCrm() {
                     {t('admin.crm.auditExport', { n: orphanCount })}
                   </button>
                 )}
+                {/* GHL exposes the pipeline id in the URL and the stage ids nowhere.
+                    This prints both, plus a ghl_stage_map ready to paste. */}
+                <button
+                  type="button" disabled={auditing} onClick={() => void showPipelines()}
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                >
+                  <Search className="size-3.5" />
+                  {t('admin.crm.pipelineIds')}
+                </button>
                 <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('admin.crm.auditHint')}</p>
                 {audit && (
                   <pre className="mt-2 max-h-96 overflow-auto rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
