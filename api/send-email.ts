@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
     // caller-controlled as the body is and an admin's browser should not be able to file
     // a note as an application decision. Awaited: see ghl/_email-log.ts.
     const noted = await logEmailToCrm({ to, subject, html, kind: callerEmailKind(kind) });
-    return res.status(200).json({ success: true, notedInCrm: noted });
+    return res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface });
   }
   return res.status(500).json({ error: 'Resend API error', details: data });
 }

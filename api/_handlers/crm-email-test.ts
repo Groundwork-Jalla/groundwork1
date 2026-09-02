@@ -78,25 +78,41 @@ export async function handler(req: any, res: any) {
   }
 
   const startedAt = Date.now();
-  const noted = await logEmailToCrm({
+  const r = await logEmailToCrm({
     to: email,
     kind: 'other',
     subject: 'Groundwork — CRM email log test',
-    html: '<p>This note was written by the "Test the email log" button on /admin/crm.</p>'
+    html: '<p>This entry was written by the "Test the email log" button on /admin/crm.</p>'
         + '<p>It confirms that emails sent through Resend are recorded on the recipient\'s '
         + 'GoHighLevel contact. No email was sent for this test.</p>',
   });
 
+  // Three outcomes, not two. "It worked" and "it worked, but on the wrong surface" are
+  // different answers: a note means the conversation write was impossible or refused,
+  // and the whole point of the provider id is that you can reply from the thread.
+  const detail =
+    r.surface === 'conversation'
+      ? `Written to the Conversations thread for ${email}. Open the contact in `
+        + 'GoHighLevel — it should appear in Conversations, with a reply box under it.'
+    : r.surface === 'note' && r.reason === 'no_provider_id'
+      ? 'Written as a note, not to Conversations, because GHL_CONVERSATION_PROVIDER_ID '
+        + 'is not set. Notes cannot be replied to. See docs/GHL-SETUP.md, step 8, for '
+        + 'how to create the Email conversation provider and where to paste its id.'
+    : r.surface === 'note'
+      ? `Written as a note. GoHighLevel refused the conversation message (${r.reason}), `
+        + 'so the record was kept where it could be. The provider id may be wrong, or the '
+        + 'token may be missing the conversations/message.write scope.'
+    : 'Nothing was recorded. The contact could not be created or both writes were '
+      + `refused (${r.reason}) — check the function logs for [ghl-email-log].`;
+
   res.status(200).json({
-    ok: noted,
+    ok: r.ok,
+    // The button is green only for the surface that was actually asked for.
+    onThread: r.surface === 'conversation',
+    surface: r.surface,
+    reason: r.reason ?? null,
     email,
     ms: Date.now() - startedAt,
-    reason: noted ? null : 'note_rejected',
-    detail: noted
-      ? `A note was written to the contact for ${email}. Open it in GoHighLevel — the `
-        + 'timeline should show "Email sent" with this test\'s subject.'
-      : 'The API is configured and accepted, but the note was not written. The contact '
-        + 'could not be created or the notes endpoint refused it — check the function '
-        + 'logs for [ghl-email-log].',
+    detail,
   });
 }

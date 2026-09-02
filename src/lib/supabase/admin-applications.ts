@@ -397,6 +397,7 @@ export interface CrmStatus {
   stageMapValid: boolean;
   stageKeys: string[];
   inboundSecret: boolean;
+  conversationProvider: boolean;
   mode: 'api' | 'webhook' | 'off';
   /**
    * Whether GoHighLevel actually accepts the token, asked of GHL rather than inferred
@@ -422,6 +423,7 @@ export interface CrmStatus {
     pipelineId: ConfigSource;
     stageMap: ConfigSource;
     inboundSecret: ConfigSource;
+    conversationProvider: ConfigSource;
   };
 }
 
@@ -487,6 +489,9 @@ export async function diagnoseCrmDocuments(): Promise<unknown> {
 
 export interface CrmEmailTestResult {
   ok: boolean;
+  /** True only when it reached the Conversations thread, not the fallback note. */
+  onThread?: boolean;
+  surface?: 'conversation' | 'note' | 'none';
   email?: string;
   reason?: string | null;
   detail?: string;

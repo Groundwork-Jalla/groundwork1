@@ -108,6 +108,13 @@ export async function handler(req: any, res: any) {
     stageKeys,
     // Inbound
     inboundSecret:     has('GHL_INBOUND_SECRET'),
+    /**
+     * Without this, emails are recorded as notes instead of on the Conversations thread.
+     * A note cannot be replied to, so follow-up leaves GHL — which is the whole thing
+     * this integration exists to avoid. Surfaced as its own row because it is the one
+     * setting whose absence is invisible: everything still "works".
+     */
+    conversationProvider: has('GHL_CONVERSATION_PROVIDER_ID'),
 
     /** Does GHL actually accept the token? null = no API configured, so not asked. */
     tokenAccepted,
@@ -135,6 +142,7 @@ export async function handler(req: any, res: any) {
       pipelineId:        src('GHL_PIPELINE_ID'),
       stageMap:          src('GHL_STAGE_MAP'),
       inboundSecret:     src('GHL_INBOUND_SECRET'),
+      conversationProvider: src('GHL_CONVERSATION_PROVIDER_ID'),
     },
 
     // Which path events are taking right now. A rejected token reads as 'webhook',

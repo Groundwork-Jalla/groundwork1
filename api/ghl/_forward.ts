@@ -2,7 +2,7 @@ import { ghlConfig, upsertContact, addContactTags, moveToStage } from './_client
 import type { GhlConfig } from './_client.js';
 import { ghlSettings } from './_config.js';
 import { normalisePhone } from './_phone.js';
-import { tagsFor, stageFor } from './_pipeline.js';
+import { tagsFor, stageFor, partyFor } from './_pipeline.js';
 import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
 
 /**
@@ -244,7 +244,12 @@ async function deliverViaApi(
     country:   contact.country ?? null,
     city:      contact.city ?? null,
     tags,
-    customFields: { ...fields, lang: contact.lang === 'fr' ? 'fr' : 'en' },
+    customFields: {
+      ...fields,
+      lang: contact.lang === 'fr' ? 'fr' : 'en',
+      // 'Contractor' for application_decision, 'Homeowner' for signup/project/billing.
+      groundwork_party: partyFor(event),
+    },
     source: `groundwork_${event}`,
   });
 

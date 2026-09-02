@@ -185,7 +185,7 @@ export default async function handler(req: any, res: any) {
   //
   // Awaited, like every other caller: Vercel freezes the instance at `res`, so a floating
   // promise never reaches GHL. See the header of ghl/_email-log.ts.
-  let noted = false;
+  let noted: { ok: boolean; surface: string } = { ok: false, surface: 'none' };
   if (applicant) {
     const sent = (results[0] as PromiseFulfilledResult<{ subject: string; html: string }>).value;
     noted = await logEmailToCrm({
@@ -198,5 +198,6 @@ export default async function handler(req: any, res: any) {
   }
 
   res.status(applicant || team ? 200 : 502)
-     .json({ ok: applicant && team, applicant, team, notedInCrm: noted });
+     .json({ ok: applicant && team, applicant, team,
+            notedInCrm: noted.ok, crmSurface: noted.surface });
 }

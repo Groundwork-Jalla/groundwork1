@@ -136,6 +136,9 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
     tags_csv: tags.join(','),
 
     source: 'groundwork_contractor_application',
+    // Contractor or homeowner, in one readable word. GHL's native "Contact type" is a
+    // fixed Lead/Customer field and cannot express this — see partyFor in _pipeline.ts.
+    groundwork_party: 'Contractor',
     submitted_at: new Date().toISOString(),
   };
 

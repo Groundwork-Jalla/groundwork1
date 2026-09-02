@@ -29,9 +29,20 @@
  * An email to someone GHL has never seen upserts them first. That is deliberate: the
  * alternative is silently dropping exactly the notes about people who are new, which is
  * when follow-up matters most.
+ *
+ * ── Conversations first, a note only if that is impossible ───────────────────────────
+ * The record belongs on the **Conversations** thread, which is where someone following
+ * up is already looking and where the reply box is. A note is on a different tab, and
+ * you cannot answer one.
+ *
+ * Writing to the thread needs `GHL_CONVERSATION_PROVIDER_ID` — a Marketplace app id that
+ * cannot be created from sub-account settings, so it may legitimately be missing. When
+ * it is, or when GHL refuses the message, this falls back to a note rather than losing
+ * the record. Exactly one of the two is written, never both: two entries for one email
+ * is how a timeline stops being readable.
  */
 
-import { ghlConfig, upsertContact, addContactNote } from './_client.js';
+import { ghlConfig, ghlSettingValue, upsertContact, addContactNote, addConversationEmail } from './_client.js';
 // The kinds and their labels live under src/ because the browser names them too, when it
 // calls /api/send-email. One vocabulary, so a note cannot be labelled one thing on the
 // way out and another on arrival.
@@ -137,6 +148,9 @@ async function knownContactId(email: string): Promise<string | null> {
   return null;
 }
 
+/** The address every one of our senders sends from. */
+const DEFAULT_FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+
 export interface LogEmailOptions {
   to: string;
   subject: string;
@@ -145,44 +159,83 @@ export interface LogEmailOptions {
   html?: string | null;
   /** Used only when the contact has to be created. */
   name?: string | null;
+  /** Overrides the sending address shown on the conversation. */
+  from?: string | null;
+}
+
+/** Which surface the record landed on, so callers and the admin page can say. */
+export type EmailLogSurface = 'conversation' | 'note' | 'none';
+
+export interface EmailLogResult {
+  ok: boolean;
+  surface: EmailLogSurface;
+  /** Why the conversation thread was not used. Null when it was. */
+  reason?: string | null;
 }
 
 /**
  * Record an email on the recipient's contact. Never throws.
  *
- * Returns whether a note was written. False is not an error — an unconfigured API, a
- * contact GHL would not create, a rejected note: all of them mean "no timeline entry",
- * and none of them mean the email failed. Callers `await` it and may ignore the answer,
- * but they must not use `void` — see the header.
+ * `ok: false` is not an error — an unconfigured API, a contact GHL would not create, a
+ * refused write: all of them mean "nothing on the timeline", and none of them mean the
+ * email failed. `surface` says where it ended up, which is what /admin/crm reports and
+ * the only way to tell the conversation thread from the fallback note.
+ *
+ * Callers `await` it and may ignore the answer, but they must not use `void` — see the
+ * header.
  */
-export async function logEmailToCrm(opts: LogEmailOptions): Promise<boolean> {
+export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResult> {
   try {
     const email = (opts.to ?? '').trim().toLowerCase();
-    if (!email) return false;
+    if (!email) return { ok: false, surface: 'none', reason: 'no_recipient' };
 
     const cfg = await ghlConfig();
-    // No API means no contact ids and no notes endpoint — the Phase 1 webhook cannot
-    // write to a timeline. Not an error, just the un-upgraded configuration.
-    if (!cfg) return false;
+    // No API means no contact ids and no conversations endpoint — the Phase 1 webhook
+    // cannot write to a timeline at all. Not an error, just the un-upgraded setup.
+    if (!cfg) return { ok: false, surface: 'none', reason: 'not_configured' };
 
     let contactId = await knownContactId(email);
     if (!contactId) {
       const up = await upsertContact(cfg, { email, name: opts.name ?? null });
       if (!up.ok || !up.data) {
-        console.warn(`[ghl-email-log] no contact for ${email} (${up.status}) — note skipped`);
-        return false;
+        console.warn(`[ghl-email-log] no contact for ${email} (${up.status}) — nothing recorded`);
+        return { ok: false, surface: 'none', reason: `no_contact_${up.status}` };
       }
       contactId = up.data.contactId;
+    }
+
+    // ── The thread, which is the point ────────────────────────────────────────────────
+    const providerId = (await ghlSettingValue('GHL_CONVERSATION_PROVIDER_ID'))?.trim();
+    let reason: string | null = 'no_provider_id';
+
+    if (providerId && opts.html) {
+      const conv = await addConversationEmail(cfg, providerId, {
+        contactId,
+        subject: opts.subject,
+        html: opts.html,
+        to: email,
+        from: opts.from ?? DEFAULT_FROM,
+      });
+      if (conv.ok) return { ok: true, surface: 'conversation', reason: null };
+
+      // Falls through to the note rather than returning. A refused message is exactly
+      // when the record matters — losing it would leave the contact looking uncontacted.
+      console.warn(`[ghl-email-log] conversation write refused for ${email}: ${conv.status}`);
+      reason = `conversation_${conv.status}`;
+    } else if (providerId && !opts.html) {
+      // Nothing to put in the thread. A subject-only entry in Conversations reads as a
+      // message that failed to load; as a note it reads as a record, which is what it is.
+      reason = 'no_body';
     }
 
     const r = await addContactNote(cfg, contactId, buildNote(opts));
     if (!r.ok) {
       console.warn(`[ghl-email-log] note rejected for ${email}: ${r.status}`);
-      return false;
+      return { ok: false, surface: 'none', reason: `note_${r.status}` };
     }
-    return true;
+    return { ok: true, surface: 'note', reason };
   } catch (err) {
     console.warn('[ghl-email-log] failed, email was still sent:', err);
-    return false;
+    return { ok: false, surface: 'none', reason: 'threw' };
   }
 }

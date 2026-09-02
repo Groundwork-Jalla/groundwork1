@@ -24,7 +24,7 @@
  * see docs/GHL-SETUP.md for what has to exist on the GHL side.
  */
 
-import { ghlSettings } from './_config.js';
+import { ghlSettings, type GhlKey } from './_config.js';
 
 // ── The remote contract. Check these first if anything 404s or 422s. ──────────────────
 const API_BASE = 'https://services.leadconnectorhq.com';
@@ -39,6 +39,10 @@ const PATHS = {
   uploadMedia:       '/medias/upload-file',
   listMedia:         '/medias/files',
   searchContacts:    '/contacts/search',
+  // Puts a message on the contact's Conversations thread. `/inbound` is not a typo: it
+  // is the endpoint for messages that happened *outside* GHL, and it takes a `direction`
+  // — `/outbound` is call logs only. See `addConversationEmail`.
+  inboundMessage:    '/conversations/messages/inbound',
   customFields:      (locationId: string) => `/locations/${locationId}/customFields`,
   // Folder creation is not part of GHL's published v2 media surface the way uploading is.
   // These are the plausible routes; `ensureFolder` tries them in order and remembers the
@@ -65,6 +69,17 @@ export async function ghlConfig(): Promise<GhlConfig | null> {
   const token = cfg.GHL_API_TOKEN.value;
   const locationId = cfg.GHL_LOCATION_ID.value;
   return token && locationId ? { token, locationId } : null;
+}
+
+/**
+ * One resolved setting, for the callers that need a value rather than a whole config.
+ *
+ * Same resolution as everything else — `app_config` first, environment second — so a
+ * provider id can be pasted into the table and take effect within the minute, without a
+ * redeploy. See `_config.ts`.
+ */
+export async function ghlSettingValue(key: GhlKey): Promise<string | undefined> {
+  return (await ghlSettings())[key].value;
 }
 
 export interface GhlResult<T> {
@@ -184,6 +199,71 @@ export async function upsertContact(
     return { ok: false, status: r.status, error: 'no_contact_id' };
   }
   return { ok: true, status: r.status, data: { contactId } };
+}
+
+// ── Conversations (the follow-up surface people actually use) ─────────────────────────
+
+export interface ConversationEmail {
+  contactId: string;
+  subject: string;
+  html: string;
+  /** The address the email went to. */
+  to: string;
+  /** The address it came from. Our Resend sender, not a GHL mailbox. */
+  from: string;
+  sentAt?: Date;
+}
+
+/**
+ * Put an email we sent onto the contact's Conversations thread.
+ *
+ * ── Why `/inbound` sends an outbound message ─────────────────────────────────────────
+ * The naming is GoHighLevel's, and it reads backwards. `/conversations/messages/inbound`
+ * means "a message that happened outside GHL, tell GHL about it" — it takes a `direction`
+ * field, which is what decides how the thread renders it. `/conversations/messages`
+ * would actually *send* the mail through GHL, and `/conversations/messages/outbound`
+ * only accepts `type: "Call"`. So this is the one endpoint of the three that records an
+ * email we already sent through Resend.
+ *
+ * ── `conversationProviderId` is required and cannot be invented ──────────────────────
+ * GHL will not accept a message on a thread without naming the provider it came through,
+ * and provider ids come from a Marketplace app of type Email — they cannot be created
+ * from sub-account settings. So this is configuration, not code: `GHL_CONVERSATION_PROVIDER_ID`.
+ * Without it, callers fall back to a note. See docs/GHL-SETUP.md, step 8.
+ *
+ * **Unverified against a live account.** Written from GoHighLevel's documentation, like
+ * the media upload before it — which needed three attempts and a diagnostic button to
+ * get right. `/admin/crm` → "Test the email log" is what answers this one; it reports the
+ * status verbatim.
+ */
+export async function addConversationEmail(
+  cfg: GhlConfig,
+  providerId: string,
+  email: ConversationEmail,
+): Promise<GhlResult<{ messageId?: string }>> {
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
+    method: 'POST',
+    body: {
+      type: 'Email',
+      // GHL's default here is already 'outbound', but stated rather than assumed: a
+      // default that flips would show every email we sent as one the contractor sent us.
+      direction: 'outbound',
+      conversationProviderId: providerId,
+      // The conversation is resolved or created from the contact, so no thread has to be
+      // looked up first and a person with no history still gets one.
+      contactId: email.contactId,
+      subject: email.subject,
+      html: email.html,
+      emailFrom: email.from,
+      emailTo: email.to,
+      date: (email.sentAt ?? new Date()).toISOString(),
+    },
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as Record<string, unknown>;
+  const id = d.messageId ?? d.id ?? d._id;
+  return { ok: true, status: r.status, data: { messageId: id ? String(id) : undefined } };
 }
 
 /** Add tags to an existing contact. Tags already present are not duplicated by GHL. */

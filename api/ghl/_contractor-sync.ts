@@ -1,10 +1,10 @@
 import {
-  ghlConfig, upsertContact, addContactTags, uploadMediaFromUrl,
+  ghlConfig, upsertContact, addContactTags, moveToStage, uploadMediaFromUrl,
   ensureFolder, folderNameFor,
 } from './_client.js';
 import { buildContractorPayload, NATIVE_CONTACT_FIELDS } from './_contractor-payload.js';
 import { signDocuments, mediaName } from './_documents.js';
-import { contractorTags } from './_pipeline.js';
+import { contractorTags, stageForKey } from './_pipeline.js';
 import type { ContractorApplicationInput } from '../../src/lib/contractor/application-types.js';
 import { normalisePhone } from './_phone.js';
 
@@ -140,6 +140,28 @@ export async function syncContractorToApi(
     // Additive by definition, unlike the upsert's tag field which has been seen to
     // replace on some accounts — losing an earlier tag would quietly shrink an audience.
     await addContactTags(cfg, up.data.contactId, tags);
+
+    // ── Onto the board ──────────────────────────────────────────────────────────────
+    // An applicant used to reach GHL as a contact and nothing else, so there was no card
+    // to move from "Applied" to "Interview scheduled". Mapping `contractor_application`
+    // in ghl_stage_map puts one there the moment they apply, which is what makes the
+    // acknowledgement something you can act on rather than just read.
+    //
+    // Unmapped is the normal, harmless case — nobody is moved, exactly as before. A
+    // failed move is deliberately not a failed sync: the contact is in the CRM with the
+    // right tags and fields, which is most of the value, and a board can be corrected.
+    const stage = await stageForKey('contractor_application');
+    if (stage) {
+      const moved = await moveToStage(cfg, {
+        contactId: up.data.contactId,
+        pipelineId: stage.pipelineId,
+        stageId: stage.stageId,
+        name: application.fullName?.trim() || application.businessName || application.email,
+      });
+      if (!moved.ok) {
+        console.warn('[ghl] could not place', applicationId, 'on the pipeline:', moved.error);
+      }
+    }
 
     return {
       ok: true,

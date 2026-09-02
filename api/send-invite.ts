@@ -105,7 +105,7 @@ export default async function handler(req: any, res: any) {
       to: invite.email, subject, html, kind: 'contractor_invite',
     });
 
-    res.status(200).json({ success: true, notedInCrm: noted });
+    res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface });
   } catch (err) {
     console.error('[invite] send failed:', err);
     res.status(500).json({ error: 'Failed to send email' });

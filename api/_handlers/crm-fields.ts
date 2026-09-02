@@ -25,6 +25,9 @@ import { contractorFieldKeys } from '../ghl/_contractor-payload.js';
 
 /** Fields sent by the non-contractor events — signup, project, subscription, decision. */
 const EVENT_FIELDS = [
+  // Contractor or homeowner. The one field somebody scans a contact list by, so it is
+  // created for both streams rather than only the contractor one.
+  'groundwork_party',
   'user_id', 'application_id', 'application_url', 'decision',
   'subscription_status', 'subscription_tier', 'period_end',
   'project_id', 'project_name', 'project_tier',

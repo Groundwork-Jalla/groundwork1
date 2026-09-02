@@ -139,8 +139,11 @@ export default function AdminCrm() {
     setMailTesting(true); setMailTest(null);
     try {
       const r = await testCrmEmailLog();
+      // Green only for the Conversations thread. A note is a real record but not the
+      // surface you can follow up from, so it reads as a warning rather than a pass —
+      // otherwise a tick would sit above a setup step nobody knows is missing.
       setMailTest({
-        ok: r.ok,
+        ok: r.onThread === true,
         text: r.detail ?? (r.ok ? t('admin.crm.mailTestOk') : t('admin.crm.mailTestFailed')),
       });
     } catch {
@@ -281,6 +284,9 @@ export default function AdminCrm() {
                 source={status.sources?.stageMap}
               />
               <Row ok={status.inboundSecret}     label={t('admin.crm.inboundSecret')}     hint="ghl_inbound_secret"         source={status.sources?.inboundSecret} />
+              {/* The one setting whose absence changes nothing visible: emails are still
+                  recorded, just as notes, on a tab you cannot reply from. */}
+              <Row ok={status.conversationProvider} label={t('admin.crm.convProvider')} hint="ghl_conversation_provider_id" source={status.sources?.conversationProvider} />
             </div>
           ) : (
             <p className="text-sm text-brand-mid-grey">{t('admin.crm.statusUnavailable')}</p>

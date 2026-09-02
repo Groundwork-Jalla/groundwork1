@@ -177,7 +177,7 @@ export default async function handler(req: any, res: any) {
       kind: 'contractor_application_decision', name: app.full_name ?? null,
     });
 
-    res.status(200).json({ ok: true, notedInCrm: noted });
+    res.status(200).json({ ok: true, notedInCrm: noted.ok, crmSurface: noted.surface });
   } catch (err) {
     console.error('[decision] Resend unreachable:', err);
     res.status(502).json({ error: 'Could not send the email', stage: 'network' });

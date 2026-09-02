@@ -9,7 +9,8 @@ import { ghlSettings } from './_config.js';
  * six separate settings so adding a stage is a single edit.
  *
  *   ghl_pipeline_id = abc123
- *   ghl_stage_map   = {"user_signup":"stg_1","application_decision:accepted":"stg_4"}
+ *   ghl_stage_map   = {"contractor_application":"stg_1","user_signup":"stg_2",
+ *                      "application_decision:accepted":"stg_4"}
  *
  * Read from `app_config` first, then the environment — see `_config.ts`.
  *
@@ -61,6 +62,23 @@ const HOMEOWNER_EVENTS: ReadonlySet<GhlEvent> = new Set([
   'user_signup', 'project_created', 'subscription_changed',
 ]);
 
+/**
+ * Contractor or homeowner, as a word a person can read.
+ *
+ * GoHighLevel's native "Contact type" cannot carry this: it is a fixed two-value field,
+ * Lead and Customer, describing sales stage rather than who somebody is. It is not
+ * extensible, and a custom field literally named "Contact Type" would sit beside the
+ * native one in every filter and workflow picker — two fields, same name, different
+ * meanings. Hence a distinct name.
+ *
+ * `Contact source` already encodes this (`groundwork_contractor_application` vs
+ * `groundwork_project_created`) and stays the machine-readable version. This is the
+ * human-readable one, for the column you actually scan down.
+ */
+export function partyFor(event: GhlEvent): 'Contractor' | 'Homeowner' {
+  return HOMEOWNER_EVENTS.has(event) ? 'Homeowner' : 'Contractor';
+}
+
 /** `lang` is optional: a contact with no known language should not be tagged as English. */
 export function tagsFor(event: GhlEvent, variant?: string, lang?: string | null): string[] {
   const tags = [BASE_TAG];
@@ -102,6 +120,18 @@ let warned = false;
 
 /** Null when this event has no stage configured — the common, harmless case. */
 export async function stageFor(event: GhlEvent, variant?: string): Promise<StageTarget | null> {
+  return stageForKey(variant ? `${event}:${variant}` : event, event);
+}
+
+/**
+ * The same lookup, for keys that are not lifecycle events.
+ *
+ * `contractor_application` is the one that matters: a contractor who applies used to
+ * reach GHL as a contact and nothing else, so there was no card to move from "Applied"
+ * to "Interview scheduled" — the only mapped stages fired on the *decision*, which comes
+ * after the interview it was supposed to help you schedule.
+ */
+export async function stageForKey(key: string, fallbackKey?: string): Promise<StageTarget | null> {
   const cfg = await ghlSettings();
   const pipelineId = cfg.GHL_PIPELINE_ID.value;
   const raw = cfg.GHL_STAGE_MAP.value;
@@ -117,6 +147,8 @@ export async function stageFor(event: GhlEvent, variant?: string): Promise<Stage
     return null;
   }
 
-  const stageId = (variant && map[`${event}:${variant}`]) || map[event];
+  // The specific key first, then the unsuffixed event: a map with only `user_signup`
+  // still moves a `user_signup` however it is called.
+  const stageId = map[key] || (fallbackKey ? map[fallbackKey] : undefined);
   return stageId ? { pipelineId, stageId } : null;
 }

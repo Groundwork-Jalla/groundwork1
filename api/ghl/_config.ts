@@ -52,6 +52,19 @@ export const GHL_KEYS = [
    * decision depends on what Philip's workflow does, which is not knowable from here.
    */
   'GHL_CONTRACTOR_WEBHOOK_MODE',
+  /**
+   * The Marketplace app id that lets us write onto a contact's Conversations thread.
+   *
+   * Without it, an email we send is recorded as a *note* — visible, searchable, and on
+   * the wrong surface: you cannot reply from a note, and the Conversations pane is where
+   * follow-up actually happens. With it, the email appears in the thread like any other,
+   * with its subject and body, and the reply box underneath.
+   *
+   * Configuration rather than code because provider ids come from a Marketplace app of
+   * type Email — they cannot be created from sub-account settings and cannot be derived
+   * from the location. See docs/GHL-SETUP.md, step 8.
+   */
+  'GHL_CONVERSATION_PROVIDER_ID',
 ] as const;
 
 export type GhlKey = (typeof GHL_KEYS)[number];

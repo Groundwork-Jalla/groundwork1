@@ -183,11 +183,19 @@ Optional, and safe to leave until you want it.
 Keys you can use — start with two or three, add more later:
 
 ```
-user_signup
+contractor_application            ← a contractor applies. Start here.
+user_signup                       project_created
 application_decision:accepted     application_decision:rejected
 subscription_changed:active       subscription_changed:canceled
-subscription_changed:past_due     project_created
+subscription_changed:past_due
 ```
+
+`contractor_application` is the one to map first. It puts a card on the board the moment
+somebody applies, which is what makes the acknowledgement email something you can act on
+— schedule an interview, move the card — rather than something you only read. Without it
+a contractor reaches GHL as a contact and never appears on any board, and the earliest
+stage that fires is the *decision*, which comes after the interview it was meant to help
+you arrange.
 
 **Anything not in the map moves nobody.** That is deliberate: a half-configured pipeline
 should leave your board alone rather than pile every contact into whichever stage
@@ -325,13 +333,49 @@ Worth pressing after any change to the token, because every failure in this path
 silent by design: a note that cannot be written must never break a password reset, so a
 CRM that has been recording nothing for a month looks exactly like one that is working.
 
-**A note, not a logged email, deliberately.** GHL's conversation view expects mail sent
-through GHL's own sending domain. Moving transactional mail there would mean
-re-verifying deliverability for password resets and invitations — real risk, to put the
-record in a slightly prettier place. A note lands on the same timeline and is searchable.
+### Getting them into **Conversations**, not just notes
 
-If the API is not configured, nothing is written and nothing breaks: the email still
-sends. Notes never block or fail a send — but they *are* awaited before the endpoint
+By default these land as **notes**, which are searchable and on the right contact — but
+on the wrong tab. You cannot reply to a note, so following up still means leaving GHL.
+
+To have them appear in the **Conversations** pane instead, like any other email thread,
+with the reply box underneath, GHL needs one more value: a **conversation provider id**.
+
+Why it is a setup step and not just code: GoHighLevel will not accept a message onto a
+thread without knowing which provider it came through, and provider ids come from a
+Marketplace app. They cannot be created from sub-account settings, and they cannot be
+derived from the location id.
+
+1. Go to <https://marketplace.gohighlevel.com> and sign in with the agency account.
+2. Create an app (or open the existing one). Under **Conversation Providers**, add a
+   provider of type **Email**. Name it something recognisable — "Groundwork (Resend)" —
+   because that name is what appears on the thread.
+3. Copy the provider's **ID**.
+4. Put it in `app_config`, the same way as every other setting:
+
+   ```sql
+   INSERT INTO app_config (key, value)
+   VALUES ('ghl_conversation_provider_id', 'PASTE_THE_ID_HERE')
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+   ```
+
+5. Check the Private Integration Token carries the **`conversations/message.write`**
+   scope. Without it every message is refused and the record silently falls back to a
+   note. Rotating scopes means reissuing the token.
+
+Takes effect within a minute — no redeploy. `/admin/crm` shows the row **Conversation
+provider**, and **Test the email log** turns green only once it is actually writing to
+the thread; a note-only result reads as a warning, on purpose.
+
+**We are still sending through Resend, not GHL.** The email is delivered by Resend and
+then *recorded* on the thread — GHL's `/conversations/messages/inbound` endpoint exists
+for exactly this, messages that happened elsewhere. Moving transactional mail onto GHL's
+sending domain would mean re-verifying deliverability for password resets and
+invitations, which is real risk for no gain. Replies from the thread do go through GHL,
+which is the point.
+
+If neither is possible — no API token at all — nothing is written and nothing breaks:
+the email still sends. Notes never block or fail a send — but they *are* awaited before the endpoint
 answers, because Vercel freezes the function the moment it responds and an unawaited note
 never gets written. `src/lib/email/crm-email-log.test.ts` enforces both halves of that.
 

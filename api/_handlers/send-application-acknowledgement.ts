@@ -184,11 +184,13 @@ export async function handler(req: any, res: any) {
       // The mail went. Say so, and say the bookkeeping did not — silently reporting
       // success would leave the row looking unsent and invite a duplicate.
       console.error('[ack] sent but could not stamp acknowledged_at:', stampErr);
-      res.status(200).json({ ok: true, sentAt, stamped: false, notedInCrm: noted });
+      res.status(200).json({ ok: true, sentAt, stamped: false,
+                             notedInCrm: noted.ok, crmSurface: noted.surface });
       return;
     }
 
-    res.status(200).json({ ok: true, sentAt, stamped: true, notedInCrm: noted });
+    res.status(200).json({ ok: true, sentAt, stamped: true,
+                          notedInCrm: noted.ok, crmSurface: noted.surface });
   } catch (err) {
     console.error('[ack] could not reach Resend:', err);
     res.status(502).json({ error: 'Could not reach the email service', stage: 'network' });
