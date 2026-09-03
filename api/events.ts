@@ -9,6 +9,7 @@ import { handler as crmDiagnose } from './_handlers/crm-diagnose.js';
 import { handler as crmFields } from './_handlers/crm-fields.js';
 import { handler as crmAudit } from './_handlers/crm-audit.js';
 import { handler as crmDelivery } from './_handlers/conversation-delivery.js';
+import { handler as crmOauth } from './_handlers/crm-oauth.js';
 import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 
 /**
@@ -39,7 +40,7 @@ import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
-  | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery'
+  | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth'
   | 'profile-geo';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
@@ -53,6 +54,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-fields': crmFields,
   'crm-audit': crmAudit,
   'crm-delivery': crmDelivery,
+  'crm-oauth': crmOauth,
   'crm-email-test': crmEmailTest,
   'profile-geo': profileGeo,
 };

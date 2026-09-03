@@ -98,7 +98,13 @@ export interface GhlResult<T> {
 export async function ghlFetch<T = unknown>(
   cfg: GhlConfig,
   path: string,
-  init: { method: string; body?: unknown; query?: Record<string, string> } ,
+  init: {
+    method: string;
+    body?: unknown;
+    query?: Record<string, string>;
+    /** Overrides the Private Integration Token. Only the conversations call needs this. */
+    bearer?: string;
+  },
 ): Promise<GhlResult<T>> {
   const url = new URL(API_BASE + path);
   for (const [k, v] of Object.entries(init.query ?? {})) url.searchParams.set(k, v);
@@ -107,7 +113,7 @@ export async function ghlFetch<T = unknown>(
     const r = await fetch(url.toString(), {
       method: init.method,
       headers: {
-        Authorization: `Bearer ${cfg.token}`,
+        Authorization: `Bearer ${init.bearer ?? cfg.token}`,
         Version: API_VERSION,
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -241,9 +247,24 @@ export async function addConversationEmail(
   cfg: GhlConfig,
   providerId: string,
   email: ConversationEmail,
+  /**
+   * The Marketplace app's OAuth access token.
+   *
+   * This is the only call in the file that does not use the Private Integration Token,
+   * and the reason is worth stating: the message is posted *as a conversation provider*,
+   * a provider belongs to the app, so GHL requires the caller to be that app. A PIT is
+   * scoped to the location and is not the app — which is why granting it
+   * `conversations/message.write` and reissuing it both changed nothing, and the call
+   * kept returning 401 on 3 Sep 2026. See `_oauth.ts`.
+   *
+   * Omitted falls back to the PIT, which preserves the old behaviour for anyone who has
+   * not run the install flow — it will fail, but it fails the same way it used to.
+   */
+  bearer?: string,
 ): Promise<GhlResult<{ messageId?: string }>> {
   const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
     method: 'POST',
+    bearer,
     body: {
       type: 'Email',
       // GHL's default here is already 'outbound', but stated rather than assumed: a
@@ -645,7 +666,12 @@ export function folderNameFor(who: string, applicationId: string): string {
 async function findFolder(cfg: GhlConfig, name: string): Promise<string | null> {
   const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.listMedia, {
     method: 'GET',
-    query: { altId: cfg.locationId, altType: 'location', limit: '100' },
+    // `type` is required and must be non-empty — the listing returned
+    //   422 ["type must be a string", "type should not be empty"]
+    // without it, so every folder lookup failed and every document uploaded flat.
+    // Harmless individually; it just meant Media Storage stayed one undifferentiated
+    // library, which is the thing `ensureFolder` exists to prevent.
+    query: { altId: cfg.locationId, altType: 'location', type: 'folder', limit: '100' },
   });
   if (!r.ok || !r.data) return null;
 

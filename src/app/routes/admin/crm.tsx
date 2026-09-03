@@ -296,6 +296,21 @@ export default function AdminCrm() {
                 source={status.sources?.stageMap}
               />
               <Row ok={status.inboundSecret}     label={t('admin.crm.inboundSecret')}     hint="ghl_inbound_secret"         source={status.sources?.inboundSecret} />
+              {/* Only meaningful once a provider id is set — before that, notes are the
+                  intended surface rather than a degradation. */}
+              {status.conversationProvider !== false && status.conversationToken && (
+                <Row
+                  ok={status.conversationToken === 'valid'}
+                  label={t('admin.crm.conversationToken')}
+                  hint={
+                    status.conversationToken === 'valid'
+                      ? t('admin.crm.conversationTokenValid')
+                      : status.conversationToken === 'expired'
+                        ? t('admin.crm.conversationTokenExpired')
+                        : t('admin.crm.conversationTokenMissing')
+                  }
+                />
+              )}
               {/* The one setting whose absence changes nothing visible: emails are still
                   recorded, just as notes, on a tab you cannot reply from. */}
               <Row ok={status.conversationProvider} label={t('admin.crm.convProvider')} hint="ghl_conversation_provider_id" source={status.sources?.conversationProvider} />

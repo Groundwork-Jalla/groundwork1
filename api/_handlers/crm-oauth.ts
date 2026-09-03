@@ -19,8 +19,13 @@
  * GoHighLevel's side regardless; this page exists so the browser lands somewhere honest
  * rather than on an error.
  *
- * If Groundwork ever needs to serve locations it does not own, this is where a real
- * token exchange would go.
+ * ── Why it lives in `_handlers/` behind a rewrite ────────────────────────────────────
+ * Vercel's Hobby plan allows twelve serverless functions and every file directly under
+ * `api/` is one. A standalone `api/crm-oauth.ts` took us to exactly twelve, and over the
+ * limit every deployment fails while the previous build keeps serving — the site looks
+ * fine and nothing ships. So this is a handler behind `api/events.ts`, and `vercel.json`
+ * rewrites `/api/crm-oauth` onto it so the redirect URL registered with GoHighLevel
+ * keeps working. See src/lib/email/api-function-count.test.ts.
  *
  * ── The path deliberately avoids "ghl" ───────────────────────────────────────────────
  * This file lived at `api/ghl/oauth.ts` for about ten minutes. A white-label Marketplace
@@ -43,7 +48,7 @@ const page = (title: string, body: string) => `<!DOCTYPE html>
 </style></head>
 <body><div class="card"><h1>${title}</h1><p>${body}</p></div></body></html>`;
 
-export default async function handler(req: any, res: any) {
+export async function handler(req: any, res: any) {
   const code = typeof req.query?.code === 'string' ? req.query.code : '';
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -58,8 +63,28 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  // Logged, never stored: it is single-use, short-lived, and nothing here redeems it.
-  console.log('[ghl-oauth] install completed, authorisation code received (not exchanged)');
+  // ── Exchange it ─────────────────────────────────────────────────────────────────
+  // This used to log the code and discard it, on the reasoning that the Private
+  // Integration Token did all the work and a second credential was needless machinery.
+  // That was wrong in exactly one place: `/conversations/messages/inbound` posts as a
+  // conversation provider, a provider belongs to this app, and GHL wants the caller to
+  // be the app. The PIT is not the app, so it is refused however it is scoped.
+  const { exchangeCode } = await import('../ghl/_oauth.js');
+  const locationId = await exchangeCode(code);
+
+  if (!locationId) {
+    // The install itself still succeeded on GoHighLevel's side — only our token store
+    // is empty, so email records fall back to notes. Say so rather than claiming success.
+    res.status(200).send(page(
+      'Installed, with one thing left',
+      'Groundwork is connected, but the token exchange did not complete, so emails will ' +
+      'be recorded as notes rather than conversation threads. Check that the client id ' +
+      'and secret are set in app_config, then reinstall from the app&rsquo;s install link.',
+    ));
+    return;
+  }
+
+  console.log(`[ghl-oauth] install complete for location ${locationId}, token stored`);
 
   res.status(200).send(page(
     'Groundwork is connected',

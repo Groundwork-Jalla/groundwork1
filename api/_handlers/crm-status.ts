@@ -1,5 +1,6 @@
 import { ghlSettings, type ConfigSource } from '../ghl/_config.js';
 import { ghlConfig, ghlFetch } from '../ghl/_client.js';
+import { oauthStatus } from '../ghl/_oauth.js';
 
 /**
  * Is the CRM actually configured?
@@ -95,6 +96,8 @@ export async function handler(req: any, res: any) {
     }
   }
 
+  const oauth = await oauthStatus();
+
   res.status(200).json({
     // Phase 1 — the webhooks
     contractorWebhook: has('GHL_CONTRACTOR_WEBHOOK_URL'),
@@ -119,6 +122,20 @@ export async function handler(req: any, res: any) {
     /** Does GHL actually accept the token? null = no API configured, so not asked. */
     tokenAccepted,
     tokenError,
+
+    /**
+     * Whether the Marketplace app's OAuth token exists and is still in date.
+     *
+     * Separate from `apiToken`, and for a different job: the Private Integration Token
+     * does everything except write to a Conversations thread. Reported because an
+     * expired token that cannot refresh degrades to notes *silently* — by design, since
+     * a lost email record is worse than a plainer surface — and a silent degradation
+     * with nothing on screen is how a month of missing threads goes unnoticed.
+     */
+    conversationToken: oauth.present
+      ? (oauth.expiresAt && new Date(oauth.expiresAt) > new Date() ? 'valid' : 'expired')
+      : 'missing',
+    conversationTokenExpires: oauth.expiresAt,
 
     /**
      * Is there an API token and location id at all — regardless of whether GHL accepts

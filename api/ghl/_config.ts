@@ -65,6 +65,15 @@ export const GHL_KEYS = [
    * from the location. See docs/GHL-SETUP.md, step 8.
    */
   'GHL_CONVERSATION_PROVIDER_ID',
+  /**
+   * The Marketplace app's OAuth client credentials.
+   *
+   * Needed only to obtain and refresh the access token that
+   * `/conversations/messages/inbound` requires — see `_oauth.ts` and migration 067.
+   * Nothing else uses them; the Private Integration Token does all the ordinary work.
+   */
+  'GHL_CLIENT_ID',
+  'GHL_CLIENT_SECRET',
 ] as const;
 
 export type GhlKey = (typeof GHL_KEYS)[number];

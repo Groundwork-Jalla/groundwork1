@@ -32,6 +32,20 @@ const API = join(ROOT, 'api');
 /** Sends only to our own inbox, so there is no contact to write a note onto. */
 const INTERNAL_ONLY = new Set(['api/agent-dispatch.ts']);
 
+/**
+ * Sends a message that is *already* on the contact's timeline.
+ *
+ * `conversation-delivery.ts` is the reply path: somebody types into the Conversations
+ * thread in GoHighLevel, GHL posts it to us, and we send it through Resend. The message
+ * was composed in the thread and is displayed there by GHL itself — writing it back
+ * would put a second copy of every reply on the same contact, and the note would say the
+ * reply came *from* us to the very thread it was typed into.
+ *
+ * Exempt for the opposite reason to INTERNAL_ONLY: not "no contact to write to", but
+ * "already written, by the system that asked us to send it".
+ */
+const ALREADY_ON_THE_THREAD = new Set(['api/_handlers/conversation-delivery.ts']);
+
 function tsFiles(dir: string): string[] {
   return readdirSync(dir).flatMap(entry => {
     const full = join(dir, entry);
@@ -59,7 +73,9 @@ const files = tsFiles(API).map(path => {
 describe('CRM email log', () => {
   it('is called by every endpoint that emails a person', () => {
     const senders = files.filter(f =>
-      f.src.includes('https://api.resend.com/emails') && !INTERNAL_ONLY.has(f.path));
+      f.src.includes('https://api.resend.com/emails')
+      && !INTERNAL_ONLY.has(f.path)
+      && !ALREADY_ON_THE_THREAD.has(f.path));
 
     // If this is empty the test is passing for the wrong reason — a path change, or a
     // move off Resend — and would keep passing while the guarantee quietly lapsed.

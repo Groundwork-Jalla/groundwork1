@@ -414,6 +414,13 @@ export interface CrmStatus {
    * diagnostics gate on this, so they stay reachable while the token is broken.
    */
   apiConfigured?: boolean;
+  /**
+   * The Marketplace app's OAuth token, which only the Conversations write needs.
+   * 'missing' means the install flow was never completed; 'expired' means it could not
+   * be refreshed. Either way emails land as notes rather than threads.
+   */
+  conversationToken?: 'valid' | 'expired' | 'missing';
+  conversationTokenExpires?: string | null;
   /** Per-setting origin, so "I changed it and nothing happened" is answerable. */
   sources?: {
     contractorWebhook: ConfigSource;

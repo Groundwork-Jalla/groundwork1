@@ -43,6 +43,7 @@
  */
 
 import { ghlConfig, ghlSettingValue, upsertContact, addContactNote, addConversationEmail } from './_client.js';
+import { accessToken } from './_oauth.js';
 // The kinds and their labels live under src/ because the browser names them too, when it
 // calls /api/send-email. One vocabulary, so a note cannot be labelled one thing on the
 // way out and another on arrival.
@@ -209,13 +210,16 @@ export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResu
     let reason: string | null = 'no_provider_id';
 
     if (providerId && opts.html) {
+      // The app's token, not the location's — see addConversationEmail. Null means the
+      // install has not been run (or the refresh failed), and we fall through to a note.
+      const bearer = await accessToken();
       const conv = await addConversationEmail(cfg, providerId, {
         contactId,
         subject: opts.subject,
         html: opts.html,
         to: email,
         from: opts.from ?? DEFAULT_FROM,
-      });
+      }, bearer ?? undefined);
       if (conv.ok) return { ok: true, surface: 'conversation', reason: null };
 
       // Falls through to the note rather than returning. A refused message is exactly
