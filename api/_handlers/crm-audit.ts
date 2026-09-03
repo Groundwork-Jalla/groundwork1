@@ -176,16 +176,49 @@ export async function handler(req: any, res: any) {
       isOrphanRecord(c) && c.phone && isMisroutedCameroonian(c.phone));
 
     const fixed: Array<{ id: string; name: string; from: string; to: string }> = [];
+    const isDuplicate: Array<{ id: string; name: string; twinId: string; twinName: string }> = [];
     const failed: Array<{ id: string; error?: string }> = [];
 
     for (const c of targets) {
       const corrected = `+237${digitsOf(c.phone).slice(1)}`;
       const r = await updateContactPhone(cfg, c.id, corrected);
-      if (r.ok) fixed.push({ id: c.id, name: c.name, from: c.phone, to: corrected });
-      else failed.push({ id: c.id, error: r.error?.slice(0, 200) });
+
+      if (r.ok) { fixed.push({ id: c.id, name: c.name, from: c.phone, to: corrected }); continue; }
+
+      // ── "This location does not allow duplicated contacts" is not a failure ─────────
+      // It means the corrected number already belongs to another record — which is the
+      // definition of the duplicate we are trying to remove, confirmed by GoHighLevel
+      // rather than inferred by us. Reported as its own category, with the twin named,
+      // because the fix is deletion and not a retry.
+      const body = String(r.error ?? '');
+      if (body.includes('does not allow duplicated contacts')) {
+        let twinId = '', twinName = '';
+        try {
+          const meta = (JSON.parse(body) as { meta?: { contactId?: string; contactName?: string } }).meta;
+          twinId = String(meta?.contactId ?? '');
+          twinName = String(meta?.contactName ?? '');
+        } catch { /* the message alone is enough to classify it */ }
+        isDuplicate.push({ id: c.id, name: c.name, twinId, twinName });
+        continue;
+      }
+
+      failed.push({ id: c.id, error: r.error?.slice(0, 200) });
     }
 
-    res.status(200).json({ ok: failed.length === 0, fixedCount: fixed.length, fixed, failed });
+    res.status(200).json({
+      ok: failed.length === 0,
+      fixedCount: fixed.length,
+      fixed,
+      // Not errors: these are duplicates GHL has just confirmed for us. Delete them.
+      duplicateCount: isDuplicate.length,
+      duplicates: isDuplicate,
+      nextStep: isDuplicate.length
+        ? 'Run "Delete duplicate records" first, then repair again — GoHighLevel refuses '
+          + 'to give a record a number another contact already holds, which is itself '
+          + 'proof that those records are duplicates.'
+        : undefined,
+      failed,
+    });
     return;
   }
 
