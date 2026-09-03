@@ -4,9 +4,13 @@ import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { challengeRequired } from "@/lib/auth/mfa";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
-import { forgetEmailRequest, readEmailRequest, type AuthEmailFlow } from "@/lib/auth/last-email-request";
+import {
+  forgetEmailRequest, readEmailRequest, rememberEmailRequest, type AuthEmailFlow,
+} from "@/lib/auth/last-email-request";
 
 /**
  * Wait for the session the client is establishing from the URL.
@@ -78,13 +82,24 @@ export default function AuthCallback() {
   // reset came to offer "confirm your email" and land on the signup page.
   const [pending] = useState(() => readEmailRequest());
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  // Google sign-in lands here rather than on /auth/login, so without this the OAuth
+  // button would be a way straight past a second factor the account has enabled.
+  const [needsMfa, setNeedsMfa] = useState(false);
 
   async function resendLink(flow: AuthEmailFlow, email: string) {
     setResend('sending');
     const origin = window.location.origin;
+    // `?flow=recovery` has to survive the resend. Without it the replacement link comes
+    // back indistinguishable from a sign-in, and the only thing left to identify it is the
+    // localStorage record — which this same page clears as soon as a recovery link
+    // succeeds, and which is absent entirely if the new link is opened on another device.
+    // The first link carried the marker (reset-password.tsx); so must the second.
     const { error: sendError } = flow === 'recovery'
-      ? await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback` })
+      ? await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback?flow=recovery` })
       : await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${origin}/auth/callback` } });
+    // Re-stamp the record too, so the 24h window runs from this link rather than the
+    // dead one it replaces.
+    if (!sendError) rememberEmailRequest(flow, email);
     setResend(sendError ? 'failed' : 'sent');
   }
 
@@ -113,21 +128,12 @@ export default function AuthCallback() {
       const type = otpType(params.get("type"));
       const hasCode = !!params.get("code");
 
-      // Is this a password reset? Three sources, because only the first is reliable and
-      // it is the one Supabase does NOT send on the PKCE path.
-      //
-      //   type=recovery      the token_hash path, present only on the OTP-style link
-      //   flow=recovery      our own marker on redirectTo, added in reset-password.tsx
-      //   readEmailRequest   what this browser last asked for, as a final fallback
-      //
-      // Beta testing, 25 Aug 2026: a reset link arrived as `?code=` with no `type`, so
-      // the check below never fired and the user was signed in and sent to onboarding
-      // with their old password intact.
-      const isRecovery =
-        type === 'recovery'
-        || params.get("flow") === 'recovery'
-        || readEmailRequest()?.flow === 'recovery';
-
+      // Whether this is a password reset is decided in continueAfterAuth, from three
+      // sources — `type=recovery` on the token_hash link, our own `flow=recovery` marker
+      // on redirectTo, and what this browser last asked for. Only the first is something
+      // Supabase sends, and it does NOT send it on the PKCE path: beta testing on
+      // 25 Aug 2026 found a reset link arriving as `?code=` with no `type` at all, so the
+      // user was signed in and sent to onboarding with their old password intact.
       let session: Session | null = null;
 
       if (tokenHash && type) {
@@ -163,33 +169,87 @@ export default function AuthCallback() {
       // Cleared here rather than in new-password.tsx: the remembered request is now one
       // of the signals above, so leaving it set would send this browser's NEXT sign-up
       // confirmation to the password form too.
-      if (isRecovery) {
-        forgetEmailRequest();
-        navigate("/auth/new-password", { replace: true });
-        return;
-      }
+      // ── The second factor comes before ANYTHING that acts on the identity ──────────
+      //
+      // Above this line the session exists but may still be at aal1. Below it, three
+      // things happen that must not run on a half-authenticated session:
+      //
+      //   · the recovery branch, which lets someone SET A NEW PASSWORD. Skipping the
+      //     factor here would make "forgot password" the way around 2FA entirely — take
+      //     the mailbox, take the account. That is the hole 2FA exists to close, so a
+      //     reset on a 2FA account asks for the code too. Someone who has lost both the
+      //     password and the authenticator is locked out, which is what the "lost your
+      //     device" line on the challenge screen is for.
+      //   · accepting an invite, which writes a real membership row.
+      //   · is_admin(), which decides whether they land in the admin panel.
+      if (await challengeRequired()) { setNeedsMfa(true); return; }
 
-      // Process any pending invite (stored in localStorage before signup)
-      const token = localStorage.getItem("pendingInvite");
-      if (token) {
-        localStorage.removeItem("pendingInvite");
-        try {
-          const projectId = await acceptInvite(token);
-          navigate(`/projects/${projectId}`, { replace: true });
-          return;
-        } catch {
-          // Invalid/used token — fall through to normal routing
-        }
-      }
-
-      const onboardingComplete = !!session.user?.user_metadata?.onboarding_complete;
-      if (!onboardingComplete) trackEvent('signup_complete');
-      const { data: isAdmin } = await supabase.rpc('is_admin');
-      navigate(postAuthPath({ isAdmin: isAdmin === true, onboardingComplete }), { replace: true });
+      await continueAfterAuth(session);
     }
 
     run();
   }, [navigate, t]);
+
+  /**
+   * Everything after the identity is fully proven: recovery, then invite, then routing.
+   *
+   * Reached directly when the account has no second factor, and from the MFA form once
+   * the code has been accepted — so the two paths cannot drift.
+   */
+  async function continueAfterAuth(session: Session) {
+    const params = new URLSearchParams(window.location.search);
+    const isRecovery =
+      params.get("type") === 'recovery'
+      || params.get("flow") === 'recovery'
+      || readEmailRequest()?.flow === 'recovery';
+
+    // A recovery link proves control of the mailbox, not knowledge of the password —
+    // so it must end at "set a new one", never at the dashboard. Routing it like a
+    // normal sign-in is what made "Forgot password?" silently a no-op.
+    //
+    // Cleared here rather than in new-password.tsx: the remembered request is one of the
+    // signals above, so leaving it set would send this browser's NEXT sign-up
+    // confirmation to the password form too.
+    if (isRecovery) {
+      forgetEmailRequest();
+      navigate("/auth/new-password", { replace: true });
+      return;
+    }
+
+    // Process any pending invite (stored in localStorage before signup)
+    const token = localStorage.getItem("pendingInvite");
+    if (token) {
+      localStorage.removeItem("pendingInvite");
+      try {
+        const projectId = await acceptInvite(token);
+        navigate(`/projects/${projectId}`, { replace: true });
+        return;
+      } catch {
+        // Invalid/used token — fall through to normal routing
+      }
+    }
+
+    const onboardingComplete = !!session.user?.user_metadata?.onboarding_complete;
+    if (!onboardingComplete) trackEvent('signup_complete');
+    const { data: isAdmin } = await supabase.rpc('is_admin');
+    navigate(postAuthPath({ isAdmin: isAdmin === true, onboardingComplete }), { replace: true });
+  }
+
+  async function afterMfa() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate('/auth/login', { replace: true }); return; }
+    setNeedsMfa(false);
+    await continueAfterAuth(session);
+  }
+
+  if (needsMfa) {
+    return (
+      <MfaChallenge
+        onVerified={afterMfa}
+        onCancel={() => navigate('/auth/login', { replace: true })}
+      />
+    );
+  }
 
   if (error) {
     return (

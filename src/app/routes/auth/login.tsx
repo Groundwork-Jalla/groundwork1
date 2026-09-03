@@ -7,6 +7,8 @@ import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { challengeRequired } from "@/lib/auth/mfa";
 import { useT } from "@/lib/i18n";
 
 export default function Login() {
@@ -20,6 +22,8 @@ export default function Login() {
   const [password,   setPassword]   = useState("");
   const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // A correct password is not a completed sign-in when the account has a second factor.
+  const [needsMfa,   setNeedsMfa]   = useState(false);
 
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
@@ -28,19 +32,15 @@ export default function Login() {
     });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
+  /**
+   * Everything after the credentials are accepted.
+   *
+   * Split out because it now has two entry points — straight through for an account with
+   * no second factor, and after the code for one that has. Nothing here may run before
+   * the factor is cleared: accepting an invite or reading is_admin() on a half-session
+   * would act on an identity that is not yet fully proven.
+   */
+  async function finishLogin() {
     // Process any pending invite (from URL param or localStorage)
     const token = inviteToken || localStorage.getItem("pendingInvite") || "";
     if (token) {
@@ -54,12 +54,47 @@ export default function Login() {
       }
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
     const { data: isAdmin } = await supabase.rpc('is_admin');
     navigate(postAuthPath({
       isAdmin: isAdmin === true,
-      onboardingComplete: !!data.user?.user_metadata?.onboarding_complete,
+      onboardingComplete: !!session?.user?.user_metadata?.onboarding_complete,
       redirect: redirectTo,
     }), { replace: true });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setSubmitting(false);
+      setError(error.message);
+      return;
+    }
+
+    // The password created a session, but at aal1. Stop here and ask for the code —
+    // routing now would put a half-authenticated session inside the app.
+    if (await challengeRequired()) {
+      setSubmitting(false);
+      setNeedsMfa(true);
+      return;
+    }
+
+    setSubmitting(false);
+    await finishLogin();
+  }
+
+  if (needsMfa) {
+    return (
+      <MfaChallenge
+        onVerified={finishLogin}
+        onCancel={() => { setNeedsMfa(false); setPassword(""); }}
+      />
+    );
   }
 
   return (

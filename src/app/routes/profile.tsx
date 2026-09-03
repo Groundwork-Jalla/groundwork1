@@ -22,6 +22,7 @@ import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
+import { TwoFactorSection } from '@/components/profile/TwoFactorSection';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -366,8 +367,18 @@ export default function ProfilePage() {
   async function handlePasswordReset() {
     if (!user?.email) return;
     setResetError('');
+    // `/auth/callback?flow=recovery`, NOT `/auth/reset-password`.
+    //
+    // This pointed at the request form — the page whose only job is to ask for an email
+    // and send a link. So following the link from here consumed the single-use token and
+    // landed the person back on "enter your email address", with no way to set a
+    // password and no indication anything had happened. Changing your password from the
+    // profile was impossible.
+    //
+    // `flow=recovery` is what tells /auth/callback this is a reset rather than a sign-in;
+    // Supabase's PKCE reply carries no `type` of its own. See reset-password.tsx.
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: window.location.origin + '/auth/reset-password',
+      redirectTo: `${window.location.origin}/auth/callback?flow=recovery`,
     });
     if (error) { setResetError(error.message); return; }
     setResetSent(true);
@@ -761,18 +772,8 @@ export default function ProfilePage() {
 
                 <div className="border-t border-brand-border-grey dark:border-[#2c2c2c] my-6" />
 
-                {/* 2FA */}
-                <section>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.twoFactor')}</h2>
-                    <span className="inline-flex items-center text-[11px] font-medium text-brand-mid-grey bg-brand-off-white dark:bg-[#1c1c1c] border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-2.5 py-0.5">
-                      {t('profile.comingSoon')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                    {t('profile.twoFactorBody')}
-                  </p>
-                </section>
+                {/* 2FA — TOTP via Supabase MFA. Was a "Coming soon" badge. */}
+                <TwoFactorSection />
               </motion.div>
             )}
 

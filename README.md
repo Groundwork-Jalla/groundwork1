@@ -279,6 +279,26 @@ Full step-by-step setup: **[docs/GHL-SETUP.md](docs/GHL-SETUP.md)** — includin
 
 ---
 
+## Account security
+
+One password policy in [`src/lib/auth/password-policy.ts`](src/lib/auth/password-policy.ts),
+shared by `/auth/signup` and `/auth/new-password`: 10 characters, upper, lower, a digit,
+not a common password, and not containing the user's own name or email. A strength meter
+([`PasswordStrength`](src/components/ui/PasswordStrength.tsx)) sits on both.
+
+**TOTP two-factor** is enrolled at `/profile` → Security and challenged at `/auth/login`
+and `/auth/callback` — the callback included, because Google sign-in lands there and
+leaving it out would make the OAuth button a way past 2FA. The challenge runs *before* the
+password-recovery branch, so a reset cannot be used to skip the second factor.
+
+> ⚠️ **Two Supabase dashboard settings are required** before the policy and 2FA are more
+> than a client-side courtesy — the password minimum and enabling TOTP. A third decision
+> (enforcing AAL at the database, so a half-authenticated session cannot be used against
+> PostgREST directly) is **not done**, and is written up honestly in
+> [docs/SECURITY.md](docs/SECURITY.md).
+
+---
+
 ## Internationalisation
 
 The app is **bilingual English / French** — most Cameroonian users are francophone.
@@ -383,6 +403,7 @@ Everything except this README lives in [`docs/`](docs/).
 | [docs/PAGES.md](docs/PAGES.md) | Every route, section by section — the reference |
 | [docs/GHL-SETUP.md](docs/GHL-SETUP.md) | GoHighLevel setup, step by step — **current** |
 | [docs/GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md) | CRM field mapping |
+| [docs/SECURITY.md](docs/SECURITY.md) | Password policy, 2FA, reset flow — **and the two Supabase settings they need** |
 | [docs/STRIPE.md](docs/STRIPE.md) | Stripe products, webhook, going live |
 | [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md) | The decided A/B variant for all 20 screens — **read before restyling anything** |
 | [docs/BQ-QUESTIONS.md](docs/BQ-QUESTIONS.md) | Quantity-surveying questions and answers behind the rate tables |

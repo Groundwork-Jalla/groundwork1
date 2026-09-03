@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
-import { Check, X, Mail, Lock } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useT, type TKey } from "@/lib/i18n";
+import { PasswordStrength } from "@/components/ui/PasswordStrength";
+import { isPasswordAcceptable } from "@/lib/auth/password-policy";
+import { useT } from "@/lib/i18n";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
-
-const checks: { key: TKey; test: (pw: string) => boolean }[] = [
-  { key: "auth.signup.check8",      test: (pw: string) => pw.length >= 8 },
-  { key: "auth.signup.checkUpper",  test: (pw: string) => /[A-Z]/.test(pw) },
-  { key: "auth.signup.checkNumber", test: (pw: string) => /[0-9]/.test(pw) },
-];
 
 export default function Signup() {
   const [searchParams] = useSearchParams();
@@ -37,7 +33,10 @@ export default function Signup() {
   const [resendMsg, setResendMsg] = useState<string | null>(null);
   const [cooldown,  setCooldown]  = useState(0);
 
-  const passwordValid = checks.every((c) => c.test(password));
+  // The rules live in lib/auth/password-policy.ts, shared with /auth/new-password —
+  // which used to require only 8 characters, making the reset flow a way around this form.
+  const passwordContext = { email, fullName };
+  const passwordValid = isPasswordAcceptable(password, passwordContext);
 
   // Supabase rate-limits confirmation mail hard. A local cooldown makes that
   // visible up front rather than letting someone hammer the button into an
@@ -73,11 +72,11 @@ export default function Signup() {
     setError(null);
 
     if (!passwordValid) {
-      setError(t('auth.signup.errRequirements'));
+      setError(t('auth.password.errRequirements'));
       return;
     }
     if (password !== confirmPassword) {
-      setError(t('auth.signup.errMismatch'));
+      setError(t('auth.password.errMismatch'));
       return;
     }
 
@@ -223,24 +222,7 @@ export default function Signup() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          {password.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {checks.map((c) => {
-                const passed = c.test(password);
-                return (
-                  <li
-                    key={c.key}
-                    className={`flex items-center gap-1.5 text-xs ${
-                      passed ? "text-brand-near-black" : "text-brand-mid-grey"
-                    }`}
-                  >
-                    {passed ? <Check className="size-3" /> : <X className="size-3" />}
-                    {t(c.key)}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <PasswordStrength password={password} context={passwordContext} />
         </div>
 
         <div className="space-y-1.5">
