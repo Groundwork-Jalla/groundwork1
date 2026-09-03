@@ -22,8 +22,10 @@ import type { ProjectRow } from '@/types/project';
 // Removing only the button would have left the cap trivially evadable, which is the
 // behaviour it exists to stop.
 //
-// Admins can still delete an account, which cascades its projects — `admin_delete_user()`
-// in 035 is SECURITY DEFINER and bypasses RLS. That is the only remaining route.
+// Admins can delete, on two routes, both SECURITY DEFINER and both bypassing RLS:
+// `admin_delete_user()` (035) removes an account and cascades its projects, and
+// `admin_delete_project()` (069) removes a single project from /admin/projects. Neither
+// is reachable by an owner, which is what keeps the paragraph above true.
 // =========================================================
 
 export default function DangerZone({

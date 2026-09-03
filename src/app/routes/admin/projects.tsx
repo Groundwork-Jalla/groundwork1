@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2, ExternalLink, Search, UserPlus } from 'lucide-react';
+import { Loader2, ExternalLink, Search, UserPlus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
+import { deleteProjectAsAdmin } from '@/lib/supabase/admin-projects';
+import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
+import { errorMessage } from '@/lib/errors';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 
@@ -16,6 +19,11 @@ interface AdminProject {
   currentStage: number;
   country: string;
   createdAt: string;
+}
+
+/** Tier values that hold a free-plan slot. `starter` is the pre-008 name. */
+function isFreeTier(tier: string): boolean {
+  return tier === 'self_verify' || tier === 'starter';
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -58,6 +66,48 @@ export default function AdminProjects() {
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading]   = useState(true);
   const [query, setQuery]       = useState('');
+
+  const [delTarget, setDelTarget] = useState<AdminProject | null>(null);
+  const [deleting,  setDeleting]  = useState(false);
+  const [delError,  setDelError]  = useState<string | null>(null);
+  const [delNotice, setDelNotice] = useState<string | null>(null);
+
+  /**
+   * Delete one project. The only route to it — owners lost DELETE in migration 053, and
+   * the only other thing that destroys a project is deleting the whole account.
+   *
+   * Storage is cleaned up inside `deleteProjectAsAdmin`, after the row is gone. A file
+   * it could not remove is reported rather than swallowed: the project really is
+   * deleted, and pretending the cleanup was complete would send someone looking for
+   * bytes that are still being billed.
+   */
+  async function handleDelete() {
+    if (!delTarget) return;
+    setDeleting(true); setDelError(null);
+    try {
+      const summary = await deleteProjectAsAdmin(delTarget.id);
+      setProjects(prev => prev.filter(p => p.id !== delTarget.id));
+      setDelNotice(summary.filesOrphaned > 0
+        ? t('admin.del.projectOrphaned', { name: summary.name, count: summary.filesOrphaned })
+        : t('admin.del.projectDeleted', {
+            name:      summary.name,
+            stages:    summary.stages,
+            documents: summary.documents,
+            messages:  summary.messages,
+            files:     summary.filesRemoved,
+          }));
+      setDelTarget(null);
+    } catch (err) {
+      // The guards live in the database, so its messages are the authoritative ones.
+      const msg = errorMessage(err, '');
+      setDelError(
+        msg.includes('not_found') ? t('admin.del.projectNotFound')
+        : t('admin.del.failed'),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -173,6 +223,15 @@ export default function AdminProjects() {
                       >
                         <ExternalLink className="size-4" />
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => { setDelTarget(p); setDelError(null); }}
+                        className="text-brand-mid-grey transition-colors hover:text-state-alert"
+                        title={t('admin.del.deleteProject')}
+                        aria-label={`${t('admin.del.deleteProject')} ${p.name}`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -194,6 +253,35 @@ export default function AdminProjects() {
           {t('admin.assignedNotice', { detail: assignDone })}
         </p>
       )}
+
+      {delNotice && (
+        <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5 text-xs text-brand-near-black">
+          {delNotice}
+        </p>
+      )}
+
+      {/*
+        The consequence is spelled out per project rather than as a generic warning: the
+        free-plan half is the part nobody expects, and it only applies to a free-tier
+        project. See migration 069 — this genuinely does hand the owner a slot back.
+      */}
+      <ConfirmDelete
+        open={!!delTarget}
+        subject={delTarget?.name ?? ''}
+        consequence={delTarget ? [
+          t('admin.del.projectConsequence'),
+          isFreeTier(delTarget.tier)
+            ? t('admin.del.projectFreesSlot', {
+                plan:  labels.tier(delTarget.tier),
+                owner: delTarget.ownerName || delTarget.ownerEmail,
+              })
+            : '',
+        ].filter(Boolean).join(' ') : undefined}
+        busy={deleting}
+        error={delError}
+        onConfirm={handleDelete}
+        onCancel={() => { setDelTarget(null); setDelError(null); }}
+      />
 
       {assignTarget && (
         <div

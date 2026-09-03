@@ -113,7 +113,7 @@ api/                          # Vercel serverless — see api/README.md
 └── _lib/
 
 docs/                         # All project documentation
-supabase/migrations/          # 69 SQL migrations
+supabase/migrations/          # 71 SQL migrations
 scripts/                      # agent-queue, agent-produce
 .github/workflows/            # Automated agent request production
 ```
@@ -186,7 +186,7 @@ In practice most have been applied by pasting into **Supabase → SQL Editor**, 
 
 **Storage buckets** (all private): `evidence`, `documents`, `id-documents`, `contractor-docs`, `agent-outputs`.
 
-**Tables** — 30, grouped by what they serve:
+**Tables** — 31, grouped by what they serve:
 
 | Area | Tables |
 |---|---|
@@ -196,11 +196,11 @@ In practice most have been applied by pasting into **Supabase → SQL Editor**, 
 | Money | `billing_events`, `certificates` |
 | Rates | `construction_rates`, `construction_city_rates` |
 | CRM | `ghl_outbox`, `ghl_inbound_events`, `ghl_oauth_tokens`, `ghl_delivery_log`, `ghl_sync_failures` |
-| Ops | `notifications`, `app_config`, `agent_requests`, `agent_notify_log` |
+| Ops | `notifications`, `app_config`, `agent_requests`, `agent_notify_log`, `admin_deleted_projects` |
 
 **Rules enforced in the database, not just the UI:**
 
-- **Free-plan project cap** — `check_starter_project_limit()` (migration 053) allows 3 `self_verify` projects. Archived ones **count**, and owners cannot delete, so the number only goes up. [`src/lib/plan-limits.ts`](src/lib/plan-limits.ts) mirrors that function deliberately; the two must stay identical or the UI and the database disagree in ways that produce visible bugs.
+- **Free-plan project cap** — `check_starter_project_limit()` (migration 053) allows 3 `self_verify` projects. Archived ones **count**, and owners cannot delete, so the number only goes up — the one exception being an admin deleting a project (069). [`src/lib/plan-limits.ts`](src/lib/plan-limits.ts) mirrors that function deliberately; the two must stay identical or the UI and the database disagree in ways that produce visible bugs.
 - **Tier changes** — migrations 060–062 guard `projects.tier` so only the Stripe webhook (service role) can grant a paid tier. The browser cannot promote itself.
 - **`app_config`** — RLS on, no policies. Only `SECURITY DEFINER` functions read it. It holds runtime settings (CRM credentials, notification recipients) *because Vercel's free plan ran out of environment variables*, and because a row takes effect in a minute with no redeploy.
 
@@ -408,7 +408,8 @@ Everything except this README lives in [`docs/`](docs/).
 - **Settings prefer `app_config` over Vercel env** — a table row takes effect in a minute, an env var needs a redeploy.
 - **No emoji in the app UI.** Icons are black and white. Platform-wide rule from [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md), along with "processing fee" over "platform fee" and colour as a status accent rather than a data channel.
 - **Cameroon is the default country everywhere.** Import `DEFAULT_COUNTRY_CODE`; never write `'CM'` inline.
-- **Archived projects still count against the free cap**, and owners cannot delete projects (migration 053). The count only goes up.
+- **Archived projects still count against the free cap**, and owners cannot delete projects (migration 053). Only an admin can delete one, from `/admin/projects` (migration 069) — which does hand the owner a free-plan slot back, on purpose.
+- **Deleting a project is two calls that cannot be one.** The row is in Postgres, the files are in Storage, and nothing joins them — so `admin_delete_project()` returns the storage paths it gathered *before* the cascade, and the client removes the bytes *after*. Never reverse that: purging storage first can destroy a live project's evidence if the delete then fails.
 - **Multiple tier vocabularies coexist.** Canonical is `self_verify`/`jalla_verify`/`jalla_management`; legacy `starter`/`pro`/`enterprise` values are still handled defensively. `normalizeTier()` in `payments/config.ts` is the start of a fix.
 - **Dark mode uses ~447 hardcoded hex values** (`dark:bg-[#1e1e1e]`) across 41 files rather than tokens, so shades drift between files.
 - **`CONTRACTORS_LOCKED_FOR_DEMO`** in [`src/lib/demo-gate.ts`](src/lib/demo-gate.ts) still reads as temporary but is now the real Jalla Verify paywall on the contractor directory. Read the header before removing it.

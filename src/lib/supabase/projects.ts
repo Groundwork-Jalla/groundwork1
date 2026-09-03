@@ -220,17 +220,28 @@ export async function restoreProject(projectId: string): Promise<void> {
 // this is not merely absent from the client — the privilege is gone. A DELETE written
 // here would fail at the database, which is the correct outcome.
 //
-// Two things the old implementation knew, worth keeping if deletion ever returns:
+// One thing the old implementation knew, and it is still true:
 //
 //   · STORAGE DOES NOT CASCADE. Foreign keys drop the `project_documents` rows and leave
 //     the files in the bucket forever — invisible, still billed, still containing
 //     whatever the owner uploaded. They must be purged explicitly.
-//   · Purge storage FIRST. If it fails, stop, and the project is still there to retry.
-//     The reverse order deletes the row, loses the paths, and orphans the files.
 //
-// `admin_delete_user()` (035) still removes an account and cascades its projects. It is
-// SECURITY DEFINER, so RLS does not apply, and it is now the only route by which a
-// project row disappears.
+// This note used to add "purge storage FIRST, so a failure leaves the project there to
+// retry — the reverse order deletes the row, loses the paths, and orphans the files."
+// That advice is superseded, and deliberately so. `admin_delete_project()` (069) RETURNS
+// the storage paths it collected before the cascade ran, so deleting the row no longer
+// loses them — which was the only thing purge-first was protecting against. With the
+// paths safe, the order flips to the one that fails better: purge-first can destroy a
+// LIVE project's evidence if the delete then fails, and evidence is the one thing this
+// product exists to hold. See the header of `admin-projects.ts`.
+//
+// ADMINS CAN NOW DELETE A SINGLE PROJECT — `admin_delete_project()` (069), from
+// /admin/projects. Owners still cannot, and nothing above changes: the function is
+// SECURITY DEFINER behind an is_admin() gate, so it is a staff action, it is recorded in
+// `admin_deleted_projects`, and it does hand a free-plan slot back on purpose.
+//
+// `admin_delete_user()` (035) still removes an account and cascades its projects.
+// Those two functions are now the only routes by which a project row disappears.
 // =========================================================
 
 // =========================================================

@@ -520,9 +520,9 @@ export const en = {
       // A single project (/admin/projects). Owners cannot delete at all — see
       // migration 053 — so this is the only route to removing one.
       deleteProject:      'Delete project',
-      projectConsequence: 'This permanently destroys {stages} stage(s), {documents} document(s), {messages} message(s) and every uploaded file. There is no undo. I understand.',
+      projectConsequence: 'This permanently destroys every stage, document, message and uploaded file belonging to this project. There is no undo. I understand.',
       projectFreesSlot:   'It also returns a {plan} slot to {owner}, who will then be able to create another project.',
-      projectDeleted:     'Deleted \u201C{name}\u201D.',
+      projectDeleted:     'Deleted \u201C{name}\u201D \u2014 {stages} stage(s), {documents} document(s), {messages} message(s) and {files} file(s).',
       projectOrphaned:    'Deleted \u201C{name}\u201D, but {count} file(s) could not be removed from storage. The project is gone; the files are unreachable.',
       projectNotFound:    'That project no longer exists \u2014 it may already have been deleted.',
     },

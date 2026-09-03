@@ -13,8 +13,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 const h = vi.hoisted(() => ({
   calls: [] as string[],
   rpc:    { data: null as unknown, error: null as unknown },
-  remove: (_bucket: string, paths: string[]) =>
-    ({ data: paths.map(p => ({ name: p })), error: null as unknown }),
+  remove: (_bucket: string, paths: string[]): { data: { name: string }[] | null; error: unknown } =>
+    ({ data: paths.map(p => ({ name: p })), error: null }),
 }));
 
 vi.mock('./client', () => ({

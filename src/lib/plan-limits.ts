@@ -21,8 +21,14 @@ import type { ProjectRow } from '@/types/project';
 //     that fixes the problem appeared not to work.
 //
 // 053 settled it the other way, on Favour's call: archived projects DO count, and owners
-// can no longer delete, so the count never falls. Whichever way the rule goes, the rule
-// lives in one function on each side and the two are kept identical on purpose.
+// can no longer delete. Whichever way the rule goes, the rule lives in one function on
+// each side and the two are kept identical on purpose.
+//
+// The count falls in exactly one case, added in 069: an ADMIN deleting a single project
+// from /admin/projects. That is a staff action behind is_admin(), it is recorded in
+// `admin_deleted_projects`, and freeing the slot is the point of it — the support case
+// is "I created that by mistake and now I am stuck at three". Owners still cannot
+// delete, so this stays unreachable from the client side of the product.
 // =========================================================
 
 export const SELF_VERIFY_PROJECT_LIMIT = 3;
@@ -37,7 +43,7 @@ function isFreeTier(project: Pick<ProjectRow, 'tier'>): boolean {
  *
  * EVERY free-tier project counts, archived included — matching migration 053's trigger.
  * Archiving hides a project; it does not give a slot back, and owners can no longer
- * delete at all, so this number only ever goes up.
+ * delete at all, so this number only goes up unless an admin deletes one (069).
  *
  * `status` stays in the signature. It is what makes the change from "excluding archived"
  * to "counting everything" a one-line edit here rather than a hunt through call sites,
