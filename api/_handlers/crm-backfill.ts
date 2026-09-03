@@ -175,7 +175,7 @@ export async function handler(req: any, res: any) {
   else {
     const { data: rows, error } = await svc
       .from('profiles')
-      .select('id, email, full_name, preferred_lang, country, phone, subscription_tier, subscription_status')
+      .select('id, email, full_name, preferred_lang, country, phone, subscription_tier, subscription_status, crm_welcomed_at')
       .not('email', 'is', null)
       .order('created_at', { ascending: true })
       .limit(MAX_PER_RUN);
@@ -211,11 +211,15 @@ export async function handler(req: any, res: any) {
       const lang = p.preferred_lang === 'fr' ? 'fr' : 'en';
       const built = hasProject(String(p.id));
 
-      // Homeowners have never had a welcome — the template did not exist until now — so
-      // there is nothing to backfill and everybody in this list is a genuine first
-      // contact. The `built` variant is what stops it reading as spam to the engaged.
-      const action: 'send' | 'backfill' = 'send';
-      const why = built ? 'has a project' : 'no project yet';
+      // Same rule as the contractor path, off `crm_welcomed_at` instead of
+      // `acknowledged_at`: a welcome already sent is backfilled onto the thread, never
+      // sent again. Without this the second run duplicates the first — which is what
+      // "26 send, 0 backfill" was about to do to 24 people.
+      const welcomed = !!p.crm_welcomed_at;
+      const action: 'send' | 'backfill' = welcomed ? 'backfill' : 'send';
+      const why = welcomed ? 'already welcomed'
+                : built    ? 'has a project, never welcomed'
+                           : 'never welcomed';
 
       if (!send) { planned.push({ who: email, action, why }); continue; }
 
@@ -273,7 +277,7 @@ export async function handler(req: any, res: any) {
 
       let mailOk = true;
       const apiKey = process.env.RESEND_API_KEY;
-      if (apiKey) {
+      if (action === 'send' && apiKey) {
         const sent = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -283,6 +287,12 @@ export async function handler(req: any, res: any) {
           }),
         });
         mailOk = sent.ok;
+        // Stamped only once Resend accepts it, so a failed send is retried rather than
+        // recorded as done — the same ordering as the acknowledgement path.
+        if (sent.ok) {
+          await svc.from('profiles')
+            .update({ crm_welcomed_at: new Date().toISOString() }).eq('id', p.id);
+        }
       }
 
       await logEmailToCrm({
