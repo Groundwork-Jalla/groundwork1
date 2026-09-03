@@ -223,11 +223,7 @@ export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResu
         to: email,
         from: opts.from ?? DEFAULT_FROM,
       }, bearer ?? undefined);
-      if (conv.ok) {
-        // Which `type` string GHL accepted, so TYPE_CANDIDATES can be cut to one.
-        return { ok: true, surface: 'conversation', reason: null,
-                 detail: conv.data?.acceptedType ?? null };
-      }
+      if (conv.ok) return { ok: true, surface: 'conversation', reason: null };
 
       // Falls through to the note rather than returning. A refused message is exactly
       // when the record matters — losing it would leave the contact looking uncontacted.

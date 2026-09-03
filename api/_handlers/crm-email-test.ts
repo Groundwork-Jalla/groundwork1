@@ -94,8 +94,7 @@ export async function handler(req: any, res: any) {
     r.surface === 'conversation'
       ? `Written to the Conversations thread for ${email}. Open the contact in `
         + 'GoHighLevel — it should appear in Conversations, with a reply box under it.'
-        + (r.detail ? `\n\nAccepted with type="${r.detail}" — tell the developer, so the\n`
-                    + 'candidate list in addConversationEmail can be cut to that one.' : '')
+
     : r.surface === 'note' && r.reason === 'no_provider_id'
       ? 'Written as a note, not to Conversations, because GHL_CONVERSATION_PROVIDER_ID '
         + 'is not set. Notes cannot be replied to. See docs/GHL-SETUP.md, step 8, for '

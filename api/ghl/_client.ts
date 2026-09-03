@@ -328,72 +328,51 @@ export async function addConversationEmail(
    * not run the install flow — it will fail, but it fails the same way it used to.
    */
   bearer?: string,
-): Promise<GhlResult<{ messageId?: string; acceptedType?: string }>> {
+): Promise<GhlResult<{ messageId?: string }>> {
   // The endpoint wants the thread, not the person. See ensureConversation.
   const conversationId = await ensureConversation(cfg, email.contactId, bearer);
   if (!conversationId) {
     return { ok: false, status: 0, error: 'no_conversation' };
   }
 
-  // ── `type` has to match the provider, and GHL does not document which string ────────
-  // With `type: "Email"` the endpoint answered:
+  // ── `type` is "Custom", and that is not guessable ───────────────────────────────────
+  // The provider is registered as a *custom* conversation provider of type Email, so the
+  // obvious value is "Email". GHL answers that with:
   //   400 "Incorrect conversationProviderId/type"
   //   CONVERSATIONS_MSG_CONVERSATION_PROVIDER_MISMATCH
-  // — the pair is wrong, not the credential. The provider is registered as a *custom*
-  // provider of type Email, and GHL's enum for that is not published anywhere we can
-  // read, so these are the plausible spellings in decreasing order of likelihood.
+  // — the credential and the provider id are both fine; the pair is wrong. The type
+  // describes how the message reaches GHL, not what kind of message it is, and anything
+  // arriving through a custom provider is "Custom" whatever channel it represents.
   //
-  // Tried in order, exactly like PATHS.createFolder. A rejected attempt is a 400 and
-  // writes nothing, so the loop is safe to run; the alternative is five deploys to
-  // guess a string. The winner is logged so the list can be collapsed to one later.
-  const TYPE_CANDIDATES = ['Custom', 'Email', 'CUSTOM_EMAIL', 'TYPE_CUSTOM_EMAIL', 'TYPE_EMAIL'];
+  // Confirmed against the live account on 3 Sep 2026 by trying the five plausible
+  // spellings in one request and reporting the winner. Left as a single value now: if
+  // GHL ever changes it, `verboseErrors` puts their own words on /admin/crm rather than
+  // a bare status, which is what made this findable at all.
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
+    method: 'POST',
+    bearer,
+    // Read only through /admin/crm by an admin. Guessing at a bare status is what cost
+    // the media upload three attempts and this call two.
+    verboseErrors: true,
+    body: {
+      type: 'Custom',
+      conversationId,
+      // Stated rather than assumed: a default that flipped would show every email we
+      // sent as one the contractor sent us.
+      direction: 'outbound',
+      conversationProviderId: providerId,
+      // Both the thread and the person, so a GHL build that resolves either way works.
+      contactId: email.contactId,
+      subject: email.subject,
+      html: email.html,
+      // Some message types validate on `message` rather than `html`.
+      message: email.subject,
+      emailFrom: email.from,
+      emailTo: email.to,
+      date: (email.sentAt ?? new Date()).toISOString(),
+    },
+  });
 
-  let last: GhlResult<Record<string, unknown>> | null = null;
-  let acceptedType: string | undefined;
-
-  for (const type of TYPE_CANDIDATES) {
-    const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
-      method: 'POST',
-      bearer,
-      // Unverified against a live account, and read only through /admin/crm by an admin.
-      // Guessing at a bare status is what cost the media upload three attempts.
-      verboseErrors: true,
-      body: {
-        type,
-        conversationId,
-        // Stated rather than assumed: a default that flipped would show every email we
-        // sent as one the contractor sent us.
-        direction: 'outbound',
-        conversationProviderId: providerId,
-        // Both the thread and the person, so a GHL build that resolves either way works.
-        contactId: email.contactId,
-        subject: email.subject,
-        html: email.html,
-        // Some message types validate on `message` rather than `html`.
-        message: email.subject,
-        emailFrom: email.from,
-        emailTo: email.to,
-        date: (email.sentAt ?? new Date()).toISOString(),
-      },
-    });
-
-    if (r.ok) {
-      acceptedType = type;
-      if (type !== TYPE_CANDIDATES[0]) {
-        console.log(`[ghl-api] conversation message accepted with type="${type}"`);
-      }
-      last = r;
-      break;
-    }
-
-    last = r;
-    // Only the mismatch is worth trying another spelling for. Anything else — a bad
-    // provider id, a refused credential, GHL being down — will answer the same way to
-    // every candidate, and hammering it five times tells us nothing.
-    if (!String(r.error ?? '').includes('CONVERSATION_PROVIDER_MISMATCH')) break;
-  }
-
-  const r = last!;
   if (!r.ok) return { ok: false, status: r.status, error: r.error };
 
   const d = (r.data ?? {}) as Record<string, unknown>;
@@ -401,7 +380,7 @@ export async function addConversationEmail(
   return {
     ok: true,
     status: r.status,
-    data: { messageId: id ? String(id) : undefined, acceptedType },
+    data: { messageId: id ? String(id) : undefined },
   };
 }
 

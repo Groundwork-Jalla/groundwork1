@@ -359,7 +359,34 @@ derived from the location id.
    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
    ```
 
-5. Check the Private Integration Token carries the **`conversations/message.write`**
+5. **Re-run the install link afterwards.** The token exchange happens in the redirect, so
+   an app installed before the client id and secret were set has no token stored, and
+   emails keep landing as notes. `/admin/crm` shows a **Conversations token** row —
+   *valid*, *expired* or *missing* — so this is visible rather than mysterious.
+
+### What this cost, so nobody pays it twice
+
+Three things about this endpoint are not in GoHighLevel's documentation and each looked
+like a different problem:
+
+- **It will not accept a Private Integration Token.** The message is posted *as the
+  conversation provider*, and a provider belongs to a Marketplace app, so GHL wants the
+  app's own OAuth access token. A PIT is scoped to the location and is not the app —
+  which is why granting it `conversations/message.write`, and then reissuing it entirely,
+  both changed nothing and it kept answering `401`.
+- **It wants a `conversationId`, not a `contactId`.** A contact who has never had a
+  conversation has no thread, so the id has to be looked up and created if absent.
+- **`type` is `"Custom"`, not `"Email"`.** The type describes how the message *reaches*
+  GHL rather than what kind of message it is, so anything arriving through a custom
+  provider is `Custom` whatever channel it represents. `"Email"` returns
+  `CONVERSATIONS_MSG_CONVERSATION_PROVIDER_MISMATCH`, which reads like a wrong provider
+  id and is not.
+
+All three were found by printing GoHighLevel's own error text instead of a bare status.
+That is why the conversation call sets `verboseErrors` and `/admin/crm` prints what GHL
+said verbatim.
+
+6. Check the Private Integration Token carries the **`conversations/message.write`**
    scope. Without it every message is refused and the record silently falls back to a
    note. Rotating scopes means reissuing the token.
 
