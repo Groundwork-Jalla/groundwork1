@@ -151,6 +151,47 @@ when a password changes, so whoever was already in stayed in on the old refresh 
 Resetting the password looked like it locked them out and did not. `/auth/new-password`
 now calls `signOut({ scope: 'others' })` — this browser survives, everything else does not.
 
+### "Your password was changed" email
+
+Sent automatically whenever `auth.users.encrypted_password` changes — migration
+`070_password_changed_email.sql`. Bilingual, from the recipient's `preferred_lang`.
+
+**It is a database trigger, not a `sendEmail()` call, and that is the whole design.** The
+obvious implementation is a line in `/auth/new-password.tsx` after `updateUser()`, through
+the `/api/send-email` endpoint that already exists. It would be worthless. The entire
+value of this email is that it reaches the account owner when the person changing the
+password is *not* the account owner — and in exactly that scenario, the browser running
+the code belongs to the attacker, who simply does not send it. `/api/send-email` also
+takes its recipient verbatim from the caller, so a modified client could redirect it.
+A tripwire the intruder controls is not a tripwire.
+
+Firing from Postgres removes the client from the decision. It fires for a reset link, a
+change from the profile page, a change made in the Supabase dashboard, and one made by
+calling the Auth API with curl. There is no path to `encrypted_password` that misses it.
+
+It deliberately does **not** claim "we signed out your other devices" — that happens in
+`new-password.tsx` and so only on the reset path. An email promising a security action
+that did not occur is worse than one that stays quiet.
+
+**Needs `resend_api_key` in `app_config`** — already set, if agent-request notifications
+are arriving. Without it the trigger logs `skipped` and changes nothing else.
+
+When someone reports a missing notification:
+
+```sql
+SELECT event, step, detail, created_at
+  FROM public.security_notify_log ORDER BY created_at DESC LIMIT 10;
+```
+
+`sent` means Resend accepted it and the question is delivery. `skipped` names the missing
+setting. `failed` carries the error. No rows at all means the trigger never fired — check
+it exists:
+
+```sql
+SELECT tgname FROM pg_trigger
+ WHERE tgrelid = 'auth.users'::regclass AND NOT tgisinternal;
+```
+
 ---
 
 ## Testing it
@@ -169,3 +210,10 @@ and a test that mocks all of them asserts the mocks. Walk them by hand:
 6. Set a new password. You must land on a confirmation screen — **not** the dashboard —
    that says the password changed and that other devices were signed out.
 7. Confirm a session left open in another browser really has been signed out.
+8. Check the inbox for "Your Groundwork password was changed".
+
+Migration 070's trigger was exercised against a local Postgres 16 before shipping — that
+it stays quiet on signup, on ordinary sign-ins, and on a no-op rewrite of the same hash;
+that it fires on a real change and on an OAuth account gaining its first password; that a
+name containing `<script>` is escaped; and that **a failed or unconfigured send never rolls
+back the password change**. Those are the properties to re-check if the function is edited.

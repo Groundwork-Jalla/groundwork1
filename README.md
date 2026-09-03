@@ -113,7 +113,7 @@ api/                          # Vercel serverless — see api/README.md
 └── _lib/
 
 docs/                         # All project documentation
-supabase/migrations/          # 71 SQL migrations
+supabase/migrations/          # 72 SQL migrations
 scripts/                      # agent-queue, agent-produce
 .github/workflows/            # Automated agent request production
 ```
@@ -186,7 +186,7 @@ In practice most have been applied by pasting into **Supabase → SQL Editor**, 
 
 **Storage buckets** (all private): `evidence`, `documents`, `id-documents`, `contractor-docs`, `agent-outputs`.
 
-**Tables** — 31, grouped by what they serve:
+**Tables** — 32, grouped by what they serve:
 
 | Area | Tables |
 |---|---|
@@ -196,7 +196,7 @@ In practice most have been applied by pasting into **Supabase → SQL Editor**, 
 | Money | `billing_events`, `certificates` |
 | Rates | `construction_rates`, `construction_city_rates` |
 | CRM | `ghl_outbox`, `ghl_inbound_events`, `ghl_oauth_tokens`, `ghl_delivery_log`, `ghl_sync_failures` |
-| Ops | `notifications`, `app_config`, `agent_requests`, `agent_notify_log`, `admin_deleted_projects` |
+| Ops | `notifications`, `app_config`, `agent_requests`, `agent_notify_log`, `security_notify_log`, `admin_deleted_projects` |
 
 **Rules enforced in the database, not just the UI:**
 
@@ -290,6 +290,10 @@ not a common password, and not containing the user's own name or email. A streng
 and `/auth/callback` — the callback included, because Google sign-in lands there and
 leaving it out would make the OAuth button a way past 2FA. The challenge runs *before* the
 password-recovery branch, so a reset cannot be used to skip the second factor.
+
+A **"your password was changed"** email goes out on every password change. It is a
+database trigger (migration 070), not a client call — an email the browser decides to send
+is one an attacker simply does not send, which would defeat the point of a tripwire.
 
 > ⚠️ **Two Supabase dashboard settings are required** before the policy and 2FA are more
 > than a client-side courtesy — the password minimum and enabling TOTP. A third decision
