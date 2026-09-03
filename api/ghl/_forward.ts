@@ -66,6 +66,13 @@ export interface GhlForwardOptions {
   dedupeKey?: string;
   /** Already-known GHL contact id, saving a lookup. */
   contactId?: string | null;
+  /**
+   * Which plan they are on — `self_verify`, `jalla_verify`, `jalla_management`.
+   *
+   * Becomes a tag so a smart list can be built from it. Optional: absent means unknown,
+   * not free, and no tier tag is applied rather than a wrong one.
+   */
+  tier?: string | null;
 }
 
 export interface GhlForwardResult {
@@ -233,7 +240,7 @@ async function deliverViaApi(
   opts: GhlForwardOptions,
 ): Promise<GhlForwardResult> {
   const { first, last } = splitName(contact.fullName);
-  const tags = tagsFor(event, opts.variant, contact.lang);
+  const tags = tagsFor(event, opts.variant, contact.lang, opts.tier);
 
   const up = await upsertContact(cfg, {
     email,

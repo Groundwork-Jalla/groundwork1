@@ -190,6 +190,38 @@ subscription_changed:active       subscription_changed:canceled
 subscription_changed:past_due
 ```
 
+### Two funnels, two pipelines
+
+A contractor moves *Applied → Interviewed → Accepted*. A homeowner moves *Signed up →
+Building → Subscribed*. Those are not the same board, and a stage cannot belong to two
+pipelines in GoHighLevel — so a stage value may name its own pipeline:
+
+```
+"<stageId>"                 uses ghl_pipeline_id, the default
+"<pipelineId>/<stageId>"    uses that pipeline instead
+```
+
+Real stage ids contain hyphens but never a slash, so everything already in the map keeps
+working untouched.
+
+A homeowner board worth building — *Signed up → Estimated → Building → Subscribed*:
+
+```sql
+INSERT INTO public.app_config (key, value) VALUES
+  ('ghl_stage_map', '{
+     "contractor_application":"APPLIED_ID",
+     "application_decision:accepted":"ACCEPTED_ID",
+     "application_decision:rejected":"REJECTED_ID",
+     "user_signup":"HOMEOWNER_PIPELINE_ID/SIGNED_UP_ID",
+     "project_created":"HOMEOWNER_PIPELINE_ID/BUILDING_ID",
+     "subscription_changed:active":"HOMEOWNER_PIPELINE_ID/SUBSCRIBED_ID"
+   }')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+```
+
+Get the ids the same way as the contractor ones: `/admin/crm` → **Show pipeline & stage
+ids**, which lists every pipeline in the location.
+
 `contractor_application` is the one to map first. It puts a card on the board the moment
 somebody applies, which is what makes the acknowledgement email something you can act on
 — schedule an interview, move the card — rather than something you only read. Without it

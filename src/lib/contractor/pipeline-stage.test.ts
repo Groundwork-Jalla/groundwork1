@@ -77,3 +77,90 @@ describe('partyFor', () => {
     expect(partyFor('subscription_changed')).toBe('Homeowner');
   });
 });
+
+/**
+ * Contractors and homeowners are not one funnel.
+ *
+ * A contractor moves Applied → Interviewed → Accepted. A homeowner moves Signed up →
+ * Building → Subscribed. Forcing both onto one board makes every column meaningless for
+ * half the people standing in it, and GoHighLevel has no notion of a stage belonging to
+ * two pipelines — so a stage value may name its own.
+ */
+describe('stageForKey across pipelines', () => {
+  const CONTRACTORS = 'IXiiJwIomXDCdOxGreoC';
+  const HOMEOWNERS  = 'HoMeOwNeRpIpEiD';
+
+  it('uses the default pipeline for a bare stage id', async () => {
+    const { stageForKey } = await fresh({ contractor_application: 'stage_applied' });
+    expect(await stageForKey('contractor_application'))
+      .toEqual({ pipelineId: CONTRACTORS, stageId: 'stage_applied' });
+  });
+
+  it('sends a homeowner to their own board when the value names it', async () => {
+    const { stageForKey } = await fresh({
+      contractor_application: 'stage_applied',
+      user_signup: `${HOMEOWNERS}/stage_signed_up`,
+    });
+    expect(await stageForKey('user_signup'))
+      .toEqual({ pipelineId: HOMEOWNERS, stageId: 'stage_signed_up' });
+  });
+
+  it('keeps the two funnels apart in one map', async () => {
+    const { stageForKey } = await fresh({
+      contractor_application: 'stage_applied',
+      project_created: `${HOMEOWNERS}/stage_building`,
+    });
+    const contractor = await stageForKey('contractor_application');
+    const homeowner  = await stageForKey('project_created');
+    expect(contractor?.pipelineId).toBe(CONTRACTORS);
+    expect(homeowner?.pipelineId).toBe(HOMEOWNERS);
+    expect(contractor?.pipelineId).not.toBe(homeowner?.pipelineId);
+  });
+
+  it('a UUID stage id is not mistaken for a pipeline path', async () => {
+    // Real stage ids contain hyphens but never a slash — the separator was chosen so
+    // that every id already in ghl_stage_map keeps working untouched.
+    const { stageForKey } = await fresh({
+      contractor_application: '5e5a7691-8cd1-41e2-8b6f-301ecd1a90de',
+    });
+    expect(await stageForKey('contractor_application'))
+      .toEqual({ pipelineId: CONTRACTORS, stageId: '5e5a7691-8cd1-41e2-8b6f-301ecd1a90de' });
+  });
+});
+
+/**
+ * The plan is a tag, not a pipeline.
+ *
+ * All three tiers walk the same journey — sign up, estimate, build stage by stage — and
+ * what differs is who verifies each stage: the owner, Jalla on review, or Jalla
+ * throughout. Three boards would show the same columns three times and force a manual
+ * move on upgrade, which is the most valuable event in the funnel and the one whose
+ * history you least want to lose.
+ */
+describe('tierTag', () => {
+  it('names each plan', async () => {
+    const { tierTag } = await fresh(null);
+    expect(tierTag('self_verify')).toBe('groundwork:self-verify');
+    expect(tierTag('jalla_verify')).toBe('groundwork:jalla-verify');
+    expect(tierTag('jalla_management')).toBe('groundwork:jalla-managed');
+  });
+
+  it('tags nobody when the tier is unknown', async () => {
+    // Absent must not read as free: an untagged contact is one we have not classified,
+    // and tagging them self-verify would be a claim we cannot support.
+    const { tierTag } = await fresh(null);
+    expect(tierTag(null)).toBeNull();
+    expect(tierTag('')).toBeNull();
+    expect(tierTag('enterprise')).toBeNull();
+  });
+
+  it('rides alongside the identity tags rather than replacing them', async () => {
+    const { tagsFor } = await fresh(null);
+    const tags = tagsFor('project_created', undefined, 'fr', 'jalla_verify');
+    expect(tags).toContain('groundwork');
+    expect(tags).toContain('groundwork:homeowner');
+    expect(tags).toContain('groundwork:building');
+    expect(tags).toContain('groundwork:fr');
+    expect(tags).toContain('groundwork:jalla-verify');
+  });
+});

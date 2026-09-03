@@ -79,8 +79,38 @@ export function partyFor(event: GhlEvent): 'Contractor' | 'Homeowner' {
   return HOMEOWNER_EVENTS.has(event) ? 'Homeowner' : 'Contractor';
 }
 
+/**
+ * Which plan a homeowner is on, as a tag.
+ *
+ * `project_tier` already travels as a custom field, which is right for reporting and
+ * wrong for working: a smart list filters on tags, and "everyone on Jalla Verify" is a
+ * list somebody wants weekly.
+ *
+ * It is a tag rather than a pipeline because the plan is not a stage. All three tiers
+ * follow the same journey — sign up, estimate, build stage by stage — and what differs
+ * is who verifies each stage (see approvals.ts): the owner themselves, Jalla on review,
+ * or Jalla throughout. Splitting them into three boards would show the same five columns
+ * three times, and force a manual move the moment somebody upgrades — which is the most
+ * valuable event in the funnel and the one you least want to lose the history of.
+ */
+const TIER_TAG: Record<string, string> = {
+  self_verify:      'groundwork:self-verify',
+  jalla_verify:     'groundwork:jalla-verify',
+  jalla_management: 'groundwork:jalla-managed',
+};
+
+export function tierTag(tier?: string | null): string | null {
+  const t = (tier ?? '').trim();
+  return TIER_TAG[t] ?? null;
+}
+
 /** `lang` is optional: a contact with no known language should not be tagged as English. */
-export function tagsFor(event: GhlEvent, variant?: string, lang?: string | null): string[] {
+export function tagsFor(
+  event: GhlEvent,
+  variant?: string,
+  lang?: string | null,
+  tier?: string | null,
+): string[] {
   const tags = [BASE_TAG];
 
   if (HOMEOWNER_EVENTS.has(event)) tags.push('groundwork:homeowner');
@@ -96,6 +126,11 @@ export function tagsFor(event: GhlEvent, variant?: string, lang?: string | null)
   }
 
   if (lang === 'fr' || lang === 'en') tags.push(`groundwork:${lang}`);
+
+  // Additive, and only when known: a contact whose tier we cannot see should not be
+  // tagged as free, which is the reading an absent tag would otherwise invite.
+  const tt = tierTag(tier);
+  if (tt) tags.push(tt);
 
   return tags;
 }
@@ -135,7 +170,8 @@ export async function stageForKey(key: string, fallbackKey?: string): Promise<St
   const cfg = await ghlSettings();
   const pipelineId = cfg.GHL_PIPELINE_ID.value;
   const raw = cfg.GHL_STAGE_MAP.value;
-  if (!pipelineId || !raw) return null;
+  // The default pipeline may be absent when every stage names its own.
+  if (!raw) return null;
 
   let map: Record<string, string>;
   try {
@@ -149,6 +185,25 @@ export async function stageForKey(key: string, fallbackKey?: string): Promise<St
 
   // The specific key first, then the unsuffixed event: a map with only `user_signup`
   // still moves a `user_signup` however it is called.
-  const stageId = map[key] || (fallbackKey ? map[fallbackKey] : undefined);
-  return stageId ? { pipelineId, stageId } : null;
+  const value = map[key] || (fallbackKey ? map[fallbackKey] : undefined);
+  if (!value) return null;
+  if (!pipelineId && !value.includes('/')) return null;
+
+  // ── A stage can name its own pipeline ───────────────────────────────────────────────
+  // `"<stageId>"`              → the default pipeline in ghl_pipeline_id
+  // `"<pipelineId>/<stageId>"` → that pipeline instead
+  //
+  // Contractors and homeowners are not one funnel. A contractor moves Applied →
+  // Interviewed → Accepted; a homeowner moves Signed up → Building → Subscribed. Forcing
+  // both onto one board makes every column meaningless for half the people on it, and
+  // GoHighLevel has no notion of a stage belonging to two pipelines.
+  //
+  // Encoded in the value rather than as a second setting because the map already exists,
+  // is already one edit, and a `ghl_homeowner_pipeline_id` would need a third the day a
+  // partner or supplier funnel appears.
+  const slash = value.indexOf('/');
+  if (slash > 0) {
+    return { pipelineId: value.slice(0, slash), stageId: value.slice(slash + 1) };
+  }
+  return { pipelineId: pipelineId!, stageId: value };
 }

@@ -230,6 +230,10 @@ async function applySubscription(
       period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : '',
     }, {
       variant: sub.status,
+      // The plan they are now on, as a tag. This is the moment it changes, so it is the
+      // moment the tag has to follow — a contact tagged self-verify a month after paying
+      // is worse than one with no tag at all.
+      tier: profile.subscription_tier as string | null,
       // Keyed on the Stripe event, so a Stripe retry is one CRM update rather than two,
       // while a genuine later change still gets its own row.
       dedupeKey: `subscription_changed:${eventId}`,

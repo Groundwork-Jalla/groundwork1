@@ -75,6 +75,9 @@ export async function handler(req: any, res: any) {
     build_city:    (project.city as string | null) ?? '',
   }, {
     dedupeKey: `project_created:${project.id}`,
+    // Also as a tag, so "everyone on Jalla Verify" is a smart list rather than a
+    // custom-field filter. See tierTag in _pipeline.ts.
+    tier: project.tier as string | null,
   });
 
   // 200 either way: the project exists and the caller is fire-and-forget. The reason is
