@@ -44,6 +44,8 @@ const PATHS = {
   // is the endpoint for messages that happened *outside* GHL, and it takes a `direction`
   // — `/outbound` is call logs only. See `addConversationEmail`.
   inboundMessage:    '/conversations/messages/inbound',
+  conversations:     '/conversations/',
+  searchConversations: '/conversations/search',
   customFields:      (locationId: string) => `/locations/${locationId}/customFields`,
   // Folder creation is not part of GHL's published v2 media surface the way uploading is.
   // These are the plausible routes; `ensureFolder` tries them in order and remembers the
@@ -235,6 +237,58 @@ export interface ConversationEmail {
 }
 
 /**
+ * The contact's conversation thread, created if they have none.
+ *
+ * ── Why this exists ──────────────────────────────────────────────────────────────────
+ * `/conversations/messages/inbound` is documented as taking a **conversationId**. We
+ * were sending a `contactId` on the reasoning that GHL would resolve the thread itself —
+ * which it may well do for some message types, but the endpoint answered 400 once the
+ * OAuth token got us past the 401 on 3 Sep 2026.
+ *
+ * A contact with no history has no conversation, so this cannot be a lookup alone: it
+ * searches, and creates one when the search comes back empty. That is also what makes
+ * the first email to a brand-new applicant land somewhere rather than failing.
+ *
+ * Null on failure, which sends the caller back to writing a note.
+ */
+export async function ensureConversation(
+  cfg: GhlConfig,
+  contactId: string,
+  bearer?: string,
+): Promise<string | null> {
+  const found = await ghlFetch<Record<string, unknown>>(cfg, PATHS.searchConversations, {
+    method: 'GET',
+    query: { locationId: cfg.locationId, contactId },
+    bearer,
+  });
+
+  if (found.ok && found.data) {
+    const d = found.data as { conversations?: unknown };
+    const rows = [d.conversations, found.data].find(Array.isArray) as
+      | Array<Record<string, unknown>>
+      | undefined;
+    const id = rows?.[0]?.id ?? rows?.[0]?._id;
+    if (typeof id === 'string' && id) return id;
+  }
+
+  const made = await ghlFetch<Record<string, unknown>>(cfg, PATHS.conversations, {
+    method: 'POST',
+    body: { locationId: cfg.locationId, contactId },
+    bearer,
+    verboseErrors: true,
+  });
+  if (!made.ok) {
+    console.error('[ghl-api] could not open a conversation for', contactId, made.error);
+    return null;
+  }
+
+  const d = (made.data ?? {}) as Record<string, unknown>;
+  const nested = (d.conversation ?? {}) as Record<string, unknown>;
+  const id = d.id ?? d._id ?? nested.id ?? nested._id;
+  return typeof id === 'string' && id ? id : null;
+}
+
+/**
  * Put an email we sent onto the contact's Conversations thread.
  *
  * ── Why `/inbound` sends an outbound message ─────────────────────────────────────────
@@ -275,6 +329,12 @@ export async function addConversationEmail(
    */
   bearer?: string,
 ): Promise<GhlResult<{ messageId?: string }>> {
+  // The endpoint wants the thread, not the person. See ensureConversation.
+  const conversationId = await ensureConversation(cfg, email.contactId, bearer);
+  if (!conversationId) {
+    return { ok: false, status: 0, error: 'no_conversation' };
+  }
+
   const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
     method: 'POST',
     bearer,
@@ -284,15 +344,22 @@ export async function addConversationEmail(
     verboseErrors: true,
     body: {
       type: 'Email',
+      conversationId,
       // GHL's default here is already 'outbound', but stated rather than assumed: a
       // default that flips would show every email we sent as one the contractor sent us.
       direction: 'outbound',
       conversationProviderId: providerId,
-      // The conversation is resolved or created from the contact, so no thread has to be
-      // looked up first and a person with no history still gets one.
+      // Both the thread and the person. The endpoint addresses the thread; sending the
+      // contact as well costs nothing and means a GHL build that resolves either way
+      // still works. That comment used to claim the contact alone was enough — it was
+      // not, which is what the 400 was telling us.
       contactId: email.contactId,
       subject: email.subject,
       html: email.html,
+      // Some GHL message types validate on `message` rather than `html`. Plain text
+      // alongside the markup, so a schema that insists on one is satisfied and a thread
+      // that renders the other still reads correctly.
+      message: email.subject,
       emailFrom: email.from,
       emailTo: email.to,
       date: (email.sentAt ?? new Date()).toISOString(),
