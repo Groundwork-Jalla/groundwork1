@@ -620,6 +620,27 @@ export async function deleteCrmDuplicates(): Promise<unknown> {
   return r.json();
 }
 
+/**
+ * Push everyone already in Supabase into GoHighLevel, with their correspondence.
+ *
+ * `send: false` (the default) reports who would be emailed and who would only have their
+ * thread backfilled — worth reading before mail goes to thirty-odd people at once.
+ *
+ * Nobody already contacted receives anything new: their Conversations thread is written
+ * with a record of the email they were sent at the time, and nothing is delivered.
+ */
+export async function backfillCrm(
+  kind: 'contractors' | 'users',
+  send = false,
+): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-backfill', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind, send }),
+  });
+  return r.json();
+}
+
 export type CrmFieldsMode = 'check' | 'create' | 'repair';
 
 /**

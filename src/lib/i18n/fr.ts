@@ -286,6 +286,16 @@ export const fr: Mirror<EnDict> = {
   },
 
   admin: {
+    crmSync: {
+      title:   'Envoyer tout le monde vers le CRM',
+      blurb:   "Crée ou met à jour chaque contact dans Go High Level avec ses champs, ses tags et sa carte de pipeline, et place sa correspondance sur un fil Conversations auquel vous pouvez répondre. Les personnes déjà contactées voient leur fil complété — elles ne reçoivent aucun nouvel e-mail.",
+      preview: 'Aperçu',
+      send:    'Envoyer à {n} et compléter le reste',
+      backfillOnly: 'Compléter {n} fils',
+      counts:  '{send} recevraient un nouvel e-mail ; {backfill} verraient seulement leur fil complété.',
+      confirm: "Envoyer un vrai e-mail à {n} personnes jamais contactées ? Les autres sont seulement complétées.",
+      failed:  "Cela n'a pas fonctionné.",
+    },
     overviewTitle:    'Aperçu administrateur',
     overviewSubtitle: 'Résumé de la plateforme Groundwork',
     totalProjects:    'Projets au total',

@@ -5,6 +5,7 @@ import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import { CrmBackfillPanel } from '@/components/admin/CrmBackfillPanel';
 
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-brand-off-white text-state-active',
@@ -85,6 +86,8 @@ export default function AdminUsers() {
           />
         </div>
       </div>
+
+      <CrmBackfillPanel kind="users" />
 
       {notice && (
         <p role="status" className="mb-4 rounded-xl border border-state-complete/30 px-4 py-2.5 text-sm text-state-complete">

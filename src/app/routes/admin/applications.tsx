@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { CrmBackfillPanel } from '@/components/admin/CrmBackfillPanel';
 
 // =========================================================
 // /admin/applications
@@ -135,6 +136,8 @@ export default function AdminApplications() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.apps.title')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.apps.subtitle')}</p>
+
+        <CrmBackfillPanel kind="contractors" />
 
         {unacknowledged > 0 && (
           <button

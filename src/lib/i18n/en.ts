@@ -275,6 +275,16 @@ export const en = {
   },
 
   admin: {
+    crmSync: {
+      title:   'Send everyone to the CRM',
+      blurb:   'Creates or updates each contact in Go High Level with their fields, tags and pipeline card, and puts their correspondence on a Conversations thread you can reply from. Anyone already contacted has their thread backfilled — they are never emailed again.',
+      preview: 'Preview',
+      send:    'Send to {n} and backfill the rest',
+      backfillOnly: 'Backfill {n} threads',
+      counts:  '{send} would receive a new email; {backfill} would only have their thread backfilled.',
+      confirm: 'Send real email to {n} people who have never been contacted? Everyone else is only backfilled.',
+      failed:  'That did not run.',
+    },
     overviewTitle:    'Admin Overview',
     overviewSubtitle: 'Groundwork platform summary',
     totalProjects:    'Total Projects',
