@@ -175,7 +175,8 @@ export async function handler(req: any, res: any) {
   else {
     const { data: rows, error } = await svc
       .from('profiles')
-      .select('id, email, full_name, preferred_lang, country, phone')
+      .select('id, email, full_name, preferred_lang, country, phone, ' +
+              'subscription_tier, subscription_status')
       .not('email', 'is', null)
       .order('created_at', { ascending: true })
       .limit(MAX_PER_RUN);
@@ -188,16 +189,28 @@ export async function handler(req: any, res: any) {
     const { buildUserWelcomeHtml, userWelcomeSubject } =
       await import('../../src/lib/email/user-welcome-html.js');
 
-    // One query rather than one per person: who already has a project decides which of
-    // two quite different emails they get.
-    const { data: projectOwners } = await svc.from('projects').select('user_id');
-    const hasProject = new Set((projectOwners ?? []).map(p => String(p.user_id)));
+    // One query rather than one per person. Also carries what the project *is*, because
+    // replaying `project_created` needs its name, tier and location — a card with a
+    // blank name on the board is not much better than no card.
+    const { data: projectRows } = await svc
+      .from('projects')
+      .select('id, user_id, name, tier, country, city, created_at')
+      .order('created_at', { ascending: false });
+
+    // Newest first, so the first one seen per owner is their most recent — which is the
+    // one whose tier and location should describe them today.
+    const newestProject = new Map<string, Record<string, unknown>>();
+    for (const row of projectRows ?? []) {
+      const owner = String(row.user_id);
+      if (!newestProject.has(owner)) newestProject.set(owner, row);
+    }
+    const hasProject = (id: string) => newestProject.has(id);
 
     for (const p of rows ?? []) {
       const email = String(p.email ?? '').trim();
       if (!email) continue;
       const lang = p.preferred_lang === 'fr' ? 'fr' : 'en';
-      const built = hasProject.has(String(p.id));
+      const built = hasProject(String(p.id));
 
       // Homeowners have never had a welcome — the template did not exist until now — so
       // there is nothing to backfill and everybody in this list is a genuine first
@@ -212,16 +225,52 @@ export async function handler(req: any, res: any) {
         name: p.full_name as string | null, site, hasProject: built,
       });
 
-      // Carries the tags, `groundwork_party: Homeowner`, and the E.164 phone — the
-      // same path a live signup takes, so a backfilled contact is indistinguishable
-      // from one created today.
-      await forwardToGhl('user_signup', {
+      // ── Replay their history in order, so the board ends up telling the truth ──────
+      // Each event moves the same card, so the last one to fire decides where they
+      // stand. Sequence matters: somebody who signed up, built, and then subscribed
+      // should be sitting in Subscribed, not Signed up — which is exactly what firing
+      // only `user_signup` would have left behind.
+      const contact = {
         email,
         fullName: p.full_name as string | null,
         phone:    p.phone as string | null,
         country:  p.country as string | null,
         lang,
-      }, { user_id: String(p.id) }, { dedupeKey: `backfill_signup_${p.id}` });
+      };
+
+      await forwardToGhl('user_signup', contact, { user_id: String(p.id) },
+        { dedupeKey: `backfill_signup_${p.id}` });
+
+      const project = newestProject.get(String(p.id));
+      if (project) {
+        await forwardToGhl('project_created', contact, {
+          user_id:       String(p.id),
+          project_id:    String(project.id ?? ''),
+          project_name:  String(project.name ?? ''),
+          project_tier:  String(project.tier ?? ''),
+          build_country: String(project.country ?? ''),
+          build_city:    String(project.city ?? ''),
+        }, {
+          dedupeKey: `backfill_project_${project.id}`,
+          tier: project.tier as string | null,
+        });
+      }
+
+      // Only a live subscription moves them on. A cancelled one is history, and
+      // replaying it would park a former customer in Cancelled as though they had just
+      // churned — which is worse than leaving them where their project put them.
+      const subStatus = String(p.subscription_status ?? '');
+      if (subStatus === 'active' || subStatus === 'trialing') {
+        await forwardToGhl('subscription_changed', contact, {
+          user_id:             String(p.id),
+          subscription_status: subStatus,
+          subscription_tier:   String(p.subscription_tier ?? ''),
+        }, {
+          variant: 'active',
+          dedupeKey: `backfill_subscription_${p.id}`,
+          tier: p.subscription_tier as string | null,
+        });
+      }
 
       let mailOk = true;
       const apiKey = process.env.RESEND_API_KEY;

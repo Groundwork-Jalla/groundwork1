@@ -519,6 +519,13 @@ export const fr: Mirror<EnDict> = {
       directoryHint: "Masquer une entrée conserve son historique et reste réversible. La suppression, non.",
       deleted:       'Supprimé.',
       deletedWithProjects: 'Supprimé, ainsi que {count} chantier(s).',
+
+      deleteProject:      'Supprimer le chantier',
+      projectConsequence: 'Ceci détruit définitivement {stages} étape(s), {documents} document(s), {messages} message(s) et tous les fichiers téléversés. Aucun retour en arrière n\u2019est possible. Je comprends.',
+      projectFreesSlot:   'Cela restitue également un emplacement {plan} à {owner}, qui pourra alors créer un autre chantier.',
+      projectDeleted:     '\u00AB\u00A0{name}\u00A0\u00BB supprimé.',
+      projectOrphaned:    '\u00AB\u00A0{name}\u00A0\u00BB supprimé, mais {count} fichier(s) n\u2019ont pas pu être retirés du stockage. Le chantier a disparu ; les fichiers sont inaccessibles.',
+      projectNotFound:    'Ce chantier n\u2019existe plus \u2014 il a peut-être déjà été supprimé.',
     },
 
     dir: {
