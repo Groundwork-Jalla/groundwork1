@@ -175,8 +175,7 @@ export async function handler(req: any, res: any) {
   else {
     const { data: rows, error } = await svc
       .from('profiles')
-      .select('id, email, full_name, preferred_lang, country, phone, ' +
-              'subscription_tier, subscription_status')
+      .select('id, email, full_name, preferred_lang, country, phone, subscription_tier, subscription_status')
       .not('email', 'is', null)
       .order('created_at', { ascending: true })
       .limit(MAX_PER_RUN);
