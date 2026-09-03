@@ -99,9 +99,13 @@ export async function handler(req: any, res: any) {
         + 'is not set. Notes cannot be replied to. See docs/GHL-SETUP.md, step 8, for '
         + 'how to create the Email conversation provider and where to paste its id.'
     : r.surface === 'note'
+      // GoHighLevel's own words when we have them. A 400 naming the field it objected to
+      // is worth more than three sentences of our guesses about which of two causes it
+      // might be — and guessing at an opaque status is exactly what made the media
+      // upload take three attempts.
       ? `Written as a note. GoHighLevel refused the conversation message (${r.reason}), `
-        + 'so the record was kept where it could be. The provider id may be wrong, or the '
-        + 'token may be missing the conversations/message.write scope.'
+        + 'so the record was kept where it could be.'
+        + (r.detail ? `\n\nGoHighLevel said: ${r.detail}` : '')
     : 'Nothing was recorded. The contact could not be created or both writes were '
       + `refused (${r.reason}) — check the function logs for [ghl-email-log].`;
 

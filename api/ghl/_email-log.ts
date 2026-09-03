@@ -172,6 +172,8 @@ export interface EmailLogResult {
   surface: EmailLogSurface;
   /** Why the conversation thread was not used. Null when it was. */
   reason?: string | null;
+  /** GoHighLevel's own words about the refusal, for the admin diagnostic. */
+  detail?: string | null;
 }
 
 /**
@@ -208,6 +210,7 @@ export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResu
     // ── The thread, which is the point ────────────────────────────────────────────────
     const providerId = (await ghlSettingValue('GHL_CONVERSATION_PROVIDER_ID'))?.trim();
     let reason: string | null = 'no_provider_id';
+    let detail: string | null = null;
 
     if (providerId && opts.html) {
       // The app's token, not the location's — see addConversationEmail. Null means the
@@ -225,7 +228,10 @@ export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResu
       // Falls through to the note rather than returning. A refused message is exactly
       // when the record matters — losing it would leave the contact looking uncontacted.
       console.warn(`[ghl-email-log] conversation write refused for ${email}: ${conv.status}`);
+      // The status alone says "it did not work"; GoHighLevel's own text says which field
+      // it objected to. Carried through so the admin page can print it verbatim.
       reason = `conversation_${conv.status}`;
+      detail = conv.error ?? null;
     } else if (providerId && !opts.html) {
       // Nothing to put in the thread. A subject-only entry in Conversations reads as a
       // message that failed to load; as a note it reads as a record, which is what it is.
@@ -237,7 +243,7 @@ export async function logEmailToCrm(opts: LogEmailOptions): Promise<EmailLogResu
       console.warn(`[ghl-email-log] note rejected for ${email}: ${r.status}`);
       return { ok: false, surface: 'none', reason: `note_${r.status}` };
     }
-    return { ok: true, surface: 'note', reason };
+    return { ok: true, surface: 'note', reason, detail };
   } catch (err) {
     console.warn('[ghl-email-log] failed, email was still sent:', err);
     return { ok: false, surface: 'none', reason: 'threw' };

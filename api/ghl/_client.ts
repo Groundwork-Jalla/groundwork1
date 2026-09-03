@@ -104,6 +104,15 @@ export async function ghlFetch<T = unknown>(
     query?: Record<string, string>;
     /** Overrides the Private Integration Token. Only the conversations call needs this. */
     bearer?: string;
+    /**
+     * Return GoHighLevel's own error text instead of just `ghl <status>`.
+     *
+     * Off by default because GHL error bodies can name account internals and most
+     * results travel to a browser. On for calls whose result is only ever read by an
+     * admin diagnostic — where the difference between "400" and "conversationId must be
+     * a string" is the difference between an afternoon and a minute.
+     */
+    verboseErrors?: boolean;
   },
 ): Promise<GhlResult<T>> {
   const url = new URL(API_BASE + path);
@@ -127,7 +136,11 @@ export async function ghlFetch<T = unknown>(
     if (!r.ok) {
       // Logged, not returned upstream: GHL error bodies can name account internals.
       console.error(`[ghl-api] ${init.method} ${path} → ${r.status}`, text.slice(0, 300));
-      return { ok: false, status: r.status, error: `ghl ${r.status}` };
+      return {
+        ok: false,
+        status: r.status,
+        error: init.verboseErrors ? text.slice(0, 500) || `ghl ${r.status}` : `ghl ${r.status}`,
+      };
     }
     return { ok: true, status: r.status, data };
   } catch (err) {
@@ -265,6 +278,10 @@ export async function addConversationEmail(
   const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.inboundMessage, {
     method: 'POST',
     bearer,
+    // This whole path is unverified against a live account, and its failures are read
+    // only through /admin/crm by an admin. Guessing at a 400 from three words is what
+    // the media upload cost three attempts.
+    verboseErrors: true,
     body: {
       type: 'Email',
       // GHL's default here is already 'outbound', but stated rather than assumed: a
