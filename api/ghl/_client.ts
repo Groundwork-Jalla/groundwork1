@@ -31,6 +31,7 @@ const API_BASE = 'https://services.leadconnectorhq.com';
 const API_VERSION = '2021-07-28';
 const PATHS = {
   upsertContact:     '/contacts/upsert',
+  contact:           (contactId: string) => `/contacts/${contactId}`,
   addTags:           (contactId: string) => `/contacts/${contactId}/tags`,
   contactNotes:      (contactId: string) => `/contacts/${contactId}/notes`,
   searchOpportunity: '/opportunities/search',
@@ -382,6 +383,41 @@ export async function addConversationEmail(
     status: r.status,
     data: { messageId: id ? String(id) : undefined },
   };
+}
+
+/**
+ * Correct a contact's phone number.
+ *
+ * Used by the cleanup for records GoHighLevel stamped `+1` onto because the sub-account
+ * is registered in Maryland — a Cameroonian mobile handed over without a country code
+ * became a valid US number belonging to a stranger. Repairing beats deleting: the person
+ * is real and their name is right; only the country code is wrong.
+ */
+export async function updateContactPhone(
+  cfg: GhlConfig,
+  contactId: string,
+  phone: string,
+): Promise<GhlResult<unknown>> {
+  return ghlFetch(cfg, PATHS.contact(contactId), {
+    method: 'PUT',
+    body: { phone },
+    verboseErrors: true,
+  });
+}
+
+/**
+ * Remove a contact. Irreversible beyond GoHighLevel's own restore window.
+ *
+ * Only ever called for a record that has a confirmed twin carrying the email and the
+ * tags — i.e. where the person survives the deletion. Never on the strength of a phone
+ * number's shape alone: a legitimate US or Nigerian contact looks identical to a mangled
+ * one by shape, and this account has both.
+ */
+export async function deleteContact(
+  cfg: GhlConfig,
+  contactId: string,
+): Promise<GhlResult<unknown>> {
+  return ghlFetch(cfg, PATHS.contact(contactId), { method: 'DELETE', verboseErrors: true });
 }
 
 /** Add tags to an existing contact. Tags already present are not duplicated by GHL. */

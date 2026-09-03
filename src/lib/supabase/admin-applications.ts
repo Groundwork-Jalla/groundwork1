@@ -589,6 +589,37 @@ export async function listCrmPipelines(): Promise<unknown> {
   return r.json();
 }
 
+/**
+ * Rewrite mangled +1 numbers back to +237. Non-destructive.
+ *
+ * Only touches orphan records whose phone shape *proves* the mangling — nine digits
+ * beginning 6 after a +1, which cannot be a North American number. Legitimate US and
+ * Nigerian contacts are untouched.
+ */
+export async function fixCrmPhones(): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-audit', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fixPhones: true }),
+  });
+  return r.json();
+}
+
+/**
+ * Delete duplicate records left by the legacy webhook. Irreversible.
+ *
+ * Only removes an orphan that has a twin carrying the email and the tags, so the person
+ * always survives. Anything without a twin is repaired instead, never deleted.
+ */
+export async function deleteCrmDuplicates(): Promise<unknown> {
+  const r = await fetch('/api/events?action=crm-audit', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deleteDuplicates: true }),
+  });
+  return r.json();
+}
+
 export type CrmFieldsMode = 'check' | 'create' | 'repair';
 
 /**

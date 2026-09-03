@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Check, X, RefreshCw, AlertTriangle, Search, Download, Mail } from 'lucide-react';
 import {
-  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm, listCrmPipelines,
+  getCrmStatus, listCrmBacklog, retryCrmBacklog, diagnoseCrmDocuments, syncCrmFields, auditCrm, listCrmPipelines, fixCrmPhones, deleteCrmDuplicates,
   listSyncFailures, testCrmEmailLog, type SyncFailureRow,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
@@ -184,6 +184,22 @@ export default function AdminCrm() {
     try {
       setAudit(JSON.stringify(await listCrmPipelines(), null, 2));
       setOrphanCount(null);
+    } catch {
+      setAudit(t('admin.crm.auditFailed'));
+    } finally {
+      setAuditing(false);
+    }
+  }
+
+  /** Repair first, delete second — the safe one should be the easy one to reach. */
+  async function runCleanup(mode: 'phones' | 'duplicates') {
+    if (mode === 'duplicates'
+      && !window.confirm(t('admin.crm.cleanupConfirm'))) return;
+    setAuditing(true);
+    try {
+      setAudit(JSON.stringify(
+        await (mode === 'phones' ? fixCrmPhones() : deleteCrmDuplicates()), null, 2));
+      setOrphanCount(null);   // stale the moment either of these runs
     } catch {
       setAudit(t('admin.crm.auditFailed'));
     } finally {
@@ -406,6 +422,26 @@ export default function AdminCrm() {
                 {/* Only after an audit has actually found something. Deletion is
                     irreversible and the restore window is not a record of what was in
                     there — take the file first. */}
+                {/* Repair is offered plainly; deletion is styled as destructive and
+                    confirms first. Both re-derive their targets from live data, so
+                    neither can act on a stale audit. */}
+                {orphanCount !== null && orphanCount > 0 && (
+                  <button
+                    type="button" disabled={auditing} onClick={() => void runCleanup('phones')}
+                    className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+                  >
+                    {t('admin.crm.fixPhones')}
+                  </button>
+                )}
+                {orphanCount !== null && orphanCount > 0 && (
+                  <button
+                    type="button" disabled={auditing} onClick={() => void runCleanup('duplicates')}
+                    className="ml-2 inline-flex items-center gap-1.5 rounded-lg border border-state-blocked/40 bg-state-blocked/5 px-3 py-1.5 text-xs font-medium text-state-blocked transition-colors hover:bg-state-blocked/10 disabled:opacity-40"
+                  >
+                    <AlertTriangle className="size-3.5" />
+                    {t('admin.crm.deleteDuplicates')}
+                  </button>
+                )}
                 {orphanCount !== null && orphanCount > 0 && (
                   <button
                     type="button" disabled={auditing} onClick={() => void exportOrphans()}

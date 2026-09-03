@@ -1,5 +1,6 @@
 import {
-  ghlConfig, listContacts, listCustomFields, listPipelines, type GhlContactRow,
+  ghlConfig, listContacts, listCustomFields, listPipelines,
+  updateContactPhone, deleteContact, type GhlContactRow,
 } from '../ghl/_client.js';
 import { contractorFieldKeys } from '../ghl/_contractor-payload.js';
 
@@ -161,6 +162,63 @@ export async function handler(req: any, res: any) {
     return;
   }
   const contacts = people.data;
+
+  // ── Repair: rewrite a mangled +1 back to +237 ───────────────────────────────────────
+  // Non-destructive, and deliberately separate from the delete. These are real people
+  // whose only defect is a country code GoHighLevel guessed from the sub-account's
+  // Maryland address; the record is worth keeping, the number is not.
+  //
+  // Matched live rather than from ids the caller supplies, so it cannot act on a stale
+  // audit — and only where the phone shape *proves* the mangling, never on the compound
+  // orphan rule alone, which also selects the phone system's own records.
+  if (req.body?.fixPhones === true) {
+    const targets = contacts.filter(c =>
+      isOrphanRecord(c) && c.phone && isMisroutedCameroonian(c.phone));
+
+    const fixed: Array<{ id: string; name: string; from: string; to: string }> = [];
+    const failed: Array<{ id: string; error?: string }> = [];
+
+    for (const c of targets) {
+      const corrected = `+237${digitsOf(c.phone).slice(1)}`;
+      const r = await updateContactPhone(cfg, c.id, corrected);
+      if (r.ok) fixed.push({ id: c.id, name: c.name, from: c.phone, to: corrected });
+      else failed.push({ id: c.id, error: r.error?.slice(0, 200) });
+    }
+
+    res.status(200).json({ ok: failed.length === 0, fixedCount: fixed.length, fixed, failed });
+    return;
+  }
+
+  // ── Delete: only a record whose person survives it ──────────────────────────────────
+  // An orphan goes *only* when a twin exists sharing its last nine digits and carrying
+  // both an email and tags — the API-created record. Anything without such a twin is
+  // repaired above and never deleted: one of the three mangled records has no twin, and
+  // removing it would lose that contractor entirely.
+  if (req.body?.deleteDuplicates === true) {
+    const byLocalAll = new Map<string, GhlContactRow[]>();
+    for (const c of contacts) {
+      const k = localKey(c.phone);
+      if (k.length === 9) (byLocalAll.get(k) ?? byLocalAll.set(k, []).get(k)!).push(c);
+    }
+    const survivor = (c: GhlContactRow) =>
+      (byLocalAll.get(localKey(c.phone)) ?? [])
+        .find(t => t.id !== c.id && t.email && t.tags.length > 0);
+
+    const removable = contacts.filter(c => isOrphanRecord(c) && !!survivor(c));
+
+    const removed: Array<{ id: string; name: string; phone: string; keptInstead: string }> = [];
+    const failed: Array<{ id: string; error?: string }> = [];
+
+    for (const c of removable) {
+      const keeper = survivor(c)!;
+      const r = await deleteContact(cfg, c.id);
+      if (r.ok) removed.push({ id: c.id, name: c.name, phone: c.phone, keptInstead: keeper.id });
+      else failed.push({ id: c.id, error: r.error?.slice(0, 200) });
+    }
+
+    res.status(200).json({ ok: failed.length === 0, removedCount: removed.length, removed, failed });
+    return;
+  }
 
   // ── Narrow the field (absence), then prove membership (presence) ──
   const orphans = contacts.filter(isOrphanRecord);
