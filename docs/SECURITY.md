@@ -5,7 +5,7 @@ everywhere, TOTP two-factor authentication, and fixes to a password reset flow t
 broken in two places.
 
 **Three of them are only half-true until someone changes a setting in the Supabase
-dashboard.** Those settings are the first two sections here. Nothing below needs a
+dashboard.** Those settings are the first three sections here. Nothing below needs a
 deploy.
 
 ---
@@ -16,24 +16,29 @@ The policy in [`src/lib/auth/password-policy.ts`](../src/lib/auth/password-polic
 in the browser. A browser policy is a usability feature, not a control: anyone can call
 the Supabase Auth REST endpoint directly and set whatever password they like.
 
-Supabase → **Authentication → Policies → Password requirements**:
+Supabase → **Authentication → Sign In / Providers** → scroll to **Auth Providers** →
+expand the **Email** row. The settings are on that panel:
 
 | Setting | Value |
 |---|---|
 | Minimum password length | **10** |
-| Required characters | Lowercase, uppercase, digits |
+| Password Requirements | Lowercase, uppercase letters and digits |
+
+> Not under the left nav's **Policies** item — that one carries an ↗ and jumps to
+> *Database → Policies*, which is Row Level Security and has nothing to do with passwords.
+> An earlier version of this doc sent people there.
 
 That makes the floor real. The client policy stays, because it is the half that can
 explain itself while someone is typing — the server can only refuse.
 
-> The blocklist and the "must not contain your own name" rule stay client-only. Supabase
-> has no hook for them, and they are the rules that catch guessable-but-compliant
-> passwords rather than the ones that matter for a direct API call.
+> The "must not contain your own name or email" rule stays client-only — Supabase has no
+> hook for it, and it needs the profile to compare against. The common-password blocklist
+> has a far better server-side counterpart: see §3.
 
 ## 2. Enable MFA — 2 minutes
 
-Supabase → **Authentication → Providers → Multi-Factor Authentication** → enable **TOTP
-(App Authenticator)**.
+Supabase → **Authentication → Multi-Factor** (its own item in the left nav, under
+CONFIGURATION — *not* inside Sign In / Providers) → enable **TOTP / App Authenticator**.
 
 Without this, `/profile` → Security shows an error where the 2FA panel should be, because
 `listFactors()` is refused at the project level. That is deliberate — a silent empty
@@ -42,7 +47,27 @@ panel would read as a bug in the page.
 **Check:** sign in, open `/profile` → Security, and *Set up two-factor authentication*
 produces a QR code.
 
-## 3. Enforce MFA at the database — not done, and worth deciding on
+## 3. Leaked-password protection — 1 minute, and it closes a real gap
+
+Supabase → **Authentication → Attack Protection** → enable **Prevent use of leaked
+passwords**.
+
+This checks every new password against Have I Been Pwned's breach corpus, k-anonymously,
+server-side. It is the one thing the client policy explicitly cannot do: the blocklist in
+`password-policy.ts` is the *head* of the distribution — around forty entries — because a
+real corpus is hundreds of millions and has no business in a bundle every visitor
+downloads. This is that check, free, and on the server where it also covers direct API
+calls.
+
+The two complement each other rather than overlap. The client list catches `Groundwork1`
+while someone is still typing and explains why; this catches the password that is unique,
+compliant, passes every rule, and is already in a dump.
+
+While on that page, **Enable Captcha protection** is worth considering separately — it is
+the control against someone grinding the login form, which none of the password work
+above addresses.
+
+## 4. Enforce MFA at the database — not done, and worth deciding on
 
 This is the gap to be honest about.
 
@@ -196,11 +221,42 @@ SELECT tgname FROM pg_trigger
 
 ## Testing it
 
-`src/lib/auth/password-policy.test.ts` — 25 tests, the shared policy. It exists because the
-two screens diverged once already and the weaker rule was the one on the reset page.
+| Suite | Covers |
+|---|---|
+| `src/lib/auth/password-policy.test.ts` | 25 tests over the shared policy. It exists because the two screens diverged once already and the weaker rule was the one on the reset page. |
+| `src/lib/auth/mfa.test.ts` | 25 tests over the parts of the MFA wrapper that are **decisions**, not passthrough — see below. |
+| `docs/recording/check_password_ui.py` | Drives the real signup form in headless Chrome. Needs a dev server; not part of `pnpm test`. |
 
-The MFA paths are not unit-tested: they are almost entirely calls into `supabase.auth.mfa`,
-and a test that mocks all of them asserts the mocks. Walk them by hand:
+**What `mfa.test.ts` does and does not claim.** Most of `mfa.ts` hands straight to
+`supabase.auth.mfa`, and testing that would only assert the mocks. Four places are not
+passthrough, and each fails silently in its own direction: `challengeRequired()` decides
+whether anyone is asked for a code at all (and must fail *open*, or a bad AAL lookup locks
+every user out of the product); `getMfaStatus()` must not count an abandoned, unverified
+factor as "On", which would tell someone they are protected when they are not;
+`clearUnverified()` is the only reason a second enrolment attempt is possible after
+somebody closes the dialog; and `verifyCode()` normalises the `123 456` people paste off a
+phone. Those are pinned. **The integration itself is not tested and cannot be from here.**
+
+**`check_password_ui.py` is the one that proves the policy reaches the screen.** Unit tests
+cannot: between the policy and the user sit a component, two dictionaries and a form, and a
+missing i18n key or an unrendered component would pass every unit test while the meter
+showed nothing. It walks the real DOM — meter appears on the first keystroke, climbs
+Weak → Good → Strong, floors to 0 on a blocklisted or self-referencing password, and the
+submit handler refuses. It is client-side only and never presses submit with an acceptable
+password, so it is safe to run against a dev server pointed at production.
+
+Run it with:
+
+```bash
+npx vite --port 5199 --strictPort &
+.venv/bin/python docs/recording/check_password_ui.py
+```
+
+### Still only testable by hand
+
+The 2FA flows have never been executed — TOTP is not yet enabled on the project, so
+`enrollTotp`, `verifyCode` and `challengeRequired` have not once run against real Supabase.
+Enable it (§2), then walk these:
 
 1. Enrol at `/profile` → Security. Scan, enter a code, confirm the badge reads **On**.
 2. Sign out, sign in with the password. The code form must appear before the dashboard.
