@@ -556,6 +556,31 @@ export const en = {
     },
 
     // ── Waitlist (/admin/waitlist) ──
+    // The queue for support_tickets (migration 074). Before it there was no table, and
+    // both writers told the sender their message had been received.
+    support: {
+      title:        'Support',
+      subtitle:     'Messages from the help form, and account-deletion requests. Every ticket also emails the team inbox when it arrives.',
+      search:       'Search by name, email or message',
+      filterOpen:   'Open',
+      filterAll:    'All',
+      empty:        'No tickets yet.',
+      emptyFiltered:'No tickets match that.',
+      loadFailed:   'Could not load the support queue.',
+      saveFailed:   'That change did not save. Try again.',
+      reply:        'Reply',
+      status:       'Status',
+      statusOpen:       'Open',
+      statusInProgress: 'In progress',
+      statusResolved:   'Resolved',
+      statusClosed:     'Closed',
+      kindDeletion: 'Deletion',
+      // Shown when the ticket outlived the account that filed it. The row survives on
+      // purpose: deleting the user must not delete the evidence they asked us to.
+      accountGone:  'account closed',
+      deletionsPending: '{count} account-deletion request awaiting action — the sender was told 48 hours.',
+      deletionsPending_plural: '{count} account-deletion requests awaiting action — senders were told 48 hours.',
+    },
     wait: {
       title:      'Waitlist',
       subtitle:   'Everyone who asked to be told when Groundwork opens.',
@@ -842,6 +867,10 @@ export const en = {
     exportButton:        'Download JSON export',
     deleteTitle:         'Delete account',
     deleteBody:          'Deleting your account is irreversible. All projects, documents, and data will be permanently removed.',
+    // The success line was hardcoded English and printed whether or not the request was
+    // stored — it never was, because the table did not exist. Both outcomes are real now.
+    deleteSubmitted:     'Account deletion request submitted. Our team will process it within 48 hours.',
+    deleteFailed:        'We could not submit your request. Please email contact@tryjalla.com so it is not lost.',
     deleteTypePrefix:    'Type',
     deleteConfirmWord:   'DELETE',
     confirmDeletion:     'Confirm deletion',
@@ -1563,6 +1592,7 @@ export const en = {
     waitlist:       'Waitlist',
     drafts:         'Started applications',
     requests:       'Agent Requests',
+    support:        'Support',
     crm:         'CRM',
   },
 

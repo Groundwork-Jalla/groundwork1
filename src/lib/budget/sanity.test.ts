@@ -1,26 +1,29 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkEstimate, RULE_OF_THUMB_XAF_PER_M2, UNDER_ESTIMATE_RATIO } from './sanity';
-import { calculateBudget } from './index';
-import { CITY_RATES, CM_CITY_CODES, resolveCityRate } from './model';
-import { getApproxFx, projectBudget } from './index';
-import type { CityRate } from '@/types/project';
+import { checkEstimate, UNDER_ESTIMATE_RATIO } from './sanity';
+import { calculateBudget, projectBudget } from './index';
+import { CITY_RATES, CM_CITY_CODES, CM_RATE_FALLBACK, resolveCityRate } from './model';
+import type { CityRate, ConstructionRate } from '@/types/project';
 
-const FX = 600;
-const yaounde = CITY_RATES.YAOUNDE;
+const RATE     = CM_RATE_FALLBACK;
+const FX       = RATE.approx_fx_rate;
+const BASELINE = RATE.rule_of_thumb_per_m2!;
+const yaounde  = CITY_RATES.YAOUNDE;
 
-/** A total that lands exactly at `ratio` × the rule of thumb, in USD. */
+/** A total landing exactly at `ratio` × the reference, in USD. */
 function totalAtRatio(ratio: number, sqm: number, floors: number, city: CityRate = yaounde) {
-  const rate = RULE_OF_THUMB_XAF_PER_M2 * (1 + (city.cost_delta_pct ?? 0) / 100);
+  const rate = BASELINE * (1 + (city.cost_delta_pct ?? 0) / 100);
   return ratio * rate * sqm * floors / FX;
 }
 
-const check = (total: number, sqm: number, floors: number, city: CityRate | null = yaounde) =>
-  checkEstimate(total, { sqm, floors, cityRate: city, fxRate: FX });
+const check = (
+  total: number | null, sqm: number, floors: number,
+  city: CityRate | null = yaounde, rate: ConstructionRate | null = RATE,
+) => checkEstimate(total, { sqm, floors, rate, cityRate: city });
 
 describe('checkEstimate', () => {
-  it('fires below half the rule of thumb and not above it', () => {
+  it('fires below half the reference and not above it', () => {
     expect(check(totalAtRatio(0.49, 200, 6), 200, 6).low).toBe(true);
     expect(check(totalAtRatio(0.51, 200, 6), 200, 6).low).toBe(false);
   });
@@ -30,27 +33,41 @@ describe('checkEstimate', () => {
     expect(check(totalAtRatio(UNDER_ESTIMATE_RATIO, 200, 6), 200, 6).low).toBe(false);
   });
 
-  it('scales with the city, using cost_delta_pct and not the concrete column', () => {
-    // Bamenda is +10% on whole-building cost, so the same money is a worse ratio there.
-    const bamenda = CITY_RATES.BAMENDA;
-    const money   = totalAtRatio(0.52, 200, 6, yaounde);
-    expect(check(money, 200, 6, yaounde).low).toBe(false);
-    expect(check(money, 200, 6, bamenda).low).toBe(true);
+  it('reads the reference off the rate row, not off a constant', () => {
+    // The figure is `construction_rates.rule_of_thumb_per_m2` (migration 073), so a
+    // quantity surveyor can revise it without a deploy. Double it and the same money
+    // that passed must now warn.
+    const money = totalAtRatio(0.6, 200, 6);
+    expect(check(money, 200, 6, yaounde, RATE).low).toBe(false);
+    expect(check(money, 200, 6, yaounde, { ...RATE, rule_of_thumb_per_m2: BASELINE * 2 }).low).toBe(true);
+  });
 
-    // Guard against someone re-deriving the threshold off rc_350. Buea and Bamenda share
-    // an rc_350 of 190,000 but differ by 10 points of cost_delta_pct, so a check keyed on
-    // concrete would give them the same answer. These must differ.
+  it('scales by cost_delta_pct, and cannot be re-derived from rc_350', () => {
+    // Bamenda is +10% on whole-building cost, so the same money is a worse ratio there.
+    const money = totalAtRatio(0.52, 200, 6, yaounde);
+    expect(check(money, 200, 6, yaounde).low).toBe(false);
+    expect(check(money, 200, 6, CITY_RATES.BAMENDA).low).toBe(true);
+
+    // Buea and Bamenda share an rc_350 of 190,000 but differ by 10 points of
+    // cost_delta_pct. Anyone re-deriving the reference from the concrete column would
+    // give them the same answer; these must differ.
     expect(CITY_RATES.BUEA.rc_350).toBe(CITY_RATES.BAMENDA.rc_350);
-    const edge = totalAtRatio(0.52, 200, 6, yaounde);
-    expect(check(edge, 200, 6, CITY_RATES.BUEA).low)
-      .not.toBe(check(edge, 200, 6, CITY_RATES.BAMENDA).low);
+    expect(check(money, 200, 6, CITY_RATES.BUEA).low)
+      .not.toBe(check(money, 200, 6, CITY_RATES.BAMENDA).low);
   });
 
   it('stays quiet where it has no defensible basis', () => {
     const peanuts = 1; // $1 for a mansion — would warn if it were comparable at all.
 
-    // Nigeria: no Bill of Quantity exists, so no rule of thumb exists either.
-    expect(check(peanuts, 200, 6, CITY_RATES.ABUJA).low).toBe(false);
+    // No reference figure on the country row. Nigeria is null and stays null until a
+    // Nigerian Bill of Quantity exists.
+    expect(check(peanuts, 200, 6, CITY_RATES.ABUJA, { ...RATE, country_code: 'NG', rule_of_thumb_per_m2: null }).low).toBe(false);
+    expect(check(peanuts, 200, 6, yaounde, { ...RATE, rule_of_thumb_per_m2: null }).low).toBe(false);
+    expect(check(peanuts, 200, 6, yaounde, { ...RATE, rule_of_thumb_per_m2: 0 }).low).toBe(false);
+    // No rate row at all — the fetch has not landed yet.
+    expect(check(peanuts, 200, 6, yaounde, null).low).toBe(false);
+    // Rate row and city row from different countries: the wrong city's difference.
+    expect(check(peanuts, 200, 6, CITY_RATES.ABUJA, RATE).low).toBe(false);
     // An unresolved city.
     expect(check(peanuts, 200, 6, null).low).toBe(false);
     // Cities whose own rates are estimated — a warning from an estimate about an estimate.
@@ -59,11 +76,11 @@ describe('checkEstimate', () => {
     // A wizard part-way through.
     expect(check(peanuts, 0, 6).low).toBe(false);
     expect(check(peanuts, 200, 0).low).toBe(false);
-    expect(checkEstimate(peanuts, { sqm: 200, floors: 6, cityRate: yaounde, fxRate: 0 }).low).toBe(false);
+    expect(check(peanuts, 200, 6, yaounde, { ...RATE, approx_fx_rate: 0 }).low).toBe(false);
     // No total yet.
     expect(check(0, 200, 6).low).toBe(false);
-    expect(checkEstimate(null,  { sqm: 200, floors: 6, cityRate: yaounde, fxRate: FX }).low).toBe(false);
-    expect(checkEstimate(NaN,   { sqm: 200, floors: 6, cityRate: yaounde, fxRate: FX }).low).toBe(false);
+    expect(check(null, 200, 6).low).toBe(false);
+    expect(check(NaN, 200, 6).low).toBe(false);
 
     // Every one of those reports "not comparable" rather than a made-up ratio.
     expect(check(peanuts, 200, 6, null).ratio).toBeNull();
@@ -75,13 +92,17 @@ describe('checkEstimate', () => {
 });
 
 /**
- * The warning against the engine it guards.
+ * The engine, measured against the reference it is checked by.
  *
- * These are the numbers that chose the 0.5 threshold. They will move when Vanessa signs
- * off the per-floor deck slab, and that is the point: this test is what tells us the
- * guard rail is no longer needed, rather than leaving it up forever out of caution.
+ * These numbers are why the deck-slab fix happened. `engine.ts` charged ONE suspended
+ * slab, soffit and stair flight at any height, so the taller the building the further our
+ * estimate fell below a quantity surveyor's — 8 storeys bottomed out at 0.39 of the
+ * reference. Codes 403/407/408 now carry every deck above the first, and the floor is
+ * back above 0.50 at every height in the book.
+ *
+ * If a future change reopens that gap, these fail before a client is quoted from it.
  */
-describe('the warning tracks the known defect', () => {
+describe('the engine no longer under-prices tall buildings', () => {
   const build = (sqm: number, floors: number, city: CityRate) =>
     calculateBudget(
       { sqm, floors, city: city.city_name, countryCode: 'CM',
@@ -92,10 +113,11 @@ describe('the warning tracks the known defect', () => {
   const REAL = CM_CITY_CODES.map(c => CITY_RATES[c]).filter(c => c.data_source === 'real_bq');
   const FOOTPRINTS = [70, 90, 110, 145, 180, 220, 300];
 
-  it('never fires on a one, two or three storey build', () => {
-    // The whole beta cohort, essentially. A warning here would be wallpaper.
+  it('never trips the check, at any height, in any city', () => {
+    // Before the fix this failed from four storeys up. It is the strongest statement we
+    // can make that the slab count was the mechanism.
     for (const city of REAL) {
-      for (const floors of [1, 2, 3]) {
+      for (const floors of [1, 2, 3, 4, 5, 6, 8, 12]) {
         for (const sqm of FOOTPRINTS) {
           const s = check(build(sqm, floors, city), sqm, floors, city);
           expect(s.low, `${city.city_code} ${floors}f ${sqm}m² ratio ${s.ratio?.toFixed(3)}`).toBe(false);
@@ -104,37 +126,84 @@ describe('the warning tracks the known defect', () => {
     }
   });
 
-  it('fires on the tall buildings the engine under-prices', () => {
-    // At eight storeys the engine charges one deck slab where seven are needed, so a
-    // large floor plate should trip it every time.
-    for (const city of REAL) {
-      const sqm = 300;
-      expect(check(build(sqm, 8, city), sqm, 8, city).low,
-             `${city.city_code} 8f ${sqm}m²`).toBe(true);
-    }
+  it('keeps a tall building within a stated distance of the reference', () => {
+    // A single number to notice if the gap starts widening again. 0.50 is the floor the
+    // check itself uses; asserting a margin above it means the engine has to regress
+    // visibly, not by a rounding error, before the warning starts firing on our own work.
+    const worst = Math.min(...REAL.flatMap(city =>
+      [6, 8, 12].flatMap(f => FOOTPRINTS.map(sqm => check(build(sqm, f, city), sqm, f, city).ratio!)),
+    ));
+    expect(worst).toBeGreaterThan(UNDER_ESTIMATE_RATIO);
   });
 
-  it('gets worse as the building gets taller, monotonically', () => {
-    // The signature of the defect: the shortfall is per-floor, so the ratio decays with
-    // every storey. If this ever stops holding, the cause has changed.
-    let previous = Infinity;
-    for (const floors of [1, 2, 3, 4, 5, 6, 8]) {
-      const s = check(build(200, floors, yaounde), 200, floors, yaounde);
-      expect(s.ratio!).toBeLessThan(previous);
-      previous = s.ratio!;
+  it('still costs less per m² the taller it gets, but far more gently', () => {
+    // Some decay is real — foundations and preliminaries amortise over built area. The
+    // defect was the RATE of decay. Recorded here so the shape stays visible.
+    const ratios = [1, 2, 4, 8, 12].map(f => check(build(200, f, yaounde), 200, f, yaounde).ratio!);
+    for (let i = 1; i < ratios.length; i++) expect(ratios[i]).toBeLessThan(ratios[i - 1]);
+
+    // Measured, not hoped for: going 1 floor -> 8 floors used to lose about 62% of the
+    // ratio and now loses about 49%. The bound is set just above what the engine actually
+    // does, so a regression in the slab count fails here rather than merely looking
+    // plausible. The residual 49% is NOT claimed to be correct — it is the part with no
+    // identified mechanism left, and it is what Vanessa still needs to look at.
+    const lost = 1 - ratios[3] / ratios[0];
+    expect(lost).toBeLessThan(0.55);
+    expect(lost).toBeGreaterThan(0.40);
+  });
+});
+
+/**
+ * The costing tab reaches the check by a different road than the wizard does.
+ *
+ * The wizard hands it the rate row it already loaded. `BudgetView` fetches its own and
+ * resolves the city from free text. A mismatch between those paths would not fail to
+ * compile and would not throw — it would just silently never warn.
+ */
+describe('the costing tab wiring', () => {
+  const row = (over: Record<string, unknown>) => ({
+    country: 'CM', city: 'Yaoundé', num_floors: 8, sqm: 300,
+    building_type: 'residential', roof_type: 'pitched',
+    has_boys_quarters: false, bq_rooms: 0, finish_level: 'standard',
+    budget_usd: null, ...over,
+  }) as never;
+
+  /** Exactly what BudgetView.tsx does, in the same order. */
+  const asTabDoes = (p: { country: string; city: string | null; sqm: number; num_floors: number; budget_usd?: number | null }) =>
+    checkEstimate(projectBudget(row(p)).total, {
+      sqm: p.sqm, floors: p.num_floors,
+      rate: RATE, cityRate: resolveCityRate(p.city, p.country),
+    });
+
+  it('warns on a budget the owner set far below the building', () => {
+    // The case this check now exists for: `projectBudget` returns the confirmed figure
+    // when there is one, and a person can type anything.
+    const s = asTabDoes({ country: 'CM', city: 'Yaoundé', sqm: 300, num_floors: 8, budget_usd: 40_000 });
+    expect(s.ratio).not.toBeNull();   // the wiring produced a comparison at all
+    expect(s.low).toBe(true);
+  });
+
+  it('leaves our own estimate for the same building alone', () => {
+    expect(asTabDoes({ country: 'CM', city: 'Yaoundé', sqm: 300, num_floors: 8 }).low).toBe(false);
+  });
+
+  it('survives the free-text city column', () => {
+    for (const city of ['Yaoundé', 'yaounde', 'YAOUNDE', 'Yaounde, Cameroon', 'Nowhere', null]) {
+      expect(asTabDoes({ country: 'CM', city, sqm: 300, num_floors: 8 }).ratio,
+             `city ${city}`).not.toBeNull();
     }
   });
 });
 
 /**
- * The rule of thumb is a check, never a quotation.
+ * The reference is a check, never a quotation, and never a literal.
  *
- * Two numbers on one money screen invite the reader to average them, and 180,000 XAF/m²
- * is not a figure we can defend to a client — it is Vanessa's back-of-envelope, blind to
- * finish, shape, roof and room count. It exists to tell us our own estimate is wrong, and
- * it stops being useful the moment anyone treats it as a second opinion.
+ * Two numbers on one money screen invite the reader to average them, and the figure is a
+ * back-of-envelope blind to finish, shape, roof and room count. It exists to tell us our
+ * own number is wrong, and it stops being useful the moment anyone treats it as a second
+ * opinion — or hardcodes it where a quantity surveyor cannot revise it.
  */
-describe('the rule of thumb never reaches a client', () => {
+describe('the reference never reaches a client, and is never a literal', () => {
   const ROOT = resolve(__dirname, '..', '..', '..');
 
   function sourceFiles(dir: string): string[] {
@@ -150,14 +219,15 @@ describe('the rule of thumb never reaches a client', () => {
   const stripComments = (src: string) =>
     src.split('\n').filter(l => !/^\s*(\*|\/[/*])/.test(l)).join('\n');
 
-  it('is written down in exactly one place', () => {
+  it('is not written into the check, or anywhere but the rate book', () => {
     const offenders = sourceFiles(join(ROOT, 'src'))
-      .filter(f => f !== 'src/lib/budget/sanity.ts')
       .filter(f => /\b180[_,]?000\b/.test(stripComments(readFileSync(join(ROOT, f), 'utf8'))));
 
-    // `CityRate.rc_350` is 180,000 for Yaoundé and Douala too — a different quantity that
-    // happens to collide. model.ts is the rate book and is allowed to hold it.
-    expect(offenders.filter(f => f !== 'src/lib/budget/model.ts')).toEqual([]);
+    // model.ts alone may hold it: it is the offline copy of the country rate row, and it
+    // separately holds 180,000 as Yaoundé's and Douala's rc_350 — a different quantity
+    // that collides by coincidence. sanity.ts must NOT appear here: the authority is
+    // construction_rates.rule_of_thumb_per_m2, not a constant in the checker.
+    expect(offenders).toEqual(['src/lib/budget/model.ts']);
   });
 
   it('is not quoted in the warning copy, in either language', () => {
@@ -171,63 +241,5 @@ describe('the rule of thumb never reaches a client', () => {
           .not.toMatch(/\d/);
       }
     }
-  });
-});
-
-/**
- * The costing tab reaches the check by a different road than the wizard does.
- *
- * The wizard hands it a `CityRate` it already loaded and the FX rate off the construction
- * row. `BudgetView` has neither, so it resolves the city from free text and the FX from
- * the ISO country code on the project. A mismatch between those two paths — `country`
- * holding "Cameroon" where `getApproxFx` wants "CM", say — would not fail to compile and
- * would not throw. It would just silently never warn.
- */
-describe('the costing tab wiring', () => {
-  const row = (over: Record<string, unknown>) => ({
-    country: 'CM', city: 'Yaoundé', num_floors: 8, sqm: 300,
-    building_type: 'residential', roof_type: 'pitched',
-    has_boys_quarters: false, bq_rooms: 0, finish_level: 'standard',
-    budget_usd: null, ...over,
-  }) as never;
-
-  /** Exactly what BudgetView.tsx does, in the same order. */
-  const asTabDoes = (p: { country: string; city: string | null; sqm: number; num_floors: number }) =>
-    checkEstimate(projectBudget(row(p)).total, {
-      sqm: p.sqm, floors: p.num_floors,
-      cityRate: resolveCityRate(p.city, p.country),
-      fxRate:   getApproxFx(p.country),
-    });
-
-  it('resolves a real project all the way to a warning', () => {
-    const s = asTabDoes({ country: 'CM', city: 'Yaoundé', sqm: 300, num_floors: 8 });
-    expect(s.ratio).not.toBeNull();   // the wiring produced a comparison at all
-    expect(s.low).toBe(true);
-  });
-
-  it('stays quiet for the bungalow next door, on the same wiring', () => {
-    expect(asTabDoes({ country: 'CM', city: 'Yaoundé', sqm: 145, num_floors: 1 }).low).toBe(false);
-  });
-
-  it('survives the free-text city column', () => {
-    // `city` is free text on every project, so these all reach the same rate row.
-    for (const city of ['Yaoundé', 'yaounde', 'YAOUNDE', 'Yaounde, Cameroon']) {
-      expect(asTabDoes({ country: 'CM', city, sqm: 300, num_floors: 8 }).ratio,
-             `city ${city}`).not.toBeNull();
-    }
-    // An unrecognised city falls back to the baseline rather than going uncomparable.
-    expect(asTabDoes({ country: 'CM', city: 'Nowhere', sqm: 300, num_floors: 8 }).ratio).not.toBeNull();
-    // A null city does too.
-    expect(asTabDoes({ country: 'CM', city: null, sqm: 300, num_floors: 8 }).ratio).not.toBeNull();
-  });
-
-  it('reads an owner-confirmed total, not only the estimate', () => {
-    // `projectBudget` returns the confirmed figure when there is one. A client who typed
-    // a low number should still be told to have it checked.
-    const cheap = checkEstimate(projectBudget(row({ budget_usd: 40_000 })).total, {
-      sqm: 300, floors: 8,
-      cityRate: resolveCityRate('Yaoundé', 'CM'), fxRate: getApproxFx('CM'),
-    });
-    expect(cheap.low).toBe(true);
   });
 });

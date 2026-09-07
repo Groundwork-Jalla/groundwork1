@@ -556,6 +556,27 @@ export const fr: Mirror<EnDict> = {
     },
 
     // ── Liste d'attente (/admin/waitlist) ──
+    support: {
+      title:        'Assistance',
+      subtitle:     "Messages du formulaire d'aide et demandes de suppression de compte. Chaque ticket envoie aussi un e-mail à l'équipe dès son arrivée.",
+      search:       'Rechercher par nom, e-mail ou message',
+      filterOpen:   'Ouverts',
+      filterAll:    'Tous',
+      empty:        'Aucun ticket pour le moment.',
+      emptyFiltered:'Aucun ticket ne correspond.',
+      loadFailed:   "Impossible de charger la file d'assistance.",
+      saveFailed:   "La modification n'a pas été enregistrée. Réessayez.",
+      reply:        'Répondre',
+      status:       'Statut',
+      statusOpen:       'Ouvert',
+      statusInProgress: 'En cours',
+      statusResolved:   'Résolu',
+      statusClosed:     'Fermé',
+      kindDeletion: 'Suppression',
+      accountGone:  'compte fermé',
+      deletionsPending: '{count} demande de suppression de compte en attente — 48 heures ont été annoncées.',
+      deletionsPending_plural: '{count} demandes de suppression de compte en attente — 48 heures ont été annoncées.',
+    },
     wait: {
       title:      "Liste d'attente",
       subtitle:   "Toutes les personnes qui ont demandé à être prévenues de l'ouverture de Groundwork.",
@@ -838,6 +859,8 @@ export const fr: Mirror<EnDict> = {
     exportButton:        "Télécharger l'export JSON",
     deleteTitle:         'Supprimer le compte',
     deleteBody:          'La suppression du compte est irréversible. Tous les projets, documents et données seront définitivement effacés.',
+    deleteSubmitted:     'Demande de suppression de compte envoyée. Notre équipe la traitera sous 48 heures.',
+    deleteFailed:        "Nous n'avons pas pu envoyer votre demande. Écrivez à contact@tryjalla.com pour qu'elle ne soit pas perdue.",
     deleteTypePrefix:    'Saisissez',
     // Deliberately NOT translated: the user must type this word exactly, and the
     // component compares against it. Translating the label but not the comparison —
@@ -1554,6 +1577,7 @@ export const fr: Mirror<EnDict> = {
     waitlist:       'Liste d\'attente',
     drafts:         'Candidatures commencées',
     requests:       'Demandes aux agents',
+    support:        'Assistance',
     crm:         'CRM',
   },
 

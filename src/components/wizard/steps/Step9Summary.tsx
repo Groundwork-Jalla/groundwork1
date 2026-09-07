@@ -39,10 +39,11 @@ function BudgetBreakdownCard() {
   const { data, constructionRate, cityRate, rateLoading } = useWizard();
   const detail = calculateBudgetDetail(data, constructionRate, cityRate);
   const isVerified = detail.dataSource === 'real_bq';
-  // Guard rail, not a second estimate — see lib/budget/sanity.ts. The engine charges
-  // one deck slab per building rather than per floor, so tall builds come out low.
+  // Floor check, not a second estimate — see lib/budget/sanity.ts. Silent on the engine
+  // since the per-floor deck fix; it earns its keep on the costing tab, where the total
+  // can be one the owner typed.
   const sanity = checkEstimate(detail.budget.total, {
-    sqm: data.sqm, floors: data.floors, cityRate, fxRate: detail.approxFxRate,
+    sqm: data.sqm, floors: data.floors, rate: constructionRate, cityRate,
   });
   const maxAmount  = Math.max(...detail.sections.map(s => s.amountUSD), 1);
 

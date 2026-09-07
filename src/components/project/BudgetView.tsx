@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Layers, ChevronRight, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,8 +6,9 @@ import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
 import { sliceDerivation, type SliceDerivation } from '@/lib/budget/derivation';
 import { checkEstimate } from '@/lib/budget/sanity';
-import { getApproxFx } from '@/lib/budget';
 import { resolveCityRate } from '@/lib/budget/model';
+import { getConstructionRate } from '@/lib/supabase/construction-rates';
+import type { ConstructionRate } from '@/types/project';
 import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
@@ -456,6 +457,17 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
   const { lang } = useLanguage();
   const t = useT();
   const [exporting, setExporting] = useState(false);
+  // The country rate row, for its rule-of-thumb reference figure. Same pattern as
+  // ProjectPayments and TakeoffComparison; a failure leaves it null, which switches the
+  // check off rather than surfacing a fetch error on a costing screen.
+  const [sanityRate, setSanityRate] = useState<ConstructionRate | null>(null);
+  useEffect(() => {
+    let live = true;
+    getConstructionRate(project.country)
+      .then(r => { if (live) setSanityRate(r); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [project.country]);
 
   async function handleExportPDF() {
     setExporting(true);
@@ -475,19 +487,20 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
   // dropdown shows the figure the fee was actually calculated from.
   const builtAreaSqm = (project.sqm ?? 0) * (project.num_floors ?? 1);
 
-  // Sanity check against the regional rule of thumb — see lib/budget/sanity.ts. Reads
-  // the static rate book rather than the cached DB one: this needs `cost_delta_pct`,
-  // which is Vanessa's stated figure and does not drift, and a synchronous check keeps
-  // the tab from flashing a warning in after paint.
+  // Floor check against the regional reference — see lib/budget/sanity.ts. This is where
+  // it earns its keep: `budget.total` is the owner's own confirmed figure whenever they
+  // have set one, and a person can type anything. Warning on their number is deliberate —
+  // the advice, have a contractor check a total this low for a building this size, is
+  // sound whoever arrived at it.
   //
-  // `budget.total` here may be the owner's own confirmed figure rather than our
-  // estimate. Warning on it anyway is deliberate: the advice — have a contractor check
-  // a number this low for a building this size — is sound whoever typed it.
+  // The reference rate lives on the country row (migration 073), so this waits for the
+  // fetch rather than guessing. Until it lands `sanityRate` is null and the check simply
+  // returns "not comparable", which renders nothing.
   const sanity = checkEstimate(budget.total, {
     sqm:      project.sqm,
     floors:   project.num_floors,
+    rate:     sanityRate,
     cityRate: resolveCityRate(project.city, project.country),
-    fxRate:   getApproxFx(project.country),
   });
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);

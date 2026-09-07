@@ -123,9 +123,16 @@ export function runTakeoff(
   add('208', A, r.sand_bed_m2 * ci);
 
   // ── 300 / 400 Structure ──
-  // An upper floor is priced exactly like the ground floor minus the ground-only items
-  // (deck slab, soffit plaster, staircase). The multiplier goes on the QUANTITY, not on a
-  // section subtotal — three floors of blockwork is three times the area at one rate.
+  // An upper floor is priced exactly like the ground floor. The multiplier goes on the
+  // QUANTITY, not on a section subtotal — three floors of blockwork is three times the
+  // area at one rate.
+  //
+  // The deck slab, its soffit and the staircase USED to be ground-only, which is the
+  // defect this block fixes. A suspended slab is the floor of the storey above it, so an
+  // N-storey building needs N-1 of them, N-1 soffits under them and N-1 flights of stairs
+  // to reach them. The engine charged exactly one of each at any height: a G+7 was priced
+  // with a single deck where it structurally needs seven, and the shortfall grew with
+  // every storey. 303/307/308 still price the FIRST deck; 403/407/408 price the rest.
   const bathsPerFloor = (data.bathrooms ?? 0) / floors;
   const ceilingRate   = r.ceiling_m2 * Math.max(0, finishMult - 1) / 0.7 * ci;
 
@@ -136,7 +143,7 @@ export function runTakeoff(
   add('309', A,                    r.floor_tiles_m2 * ci);
   add('310', bathsPerFloor * 12,   r.wall_tiles_m2 * ci);
   add('311', A,                    ceilingRate);
-  // Ground-only
+  // The first suspended deck, the soffit under it, and the flight of stairs up to it.
   add('303', q.slabVolume,                        cityBook.rc_350);
   add('307', A,                                   r.deck_plaster_m2 * ci);
   add('308', floors > 1 ? g.stair_m3 : 0,         cityBook.rc_350);
@@ -149,6 +156,16 @@ export function runTakeoff(
     add('409', A                    * upperCount, r.floor_tiles_m2 * ci);
     add('410', bathsPerFloor * 12   * upperCount, r.wall_tiles_m2 * ci);
     add('411', A                    * upperCount, ceilingRate);
+
+    // Every deck above the first. Deliberately `upperCount - 1` rather than `upperCount`:
+    // 303/307/308 already price one, so this is purely additive and no building that was
+    // priced correctly before gets cheaper. A G+1 gains nothing, which is what keeps the
+    // three G+1 source BQs — Naka above all, the only like-for-like document we have —
+    // reproducing exactly as they did.
+    const extraDecks = upperCount - 1;
+    add('403', q.slabVolume * extraDecks, cityBook.rc_350);
+    add('407', A            * extraDecks, r.deck_plaster_m2 * ci);
+    add('408', g.stair_m3   * extraDecks, cityBook.rc_350);
   }
 
   // ── 500 Roof ──

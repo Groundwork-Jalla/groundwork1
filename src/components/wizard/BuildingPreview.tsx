@@ -839,6 +839,11 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
     ? calculateBudgetDetail(data, constructionRate, cityRate).budget
     : null;
 
+  // Every child here is a DIRECT child of AnimatePresence, never wrapped in a Fragment.
+  // AnimatePresence gives each child a ref so it can hold it in the tree through its exit
+  // animation; a Fragment cannot take one, which logged "Invalid prop `ref` supplied to
+  // React.Fragment" on every render of the panel and left the grouped badges untracked.
+  // Two badges on one step are two conditionals, not one wrapped pair.
   return (
     <AnimatePresence mode="popLayout">
       {step === 1 && data.country && (
@@ -851,35 +856,33 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
         <Badge key="bt" icon={<Building2 className="size-3.5" />} label={labels.buildingType(data.buildingType)} pos="tr" />
       )}
       {step === 4 && (
-        <>
-          <Badge key="floors" icon={<Layers className="size-3.5" />} label={`${data.floors} ${data.floors === 1 ? 'floor' : 'floors'}`} sub={`${data.floors * 3}m tall`} pos="tr" />
-          <InfoBadge pos="bl" delay={0.2}>
-            <div className="flex items-center gap-1.5">
-              <Ruler className="size-3 opacity-50" />
-              <span className="opacity-60">{t('wizard.estHeight')}</span>
-              <span className="font-semibold">{data.floors * 3}m</span>
-            </div>
-          </InfoBadge>
-        </>
+        <Badge key="floors" icon={<Layers className="size-3.5" />} label={`${data.floors} ${data.floors === 1 ? 'floor' : 'floors'}`} sub={`${data.floors * 3}m tall`} pos="tr" />
+      )}
+      {step === 4 && (
+        <InfoBadge key="height" pos="bl" delay={0.2}>
+          <div className="flex items-center gap-1.5">
+            <Ruler className="size-3 opacity-50" />
+            <span className="opacity-60">{t('wizard.estHeight')}</span>
+            <span className="font-semibold">{data.floors * 3}m</span>
+          </div>
+        </InfoBadge>
       )}
       {step === 5 && (
-        <>
-          <Badge
-            key={`rooms-${data.bedrooms}-${data.bathrooms}`}
-            icon={<Home className="size-3.5" />}
-            label={`${data.bedrooms} beds · ${data.bathrooms} baths`}
-            pos="tr"
-          />
-          {(data.kitchens > 0 || data.livingRooms > 0) && (
-            <InfoBadge key={`extra-${data.kitchens}-${data.livingRooms}`} pos="bl" delay={0.1}>
-              <span className="opacity-60">{t('wizard.kitchen')} </span>
-              <span className="font-semibold">{data.kitchens}</span>
-              <span className="mx-2 opacity-30">·</span>
-              <span className="opacity-60">{t('wizard.living')} </span>
-              <span className="font-semibold">{data.livingRooms}</span>
-            </InfoBadge>
-          )}
-        </>
+        <Badge
+          key={`rooms-${data.bedrooms}-${data.bathrooms}`}
+          icon={<Home className="size-3.5" />}
+          label={`${data.bedrooms} beds · ${data.bathrooms} baths`}
+          pos="tr"
+        />
+      )}
+      {step === 5 && (data.kitchens > 0 || data.livingRooms > 0) && (
+        <InfoBadge key={`extra-${data.kitchens}-${data.livingRooms}`} pos="bl" delay={0.1}>
+          <span className="opacity-60">{t('wizard.kitchen')} </span>
+          <span className="font-semibold">{data.kitchens}</span>
+          <span className="mx-2 opacity-30">·</span>
+          <span className="opacity-60">{t('wizard.living')} </span>
+          <span className="font-semibold">{data.livingRooms}</span>
+        </InfoBadge>
       )}
       {step === 6 && data.hasBoysQuarters && (
         <Badge key="bq" icon={<Home className="size-3.5" />} label="Staff Quarters" pos="tr" />
@@ -891,10 +894,10 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
         <Badge key="name" icon={<Building2 className="size-3.5" />} label={data.projectName} sub={data.city || undefined} pos="tr" />
       )}
       {step === 9 && budget && (
-        <>
-          <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub={t('buildPreview.estAbbrev')} pos="tr" />
-          <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label={t('buildPreview.readyToBuild')} pos="bl" />
-        </>
+        <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub={t('buildPreview.estAbbrev')} pos="tr" />
+      )}
+      {step === 9 && budget && (
+        <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label={t('buildPreview.readyToBuild')} pos="bl" />
       )}
     </AnimatePresence>
   );

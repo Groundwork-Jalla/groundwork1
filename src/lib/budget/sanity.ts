@@ -1,70 +1,61 @@
 /**
- * Is this estimate obviously too low?
+ * Is this total obviously too low?
  *
- * ── Why this exists ──────────────────────────────────────────────────────────────────
- * The take-off engine under-prices tall buildings, and we know exactly why. Three lines
- * in `engine.ts` are charged once per BUILDING where they belong once per FLOOR:
+ * ── What this is ─────────────────────────────────────────────────────────────────────
+ * A floor check on the figure a client is shown. If it lands below half of a quantity
+ * surveyor's back-of-envelope for a building that size, the screen says so and tells them
+ * to have a contractor confirm it. It never blocks anything and never changes a price.
  *
- *   · `303` suspended deck slab   · `307` soffit plaster   · `308` staircase
+ * ── What it was originally for, and what changed ─────────────────────────────────────
+ * It was built to paper over a counting error: `engine.ts` charged ONE suspended deck
+ * slab, one soffit and one stair flight for a building of any height, so a G+7 was priced
+ * with a single deck where it needs seven and the shortfall grew with every storey.
  *
- * A G+7 is therefore priced with one deck slab where it structurally needs seven. The
- * comment at `engine.ts:126-128` shows these are deliberate simplifications from the
- * original calibration, not bugs someone left behind, so correcting them is Vanessa's
- * call and not ours — it moves every number in the book.
+ * That is fixed — codes 403/407/408 now carry every deck above the first — and the gap it
+ * produced is closed: across every city and footprint the engine no longer falls under
+ * half the reference at ANY height. So on the estimate path this check is now silent, and
+ * `sanity.test.ts` asserts that silence, which is how we know the fix held.
  *
- * Until she signs that off, this module is a guard rail. It cannot make the estimate
- * right; it can stop a client being quoted half of what their building will cost without
- * anybody saying so out loud.
+ * It stays because the estimate is not the only number that reaches this function. The
+ * costing tab reads `projectBudget`, which returns the owner's own confirmed `budget_usd`
+ * when they have set one — and a person can type anything. A client who commits to a
+ * quarter of what their building costs is the case this now catches.
  *
  * ── What it compares against ─────────────────────────────────────────────────────────
- * Vanessa's rule of thumb, given on 4 September 2026: a Yaoundé build runs about
- * **180,000 XAF per built m²** — footprint × floors × 180,000. It is crude by design.
- * It knows nothing about finish, shape, room count or roof, which is precisely why it is
- * useful here: a rough number that disagrees with a precise one by more than half means
- * the precise one is wrong, not the rough one.
+ * `construction_rates.rule_of_thumb_per_m2` (migration 073). Vanessa's figure, 4 Sep
+ * 2026: a Yaoundé build runs about 180,000 XAF per built m². It lives in the database
+ * with every other rate because it is the kind of number a quantity surveyor revises
+ * after the next project, and that must not need a deploy.
+ *
+ * It is crude on purpose — blind to finish, shape, roof and room count — which is exactly
+ * what makes it usable here. A rough number that disagrees with a precise one by more
+ * than half means the precise one is wrong, not the rough one.
  *
  * ── What it must never do ────────────────────────────────────────────────────────────
- * **Show the rule-of-thumb figure to a client.** We cannot defend 180,000 × A × f as an
- * estimate — it is a sanity check, not a second quotation, and putting two numbers on
- * one screen invites the reader to average them. The copy says the estimate looks low
- * for a building this size and to confirm with a contractor. No number.
+ * **Show the reference figure to a client.** We cannot defend it as an estimate; it is a
+ * check, not a second quotation, and two numbers on one screen invite the reader to
+ * average them. The copy says the figure looks low for a building this size and to
+ * confirm with a contractor. No number. A test enforces that the copy has no digits.
  */
 
-import type { CityRate } from '@/types/project';
+import type { CityRate, ConstructionRate } from '@/types/project';
 
 /**
- * Yaoundé, per built m², from Vanessa on 4 September 2026.
+ * Warn below half the reference.
  *
- * NOT the same quantity as `CityRate.rc_350`, which is also 180,000 for Yaoundé. That
- * one is XAF per m³ of RC-350 concrete. The collision is a coincidence and reading the
- * rule of thumb off that column would silently break the day a concrete rate moves.
- */
-export const RULE_OF_THUMB_XAF_PER_M2 = 180_000;
-
-/**
- * Warn below half the rule of thumb.
- *
- * Chosen from the engine's own output rather than picked round. Across every city, at
- * footprints from 70 to 300 m², the estimate-to-rule-of-thumb ratio runs:
- *
- *   1 floor  0.98 – 1.91      4 floors  0.48 – 0.86
- *   2 floors 0.65 – 1.22      6 floors  0.42 – 0.75
- *   3 floors 0.54 – 0.99      8 floors  0.39 – 0.69
- *
- * At 0.5 the warning is SILENT across the whole 1–3 storey range — which is very nearly
- * every real Groundwork project — and fires progressively from four storeys up, exactly
- * where the omitted per-floor slabs bite. It tracks the known defect instead of noise.
- *
- * A single-storey estimate sitting above the rule of thumb is expected, not a fault: the
- * fixed costs of a build amortise over area, so small buildings genuinely cost more per
- * m². The rule of thumb is the crude one there.
+ * Half is the point where the two numbers cannot both be describing the same building,
+ * whatever you think of the reference's precision. It is deliberately not tuned to sit
+ * just under the engine's output: after the deck-slab fix the engine's worst case across
+ * every city, footprint and height is about 0.50, so the check sits at the edge of the
+ * engine's range rather than inside it. That is the right place for a floor check — it
+ * catches a number that has gone wrong, not a number that is merely conservative.
  */
 export const UNDER_ESTIMATE_RATIO = 0.5;
 
 export interface EstimateSanity {
   /** Show the warning. False whenever we have no defensible basis to compare against. */
   low: boolean;
-  /** Estimate ÷ rule of thumb. `null` when not comparable. Diagnostics only — never rendered. */
+  /** Total ÷ reference. `null` when not comparable. Diagnostics only — never rendered. */
   ratio: number | null;
   /** Footprint × floors, in m². */
   builtAreaSqm: number;
@@ -74,20 +65,20 @@ const NOT_COMPARABLE = (builtAreaSqm: number): EstimateSanity =>
   ({ low: false, ratio: null, builtAreaSqm });
 
 /**
- * Check a total against the regional rule of thumb.
+ * Check a total against the regional reference.
  *
- * `totalUSD` is the client-facing total — the same figure the screen prints — so the
- * check covers the fees too and not just the construction line.
+ * `totalUSD` is the client-facing total — the same figure the screen prints — so fees are
+ * covered, not just the construction line.
  *
  * Returns `low: false` rather than throwing on anything it cannot judge:
  *
- *  · **Outside Cameroon.** The rule of thumb is Vanessa's and it is Cameroonian. There
- *    is no Nigerian Bill of Quantity at all (see `model.ts` on ABUJA), so there is no
- *    honest figure to compare an Abuja build against and a warning there would be a
- *    guess wearing a warning's clothes.
+ *  · **No reference rate on the country's row.** Nigeria is null and stays null until a
+ *    Nigerian Bill of Quantity exists (see the ABUJA note in `model.ts`). A warning drawn
+ *    from a guess is a guess wearing a warning's clothes.
+ *  · **The rate row and the city row disagree on country**, which would scale a figure by
+ *    the wrong city's difference.
  *  · **No city rate resolved**, or one flagged `estimated_index` — Adamawa and Garoua
- *    carry unverified concrete columns, and a warning drawn off an estimate about an
- *    estimate is not worth showing.
+ *    carry unverified concrete columns.
  *  · **No footprint or floor count yet.** The wizard calls this part-way through.
  */
 export function checkEstimate(
@@ -95,9 +86,9 @@ export function checkEstimate(
   opts: {
     sqm: number | null | undefined;
     floors: number | null | undefined;
+    /** The country rate row. Carries both the reference figure and the FX rate. */
+    rate: ConstructionRate | null | undefined;
     cityRate: CityRate | null | undefined;
-    /** XAF per USD, from the construction rate row that produced `totalUSD`. */
-    fxRate: number;
   },
 ): EstimateSanity {
   const sqm    = Number(opts.sqm) || 0;
@@ -109,20 +100,26 @@ export function checkEstimate(
   const total = Number(totalUSD);
   if (!Number.isFinite(total) || total <= 0) return NOT_COMPARABLE(built);
 
+  const rate = opts.rate;
   const city = opts.cityRate;
-  if (!city || city.country_code !== 'CM') return NOT_COMPARABLE(built);
-  if (city.data_source !== 'real_bq')      return NOT_COMPARABLE(built);
+  if (!rate || !city) return NOT_COMPARABLE(built);
+  if (rate.country_code !== city.country_code) return NOT_COMPARABLE(built);
+  if (city.data_source !== 'real_bq')          return NOT_COMPARABLE(built);
 
-  const fx = Number(opts.fxRate);
+  const baseline = Number(rate.rule_of_thumb_per_m2);
+  if (!Number.isFinite(baseline) || baseline <= 0) return NOT_COMPARABLE(built);
+
+  const fx = Number(rate.approx_fx_rate);
   if (!Number.isFinite(fx) || fx <= 0) return NOT_COMPARABLE(built);
 
   // `cost_delta_pct` is the whole-building difference from the baseline city, which is
-  // the right basis for scaling a whole-building rule of thumb. `index_vs_baseline` is
-  // vestigial and scales non-concrete trades only — it is the wrong number here.
-  const cityXafPerM2 = RULE_OF_THUMB_XAF_PER_M2 * (1 + (city.cost_delta_pct ?? 0) / 100);
-  const thumbUSD     = cityXafPerM2 * built / fx;
-  if (thumbUSD <= 0) return NOT_COMPARABLE(built);
+  // the right basis for scaling a whole-building reference. `index_vs_baseline` is
+  // vestigial and scales non-concrete trades only — the wrong number here. So is
+  // `rc_350`, which collides with the Yaoundé figure by coincidence of digits alone.
+  const cityBaseline = baseline * (1 + (city.cost_delta_pct ?? 0) / 100);
+  const referenceUSD = cityBaseline * built / fx;
+  if (referenceUSD <= 0) return NOT_COMPARABLE(built);
 
-  const ratio = total / thumbUSD;
+  const ratio = total / referenceUSD;
   return { low: ratio < UNDER_ESTIMATE_RATIO, ratio, builtAreaSqm: built };
 }

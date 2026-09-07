@@ -200,6 +200,15 @@ export interface ConstructionRate {
   data_source: 'real_bq' | 'estimated_index';
   notes?: string | null;
   updated_at?: string;
+  /**
+   * Reference cost per built m² (footprint × floors), in `currency_code`.
+   *
+   * NOT a pricing input — nothing in the take-off reads it and no client is quoted from
+   * it. It is the figure the estimate is sanity-checked against; see budget/sanity.ts.
+   * Null/absent means we have no defensible reference for this country, which switches
+   * the check off rather than guessing. Migration 073.
+   */
+  rule_of_thumb_per_m2?: number | null;
   /** Quantity take-off model. Null/absent = fall back to the legacy formula. */
   takeoff?: TakeoffModel | null;
   /** Count-driven fixture prices. Null/absent = engine defaults. */

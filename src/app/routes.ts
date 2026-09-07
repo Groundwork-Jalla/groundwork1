@@ -80,5 +80,6 @@ export default [
     route("admin/waitlist",         "routes/admin/waitlist.tsx"),
     route("admin/drafts",           "routes/admin/drafts.tsx"),
     route("admin/requests",         "routes/admin/requests.tsx"),
+    route("admin/support",          "routes/admin/support.tsx"),
   ]),
 ] satisfies RouteConfig;

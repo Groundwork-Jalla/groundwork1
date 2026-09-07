@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
+import { createSupportTicket } from '@/lib/supabase/support';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTierBilling } from '@/lib/tier-labels';
@@ -409,16 +410,25 @@ export default function ProfilePage() {
   // ── Account deletion request ───────────────────────────
   async function handleDeleteConfirm() {
     if (deleteInput !== 'DELETE') return;
+    if (!user?.id || !user?.email) { setDeleteResult(t('profile.deleteFailed')); return; }
+
+    // The swallow that was here promised "our team will process it within 48 hours" while
+    // discarding the request — a data-rights ask answered with a sentence and a dropped
+    // write. If the request does not land, the person has to be told, because the only
+    // thing worse than a failed deletion request is one the sender believes succeeded.
     try {
-      await supabase.from('support_tickets').insert({
-        user_id: user?.id,
-        email: user?.email,
+      await createSupportTicket({
+        userId:  user.id,
+        kind:    'account_deletion',
+        email:   user.email,
         subject: 'Account deletion request',
-        body: 'User has requested account deletion via the Danger Zone in their profile.',
-        status: 'open',
+        message: 'User requested account deletion from the Close account section of their profile.',
       });
-    } catch { /* table may not exist yet — swallow */ }
-    setDeleteResult('Account deletion request submitted. Our team will process it within 48 hours.');
+    } catch {
+      setDeleteResult(t('profile.deleteFailed'));
+      return;
+    }
+    setDeleteResult(t('profile.deleteSubmitted'));
     setShowDeleteConfirm(false);
     setDeleteInput('');
   }

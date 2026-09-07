@@ -7,7 +7,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase/client';
+import { createSupportTicket } from '@/lib/supabase/support';
 import { useT } from '@/lib/i18n';
 
 // ── FAQ data ───────────────────────────────────────────────
@@ -169,22 +169,16 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormState('submitting');
+    // This used to read "graceful degradation": a missing table counted as success, and
+    // the bare catch turned ANY failure into "Message sent." The table did not exist, so
+    // every message since launch was dropped and every sender was thanked for it. There
+    // is nothing graceful about telling someone you have their problem when you do not.
+    if (!userId) { setFormState('error'); return; }
     try {
-      const { error } = await supabase.from('support_tickets').insert({
-        user_id: userId ?? null,
-        name,
-        email,
-        subject,
-        message,
-      });
-      // Graceful degradation: treat table-not-found errors as success
-      if (error && !error.message.includes('does not exist') && error.code !== '42P01') {
-        setFormState('error');
-        return;
-      }
+      await createSupportTicket({ userId, name, email, subject, message });
       setFormState('success');
     } catch {
-      setFormState('success'); // graceful degradation
+      setFormState('error');
     }
   }
 

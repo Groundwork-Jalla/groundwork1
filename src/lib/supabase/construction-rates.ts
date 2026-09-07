@@ -3,9 +3,10 @@ import { CITY_RATES, resolveCityRate } from '@/lib/budget';
 import { CM_RATE_FALLBACK } from '@/lib/budget/model';
 import type { CityRate, ConstructionRate } from '@/types/project';
 
-// v2: rows now carry the take-off model and fixture prices from migration 020.
-// The version bump invalidates v1 entries cached before those columns existed.
-const CACHE_KEY = (code: string) => `gw_rate_v2_${code}`;
+// v3: migration 073 added rule_of_thumb_per_m2. A v2 entry lacks the column, which
+// would read as "no reference figure" and quietly switch the under-estimate check off
+// for a day — the bump is what stops a cache making a guard rail disappear.
+const CACHE_KEY = (code: string) => `gw_rate_v3_${code}`;
 // v2: migration 045 re-baselined every Cameroonian index onto Yaoundé and added
 // cost_delta_pct. A v1 entry would keep pricing on the old Douala baseline for a day.
 const CITY_CACHE_KEY = (code: string) => `gw_city_v2_${code}`;

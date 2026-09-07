@@ -111,6 +111,10 @@ export const CM_RATE_FALLBACK: ConstructionRate = {
   currency_code: 'XAF',
   approx_fx_rate: 600,
   data_source: 'real_bq',
+  // Sanity-check reference only, never a price. Vanessa, 4 Sep 2026: a Yaoundé build runs
+  // about 180,000 XAF per built m². Authoritative copy is construction_rates (073); this
+  // is the offline fallback, like every other figure in this row.
+  rule_of_thumb_per_m2: 180_000,
   notes: 'CM quantity take-off calibrated on 4 real BQs, Aug 2026',
   takeoff: CM_TAKEOFF,
   fixture_prices: DEFAULT_FIXTURE_PRICES,

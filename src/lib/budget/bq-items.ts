@@ -62,6 +62,13 @@ export const BQ_ITEMS = {
   // is a bigger quantity at the same rate, not a scaled-up subtotal.
   '401': { section: 'upper_floor',  labelKey: 'bq.301', unit: 'm³',   kind: 'measured' },
   '402': { section: 'upper_floor',  labelKey: 'bq.302', unit: 'm³',   kind: 'measured' },
+  // Added Sep 2026. 303/307/308 priced ONE suspended slab, soffit and stair flight for a
+  // building of any height, so a G+7 was costed with a single deck where it needs seven.
+  // These carry every deck above the first. Same labels as their 300 counterparts —
+  // a contractor reads one slab line per level, not a new trade.
+  '403': { section: 'upper_floor',  labelKey: 'bq.303', unit: 'm³',   kind: 'measured' },
+  '407': { section: 'upper_floor',  labelKey: 'bq.307', unit: 'm²',   kind: 'measured' },
+  '408': { section: 'upper_floor',  labelKey: 'bq.308', unit: 'm³',   kind: 'measured' },
   '405': { section: 'upper_floor',  labelKey: 'bq.305', unit: 'm²',   kind: 'measured' },
   '406': { section: 'upper_floor',  labelKey: 'bq.306', unit: 'm²',   kind: 'measured' },
   '409': { section: 'upper_floor',  labelKey: 'bq.309', unit: 'm²',   kind: 'measured' },
