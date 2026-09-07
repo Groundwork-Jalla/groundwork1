@@ -17,6 +17,12 @@ function milestoneArgs(projectId: string, budget: BudgetBreakdown) {
     p_design_fee:       budget.design,
     p_permit_fee:       budget.permit,
     p_professional_fee: budget.professional,
+    // Added by migration 072. Verification came out of the professional fee — it was
+    // always a per-visit charge and never a professional's retainer — and contingency is
+    // new. Both are their own `project_fees` rows, so the schedule still adds up to the
+    // total; omit either and it quietly falls short by that amount.
+    p_verification_fee: budget.verification,
+    p_contingency_fee:  budget.contingency,
   };
 }
 

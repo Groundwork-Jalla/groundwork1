@@ -60,7 +60,10 @@ export default function Step11ConfirmBudget() {
       //    fee is priced per built m², hence the shape.
       await startProjectTracking(
         project.id,
-        decomposeBudget(finalBudget, { builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1) }),
+        decomposeBudget(finalBudget, {
+          builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
+          floors:       data.floors ?? 1,
+        }),
       );
 
       // 3. The quote, if they attached one. Only possible now that a project id exists,

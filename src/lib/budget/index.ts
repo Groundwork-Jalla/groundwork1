@@ -4,6 +4,7 @@ import type {
 } from '@/types/project';
 import { runTakeoff, SECTION_KEYS, type SectionKey } from './engine';
 import { buildLegacyRate, getApproxFx, legacyTotal } from './legacy';
+import { buildDurationMonths } from './timeline';
 import { formatMoney } from '@/lib/format';
 // Type-only: erased at build, and nothing under @/lib/i18n imports @/lib/budget,
 // so this cannot create a cycle.
@@ -22,6 +23,14 @@ export type { BqCode, BqItem } from './bq-items';
 export { runTakeoff, SECTION_KEYS } from './engine';
 export { buildLegacyRate, getApproxFx, getCurrencyCode } from './legacy';
 export { ROOF_OPTIONS, ROOF_FORMS, isFlatRoof, roofOption, roofsOfForm, roofMultipliers } from './roof';
+/**
+ * Build duration, per Vanessa's rule of 4 Sep 2026. Re-exported here because the fee
+ * formulas bill by the month, so length and cost are now one calculation and not two.
+ */
+export {
+  buildDurationDays, buildDurationMonths, stageDurationDays,
+  BUNGALOW_DAYS, DAYS_PER_UPPER_FLOOR,
+} from './timeline';
 export type { RoofForm, RoofOption } from './roof';
 export type { SectionKey } from './engine';
 
@@ -66,7 +75,7 @@ export function calculateBudget(
   const effective = rate ?? buildLegacyRate(data);
   return composeBudget(
     calculateTotal(data, effective, cityRate),
-    { builtAreaSqm: builtArea(data.sqm, data.floors) },
+    shapeOf(data.sqm, data.floors),
   );
 }
 
@@ -132,17 +141,56 @@ export const LABOR_PCT = 40;
  * the same rule migration 020 gives for refusing to backfill `budget_usd`.
  */
 export const PERMIT_PCT_OF_BUILD = 2.25;
-/** Professional fee, per charged construction stage. */
-export const PROFESSIONAL_FEE_XAF = 50_000;
-/** Design fee, per built m² (footprint × floors). */
+/**
+ * Verification, per charged construction stage.
+ *
+ * This is the 50,000 XAF an independent professional is paid to go and confirm a stage is
+ * genuinely finished before the milestone is released. It was called the *professional*
+ * fee until 4 Sep 2026, which was a misnomer: Philip and Vanessa established that
+ * verification is its own category and the professional fee is four named roles (below).
+ * Same number, honest name, and now its own line on the client's breakdown.
+ */
+export const VERIFICATION_FEE_XAF = 50_000;
+
+/** Design fee, per built m² (footprint × floors). Confirmed correct by Vanessa, 4 Sep. */
 export const DESIGN_RATE_XAF_PER_M2 = 5_000;
+
+/**
+ * The four professional roles, from Vanessa on 4 Sep 2026.
+ *
+ * Previously one flat line of 350,000 XAF for every project regardless of size or length,
+ * which is why an eight-storey block and a bungalow were charged the same for
+ * supervision. Two of the four now scale with the *duration* of the build, which is what
+ * ties this to `timeline.ts` — get the months wrong and these are wrong.
+ *
+ * A site *engineer* is deliberately not here: that sits inside the 40% labour split, as
+ * both Philip and Vanessa confirmed on the call.
+ */
+export const SITE_MANAGER_XAF_PER_MONTH      = 300_000;
+export const QUANTITY_SURVEYOR_XAF_PER_MONTH = 55_000;
+/** One contract per project — Vanessa: "just one contract", raised from 50,000. */
+export const CONTRACT_LAWYER_XAF             = 100_000;
+/** The project manager takes a share of the build rather than a monthly rate. */
+export const PROJECT_MANAGER_PCT_OF_BUILD    = 5;
+
+/**
+ * Contingency, on everything else.
+ *
+ * 2%, from Vanessa: council permit variations, coastal painting requirements, and
+ * unpredictable ground water tables — the things that reliably happen on a Cameroonian
+ * site and are never in anyone's first estimate.
+ *
+ * NOTE: the 3 Sep meeting said 5%, and backlog items B2/F19 still say so. The 4 Sep
+ * figure supersedes it: that was Philip alone; this was Philip with the engineer.
+ */
+export const CONTINGENCY_PCT = 2;
 /**
  * Stages that carry a non-zero share of the construction fee.
  *
- * The professional fee is `PROFESSIONAL_FEE_XAF × CHARGED_STAGE_COUNT`, so this is not a
- * free-floating number — stage-seeds.test.ts asserts the pipeline really does have this
- * many charged stages, which is what stops a stage being added later without the fee
- * following it.
+ * The verification fee is `VERIFICATION_FEE_XAF × CHARGED_STAGE_COUNT` — one site visit
+ * per charged stage — so this is not a free-floating number. stage-seeds.test.ts asserts
+ * the pipeline really does have this many charged stages, which is what stops a stage
+ * being added later without a visit being paid for.
  */
 export const CHARGED_STAGE_COUNT = 7;
 
@@ -157,12 +205,52 @@ const XAF_PER_USD = getApproxFx('CM');
 const toCents = (usd: number) =>
   Number.isFinite(usd) && usd > 0 ? Math.round(usd * 100) : 0;
 
-/** The two fee lines that do NOT depend on the construction fee. In cents. */
-function flatFeeCents(builtAreaSqm: number) {
-  const area = Number.isFinite(builtAreaSqm) && builtAreaSqm > 0 ? builtAreaSqm : 0;
+const xafToCents = (xaf: number) => Math.round(xaf / XAF_PER_USD * 100);
+
+/**
+ * The fee lines that do NOT depend on the construction fee. In cents.
+ *
+ * Everything here is a function of size or duration only, which is what keeps
+ * `decomposeBudget` a one-line inversion — see the algebra there. The project manager is
+ * deliberately absent: 5% of the build is not flat, so it belongs in `assemble`.
+ */
+function flatFeeCents(builtAreaSqm: number, floors: number) {
+  const area   = Number.isFinite(builtAreaSqm) && builtAreaSqm > 0 ? builtAreaSqm : 0;
+  const months = buildDurationMonths(floors);
+
   return {
-    professional: Math.round(PROFESSIONAL_FEE_XAF * CHARGED_STAGE_COUNT / XAF_PER_USD * 100),
-    design:       Math.round(DESIGN_RATE_XAF_PER_M2 * area / XAF_PER_USD * 100),
+    design:            xafToCents(DESIGN_RATE_XAF_PER_M2 * area),
+    siteManager:       xafToCents(SITE_MANAGER_XAF_PER_MONTH * months),
+    quantitySurveyor:  xafToCents(QUANTITY_SURVEYOR_XAF_PER_MONTH * months),
+    contractLawyer:    xafToCents(CONTRACT_LAWYER_XAF),
+    verification:      xafToCents(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT),
+  };
+}
+
+/**
+ * The four professional roles, itemised, in USD.
+ *
+ * `BudgetBreakdown.professional` is their sum — one client-facing line, as it has always
+ * been. This is for the "how is this calculated" expander, because Philip's actual ask was
+ * transparency: a client should see who they are paying, not a single opaque figure.
+ */
+export interface ProfessionalParts {
+  siteManager: number;
+  quantitySurveyor: number;
+  contractLawyer: number;
+  projectManager: number;
+  /** Build duration in months — what the first two are multiplied by. */
+  months: number;
+}
+
+export function professionalParts(constructionUSD: number, floors: number): ProfessionalParts {
+  const flat = flatFeeCents(0, floors);
+  return {
+    siteManager:      flat.siteManager      / 100,
+    quantitySurveyor: flat.quantitySurveyor / 100,
+    contractLawyer:   flat.contractLawyer   / 100,
+    projectManager:   Math.round(toCents(constructionUSD) * PROJECT_MANAGER_PCT_OF_BUILD / 100) / 100,
+    months:           buildDurationMonths(floors),
   };
 }
 
@@ -174,16 +262,55 @@ function flatFeeCents(builtAreaSqm: number) {
  * move the total. A cent of drift on a permit fee is invisible; a cent of drift on the
  * number someone agreed to pay is the bug this whole module exists to prevent.
  */
-function assemble(constructionCents: number, builtAreaSqm: number, overrideTotalCents?: number): BudgetBreakdown {
-  const flat  = flatFeeCents(builtAreaSqm);
+function assemble(
+  constructionCentsIn: number,
+  shape: BudgetShape,
+  overrideTotalCents?: number,
+): BudgetBreakdown {
+  let constructionCents = constructionCentsIn;
+  const flat  = flatFeeCents(shape.builtAreaSqm, shape.floors);
   const parts = allocate(constructionCents, { material: MATERIAL_PCT, labor: LABOR_PCT });
 
   let permit = Math.round(constructionCents * PERMIT_PCT_OF_BUILD / 100);
-  let total  = constructionCents + permit + flat.professional + flat.design;
+
+  // The project manager is the one professional paid out of the build rather than by the
+  // month, so it belongs here and not in flatFeeCents.
+  const projectManager = Math.round(constructionCents * PROJECT_MANAGER_PCT_OF_BUILD / 100);
+  const professional   = flat.siteManager + flat.quantitySurveyor
+                       + flat.contractLawyer + projectManager;
+
+  // Contingency is on everything else, so it is computed last and is the only line whose
+  // basis is the subtotal rather than the construction fee.
+  const subtotal    = constructionCents + permit + professional
+                    + flat.design + flat.verification;
+  const contingency = Math.round(subtotal * CONTINGENCY_PCT / 100);
+
+  let total = subtotal + contingency;
 
   if (overrideTotalCents !== undefined) {
-    permit += overrideTotalCents - total;
-    total   = overrideTotalCents;
+    // The rounding remainder goes into permit, as it always has. A cent of drift on a
+    // permit fee is invisible; a cent of drift on the number someone agreed to pay is the
+    // bug this whole module exists to prevent.
+    //
+    // Clamped at zero, and not defensively — it is reachable. Just above the degenerate
+    // threshold the construction fee can be a single cent, which makes permit
+    // `round(0.0225) = 0`; a negative remainder there would print a permit fee of −$0.01.
+    // A 126,000-case sweep never produced one, but "never observed" is not "cannot
+    // happen", and the shortfall has somewhere better to go: construction is the largest
+    // line by orders of magnitude and absorbs a cent invisibly.
+    const delta = overrideTotalCents - total;
+    if (permit + delta >= 0) {
+      permit += delta;
+    } else {
+      constructionCents += permit + delta;
+      permit = 0;
+      // material/labour are a view OF construction, so they have to be re-derived — not
+      // left describing the figure construction used to be.
+      const reparts = allocate(constructionCents, { material: MATERIAL_PCT, labor: LABOR_PCT });
+      parts.material = reparts.material;
+      parts.labor    = reparts.labor;
+    }
+    total = overrideTotalCents;
   }
 
   return {
@@ -192,8 +319,10 @@ function assemble(constructionCents: number, builtAreaSqm: number, overrideTotal
     material:     parts.material     / 100,
     labor:        parts.labor        / 100,
     permit:       permit             / 100,
-    professional: flat.professional  / 100,
+    professional: professional       / 100,
     design:       flat.design        / 100,
+    verification: flat.verification  / 100,
+    contingency:  contingency        / 100,
   };
 }
 
@@ -201,6 +330,15 @@ function assemble(constructionCents: number, builtAreaSqm: number, overrideTotal
 export interface BudgetShape {
   /** Total built area in m²: ground-floor footprint × number of floors. */
   builtAreaSqm: number;
+  /**
+   * Storeys including the ground floor.
+   *
+   * Required, not optional, and deliberately so: two professional fees are billed per
+   * month and the duration comes from this. A caller that forgot it would silently quote
+   * a bungalow's site manager for an eight-storey block, so the compiler is made to find
+   * every call site instead.
+   */
+  floors: number;
 }
 
 /**
@@ -216,21 +354,32 @@ export function composeBudget(constructionUSD: number, shape: BudgetShape): Budg
   // this the wizard would quote $583 of professional fee against an empty form before
   // anyone has entered a size.
   if (construction <= 0) {
-    return { total: 0, construction: 0, material: 0, labor: 0, permit: 0, professional: 0, design: 0 };
+    return {
+      total: 0, construction: 0, material: 0, labor: 0,
+      permit: 0, professional: 0, design: 0, verification: 0, contingency: 0,
+    };
   }
-  return assemble(construction, shape.builtAreaSqm);
+  return assemble(construction, shape);
 }
 
 /**
- * Inverse direction: a confirmed total in, the same four lines out.
+ * Inverse direction: a confirmed total in, the same lines back out.
  *
- * This is what makes the model storable in one column. Neither flat fee depends on the
- * construction fee, so
+ * This is what makes the model storable in one column. Every fee is either flat in the
+ * construction fee or a fixed percentage of it, so the whole thing inverts in one step:
  *
- *     total = C + 0.0225·C + P + D    ⟹      C = (total − P − D) / 1.0225
+ *     F        = design + siteManager + quantitySurveyor + contractLawyer + verification
+ *     subtotal = C × (1 + permit% + projectManager%) + F
+ *     total    = subtotal × (1 + contingency%)
+ *
+ *     ⟹  C = (total / 1.02 − F) / 1.0725
  *
  * recovers every line from `budget_usd` plus `sqm` and `num_floors`, both already on the
  * project row. No second source of truth for money, and nothing to keep in sync.
+ *
+ * This is the reason the project manager is a percentage and the site manager is not: had
+ * both been monthly, the inversion would still work, but had either depended on something
+ * absent from `ProjectRow` the single-column model would have had to go.
  *
  * Degenerate case: a total at or below the flat fees cannot satisfy both the fee formulas
  * and the total. The total wins — it is the number someone agreed to — so the fees are
@@ -239,28 +388,54 @@ export function composeBudget(constructionUSD: number, shape: BudgetShape): Budg
  */
 export function decomposeBudget(totalUSD: number, shape: BudgetShape): BudgetBreakdown {
   const totalCents = toCents(totalUSD);
-  const flat       = flatFeeCents(shape.builtAreaSqm);
-  const flatTotal  = flat.professional + flat.design;
+  const flat       = flatFeeCents(shape.builtAreaSqm, shape.floors);
+  const flatTotal  = flat.design + flat.siteManager + flat.quantitySurveyor
+                   + flat.contractLawyer + flat.verification;
 
-  if (totalCents <= flatTotal) {
-    const scaled = allocate(totalCents, { professional: flat.professional, design: flat.design });
+  // Strip the contingency first: it is the only line computed on the subtotal.
+  const subtotalCents = Math.round(totalCents * 100 / (100 + CONTINGENCY_PCT));
+
+  if (subtotalCents <= flatTotal) {
+    const scaled = allocate(totalCents, {
+      design:           flat.design,
+      siteManager:      flat.siteManager,
+      quantitySurveyor: flat.quantitySurveyor,
+      contractLawyer:   flat.contractLawyer,
+      verification:     flat.verification,
+    });
     return {
-      total:        totalCents        / 100,
-      construction: 0, material: 0, labor: 0, permit: 0,
-      professional: scaled.professional / 100,
+      total:        totalCents / 100,
+      construction: 0, material: 0, labor: 0, permit: 0, contingency: 0,
+      professional: (scaled.siteManager + scaled.quantitySurveyor + scaled.contractLawyer) / 100,
       design:       scaled.design       / 100,
+      verification: scaled.verification  / 100,
     };
   }
 
   const construction = Math.round(
-    (totalCents - flatTotal) * 100 / (100 + PERMIT_PCT_OF_BUILD),
+    (subtotalCents - flatTotal) * 100
+      / (100 + PERMIT_PCT_OF_BUILD + PROJECT_MANAGER_PCT_OF_BUILD),
   );
-  return assemble(construction, shape.builtAreaSqm, totalCents);
+  return assemble(construction, shape, totalCents);
 }
 
 /** Built area from a wizard payload. `sqm` is the FOOTPRINT — see geometry.ts. */
 function builtArea(sqm: number | undefined | null, floors: number | undefined | null): number {
   return Math.max(0, Number(sqm) || 0) * Math.max(1, Number(floors) || 1);
+}
+
+/**
+ * The shape both composition functions need, from a footprint and a floor count.
+ *
+ * One helper rather than an object literal at each call site: `floors` is now load-bearing
+ * for two monthly fees, and a caller that built half a shape would quote a bungalow's site
+ * manager for a tower block.
+ */
+function shapeOf(sqm: number | undefined | null, floors: number | undefined | null): BudgetShape {
+  return {
+    builtAreaSqm: builtArea(sqm, floors),
+    floors:       Math.max(1, Number(floors) || 1),
+  };
 }
 
 /**
@@ -280,7 +455,7 @@ export function projectBudget(
   rate?: ConstructionRate | null,
   cityRate?: CityRate | null,
 ): BudgetBreakdown {
-  const shape = { builtAreaSqm: builtArea(project.sqm, project.num_floors) };
+  const shape = shapeOf(project.sqm, project.num_floors);
 
   // The confirmed total is authoritative. `decomposeBudget` recovers the four lines from
   // it rather than re-pricing, so an owner who edited their budget sees components that
@@ -317,9 +492,11 @@ export type ProjectBudgetSource = Pick<ProjectRow,
  */
 export const BUDGET_SLICES = [
   { key: 'construction', labelKey: 'project.costing.sliceConstruction', color: '#1f2937' },
-  { key: 'design',       labelKey: 'project.costing.sliceDesign',       color: '#4b5563' },
-  { key: 'professional', labelKey: 'project.costing.sliceProfessional', color: '#9ca3af' },
-  { key: 'permit',       labelKey: 'project.costing.slicePermit',       color: '#d1d5db' },
+  { key: 'design',       labelKey: 'project.costing.sliceDesign',       color: '#374151' },
+  { key: 'professional', labelKey: 'project.costing.sliceProfessional', color: '#4b5563' },
+  { key: 'verification', labelKey: 'project.costing.sliceVerification', color: '#6b7280' },
+  { key: 'permit',       labelKey: 'project.costing.slicePermit',       color: '#9ca3af' },
+  { key: 'contingency',  labelKey: 'project.costing.sliceContingency',  color: '#d1d5db' },
 ] as const satisfies readonly {
   key: Exclude<keyof BudgetBreakdown, 'total' | 'material' | 'labor'>;
   labelKey: TKey;
@@ -338,13 +515,17 @@ export function sliceShares(b: BudgetBreakdown): Record<BudgetSliceKey, number> 
     construction: Math.max(0, b.construction),
     design:       Math.max(0, b.design),
     professional: Math.max(0, b.professional),
+    verification: Math.max(0, b.verification),
     permit:       Math.max(0, b.permit),
+    contingency:  Math.max(0, b.contingency),
   });
   return {
     construction: tenths.construction / 10,
     design:       tenths.design       / 10,
     professional: tenths.professional / 10,
+    verification: tenths.verification / 10,
     permit:       tenths.permit       / 10,
+    contingency:  tenths.contingency  / 10,
   };
 }
 
@@ -418,7 +599,7 @@ export function calculateBudgetDetail(
       currencyCode: effective.currency_code,
       approxFxRate: fx,
       dataSource:   effective.data_source,
-      budget:       composeBudget(total, { builtAreaSqm: builtArea(data.sqm, data.floors) }),
+      budget:       composeBudget(total, shapeOf(data.sqm, data.floors)),
     };
   }
 
@@ -469,7 +650,7 @@ export function calculateBudgetDetail(
     currencyCode: effective.currency_code,
     approxFxRate: fx,
     dataSource:   effective.data_source,
-    budget:       composeBudget(total, { builtAreaSqm: builtArea(data.sqm, data.floors) }),
+    budget:       composeBudget(total, shapeOf(data.sqm, data.floors)),
   };
 }
 

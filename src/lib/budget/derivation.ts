@@ -1,6 +1,8 @@
 import {
-  CHARGED_STAGE_COUNT, DESIGN_RATE_XAF_PER_M2, LABOR_PCT,
-  MATERIAL_PCT, PERMIT_PCT_OF_BUILD, PROFESSIONAL_FEE_XAF,
+  CHARGED_STAGE_COUNT, CONTINGENCY_PCT, CONTRACT_LAWYER_XAF, DESIGN_RATE_XAF_PER_M2,
+  LABOR_PCT, MATERIAL_PCT, PERMIT_PCT_OF_BUILD, PROJECT_MANAGER_PCT_OF_BUILD,
+  QUANTITY_SURVEYOR_XAF_PER_MONTH, SITE_MANAGER_XAF_PER_MONTH, VERIFICATION_FEE_XAF,
+  professionalParts,
 } from './index';
 import type { BudgetSliceKey } from './index';
 import type { BudgetBreakdown } from '@/types/project';
@@ -44,6 +46,7 @@ export function sliceDerivation(
   key: BudgetSliceKey,
   b: BudgetBreakdown,
   builtAreaSqm: number,
+  floors = 1,
 ): SliceDerivation | null {
   switch (key) {
     case 'construction':
@@ -70,17 +73,52 @@ export function sliceDerivation(
         noteKey: 'project.costing.derive.designNote',
       };
 
-    case 'professional':
+    case 'professional': {
+      // Four named people, not one opaque figure. This is the whole of Philip's ask on
+      // 4 Sep: a client should be able to see who they are paying. Two of the four scale
+      // with the build's duration, which is why the months are shown alongside them.
+      const p = professionalParts(b.construction, floors);
+      const xaf = (n: number) => n.toLocaleString('en-US');
+      return {
+        rows: [
+          { labelKey: 'project.costing.derive.siteManager',
+            params: { rate: xaf(SITE_MANAGER_XAF_PER_MONTH), months: p.months },
+            amount: p.siteManager },
+          { labelKey: 'project.costing.derive.quantitySurveyor',
+            params: { rate: xaf(QUANTITY_SURVEYOR_XAF_PER_MONTH), months: p.months },
+            amount: p.quantitySurveyor },
+          { labelKey: 'project.costing.derive.contractLawyer',
+            params: { rate: xaf(CONTRACT_LAWYER_XAF) },
+            amount: p.contractLawyer },
+          { labelKey: 'project.costing.derive.projectManager',
+            params: { pct: PROJECT_MANAGER_PCT_OF_BUILD },
+            amount: p.projectManager },
+        ],
+        noteKey: 'project.costing.derive.professionalNote',
+      };
+    }
+
+    case 'verification':
       return {
         rows: [{
-          labelKey: 'project.costing.derive.professional',
+          labelKey: 'project.costing.derive.verification',
           params: {
-            rate:   PROFESSIONAL_FEE_XAF.toLocaleString('en-US'),
+            rate:   VERIFICATION_FEE_XAF.toLocaleString('en-US'),
             stages: CHARGED_STAGE_COUNT,
           },
-          amount: b.professional,
+          amount: b.verification,
         }],
-        noteKey: 'project.costing.derive.professionalNote',
+        noteKey: 'project.costing.derive.verificationNote',
+      };
+
+    case 'contingency':
+      return {
+        rows: [{
+          labelKey: 'project.costing.derive.contingency',
+          params: { pct: CONTINGENCY_PCT },
+          amount: b.contingency,
+        }],
+        noteKey: 'project.costing.derive.contingencyNote',
       };
 
     case 'permit':

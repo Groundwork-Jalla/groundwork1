@@ -4,8 +4,12 @@ import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
+import { stageDurationDays } from '@/lib/budget';
 
-const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
+// This page renders the one-floor `single_family` seed, so it shows a bungalow's
+// programme. Previously a fixed array summing to 196 days — seven months for a bungalow,
+// which is the figure beta testers rejected.
+const STAGE_DAYS = stageDurationDays(1);
 
 export default function StagesTool() {
   const t = useT();

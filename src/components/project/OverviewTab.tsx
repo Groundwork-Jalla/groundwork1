@@ -3,13 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Clock, Lock, AlertCircle, X, Info,
   Maximize2, Package, Users, Briefcase, Landmark, BarChart2, Scale, RefreshCw, Plus, Check, ChevronDown,
+  ShieldCheck, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import {
   formatUSDFull, formatUSD,
   BUDGET_SLICES, CHARGED_STAGE_COUNT, DESIGN_RATE_XAF_PER_M2, LABOR_PCT, MATERIAL_PCT,
-  PERMIT_PCT_OF_BUILD, PROFESSIONAL_FEE_XAF, decomposeBudget, projectBudget, sliceShares,
+  PERMIT_PCT_OF_BUILD, VERIFICATION_FEE_XAF, decomposeBudget, projectBudget, sliceShares,
+  buildDurationDays, buildDurationMonths, professionalParts,
+  CONTINGENCY_PCT, CONTRACT_LAWYER_XAF, PROJECT_MANAGER_PCT_OF_BUILD,
+  QUANTITY_SURVEYOR_XAF_PER_MONTH, SITE_MANAGER_XAF_PER_MONTH,
   type BudgetSliceKey,
 } from '@/lib/budget';
 import { findCountry } from '@/lib/countries';
@@ -20,7 +24,10 @@ import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, BudgetBreakdown }
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
 
-const PREDICTED_DAYS = 196;
+// The predicted duration used to be `const PREDICTED_DAYS = 196` — the same seven months
+// for a bungalow and an eight-storey block, which is what beta testers who had actually
+// built in Cameroon rejected. It now comes from the project's own floor count. See
+// src/lib/budget/timeline.ts for the rule.
 
 function addDays(date: Date, n: number): Date {
   const d = new Date(date);
@@ -52,7 +59,9 @@ const SLICE_DESC: Record<BudgetSliceKey, TKey> = {
   construction: 'project.overview.catConstructionDesc',
   design:       'project.overview.catDesignDesc',
   professional: 'project.overview.catProfessionalDesc',
+  verification: 'project.overview.catVerificationDesc',
   permit:       'project.overview.catPermitDesc',
+  contingency:  'project.overview.catContingencyDesc',
 };
 
 function BudgetDonut({
@@ -191,10 +200,15 @@ function BudgetBreakdownModal({
   // Payments are recorded per STAGE, not per category, so "paid by category" is an
   // apportionment of what has been paid — not observed data. Allocating it keeps the
   // rows summing to `paidTotal` instead of drifting like the old 0.41/0.23/… did.
-  const paidSplit = decomposeBudget(paidTotal, { builtAreaSqm: builtArea });
+  const paidSplit = decomposeBudget(paidTotal, { builtAreaSqm: builtArea, floors: project.num_floors });
   const floorNote   = project.num_floors > 1
     ? `Your build has ${project.num_floors} floors. Adding floors costs less than doubling everything — foundation and roof are shared — so each extra floor adds proportionally less.`
     : 'Your build is a single storey. No floor multiplier applies.';
+
+  // Itemised so the explainer can name each professional rather than showing one figure —
+  // Philip's ask on 4 Sep was that a client should see who they are paying.
+  const prof   = professionalParts(budget.construction, project.num_floors);
+  const months = buildDurationMonths(project.num_floors);
 
   const STEPS: { icon: React.ReactNode; title: string; amount: number | null; pct: number | null; body: string | null; formula: string | null }[] = [
     {
@@ -223,11 +237,25 @@ function BudgetBreakdownModal({
     },
     {
       icon: <Users className="size-4 text-brand-mid-grey" />,
-      title: 'Add the professional fee',
+      title: 'Add the professional fees',
       amount: budget.professional,
       pct: null,
-      body: 'Groundwork\'s own fee: stage-by-stage supervision, verification of the work before each payment is released, and coordination with your contractor. Charged per construction stage, so it does not grow with the size of your budget.',
-      formula: `${PROFESSIONAL_FEE_XAF.toLocaleString()} XAF  ×  ${CHARGED_STAGE_COUNT} stages  ${eq}  ${formatUSDFull(budget.professional)}`,
+      body: `The four people a build needs who are not on the tools: a site manager running the day, a quantity surveyor controlling materials, a lawyer for the contract, and a project manager coordinating the whole thing. The first two are paid monthly, so their fee follows the ${months}-month programme above rather than the size of your budget.`,
+      formula: [
+        `Site manager        ${SITE_MANAGER_XAF_PER_MONTH.toLocaleString()} XAF  ×  ${months} months  ${eq}  ${formatUSDFull(prof.siteManager)}`,
+        `Quantity surveyor   ${QUANTITY_SURVEYOR_XAF_PER_MONTH.toLocaleString()} XAF  ×  ${months} months  ${eq}  ${formatUSDFull(prof.quantitySurveyor)}`,
+        `Contract lawyer     ${CONTRACT_LAWYER_XAF.toLocaleString()} XAF  ×  1 contract  ${eq}  ${formatUSDFull(prof.contractLawyer)}`,
+        `Project manager     ${PROJECT_MANAGER_PCT_OF_BUILD}%  ×  ${formatUSDFull(budget.construction)}  ${eq}  ${formatUSDFull(prof.projectManager)}`,
+        `${eq}  ${formatUSDFull(budget.professional)}`,
+      ].join('\n'),
+    },
+    {
+      icon: <ShieldCheck className="size-4 text-brand-mid-grey" />,
+      title: 'Add verification',
+      amount: budget.verification,
+      pct: null,
+      body: 'An independent professional visits the site and confirms each stage is genuinely finished before its payment is released. Charged per visit rather than per month, so it follows the number of stages and not the length of the build.',
+      formula: `${VERIFICATION_FEE_XAF.toLocaleString()} XAF  ×  ${CHARGED_STAGE_COUNT} stages  ${eq}  ${formatUSDFull(budget.verification)}`,
     },
     {
       icon: <Landmark className="size-4 text-brand-mid-grey" />,
@@ -236,6 +264,14 @@ function BudgetBreakdownModal({
       pct: null,
       body: `Planning approval, building permit and lands registry in ${countryName}. Assessed against the value of the construction work, so it is charged as a percentage of that — not of the total above.`,
       formula: `${PERMIT_PCT_OF_BUILD}%  ×  ${formatUSDFull(budget.construction)}  ${eq}  ${formatUSDFull(budget.permit)}`,
+    },
+    {
+      icon: <AlertTriangle className="size-4 text-brand-mid-grey" />,
+      title: 'Add a contingency',
+      amount: budget.contingency,
+      pct: null,
+      body: 'Council permit variations, ground conditions, water tables — the things that reliably happen on a site here and are never in the first estimate. Charged on everything above rather than on the construction alone, because an overrun rarely confines itself to one line. Whatever is not spent stays yours.',
+      formula: `${CONTINGENCY_PCT}%  ×  everything above  ${eq}  ${formatUSDFull(budget.contingency)}`,
     },
     {
       icon: <Plus className="size-4 text-brand-mid-grey" />,
@@ -1070,7 +1106,8 @@ export default function OverviewTab({
 
   const country     = findCountry(project.country);
   const projStart   = new Date(project.target_start ?? project.created_at);
-  const projEnd     = addDays(projStart, PREDICTED_DAYS);
+  const predictedDays = buildDurationDays(project.num_floors);
+  const projEnd     = addDays(projStart, predictedDays);
   const daysLeft    = Math.max(0, Math.ceil((projEnd.getTime() - Date.now()) / 86_400_000));
 
   return (
@@ -1256,7 +1293,7 @@ export default function OverviewTab({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-brand-mid-grey">{t('project.overview.totalDuration')}</span>
-                <span className="text-xs font-medium text-brand-near-black dark:text-white">{t('project.overview.approxDays', { days: PREDICTED_DAYS })}</span>
+                <span className="text-xs font-medium text-brand-near-black dark:text-white">{t('project.overview.approxDays', { days: predictedDays })}</span>
               </div>
             </div>
           </div>

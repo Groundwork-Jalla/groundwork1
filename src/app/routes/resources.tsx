@@ -182,7 +182,7 @@ export default function ResourcesPage() {
           </p>
         </div>
         <a
-          href="mailto:hello@jalla.build"
+          href="mailto:contact@tryjalla.com"
           className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] text-sm font-medium text-brand-near-black dark:text-white px-4 py-2 hover:bg-brand-off-white dark:hover:bg-[#2c2c2c] transition-colors"
         >
           <FileText className="size-4" /> {t('resources.suggest')}

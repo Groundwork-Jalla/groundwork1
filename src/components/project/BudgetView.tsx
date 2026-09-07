@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Layers, ChevronRight } from 'lucide-react';
+import { Download, Layers, ChevronRight, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
 import { sliceDerivation, type SliceDerivation } from '@/lib/budget/derivation';
+import { checkEstimate } from '@/lib/budget/sanity';
+import { getApproxFx } from '@/lib/budget';
+import { resolveCityRate } from '@/lib/budget/model';
 import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus, FloorRoom } from '@/types/project';
@@ -472,6 +475,21 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
   // dropdown shows the figure the fee was actually calculated from.
   const builtAreaSqm = (project.sqm ?? 0) * (project.num_floors ?? 1);
 
+  // Sanity check against the regional rule of thumb — see lib/budget/sanity.ts. Reads
+  // the static rate book rather than the cached DB one: this needs `cost_delta_pct`,
+  // which is Vanessa's stated figure and does not drift, and a synchronous check keeps
+  // the tab from flashing a warning in after paint.
+  //
+  // `budget.total` here may be the owner's own confirmed figure rather than our
+  // estimate. Warning on it anyway is deliberate: the advice — have a contractor check
+  // a number this low for a building this size — is sound whoever typed it.
+  const sanity = checkEstimate(budget.total, {
+    sqm:      project.sqm,
+    floors:   project.num_floors,
+    cityRate: resolveCityRate(project.city, project.country),
+    fxRate:   getApproxFx(project.country),
+  });
+
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
 
   const released  = sumMilestones(sortedStages, s => s.status === 'complete');
@@ -523,6 +541,20 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
             />
           ))}
         </div>
+
+        {sanity.low && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5">
+            <TriangleAlert className="size-4 shrink-0 mt-px text-amber-600" aria-hidden />
+            <div>
+              <p className="text-xs font-semibold text-amber-900 leading-snug">
+                {t('wizard.lowEstimateTitle')}
+              </p>
+              <p className="mt-1 text-[11px] text-amber-800 leading-relaxed">
+                {t('wizard.lowEstimateBody')}
+              </p>
+            </div>
+          </div>
+        )}
 
         <p className="mt-4 text-[11px] text-brand-mid-grey leading-relaxed">
           {t('project.costing.disclaimer')}

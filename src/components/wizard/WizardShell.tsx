@@ -37,6 +37,16 @@ interface WizardShellProps {
   isSubmitting?: boolean;
   hideContinue?: boolean;
   /**
+   * Intercept the header's Back button.
+   *
+   * Steps that run a flow of their own — step 5 walks a floor at a time — need Back to
+   * retreat inside the step before it leaves the step. Without this the only way out of
+   * such a flow is forwards, and a user who opened the wrong floor is stuck.
+   *
+   * Return nothing and the step handles it; the shell does not call `back()` as well.
+   */
+  onBack?: () => void;
+  /**
    * Widen the content column from the default reading width.
    *
    * Every other step is a form, and `max-w-lg` is the right measure for one. Step 10
@@ -54,6 +64,7 @@ export default function WizardShell({
   continueLabel,
   isSubmitting = false,
   hideContinue = false,
+  onBack,
   wide = false,
 }: WizardShellProps) {
   const measure = wide ? 'max-w-3xl' : 'max-w-lg';
@@ -63,6 +74,10 @@ export default function WizardShell({
 
   function handleContinue() {
     if (onContinue) { onContinue(); } else { next(); }
+  }
+
+  function handleBack() {
+    if (onBack) { onBack(); } else { back(); }
   }
 
   return (
@@ -79,10 +94,10 @@ export default function WizardShell({
           <div className="flex items-center gap-2">
             <LanguageToggle compact />
             <ThemeToggle compact />
-            {!isFirst ? (
+            {!isFirst || onBack ? (
               <button
                 type="button"
-                onClick={back}
+                onClick={handleBack}
                 disabled={isSubmitting}
                 className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors disabled:opacity-40 flex items-center gap-1"
               >

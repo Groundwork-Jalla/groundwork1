@@ -56,7 +56,10 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
     try {
       await startProjectTracking(
         project.id,
-        decomposeBudget(finalBudget, { builtAreaSqm: Number(project.sqm) * project.num_floors }),
+        decomposeBudget(finalBudget, {
+          builtAreaSqm: Number(project.sqm) * project.num_floors,
+          floors:       project.num_floors,
+        }),
       );
       onStarted();
     } catch (err) {

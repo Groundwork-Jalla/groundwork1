@@ -20,6 +20,8 @@ interface PendingBudget {
   estimate: number;
   /** Ground-floor footprint × floors — the design fee is priced per built m². */
   builtAreaSqm: number;
+  /** Storeys. Drives the build duration, which the monthly professional fees bill by. */
+  floors: number;
 }
 
 function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
@@ -45,7 +47,7 @@ function ConfirmBudgetModal({ project, onClose, onConfirmed }: {
     try {
       await adminStartProjectTracking(
         project.id,
-        decomposeBudget(finalBudget, { builtAreaSqm: project.builtAreaSqm }),
+        decomposeBudget(finalBudget, { builtAreaSqm: project.builtAreaSqm, floors: project.floors }),
         project.ownerId,
         project.name,
       );
@@ -171,6 +173,7 @@ export default function AdminBudgets() {
           country:    p.country as string,
           estimate:   Number(p.budget_usd ?? 0),
           builtAreaSqm: Number(p.sqm ?? 0) * Number(p.num_floors ?? 1),
+          floors:       Number(p.num_floors ?? 1),
         };
       }));
     } finally {

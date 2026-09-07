@@ -142,7 +142,10 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
  * failing to add up — the bug the previous six-way split kept reintroducing.
  */
 export interface BudgetBreakdown {
-  /** What the client pays: construction + permit + professional + design. */
+  /**
+   * What the client pays:
+   * `construction + permit + professional + design + verification + contingency`.
+   */
   total: number;
   /** The build itself — the take-off output. Permits and fees sit on top of it. */
   construction: number;
@@ -150,12 +153,24 @@ export interface BudgetBreakdown {
   material: number;
   /** 40% of `construction`. */
   labor: number;
-  /** 1% of `construction`. */
+  /** 2.25% of `construction` — the government line plus the compliance documents. */
   permit: number;
-  /** Flat fee: 50,000 XAF per charged construction stage. */
+  /**
+   * The four professional roles, summed: site manager and quantity surveyor per month of
+   * build, contract lawyer flat, project manager at 5% of construction.
+   * `professionalParts()` itemises them for display.
+   */
   professional: number;
   /** 5,000 XAF per built m² (footprint × floors). */
   design: number;
+  /**
+   * 50,000 XAF per charged stage — an independent professional confirming the work
+   * before each milestone is released. Its own category since 4 Sep 2026; it used to be
+   * filed under `professional`, which is what made that line impossible to explain.
+   */
+  verification: number;
+  /** 2% of everything above. Council variations, ground conditions, the usual. */
+  contingency: number;
 }
 
 // -------------------------------------------------------

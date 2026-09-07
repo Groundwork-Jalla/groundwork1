@@ -5,9 +5,7 @@ import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
-
-// Typical stage durations in days (indices 0-9 = stages 1-10)
-const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
+import { stageDurationDays } from '@/lib/budget';
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -40,6 +38,12 @@ function computeTimeline(stages: ProjectStageRow[], project: ProjectRow): Comput
   const sorted = [...stages].sort((a, b) => a.stage_number - b.stage_number);
   const anchor = new Date(project.target_start ?? project.created_at);
 
+  // Derived from this project's floor count rather than the old fixed
+  // `[14,21,7,14,70,14,14,21,14,7]`, which summed to 196 and gave a bungalow and an
+  // eight-storey block the same programme. The weights are unchanged; only the total is
+  // now the project's own, and the parts sum to it exactly.
+  const planned = stageDurationDays(project.num_floors);
+
   let cursor = new Date(anchor);
   return sorted.map((stage, i) => {
     const start: Date = stage.planned_start
@@ -48,7 +52,7 @@ function computeTimeline(stages: ProjectStageRow[], project: ProjectRow): Comput
 
     const durationDays = stage.planned_start && stage.planned_end
       ? dateDiffDays(new Date(stage.planned_start), new Date(stage.planned_end))
-      : STAGE_DAYS[i] ?? 14;
+      : planned[i] ?? 14;
 
     const end: Date = stage.planned_end
       ? new Date(stage.planned_end)

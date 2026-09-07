@@ -1,5 +1,10 @@
 -- =========================================================
--- 069  Record which homeowners have had the welcome email
+-- 071  Record which homeowners have had the welcome email
+--
+-- Renumbered from 069, which collided with 069_admin_delete_project.sql. Both were
+-- already applied, so this is a correction to the ordering record rather than a
+-- change to what runs — but two files sharing a number is how one of them gets
+-- skipped on the next environment somebody sets up.
 --
 -- `contractor_applications.acknowledged_at` is why the contractor backfill correctly
 -- reported "1 send, 35 backfill": the column says who has already been written to, so a

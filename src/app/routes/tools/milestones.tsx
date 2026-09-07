@@ -5,8 +5,10 @@ import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { getStageSeed } from '@/lib/supabase/stage-seeds';
 import { useT, useFormat, type TKey } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { stageDurationDays } from '@/lib/budget';
 
-const STAGE_DAYS = [14, 21, 7, 14, 70, 14, 14, 21, 14, 7];
+// Matches the one-floor seed this tool renders — see tools/stages.tsx.
+const STAGE_DAYS = stageDurationDays(1);
 
 export default function MilestonesTool() {
   const t = useT();

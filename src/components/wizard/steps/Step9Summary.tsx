@@ -1,16 +1,21 @@
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
-  ShieldCheck, Info, CalendarDays,
+  ShieldCheck, Info, CalendarDays, TriangleAlert,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { BUDGET_SLICES, calculateBudgetDetail, formatUSDFull, formatLocalCurrency } from '@/lib/budget';
+import {
+  BUDGET_SLICES, calculateBudgetDetail, formatUSDFull, formatLocalCurrency,
+  buildDurationDays, buildDurationMonths,
+} from '@/lib/budget';
+import { checkEstimate } from '@/lib/budget/sanity';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
-const PREDICTED_DAYS = 196;
+// Was `const PREDICTED_DAYS = 196` — the fifth copy of that number, and the one a client
+// sees before they commit. It now follows the floors they just chose.
 
 /** The three lines added to the construction subtotal. BUDGET_SLICES minus construction. */
 const FEE_LINES = BUDGET_SLICES.filter(s => s.key !== 'construction');
@@ -34,6 +39,11 @@ function BudgetBreakdownCard() {
   const { data, constructionRate, cityRate, rateLoading } = useWizard();
   const detail = calculateBudgetDetail(data, constructionRate, cityRate);
   const isVerified = detail.dataSource === 'real_bq';
+  // Guard rail, not a second estimate — see lib/budget/sanity.ts. The engine charges
+  // one deck slab per building rather than per floor, so tall builds come out low.
+  const sanity = checkEstimate(detail.budget.total, {
+    sqm: data.sqm, floors: data.floors, cityRate, fxRate: detail.approxFxRate,
+  });
   const maxAmount  = Math.max(...detail.sections.map(s => s.amountUSD), 1);
 
   if (rateLoading) {
@@ -158,6 +168,24 @@ function BudgetBreakdownCard() {
         </div>
       </div>
 
+      {/* Under-estimate warning. Above the disclaimer because it is the more urgent of
+          the two, and only ever rendered when we can actually defend the comparison. */}
+      {sanity.low && (
+        <div className="px-5 pb-1">
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5">
+            <TriangleAlert className="size-3.5 shrink-0 mt-0.5 text-amber-600" aria-hidden />
+            <div>
+              <p className="text-[11px] font-semibold text-amber-900 leading-snug">
+                {t('wizard.lowEstimateTitle')}
+              </p>
+              <p className="mt-1 text-[10px] text-amber-800 leading-relaxed">
+                {t('wizard.lowEstimateBody')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Disclaimer */}
       <div className="px-5 pb-4">
         <p className="text-[10px] text-brand-mid-grey leading-relaxed bg-brand-off-white rounded-lg px-3 py-2.5">
@@ -237,12 +265,13 @@ export default function Step9Summary() {
 
           {(() => {
             const startDate = data.targetStartDate ? new Date(data.targetStartDate) : new Date();
-            const endDate = addDays(startDate, PREDICTED_DAYS);
-            const months = Math.round(PREDICTED_DAYS / 30);
+            const predictedDays = buildDurationDays(data.floors);
+            const months = buildDurationMonths(data.floors);
+            const endDate = addDays(startDate, predictedDays);
             const rows = [
               { label: 'Estimated start', value: fmtDate(startDate) },
               { label: 'Projected completion', value: fmtDate(endDate) },
-              { label: 'Total duration', value: `~${PREDICTED_DAYS} days (${months} months)` },
+              { label: 'Total duration', value: `~${predictedDays} days (${months} months)` },
             ];
             return (
               <div className="divide-y divide-brand-off-white">

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUDGET_SLICES, CHARGED_STAGE_COUNT, CONSTRUCTION_SPLIT,
-  DESIGN_RATE_XAF_PER_M2, LABOR_PCT, MATERIAL_PCT, PERMIT_PCT_OF_BUILD,
-  PROFESSIONAL_FEE_XAF, composeBudget, decomposeBudget, projectBudget, sliceShares,
+  BUDGET_SLICES, CHARGED_STAGE_COUNT, CONSTRUCTION_SPLIT, CONTINGENCY_PCT,
+  CONTRACT_LAWYER_XAF, DESIGN_RATE_XAF_PER_M2, LABOR_PCT, MATERIAL_PCT,
+  PERMIT_PCT_OF_BUILD, PROJECT_MANAGER_PCT_OF_BUILD, QUANTITY_SURVEYOR_XAF_PER_MONTH,
+  SITE_MANAGER_XAF_PER_MONTH, VERIFICATION_FEE_XAF,
+  buildDurationMonths, composeBudget, decomposeBudget, professionalParts,
+  projectBudget, sliceShares,
 } from './index';
 import type { BudgetShape, ProjectBudgetSource } from './index';
 import type { BudgetBreakdown } from '@/types/project';
@@ -29,9 +32,17 @@ import type { BudgetBreakdown } from '@/types/project';
 
 const cents = (n: number) => Math.round(n * 100);
 
-/** construction + permit + professional + design, in cents. */
+/**
+ * Every client-facing line, in cents.
+ *
+ * Six lines since 4 Sep 2026: verification came out of `professional` (it was never a
+ * professional fee, it is a site visit) and contingency was added. If a line is ever
+ * added without being listed here, `expectCoherent` silently stops checking it — so this
+ * list is deliberately spelled out rather than summed over `Object.values`.
+ */
 const sumLines = (b: BudgetBreakdown) =>
-  cents(b.construction) + cents(b.permit) + cents(b.professional) + cents(b.design);
+  cents(b.construction) + cents(b.permit) + cents(b.professional)
+  + cents(b.design) + cents(b.verification) + cents(b.contingency);
 
 /** The two identities that must hold for every breakdown the module ever produces. */
 function expectCoherent(b: BudgetBreakdown) {
@@ -41,7 +52,7 @@ function expectCoherent(b: BudgetBreakdown) {
   expect(Object.values(b).every(v => v >= 0)).toBe(true);
 }
 
-const SHAPE: BudgetShape = { builtAreaSqm: 240 };  // 120 m² footprint × 2 floors
+const SHAPE: BudgetShape = { builtAreaSqm: 240, floors: 2 };  // 120 m² footprint × 2 floors
 
 describe('budget composition constants', () => {
   it('material and labour split the construction fee exactly', () => {
@@ -50,7 +61,9 @@ describe('budget composition constants', () => {
 
   it('exposes each client-facing line exactly once, and never the sub-lines', () => {
     const keys = BUDGET_SLICES.map(s => s.key);
-    expect([...keys].sort()).toEqual(['construction', 'design', 'permit', 'professional']);
+    expect([...keys].sort()).toEqual(
+      ['construction', 'contingency', 'design', 'permit', 'professional', 'verification'],
+    );
     expect(new Set(keys).size).toBe(keys.length);
     // material/labor are a view OF construction. Listing them alongside it would
     // double-count the build — the 118.7% bug in a new costume.
@@ -75,21 +88,58 @@ describe('composeBudget', () => {
     }
   });
 
-  it('prices the two flat fees from their XAF constants, not from the build cost', () => {
-    // 350,000 XAF ÷ 600 = $583.33; 5,000 × 240 ÷ 600 = $2,000.00
+  it('prices the flat fees from their XAF constants, not from the build cost', () => {
     const small = composeBudget(50_000,    SHAPE);
     const large = composeBudget(5_000_000, SHAPE);
 
-    expect(small.professional).toBeCloseTo(PROFESSIONAL_FEE_XAF * CHARGED_STAGE_COUNT / 600, 2);
+    // 5,000 × 240 ÷ 600 = $2,000.00
     expect(small.design).toBeCloseTo(DESIGN_RATE_XAF_PER_M2 * 240 / 600, 2);
+    // 50,000 × 7 ÷ 600 = $583.33 — the old "professional" fee, now honestly named.
+    expect(small.verification).toBeCloseTo(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT / 600, 2);
+
     // Identical on a budget 100× larger — that is what "flat" means.
-    expect(large.professional).toBe(small.professional);
     expect(large.design).toBe(small.design);
+    expect(large.verification).toBe(small.verification);
+  });
+
+  it('bills the site manager and surveyor by the month, from the floor count', () => {
+    // The change that made an eight-storey block cost more to supervise than a bungalow.
+    const months = buildDurationMonths(2);
+    const p = professionalParts(100_000, 2);
+
+    expect(p.months).toBe(months);
+    expect(p.siteManager).toBeCloseTo(SITE_MANAGER_XAF_PER_MONTH * months / 600, 2);
+    expect(p.quantitySurveyor).toBeCloseTo(QUANTITY_SURVEYOR_XAF_PER_MONTH * months / 600, 2);
+    expect(p.contractLawyer).toBeCloseTo(CONTRACT_LAWYER_XAF / 600, 2);
+    expect(p.projectManager).toBeCloseTo(100_000 * PROJECT_MANAGER_PCT_OF_BUILD / 100, 2);
+
+    // A taller building takes longer, so the monthly roles cost more — the whole point.
+    expect(professionalParts(100_000, 8).siteManager)
+      .toBeGreaterThan(professionalParts(100_000, 1).siteManager);
+  });
+
+  it('sums the four roles into the single professional line', () => {
+    const b = composeBudget(100_000, SHAPE);
+    const p = professionalParts(100_000, SHAPE.floors);
+    expect(cents(b.professional)).toBe(
+      cents(p.siteManager) + cents(p.quantitySurveyor)
+      + cents(p.contractLawyer) + cents(p.projectManager),
+    );
+  });
+
+  it('charges contingency on everything above it, not on construction alone', () => {
+    const b = composeBudget(200_000, SHAPE);
+    const above = b.construction + b.permit + b.professional + b.design + b.verification;
+    expect(b.contingency).toBeCloseTo(above * CONTINGENCY_PCT / 100, 0);
+    // Strictly more than the same percentage of construction alone — the distinction.
+    expect(b.contingency).toBeGreaterThan(b.construction * CONTINGENCY_PCT / 100);
   });
 
   it('scales the design fee with built area and nothing else', () => {
-    const oneFloor = composeBudget(100_000, { builtAreaSqm: 120 });
-    const twoFloor = composeBudget(100_000, { builtAreaSqm: 240 });
+    // Floors held equal, so only the area moves — the professional fees follow the floor
+    // count now, and letting both vary would test nothing.
+    const oneFloor = composeBudget(100_000, { builtAreaSqm: 120, floors: 2 });
+    const twoFloor = composeBudget(100_000, { builtAreaSqm: 240, floors: 2 });
     expect(twoFloor.design).toBeCloseTo(oneFloor.design * 2, 2);
     expect(twoFloor.professional).toBe(oneFloor.professional);
     expect(twoFloor.construction).toBe(oneFloor.construction);
@@ -105,7 +155,7 @@ describe('composeBudget', () => {
 
   it('returns zeros for degenerate input rather than leaking NaN', () => {
     for (const bad of [0, -1, NaN, Infinity]) {
-      const b = composeBudget(bad, { builtAreaSqm: 0 });
+      const b = composeBudget(bad, { builtAreaSqm: 0, floors: 1 });
       expect(b.total).toBe(0);
       expect(sumLines(b)).toBe(0);
       expect(Object.values(b).every(Number.isFinite)).toBe(true);
@@ -114,7 +164,7 @@ describe('composeBudget', () => {
 
   it('survives a degenerate built area without corrupting the construction fee', () => {
     for (const bad of [0, -50, NaN, Infinity]) {
-      const b = composeBudget(100_000, { builtAreaSqm: bad });
+      const b = composeBudget(100_000, { builtAreaSqm: bad, floors: 2 });
       expect(b.design).toBe(0);
       expect(b.construction).toBe(100_000);
       expectCoherent(b);
@@ -193,10 +243,11 @@ describe('projectBudget — the confirmed budget wins', () => {
     expectCoherent(b);
   });
 
-  it('still reads sqm and floors once a budget is confirmed — for the design fee only', () => {
-    // Deliberately NOT the old "ignores sqm entirely" assertion. The design fee is
-    // priced per built m², so it must move with the building even when the total does
-    // not. The total stays put; construction absorbs the difference.
+  it('still reads sqm and floors once a budget is confirmed', () => {
+    // Deliberately NOT the old "ignores sqm entirely" assertion. The design fee is priced
+    // per built m² and two of the professional fees are billed per month of programme, so
+    // both must move with the building even when the total does not. The total stays put;
+    // construction absorbs the difference.
     const small = projectBudget({ ...FIXTURE, sqm: 60,  num_floors: 1, budget_usd: 90_000 });
     const large = projectBudget({ ...FIXTURE, sqm: 900, num_floors: 6, budget_usd: 90_000 });
 
@@ -204,7 +255,15 @@ describe('projectBudget — the confirmed budget wins', () => {
     expect(large.total).toBe(90_000);
     expect(large.design).toBeGreaterThan(small.design);
     expect(large.construction).toBeLessThan(small.construction);
-    expect(small.professional).toBe(large.professional);
+
+    // A six-storey takes far longer than a bungalow, so it costs more to supervise. This
+    // used to be identical for both, which is precisely what Vanessa objected to.
+    expect(large.professional).toBeGreaterThan(small.professional);
+
+    // Verification is per stage, not per month, so it does NOT move — the distinction
+    // that made it worth pulling out of the professional line.
+    expect(large.verification).toBe(small.verification);
+
     expectCoherent(small);
     expectCoherent(large);
   });
@@ -301,5 +360,90 @@ describe('no component re-derives its own total', () => {
     await walk('src');
 
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * The algebra, attacked rather than sampled.
+ *
+ * The tests above check the identities at sensible figures. These check them where they
+ * are actually fragile: at the threshold where construction collapses to nothing, across
+ * floor counts (which now move two of the fees), and on the round trip that the
+ * single-column storage model depends on.
+ *
+ * Written after a 145,000-case sweep found no violations — the point is not to find one
+ * now, it is that the next person to change a fee formula finds out here rather than in a
+ * client's breakdown.
+ */
+describe('the algebra holds where it is fragile', () => {
+  const SHAPES: BudgetShape[] = [];
+  for (const floors of [1, 2, 4, 8, 20]) {
+    for (const foot of [0, 60, 145, 1400]) {
+      SHAPES.push({ builtAreaSqm: foot * floors, floors });
+    }
+  }
+
+  /** The largest total that still decomposes to zero construction, in dollars. */
+  function flatThreshold(shape: BudgetShape): number {
+    for (let t = 0; t <= 60_000; t++) {
+      if (decomposeBudget(t, shape).construction > 0) return t;
+    }
+    return 0;
+  }
+
+  it('stays exact cent-by-cent across the degenerate threshold', () => {
+    // Just above the threshold the construction fee can be a single cent, which rounds
+    // the permit line to zero. A negative rounding remainder there would print a permit
+    // fee of −$0.01, so `assemble` clamps and moves the shortfall to construction.
+    let sawTheFragileState = false;
+
+    for (const shape of SHAPES) {
+      const edge = Math.round(flatThreshold(shape) * 100);
+      for (let cents = Math.max(0, edge - 200); cents <= edge + 200; cents++) {
+        const b = decomposeBudget(cents / 100, shape);
+        if (b.permit === 0 && b.construction > 0) sawTheFragileState = true;
+        expect(sumLines(b)).toBe(cents);
+        expectCoherent(b);
+      }
+    }
+
+    // If this ever goes false the sweep has stopped covering the case it exists for.
+    expect(sawTheFragileState).toBe(true);
+  });
+
+  it('round-trips every line exactly, at every floor count', () => {
+    // compose → decompose → the same breakdown. This is what lets the whole model live
+    // in one `budget_usd` column instead of a second table.
+    for (const shape of SHAPES) {
+      for (let build = 1_000; build <= 200_000; build += 4_099) {
+        const forward = composeBudget(build, shape);
+        expect(decomposeBudget(forward.total, shape)).toEqual(forward);
+      }
+    }
+  });
+
+  it('never lets a bigger confirmed total buy less construction', () => {
+    // A sign error in the inversion shows up here and almost nowhere else.
+    for (const shape of SHAPES) {
+      let previous = -1;
+      for (let total = 1; total <= 200_000; total += 719) {
+        const build = decomposeBudget(total, shape).construction;
+        expect(build).toBeGreaterThanOrEqual(previous - 0.005);
+        previous = build;
+      }
+    }
+  });
+
+  it('charges more to supervise a taller building, at an identical total', () => {
+    // The change Vanessa asked for, stated as an invariant: same money, more storeys,
+    // more months of site management — and the total still lands exactly.
+    const bungalow = decomposeBudget(150_000, { builtAreaSqm: 145,       floors: 1 });
+    const tower    = decomposeBudget(150_000, { builtAreaSqm: 145 * 8,   floors: 8 });
+
+    expect(tower.professional).toBeGreaterThan(bungalow.professional);
+    expect(tower.total).toBe(150_000);
+    expect(bungalow.total).toBe(150_000);
+    expectCoherent(tower);
+    expectCoherent(bungalow);
   });
 });

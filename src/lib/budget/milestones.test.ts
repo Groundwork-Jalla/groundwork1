@@ -53,15 +53,19 @@ describe('payment schedule reconciles with the budget', () => {
       expect(stages.find(s => s.key === 'designCompleted')!.amount)
         .toBe(Math.round(budget.design));
 
-      // Stages + the two standalone fee milestones = what the client was quoted.
+      // Stages + the standalone fee milestones = what the client was quoted.
+      // Four of them since 4 Sep 2026: verification and contingency joined permit and
+      // professional, and `project_fees.kind` was widened to match. Miss one here and the
+      // schedule quietly stops adding up to the number on the contract.
       const scheduled = stages.reduce((a, s) => a + s.amount, 0)
-        + Math.round(budget.permit) + Math.round(budget.professional);
+        + Math.round(budget.permit) + Math.round(budget.professional)
+        + Math.round(budget.verification) + Math.round(budget.contingency);
       expect(scheduled).toBeCloseTo(budget.total, -1);
     });
   }
 
   it('the three uncharged stages carry nothing', () => {
-    const budget = composeBudget(200_000, { builtAreaSqm: 240 });
+    const budget = composeBudget(200_000, { builtAreaSqm: 240, floors: 2 });
     const byKey  = new Map(stageMilestones(budget).map(s => [s.key, s.amount]));
 
     expect(byKey.get('landSecured')).toBe(0);
@@ -73,11 +77,12 @@ describe('payment schedule reconciles with the budget', () => {
   it('reconciles for an edited budget, not just the estimate', () => {
     // The path that broke before: an owner types their own figure in Step 11, and the
     // schedule must follow THAT number rather than the engine's.
-    const budget = decomposeBudget(137_412.37, { builtAreaSqm: 240 });
+    const budget = decomposeBudget(137_412.37, { builtAreaSqm: 240, floors: 2 });
     const stages = stageMilestones(budget);
 
     const scheduled = stages.reduce((a, s) => a + s.amount, 0)
-      + Math.round(budget.permit) + Math.round(budget.professional);
+      + Math.round(budget.permit) + Math.round(budget.professional)
+      + Math.round(budget.verification) + Math.round(budget.contingency);
 
     expect(budget.total).toBe(137_412.37);
     expect(scheduled).toBeCloseTo(137_412.37, -1);
