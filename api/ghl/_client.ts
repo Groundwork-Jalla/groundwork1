@@ -226,6 +226,23 @@ export async function upsertContact(
 
 // ── Conversations (the follow-up surface people actually use) ─────────────────────────
 
+/**
+ * A chat message on a contact's thread.
+ *
+ * `direction` is stated, never defaulted. Get it wrong and every message a homeowner
+ * typed shows in GHL as one we sent them, which is the same class of mistake the
+ * `direction: 'outbound'` comment on `addConversationEmail` exists to prevent.
+ */
+export interface ConversationMessage {
+  contactId: string;
+  body: string;
+  /** 'inbound' = the contact wrote it. 'outbound' = we or a contractor did. */
+  direction: 'inbound' | 'outbound';
+  /** Shown before the body so the thread says who is talking. */
+  senderName?: string;
+  sentAt?: Date;
+}
+
 export interface ConversationEmail {
   contactId: string;
   subject: string;
@@ -311,6 +328,56 @@ export async function ensureConversation(
  * get right. `/admin/crm` → "Test the email log" is what answers this one; it reports the
  * status verbatim.
  */
+/**
+ * Put a chat message on a contact's GHL thread.
+ *
+ * Same provider plumbing as `addConversationEmail` — the OAuth bearer rather than the
+ * PIT, because a conversation provider belongs to the Marketplace app and a PIT is not
+ * the app (that cost us three wrong 401 hypotheses on 3 Sep 2026).
+ *
+ * What differs is the shape: no subject, no addresses, and a `direction` the caller has
+ * to state. Project chat has three kinds of participant — owner, contractor, Jalla — and
+ * only the owner is the GHL contact, so everyone else's message is 'outbound' on their
+ * thread. The sender's name is prefixed into the body, because a thread that renders
+ * three people as one voice is worse than no mirror at all.
+ */
+export async function addConversationMessage(
+  cfg: GhlConfig,
+  providerId: string,
+  msg: ConversationMessage,
+  bearer?: string,
+): Promise<GhlResult<{ messageId?: string }>> {
+  const conversationId = await ensureConversation(cfg, msg.contactId, bearer);
+  if (!conversationId) {
+    return { ok: false, status: 0, error: 'no_conversation' };
+  }
+
+  const body = msg.senderName ? `${msg.senderName}: ${msg.body}` : msg.body;
+
+  const r = await ghlFetch<{ messageId?: string; id?: string; _id?: string }>(
+    cfg, '/conversations/messages', {
+      method: 'POST',
+      bearer,
+      verboseErrors: true,
+      body: {
+        // 'Custom' is what a conversation provider is allowed to post. 'Email' and the
+        // channel types are reserved for GHL's own integrations.
+        type: 'Custom',
+        conversationId,
+        direction: msg.direction,
+        conversationProviderId: providerId,
+        contactId: msg.contactId,
+        message: body,
+        date: (msg.sentAt ?? new Date()).toISOString(),
+      },
+    });
+
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+  const d = r.data ?? {};
+  const id = d.messageId ?? d.id ?? d._id;
+  return { ok: true, status: r.status, data: { messageId: id ? String(id) : undefined } };
+}
+
 export async function addConversationEmail(
   cfg: GhlConfig,
   providerId: string,

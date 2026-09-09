@@ -302,11 +302,12 @@ export interface DirectoryEntry {
  * the public policy, which only exposes active ones.
  */
 export async function listDirectory(): Promise<DirectoryEntry[]> {
-  const { data, error } = await supabase
-    .from('contractors')
-    .select('id, name, trade, location, years_exp, completed_projects, specialties, ' +
-            'verified, active, email, phone, application_id, created_at')
-    .order('created_at', { ascending: false });
+  // `email` and `phone` are no longer readable from the table by ANY browser role —
+  // migration 075 took them out of the grant after they proved readable by anyone holding
+  // the anon key. Column privileges are not RLS-aware, so revoking them from
+  // `authenticated` revoked them from admins too, and the admin view gets a SECURITY
+  // DEFINER function instead of a grant that would reopen the hole for everyone.
+  const { data, error } = await supabase.rpc('admin_list_contractors');
   if (error) throw error;
 
   return ((data ?? []) as unknown as Row[]).map(r => ({

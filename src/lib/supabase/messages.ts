@@ -25,11 +25,22 @@ export async function sendMessage(
   senderName: string,
   content: string,
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_messages')
-    .insert({ project_id: projectId, sender_id: senderId, sender_name: senderName, content });
+    .insert({ project_id: projectId, sender_id: senderId, sender_name: senderName, content })
+    .select('id')
+    .single();
 
   if (error) throw error;
+
+  // Mirror onto the owner's GoHighLevel thread so the team can see the conversation and
+  // answer from the inbox they actually work in. Fire-and-forget on purpose: the message
+  // is already stored and already on the other person's screen, so a CRM outage must not
+  // surface as a failed send. A miss leaves `ghl_message_id` null, which is the backlog
+  // the partial index in migration 077 exists to answer.
+  if (data?.id) {
+    void mirrorToCrm(data.id);
+  }
 
   // Notify other project members (fire-and-forget)
   notifyProjectMembers(
@@ -40,6 +51,31 @@ export async function sendMessage(
     `${senderName} sent a message`,
     { project_id: projectId },
   ).catch(() => {});
+}
+
+/**
+ * Push one message onto the owner's GoHighLevel thread.
+ *
+ * The Authorization header is not optional: `requireUser` in the handler reads the
+ * Supabase access token off it and 401s without one. Missing it would fail every mirror
+ * silently, because the whole call is deliberately fire-and-forget.
+ */
+async function mirrorToCrm(messageId: string): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    await fetch('/api/events?action=crm-chat-mirror', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        Authorization:   `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ messageId }),
+    });
+  } catch {
+    /* A CRM mirror. Never surface, never block: the message is already delivered. */
+  }
 }
 
 // =========================================================

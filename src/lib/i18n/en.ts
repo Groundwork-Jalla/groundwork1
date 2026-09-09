@@ -581,6 +581,27 @@ export const en = {
       deletionsPending: '{count} account-deletion request awaiting action — the sender was told 48 hours.',
       deletionsPending_plural: '{count} account-deletion requests awaiting action — senders were told 48 hours.',
     },
+    // Quote requests (migration 076). This queue IS the contact path: contractor phone
+    // numbers and emails are staff-only, so an introduction happens because someone here
+    // makes it happen.
+    inquiries: {
+      title:        'Quote requests',
+      subtitle:     'Homeowners asking to be put in touch with a contractor. Neither side has the other\u2019s contact details \u2014 the introduction is ours to make.',
+      search:       'Search by name, place, contractor or message',
+      filterOpen:   'Open',
+      filterAll:    'All',
+      empty:        'No quote requests yet.',
+      emptyFiltered:'No requests match that.',
+      loadFailed:   'Could not load the quote requests.',
+      saveFailed:   'That change did not save. Try again.',
+      status:       'Status',
+      statusOpen:       'Open',
+      statusIntroduced: 'Introduced',
+      statusDeclined:   'Declined',
+      statusClosed:     'Closed',
+      contractorGone: 'Contractor removed',
+      accountGone:    'account closed',
+    },
     wait: {
       title:      'Waitlist',
       subtitle:   'Everyone who asked to be told when Groundwork opens.',
@@ -937,6 +958,10 @@ export const en = {
       message:         'Message',
       messageHint:     'Describe your project — size, timeline, and any specific requirements',
       preferredContact:'Preferred contact',
+      // Replaces a hardcoded English line that promised the opposite — that the
+      // homeowner's own details would be passed to the contractor.
+      brokered: 'Groundwork passes this to the contractor and handles the introduction. Neither of you receives the other\u2019s phone number or email.',
+      failed:   'That did not send. Please try again.',
       email:           'Email',
       phoneCall:       'Phone call',
       send:            'Send Inquiry',
@@ -1593,6 +1618,7 @@ export const en = {
     drafts:         'Started applications',
     requests:       'Agent Requests',
     support:        'Support',
+    inquiries:      'Quote Requests',
     crm:         'CRM',
   },
 

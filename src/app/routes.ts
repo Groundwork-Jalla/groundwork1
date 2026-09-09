@@ -81,5 +81,6 @@ export default [
     route("admin/drafts",           "routes/admin/drafts.tsx"),
     route("admin/requests",         "routes/admin/requests.tsx"),
     route("admin/support",          "routes/admin/support.tsx"),
+    route("admin/inquiries",        "routes/admin/inquiries.tsx"),
   ]),
 ] satisfies RouteConfig;

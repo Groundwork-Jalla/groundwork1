@@ -451,7 +451,12 @@ export interface ProjectDocumentRow {
 export interface ProjectMessageRow {
   id: string;
   project_id: string;
-  sender_id: string;
+  /**
+   * Null for a message typed into GoHighLevel by a Jalla staff member, who may have no
+   * Groundwork account. `sender_name` always says who spoke; this only decides which
+   * side of the chat the bubble sits on.
+   */
+  sender_id: string | null;
   sender_name: string;
   content: string;
   created_at: string;

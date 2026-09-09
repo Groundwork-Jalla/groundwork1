@@ -1,4 +1,5 @@
 import { ghlSettings } from '../ghl/_config.js';
+import { getSupabaseAdmin } from '../_lib/stripe.js';
 
 /**
  * GoHighLevel → us → Resend. What makes a reply from Conversations actually send.
@@ -31,6 +32,80 @@ import { ghlSettings } from '../ghl/_config.js';
  */
 
 const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+
+/**
+ * Put a reply typed in GoHighLevel into the Groundwork chat it belongs to.
+ *
+ * ── Which project ────────────────────────────────────────────────────────────────────
+ * A GHL conversation is per CONTACT. A homeowner with three projects has one thread for
+ * all three, and the reply carries no project with it — so there is nothing in the
+ * payload to key on.
+ *
+ * `profiles.ghl_thread_project_id` is what the outbound mirror stamps as it goes past:
+ * the project whose message was last pushed to this thread. A reply is filed against
+ * that, on the reasoning that you are answering the thing you were just shown.
+ *
+ * That is a heuristic, and it is the honest ceiling of a per-contact thread rather than
+ * a shortcut — a genuinely per-project thread needs the `conversations` generalisation.
+ * When the column is null we file nothing and the email alone carries the reply, which
+ * is exactly the behaviour that existed before this function.
+ *
+ * ── Never fails the delivery ─────────────────────────────────────────────────────────
+ * Returns a string reason instead of throwing. The reply is already sent; GoHighLevel is
+ * waiting on a delivery receipt, and answering it with an error would have GHL retry a
+ * message the recipient has already read.
+ */
+async function fileIntoProjectChat(
+  recipientEmail: string,
+  bodyText: string,
+  raw: Record<string, unknown>,
+): Promise<string> {
+  if (!recipientEmail || !bodyText) return 'no_body';
+
+  let admin;
+  try {
+    admin = getSupabaseAdmin();
+  } catch {
+    return 'no_service_key';
+  }
+
+  try {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('id, ghl_thread_project_id')
+      .ilike('email', recipientEmail)
+      .maybeSingle();
+
+    if (!profile?.ghl_thread_project_id) return 'no_thread_project';
+
+    // Whoever typed it in GHL. Falls back to the product name rather than to an empty
+    // bubble, because a message with no attribution reads as broken.
+    const who =
+      str(raw.userName) || str(raw.fromName) || addr(raw.emailFrom) || 'Jalla';
+
+    const { error } = await admin.from('project_messages').insert({
+      project_id:  profile.ghl_thread_project_id,
+      // Null: the person who typed this may have no Groundwork account. See migration 077.
+      sender_id:   null,
+      sender_name: who,
+      content:     bodyText,
+      // The echo guard. Without it the mirror would push this straight back to GHL and
+      // the thread would fill with its own reflection.
+      origin:      'ghl',
+      ghl_message_id: str(raw.messageId) || str(raw.id) || null,
+      ghl_synced_at:  new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error('[ghl-delivery] could not file reply into chat:', error.message);
+      return 'insert_failed';
+    }
+    return 'filed';
+  } catch (e) {
+    console.error('[ghl-delivery] chat filing threw:', e);
+    return 'exception';
+  }
+}
 
 /** Constant-time compare, so a wrong secret cannot be found a character at a time. */
 function secretMatches(provided: string, expected: string): boolean {
@@ -212,7 +287,13 @@ export async function handler(req: any, res: any) {
       outcome: 'sent', recipient: to, subject, ghlMessageId: messageId || null,
       detail: sent.id ? `resend ${sent.id}` : null,
     });
-    res.status(200).json({ ok: true, messageId: sent.id ?? null });
+    // Also drop it into the project chat, so the conversation lives in the product
+    // rather than only in the two mailboxes. Best-effort and after the send: the reply
+    // has already reached the person, and a failure here must not make GHL think the
+    // delivery failed and retry it.
+    const filed = await fileIntoProjectChat(to, str(body.plainText) || html, body);
+
+    res.status(200).json({ ok: true, messageId: sent.id ?? null, filedToChat: filed });
   } catch (err) {
     console.error('[ghl-delivery] could not reach Resend:', err);
     res.status(502).json({ error: 'Could not reach the email service' });

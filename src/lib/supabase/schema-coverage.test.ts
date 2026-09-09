@@ -121,3 +121,102 @@ describe('support writes do not lie about failing', () => {
     }
   });
 });
+
+/**
+ * Columns the browser is not allowed to read must not be asked for.
+ *
+ * `contractors.phone` and `contractors.email` were readable by anyone holding the anon
+ * key — which ships in this bundle — because the RLS policy granted SELECT on every
+ * column of every active row. RLS is row-level; it cannot withhold a column. Migration
+ * 075 takes them out of the table grant and serves them from `contractor_contacts()`,
+ * which checks the subscription in the database.
+ *
+ * Two ways to undo that by accident, both caught here:
+ *  · asking for the columns again from the client, and
+ *  · `select('*')`, which expands to include them and fails the WHOLE query with 42501
+ *    rather than quietly dropping them — so this is a liveness check as much as a
+ *    security one.
+ */
+describe('contractor contact details stay server-side', () => {
+  const ROOT = resolve(__dirname, '..', '..', '..');
+
+  /** The columns migration 075 actually grants to the browser roles. */
+  function grantedColumns(): string[] {
+    const sql = readFileSync(join(ROOT, 'supabase/migrations/075_contractor_contact_privacy.sql'), 'utf8');
+    const m = sql.match(/GRANT\s+SELECT\s*\(([^)]+)\)\s*ON\s+public\.contractors/i);
+    expect(m, '075 no longer grants named columns on contractors').toBeTruthy();
+    return m![1].split(',').map(c => c.trim()).filter(Boolean);
+  }
+
+  it('does not grant phone or email to the browser', () => {
+    const cols = grantedColumns();
+    expect(cols).not.toContain('phone');
+    expect(cols).not.toContain('email');
+    expect(cols).toContain('name');   // the directory still works
+  });
+
+  it('is never queried for a column the browser cannot read', () => {
+    const granted = new Set(grantedColumns());
+    const offenders: string[] = [];
+
+    for (const f of walk(join(ROOT, 'src'), n => /\.tsx?$/.test(n) && !/\.test\.tsx?$/.test(n))) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      // The `.from('contractors')` call and whatever `.select(...)` follows it.
+      for (const m of src.matchAll(/\.from\(\s*['"]contractors['"]\s*\)([\s\S]{0,400}?)\.select\(([\s\S]*?)\)\s*\n/g)) {
+        const sel = m[2];
+        if (/['"]\s*\*\s*['"]/.test(sel)) { offenders.push(`${f}: select('*')`); continue; }
+        for (const col of sel.match(/[a-z_][a-z0-9_]*/gi) ?? []) {
+          if (!granted.has(col)) offenders.push(`${f}: selects '${col}'`);
+        }
+      }
+    }
+    expect(offenders, `\n  ${offenders.join('\n  ')}\n`).toEqual([]);
+  });
+
+  it('serves contact details to the admin surface and to nothing else', () => {
+    const sql = readFileSync(join(ROOT, 'supabase/migrations/075_contractor_contact_privacy.sql'), 'utf8');
+
+    // The admin list is the ONLY reader. Column privileges are not RLS-aware — revoking
+    // from `authenticated` revokes from admins too — so it needs a definer function
+    // rather than a grant that would reopen the hole for everyone.
+    expect(sql).toContain('public.admin_list_contractors');
+    const admin = readFileSync(join(ROOT, 'src/lib/supabase/admin-applications.ts'), 'utf8');
+    expect(admin).toContain("rpc('admin_list_contractors')");
+
+    // There must be no subscriber-facing reader at all. Contact details are staff-only
+    // on every tier — handing them to a paying customer is what moves the relationship
+    // off the platform, which is the thing the product rule forbids.
+    expect(sql).not.toContain('contractor_contacts');
+    for (const f of ['src/app/routes/contractors.tsx', 'src/lib/supabase/inquiries.ts']) {
+      expect(readFileSync(join(ROOT, f), 'utf8'), `${f} fetches contact details`)
+        .not.toMatch(/contractor_contacts/);
+    }
+  });
+
+  it('offers no way to contact a contractor outside Groundwork', () => {
+    // Product rule, 9 Sep 2026. The directory used to render tel:, mailto: and a wa.me
+    // deep link once a client-side plan check passed.
+    const page = readFileSync(join(ROOT, 'src/app/routes/contractors.tsx'), 'utf8');
+    const code = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n');
+    for (const pattern of [/href=\{?["'`]tel:/, /href=\{?["'`]mailto:/, /wa\.me/]) {
+      expect(code, `contractors.tsx still links out via ${pattern}`).not.toMatch(pattern);
+    }
+    // And entitlement is never read from metadata the browser can write to itself.
+    expect(code).not.toMatch(/user_metadata/);
+  });
+
+  it('files quote requests instead of pretending to send them', () => {
+    // The dialog's entire submit handler used to be
+    // `(e) => { e.preventDefault(); setSubmitted(true); }` — a confirmation over nothing.
+    const page = readFileSync(join(ROOT, 'src/app/routes/contractors.tsx'), 'utf8');
+    expect(page).toContain('createContractorInquiry');
+
+    const lib = readFileSync(join(ROOT, 'src/lib/supabase/inquiries.ts'), 'utf8');
+    expect(lib).toMatch(/throw new Error/);
+
+    // A confirmation must not be reachable from a catch.
+    const bad = [...page.matchAll(/catch\s*(?:\([^)]*\))?\s*\{([^}]*)\}/g)]
+      .filter(m => /setSubmitted\(true\)/.test(m[1]));
+    expect(bad.map(m => m[0]), 'confirms a quote request from a catch').toEqual([]);
+  });
+});

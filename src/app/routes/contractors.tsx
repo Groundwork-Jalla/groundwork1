@@ -3,9 +3,6 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
-  Phone,
-  Mail,
-  MessageCircle,
   CheckCircle2,
   Lock,
   ChevronRight,
@@ -16,13 +13,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
+import { createContractorInquiry, type BuildType } from '@/lib/supabase/inquiries';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { CONTRACTORS_LOCKED_FOR_DEMO } from '@/lib/demo-gate';
 import { getSubscription, isSubscriptionActive } from '@/lib/payments/subscription';
 
 // ── Types ─────────────────────────────────────────────────
-
-type Plan = 'starter' | 'pro' | 'enterprise';
 
 interface Contractor {
   id: string;
@@ -36,8 +32,7 @@ interface Contractor {
   completed_projects: number;
   specialties: string[];
   bio: string | null;
-  phone: string | null;
-  email: string | null;
+  // phone/email are absent on purpose: not readable by any browser role (075).
   avatar_initials: string;
 }
 
@@ -137,82 +132,24 @@ function SpecialtyPill({ label }: { label: string }) {
   );
 }
 
-function ContactSection({ contractor, plan }: { contractor: Contractor; plan: Plan }) {
-  const t = useT();
-  const isUnlocked = plan === 'pro' || plan === 'enterprise';
-
-  if (isUnlocked && contractor.phone) {
-    return (
-      <div className="flex flex-wrap gap-2 pt-3 border-t border-brand-border-grey mt-3">
-        <a
-          href={`tel:${contractor.phone}`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
-        >
-          <Phone className="size-3 shrink-0" />
-          {contractor.phone}
-        </a>
-        {contractor.email && (
-          <a
-            href={`mailto:${contractor.email}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
-          >
-            <Mail className="size-3 shrink-0" />
-            {contractor.email}
-          </a>
-        )}
-        {contractor.phone && (
-          <a
-            href={`https://wa.me/${contractor.phone.replace(/\s+/g, '').replace('+', '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:border-brand-near-black hover:bg-brand-off-white transition-colors"
-          >
-            <MessageCircle className="size-3 shrink-0" />
-            {t('contractors.whatsapp')}
-          </a>
-        )}
-      </div>
-    );
-  }
-
-  // Starter — blurred contact with upgrade prompt
-  return (
-    <div className="relative pt-3 border-t border-brand-border-grey mt-3">
-      <div className="blur-sm select-none pointer-events-none flex flex-wrap gap-2" aria-hidden="true">
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black">
-          <Phone className="size-3 shrink-0" />
-          +234 8XX XXX XXXX
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black">
-          <Mail className="size-3 shrink-0" />
-          hidden@example.com
-        </span>
-      </div>
-      <div className="absolute inset-0 flex items-center justify-start pl-0.5">
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
-          <Lock className="size-3 shrink-0" />
-          {t('contractors.unlockWithPro')}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ── Contractor profile (Design B + elements from A) ────────
-//
-// Design B's centred dark hero, opened from a directory card rather than living at
-// its own route: the directory is where the decision gets made, and sending someone
-// to a separate page to read a bio loses their place in the list they were scanning.
-//
-// From Design A, per the 3 Aug decision: the gated contact block, the upgrade path,
-// and an explicit "Specialties" heading — B showed bare chips with nothing saying
-// what they were.
+/**
+ * There is deliberately no ContactSection here any more.
+ *
+ * It rendered a contractor's phone, email and a wa.me deep link behind
+ * `plan === 'pro' || plan === 'enterprise'` — a check on client-writable
+ * `user_metadata.tier`, which nothing had written since the tiers were renamed. So it was
+ * false for every user including paying ones, while the columns themselves were readable
+ * by anyone holding the anon key that ships in this bundle.
+ *
+ * Both halves are gone. Contact details are staff-only in the database (migration 075),
+ * and a homeowner reaches a contractor through the quote dialog below, which Groundwork
+ * brokers. No phone number, no address, no deep link off the platform.
+ */
 
 function ContractorProfileModal({
-  contractor, plan, onRequestQuote, onClose,
+  contractor, onRequestQuote, onClose,
 }: {
   contractor: Contractor;
-  plan: Plan;
   onRequestQuote: (c: Contractor) => void;
   onClose: () => void;
 }) {
@@ -304,7 +241,6 @@ function ContractorProfileModal({
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-brand-mid-grey">
               {t('contractors.contactLabel')}
             </p>
-            <ContactSection contractor={contractor} plan={plan} />
           </div>
 
           <button
@@ -322,18 +258,15 @@ function ContractorProfileModal({
 
 function ContractorCard({
   contractor,
-  plan,
   onRequestQuote,
   onViewProfile,
 }: {
   contractor: Contractor;
-  plan: Plan;
   onRequestQuote: (c: Contractor) => void;
   onViewProfile: (c: Contractor) => void;
 }) {
   const tradeLabel = useDomainLabels().trade;
   const t = useT();
-  const isUnlocked = plan === 'pro' || plan === 'enterprise';
 
   return (
     <div className="group flex flex-col rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
@@ -400,7 +333,6 @@ function ContractorCard({
       )}
 
       {/* Contact section (tier-gated) */}
-      <ContactSection contractor={contractor} plan={plan} />
 
       {/* Opens the full profile. Available on every plan — the gating is on the
           contact details inside it, not on reading who someone is. */}
@@ -414,26 +346,15 @@ function ContractorCard({
 
       {/* Request Quote CTA */}
       <div className="mt-2">
-        {isUnlocked ? (
-          <button
-            type="button"
-            onClick={() => onRequestQuote(contractor)}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors group/btn"
-          >
-            {t('contractors.requestQuote')}
-            <ChevronRight className="size-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled
-            title={t('contractors.upgradeNotice')}
-            className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-brand-border-grey text-xs font-medium text-brand-mid-grey py-2.5 cursor-not-allowed opacity-60"
-          >
-            <Lock className="size-3" />
-            {t('contractors.upgradeToContact')}
-          </button>
-        )}
+        {/* Always available: this page only renders for an entitled subscriber. */}
+        <button
+          type="button"
+          onClick={() => onRequestQuote(contractor)}
+          className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-brand-near-black text-white text-xs font-semibold py-2.5 hover:bg-black transition-colors group/btn"
+        >
+          {t('contractors.requestQuote')}
+          <ChevronRight className="size-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+        </button>
       </div>
     </div>
   );
@@ -450,7 +371,36 @@ function QuoteRequestDialog({
 }) {
   const tradeLabel = useDomainLabels().trade;
   const t = useT();
+  const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending]     = useState(false);
+  const [failed, setFailed]       = useState(false);
+
+  // Was `onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}` — a confirmation
+  // screen over nothing at all. Every quote request since the directory shipped was lost,
+  // and this is now the only route to a contractor, so it has to be real.
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!user?.id) { setFailed(true); return; }
+
+    const form = new FormData(e.currentTarget);
+    setSending(true); setFailed(false);
+    try {
+      await createContractorInquiry({
+        contractorId: contractor.id,
+        userId:       user.id,
+        name:         String(form.get('name') ?? '').trim(),
+        location:     String(form.get('location') ?? '').trim(),
+        buildType:    String(form.get('buildType') ?? 'residential') as BuildType,
+        message:      String(form.get('message') ?? '').trim(),
+      });
+      setSubmitted(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setSending(false);
+    }
+  }
 
   const inputCls =
     'w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#282828] px-3 py-2.5 text-sm text-brand-near-black dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-near-black dark:focus:ring-white';
@@ -529,10 +479,7 @@ function QuoteRequestDialog({
           ) : (
             /* Form */
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSubmitted(true);
-              }}
+              onSubmit={handleSubmit}
               className="flex flex-col gap-4"
             >
               <div>
@@ -541,6 +488,7 @@ function QuoteRequestDialog({
                 </label>
                 <input
                   id="qr-name"
+                  name="name"
                   type="text"
                   required
                   placeholder={t('fields.namePlaceholder')}
@@ -554,6 +502,7 @@ function QuoteRequestDialog({
                 </label>
                 <input
                   id="qr-location"
+                  name="location"
                   type="text"
                   required
                   placeholder={t('fields.cityPlaceholder')}
@@ -565,7 +514,7 @@ function QuoteRequestDialog({
                 <label className={labelCls} htmlFor="qr-build-type">
                   {t('contractors.inquiry.buildType')}
                 </label>
-                <select id="qr-build-type" required className={inputCls}>
+                <select id="qr-build-type" name="buildType" required className={inputCls}>
                   <option value="">{t('contractors.inquiry.selectBuildType')}</option>
                   <option value="residential">{t('contractors.inquiry.residential')}</option>
                   <option value="commercial">{t('contractors.inquiry.commercial')}</option>
@@ -580,6 +529,7 @@ function QuoteRequestDialog({
                 </label>
                 <textarea
                   id="qr-message"
+                  name="message"
                   rows={3}
                   required
                   placeholder={t('contractors.inquiry.messageHint')}
@@ -587,27 +537,25 @@ function QuoteRequestDialog({
                 />
               </div>
 
-              <div>
-                <label className={labelCls} htmlFor="qr-contact-pref">
-                  {t('contractors.inquiry.preferredContact')}
-                </label>
-                <select id="qr-contact-pref" required className={inputCls}>
-                  <option value="whatsapp">{t('contractors.whatsapp')}</option>
-                  <option value="email">{t('contractors.inquiry.email')}</option>
-                  <option value="phone">{t('contractors.inquiry.phoneCall')}</option>
-                </select>
-              </div>
+              {/* No "preferred contact method" field. It offered WhatsApp / email / phone,
+                  which only makes sense if the answer leads somewhere off the platform. */}
 
               <p className="text-[11px] text-brand-mid-grey leading-relaxed">
-                Your contact details from your Groundwork profile will be shared with this
-                professional.
+                {t('contractors.inquiry.brokered')}
               </p>
+
+              {failed && (
+                <p role="alert" className="text-[11px] leading-relaxed text-state-alert">
+                  {t('contractors.inquiry.failed')}
+                </p>
+              )}
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors"
+                disabled={sending}
+                className="w-full flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold py-2.5 hover:bg-black transition-colors disabled:opacity-60"
               >
-                {t('contractors.inquiry.send')}
+                {sending ? t('common.loading') : t('contractors.inquiry.send')}
               </button>
             </form>
           )}
@@ -643,12 +591,6 @@ export default function ContractorsPage() {
   const t = useT();
   const { user } = useAuth();
 
-  // Derive plan from onboarding-saved user metadata
-  const rawTier = user?.user_metadata?.tier ?? 'starter';
-  const plan: Plan = (['starter', 'pro', 'enterprise'] as Plan[]).includes(rawTier as Plan)
-    ? (rawTier as Plan)
-    : 'starter';
-
   // Canonical entitlement: profiles.subscription_tier, written only by the Stripe
   // webhook. `undefined` while it resolves, so the gate neither flashes open nor shut.
   const [entitled, setEntitled] = useState<boolean | undefined>(undefined);
@@ -679,7 +621,11 @@ export default function ContractorsPage() {
     if (entitled !== true) { if (entitled === false) setFetchState('ready'); return; }
     supabase
       .from('contractors')
-      .select('*')
+      // Explicit columns, never '*'. The browser roles hold SELECT on named columns only
+      // since 075, and '*' expands to include the revoked phone/email — which fails the
+      // WHOLE query rather than quietly omitting them.
+      .select('id, name, trade, location, rating, review_count, verified, years_exp, '
+            + 'completed_projects, specialties, bio, avatar_initials')
       .eq('active', true)
       .order('verified', { ascending: false })
       .order('rating', { ascending: false })
@@ -687,7 +633,7 @@ export default function ContractorsPage() {
         if (error) {
           setFetchState('error');
         } else {
-          setContractors((data ?? []) as Contractor[]);
+          setContractors((data ?? []) as unknown as Contractor[]);
           setFetchState('ready');
         }
       });
@@ -712,7 +658,6 @@ export default function ContractorsPage() {
         {profileTarget && (
           <ContractorProfileModal
             contractor={profileTarget}
-            plan={plan}
             onRequestQuote={(c) => setQuoteTarget(c)}
             onClose={() => setProfileTarget(null)}
           />
@@ -821,7 +766,6 @@ export default function ContractorsPage() {
                 >
                   <ContractorCard
                     contractor={contractor}
-                    plan={plan}
                     onRequestQuote={(c) => setQuoteTarget(c)}
                     onViewProfile={(c) => setProfileTarget(c)}
                   />
