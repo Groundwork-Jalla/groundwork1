@@ -86,3 +86,57 @@ describe('a reply knows which project it belongs to', () => {
     expect(read('api/_handlers/conversation-delivery.ts')).toMatch(/no_thread_project/);
   });
 });
+
+/**
+ * A reply that reaches the chat must not also arrive in full by email.
+ *
+ * Product rule, 9 Sep 2026: every form of contact happens inside Groundwork. A reply
+ * whose text is sitting in a mailbox is a conversation that has left the platform — the
+ * recipient answers from their mail client and the thread splits in two.
+ *
+ * The email becomes a doorbell in that case. It stays a full copy only when the reply
+ * could NOT be filed, because a notification pointing at a message that does not exist
+ * is worse than an email that leaves the platform.
+ */
+describe('the reply email is a doorbell, not the room', () => {
+  const delivery = read('api/_handlers/conversation-delivery.ts');
+
+  it('files into the chat before deciding what to send', () => {
+    const fileAt = delivery.indexOf('await fileIntoProjectChat(');
+    const sendAt = delivery.indexOf('https://api.resend.com/emails');
+    expect(fileAt).toBeGreaterThan(-1);
+    expect(fileAt, 'the send must not be composed before the filing result is known')
+      .toBeLessThan(sendAt);
+  });
+
+  it('sends a link, not the body, once the message is in the chat', () => {
+    expect(delivery).toMatch(/filing\.filed \? notifyHtml : html/);
+    expect(delivery).toMatch(/filing\.filed \? 'You have a new message' : subject/);
+  });
+
+  it('keeps the full text when there was nowhere in-platform to put it', () => {
+    // no_thread_project / no_service_key / insert_failed all land here. Losing the reply
+    // entirely would be a far worse failure than an email carrying it.
+    expect(delivery).toMatch(/filing\.filed \? undefined\s+: text/);
+  });
+
+  it('does not invite an off-platform answer on the notification', () => {
+    // Reply-To, cc and bcc are the full-text path only: a doorbell with a Reply-To is an
+    // invitation to answer by email, which is the thing being avoided.
+    for (const field of ['reply_to', 'cc', 'bcc']) {
+      const m = delivery.match(new RegExp(`\\.\\.\\.\\([^)]*${field}[^)]*\\)`));
+      expect(m?.[0], `${field} must be gated on the full-text path`).toMatch(/!filing\.filed/);
+    }
+  });
+});
+
+describe('the draft that shipped before the rule is gone', () => {
+  it('drops contractor_contacts rather than leaving it revoked', () => {
+    // 075 was rewritten to remove it, but a rewrite is only true of the FILE — a database
+    // that ran the earlier draft still had the function. Confirmed live: it answered
+    // 42501, not PGRST202.
+    const sql = read('supabase/migrations/078_drop_contractor_contacts.sql');
+    expect(sql).toMatch(/DROP FUNCTION IF EXISTS public\.contractor_contacts\(\)/);
+    expect(sql).toMatch(/REVOKE ALL\s+ON FUNCTION public\.contractor_directory_entitled\(\) FROM PUBLIC, anon/);
+  });
+});

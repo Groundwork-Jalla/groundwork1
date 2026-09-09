@@ -1,5 +1,5 @@
 import { ghlSettings } from '../ghl/_config.js';
-import { getSupabaseAdmin } from '../_lib/stripe.js';
+import { getSupabaseAdmin, siteUrl } from '../_lib/stripe.js';
 
 /**
  * GoHighLevel → us → Resend. What makes a reply from Conversations actually send.
@@ -59,14 +59,14 @@ async function fileIntoProjectChat(
   recipientEmail: string,
   bodyText: string,
   raw: Record<string, unknown>,
-): Promise<string> {
-  if (!recipientEmail || !bodyText) return 'no_body';
+): Promise<{ filed: boolean; projectId?: string; reason: string }> {
+  if (!recipientEmail || !bodyText) return { filed: false, reason: 'no_body' };
 
   let admin;
   try {
     admin = getSupabaseAdmin();
   } catch {
-    return 'no_service_key';
+    return { filed: false, reason: 'no_service_key' };
   }
 
   try {
@@ -76,7 +76,7 @@ async function fileIntoProjectChat(
       .ilike('email', recipientEmail)
       .maybeSingle();
 
-    if (!profile?.ghl_thread_project_id) return 'no_thread_project';
+    if (!profile?.ghl_thread_project_id) return { filed: false, reason: 'no_thread_project' };
 
     // Whoever typed it in GHL. Falls back to the product name rather than to an empty
     // bubble, because a message with no attribution reads as broken.
@@ -98,12 +98,12 @@ async function fileIntoProjectChat(
 
     if (error) {
       console.error('[ghl-delivery] could not file reply into chat:', error.message);
-      return 'insert_failed';
+      return { filed: false, reason: 'insert_failed' };
     }
-    return 'filed';
+    return { filed: true, projectId: profile.ghl_thread_project_id as string, reason: 'filed' };
   } catch (e) {
     console.error('[ghl-delivery] chat filing threw:', e);
-    return 'exception';
+    return { filed: false, reason: 'exception' };
   }
 }
 
@@ -252,6 +252,41 @@ export async function handler(req: any, res: any) {
     return;
   }
 
+  /**
+   * File into the project chat BEFORE sending, because what the email should say depends
+   * on whether it worked.
+   *
+   * Product rule, 9 Sep 2026: every form of contact happens inside Groundwork. A reply
+   * whose full text is sitting in a mailbox is a conversation that has left the platform
+   * — the person answers from their mail client and the thread splits in two.
+   *
+   * So when the reply lands in the chat, the email becomes a doorbell: it says there is
+   * a message and links to it, and carries none of the body. When it does NOT land —
+   * no project on the thread, no service key — the email keeps the full text, because
+   * the alternative is a notification pointing at a message that does not exist.
+   */
+  const filing = await fileIntoProjectChat(to, str(body.plainText) || html, body);
+
+  const base       = siteUrl(req);
+  const threadLink = filing.projectId ? `${base}/projects/${filing.projectId}` : base;
+
+  const notifyHtml =
+    '<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">'
+    + '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;">'
+    + '<tr><td style="padding:24px 28px;">'
+    + '<p style="margin:0 0 10px;font-size:17px;font-weight:700;color:#0a0a0a;">You have a new message</p>'
+    + '<p style="margin:0;font-size:13px;line-height:1.7;color:#4a4a48;">'
+    + 'There is a new message on your project in Groundwork. Open the project to read it and reply.</p>'
+    + `<p style="margin:22px 0 0;"><a href="${threadLink}" `
+    + 'style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Open the conversation</a></p>'
+    + '<p style="margin:16px 0 0;font-size:11px;line-height:1.6;color:#8a8a87;">'
+    + 'Replies are kept in Groundwork so the whole conversation stays with the project.</p>'
+    + '</td></tr></table></body></html>';
+
+  const sendSubject = filing.filed ? 'You have a new message' : subject;
+  const sendHtml    = filing.filed ? notifyHtml : html;
+  const sendText    = filing.filed ? undefined  : text;
+
   try {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -259,12 +294,14 @@ export async function handler(req: any, res: any) {
       body: JSON.stringify({
         from: FROM,
         to: [to],
-        subject,
-        html,
-        ...(text ? { text } : {}),
-        ...(cc.length ? { cc } : {}),
-        ...(bcc.length ? { bcc } : {}),
-        ...(replyTo ? { reply_to: replyTo } : {}),
+        subject: sendSubject,
+        html: sendHtml,
+        ...(sendText ? { text: sendText } : {}),
+        // Only on the full-text path. A notification has nothing to copy anyone on, and
+        // a Reply-To would invite exactly the off-platform answer this avoids.
+        ...(!filing.filed && cc.length ? { cc } : {}),
+        ...(!filing.filed && bcc.length ? { bcc } : {}),
+        ...(!filing.filed && replyTo ? { reply_to: replyTo } : {}),
       }),
     });
 
@@ -287,13 +324,13 @@ export async function handler(req: any, res: any) {
       outcome: 'sent', recipient: to, subject, ghlMessageId: messageId || null,
       detail: sent.id ? `resend ${sent.id}` : null,
     });
-    // Also drop it into the project chat, so the conversation lives in the product
-    // rather than only in the two mailboxes. Best-effort and after the send: the reply
-    // has already reached the person, and a failure here must not make GHL think the
-    // delivery failed and retry it.
-    const filed = await fileIntoProjectChat(to, str(body.plainText) || html, body);
-
-    res.status(200).json({ ok: true, messageId: sent.id ?? null, filedToChat: filed });
+    res.status(200).json({
+      ok: true,
+      messageId: sent.id ?? null,
+      filedToChat: filing.reason,
+      // Which of the two emails went out, so the delivery log says why.
+      emailKind: filing.filed ? 'notification' : 'full_text',
+    });
   } catch (err) {
     console.error('[ghl-delivery] could not reach Resend:', err);
     res.status(502).json({ error: 'Could not reach the email service' });
