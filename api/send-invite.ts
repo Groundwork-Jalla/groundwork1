@@ -17,8 +17,9 @@
 import { buildInviteHtml, inviteSubject } from '../src/lib/email/invite-html.js';
 import { resolveRecipientLang } from '../src/lib/i18n/translate.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
+import { senderFor } from '../src/lib/email/senders.js';
 
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = senderFor('contractor_invite');
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req: any, res: any) {

@@ -107,14 +107,26 @@ function HorizBar({ pct, color = 'var(--color-progress-bar-default)' }: { pct: n
 
 // ── Profile completion ─────────────────────────────────────
 
-function ProfileCompletion({ nameSet, idUploaded, hasProject }: {
-  nameSet: boolean; idUploaded: boolean; hasProject: boolean;
+/**
+ * The three things that actually make an account usable.
+ *
+ * "ID uploaded" used to be the third of four, which made a brand-new account 50%
+ * complete and told the owner the way to finish it was to photograph a passport. Philip
+ * asked for it out on 4 Sep 2026 — and it stands whatever SwyChr turns out to return,
+ * because payment-name matching is a question about the payment rails, not something to
+ * put in front of somebody on their first day.
+ *
+ * The upload section in the profile is left in place and dormant; this only stops us
+ * asking for it unprompted. `pct` is computed from `items.length`, so removing the row
+ * is the whole change — a completed profile is now three of three, not three of four.
+ */
+function ProfileCompletion({ nameSet, hasProject }: {
+  nameSet: boolean; hasProject: boolean;
 }) {
   const t = useT();
   const items: { label: string; done: boolean }[] = [
     { label: t('dashboard.profileCompletion.accountCreated'), done: true       },
     { label: t('dashboard.profileCompletion.nameSet'),        done: nameSet    },
-    { label: t('dashboard.profileCompletion.idUploaded'),     done: idUploaded },
     { label: t('dashboard.profileCompletion.firstProject'),   done: hasProject },
   ];
   const count = items.filter(i => i.done).length;
@@ -528,7 +540,6 @@ export default function Dashboard() {
     ?? user?.email?.split('@')[0]
     ?? 'there';
   const nameSet    = !!user?.user_metadata?.full_name;
-  const idUploaded = !!user?.user_metadata?.id_document_path;
 
   // Same rule as the trigger and as /projects — every free-tier project counts, archived
   // included (migration 053).
@@ -632,7 +643,7 @@ export default function Dashboard() {
       </div>
 
       {!loading && !isContractor && (
-        <ProfileCompletion nameSet={nameSet} idUploaded={idUploaded} hasProject={projects.length > 0} />
+        <ProfileCompletion nameSet={nameSet} hasProject={projects.length > 0} />
       )}
 
       {loading ? (

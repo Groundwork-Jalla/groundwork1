@@ -15,6 +15,9 @@ interface CertRow {
   project_name: string;
   stage_name: string;
   pdf_url: string | null;
+  /** Set when the certificate has been withdrawn. See migration 079. */
+  revoked_at: string | null;
+  revoked_reason: string | null;
 }
 
 function formatDate(iso: string) {
@@ -49,11 +52,13 @@ export default function VerifyCertificate() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-border-grey border-t-brand-near-black" />
         ) : notFound ? (
           <NotFound />
+        ) : cert?.revoked_at ? (
+          <Revoked cert={cert} />
         ) : cert ? (
           <CertificateCard cert={cert} />
         ) : null}
 
-        {cert && (
+        {cert && !cert.revoked_at && (
           <p className="mt-8 max-w-md text-center text-xs text-brand-mid-grey">
             {t('verify.issuedBy')}{' '}
             <span className="font-medium text-brand-near-black">tryjalla.com/verify/{id}</span>
@@ -83,6 +88,48 @@ function NotFound() {
       <Link
         to="/"
         className="mt-2 text-sm font-medium text-brand-near-black underline underline-offset-4 hover:opacity-70 transition-opacity"
+      >
+        {t('verify.returnHome')}
+      </Link>
+    </motion.div>
+  );
+}
+
+/**
+ * A certificate that was issued and then withdrawn.
+ *
+ * Deliberately not a 404. A link that simply breaks reads as our bug and invites the
+ * holder to try again; a page that says the certificate was revoked is an answer, and it
+ * is the one a third party checking the document actually needs. The row is kept for
+ * exactly this — see migration 079.
+ */
+function Revoked({ cert }: { cert: CertRow }) {
+  const t = useT();
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="flex max-w-sm flex-col items-center gap-4 text-center"
+    >
+      <XCircle className="size-14 text-state-alert" strokeWidth={1.2} />
+      <div>
+        <h1 className="text-xl font-bold text-brand-near-black">{t('verify.revokedTitle')}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
+          {t('verify.revokedBody', {
+            project: cert.project_name,
+            stage:   cert.stage_name,
+          })}
+        </p>
+        {cert.revoked_reason === 'self_verify_not_eligible' && (
+          <p className="mt-3 text-xs leading-relaxed text-brand-mid-grey">
+            {t('verify.revokedSelfVerify')}
+          </p>
+        )}
+      </div>
+      <Link
+        to="/"
+        className="mt-2 text-sm font-medium text-brand-near-black underline underline-offset-4 transition-opacity hover:opacity-70"
       >
         {t('verify.returnHome')}
       </Link>

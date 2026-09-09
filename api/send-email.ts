@@ -2,6 +2,7 @@
 // RESEND_API_KEY must be set in Vercel environment variables.
 import { logEmailToCrm } from './ghl/_email-log.js';
 import { callerEmailKind } from '../src/lib/email/email-kind.js';
+import { senderFor } from '../src/lib/email/senders.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -43,6 +44,12 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'Missing required fields: to, subject, html' });
   }
 
+  // Narrowed ONCE, and used for both the sender and the CRM note. `kind` arrives in the
+  // request body, so an unsanitised value would let a browser caller pick the From
+  // address as well as the note label — `CALLER_ASSIGNABLE` exists precisely to stop an
+  // admin's browser claiming to be, say, an application decision.
+  const emailKind = callerEmailKind(kind);
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'RESEND_API_KEY not configured' });
@@ -55,7 +62,7 @@ export default async function handler(req: any, res: any) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Groundwork by Jalla <noreply@mail.tryjalla.com>',
+      from: senderFor(emailKind),
       to: [to],
       subject,
       html,
@@ -69,7 +76,7 @@ export default async function handler(req: any, res: any) {
     // says what it sent — narrowly, through `callerEmailKind`, because the label is as
     // caller-controlled as the body is and an admin's browser should not be able to file
     // a note as an application decision. Awaited: see ghl/_email-log.ts.
-    const noted = await logEmailToCrm({ to, subject, html, kind: callerEmailKind(kind) });
+    const noted = await logEmailToCrm({ to, subject, html, kind: emailKind });
     return res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface });
   }
   return res.status(500).json({ error: 'Resend API error', details: data });

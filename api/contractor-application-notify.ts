@@ -17,8 +17,9 @@
 
 import { siteUrl } from '../src/lib/site-url.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
+import { senderFor } from '../src/lib/email/senders.js';
 
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = senderFor('contractor_application_received');
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
 
 function esc(s: unknown): string {

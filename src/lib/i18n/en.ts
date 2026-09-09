@@ -79,6 +79,11 @@ export const en = {
   verify: {
     notFoundTitle: 'Certificate not found',
     notFoundBody: 'This certificate ID does not match any record in our system. It may be invalid, expired, or the link may be incomplete.',
+    // A revoked certificate answers rather than 404s: a broken link reads as our bug,
+    // and the person checking the document needs to know it was withdrawn, not retry.
+    revokedTitle: 'This certificate has been revoked',
+    revokedBody:  'A certificate was issued for {stage} on {project}, and has since been withdrawn. It is no longer valid and should not be relied on.',
+    revokedSelfVerify: 'It was issued on a Self Verify project, where stage completion is recorded by the owner and is not checked by Jalla. Groundwork certificates are issued only on Jalla Verify and Jalla Management.',
     returnHome: 'Return to Groundwork',
     verified: 'Verified',
     certTitle: 'Certificate of Stage Completion',
@@ -2619,7 +2624,6 @@ export const en = {
       subtitle:    'Unlock full access to Groundwork',
       accountCreated:  'Account created',
       nameSet:         'Display name set',
-      idUploaded:      'ID uploaded',
       firstProject:    'First project created',
     },
     funnel: {

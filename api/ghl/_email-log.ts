@@ -48,6 +48,7 @@ import { accessToken } from './_oauth.js';
 // calls /api/send-email. One vocabulary, so a note cannot be labelled one thing on the
 // way out and another on arrival.
 import { EMAIL_KIND_LABEL as LABEL, type EmailKind } from '../../src/lib/email/email-kind.js';
+import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
 
 export type { EmailKind };
 
@@ -150,7 +151,7 @@ async function knownContactId(email: string): Promise<string | null> {
 }
 
 /** The address every one of our senders sends from. */
-const DEFAULT_FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const DEFAULT_FROM = DEFAULT_SENDER;
 
 export interface LogEmailOptions {
   to: string;

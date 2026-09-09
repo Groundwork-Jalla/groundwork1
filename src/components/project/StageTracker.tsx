@@ -375,6 +375,19 @@ export function StageTracker({
 }: StageTrackerProps) {
   const t = useT();
   const { stageLabel } = useStageLabels();
+
+  /**
+   * Who may print a stage certificate.
+   *
+   * Was `stage.status === 'complete'` and nothing else, so a Self Verify project could
+   * print a document headed "Verified Completion" with "Self-Verified" in the Verified-by
+   * field — a certificate for work nobody from Jalla ever looked at. Philip's answer on
+   * 4 Sep 2026 was to revoke those and stop issuing them.
+   *
+   * This is the display half. The half that matters is migration 079, which stops any
+   * signed-in user inserting a certificate row at all; a button is not a boundary.
+   */
+  const canCertify = tier === 'jalla_verify' || tier === 'jalla_management';
   const activeStage = stages.find(
     s => s.status === 'active' || s.status === 'pending_review',
   );
@@ -439,7 +452,7 @@ export function StageTracker({
                     </span>
                   </button>
 
-                  {stage.status === 'complete' && (
+                  {stage.status === 'complete' && canCertify && (
                     <button
                       type="button"
                       onClick={() => setCertStage(stage)}

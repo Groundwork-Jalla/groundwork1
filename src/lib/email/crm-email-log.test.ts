@@ -109,7 +109,13 @@ describe('CRM email log', () => {
     const callers = files.filter(f =>
       f.path !== 'api/ghl/_email-log.ts' && f.code.includes('logEmailToCrm('));
 
-    const unlabelled = callers.filter(f => !/kind:\s*(?:'|callerEmailKind)/.test(f.code))
+    // Any non-empty `kind:` counts. This used to require a literal or a visible
+    // `callerEmailKind(...)` call, which broke when send-email.ts hoisted the sanitised
+    // value into `emailKind` so that the From address and the note label could not drift
+    // apart. What this test is for is a caller that omits `kind` altogether and so files
+    // a bare "Email"; that `/api/send-email` narrows the caller-supplied value is
+    // asserted in email/senders.test.ts, where it belongs.
+    const unlabelled = callers.filter(f => !/kind:\s*[^,}\s]/.test(f.code))
       .map(f => f.path);
     expect(unlabelled, `a note with no kind reads as a bare "Email" on the timeline:\n` +
       unlabelled.map(f => `  ${f}`).join('\n')).toEqual([]);

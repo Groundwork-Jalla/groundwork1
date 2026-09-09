@@ -22,8 +22,9 @@
 import { siteUrl } from '../../src/lib/site-url.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
+import { senderFor } from '../../src/lib/email/senders.js';
 
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = senderFor('contractor_application_received');
 
 function config() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;

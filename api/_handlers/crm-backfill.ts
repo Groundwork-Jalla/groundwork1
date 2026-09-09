@@ -2,6 +2,7 @@ import { ghlConfig } from '../ghl/_client.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { syncContractorToApi } from '../ghl/_contractor-sync.js';
 import { forwardToGhl } from '../ghl/_forward.js';
+import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
 
 /**
  * Put everyone already in Supabase into GoHighLevel, with their correspondence.
@@ -149,7 +150,7 @@ export async function handler(req: any, res: any) {
             method: 'POST',
             headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from: 'Groundwork by Jalla <noreply@mail.tryjalla.com>',
+              from: DEFAULT_SENDER,
               to: [app.email], subject, html,
             }),
           });
@@ -282,7 +283,7 @@ export async function handler(req: any, res: any) {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: 'Groundwork by Jalla <noreply@mail.tryjalla.com>',
+            from: DEFAULT_SENDER,
             to: [email], subject, html,
           }),
         });

@@ -93,6 +93,9 @@ export const fr: Mirror<EnDict> = {
   verify: {
     notFoundTitle: 'Certificat introuvable',
     notFoundBody: 'Cet identifiant de certificat ne correspond à aucun enregistrement. Il peut être invalide, expiré, ou le lien incomplet.',
+    revokedTitle: 'Ce certificat a \u00e9t\u00e9 r\u00e9voqu\u00e9',
+    revokedBody:  "Un certificat a \u00e9t\u00e9 d\u00e9livr\u00e9 pour {stage} sur {project}, puis retir\u00e9. Il n'est plus valide et ne doit pas \u00eatre pris en compte.",
+    revokedSelfVerify: "Il avait \u00e9t\u00e9 d\u00e9livr\u00e9 sur un projet Self Verify, o\u00f9 l'avancement est d\u00e9clar\u00e9 par le ma\u00eetre d'ouvrage et n'est pas v\u00e9rifi\u00e9 par Jalla. Les certificats Groundwork ne sont d\u00e9livr\u00e9s que sur Jalla Verify et Jalla Management.",
     returnHome: 'Retour à Groundwork',
     verified: 'Vérifié',
     certTitle: 'Certificat d\'achèvement d\'étape',
@@ -2562,7 +2565,6 @@ export const fr: Mirror<EnDict> = {
       subtitle:    'Débloquez tout Groundwork',
       accountCreated:  'Compte créé',
       nameSet:         'Nom affiché renseigné',
-      idUploaded:      "Pièce d'identité téléversée",
       firstProject:    'Premier projet créé',
     },
     funnel: {

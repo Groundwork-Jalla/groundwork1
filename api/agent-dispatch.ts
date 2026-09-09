@@ -30,10 +30,11 @@
  */
 
 import { siteUrl } from '../src/lib/site-url.js';
+import { DEFAULT_SENDER } from '../src/lib/email/senders.js';
 
 const GH_REPO  = process.env.GH_AGENT_REPO ?? 'Groundwork-Jalla/groundwork1';
 const TEAM_INBOX = process.env.AGENT_REQUEST_INBOX ?? process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = DEFAULT_SENDER;
 const GH_TOKEN = process.env.GH_DISPATCH_TOKEN;
 const SECRET   = process.env.AGENT_DISPATCH_SECRET;
 

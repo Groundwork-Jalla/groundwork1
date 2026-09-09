@@ -1,5 +1,6 @@
 import { ghlSettings } from '../ghl/_config.js';
 import { getSupabaseAdmin, siteUrl } from '../_lib/stripe.js';
+import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
 
 /**
  * GoHighLevel → us → Resend. What makes a reply from Conversations actually send.
@@ -31,7 +32,7 @@ import { getSupabaseAdmin, siteUrl } from '../_lib/stripe.js';
  * first real reply tells us what the contract actually is.
  */
 
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = DEFAULT_SENDER;
 
 /**
  * Put a reply typed in GoHighLevel into the Groundwork chat it belongs to.

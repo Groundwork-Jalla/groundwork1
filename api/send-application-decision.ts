@@ -20,8 +20,9 @@ import { isValidEmail } from '../src/lib/email/is-valid-email.js';
 import { forwardToGhl } from './ghl/_forward.js';
 import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
+import { senderFor } from '../src/lib/email/senders.js';
 
-const FROM = 'Groundwork by Jalla <noreply@mail.tryjalla.com>';
+const FROM = senderFor('contractor_application_decision');
 
 function admin() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
