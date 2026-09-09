@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, ShieldCheck } from 'lucide-react';
-import { verifyCode, verifiedFactorId } from '@/lib/auth/mfa';
+import { verifyCode, verifiedFactorId, type RequiredFactor } from '@/lib/auth/mfa';
+import {
+  sendEmailCode, verifyEmailCode, markEmailFactorPassed,
+} from '@/lib/auth/email-otp';
 import { supabase } from '@/lib/supabase/client';
 import { errorMessage } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
@@ -22,29 +25,77 @@ import { useT } from '@/lib/i18n';
 // =========================================================
 
 export function MfaChallenge({
-  onVerified, onCancel,
+  factor = 'totp', onVerified, onCancel,
 }: {
+  /**
+   * Which factor to ask for. Resolved by `requiredFactor()` at the call site, because
+   * only the caller knows whether this is a Supabase factor or ours — Supabase has never
+   * heard of the email one.
+   */
+  factor?: RequiredFactor;
   onVerified: () => void;
   /** Called after the half-session has been discarded. */
   onCancel?: () => void;
 }) {
   const t = useT();
+  const isEmail = factor === 'email';
+
   const [factorId, setFactorId] = useState<string | null>(null);
   const [code,  setCode]  = useState('');
   const [busy,  setBusy]  = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    verifiedFactorId().then(id => { if (alive) setFactorId(id); });
+    if (isEmail) {
+      // Send on arrival: the whole point of the email factor is that the user does not
+      // have to go and fetch anything, so making them press "send me a code" first is a
+      // step that exists only because we built it that way.
+      setSending(true);
+      sendEmailCode()
+        .then(c => { if (alive) setChallengeId(c.challengeId); })
+        .catch(err => { if (alive) setError(errorMessage(err, t('auth.mfa.sendFailed'))); })
+        .finally(() => { if (alive) setSending(false); });
+    } else {
+      verifiedFactorId().then(id => { if (alive) setFactorId(id); });
+    }
     return () => { alive = false; };
-  }, []);
+  }, [isEmail, t]);
+
+  async function resend() {
+    setSending(true); setError(null); setCode('');
+    try {
+      const c = await sendEmailCode();
+      setChallengeId(c.challengeId);
+    } catch (err) {
+      // The rate-limit refusal is shown, not swallowed: somebody who asked five times and
+      // saw nothing needs to know it is a limit rather than a broken product.
+      setError(errorMessage(err, t('auth.mfa.sendFailed')));
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!factorId) return;
     setBusy(true); setError(null);
     try {
+      if (isEmail) {
+        if (!challengeId) return;
+        const ok = await verifyEmailCode(challengeId, code);
+        if (!ok) { setError(t('auth.mfa.badCode')); setCode(''); return; }
+
+        // Supabase does not know this happened, so the session's assurance level is
+        // unchanged and the fact has to be recorded here. See email-otp.ts.
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) markEmailFactorPassed(user.id);
+        onVerified();
+        return;
+      }
+
+      if (!factorId) return;
       await verifyCode(factorId, code);
       onVerified();
     } catch (err) {
@@ -69,7 +120,9 @@ export function MfaChallenge({
       <h1 className="text-center font-sans text-2xl font-bold text-brand-near-black">
         {t('auth.mfa.title')}
       </h1>
-      <p className="mt-2 text-center text-sm text-brand-mid-grey">{t('auth.mfa.subtitle')}</p>
+      <p className="mt-2 text-center text-sm text-brand-mid-grey">
+        {isEmail ? t('auth.mfa.subtitleEmail') : t('auth.mfa.subtitle')}
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8">
         <label htmlFor="mfa-login-code" className="sr-only">{t('auth.mfa.codeLabel')}</label>
@@ -91,14 +144,30 @@ export function MfaChallenge({
           </p>
         )}
 
-        <Button type="submit" disabled={busy || code.length !== 6 || !factorId} className="mt-4 w-full">
+        <Button
+          type="submit"
+          disabled={busy || sending || code.length !== 6 || (isEmail ? !challengeId : !factorId)}
+          className="mt-4 w-full"
+        >
           {busy ? <Loader2 className="size-4 animate-spin" /> : t('auth.mfa.submit')}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-xs leading-relaxed text-brand-mid-grey">
-        {t('auth.mfa.lostDevice')}
-      </p>
+      {isEmail ? (
+        <p className="mt-6 text-center text-xs leading-relaxed text-brand-mid-grey">
+          {t('auth.mfa.noCode')}{' '}
+          <button
+            type="button" onClick={resend} disabled={sending}
+            className="underline underline-offset-4 hover:text-brand-near-black disabled:opacity-50"
+          >
+            {sending ? t('auth.mfa.sending') : t('auth.mfa.resend')}
+          </button>
+        </p>
+      ) : (
+        <p className="mt-6 text-center text-xs leading-relaxed text-brand-mid-grey">
+          {t('auth.mfa.lostDevice')}
+        </p>
+      )}
 
       <p className="mt-4 text-center">
         <button

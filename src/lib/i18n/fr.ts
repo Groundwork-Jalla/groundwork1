@@ -863,6 +863,11 @@ export const fr: Mirror<EnDict> = {
       disableFailed:  "Impossible de désactiver la double authentification. Si vous vous êtes connecté avant de l'activer, déconnectez-vous puis reconnectez-vous.",
       disableTitle:   "Désactiver l'authentification à deux facteurs ?",
       disableBody:    'Votre compte ne sera plus protégé que par votre mot de passe. Vous pourrez la réactiver à tout moment, mais vous devrez reconfigurer votre application.',
+      emailTitle:  'Code par e-mail',
+      emailBody:   "Recevez un code \u00e0 six chiffres \u00e0 l'adresse e-mail de votre compte lors de la connexion. Plus simple \u00e0 mettre en place qu'une application d'authentification, et un peu moins s\u00fbr : qui acc\u00e8de \u00e0 votre bo\u00eete acc\u00e8de \u00e0 vos codes.",
+      emailOn:     'Activer',
+      emailOff:    'D\u00e9sactiver',
+      emailFailed: "L'enregistrement a \u00e9chou\u00e9. R\u00e9essayez.",
     },
 
     emailNotifications:  'Notifications par e-mail',
@@ -2291,6 +2296,11 @@ export const fr: Mirror<EnDict> = {
       submit:     'Vérifier',
       badCode:    'Ce code a été refusé. Les codes changent toutes les 30 secondes : vérifiez votre application et saisissez le code actuel.',
       lostDevice: "Vous n'avez plus accès à votre application ? Écrivez à support@tryjalla.com depuis l'adresse e-mail de votre compte et nous vous vérifierons autrement.",
+      subtitleEmail: "Nous avons envoy\u00e9 un code \u00e0 six chiffres \u00e0 l'adresse e-mail de votre compte.",
+      noCode:      'Vous ne le recevez pas ?',
+      resend:      'Envoyer un autre code',
+      sending:     'Envoi\u2026',
+      sendFailed:  "Impossible d'envoyer un code. R\u00e9essayez dans un instant.",
       cancel:     'Annuler et se déconnecter',
     },
     newPassword: {

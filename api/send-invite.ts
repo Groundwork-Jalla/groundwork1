@@ -67,15 +67,28 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const [{ data: project }, { data: inviter }] = await Promise.all([
+    const [{ data: project }, { data: inviter }, { data: existing }] = await Promise.all([
       admin.from('projects').select('name, country').eq('id', invite.project_id).maybeSingle(),
       admin.from('profiles').select('full_name').eq('id', invite.invited_by).maybeSingle(),
+      // The invitee's OWN stored preference, if they already have an account. Matched
+      // case-insensitively, the same way the Stripe lookup does it — an invite typed as
+      // `Ada@Example.com` must find the profile stored as `ada@example.com`.
+      admin.from('profiles').select('preferred_lang').ilike('email', invite.email).limit(1),
     ]);
 
-    // The invitee has no account yet, so there is no stored preference. The project's
-    // build country is the same signal the client used; resolving it here keeps the
-    // decision with the data rather than trusting a body field.
-    const lang = resolveRecipientLang(null, project?.country ?? null);
+    // Resolve from the RECIPIENT, in this order: what they chose, then the project's
+    // build country, then English.
+    //
+    // This used to pass `null` for the preference, on the reasoning that "the invitee has
+    // no account yet". That is true of a first invitation and false of every one after it
+    // — a contractor already working on one project, invited to a second, has an account
+    // and a chosen language. That is precisely the case the beta tester reported: an
+    // English account receiving a French invitation, because the Cameroonian project
+    // country was the only signal being read.
+    const lang = resolveRecipientLang(
+      existing?.[0]?.preferred_lang ?? null,
+      project?.country ?? null,
+    );
     const inviterName = inviter?.full_name?.trim() || 'A Groundwork client';
     const projectName = project?.name?.trim() || 'a Groundwork project';
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
-import { challengeRequired } from "@/lib/auth/mfa";
+import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { useT } from "@/lib/i18n";
 
 export default function Login() {
@@ -23,7 +23,10 @@ export default function Login() {
   const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // A correct password is not a completed sign-in when the account has a second factor.
-  const [needsMfa,   setNeedsMfa]   = useState(false);
+  // Which factor, not merely whether. A user with only the email factor has no
+  // Supabase factor at all, so asking "is a challenge required?" answered no and
+  // routed them straight in — 2FA that looked on and did nothing.
+  const [mfaFactor, setMfaFactor] = useState<RequiredFactor>('none');
 
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
@@ -78,9 +81,10 @@ export default function Login() {
 
     // The password created a session, but at aal1. Stop here and ask for the code —
     // routing now would put a half-authenticated session inside the app.
-    if (await challengeRequired()) {
+    const factor = await requiredFactor();
+    if (factor !== 'none') {
       setSubmitting(false);
-      setNeedsMfa(true);
+      setMfaFactor(factor);
       return;
     }
 
@@ -88,11 +92,12 @@ export default function Login() {
     await finishLogin();
   }
 
-  if (needsMfa) {
+  if (mfaFactor !== 'none') {
     return (
       <MfaChallenge
+        factor={mfaFactor}
         onVerified={finishLogin}
-        onCancel={() => { setNeedsMfa(false); setPassword(""); }}
+        onCancel={() => { setMfaFactor('none'); setPassword(""); }}
       />
     );
   }

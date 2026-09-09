@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
-import { challengeRequired } from "@/lib/auth/mfa";
+import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
 import {
@@ -84,7 +84,7 @@ export default function AuthCallback() {
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
   // Google sign-in lands here rather than on /auth/login, so without this the OAuth
   // button would be a way straight past a second factor the account has enabled.
-  const [needsMfa, setNeedsMfa] = useState(false);
+  const [mfaFactor, setMfaFactor] = useState<RequiredFactor>('none');
 
   async function resendLink(flow: AuthEmailFlow, email: string) {
     setResend('sending');
@@ -182,7 +182,8 @@ export default function AuthCallback() {
       //     device" line on the challenge screen is for.
       //   · accepting an invite, which writes a real membership row.
       //   · is_admin(), which decides whether they land in the admin panel.
-      if (await challengeRequired()) { setNeedsMfa(true); return; }
+      const factor = await requiredFactor();
+      if (factor !== 'none') { setMfaFactor(factor); return; }
 
       await continueAfterAuth(session);
     }
@@ -238,13 +239,14 @@ export default function AuthCallback() {
   async function afterMfa() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate('/auth/login', { replace: true }); return; }
-    setNeedsMfa(false);
+    setMfaFactor('none');
     await continueAfterAuth(session);
   }
 
-  if (needsMfa) {
+  if (mfaFactor !== 'none') {
     return (
       <MfaChallenge
+        factor={mfaFactor}
         onVerified={afterMfa}
         onCancel={() => navigate('/auth/login', { replace: true })}
       />

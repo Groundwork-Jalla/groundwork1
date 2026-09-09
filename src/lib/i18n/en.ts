@@ -876,6 +876,12 @@ export const en = {
       disableFailed:  'Could not turn two-factor off. If you signed in before enabling it, sign out and back in first.',
       disableTitle:   'Turn off two-factor authentication?',
       disableBody:    'Your account will be protected by your password alone. You can turn it back on at any time, but you will need to set up your authenticator app again.',
+      // The email factor. Not a Supabase factor — see migration 080.
+      emailTitle:  'Code by email',
+      emailBody:   'Get a six-digit code at your account email address when you sign in. Easier to set up than an authenticator app, and a little less secure — anyone who reaches your inbox reaches your codes.',
+      emailOn:     'Turn on',
+      emailOff:    'Turn off',
+      emailFailed: 'That did not save. Try again.',
     },
 
     emailNotifications:  'Email notifications',
@@ -2338,6 +2344,12 @@ export const en = {
       submit:     'Verify',
       badCode:    'That code was not accepted. Codes change every 30 seconds, so check your app and try the current one.',
       lostDevice: 'Lost access to your authenticator? Contact support@tryjalla.com from the email address on your account and we will verify you another way.',
+      // The email factor, which Supabase does not manage — see migration 080.
+      subtitleEmail: 'We sent a six-digit code to the email address on your account.',
+      noCode:      "Didn't get it?",
+      resend:      'Send another code',
+      sending:     'Sending…',
+      sendFailed:  'We could not send a code. Try again in a moment.',
       cancel:     'Cancel and sign out',
     },
     newPassword: {

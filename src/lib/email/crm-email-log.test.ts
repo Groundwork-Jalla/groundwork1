@@ -46,6 +46,20 @@ const INTERNAL_ONLY = new Set(['api/agent-dispatch.ts']);
  */
 const ALREADY_ON_THE_THREAD = new Set(['api/_handlers/conversation-delivery.ts']);
 
+/**
+ * Carries a live credential, so it must NEVER reach the CRM.
+ *
+ * `mfa-email.ts` mails a six-digit sign-in code. A CRM note records the full HTML of what
+ * was sent, on the contact's own timeline, where every member of the team can read it —
+ * so complying with this rule would publish a working second factor to the whole company
+ * and leave it there.
+ *
+ * Exempt for a third reason, and the only one that is a security requirement rather than
+ * a tidiness one: there IS a contact and the note WOULD be new. It simply must not exist.
+ * Anything added here has to clear the same bar — the message is a secret, not a record.
+ */
+const CARRIES_A_SECRET = new Set(['api/_handlers/mfa-email.ts']);
+
 function tsFiles(dir: string): string[] {
   return readdirSync(dir).flatMap(entry => {
     const full = join(dir, entry);
@@ -75,7 +89,8 @@ describe('CRM email log', () => {
     const senders = files.filter(f =>
       f.src.includes('https://api.resend.com/emails')
       && !INTERNAL_ONLY.has(f.path)
-      && !ALREADY_ON_THE_THREAD.has(f.path));
+      && !ALREADY_ON_THE_THREAD.has(f.path)
+      && !CARRIES_A_SECRET.has(f.path));
 
     // If this is empty the test is passing for the wrong reason — a path change, or a
     // move off Resend — and would keep passing while the guarantee quietly lapsed.
@@ -119,5 +134,28 @@ describe('CRM email log', () => {
       .map(f => f.path);
     expect(unlabelled, `a note with no kind reads as a bare "Email" on the timeline:\n` +
       unlabelled.map(f => `  ${f}`).join('\n')).toEqual([]);
+  });
+});
+
+/**
+ * The exemption above is a hole in a rule, so it is itself guarded.
+ */
+describe('the secret-carrying exemption stays honest', () => {
+  it('names only files that genuinely mail a credential', () => {
+    for (const path of CARRIES_A_SECRET) {
+      const src = readFileSync(join(ROOT, path), 'utf8');
+      expect(src, `${path} is exempt but does not send email`)
+        .toContain('https://api.resend.com/emails');
+    }
+  });
+
+  it('keeps those files out of the CRM entirely', () => {
+    // Not merely "does not have to log" — must not log. A well-meaning future edit adding
+    // the call back would put sign-in codes on a shared timeline.
+    for (const path of CARRIES_A_SECRET) {
+      const code = stripComments(readFileSync(join(ROOT, path), 'utf8'));
+      expect(code, `${path} must never write a credential to the CRM`)
+        .not.toMatch(/logEmailToCrm/);
+    }
   });
 });

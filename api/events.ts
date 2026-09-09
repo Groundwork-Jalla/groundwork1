@@ -14,6 +14,7 @@ import { handler as crmBackfill } from './_handlers/crm-backfill.js';
 import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
+import { handler as mfaEmail } from './_handlers/mfa-email.js';
 
 /**
  * One endpoint, several actions.
@@ -44,7 +45,7 @@ import { handler as certPurge } from './_handlers/certificate-purge.js';
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill'
-  | 'crm-chat-mirror' | 'certificate-purge'
+  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email'
   | 'profile-geo';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
@@ -63,6 +64,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-email-test': crmEmailTest,
   'crm-chat-mirror': crmChatMirror,
   'certificate-purge': certPurge,
+  'mfa-email': mfaEmail,
   'profile-geo': profileGeo,
 };
 

@@ -1,17 +1,43 @@
 # Questions for the engineer — BQ calibration
 
-*Last updated 16 August 2026.*
+*Last updated 9 September 2026. Previous version 16 August.*
 
-We built Groundwork's budget engine from four of your bills of quantities. It reproduces
-them within **−20.7% to +31.1%**, up from −0% to +146% when it was fitted to one document
-alone. The remaining gap sits in a small number of specific line items where the four
-documents disagree with each other, and we cannot tell from the files alone which reading
-is right.
+We built Groundwork's budget engine from four of your bills of quantities. **Naka now
+reproduces to −1.1%** — it is the only one of the four that priced a whole building the
+way we do, so it is the honest measure of the engine. The other three each price a
+different scope, and the spread across all four is −14.6% to +52.1%.
+
+The remaining gap sits in a small number of specific line items where the four documents
+disagree with each other, and we cannot tell from the files alone which reading is right.
 
 **None of these block the engine.** Each one answered lets us tighten a real tolerance or
 retire a placeholder.
 
-## What changed since the last version of this document
+## What you already settled, 4 September
+
+Thank you — these are in and shipped, so please don't spend time on them again:
+
+- **The timeline.** A bungalow is 14 days, each storey above ground adds 42. That replaced
+  a flat 196 days for every building, which gave a bungalow and an eight-storey block the
+  same seven months.
+- **Professional fees**, as four named lines rather than one flat charge: site manager
+  300,000 XAF/month, quantity surveyor 55,000 XAF/month, contract lawyer 100,000 flat,
+  project manager 5% of construction. Months come from the timeline rule above.
+- **Contingency 2%**, replacing a 5% miscellaneous buffer.
+- **Design fee 5,000 XAF/m²** — you confirmed it was already right, so it is unchanged.
+- **Site engineer stays inside the 40% labour split.**
+
+## What changed since 16 August
+
+- **The suspended slab is now charged per floor**, not once per building. See the note
+  under the accuracy table — this is the single biggest change to the numbers since you
+  last saw them, and it is why Mpangou moved.
+- **Verification is its own fee line** (50,000 XAF × 7 stages) rather than being folded
+  into professional fees.
+- The estimate now carries a **warning when it falls below half a rough regional
+  benchmark** — see question 17, which is about whether that benchmark is the right one.
+
+## What changed in the version before that
 
 - The engine now emits **line items with your BQ numbering** (204 footings, 305 blockwork,
   503 roof sheet, 801–810 plumbing) rather than section totals, so a Groundwork estimate
@@ -37,16 +63,28 @@ retire a placeholder.
 
 ## Where the engine currently lands
 
-| Document | Yours | Ours | Error |
-|---|---|---|---|
-| 3 Naka | 42,213,867 | 39,943,940 | **−5.4%** |
-| 2 Buea | 43,410,955 | 51,027,448 | +17.5% |
-| 1 Rose | 59,675,280 | 47,301,063 | −20.7% |
-| 4 Mpangou | 64,268,593 | 84,228,987 | +31.1% |
+| Document | Yours | Ours | Error | Was, 16 Aug |
+|---|---|---|---|---|
+| 3 Naka | 42,213,867 | 41,732,608 | **−1.1%** | −5.4% |
+| 2 Buea | 43,410,955 | 51,803,389 | +19.3% | +17.5% |
+| 1 Rose | 59,675,280 | 50,959,788 | −14.6% | −20.7% |
+| 4 Mpangou | 64,268,593 | 97,732,073 | **+52.1%** | +31.1% |
 
-Naka is the closest because it is one of the two documents that measured internal
-partitions and painted the whole building. The two largest errors, Rose and Mpangou, are
-the two documents carrying the anomalies in questions 1 and 3–4.
+Naka is the closest because it is the only document that measured internal partitions,
+painted every floor and priced a whole building — a like-for-like comparison. It is now
+within 1.1%.
+
+**Mpangou moved the wrong way on purpose, and it is worth understanding why.** We
+corrected a counting error: the engine charged **one** suspended floor slab, one soffit
+plaster and one staircase for a building of any height. A suspended slab is the floor of
+the storey above it, so a G+3 needs three — we were pricing one. Fixing it added about
+8.0M XAF to Mpangou and changed nothing at all on the three G+1 documents.
+
+Mpangou is also the one document that prices a **continuation of a half-built structure** —
+your note that "it was incomplete" and that the existing structure was surveyed rather than
+re-priced. Slabs already poured are exactly what your quote leaves out and what our number
+now includes, so we expect to sit above it. **Is +52% the right distance above a
+continuation quote, or does it say we have over-corrected?** That is question 16.
 
 ---
 
@@ -62,7 +100,7 @@ Item 501 lists **806.20 m³** of treated timber and item 502 a further **520 m³
 
 Roof cost per m² of footprint is 48,050 XAF here against 5,202 / 6,246 / 9,804 in the
 others. We price a pitched roof at about 20,000 XAF/m² of footprint from first principles
-and treat this figure as an outlier — which is part of why we read 20.7% under on Rose.
+and treat this figure as an outlier — which is part of why we read 14.6% under on Rose.
 
 ### 2. Roof sheet quantity (document 2)
 
@@ -80,7 +118,9 @@ the section total of 24,514,368 is exactly **4 ×** one floor's line items (6,12
 other three documents are exactly 1 × their line items.
 
 **Is Mpangou 3 upper floors or 4?** It changes the per-floor uplift from 20.6% to 15.4%,
-and it is a direct contributor to our +31.1% on this document.
+and it is a direct contributor to our +52.1% on this document. It now matters more than
+it did in August: the slab correction in question 16 is charged per upper floor, so the
+floor count decides how many slabs we price.
 
 ### 4. Mpangou foundation (document 4)
 
@@ -124,7 +164,7 @@ Plastered area per floor, against the external envelope both faces:
 
 **Do documents 2 and 4 deliberately exclude internal partition walls, or were they
 omitted?** We model partitions at 14 m of wall per room per floor — documents 1 and 3 imply
-15.5 m and 18 m — so our estimate reads high against 2 and 4. That is most of our +17.5%
+15.5 m and 18 m — so our estimate reads high against 2 and 4. That is most of our +19.3%
 on Buea.
 
 ### 7. Painting scope (document 4)
@@ -156,7 +196,7 @@ did not measure.
 
 ---
 
-## New questions from this round
+## New in the August round
 
 ### 10. Mpangou has no mirrors (document 4)
 
@@ -255,6 +295,65 @@ documents or inferred by us. These nine are inferred, and a contractor sees them
 an invented figure inside it — a contractor who spots one made-up number stops trusting the
 whole document.
 
+## New in this round — September
+
+### 16. Mpangou — how far above a continuation quote should we be?
+
+Covered under the accuracy table. We now sit **+52.1%** above your Mpangou figure, up from
++31.1%, because we corrected the slab count. Your document prices one contractor's
+continuation of a half-built structure; ours prices the whole building from scratch, so
+some gap is correct.
+
+**Roughly what proportion of that project was already standing when you took it over?**
+Even a rough fraction tells us whether +52% is the right distance or whether we have
+over-corrected.
+
+### 17. Is 180,000 XAF/m² a real rule of thumb, or our own concrete rate handed back?
+
+On 4 September you gave us a quick check: a Yaoundé build runs about **180,000 XAF per
+built m²** — footprint × floors × 180,000. We use it exactly as you described it, as a
+sanity check and never as a price: if our estimate lands below half of it, the client is
+told the figure looks low for a building that size and to have a contractor confirm it.
+
+The reason for the question is a coincidence we would rather not build on. Your own price
+book puts **Yaoundé RC-350 concrete at 180,000 XAF per m³** — the same number, a different
+quantity, a different unit.
+
+**Is the per-m² rule of thumb genuinely 180,000, or was that the concrete rate?** Both are
+plausible on their own, which is exactly why we do not want to guess. If it is the concrete
+rate, our warning is calibrated against the wrong figure and will fire in the wrong places.
+
+### 18. Cost per m² still falls as a building gets taller — should it?
+
+With the slab fix in, a Yaoundé building at a fixed footprint prices like this against the
+180,000 rule of thumb:
+
+| Storeys | Our cost ÷ rule of thumb |
+|---|---|
+| 1 | 1.29 |
+| 2 | 0.84 |
+| 4 | 0.70 |
+| 8 | 0.63 |
+| 12 | 0.61 |
+
+Going from one storey to eight, we lose about **49%** of the ratio. Before the slab fix it
+was 62%, so the correction closed roughly a fifth of the gap — but not the rest.
+
+Some decay is real: a foundation and a site setup are paid once and spread over more floor
+area. **Is roughly half the right amount to lose over eight storeys, or should a tall
+building cost nearer a flat rate per m²?** We have no mechanism left that explains the
+remainder, and we would rather ask than invent one.
+
+Two smaller ones in the same area:
+
+- **Should a bungalow be charged a suspended floor slab at all?** We charge one today. A
+  single-storey building under a pitched roof does not have one, so this looks like an
+  over-charge — but no document in the set is a bungalow, so there is nothing to calibrate
+  against, and it is the commonest building our clients ask for.
+- **Partition walls and bathroom tiling scale with the total room count, not per floor.**
+  So a tall building with a fixed number of rooms gets a shrinking allowance per floor.
+  Is that right?
+
 ---
 
 ## The price book
@@ -285,6 +384,14 @@ Adamawa is covered in question 11 above.
 | 11 | Adamawa clients get a defensible number |
 | 12, 13 | Every footprint and roof the wizard suggests rests on your figures rather than ours |
 | 14 | We can quote staff quarters at all |
+| **16** | We know whether the slab correction landed in the right place or overshot |
+| **17** | The under-estimate warning is calibrated against a real benchmark, not a coincidence |
+| **18** | Tall buildings are priced on your judgement rather than on an unexplained decay |
+
+**If you can only answer three, make them 17, 18 and 15.** 17 and 18 decide whether tall
+buildings are priced correctly at all, which is the gap our beta testers actually
+complained about; 15 is nine invented rates that a contractor can currently see flagged as
+guesses.
 
 The re-baselined Bill of Quantity you mentioned would settle several of these at once — if
 it is close, we can wait for it rather than take your time twice.

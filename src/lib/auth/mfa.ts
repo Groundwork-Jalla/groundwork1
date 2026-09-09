@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Factor } from '@supabase/supabase-js';
+import { emailFactorPassed, emailMfaEnabled } from './email-otp';
 
 // =========================================================
 // Two-factor authentication — TOTP, via Supabase MFA.
@@ -71,6 +72,35 @@ export async function challengeRequired(): Promise<boolean> {
     return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
   } catch {
     return false;
+  }
+}
+
+/**
+ * Which second factor this session still owes, if any.
+ *
+ * `challengeRequired()` above asks Supabase, and Supabase only knows about the factors it
+ * manages — `totp`, `phone`, `webauthn`. The email factor is ours (migration 080), so a
+ * user who enabled ONLY email has no Supabase factor at all: `challengeRequired()` returns
+ * false and, before this existed, they were routed straight into the app having presented
+ * one factor. The feature would have looked enabled and done nothing.
+ *
+ * TOTP is checked first because it is the stronger factor and the one Supabase actually
+ * enforces at `aal2`. A user with both is challenged for TOTP.
+ */
+export type RequiredFactor = 'none' | 'totp' | 'email';
+
+export async function requiredFactor(): Promise<RequiredFactor> {
+  if (await challengeRequired()) return 'totp';
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 'none';
+    if (emailFactorPassed(user.id)) return 'none';
+    return (await emailMfaEnabled(user.id)) ? 'email' : 'none';
+  } catch {
+    // Same failure posture as challengeRequired: a lookup that breaks must not lock the
+    // whole product out. The cost is the status quo before the factor existed.
+    return 'none';
   }
 }
 

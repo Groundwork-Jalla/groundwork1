@@ -140,11 +140,15 @@ def question(num, title, sees, assumed, need, answer_lines=3, evidence=None):
 # ═════════════════════════════════════════════════════════
 h1('Bill of Quantities — questions')
 para('**For Vanessa Gwanvoma**', size=11.5, after=1)
-para('Groundwork by Jalla   ·   17 August 2026', size=9.5, color=GREY, after=8)
+para('Groundwork by Jalla   ·   9 September 2026', size=9.5, color=GREY, after=8)
 
 box('**What this is.**  We built Groundwork’s cost estimator from four of your bills of '
-    'quantities. It now reproduces them to within about 21% under and 31% over, against '
-    '146% over when it was built from a single document.\n\n'
+    'quantities. **Naka now reproduces to within 1%** — it is the only one of the four that '
+    'priced a whole building the way we do, so it is the fairest measure. The other three '
+    'each price a different scope.\n\n'
+    '**Thank you for the 4 September answers.**  The timeline rule, the four professional '
+    'fee lines, 2% contingency and the 5,000 XAF/m² design fee are all in and shipped. '
+    'Please do not spend time on those again.\n\n'
     'The remaining gap sits in a small number of specific line items where your four '
     'documents disagree with one another, and we cannot tell from the files alone which '
     'reading is the correct one. Each question below is one of those. Every one you '
@@ -172,16 +176,22 @@ para('These are **construction against construction**. Your bills price the buil
      'professional fees Groundwork charges a client on top. Comparing our client-facing '
      'total against your documents would flatter or penalise us for fees that are not in '
      'your scope.', size=10, after=6)
-table(['Document','Yours (XAF)','Ours (XAF)','Difference'], [
-    ['3  Naka',    '42,213,867','39,943,940','**−5.4%**'],
-    ['2  Buea',    '43,410,955','51,027,448','+17.5%'],
-    ['1  Rose',    '59,675,280','47,301,063','−20.7%'],
-    ['4  Mpangou', '64,268,593','84,228,987','+31.1%'],
-], [4.2, 4.2, 4.2, 3.8])
-para('Naka is closest because it is one of the two documents that measured internal '
-     'partitions and painted the whole building. The two widest, Rose and Mpangou, are the '
-     'two carrying the anomalies in Questions 1, 3 and 4 — which is why those three matter '
-     'most.', size=10, color=GREY)
+table(['Document','Yours (XAF)','Ours (XAF)','Difference','In August'], [
+    ['3  Naka',    '42,213,867','41,732,608','**−1.1%**','−5.4%'],
+    ['2  Buea',    '43,410,955','51,803,389','+19.3%','+17.5%'],
+    ['1  Rose',    '59,675,280','50,959,788','−14.6%','−20.7%'],
+    ['4  Mpangou', '64,268,593','97,732,073','**+52.1%**','+31.1%'],
+], [3.6, 3.4, 3.4, 3.0, 3.0])
+para('Naka is closest because it is the only document that measured internal partitions, '
+     'painted every floor and priced a whole building — a like-for-like comparison. It is '
+     'now within 1.1%.', size=10, color=GREY)
+box('**Mpangou moved further away, and we did that on purpose.**  We found a counting '
+    'error: our estimator charged **one** suspended floor slab, one soffit plaster and one '
+    'staircase for a building of any height. A suspended slab is the floor of the storey '
+    'above it, so a G+3 needs three — we were pricing one.\n\n'
+    'Correcting it added about 8.0 million XAF to Mpangou and changed nothing at all on the '
+    'three G+1 documents. Mpangou is also the one document pricing a continuation of a '
+    'half-built structure, so we expect to sit above it. Question 16 asks by how much.', 'warn')
 
 
 # ── Briefing ─────────────────────────────────────────────
@@ -305,7 +315,7 @@ question(1, 'Roof timber on the Rose document',
      'Roof cost works out at **48,050 XAF per m² of footprint** here, against 5,202 / 6,246 / '
      '9,804 in the others.'],
     'We treat this figure as an outlier and price a pitched roof at about 20,000 XAF per m² '
-    'of footprint from first principles. That is a large part of why our estimate reads 20.7% '
+    'of footprint from first principles. That is a large part of why our estimate reads 14.6% '
     'below your Rose total.',
     'Is 806.20 linear metres, or board feet, recorded in a column headed m³?')
 
@@ -324,7 +334,9 @@ question(3, 'How many floors is Mpangou?',
      'line items.'],
     'We have taken it as stated in the title. If it is actually four upper floors, the '
     'per-floor uplift we derive changes from 20.6% to 15.4%, and this is a direct cause of '
-    'our +31.1% on this document.',
+    'our +52.1% on this document. It matters more than it did in August: the slab '
+    'correction above is charged per upper floor, so the floor count decides how many '
+    'slabs we price.',
     'Is Mpangou three upper floors, or four?')
 
 question(4, 'The Mpangou foundation',
@@ -368,7 +380,7 @@ question(5, 'What unit is blockwork priced in?',
 question(6, 'Do documents 2 and 4 exclude internal partitions?',
     ['Plastered area per floor, against the external envelope counted on both faces:'],
     'We model internal partitions at 14 metres of wall per room per floor. Documents 1 and 3 '
-    'imply 15.5 m and 18 m. That is most of why our estimate reads 17.5% above your Buea '
+    'imply 15.5 m and 18 m. That is most of why our estimate reads 19.3% above your Buea '
     'total.',
     'Do documents 2 and 4 deliberately exclude internal partition walls, or were they '
     'omitted?',
@@ -482,6 +494,60 @@ question(15, 'Nine rates that have nothing behind them',
     ['907','Final finishes allowance','500,000 XAF lump sum'],
     ], [1.8, 8.2, 6.4]))
 
+# ── September round ──────────────────────────────────────
+h2('New since we last wrote')
+
+question(16, 'How much of Mpangou was already built?',
+    ['We now sit 52.1% above your Mpangou figure, up from 31.1%, because we corrected the '
+     'slab count described earlier. Your document prices one contractor’s continuation of a '
+     'structure already part-built — your note said it was incomplete and that the existing '
+     'work was surveyed rather than re-priced.',
+     'Ours prices the whole building from scratch, so some gap is not only expected but '
+     'correct. We cannot tell how much.'],
+    'That the whole of the difference is explained by scope, which may be too generous to us.',
+    'Roughly what proportion of that building was already standing when you took it over? '
+    'Even a rough fraction tells us whether +52% is about right or whether we have '
+    'over-corrected.')
+
+question(17, 'Is 180,000 XAF/m² yours, or our own concrete rate handed back?',
+    ['On 4 September you gave us a quick check: a Yaoundé build runs about 180,000 XAF per '
+     'built m² — footprint × floors × 180,000. We use it exactly as you described it, as a '
+     'sanity check and never as a price. If our estimate falls below half of it, the client '
+     'is told the figure looks low for a building that size and to have a contractor '
+     'confirm it.',
+     'The reason we are asking is a coincidence we would rather not build on. Your own price '
+     'book puts Yaoundé RC-350 concrete at 180,000 XAF per cubic metre. Same number, '
+     'different quantity, different unit.'],
+    'That the per-m² figure is real and separate from the concrete rate.',
+    'Is 180,000 XAF per built m² a genuine rule of thumb, or was that the concrete rate? '
+    'Both readings are plausible, which is exactly why we do not want to guess — if it is '
+    'the concrete rate, our warning is calibrated against the wrong figure.')
+
+question(18, 'Should cost per m² keep falling as a building gets taller?',
+    ['With the slab correction in, a Yaoundé building at a fixed footprint prices as below, '
+     'measured against the 180,000 rule of thumb in Question 17.',
+     'Going from one storey to eight, we lose about 49% of the ratio. Before the slab fix it '
+     'was 62%, so the correction closed roughly a fifth of the gap — but not the rest.',
+     'Some decay is real: a foundation and a site setup are paid once and spread over more '
+     'floor area. We have no mechanism left that explains the remainder.'],
+    'That the remaining decay is correct, which we do not actually believe.',
+    'Is losing about half the rate per m² over eight storeys right, or should a tall '
+    'building cost nearer a flat rate per m²?',
+    answer_lines=4,
+    evidence=(['Storeys','Our cost ÷ rule of thumb'], [
+    ['1','1.29'], ['2','0.84'], ['4','0.70'], ['8','0.63'], ['12','0.61'],
+    ], [4.0, 6.0]))
+
+para('**Two smaller ones in the same area.**', size=10, after=2)
+para('Should a bungalow be charged a suspended floor slab at all? We charge one today. A '
+     'single-storey building under a pitched roof does not have one — but no document in '
+     'the set is a bungalow, so there is nothing to calibrate against, and it is the '
+     'commonest building our clients ask for.', size=10, after=3)
+para('Partition walls and bathroom tiling scale with the total room count rather than per '
+     'floor, so a tall building with a fixed number of rooms gets a shrinking allowance per '
+     'floor. Is that right?', size=10, after=3)
+answer_box(3)
+
 # ── Price book ───────────────────────────────────────────
 h2('The price book, and Nigeria')
 para('The **unit cost calculation** sheet — eight cities, built up from cement, sand, gravel, '
@@ -514,7 +580,14 @@ table(['Questions','What changes'], [
     ['11','Clients building in Adamawa get a figure we can defend'],
     ['12, 13','Every roof and floor area the app suggests rests on your figures rather than ours'],
     ['14','We can quote staff quarters at all'],
+    ['16','We know whether the slab correction landed right or overshot'],
+    ['17','Our low-estimate warning is calibrated against a real benchmark'],
+    ['18','Tall buildings are priced on your judgement, not on an unexplained decay'],
 ], [3.6, 12.8])
+para('**If you can only answer three, please make them 17, 18 and 15.**  17 and 18 decide '
+     'whether tall buildings are priced correctly at all — the thing our testers actually '
+     'complained about — and 15 is nine rates a contractor can currently see marked as our '
+     'guesses.', size=10, after=8)
 
 para('If the re-baselined bill of quantities you mentioned is close to ready, several of these '
      'would be settled by it at once — we are happy to wait for that rather than take your '

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ShieldCheck, Loader2, Copy, Check } from 'lucide-react';
+import { ShieldCheck, Loader2, Copy, Check, Mail } from 'lucide-react';
 import {
   getMfaStatus, enrollTotp, verifyCode, disableTotp,
   type MfaStatus, type TotpEnrolment,
 } from '@/lib/auth/mfa';
+import { supabase } from '@/lib/supabase/client';
+import { emailMfaEnabled, setEmailMfa, clearEmailFactor } from '@/lib/auth/email-otp';
 import { errorMessage } from '@/lib/errors';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useT } from '@/lib/i18n';
@@ -26,6 +28,16 @@ import { useT } from '@/lib/i18n';
 
 type Panel = 'idle' | 'enrolling';
 
+/**
+ * Two independent factors, and they are not the same kind of thing.
+ *
+ * TOTP is a Supabase factor: enrolling stores a secret and clearing it raises the session
+ * to `aal2`. Email is ours (migration 080) — there is no secret to enrol, because the
+ * address was verified at signup, so switching it on is a preference and nothing more.
+ *
+ * Either one on its own is enough to be challenged at sign-in. With both, the sign-in
+ * asks for TOTP, because it is the stronger factor and the only one Supabase enforces.
+ */
 export function TwoFactorSection() {
   const t = useT();
 
@@ -38,6 +50,34 @@ export function TwoFactorSection() {
   const [error,   setError]   = useState<string | null>(null);
   const [copied,  setCopied]  = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [emailOn, setEmailOn]   = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || !alive) return;
+      emailMfaEnabled(user.id).then(v => { if (alive) setEmailOn(v); }).catch(() => {});
+    });
+    return () => { alive = false; };
+  }, []);
+
+  async function toggleEmail(next: boolean) {
+    setEmailBusy(true); setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await setEmailMfa(user.id, next);
+      setEmailOn(next);
+      // Turning it off must also drop "this session already passed", or the change looks
+      // to have done nothing until the tab is closed.
+      if (!next) clearEmailFactor(user.id);
+    } catch (err) {
+      setError(errorMessage(err, t('profile.mfa.emailFailed')));
+    } finally {
+      setEmailBusy(false);
+    }
+  }
 
   async function refresh() {
     try {
@@ -217,6 +257,37 @@ export function TwoFactorSection() {
           {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
         </div>
       )}
+
+      {/* The email factor. Separate from everything above because it shares no state with
+          it: no enrolment, no secret, no QR — just on or off. */}
+      <div className="mt-5 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-sm font-medium text-brand-near-black dark:text-white">
+              <Mail className="size-3.5 shrink-0 text-brand-mid-grey" aria-hidden />
+              {t('profile.mfa.emailTitle')}
+              {emailOn && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-state-complete/30 bg-brand-off-white px-2 py-0.5 text-[10px] font-medium text-state-complete dark:bg-[#1c1c1c]">
+                  {t('profile.mfa.on')}
+                </span>
+              )}
+            </p>
+            <p className="mt-1 max-w-prose text-xs leading-relaxed text-brand-mid-grey">
+              {t('profile.mfa.emailBody')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => toggleEmail(!emailOn)}
+            disabled={emailBusy}
+            aria-pressed={emailOn}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-brand-border-grey px-4 py-2 text-sm font-medium text-brand-near-black hover:bg-brand-light-grey disabled:opacity-40 dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#2c2c2c]"
+          >
+            {emailBusy && <Loader2 className="size-3.5 animate-spin" />}
+            {emailOn ? t('profile.mfa.emailOff') : t('profile.mfa.emailOn')}
+          </button>
+        </div>
+      </div>
 
       <ConfirmModal
         open={confirmOff}
