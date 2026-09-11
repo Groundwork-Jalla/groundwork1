@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Search, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { KeyRound, Loader2, Search, Trash2, UserPlus } from 'lucide-react';
 import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin-users';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -75,15 +76,23 @@ export default function AdminUsers() {
           <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allUsers')}</h1>
           <p className="mt-1 text-sm text-brand-mid-grey">{users.length} registered</p>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
-          <input
-            type="text"
-            placeholder={t('admin.searchUsers')}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
+            <input
+              type="text"
+              placeholder={t('admin.searchUsers')}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
+            />
+          </div>
+          <Link
+            to="/admin/users/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-near-black/90"
+          >
+            <UserPlus className="size-4" /> {t('admin.provision.button')}
+          </Link>
         </div>
       </div>
 
@@ -118,8 +127,18 @@ export default function AdminUsers() {
             <tbody className="divide-y divide-brand-border-grey">
               {filtered.map(u => (
                 <tr key={u.id} className="hover:bg-brand-off-white transition-colors">
-                  <td className="px-4 py-3 font-medium text-brand-near-black max-w-[160px] truncate">
-                    {u.fullName || '—'}
+                  <td className="px-4 py-3 font-medium text-brand-near-black max-w-[200px]">
+                    <span className="block truncate">{u.fullName || '—'}</span>
+                    {/* Set up by an admin and not yet used: the temporary password is still
+                        the only way in, so this is the account to chase, not to trust. */}
+                    {u.mustChangePassword && (
+                      <span
+                        className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-medium text-state-active"
+                        title={t('admin.provision.awaitingHint')}
+                      >
+                        <KeyRound className="size-3" /> {t('admin.provision.awaiting')}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-brand-mid-grey max-w-[200px] truncate">{u.email}</td>
                   <td className="px-4 py-3">

@@ -6,6 +6,7 @@ import { acceptInvite } from "@/lib/supabase/invites";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
+import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
 import {
@@ -214,6 +215,14 @@ export default function AuthCallback() {
     if (isRecovery) {
       forgetEmailRequest();
       navigate("/auth/new-password", { replace: true });
+      return;
+    }
+
+    // A provisioned account arriving by any other link (magic link, an old invite) still
+    // owes the password change the admin's handover started. Recovery, above, is how it
+    // is paid, so that path is not gated.
+    if (await mustChangePassword(session.user.id)) {
+      navigate(FORCED_PASSWORD_PATH, { replace: true });
       return;
     }
 

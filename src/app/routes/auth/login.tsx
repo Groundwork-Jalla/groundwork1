@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
+import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { useT } from "@/lib/i18n";
 
 export default function Login() {
@@ -44,6 +45,14 @@ export default function Login() {
    * would act on an identity that is not yet fully proven.
    */
   async function finishLogin() {
+    // A provisioned account signs in with a password an admin knows. Nothing else —
+    // not an invite, not the dashboard — happens until that password is replaced.
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (current && await mustChangePassword(current.user.id)) {
+      navigate(FORCED_PASSWORD_PATH, { replace: true });
+      return;
+    }
+
     // Process any pending invite (from URL param or localStorage)
     const token = inviteToken || localStorage.getItem("pendingInvite") || "";
     if (token) {

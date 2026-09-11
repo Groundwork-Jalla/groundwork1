@@ -4,6 +4,7 @@ import { NotificationBell } from '@/components/ui/NotificationBell';
 import { AppShell } from '@/components/shell/AppShell';
 import { CLIENT_NAV } from '@/components/shell/nav-config';
 import { useAuth } from '@/contexts/AuthContext';
+import { mustChangePassword, FORCED_PASSWORD_PATH } from '@/lib/auth/provisioned';
 
 /**
  * Signed-in client area. The chrome lives in AppShell, which the admin area
@@ -16,6 +17,18 @@ export default function ProtectedLayout() {
   useEffect(() => {
     if (!loading && !session) navigate('/auth/login', { replace: true });
   }, [loading, session, navigate]);
+
+  // The sign-in pages send a provisioned account to the password form; this is what
+  // stops it walking around them by typing /dashboard. Checked once per shell mount —
+  // the flag only ever moves from true to false, and only when the password changes.
+  useEffect(() => {
+    if (!session) return;
+    let alive = true;
+    mustChangePassword(session.user.id).then(forced => {
+      if (alive && forced) navigate(FORCED_PASSWORD_PATH, { replace: true });
+    });
+    return () => { alive = false; };
+  }, [session, navigate]);
 
   if (loading || !session) {
     return (

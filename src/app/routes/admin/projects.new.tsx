@@ -168,6 +168,17 @@ export default function AdminNewProject() {
           ))}
         </ul>
       )}
+
+      {/* The client may not exist yet — managed clients are set up by us, not by
+          themselves. The account page comes straight back here with them selected. */}
+      {!loading && (
+        <p className="mt-6 text-sm text-brand-mid-grey">
+          {t('admin.newProject.noAccount')}{' '}
+          <Link to="/admin/users/new" className="font-medium text-brand-near-black underline underline-offset-4">
+            {t('admin.newProject.createAccount')}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

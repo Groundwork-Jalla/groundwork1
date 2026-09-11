@@ -72,6 +72,7 @@ export default [
     route("admin/projects",      "routes/admin/projects.tsx"),
     route("admin/projects/new",  "routes/admin/projects.new.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
+    route("admin/users/new",     "routes/admin/users.new.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),
     // Path is fixed: api/ghl/contractor.ts writes /admin/applications/:id into
     // every CRM record as `application_url`.

@@ -27,6 +27,11 @@ export interface AdminUser {
   /** How many projects they own — all of which die with the account. */
   projectCount: number;
   createdAt: string;
+  /** The admin who created the account for them; null for a self sign-up. */
+  provisionedBy: string | null;
+  /** Still on the temporary password the admin handed over (migration 083). */
+  mustChangePassword: boolean;
+  lastSignInAt: string | null;
 }
 
 type Row = Record<string, unknown>;
@@ -45,6 +50,9 @@ export async function listAdminUsers(): Promise<AdminUser[]> {
     tier:      typeof r.tier === 'string' && r.tier ? r.tier : null,
     projectCount: typeof r.project_count === 'number' ? r.project_count : 0,
     createdAt: s(r.created_at),
+    provisionedBy: s(r.provisioned_by) || null,
+    mustChangePassword: r.must_change_password === true,
+    lastSignInAt: s(r.last_sign_in_at) || null,
   }));
 }
 

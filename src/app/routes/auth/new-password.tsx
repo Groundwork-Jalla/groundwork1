@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -28,6 +28,10 @@ import { useT } from "@/lib/i18n";
 export default function NewPassword() {
   const t = useT();
   const navigate = useNavigate();
+  // `?first=1`: an admin-provisioned account replacing the temporary password it was
+  // handed. Same mechanics as a reset; the words have to say why it is being asked.
+  const [searchParams] = useSearchParams();
+  const firstSignIn = searchParams.get('first') === '1';
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [ready, setReady] = useState(false);
@@ -137,7 +141,9 @@ export default function NewPassword() {
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">
           {t('auth.newPassword.doneTitle')}
         </h1>
-        <p className="mt-2 text-sm text-brand-mid-grey">{t('auth.newPassword.doneBody')}</p>
+        <p className="mt-2 text-sm text-brand-mid-grey">
+          {t(firstSignIn ? 'auth.newPassword.firstDoneBody' : 'auth.newPassword.doneBody')}
+        </p>
 
         {/* Only claimed when it actually happened — see the catch in handleSubmit. */}
         {othersSignedOut && (
@@ -172,8 +178,12 @@ export default function NewPassword() {
 
   return (
     <div>
-      <h1 className="font-sans text-3xl font-bold text-brand-near-black">{t('auth.newPassword.title')}</h1>
-      <p className="text-sm text-brand-mid-grey mt-2">{t('auth.newPassword.subtitle')}</p>
+      <h1 className="font-sans text-3xl font-bold text-brand-near-black">
+        {t(firstSignIn ? 'auth.newPassword.firstTitle' : 'auth.newPassword.title')}
+      </h1>
+      <p className="text-sm text-brand-mid-grey mt-2">
+        {t(firstSignIn ? 'auth.newPassword.firstSubtitle' : 'auth.newPassword.subtitle')}
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">

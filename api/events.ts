@@ -15,6 +15,7 @@ import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
+import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
 
 /**
  * One endpoint, several actions.
@@ -45,7 +46,7 @@ import { handler as mfaEmail } from './_handlers/mfa-email.js';
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill'
-  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email'
+  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user'
   | 'profile-geo';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
@@ -65,6 +66,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-chat-mirror': crmChatMirror,
   'certificate-purge': certPurge,
   'mfa-email': mfaEmail,
+  'admin-provision-user': adminProvisionUser,
   'profile-geo': profileGeo,
 };
 
