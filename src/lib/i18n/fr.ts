@@ -560,6 +560,16 @@ export const fr: Mirror<EnDict> = {
     },
 
     // ── Liste d'attente (/admin/waitlist) ──
+    newProject: {
+      title:        'Cr\u00e9er un projet pour un client',
+      subtitle:     "Choisissez le client, puis renseignez le projet \u00e0 sa place. Le projet lui appartiendra, en Jalla Management, et gardera trace de qui l'a cr\u00e9\u00e9.",
+      search:       'Rechercher un client par nom ou e-mail',
+      back:         'Retour aux projets',
+      none:         'Aucun client ne correspond.',
+      loadFailed:   'Impossible de charger les clients.',
+      projectCount: '{n} projet(s)',
+      button:       'Cr\u00e9er pour un client',
+    },
     support: {
       title:        'Assistance',
       subtitle:     "Messages du formulaire d'aide et demandes de suppression de compte. Chaque ticket envoie aussi un e-mail à l'équipe dès son arrivée.",
@@ -2387,6 +2397,10 @@ export const fr: Mirror<EnDict> = {
     s5Title: "Pièces par niveau",
     s5Sub: "Détaillez les pièces de chaque niveau. Elles déterminent le plan et l'estimation des matériaux.",
     s5SubFlow: "Un niveau à la fois. Elles déterminent le plan et l'estimation des matériaux.",
+    onBehalf: {
+      creatingFor: 'Cr\u00e9ation pour',
+      tier:        'Jalla Management',
+    },
     totalLabel: "Total :",
     // Voir la note anglaise : écart global, jamais l'indice interne.
     city: {

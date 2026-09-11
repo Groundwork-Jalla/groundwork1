@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { Check, BadgeCheck, ShieldCheck, Briefcase } from 'lucide-react';
@@ -42,13 +42,20 @@ const FEATURED: ProjectTier = 'jalla_verify';
 
 export default function Step10PlanSelection() {
   const t = useT();
-  const { data, update, reset, next, constructionRate, cityRate } = useWizard();
+  const { data, update, reset, next, constructionRate, cityRate, onBehalfOf } = useWizard();
   const { user } = useAuth();
   const navigate = useNavigate();
   const tiers = useTierBilling();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
+
+  // An admin creating for a client is not choosing a plan — the tier is Management by
+  // definition, and the tier guard trusts an admin to set it. Fix it before they can
+  // click anything else, so the summary and step 11 read the right figure.
+  useEffect(() => {
+    if (onBehalfOf && data.tier !== onBehalfOf.tier) update({ tier: onBehalfOf.tier });
+  }, [onBehalfOf, data.tier, update]);
 
   /**
    * Jalla Management cannot confirm its own budget — a Jalla admin produces and confirms
@@ -63,7 +70,10 @@ export default function Step10PlanSelection() {
    */
   async function handleSubmit() {
     if (!user) return;
-    if (data.tier !== 'jalla_management') { next(); return; }
+    // An admin confirms the Management budget themselves, on step 11 — that is the
+    // whole point of them running the wizard. The hand-off below is for a CLIENT who
+    // picked Management and cannot produce that figure.
+    if (onBehalfOf || data.tier !== 'jalla_management') { next(); return; }
 
     setError(null);
     setSubmitting(true);
@@ -105,13 +115,18 @@ export default function Step10PlanSelection() {
             const d        = tiers[id];
             const featured = id === FEATURED;
             const selected = data.tier === id;
+            // On behalf of a client, only Management is offered — the others are shown
+            // for context and cannot be picked.
+            const locked   = !!onBehalfOf && id !== onBehalfOf.tier;
 
             return (
               <motion.button
                 key={id}
                 type="button"
-                onClick={() => update({ tier: id })}
+                disabled={locked}
+                onClick={() => { if (!locked) update({ tier: id }); }}
                 aria-pressed={selected}
+                aria-disabled={locked || undefined}
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.06 * i, ease: 'easeOut' }}

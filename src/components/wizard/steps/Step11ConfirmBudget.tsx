@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { createProject } from '@/lib/supabase/projects';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
-import { startProjectTracking } from '@/lib/supabase/tracking';
+import { startProjectTracking, adminStartProjectTracking } from '@/lib/supabase/tracking';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,7 @@ import { errorMessage } from '@/lib/errors';
  * projects are created still awaiting tracking and show a banner instead.
  */
 export default function Step11ConfirmBudget() {
-  const { data, constructionRate, cityRate, reset } = useWizard();
+  const { data, constructionRate, cityRate, reset, onBehalfOf } = useWizard();
   const { user }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
@@ -48,9 +48,15 @@ export default function Step11ConfirmBudget() {
     setError(null);
     setBusy(true);
     try {
+      // The project belongs to the CLIENT. When an admin is running the wizard on their
+      // behalf, every row below is written as the client's — their dashboard, their
+      // access — and the admin is recorded as its creator by the database (082).
+      const ownerId = onBehalfOf?.userId ?? user.id;
+
       // 1. Create the project on the wizard's own estimate.
       const budget  = calculateBudget(data, constructionRate, cityRate);
-      const project = await createProject(user.id, data, budget);
+      const project = await createProject(ownerId, data, budget,
+        onBehalfOf ? { tier: onBehalfOf.tier } : {});
 
       // 2. Confirm the final figure. This re-derives every stage milestone from it and
       //    activates stage 1, so the project opens ready to work rather than gated.
@@ -58,25 +64,36 @@ export default function Step11ConfirmBudget() {
       //    `decomposeBudget` recovers the four lines from whatever total they typed, so
       //    an edited budget still yields components that sum to THEIR number. The design
       //    fee is priced per built m², hence the shape.
-      await startProjectTracking(
-        project.id,
-        decomposeBudget(finalBudget, {
-          builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
-          floors:       data.floors ?? 1,
-        }),
-      );
+      //
+      //    An admin confirms through the admin RPC, which is what the Management tier
+      //    was always meant to use — the client is notified that their budget is set.
+      const confirmed = decomposeBudget(finalBudget, {
+        builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
+        floors:       data.floors ?? 1,
+      });
+      if (onBehalfOf) {
+        await adminStartProjectTracking(project.id, confirmed, ownerId, project.name);
+      } else {
+        await startProjectTracking(project.id, confirmed);
+      }
 
       // 3. The quote, if they attached one. Only possible now that a project id exists,
       //    and deliberately not fatal — a failed upload must not lose the project.
       if (file) {
         try {
-          await uploadDocument(project.id, user.id, file, undefined, 'contract');
+          await uploadDocument(project.id, ownerId, file, undefined, 'contract');
         } catch {
           // surfaced in the project's Documents tab instead; the build is created
         }
       }
 
       reset();
+
+      // An admin does not go to Stripe and does not land on the client's project page.
+      if (onBehalfOf) {
+        navigate(`/admin/projects`);
+        return;
+      }
 
       // A paid plan goes to Stripe, not straight to the project.
       //

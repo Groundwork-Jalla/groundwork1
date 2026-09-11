@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2, ExternalLink, Search, UserPlus, Trash2 } from 'lucide-react';
+import { Loader2, ExternalLink, Search, UserPlus, Trash2, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
 import { deleteProjectAsAdmin } from '@/lib/supabase/admin-projects';
@@ -160,6 +160,13 @@ export default function AdminProjects() {
           <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allProjects')}</h1>
           <p className="mt-1 text-sm text-brand-mid-grey">{projects.length} total</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/admin/projects/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-near-black px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-rich-black"
+          >
+            <Plus className="size-4" /> {t('admin.newProject.button')}
+          </Link>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-brand-mid-grey" />
           <input
@@ -169,6 +176,7 @@ export default function AdminProjects() {
             onChange={e => setQuery(e.target.value)}
             className="pl-9 pr-4 py-2 text-sm border border-brand-border-grey rounded-xl outline-none focus:ring-2 focus:ring-brand-near-black/20 bg-white w-56"
           />
+        </div>
         </div>
       </div>
 

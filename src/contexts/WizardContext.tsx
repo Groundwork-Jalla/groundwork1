@@ -15,6 +15,23 @@ import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-ra
 // =========================================================
 export type WizardDirection = 'forward' | 'back';
 
+/**
+ * Who the project is for, when it is not the person filling the wizard in.
+ *
+ * Jalla Management is the tier where Jalla runs the build, and the natural first step of
+ * running it is setting the project up — which today only the client can do. With this
+ * set, an admin walks the same eleven steps and the project is created as the client's:
+ * their row, their dashboard, their access. The admin is recorded as its creator
+ * (migration 082) and the tier is fixed to Management, which the tier guard trusts an
+ * admin to set.
+ */
+export interface OnBehalfOf {
+  userId: string;
+  /** Shown in the wizard so the admin can see whose project they are building. */
+  label: string;
+  tier: 'jalla_management';
+}
+
 interface WizardContextValue {
   step: number;
   totalSteps: number;
@@ -28,6 +45,8 @@ interface WizardContextValue {
   back: () => void;
   goTo: (n: number) => void;
   reset: () => void;
+  /** Present only when an admin is creating the project for a client. */
+  onBehalfOf: OnBehalfOf | null;
 }
 
 // =========================================================
@@ -41,7 +60,9 @@ export const TOTAL_STEPS = 11;
 // =========================================================
 // Provider
 // =========================================================
-export function WizardProvider({ children }: { children: ReactNode }) {
+export function WizardProvider({
+  children, onBehalfOf = null,
+}: { children: ReactNode; onBehalfOf?: OnBehalfOf | null }) {
   const [step, setStep]           = useState(1);
   const [direction, setDirection] = useState<WizardDirection>('forward');
   const [data, setData]           = useState<WizardFormData>(WIZARD_DEFAULT_DATA);
@@ -114,6 +135,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         step, totalSteps: TOTAL_STEPS, direction, data,
         constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
+        onBehalfOf,
       }}
     >
       {children}

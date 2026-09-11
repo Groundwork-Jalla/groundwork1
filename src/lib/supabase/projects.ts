@@ -13,15 +13,24 @@ export async function createProject(
   userId: string,
   formData: WizardFormData,
   budget: BudgetBreakdown,
+  opts: {
+    /**
+     * Only an admin creating a project for a client may set this, and only to
+     * `jalla_management`. The tier guard (061/062) clamps any other caller back to the
+     * free plan, so passing it from a client session is not a hole — it is a no-op.
+     */
+    tier?: ProjectTier;
+  } = {},
 ): Promise<ProjectRow> {
-  // ALWAYS created on the free plan. A paid tier is granted by payment, never by the
-  // plan someone selected — the wizard sends them to Stripe straight after this, and the
-  // subscription webhook upgrades the project through profiles.subscription_tier (021).
+  // ALWAYS created on the free plan, unless an admin says otherwise. A paid tier is
+  // granted by payment, never by the plan someone selected — the wizard sends them to
+  // Stripe straight after this, and the subscription webhook upgrades the project
+  // through profiles.subscription_tier (021).
   //
-  // The database clamps this anyway (061). Sending the honest value regardless: a client
-  // that lies and leans on the server to correct it is a client whose behaviour changes
-  // the day somebody loosens the trigger.
-  const tier: ProjectTier = 'self_verify';
+  // The database clamps this anyway (061/062). Sending the honest value regardless: a
+  // client that lies and leans on the server to correct it is a client whose behaviour
+  // changes the day somebody loosens the trigger.
+  const tier: ProjectTier = opts.tier ?? 'self_verify';
 
   // Every project is created gated, whatever the plan. The final wizard step calls
   // start_project_tracking immediately after this, so the gate exists only for the

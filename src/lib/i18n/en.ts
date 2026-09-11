@@ -565,6 +565,17 @@ export const en = {
     // ── Waitlist (/admin/waitlist) ──
     // The queue for support_tickets (migration 074). Before it there was no table, and
     // both writers told the sender their message had been received.
+    // /admin/projects/new — create a Jalla Management project for a client.
+    newProject: {
+      title:        'Create a project for a client',
+      subtitle:     'Choose the client, then fill in the build on their behalf. The project will be theirs, on Jalla Management, and will record that you set it up.',
+      search:       'Search clients by name or email',
+      back:         'Back to projects',
+      none:         'No clients match that.',
+      loadFailed:   'Could not load clients.',
+      projectCount: '{n} project(s)',
+      button:       'Create for a client',
+    },
     support: {
       title:        'Support',
       subtitle:     'Messages from the help form, and account-deletion requests. Every ticket also emails the team inbox when it arrives.',
@@ -2439,6 +2450,11 @@ export const en = {
     // Multi-storey builds walk a floor at a time, so the copy says so — testers under
     // the old tab strip filled the ground floor and left the rest empty.
     s5SubFlow: "One floor at a time. These shape the floor plan and materials estimate.",
+    // The amber strip across the wizard when an admin is filling it in for a client.
+    onBehalf: {
+      creatingFor: 'Creating for',
+      tier:        'Jalla Management',
+    },
     totalLabel: "Total:",
     // Step 5 room composition. Sublabels and unit chips were hardcoded English until
     // Aug 2026; adding the office type was the moment to key them.

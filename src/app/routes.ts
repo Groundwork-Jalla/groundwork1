@@ -70,6 +70,7 @@ export default [
     route("admin/reviews",       "routes/admin/reviews.tsx"),
     route("admin/budgets",       "routes/admin/budgets.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
+    route("admin/projects/new",  "routes/admin/projects.new.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),
     // Path is fixed: api/ghl/contractor.ts writes /admin/applications/:id into

@@ -68,7 +68,7 @@ export default function WizardShell({
   wide = false,
 }: WizardShellProps) {
   const measure = wide ? 'max-w-3xl' : 'max-w-lg';
-  const { step, totalSteps, direction, next, back } = useWizard();
+  const { step, totalSteps, direction, next, back, onBehalfOf } = useWizard();
   const t = useT();
   const isFirst = step === 1;
 
@@ -114,6 +114,17 @@ export default function WizardShell({
             )}
           </div>
         </header>
+
+        {/* Whose project this is, when it is not the person at the keyboard. Persistent
+            across every step so an admin never loses sight of which client they are
+            setting up — the one mistake here that is genuinely hard to undo. */}
+        {onBehalfOf && (
+          <div className="shrink-0 border-b border-amber-300 bg-amber-50 px-6 sm:px-10 py-2.5 text-xs text-amber-900">
+            <span className="font-semibold">{t('wizard.onBehalf.creatingFor')}</span>{' '}
+            <span className="font-mono">{onBehalfOf.label}</span>
+            <span className="text-amber-700"> · {t('wizard.onBehalf.tier')}</span>
+          </div>
+        )}
 
         {/* Step content */}
         <main className="flex-1 overflow-y-auto px-6 sm:px-10 py-8">

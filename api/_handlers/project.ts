@@ -46,20 +46,29 @@ export async function handler(req: any, res: any) {
     .eq('id', projectId)
     .maybeSingle();
 
-  // Same answer for "no such project" and "not yours", so this cannot be used to test
-  // whether an id exists.
-  if (!project || project.user_id !== user.id) {
+  // The owner, or an admin who created it for them (migration 082). Same answer for
+  // "no such project" and "not yours", so this cannot be used to test whether an id
+  // exists.
+  const { data: adminRow } = project && project.user_id !== user.id
+    ? await admin.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle()
+    : { data: null };
+  if (!project || (project.user_id !== user.id && !adminRow)) {
     res.status(404).json({ error: 'Project not found' });
     return;
   }
 
+  // The OWNER's profile, never the caller's. When an admin creates a project for a
+  // client, the CRM card that gets a project stage is the client's — reading the
+  // caller's profile here would file the client's build under the admin's contact.
   const { data: profile } = await admin
     .from('profiles')
     .select('full_name, email, country, preferred_lang')
-    .eq('id', user.id)
+    .eq('id', project.user_id)
     .maybeSingle();
 
-  const email = (profile?.email as string | null) ?? user.email ?? '';
+  // No session-email fallback: `user.email` is the caller's, and for an admin-created
+  // project that is the wrong person. A profile with no email simply is not forwarded.
+  const email = (profile?.email as string | null) ?? '';
 
   const result = await forwardToGhl('project_created', {
     email,
