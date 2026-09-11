@@ -605,7 +605,7 @@ export const en = {
       copied:       'Copied',
       onceWarning:  'This password is shown once and is not stored anywhere. If it is lost, do not create another account — they can use "Forgot password?" on the sign-in page, which works because the email is already confirmed.',
       nextTitle:    'What happens at their first sign-in',
-      next1:        'They sign in at groundwork with the username and temporary password above.',
+      next1:        'They sign in at Groundwork with the username and temporary password above.',
       next2:        'A six-digit code is sent to their email. Entering it proves the inbox is theirs.',
       next3:        'They are asked to choose a password of their own before seeing anything else. The temporary one stops working at that moment.',
       createProject:'Create their project',

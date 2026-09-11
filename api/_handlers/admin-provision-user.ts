@@ -82,7 +82,7 @@ export async function handler(req: any, res: any): Promise<void> {
   const email    = str(body.email, 254).toLowerCase();
   const fullName = str(body.fullName, 120);
   const phone    = str(body.phone, 40);
-  const country  = str(body.country, 2).toUpperCase();
+  const country  = str(body.country, 10).toUpperCase();   // validated below, never truncated into a different country
   const lang     = str(body.lang, 2) === 'fr' ? 'fr' : 'en';
 
   if (!EMAIL_RE.test(email)) { res.status(400).json({ error: 'invalid_email' }); return; }

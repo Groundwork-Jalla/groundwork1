@@ -43,8 +43,8 @@ export default function AdminNewUser() {
     e.preventDefault();
     setError(null); setFieldError(null);
 
-    if (fullName.trim().length < 2) { setFieldError('name'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setFieldError('email'); return; }
+    if (fullName.trim().length < 2) { setFieldError('name'); setError(t('admin.provision.errName')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setFieldError('email'); setError(t('admin.provision.errEmail')); return; }
 
     setSubmitting(true);
     try {
