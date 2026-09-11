@@ -630,16 +630,67 @@ export async function deleteCrmDuplicates(): Promise<unknown> {
  * Nobody already contacted receives anything new: their Conversations thread is written
  * with a record of the email they were sent at the time, and nothing is delivered.
  */
+export interface BackfillPage {
+  offset?: number;
+  nextOffset?: number | null;
+  processed?: number;
+  wouldSend?: number;
+  wouldBackfill?: number;
+  [k: string]: unknown;
+}
+
+/** One page of the backfill, starting at `offset`. The primitive; prefer `backfillCrmAll`. */
 export async function backfillCrm(
   kind: 'contractors' | 'users',
   send = false,
-): Promise<unknown> {
+  offset = 0,
+): Promise<BackfillPage> {
   const r = await fetch('/api/events?action=crm-backfill', {
     method: 'POST',
     headers: { Authorization: `Bearer ${await bearer()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind, send }),
+    body: JSON.stringify({ kind, send, offset }),
   });
   return r.json();
+}
+
+/**
+ * The whole list, one page after another, until the server says there is no next page.
+ *
+ * The handler pages at forty per run and reports `nextOffset`; before this existed the
+ * panel called it once from row zero and stopped, so a list of 650 was capped at forty
+ * with nothing on screen to say so. Every page's counts are summed, and `onPage` lets
+ * the panel show progress rather than a spinner for seventeen runs.
+ *
+ * Stops on the first page that fails rather than skipping it: a hole in the middle of a
+ * backfill is worse than a short one, because nothing would say where the hole is.
+ */
+export async function backfillCrmAll(
+  kind: 'contractors' | 'users',
+  send = false,
+  onPage?: (page: BackfillPage, pagesSoFar: number) => void,
+  // Injectable so the loop can be tested against a stub without mocking fetch or auth.
+  fetchPage: (kind: 'contractors' | 'users', send: boolean, offset: number) => Promise<BackfillPage> = backfillCrm,
+): Promise<BackfillPage & { pages: number }> {
+  const total: BackfillPage & { pages: number } =
+    { pages: 0, processed: 0, wouldSend: 0, wouldBackfill: 0 };
+  let offset: number | null = 0;
+
+  while (offset !== null) {
+    const page = await fetchPage(kind, send, offset);
+    if (typeof page !== 'object' || page === null || 'error' in page) {
+      return { ...total, ...page, stoppedAt: offset };
+    }
+    total.pages       += 1;
+    total.processed    = (total.processed ?? 0)     + (page.processed ?? 0);
+    total.wouldSend    = (total.wouldSend ?? 0)     + (page.wouldSend ?? 0);
+    total.wouldBackfill = (total.wouldBackfill ?? 0) + (page.wouldBackfill ?? 0);
+    onPage?.(page, total.pages);
+
+    // Belt and braces: a server that kept returning the same offset would loop forever.
+    const next = typeof page.nextOffset === 'number' ? page.nextOffset : null;
+    offset = next !== null && next > offset ? next : null;
+  }
+  return total;
 }
 
 export type CrmFieldsMode = 'check' | 'create' | 'repair';

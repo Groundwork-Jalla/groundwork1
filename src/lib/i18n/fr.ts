@@ -293,6 +293,7 @@ export const fr: Mirror<EnDict> = {
       title:   'Envoyer tout le monde vers le CRM',
       blurb:   "Crée ou met à jour chaque contact dans Go High Level avec ses champs, ses tags et sa carte de pipeline, et place sa correspondance sur un fil Conversations auquel vous pouvez répondre. Les personnes déjà contactées voient leur fil complété — elles ne reçoivent aucun nouvel e-mail.",
       preview: 'Aperçu',
+      pageN:   'Page {n}\u2026',
       send:    'Envoyer à {n} et compléter le reste',
       backfillOnly: 'Compléter {n} fils',
       counts:  '{send} recevraient un nouvel e-mail ; {backfill} verraient seulement leur fil complété.',
@@ -2002,6 +2003,7 @@ export const fr: Mirror<EnDict> = {
       // Section 4 — commun
       errorEmail:        "Cette adresse semble incomplète — vérifiez ce qui suit le @, par ex. nom@gmail.com",
       errorProjectTypes: 'Sélectionnez au moins un type de projet sur lequel vous avez travaillé.',
+      errorRoleOther:    "Pr\u00e9cisez votre m\u00e9tier, pour que votre profil indique votre travail r\u00e9el.",
       errorDocuments:    "Joignez les documents correspondant à votre rôle — une candidature ne peut pas être examinée sans eux.",
       errorUploadFailed: 'Vos documents n’ont pas pu être téléversés. Vérifiez votre connexion et réessayez.',
       errorProjectIncomplete: 'Le projet {n} n’a pas de nom ou de lieu, il n’est donc pas encore comptabilisé. Complétez-le ou videz-le.',

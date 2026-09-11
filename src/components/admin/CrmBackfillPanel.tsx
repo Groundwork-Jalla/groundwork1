@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Loader2, Send, AlertTriangle } from 'lucide-react';
-import { backfillCrm } from '@/lib/supabase/admin-applications';
+import { backfillCrmAll } from '@/lib/supabase/admin-applications';
 import { useT } from '@/lib/i18n';
 
 /**
@@ -21,14 +21,15 @@ export function CrmBackfillPanel({ kind }: { kind: 'contractors' | 'users' }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [counts, setCounts] = useState<{ send: number; backfill: number } | null>(null);
+  const [pages, setPages] = useState(0);
 
   async function run(send: boolean) {
     if (send && !window.confirm(t('admin.crmSync.confirm', { n: counts?.send ?? 0 }))) return;
-    setBusy(true);
+    setBusy(true); setPages(0);
     try {
-      const r = await backfillCrm(kind, send) as {
-        wouldSend?: number; wouldBackfill?: number; processed?: number;
-      };
+      // Every page, not the first one. The server pages at forty and says where the next
+      // page starts; this follows it to the end and sums the counts.
+      const r = await backfillCrmAll(kind, send, (_page, n) => setPages(n));
       setResult(JSON.stringify(r, null, 2));
       setCounts(send ? null : {
         send: r.wouldSend ?? 0,
@@ -54,7 +55,7 @@ export function CrmBackfillPanel({ kind }: { kind: 'contractors' | 'users' }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-          {t('admin.crmSync.preview')}
+          {busy && pages > 0 ? t('admin.crmSync.pageN', { n: pages }) : t('admin.crmSync.preview')}
         </button>
 
         {/* Only after a preview, and only when there is something to send. */}

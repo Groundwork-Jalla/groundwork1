@@ -17,6 +17,7 @@ import { contractorTags } from './_pipeline.js';
 
 import type { ContractorApplicationInput } from '../../src/lib/contractor/application-types.js';
 import { normalisePhone } from './_phone.js';
+import { translator, type TKey } from '../../src/lib/i18n/translate.js';
 
 /** How many repeatable rows are flattened. Beyond this, the deep link is the answer. */
 const MAX_PROJECTS = 5;
@@ -36,6 +37,20 @@ export interface ContractorLead extends ContractorApplicationInput {
 }
 
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+
+/**
+ * One line, single-spaced, or null.
+ *
+ * For anything that can be merged into a WhatsApp template. Meta rejects a variable that
+ * contains a newline, a tab, or four or more consecutive spaces — the send fails, it does
+ * not degrade — and two of these fields are free text somebody typed into a textarea.
+ * A contractor who pressed Enter between two regions would otherwise never receive the
+ * message that was about them, with an error that names none of this.
+ */
+const line = (v: unknown): string | null => {
+  const s = str(v);
+  return s ? s.replace(/\s+/g, ' ').trim() || null : null;
+};
 const yn  = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : null);
 
 /** GHL custom fields are flat text. An array or object arrives as unusable JSON. */
@@ -72,6 +87,83 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
 
   const tags = contractorTags(lead.status, lead.lang);
 
+  // ── Labels, not keys ──────────────────────────────────────────────────────────────
+  //
+  // The form stores `y10`, `two_three`, `other`. Those are the right thing to STORE —
+  // they are what filtering and matching key on — and the wrong thing to send anywhere a
+  // person reads. A contact synced on 10 Sep carried `role: other` and
+  // `years_experience: y10`, and a WhatsApp template merging `{{contact.role}}` would
+  // have sent "Trade applied for: other" to the contractor it was about.
+  //
+  // Labels come from the dictionary rather than a lookup table written here. There is
+  // already one place these strings live, and `contractor-application-html.ts` resolves
+  // them exactly this way for the application email — a second copy would be wrong the
+  // first time a trade is added, and would only be wrong in the CRM.
+  //
+  // In the APPLICANT'S language, matching the email builder and the EN/FR split of the
+  // WhatsApp templates: a French contractor reading "Trade applied for: Maçon" is the
+  // point of translating at all.
+  const t = translator(lead.lang === 'fr' ? 'fr' : 'en');
+
+  /**
+   * One option's label, or the raw value if the dictionary has no entry.
+   *
+   * `translate()` returns the key itself when a lookup misses, so without the guard an
+   * enum value added to the form but not to the dictionary would put
+   * `contractorApply.form.role.foo` into the CRM — worse than the key it replaced.
+   */
+  const optionLabel = (group: string, value: unknown): string | null => {
+    const v = str(value);
+    if (!v) return null;
+    const key = `contractorApply.form.${group}.${v}`;
+    const hit = t(key as TKey);
+    return hit === key ? v : hit;
+  };
+
+  const optionLabels = (group: string, values: unknown): string | null => {
+    if (!Array.isArray(values) || !values.length) return null;
+    const out = values.map(v => optionLabel(group, v)).filter(Boolean);
+    return out.length ? out.join(', ') : null;
+  };
+
+  /**
+   * Capitalise a place name the way French does it.
+   *
+   * `l'ouest` is the Ouest region behind an elided article. Upcasing the first character
+   * gives `L'ouest`, which is wrong in the language it is written in — the article stays
+   * lowercase and the noun takes the capital: `l'Ouest`. This is the first thing a
+   * Cameroonian contractor reads about themselves, so it is worth getting right.
+   *
+   * Handles `l'`, `d'` and the curly apostrophe. Anything else is upcased on its first
+   * letter, as before.
+   */
+  const capitalise = (x: string): string => {
+    const m = x.match(/^([ld])(['\u2019])\s*(\S)(.*)$/i);
+    if (m) return `${m[1].toLowerCase()}'${m[3].toUpperCase()}${m[4]}`;
+    return x.charAt(0).toUpperCase() + x.slice(1);
+  };
+
+  /**
+   * `regions` is a free-text textarea, not a multi-select — so there is no option list to
+   * map it against, and the messy value observed in GHL
+   * (`Kribi,buea.limbe, l'ouest, ebolowa`) is what the applicant actually typed.
+   *
+   * All this does is separate, single-space and capitalise. It deliberately drops nothing
+   * and invents nothing: turning `l'Ouest` into `Ouest` needs a list of region names, and
+   * guessing at one would silently rewrite what somebody told us. Making this a real
+   * multi-select is the actual fix and is a form change.
+   */
+  const tidyRegions = (v: unknown): string | null => {
+    const raw = str(v);
+    if (!raw) return null;
+    const parts = raw
+      .split(/[,;/\n]+|\.(?=\s*\S)/)
+      .map(x => line(x))
+      .filter((x): x is string => !!x)
+      .map(capitalise);
+    return parts.length ? parts.join(', ') : null;
+  };
+
   // GHL stores first and last name separately, so send both alongside the full string.
   // The form asks for one "Full name" field on purpose — splitting on the first space is
   // a heuristic, not a truth. `full_name` stays authoritative and is what to display.
@@ -98,14 +190,24 @@ export function buildContractorPayload(lead: ContractorLead): Record<string, unk
 
     // ── Section 1–3: who they are and how they work ──
     business_name:       str(lead.businessName),
-    role:                str(lead.role),
-    role_other:          str(lead.roleOther),
-    years_experience:    str(lead.yearsExperience),
-    operates_as:         str(lead.operatesAs),
+    // `other` means the trade is in the free-text field beside it. Falling through to
+    // the literal string "other" is what put it in front of a contractor; falling
+    // through to null is no better, because GHL has no default for an empty merge field
+    // and the send fails outright.
+    role: lead.role === 'other'
+      ? (line(lead.roleOther) ?? 'Other')
+      : optionLabel('role', lead.role),
+    // Kept as typed, and kept as its own field: `role` now carries it for display, but
+    // the raw answer is still the record of what they wrote. Single-lined for the same
+    // reason as `role` — it is also a template variable.
+    role_other:          line(lead.roleOther),
+    years_experience:    optionLabel('years', lead.yearsExperience),
+    operates_as:         optionLabel('operates', lead.operatesAs),
+    // Free-text numeric on the form — no options, nothing to map.
     team_size:           str(lead.teamSize),
-    project_types:       flat(lead.projectTypes),
-    concurrent_projects: str(lead.concurrentProjects),
-    regions:             str(lead.regions),
+    project_types:       optionLabels('projectType', lead.projectTypes),
+    concurrent_projects: optionLabel('concurrent', lead.concurrentProjects),
+    regions:             tidyRegions(lead.regions),
     portfolio_url:       str(lead.portfolioUrl),
     video_url:           str(lead.videoUrl),
 

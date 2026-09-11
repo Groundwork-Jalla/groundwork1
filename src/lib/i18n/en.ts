@@ -284,6 +284,8 @@ export const en = {
       title:   'Send everyone to the CRM',
       blurb:   'Creates or updates each contact in Go High Level with their fields, tags and pipeline card, and puts their correspondence on a Conversations thread you can reply from. Anyone already contacted has their thread backfilled — they are never emailed again.',
       preview: 'Preview',
+      // Shown in place of the button label while the panel pages through the list.
+      pageN:   'Page {n}…',
       send:    'Send to {n} and backfill the rest',
       backfillOnly: 'Backfill {n} threads',
       counts:  '{send} would receive a new email; {backfill} would only have their thread backfilled.',
@@ -2040,6 +2042,7 @@ export const en = {
       // Section 4 — shared
       errorEmail:        'That email does not look complete — check the part after the @, e.g. name@gmail.com',
       errorProjectTypes: 'Select at least one type of project you have worked on.',
+      errorRoleOther:    'Tell us which trade, so we can put your actual work on your profile.',
       errorDocuments:    'Attach the documents for your role — an application cannot be reviewed without them.',
       errorUploadFailed: 'Your documents could not be uploaded. Check your connection and try again.',
       errorProjectIncomplete: 'Project {n} is missing its name or location, so it is not counted yet. Complete it or clear it.',

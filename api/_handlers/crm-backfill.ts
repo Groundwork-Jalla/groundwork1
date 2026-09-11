@@ -3,6 +3,7 @@ import { logEmailToCrm } from '../ghl/_email-log.js';
 import { syncContractorToApi } from '../ghl/_contractor-sync.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
+import { nextOffset, pageWindow } from '../../src/lib/contractor/paging.js';
 
 /**
  * Put everyone already in Supabase into GoHighLevel, with their correspondence.
@@ -34,7 +35,7 @@ import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
  * mail goes to thirty-three people at once.
  */
 
-const CHUNK_NOTE = 'Processed oldest first; re-run to continue if it stops early.';
+const CHUNK_NOTE = 'Processed oldest first. Pass `offset` to continue: the next run starts at offset + the number processed here.';
 
 /** Vercel's function timeout is the real limit here, not GHL's. */
 const MAX_PER_RUN = 40;
@@ -82,6 +83,22 @@ export async function handler(req: any, res: any) {
 
   const send = req.body?.send === true;
   const kind = req.body?.kind === 'users' ? 'users' : 'contractors';
+
+  /**
+   * Where in the list to start.
+   *
+   * Without this the run took the oldest MAX_PER_RUN rows and nothing else — the header
+   * said "re-run to continue if it stops early", but there was nothing to continue WITH:
+   * no cursor, no offset, and no filter, so every re-run processed the same first forty
+   * people and rows 41 onward were unreachable. Fine while the list was 29 contractors;
+   * not fine as a way to re-sync a list that has outgrown one run.
+   *
+   * An offset rather than a "not yet synced" filter, because a backfill exists precisely
+   * to rewrite contacts that ARE already synced — filtering on that would skip everyone
+   * who needs it.
+   */
+  const { from, to } = pageWindow(Number(req.body?.offset), MAX_PER_RUN);
+  const offset = from;
   // Via the shared helper, not a literal: the apex 308-redirects to www and a
   // hardcoded origin has been wrong twice already. See src/lib/site-url.ts.
   const { siteUrl } = await import('../../src/lib/site-url.js');
@@ -96,7 +113,7 @@ export async function handler(req: any, res: any) {
       .from('contractor_applications')
       .select('*')
       .order('created_at', { ascending: true })
-      .limit(MAX_PER_RUN);
+      .range(from, to);
 
     if (error) {
       res.status(200).json({ ok: false, step: 'read', detail: error.message });
@@ -179,7 +196,7 @@ export async function handler(req: any, res: any) {
       .select('id, email, full_name, preferred_lang, country, phone, subscription_tier, subscription_status, crm_welcomed_at')
       .not('email', 'is', null)
       .order('created_at', { ascending: true })
-      .limit(MAX_PER_RUN);
+      .range(from, to);
 
     if (error) {
       res.status(200).json({ ok: false, step: 'read', detail: error.message });
@@ -304,10 +321,16 @@ export async function handler(req: any, res: any) {
     }
   }
 
+  // Enough to page without counting anything by hand: `nextOffset` is where the next run
+  // starts, and it is null once a run comes back short of a full page.
+  const seen = send ? done.length : planned.length;
+
   res.status(200).json({
     ok: done.every(d => d.ok),
     kind,
     dryRun: !send,
+    offset,
+    nextOffset: nextOffset(offset, seen, MAX_PER_RUN),
     note: CHUNK_NOTE,
     ...(send
       ? { processed: done.length, done }

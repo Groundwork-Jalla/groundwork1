@@ -1,0 +1,841 @@
+<title>Fifteen Projects Readiness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:      #FAFAF9;
+    --surface:     #FFFFFF;
+    --ink:         #1A1D1F;
+    --ink-soft:    #55595C;
+    --ink-faint:   #82878B;
+    --rule:        #DCDAD5;
+    --rule-soft:   #EAE8E3;
+    --accent:      #1F4E5F;
+    --accent-soft: #E8F0F2;
+
+    --ok:      #2F6B4F;  --ok-bg:      #E9F2ED;
+    --partial: #8A6114;  --partial-bg: #F7EFDF;
+    --manual:  #4E5866;  --manual-bg:  #EAECEF;
+    --gap:     #A33A2E;  --gap-bg:     #F8EAE7;
+
+    --measure: 66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #131517;
+      --surface:     #1A1D20;
+      --ink:         #ECEAE5;
+      --ink-soft:    #AAAFB4;
+      --ink-faint:   #7E858B;
+      --rule:        #32373B;
+      --rule-soft:   #262A2E;
+      --accent:      #7FBBCC;
+      --accent-soft: #1B2F36;
+
+      --ok:      #7BC49B;  --ok-bg:      #17281F;
+      --partial: #D6A54A;  --partial-bg: #2B2318;
+      --manual:  #9AA5B1;  --manual-bg:  #21252A;
+      --gap:     #E58472;  --gap-bg:     #2E1D1A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #131517;
+    --surface:     #1A1D20;
+    --ink:         #ECEAE5;
+    --ink-soft:    #AAAFB4;
+    --ink-faint:   #7E858B;
+    --rule:        #32373B;
+    --rule-soft:   #262A2E;
+    --accent:      #7FBBCC;
+    --accent-soft: #1B2F36;
+
+    --ok:      #7BC49B;  --ok-bg:      #17281F;
+    --partial: #D6A54A;  --partial-bg: #2B2318;
+    --manual:  #9AA5B1;  --manual-bg:  #21252A;
+    --gap:     #E58472;  --gap-bg:     #2E1D1A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 28px 96px; }
+  .col  { max-width: var(--measure); }
+
+  h1, h2, h3, .eyebrow, th, .chip, .num {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+  }
+  h1 { font-size: clamp(30px, 4vw, 42px); font-weight: 700; line-height: 1.1;
+       letter-spacing: -0.018em; margin: 0 0 14px; text-wrap: balance; }
+  h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.008em; margin: 0; text-wrap: balance; }
+  h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  p  { margin: 0 0 14px; }
+  a  { color: var(--accent); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+  code { background: var(--rule-soft); padding: 1px 5px; border-radius: 3px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  /* ── Masthead ── */
+  header.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 26px; margin-bottom: 34px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px 30px; margin-top: 18px; }
+  .meta div { display: flex; flex-direction: column; gap: 2px; }
+  .meta dt { font-size: 10.5px; font-weight: 600; letter-spacing: 0.11em;
+             text-transform: uppercase; color: var(--ink-faint); font-family: Archivo, sans-serif; }
+  .meta dd { margin: 0; font-size: 14px; }
+
+  /* ── Sections numbered to Philip's own asks ── */
+  section { margin-top: 52px; }
+  .shead { display: flex; align-items: baseline; gap: 14px;
+           border-bottom: 1px solid var(--rule); padding-bottom: 9px; margin-bottom: 22px; }
+  .num { font-size: 12px; font-weight: 700; color: var(--accent);
+         font-variant-numeric: tabular-nums; padding-top: 3px; }
+
+  /* ── Headline findings ── */
+  .findings { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .finding { border-left: 3px solid var(--gap); background: var(--surface);
+             padding: 15px 17px; border-top: 1px solid var(--rule-soft);
+             border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); }
+  .finding p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .finding h3 { color: var(--ink); }
+
+  /* ── Capability matrix ── */
+  .scroller { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 780px; font-size: 14px; }
+  th { text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+       text-transform: uppercase; color: var(--ink-faint);
+       padding: 11px 14px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.step { font-weight: 600; white-space: nowrap; }
+  td.note { color: var(--ink-soft); font-size: 13.5px; line-height: 1.5; }
+
+  .chip { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+          text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap; }
+  .c-ok      { color: var(--ok);      background: var(--ok-bg); }
+  .c-partial { color: var(--partial); background: var(--partial-bg); }
+  .c-manual  { color: var(--manual);  background: var(--manual-bg); }
+  .c-gap     { color: var(--gap);     background: var(--gap-bg); }
+  .c-new     { color: var(--accent);  background: var(--accent-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; font-size: 13px;
+            color: var(--ink-soft); align-items: center; }
+
+  /* ── Reference blocks ── */
+  .ref { display: grid; gap: 0; border: 1px solid var(--rule); background: var(--surface); }
+  .ref > div { display: grid; grid-template-columns: 190px 1fr; gap: 18px;
+               padding: 12px 16px; border-bottom: 1px solid var(--rule-soft); }
+  .ref > div:last-child { border-bottom: 0; }
+  .ref dt { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+            color: var(--ink-faint); font-family: Archivo, sans-serif; }
+  .ref dd { margin: 0; font-size: 14px; }
+  @media (max-width: 620px) { .ref > div { grid-template-columns: 1fr; gap: 4px; } }
+
+  /* ── Numbered lists that carry meaning: risks (R1…) and setup steps (1…) ── */
+  ol.risks { list-style: none; counter-reset: r; padding: 0; margin: 0;
+             display: grid; gap: 2px; }
+  ol.risks li { counter-increment: r; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 15px 17px 15px 52px; position: relative; }
+  ol.risks li::before {
+    content: "R" counter(r); position: absolute; left: 16px; top: 15px;
+    font-family: Archivo, sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  ol.risks p { margin: 4px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+  ol.steps { list-style: none; counter-reset: st; padding: 0; margin: 0;
+             display: grid; gap: 2px; }
+  ol.steps li { counter-increment: st; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 13px 17px 13px 46px;
+                position: relative; font-size: 14px; color: var(--ink-soft); }
+  ol.steps li::before {
+    content: counter(st); position: absolute; left: 18px; top: 13px;
+    font-family: Archivo, sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  ol.steps strong { color: var(--ink); }
+
+  /* ── The walkthrough: what happens, and who does it ── */
+  .flow { display: grid; gap: 2px; }
+  .flow > div { display: grid; grid-template-columns: 30px 150px 1fr;
+                gap: 16px; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 13px 16px; }
+  .flow .n     { font-family: Archivo, sans-serif; font-size: 12px; font-weight: 700;
+                 color: var(--accent); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .flow .who   { font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+                 text-transform: uppercase; color: var(--ink-faint);
+                 font-family: Archivo, sans-serif; padding-top: 2px; }
+  .flow .what  { font-size: 14px; color: var(--ink-soft); }
+  .flow .what strong { color: var(--ink); }
+  @media (max-width: 700px) {
+    .flow > div { grid-template-columns: 24px 1fr; gap: 8px 12px; }
+    .flow .who { grid-column: 2; }
+    .flow .what { grid-column: 2; }
+  }
+
+  /* ── Three-lane split ── */
+  .lanes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .lane { background: var(--surface); border: 1px solid var(--rule); padding: 17px 18px; }
+  .lane h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .lane ul { margin: 0; padding-left: 17px; font-size: 14px; color: var(--ink-soft); }
+  .lane li { margin-bottom: 6px; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+             padding: 15px 18px; margin: 22px 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
+           font-size: 13px; color: var(--ink-faint); }
+
+  /* ── Print / PDF ──────────────────────────────────────────────────────────────────
+     Philip reads this as a file, so the paged version is a real output rather than a
+     screenshot of a web page. Two things matter: nothing lands half on one page and
+     half on the next, and the capability table — the point of the document — is not
+     the thing that gets split. */
+  @page { size: A4; margin: 14mm 13mm 16mm; }
+
+  @media print {
+    .wrap { max-width: none; padding: 0; }
+    body  { font-size: 10.5pt; line-height: 1.5; }
+
+    h1 { font-size: 22pt; }
+    h2 { font-size: 13pt; }
+    h3 { font-size: 10.5pt; }
+    .meta dd, .ref dd, td, .lane ul, ol.risks p, ol.steps li { font-size: 9.5pt; }
+    td.note { font-size: 9pt; }
+
+    /* A section heading stranded at the foot of a page is the commonest paged-layout
+       fault, and the easiest to prevent. */
+    section        { margin-top: 26px; break-inside: auto; }
+    .shead         { break-after: avoid; }
+    h1, h2, h3     { break-after: avoid; }
+
+    /* These are single objects. Splitting one across a fold makes it unreadable. */
+    .finding, .lane, .callout, ol.risks li, ol.steps li, .ref > div { break-inside: avoid; }
+    tr, thead      { break-inside: avoid; }
+    thead          { display: table-header-group; }
+
+    /* No horizontal scroller on paper: let the table use the full measure instead. */
+    .scroller { overflow: visible; }
+    table     { min-width: 0; }
+
+    /* Multi-column grids stack on paper. A two-up grid that breaks across a fold leaves
+       one card alone beside an empty half-page; stacked, they simply flow. */
+    .findings, .lanes { grid-template-columns: 1fr; }
+
+    a { text-decoration: none; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Groundwork · Platform readiness for the 15-project KR</p>
+    <h1>Can fifteen projects run end&#8209;to&#8209;end on Groundwork today?</h1>
+    <p class="col" style="font-size:17px;color:var(--ink-soft)">
+      Prepared against the code, not from memory. Every claim below is checked in the
+      repository or against the live database, and the ones that aren't are marked as
+      unknown rather than guessed.
+    </p>
+    <p class="col" style="margin-bottom:0;color:var(--ink-soft)">
+      <strong>How to read it.</strong> Section&nbsp;A walks through what actually happens
+      when a project runs today, and who does each part — that is the live walkthrough,
+      written down. Sections&nbsp;01&ndash;06 answer the six things you asked for, in
+      order. Where a claim rests on something specific in the system, the exact name is
+      given in <code>this typeface</code> so it can be checked rather than taken on trust;
+      nothing depends on reading it.
+    </p>
+    <dl class="meta">
+      <div><dt>Prepared by</dt><dd>Favour</dd></div>
+      <div><dt>For</dt><dd>Deep-work session · operating architecture</dd></div>
+      <div><dt>Basis</dt><dd>Repository audit + live API probe</dd></div>
+      <div><dt>Re-checked</dt><dd>11 September, before the session</dd></div>
+      <div><dt>Short answer</dt><dd>Eight of ten steps yes; payments no</dd></div>
+    </dl>
+  </header>
+
+  <section style="margin-top:0">
+    <div class="shead"><h2>Three findings that should shape the session</h2></div>
+    <div class="findings">
+      <div class="finding">
+        <h3>No money moves through Groundwork</h3>
+        <p>A client cannot pay a milestone in the product, and a contractor cannot be paid
+        from it. The only money Groundwork handles is the monthly subscription, through
+        Stripe. Project funds were always meant to run on Switchr, in XAF — that
+        integration has not been built.</p>
+        <p style="margin-top:8px">What exists is a button that marks a milestone
+        &ldquo;paid&rdquo; after money moved somewhere else, by hand.
+        <span class="mono" style="color:var(--ink-faint)">MILESTONE_PAYMENTS_ARE_PREVIEW = true</span></p>
+      </div>
+      <div class="finding">
+        <h3>There is no verifier role in practice</h3>
+        <p>&ldquo;Verifier&rdquo; is a word the database will accept and nothing more. No
+        permission is attached to it, no screen reads it, and no one can be given it in a
+        way that changes what they can do.</p>
+        <p style="margin-top:8px">Everyone who approves a milestone today does so as an
+        <em>administrator</em>, which means seeing and being able to change every project
+        on the platform.
+        <span class="mono" style="color:var(--ink-faint)">verifier</span> appears exactly
+        once in the whole system, inside a validation rule.</p>
+      </div>
+      <div class="finding">
+        <h3>The verification output has never run</h3>
+        <p>When a milestone is approved, Groundwork produces a certificate with a public
+        link anyone can check. That whole path is built and passes its tests — and it has
+        never once run on a real project.</p>
+        <p style="margin-top:8px">Checked against the live database this morning:
+        <strong>zero certificates issued, ever</strong>. The first real approval will also
+        be its first live test.</p>
+      </div>
+    </div>
+    <div class="callout col">
+      <p><strong>Philip has now answered the question this hung on.</strong> Fully
+      operational <em>does</em> include money moving through Groundwork, and Switchr is a
+      critical part of it. That settles it: the platform can carry project setup,
+      milestones, evidence, verification and updates for fifteen projects, and it cannot
+      carry the money. <strong>Switchr is the critical path to Favour's KR</strong>, and
+      no amount of manual process substitutes for it — a payment recorded by hand is a
+      record that money moved somewhere else.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>What moved since 9 September</h2></div>
+    <p class="col">Re-checked against the live database this morning. None of the three
+      findings above changed — they are the same three, verified again rather than carried
+      forward on trust.</p>
+    <div class="ref">
+      <div>
+        <dt>Certificates</dt>
+        <dd>Until this week <strong>any signed-in user could mint one</strong>, for any
+          project — the insert policy was <code>WITH CHECK (true)</code> on a table whose
+          <code>/verify/:id</code> page is public. Issuing is now admin-only, a certificate
+          can be withdrawn, and a withdrawn one answers &ldquo;revoked&rdquo; rather than
+          404. Still zero issued in production.</dd>
+      </div>
+      <div>
+        <dt>Second factor</dt>
+        <dd>Sign-in now accepts a code by <strong>email</strong> as well as an
+          authenticator app. It matters here: onboarding fifteen projects' worth of
+          verifiers and contractors no longer depends on each of them installing an
+          authenticator first.</dd>
+      </div>
+      <div>
+        <dt>Contractor records</dt>
+        <dd>The CRM was storing form keys — a contact read <code>role: other</code> and
+          <code>years_experience: y10</code>. It now carries what the person actually
+          wrote, in their own language. That is the communication bridge, so it bears on
+          the comms SOP.</dd>
+      </div>
+      <div>
+        <dt>Unchanged</dt>
+        <dd>Payments, the verifier role and weekly reporting. All three exactly as
+          described below.</dd>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">A</span>
+      <h2>How a project actually flows today</h2>
+    </div>
+    <p class="col">This is the walkthrough, written down, so the session can start from
+      what the system does rather than from a description of it. The middle column is the
+      part that matters most for the on-ground SOP: <strong>who is able to perform each
+      step</strong> is decided by the software, and it is not always who you would
+      expect.</p>
+    <div class="flow">
+      <div><span class="n">1</span><span class="who">Homeowner</span><span class="what">
+        <strong>Creates the project.</strong> An eleven-step form: country and city, what
+        they are building, how many storeys, the rooms on each storey, roof, finish. From
+        those answers Groundwork prices the build against a Cameroonian rate book.
+      </span></div>
+      <div><span class="n">2</span><span class="who">Homeowner</span><span class="what">
+        <strong>Picks a plan and confirms the budget.</strong> Self&nbsp;Verify,
+        Jalla&nbsp;Verify or Jalla&nbsp;Management. Confirming is what creates the ten
+        stages and their milestone amounts — before this, a project has an estimate but no
+        schedule of work.
+      </span></div>
+      <div><span class="n">3</span><span class="who">Homeowner</span><span class="what">
+        <strong>Invites a contractor by email.</strong> The contractor follows a link,
+        creates an account, and from then on can see that one project and nothing else.
+      </span></div>
+      <div><span class="n">4</span><span class="who">Contractor</span><span class="what">
+        <strong>Uploads evidence</strong> against a substage as work is done — photographs,
+        documents, whatever they have. Files are private and shown through links that
+        expire after an hour.
+      </span></div>
+      <div><span class="n">5</span><span class="who" style="color:var(--gap)">Homeowner<br>only</span><span class="what">
+        <strong>Marks each substage complete.</strong> A contractor cannot do this — they
+        have read-only access to the milestone itself and can add evidence to it, nothing
+        more. <strong>On a Jalla-managed project this is the step with no obvious
+        owner</strong>: the client is paying us to run the build, but the software still
+        expects them to tick every box.
+      </span></div>
+      <div><span class="n">6</span><span class="who">Homeowner</span><span class="what">
+        <strong>Requests verification</strong> once every substage in the stage is done.
+        On Self&nbsp;Verify this completes the stage outright. On Jalla&nbsp;Verify it puts
+        the stage into a review queue instead.
+      </span></div>
+      <div><span class="n">7</span><span class="who" style="color:var(--gap)">Admin<br>only</span><span class="what">
+        <strong>Approves or sends back.</strong> One shared queue lists every stage awaiting
+        review across all projects — the closest thing we have to a weekly operating
+        surface. Only an administrator can act on it, and an administrator sees every
+        project on the platform.
+      </span></div>
+      <div><span class="n">8</span><span class="who">System</span><span class="what">
+        <strong>Issues the certificate.</strong> Approval generates a PDF and a public link
+        anyone can check. It also notifies the client, in their own language, and writes
+        the event to an audit trail.
+      </span></div>
+      <div><span class="n">9</span><span class="who" style="color:var(--gap)">Nobody —<br>outside</span><span class="what">
+        <strong>Money changes hands somewhere else.</strong> Bank transfer, mobile money,
+        cash. Groundwork is not involved and has no record of it beyond what someone types
+        in afterwards.
+      </span></div>
+      <div><span class="n">10</span><span class="who">Homeowner</span><span class="what">
+        <strong>Records the payment</strong> against the stage, which flips it to
+        &ldquo;paid&rdquo;. This is not bookkeeping — the next stage cannot be approved
+        until the flag is set, so a note typed by hand is what unblocks real work.
+      </span></div>
+    </div>
+    <div class="callout col" style="margin-top:22px">
+      <p><strong>Two things in that sequence are worth pausing on.</strong> Step&nbsp;5
+      means a Jalla-managed build still needs the client to advance every milestone, which
+      is the opposite of what &ldquo;managed&rdquo; implies. And steps&nbsp;9 and&nbsp;10
+      together mean the payment gate — the thing standing between a contractor and the next
+      stage — is a checkbox rather than a payment.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">B</span>
+      <h2>The ten stages every project gets</h2>
+    </div>
+    <p class="col">Created automatically when the budget is confirmed. These are the units
+      the whole operation runs on — a milestone is a stage, evidence attaches to a
+      substage, and the payment schedule is these percentages. The on-ground SOP should
+      use these names, because the platform already does.</p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Stage</th><th>Share of build cost</th><th>Substages</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="step">1</td><td>Land Secured</td><td class="mono">—</td><td class="mono">5</td>
+            <td class="note">Not charged. Land is outside the budget entirely.</td></tr>
+          <tr><td class="step">2</td><td>Design Completed</td><td class="mono">—</td><td class="mono">5</td>
+            <td class="note">Not a percentage — billed as a flat design fee per m².</td></tr>
+          <tr><td class="step">3</td><td>Site Preparation</td><td class="mono">2%</td><td class="mono">5</td>
+            <td class="note">Power, water, clearing, site store, first materials.</td></tr>
+          <tr><td class="step">4</td><td>Foundation</td><td class="mono">8%</td><td class="mono">7</td>
+            <td class="note">Excavation through floor slab.</td></tr>
+          <tr><td class="step">5</td><td>Structure &amp; Walls</td><td class="mono">30%</td><td class="mono">8</td>
+            <td class="note"><strong>Joint largest.</strong> Pillars, beams, slabs, blockwork, plastering.</td></tr>
+          <tr><td class="step">6</td><td>Roofing</td><td class="mono">8%</td><td class="mono">4</td>
+            <td class="note">Fewest substages of any charged stage.</td></tr>
+          <tr><td class="step">7</td><td>Electrical &amp; Plumbing</td><td class="mono">17%</td><td class="mono">10</td>
+            <td class="note"><strong>Most substages.</strong> Most inspection points per franc.</td></tr>
+          <tr><td class="step">8</td><td>Finishing</td><td class="mono">30%</td><td class="mono">8</td>
+            <td class="note"><strong>Joint largest.</strong> Also the most subjective to verify.</td></tr>
+          <tr><td class="step">9</td><td>Exterior Work</td><td class="mono">—</td><td class="mono">5</td>
+            <td class="note">Not charged. The budget covers the main building only.</td></tr>
+          <tr><td class="step">10</td><td>Final Handover</td><td class="mono">5%</td><td class="mono">3</td>
+            <td class="note">Snagging and handover.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="col" style="margin-top:14px">Seven stages carry a charge and they sum to
+      exactly 100%. Three carry none. <strong>Sixty substages in total</strong> — that is
+      sixty separate points at which evidence can be attached and a decision recorded, per
+      project.</p>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">C</span>
+      <h2>What fifteen projects means, in numbers</h2>
+    </div>
+    <p class="col">Useful for the capacity model, and for deciding what has to be batched.
+      These follow directly from the structure above.</p>
+    <div class="ref">
+      <div><dt>Substages in play</dt>
+        <dd><strong>900</strong> across fifteen projects — sixty each. Not simultaneous,
+          but each one is a place where evidence is expected and somebody has to say
+          whether it is enough.</dd></div>
+      <div><dt>Approvals to run</dt>
+        <dd><strong>105 stage approvals</strong> over the life of the fifteen builds —
+          seven charged stages each, plus three unpaid ones that still need advancing.
+          Every one of them currently requires an administrator.</dd></div>
+      <div><dt>Payment gates</dt>
+        <dd><strong>105 manual &ldquo;record payment&rdquo; actions</strong>, each of
+          which unblocks the next stage. Each is a place where work can be approved that
+          was never paid for, and nothing in the system can contradict it.</dd></div>
+      <div><dt>Weekly load</dt>
+        <dd>One shared review queue, no filtering by verifier, no per-project timers and
+          no digest. Fifteen projects arrive in one undifferentiated list.</dd></div>
+      <div><dt>Certificates</dt>
+        <dd><strong>105 expected</strong> over the programme. <strong>Zero issued to
+          date.</strong></dd></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">01</span>
+      <h2>Capability assessment, by workflow step</h2>
+    </div>
+    <div class="legend">
+      <span class="chip c-ok">Functional</span>
+      <span class="chip c-partial">Partial</span>
+      <span class="chip c-manual">Manual</span>
+      <span class="chip c-gap">Not available</span>
+      <span style="color:var(--ink-faint)">— assessed for fifteen simultaneous projects, not one</span>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Step</th><th>Status</th><th>What it does today, and the blocker</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="step">Project setup</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">Eleven-step wizard, country → rooms → roof → budget → plan.
+              Floor detail now walks storey by storey, so an upper floor can no longer be
+              skipped. Phone, home address and the new-vs-ongoing branch are not yet
+              collected.</td>
+          </tr>
+          <tr>
+            <td class="step">Team &amp; permissions</td>
+            <td><span class="chip c-partial">Partial</span></td>
+            <td class="note">Owner invites a contractor by email; RLS scopes them to that
+              project. Two roles only in practice — owner and contractor.
+              <strong>No verifier role</strong>, and no way to attach an inspector who is
+              neither. Philip's answer — a verifier sees only the project they are
+              verifying — makes this a new role with its own policies, not a setting.</td>
+          </tr>
+          <tr>
+            <td class="step">Budget &amp; milestone setup</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">Quantity take-off against the Cameroon rate book, seven charged
+              stages with per-stage milestone amounts. Professional fees now break into
+              site manager, QS, lawyer and PM; contingency 2%.</td>
+          </tr>
+          <tr>
+            <td class="step">Milestone tracking</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">Stages and substages with real state machines. Cross-project
+              review queue at <code>/admin/reviews</code> — the closest thing to a weekly
+              operating surface, and it is scoped to Jalla&nbsp;Verify.</td>
+          </tr>
+          <tr>
+            <td class="step">Evidence upload</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">Contractor or owner uploads per substage to a private
+              <code>evidence</code> bucket; display is via one-hour signed URLs. No capture
+              standard enforced — any file, any count.</td>
+          </tr>
+          <tr>
+            <td class="step">Verification</td>
+            <td><span class="chip c-partial">Partial</span></td>
+            <td class="note">Admin approves a stage, which issues a certificate and a public
+              <code>/verify/:id</code> page. Issuing is now admin-only and a certificate can
+              be withdrawn — both new this week. Works in test; <strong>never exercised in
+              production</strong>. Approval is blocked until payment status reads paid.</td>
+          </tr>
+          <tr>
+            <td class="step">Project updates</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">Realtime chat per project, owner and invited contractors.
+              Now mirrored into GoHighLevel, and a reply typed in GHL lands back in the
+              chat — so the team can work one inbox across fifteen projects.</td>
+          </tr>
+          <tr>
+            <td class="step">Client approval</td>
+            <td><span class="chip c-ok">Functional</span></td>
+            <td class="note">On Self&nbsp;Verify the owner approves their own stage; on
+              Jalla&nbsp;Verify it goes to the admin queue instead. Both paths write an
+              audit row and notify.</td>
+          </tr>
+          <tr>
+            <td class="step">Payment authorisation</td>
+            <td><span class="chip c-gap">Not available</span></td>
+            <td class="note">No charge, no hold, no escrow. Stripe is wired for
+              subscriptions only. Switchr is named in config as the intended rail and is
+              not integrated. <strong>Now the critical path</strong>: with money in scope,
+              this row alone decides whether the KR is met.</td>
+          </tr>
+          <tr>
+            <td class="step">Payment release &amp; ledger</td>
+            <td><span class="chip c-manual">Manual</span></td>
+            <td class="note">&ldquo;Record payment&rdquo; flips a stage to <code>paid</code>
+              — a flag someone sets after money moved elsewhere. The ledger is therefore an
+              accurate record of what we were told, not of what we processed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">02</span>
+      <h2>What Groundwork actually enforces</h2>
+    </div>
+    <p class="col">The statuses, roles and rules below are the real ones, taken from the
+      schema, with what each means in practice. Worth agreeing in the room, because the
+      on-ground SOP has to use the same vocabulary the software does — if a site report
+      says &ldquo;done&rdquo; and the platform says <span class="mono">pending_review</span>,
+      the two records have already diverged.</p>
+    <div class="ref">
+      <div>
+        <dt>Stage status</dt>
+        <dd><span class="mono">locked</span> — not started, and cannot be.
+          <span class="mono">active</span> — the stage being worked on; only one at a time.
+          <span class="mono">pending_review</span> — the client says it is finished and it
+          is waiting on us. <span class="mono">complete</span> — approved, certificate
+          issued. <strong>The only status Jalla controls is the move out of
+          <span class="mono">pending_review</span></strong>; the client drives the rest.</dd>
+      </div>
+      <div>
+        <dt>Substage status</dt>
+        <dd><span class="mono">locked · pending · in_progress · complete · pending_review</span>
+          — the same idea one level down. Evidence attaches here, not to the stage.</dd>
+      </div>
+      <div>
+        <dt>Payment status</dt>
+        <dd><span class="mono">unpaid · partial · paid</span> — set by hand, on the stage.
+          Nothing verifies it against money actually received, because no money passes
+          through the platform.</dd>
+      </div>
+      <div>
+        <dt>Roles, and what each can do</dt>
+        <dd><strong>Homeowner</strong> — everything on their own project: advance
+          substages, request verification, record payment.<br>
+          <strong>Contractor</strong> — read the project and add evidence. Cannot advance
+          anything.<br>
+          <strong>Admin</strong> — approve any stage on any project, and see all of them.<br>
+          <strong>Verifier</strong> — <strong>grants nothing at all.</strong> The word is
+          accepted by the database and read by no part of the system.</dd>
+      </div>
+      <div>
+        <dt>Approval rule</dt>
+        <dd>Two conditions, both required: every substage complete, <em>and</em> the stage
+          marked paid. Self&nbsp;Verify approves in-app and the owner is the approver;
+          Jalla&nbsp;Verify and Jalla&nbsp;Management route to the admin queue.
+          <strong>The paid condition is the one to notice</strong> — a stage cannot be
+          signed off until somebody has ticked a box that no system checks.</dd>
+      </div>
+      <div>
+        <dt>Notifications</dt>
+        <dd>Stage approved, rework requested, message received, evidence uploaded,
+          support ticket, quote request. Each fires an in-app alert and an email in the
+          recipient's own language, at the moment it happens. <strong>There is no daily or
+          weekly digest and nothing is scheduled</strong> — so a project that goes quiet
+          generates no signal at all.</dd>
+      </div>
+      <div>
+        <dt>Tiers</dt>
+        <dd><strong>Self Verify</strong> — the client signs off their own stages; no Jalla
+          involvement, no certificate we stand behind.<br>
+          <strong>Jalla Verify</strong> — stages route to us for approval, and approval
+          issues a certificate.<br>
+          <strong>Jalla Management</strong> — same platform behaviour as Jalla Verify. The
+          difference is the people we put on it, not what the software does.</dd>
+      </div>
+      <div>
+        <dt>Not present</dt>
+        <dd>Weekly reporting, scheduled jobs, per-project SLA timers, inspector
+          assignment, evidence standards, bulk actions across projects.</dd>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">03</span>
+      <h2>The five biggest risks to fifteen projects</h2>
+    </div>
+    <ol class="risks">
+      <li>
+        <strong>Payments are not in the product, and manual is no longer an answer.</strong>
+        <p>The stage gate reads a flag a human sets. Across fifteen projects that is fifteen
+          chances to approve work that was never paid for, with nothing in the system able
+          to contradict it. Now that money is in scope, this is not a workaround to manage
+          — it is the single item that decides the KR.</p>
+      </li>
+      <li>
+        <strong>There is no way to give a verifier one project.</strong>
+        <p>The only role that can approve is admin, and an admin sees and can change every
+          project. Philip's answer — a verifier sees only the project they are verifying —
+          means the obvious stopgap of making verifiers admins is ruled out, not merely
+          untidy. Until the role exists, either verification funnels through the two or
+          three people who are already admins, or we hand fifteen projects' worth of
+          access to each verifier.</p>
+      </li>
+      <li>
+        <strong>Nothing enforces the weekly cycle.</strong>
+        <p>There are no scheduled jobs and no reporting surface. &ldquo;On-time weekly
+          verification&rdquo; would be measured outside Groundwork, so the KR could be
+          missed for a fortnight before the platform showed it.</p>
+      </li>
+      <li>
+        <strong>The verification path has never carried real work.</strong>
+        <p>Zero certificates issued. The first real approval on a live project is also the
+          first production test of certificate generation, storage and the public verify
+          page.</p>
+      </li>
+      <li>
+        <strong>Evidence has no standard.</strong>
+        <p>Any file, any number, no required angles or captions, no rejection reason
+          taxonomy. Fifteen projects of inconsistent evidence is the most likely cause of
+          verification being late rather than absent.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">04</span>
+      <h2>Now, product work, or controlled manual</h2>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <h3><span class="chip c-ok">Now</span></h3>
+        <ul>
+          <li>Project setup, budget and milestone generation</li>
+          <li>Contractor invitation and scoped access</li>
+          <li>Stage and substage tracking</li>
+          <li>Evidence upload and signed-URL review</li>
+          <li>Admin review queue across all projects</li>
+          <li>Project chat, mirrored to GoHighLevel</li>
+          <li>Sign-in second factor, by app or by email</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3><span class="chip c-gap">Product work</span></h3>
+        <ul>
+          <li>Switchr integration — charge, hold, release</li>
+          <li>A real verifier role, scoped to assigned projects</li>
+          <li>Weekly reporting and an operations dashboard</li>
+          <li>Inspector assignment per project</li>
+          <li>Evidence requirements per milestone type</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3><span class="chip c-manual">Manual, controlled</span></h3>
+        <ul>
+          <li>Weekly verification schedule, run from a spreadsheet</li>
+          <li>Evidence standards enforced by SOP rather than by the form</li>
+          <li>Payment recorded in-app after the fact — <strong>as a bridge only</strong>,
+            not as the end state the KR describes</li>
+        </ul>
+        <p style="margin:12px 0 0;font-size:13px;color:var(--ink-faint);line-height:1.55">
+          This column shrank when Philip answered. Verifiers-as-admins is ruled out by the
+          scoping answer, and manual payment can no longer be where this lands.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">05</span>
+      <h2>The sample project, and what to bring</h2>
+    </div>
+    <p class="col">One project configured end-to-end before the session, so the workflow
+      can be driven live rather than described. About ten minutes. If Vanessa brings a
+      real active project, build that one instead and ignore the shape below — a real
+      build is worth more in the room than a tidy invented one.</p>
+    <ol class="steps">
+      <li><strong>Create it</strong> at <code>/projects/new</code>. Cameroon →
+        Yaound&eacute; → residential → G+1 → about 145&nbsp;m&sup2; footprint. Rooms are
+        asked storey by storey now, so fill both floors.</li>
+      <li><strong>Choose Jalla&nbsp;Verify</strong> at the plan step. It is the only tier
+        that routes approvals to the admin queue, which is the path all fifteen will use.
+        Self&nbsp;Verify would demonstrate the wrong flow.</li>
+      <li><strong>Confirm the budget and start tracking.</strong> That is what seeds the
+        seven charged stages and their milestone amounts — without it there is no
+        workflow to walk.</li>
+      <li><strong>Invite a contractor</strong> and accept from the other account, so
+        scoped permissions can be shown rather than asserted.</li>
+      <li><strong>Upload evidence</strong> on one substage of the active stage and mark
+        another complete, so the stage is part-done rather than empty.</li>
+      <li><strong>Leave the stage unpaid.</strong> Deliberately. Hitting the approval
+        block live is the clearest two minutes available for showing the payment gap, and
+        it needs no slide.</li>
+    </ol>
+    <p class="col" style="margin-top:20px">The G+1 at 145&nbsp;m&sup2; is not arbitrary:
+      it matches three of the four Bills of Quantities the estimator was built from, so
+      the number it produces is one we can defend line by line if Philip asks.</p>
+    <p class="col">Two figures to pull before the session that this audit could not read —
+      both sit behind row-level security and need a signed-in admin:
+      <strong>how many projects exist today</strong>, and how many are on
+      Jalla&nbsp;Verify.</p>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">06</span>
+      <h2>Two answered, two still open</h2>
+    </div>
+    <p class="col">Philip answered the first two on 11 September. Both narrow the work
+      rather than widen it, which is the useful kind of answer — but both move items out
+      of the manual column and into product work.</p>
+    <div class="ref">
+      <div>
+        <dt>Answered · scope</dt>
+        <dd><strong>Fully operational includes money moving through Groundwork, and
+          Switchr is a critical part.</strong> So the KR cannot be met by recording
+          payments by hand. Switchr becomes the critical path, and the honest reading is
+          that fifteen projects are not end-to-end until it ships.</dd>
+      </div>
+      <div>
+        <dt>Answered · verifier</dt>
+        <dd><strong>A verifier sees only the project they are verifying.</strong> That
+          makes it a real role with its own row-level policies and a project assignment,
+          not a permission toggle. It also rules out the stopgap of granting verifiers
+          admin, since an admin sees everything.</dd>
+      </div>
+      <div>
+        <dt>Still open</dt>
+        <dd><strong>What counts as sufficient evidence for a milestone?</strong> Until it
+          is written down the platform cannot enforce it, and inconsistent evidence is the
+          likeliest cause of a late weekly verification.</dd>
+      </div>
+      <div>
+        <dt>Still open</dt>
+        <dd><strong>Who is on call when verification slips?</strong> The system notifies.
+          It does not escalate, and nothing chases.</dd>
+      </div>
+    </div>
+    <div class="callout col" style="margin-top:24px">
+      <p><strong>What the two answers cost.</strong> Before them, both gaps had a manual
+      bridge and the KR was reachable on process alone. After them, the KR needs two
+      pieces of product: the Switchr integration and a project-scoped verifier role.
+      Neither is large on its own; both are now on the critical path, and the meeting
+      should put dates and owners on them rather than on the workarounds they replace.</p>
+    </div>
+  </section>
+
+  <footer>
+    Assessment produced by auditing the repository and probing the live API read-only,
+    first on 9 September and re-checked on the 11th. Statuses reflect the code as
+    deployed, including this week's work: support tickets, contractor contact privacy,
+    the chat&nbsp;↔&nbsp;GoHighLevel bridge, certificate integrity, and email as a second
+    factor. Anything this audit could not read from outside is marked unknown rather than
+    estimated.
+  </footer>
+
+</div>

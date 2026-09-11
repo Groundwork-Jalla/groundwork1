@@ -299,6 +299,10 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
       case 'category':
         // Role gates the credential questions further on, so it cannot be skipped.
         if (!role) return f('errorRequired');
+        // "Other" with nothing beside it is not an answer. It also reaches the CRM as
+        // the literal word — and from there into a WhatsApp message addressed to the
+        // person whose trade it was supposed to name.
+        if (role === 'other' && !roleOther.trim()) return f('errorRoleOther');
         return null;
 
       case 'experience':

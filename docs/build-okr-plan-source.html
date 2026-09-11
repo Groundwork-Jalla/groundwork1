@@ -1,0 +1,458 @@
+<title>Ninety Days to Fifteen Projects</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:#FAFAF9; --surface:#FFFFFF; --ink:#1A1D1F; --ink-soft:#55595C;
+    --ink-faint:#82878B; --rule:#DCDAD5; --rule-soft:#EAE8E3;
+    --accent:#1F4E5F; --accent-soft:#E8F0F2;
+    --ok:#2F6B4F; --ok-bg:#E9F2ED;
+    --partial:#8A6114; --partial-bg:#F7EFDF;
+    --manual:#4E5866; --manual-bg:#EAECEF;
+    --gap:#A33A2E; --gap-bg:#F8EAE7;
+    --measure:66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#131517; --surface:#1A1D20; --ink:#ECEAE5; --ink-soft:#AAAFB4;
+      --ink-faint:#7E858B; --rule:#32373B; --rule-soft:#262A2E;
+      --accent:#7FBBCC; --accent-soft:#1B2F36;
+      --ok:#7BC49B; --ok-bg:#17281F;
+      --partial:#D6A54A; --partial-bg:#2B2318;
+      --manual:#9AA5B1; --manual-bg:#21252A;
+      --gap:#E58472; --gap-bg:#2E1D1A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#131517; --surface:#1A1D20; --ink:#ECEAE5; --ink-soft:#AAAFB4;
+    --ink-faint:#7E858B; --rule:#32373B; --rule-soft:#262A2E;
+    --accent:#7FBBCC; --accent-soft:#1B2F36;
+    --ok:#7BC49B; --ok-bg:#17281F;
+    --partial:#D6A54A; --partial-bg:#2B2318;
+    --manual:#9AA5B1; --manual-bg:#21252A;
+    --gap:#E58472; --gap-bg:#2E1D1A;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink);
+         font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+         font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 28px 96px; }
+  .col  { max-width: var(--measure); }
+
+  h1,h2,h3,.eyebrow,th,.chip,.num { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; }
+  h1 { font-size: clamp(30px,4vw,42px); font-weight:700; line-height:1.1;
+       letter-spacing:-0.018em; margin:0 0 14px; text-wrap:balance; }
+  h2 { font-size:21px; font-weight:700; letter-spacing:-0.008em; margin:0; text-wrap:balance; }
+  h3 { font-size:15px; font-weight:600; margin:0 0 6px; }
+  p  { margin: 0 0 14px; }
+  code,.mono { font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:0.86em; }
+  code { background: var(--rule-soft); padding:1px 5px; border-radius:3px; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .eyebrow { font-size:11px; font-weight:600; letter-spacing:0.13em;
+             text-transform:uppercase; color:var(--ink-faint); }
+
+  header.masthead { border-bottom:2px solid var(--ink); padding-bottom:26px; margin-bottom:34px; }
+  .meta { display:flex; flex-wrap:wrap; gap:10px 30px; margin-top:18px; }
+  .meta div { display:flex; flex-direction:column; gap:2px; }
+  .meta dt { font-size:10.5px; font-weight:600; letter-spacing:0.11em; text-transform:uppercase;
+             color:var(--ink-faint); font-family:Archivo,sans-serif; }
+  .meta dd { margin:0; font-size:14px; }
+
+  section { margin-top:52px; }
+  .shead { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--rule);
+           padding-bottom:9px; margin-bottom:22px; }
+  .num { font-size:12px; font-weight:700; color:var(--accent);
+         font-variant-numeric:tabular-nums; padding-top:3px; }
+
+  .scroller { overflow-x:auto; border:1px solid var(--rule); background:var(--surface); }
+  table { border-collapse:collapse; width:100%; min-width:740px; font-size:14px; }
+  th { text-align:left; font-size:10.5px; font-weight:600; letter-spacing:0.1em;
+       text-transform:uppercase; color:var(--ink-faint); padding:11px 14px;
+       border-bottom:1px solid var(--rule); white-space:nowrap; }
+  td { padding:12px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  tbody tr:last-child td { border-bottom:0; }
+  td.k { font-weight:600; white-space:nowrap; }
+  td.note { color:var(--ink-soft); font-size:13.5px; line-height:1.5; }
+
+  .chip { display:inline-block; font-size:10.5px; font-weight:600; letter-spacing:0.06em;
+          text-transform:uppercase; padding:3px 8px; border-radius:2px; white-space:nowrap; }
+  .c-ok{color:var(--ok);background:var(--ok-bg)}
+  .c-partial{color:var(--partial);background:var(--partial-bg)}
+  .c-manual{color:var(--manual);background:var(--manual-bg)}
+  .c-gap{color:var(--gap);background:var(--gap-bg)}
+  .c-acc{color:var(--accent);background:var(--accent-soft)}
+
+  .ref { display:grid; border:1px solid var(--rule); background:var(--surface); }
+  .ref > div { display:grid; grid-template-columns:190px 1fr; gap:18px; padding:12px 16px;
+               border-bottom:1px solid var(--rule-soft); }
+  .ref > div:last-child { border-bottom:0; }
+  .ref dt { font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;
+            color:var(--ink-faint); font-family:Archivo,sans-serif; }
+  .ref dd { margin:0; font-size:14px; }
+  @media (max-width:620px){ .ref > div { grid-template-columns:1fr; gap:4px; } }
+
+  /* Definition-of-done checklist: each line is a condition a query can answer. */
+  ul.dod { list-style:none; padding:0; margin:0; display:grid; gap:2px; }
+  ul.dod li { background:var(--surface); border:1px solid var(--rule-soft);
+              padding:13px 16px 13px 44px; position:relative; font-size:14px; color:var(--ink-soft); }
+  ul.dod li::before { content:"□"; position:absolute; left:17px; top:11px;
+                      font-size:15px; color:var(--accent); }
+  ul.dod strong { color:var(--ink); }
+
+  /* The critical path: sequence carries meaning here, so it is numbered. */
+  ol.path { list-style:none; counter-reset:cp; padding:0; margin:0; display:grid; gap:2px; }
+  ol.path li { counter-increment:cp; background:var(--surface); border:1px solid var(--rule-soft);
+               padding:15px 17px 15px 52px; position:relative; }
+  ol.path li::before { content:counter(cp); position:absolute; left:18px; top:15px;
+                       font-family:Archivo,sans-serif; font-size:12px; font-weight:700;
+                       color:var(--accent); font-variant-numeric:tabular-nums; }
+  ol.path h3 { margin-bottom:4px; }
+  ol.path p { margin:0; font-size:14px; color:var(--ink-soft); }
+  ol.path .tags { margin-top:9px; display:flex; flex-wrap:wrap; gap:6px; }
+
+  .lanes { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+  .lane { background:var(--surface); border:1px solid var(--rule); padding:17px 18px; }
+  .lane h3 { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .lane ul { margin:0; padding-left:17px; font-size:14px; color:var(--ink-soft); }
+  .lane li { margin-bottom:6px; }
+
+  .callout { background:var(--accent-soft); border-left:3px solid var(--accent);
+             padding:15px 18px; margin:22px 0; }
+  .callout p:last-child { margin-bottom:0; }
+  .warn { background:var(--gap-bg); border-left:3px solid var(--gap); padding:15px 18px; margin:22px 0; }
+  .warn p:last-child { margin-bottom:0; }
+
+  footer { margin-top:64px; padding-top:20px; border-top:1px solid var(--rule);
+           font-size:13px; color:var(--ink-faint); }
+
+  @page { size:A4; margin:14mm 13mm 16mm; }
+  @media print {
+    .wrap { max-width:none; padding:0; }
+    body { font-size:10.5pt; line-height:1.5; }
+    h1{font-size:22pt} h2{font-size:13pt} h3{font-size:10.5pt}
+    .meta dd,.ref dd,td,.lane ul,ol.path p,ul.dod li { font-size:9.5pt; }
+    td.note { font-size:9pt; }
+    section { margin-top:26px; }
+    .shead, h1, h2, h3 { break-after:avoid; }
+    .lane,.callout,.warn,ol.path li,ul.dod li,.ref > div { break-inside:avoid; }
+    tr,thead { break-inside:avoid; }
+    thead { display:table-header-group; }
+    .scroller { overflow:visible; }
+    table { min-width:0; }
+    .lanes { grid-template-columns:1fr; }
+    a { text-decoration:none; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Groundwork by Jalla · 90-day sprint · Favour Nwachukwu</p>
+    <h1>Ninety days to fifteen projects</h1>
+    <p class="col" style="font-size:17px;color:var(--ink-soft)">
+      How the Key Result gets met, in what order, and what it costs. Sized against the
+      code that exists today rather than against a wish — where something is genuinely
+      unknown, it says so.
+    </p>
+    <dl class="meta">
+      <div><dt>Key Result</dt><dd>100% of funded projects fully operational end-to-end</dd></div>
+      <div><dt>Hard dependency</dt><dd>Switchr — not mine to unblock</dd></div>
+      <div><dt>First build</dt><dd>Instrumentation, week 1</dd></div>
+      <div><dt>Honest read</dt><dd>Achievable, minus one thing I don't control</dd></div>
+    </dl>
+  </header>
+
+  <section style="margin-top:0">
+    <div class="shead"><h2>The one sentence version</h2></div>
+    <div class="col">
+      <p>Eight of the ten steps in the project workflow already work. Two do not, and both
+        are payment. Philip has confirmed that money moving through Groundwork is inside
+        the definition of &ldquo;fully operational&rdquo;, which means
+        <strong>Switchr is the critical path and I cannot start it alone</strong>.</p>
+      <p>Everything else on this plan is buildable now, mostly small, and sequenced so that
+        none of it waits on Switchr. If the introduction lands in week 2, the Key Result is
+        reachable. If it lands in week 6, it is not — and we should re-cut the quarter in
+        week 2 rather than discover that in week 8.</p>
+    </div>
+    <div class="warn col">
+      <p><strong>The single decision that governs this plan.</strong> Every other risk here
+      has a workaround. This one does not: no amount of process substitutes for a payment
+      rail, because a payment recorded by hand is a record that money moved somewhere else.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">01</span>
+      <h2>Making the Key Result scoreable</h2>
+    </div>
+    <p class="col">Today I cannot score it, and that is the first thing to fix. Nothing in
+      the product records whether a project completed the whole chain — the data exists in
+      pieces, in different tables, with no view that joins them into a yes or a no.</p>
+    <p class="col"><strong>Proposed definition, written so a query can answer it.</strong>
+      A project counts as fully operational when every line below is true of it. Not
+      &ldquo;broadly working&rdquo; — each is a column I can select on:</p>
+    <ul class="dod">
+      <li><strong>Set up completely.</strong> Budget confirmed and the ten stages created.
+        A project with an estimate but no stage schedule is not started.</li>
+      <li><strong>Team assigned.</strong> At least one contractor invited and accepted, so
+        the project has somebody other than the client on it.</li>
+      <li><strong>Reached a milestone.</strong> At least one stage past
+        <span class="mono">active</span> — the workflow has actually been exercised, not
+        just configured.</li>
+      <li><strong>Evidence attached.</strong> Every completed substage on a charged stage
+        carries at least one file. This is the line that makes the record defensible.</li>
+      <li><strong>Verified by Jalla.</strong> At least one stage approved through the
+        review queue, with a certificate issued. <strong>Zero certificates exist today</strong>,
+        so this line is currently false for every project on the platform.</li>
+      <li><strong>Payment released through Groundwork.</strong> Not a flag someone typed —
+        a transaction the platform performed. False for every project until Switchr ships.</li>
+      <li><strong>No manual intervention.</strong> No admin edited a record by hand to move
+        it forward. Requires a log of interventions, which does not exist yet either.</li>
+    </ul>
+    <div class="callout col">
+      <p><strong>Week-1 build: the readiness view.</strong> One query per project answering
+      those seven lines, surfaced on an internal screen. It scores the Key Result, it
+      becomes the Project Health signal I proposed, and it is what tells me a project has
+      gone quiet — three uses, one build. Nothing else on this plan can be measured until
+      it exists, which is why it goes first rather than last.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">02</span>
+      <h2>The critical path</h2>
+    </div>
+    <p class="col">In dependency order. The tags say who has to move before I can, which
+      is the part worth reading — five of the seven are mine alone, and the two that are
+      not are the two that can stop the quarter.</p>
+    <ol class="path">
+      <li>
+        <h3>Readiness instrumentation</h3>
+        <p>The view above, plus an interventions log. Everything downstream is measured
+          against it, and without it I am reporting impressions.</p>
+        <div class="tags"><span class="chip c-ok">Mine alone</span><span class="chip c-acc">Week 1</span><span class="chip c-manual">~3 days</span></div>
+      </li>
+      <li>
+        <h3>A project-scoped verifier role</h3>
+        <p>Philip has answered the scope: a verifier sees only the project they are
+          verifying. That makes it buildable now — a role, an assignment per project, and
+          row-level policies on the four tables a verifier touches. It also ends the
+          current position where every verification requires a full administrator.</p>
+        <div class="tags"><span class="chip c-ok">Mine alone</span><span class="chip c-acc">Weeks 2–3</span><span class="chip c-manual">~1 week</span></div>
+      </li>
+      <li>
+        <h3>Let Jalla advance a managed project</h3>
+        <p>Today only the homeowner can mark a substage complete — a contractor cannot, and
+          nor can we. On fifteen Jalla-managed builds that means either the client does our
+          admin or we sign in as administrators. Neither is &ldquo;operational&rdquo;.
+          Same shape as the verifier work, so build them together.</p>
+        <div class="tags"><span class="chip c-ok">Mine alone</span><span class="chip c-acc">Weeks 2–3</span><span class="chip c-manual">folded in</span></div>
+      </li>
+      <li>
+        <h3>Switchr: charge, hold, release</h3>
+        <p><strong>The long pole, and not mine to start.</strong> Cannot be sized until I
+          have seen their API and their licensed corridors — a rail that cannot legally
+          move money to Cameroon changes the plan rather than the schedule. Assume three
+          weeks of build once access exists, and treat that as a guess.</p>
+        <div class="tags"><span class="chip c-gap">Needs Philip · week 2</span><span class="chip c-acc">Weeks 3–8</span><span class="chip c-manual">unsized</span></div>
+      </li>
+      <li>
+        <h3>Evidence standards enforced by the form</h3>
+        <p>Required shots and captions per milestone type, and a rejection-reason list, so
+          the standard is enforced where evidence is submitted rather than caught
+          afterwards. Fast to build; entirely blocked on what the standard <em>is</em>.</p>
+        <div class="tags"><span class="chip c-gap">Needs Vanessa · week 2</span><span class="chip c-acc">Weeks 4–5</span><span class="chip c-manual">~1 week</span></div>
+      </li>
+      <li>
+        <h3>Weekly operating surface</h3>
+        <p>The review queue, filtered per verifier, with per-project timers and a digest.
+          Today fifteen projects arrive as one undifferentiated list and nothing chases.
+          This is what makes &ldquo;on-time weekly verification&rdquo; measurable rather
+          than aspirational.</p>
+        <div class="tags"><span class="chip c-ok">Mine alone</span><span class="chip c-acc">Weeks 5–6</span><span class="chip c-manual">~1 week</span></div>
+      </li>
+      <li>
+        <h3>The exportable proof pack</h3>
+        <p>Every project's full record — milestones, evidence, sign-offs, payments — as one
+          downloadable document. The certificate generator already produces PDFs, so this
+          is assembly rather than new machinery. Serves the client, Vanessa's QA and the
+          data room from one build.</p>
+        <div class="tags"><span class="chip c-ok">Mine alone</span><span class="chip c-acc">Weeks 7–8</span><span class="chip c-manual">~1 week</span></div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">03</span>
+      <h2>One correction, one clarification</h2>
+    </div>
+    <p class="col">The estimator figure in my sprint document is out of date, and the
+      note about cities needs one detail added. Both are the kind of thing that gets
+      quoted back, so they are fixed here.</p>
+    <div class="ref">
+      <div>
+        <dt>Estimator variance</dt>
+        <dd>I wrote &ldquo;21% under to 31% over&rdquo;. That was August. It is now
+          <strong>14.6% under to 52.1% over</strong> — and the picture is better than those
+          numbers suggest. <strong>Naka, the only document that priced a whole building the
+          way we do, is within 1.1%.</strong> Mpangou moved from +31% to +52% because I
+          corrected a real fault: the estimator was charging one suspended floor slab for a
+          building of any height, when a three-storey block needs three. It also prices a
+          half-built continuation, so we expect to sit above it.</dd>
+      </div>
+      <div>
+        <dt>Which city is the base</dt>
+        <dd><strong>Yaoundé and Douala are both our base</strong>, and the ask to Vanessa
+          is current rates for both. One clarification worth carrying into that
+          conversation: inside the estimator, Yaoundé is the reference every other city is
+          priced against — Douala currently sits 5% below it. So a correction to the
+          Yaoundé rate moves every city, and a correction to Douala moves only Douala.
+          Of the four bills of quantities we hold, Rose is the Yaoundé one; the
+          like-for-like document is Naka, in Bamenda. <strong>We have no Douala bill of
+          quantities at all</strong>, which is the gap worth closing first.</dd>
+      </div>
+    </div>
+    <p class="col" style="margin-top:16px">The estimator is therefore in better shape than
+      the assignment implies, and the remaining work on it is not mine to guess at: it is
+      eighteen questions already written and waiting on Vanessa, three of which decide
+      whether tall buildings are priced correctly at all.</p>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">04</span>
+      <h2>What I am cutting, and what I am not</h2>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <h3><span class="chip c-ok">In</span></h3>
+        <ul>
+          <li>Everything on the critical path above</li>
+          <li>The remaining beta-tester defects — small, and they are why adoption stalled</li>
+          <li>The creation flow: new-vs-ongoing build and plan upload</li>
+          <li>Payments recorded inside the stage, not on a separate screen</li>
+          <li>Cameroon only</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3><span class="chip c-gap">Out this quarter</span></h3>
+        <ul>
+          <li>Nigeria — no bill of quantities exists, so every figure would be a guess</li>
+          <li>Roofing presentation rework</li>
+          <li>The resources and guides library</li>
+          <li>Admin ↔ verifier collaboration tooling beyond the role itself</li>
+          <li>Second design options — one per screen</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3><span class="chip c-partial">Bridged, not built</span></h3>
+        <ul>
+          <li>The weekly verification schedule, from a spreadsheet until week 6</li>
+          <li>Evidence standards by SOP until the form enforces them</li>
+          <li>Payment by hand — <strong>only until Switchr</strong>, and no longer counted
+            as operational</li>
+        </ul>
+      </div>
+    </div>
+    <p class="col" style="margin-top:18px">What is <em>not</em> cut, deliberately: the beta
+      defect list. It is small work and it is the difference between a platform testers
+      abandoned and one they use — and fifteen projects on an unusable product is not
+      fifteen operational projects.</p>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">05</span>
+      <h2>What kills this plan</h2>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Risk</th><th>Tell</th><th>What I do about it</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="k">Switchr access slips past week 2</td>
+            <td class="note">No introduction by the Friday of week 2.</td>
+            <td class="note"><strong>Escalate on that Friday, not in week 8.</strong> If it
+              slips to week 6, the KR as written cannot be met and we should re-cut it then
+              — while there is quarter left to spend on something else.</td>
+          </tr>
+          <tr>
+            <td class="k">The corridor does not exist</td>
+            <td class="note">Switchr cannot legally move money into Cameroon.</td>
+            <td class="note">This changes the company plan, not my schedule. Worth asking
+              in the same conversation as the introduction, because it is the cheaper
+              question to answer.</td>
+          </tr>
+          <tr>
+            <td class="k">The verification standard does not arrive</td>
+            <td class="note">No written evidence standard by week 3.</td>
+            <td class="note">Ship the form with a provisional standard I draft from the
+              four bills of quantities, marked as provisional, and revise. Better than
+              fifteen projects of inconsistent evidence.</td>
+          </tr>
+          <tr>
+            <td class="k">Fifteen projects do not materialise</td>
+            <td class="note">Fewer than fifteen funded projects reach setup. Lead flow is
+              marketing's to measure, not mine — I see it when projects arrive, or don't.</td>
+            <td class="note">This is why the measure is <em>funded projects</em> rather
+              than fifteen. Nine clean projects is a product win; the wording should not
+              turn it into a 60% score. Nothing on this plan changes if the number is nine.</td>
+          </tr>
+          <tr>
+            <td class="k">I am the only developer</td>
+            <td class="note">Any week where the Gate Meeting has nothing shipped.</td>
+            <td class="note">Weekly release is the control, not the ambition — a week with
+              nothing to show is the signal, and it should be treated as one rather than
+              absorbed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead">
+      <span class="num">06</span>
+      <h2>What I need, and by when</h2>
+    </div>
+    <p class="col">Unchanged from my sprint assignment except for the estimator ask, which
+      the corrections above re-point. Repeated here because the plan above is built on
+      these dates and fails without them.</p>
+    <div class="ref">
+      <div><dt>Philip · week 2</dt>
+        <dd>Introduction to Switchr and test-environment access, plus their licensed
+          corridor list. <strong>Blocks the critical path.</strong> Everything else on this
+          plan can proceed without it; the Key Result cannot.</dd></div>
+      <div><dt>Vanessa · week 2</dt>
+        <dd>The verification standard — what counts as acceptable evidence, per milestone
+          type. Blocks the evidence build and, until it exists, every project's evidence is
+          inconsistent by default.</dd></div>
+      <div><dt>Vanessa · week 3</dt>
+        <dd>Current rates for <strong>Yaoundé and Douala</strong>, and a Douala bill of
+          quantities if one exists — we hold none. Plus the three estimator questions that
+          decide whether tall buildings are priced correctly.</dd></div>
+      <div><dt>Company · week 1</dt>
+        <dd>A pre-approved tooling ceiling — error monitoring, analytics, evidence storage.
+          Small amounts, but each one blocks a build until approved.</dd></div>
+    </div>
+    <div class="callout col">
+      <p><strong>The boundary I am holding.</strong> Vanessa defines the operational
+      standard; I build the mechanism that enforces it. I should not be inventing her
+      operating model, and she should not be specifying how it is implemented. Where a
+      standard has not arrived by its date, I will ship a provisional version rather than
+      wait — and say clearly that it is provisional.</p>
+    </div>
+  </section>
+
+  <footer>
+    Sized against the Groundwork codebase as it stands on 11 September 2026, and against
+    a read-only probe of the live database. Estimates for work I have seen are given in
+    days or weeks; the Switchr integration is deliberately left unsized, because sizing an
+    integration against an API nobody has seen is a guess wearing a number.
+  </footer>
+
+</div>
