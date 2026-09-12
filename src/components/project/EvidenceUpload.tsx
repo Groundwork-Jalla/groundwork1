@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FileIcon, formatFileSize } from '@/components/ui/FileIcon';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { supabase } from '@/lib/supabase/client';
+import { submitSiteUpdate, isSiteUpdatesUnavailable } from '@/lib/supabase/site-updates';
 import { notifyAdmins } from '@/lib/supabase/notifications';
 import { trackEvent } from '@/lib/analytics';
 import {
@@ -248,12 +249,31 @@ export function EvidenceUpload({
       if (uploadedPaths.length > 0) {
         const newUrls = [...existingUrls, ...uploadedPaths];
 
-        const { error: dbError } = await supabase
-          .from('project_substages')
-          .update({ evidence_urls: newUrls })
-          .eq('id', substageId);
+        // The record and the index, in one transaction (088). `submit_site_update()`
+        // files who/when/which stage and appends these paths to `evidence_urls` — or
+        // neither, if it fails. The direct column write below is only the fallback for
+        // a deployment where 088 has not been applied yet; it goes when 088 is live
+        // everywhere, and with it the last browser write to the evidence index.
+        let dbError: unknown = null;
+        try {
+          await submitSiteUpdate({
+            stageId, substageId, paths: uploadedPaths,
+            clientRef: crypto.randomUUID(),
+          });
+        } catch (err) {
+          if (isSiteUpdatesUnavailable(err)) {
+            const { error } = await supabase
+              .from('project_substages')
+              .update({ evidence_urls: newUrls })
+              .eq('id', substageId);
+            dbError = error;
+          } else {
+            dbError = err;
+          }
+        }
 
         if (dbError) {
+          console.error('[evidence] could not record the upload:', dbError);
           setGlobalError(
             'Files uploaded but could not save references. Please refresh and try again.'
           );

@@ -14,16 +14,16 @@ import type { StageVerification } from '@/lib/supabase/verifications';
 // `{ state: 'approved', blockers: ['awaiting_funding'] }` is an approved stage that
 // cannot yet be paid — not a new state, not a flag.
 //
-// This ships with 087, so it knows stage status and verifications. The payment states
-// (`release_authorised`, `disbursed`, `payment_failed`) and the `awaiting_funding`
-// blocker arrive with 090, when there is a ledger to read; until then `approved` is the
-// end of the ladder and eligibility is not evaluated. Site updates (088) will add
-// `evidence_submitted`.
+// Ships with 087 (status + verifications) and 088 (site updates → `evidence_submitted`).
+// The payment states (`release_authorised`, `disbursed`, `payment_failed`) and the
+// `awaiting_funding` blocker arrive with 090, when there is a ledger to read; until then
+// `approved` is the end of the ladder and eligibility is not evaluated.
 // =========================================================
 
 export type StageLifecycleState =
   | 'locked'
   | 'in_progress'
+  | 'evidence_submitted'
   | 'verification_pending'
   | 'verification_in_progress'
   | 'rejected'
@@ -56,6 +56,8 @@ export function stageLifecycle(
   project: ProjectInput,
   /** True when the stage after this one is active (or this is the last stage). */
   nextStageStarted: boolean = false,
+  /** When work was last reported on this stage (088). Null: no site update yet. */
+  lastSiteUpdateAt: string | null = null,
 ): StageLifecycle {
   const blockers: StageBlocker[] = [];
   if (project.status === 'on_hold') blockers.push('on_hold');
@@ -70,13 +72,14 @@ export function stageLifecycle(
       state = 'locked';
       break;
 
-    case 'active':
-      // A rejection sends the stage back to `active`; until new work is submitted the
-      // honest reading is "rejected", not "in progress".
-      state = v && (v.decision === 'rejected' || v.decision === 'needs_more_evidence')
-        ? 'rejected'
-        : 'in_progress';
+    case 'active': {
+      const rejected = !!v && (v.decision === 'rejected' || v.decision === 'needs_more_evidence');
+      // Work reported since the last decision (or at all) is what moves a stage on —
+      // from in_progress, and from rejected once the contractor has responded.
+      const freshEvidence = !!lastSiteUpdateAt && (!v?.decidedAt || lastSiteUpdateAt > v.decidedAt);
+      state = freshEvidence ? 'evidence_submitted' : rejected ? 'rejected' : 'in_progress';
       break;
+    }
 
     case 'pending_review':
       if (!required) {
@@ -112,8 +115,9 @@ export const STATE_SEVERITY: Record<StageLifecycleState, number> = {
   verification_pending: 1,
   verification_in_progress: 2,
   verified: 3,
-  in_progress: 4,
-  approved: 5,
-  locked: 6,
-  completed: 7,
+  evidence_submitted: 4,
+  in_progress: 5,
+  approved: 6,
+  locked: 7,
+  completed: 8,
 };

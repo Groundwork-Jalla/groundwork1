@@ -419,6 +419,13 @@ export const fr: Mirror<EnDict> = {
       unavailable:      'La vérification nécessite la migration 087 ; les validations fonctionnent comme avant d\u2019ici là.',
     },
 
+    siteUpdates: {
+      title:      'Mises à jour du chantier',
+      none:       'Aucune mise à jour n\u2019a encore été déposée pour cette étape.',
+      by:         '{name} · {when}',
+      files:      '{n} fichier(s)',
+    },
+
     budgetsTitle:     'Confirmations de budget',
     budgetsEmpty:     'Aucun projet Gestion Jalla n\'attend de budget.',
     loadingProjects:  'Chargement des projets en attente…',

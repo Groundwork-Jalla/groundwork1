@@ -75,6 +75,26 @@ describe('verification, where required', () => {
   });
 });
 
+describe('site updates (088) → evidence_submitted', () => {
+  it('active with a site update → evidence_submitted', () => {
+    expect(stageLifecycle(stage('active'), [], active, false, '2026-09-12T10:00:00Z').state).toBe('evidence_submitted');
+  });
+  it('rejected, then new work reported after the decision → evidence_submitted (the contractor responded)', () => {
+    const rej = v({ decision: 'rejected', decidedAt: '2026-09-11T09:00:00Z' });
+    expect(stageLifecycle(stage('active'), [rej], active, false, '2026-09-12T10:00:00Z').state).toBe('evidence_submitted');
+  });
+  it('rejected, with only OLD evidence from before the decision → still rejected', () => {
+    const rej = v({ decision: 'rejected', decidedAt: '2026-09-11T09:00:00Z' });
+    expect(stageLifecycle(stage('active'), [rej], active, false, '2026-09-10T10:00:00Z').state).toBe('rejected');
+  });
+  it('a site update on a pending_review stage does not change the verification reading', () => {
+    expect(stageLifecycle(stage('pending_review'), [v({})], active, false, '2026-09-12T10:00:00Z').state).toBe('verification_pending');
+  });
+  it('no site update → in_progress, as before', () => {
+    expect(stageLifecycle(stage('active'), [], active, false, null).state).toBe('in_progress');
+  });
+});
+
 describe('where verification is not required (self-verify)', () => {
   it('pending_review → verified straight away, no blocker', () => {
     expect(stageLifecycle(stage('pending_review', false), [], active))
@@ -100,15 +120,15 @@ describe('property: one input, one state', () => {
     const decisions = [null, 'pending', 'verified', 'rejected', 'needs_more_evidence'] as const;
     const seen = new Set<string>();
     for (const s of statuses) for (const req of [true, false]) for (const d of decisions)
-      for (const visited of [null, 'x']) for (const proj of [active, onHold]) for (const next of [false, true]) {
+      for (const visited of [null, 'x']) for (const proj of [active, onHold]) for (const next of [false, true]) for (const su of [null, 'y']) {
         const rows = d ? [v({ decision: d, decidedAt: d === 'pending' ? null : 'x', visitedAt: visited })] : [];
-        const r = stageLifecycle(stage(s, req), rows, proj, next);
+        const r = stageLifecycle(stage(s, req), rows, proj, next, su);
         expect(typeof r.state).toBe('string');
         expect(Array.isArray(r.blockers)).toBe(true);
         seen.add(r.state);
       }
     // Sanity: the ladder is reachable end to end.
-    for (const st of ['locked', 'in_progress', 'verification_pending', 'verification_in_progress', 'rejected', 'verified', 'approved', 'completed'])
+    for (const st of ['locked', 'in_progress', 'evidence_submitted', 'verification_pending', 'verification_in_progress', 'rejected', 'verified', 'approved', 'completed'])
       expect(seen.has(st), `${st} reachable`).toBe(true);
   });
 });

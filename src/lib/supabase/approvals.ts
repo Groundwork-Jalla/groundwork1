@@ -321,21 +321,9 @@ export async function adminRequestRework(
   });
 }
 
-// =========================================================
-// updateSubstageEvidenceUrls
-// Appends or replaces the evidence_urls array on a substage
-// =========================================================
-export async function updateSubstageEvidenceUrls(
-  substageId: string,
-  urls: string[],
-): Promise<void> {
-  const { error } = await supabase
-    .from('project_substages')
-    .update({ evidence_urls: urls })
-    .eq('id', substageId);
-
-  if (error) throw error;
-}
+// updateSubstageEvidenceUrls is gone (088). It wrote `evidence_urls` straight from the
+// browser and had no callers; the evidence index is now written only by
+// `submit_site_update()`, in the same transaction as the record of who uploaded what.
 
 // =========================================================
 // getSignedEvidenceUrl — 1-hour signed URL for display

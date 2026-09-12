@@ -11,6 +11,8 @@ import {
   type StageVerification, type VerificationDecision,
 } from '@/lib/supabase/verifications';
 import { listProjectVerifiers, type ProjectVerifier } from '@/lib/supabase/verifiers';
+import { listSiteUpdates, type SiteUpdate } from '@/lib/supabase/site-updates';
+import { formatRelative } from '@/lib/format';
 import { listAdminUsers } from '@/lib/supabase/admin-users';
 import { stageLifecycle } from '@/lib/lifecycle/stage';
 import { errorMessage } from '@/lib/errors';
@@ -32,6 +34,8 @@ interface PendingStage {
   verificationAvailable: boolean;
   latestVerification: StageVerification | null;
   verifiers: ProjectVerifier[];
+  /** 088. Newest first; empty when the migration is not applied. */
+  siteUpdates: SiteUpdate[];
 }
 
 interface PendingSubstage {
@@ -157,11 +161,11 @@ function StageReviewCard({
   useEffect(() => {
     // Names for the verifier picker and the status line. admin_list_users() is the
     // one place the admin can read a name for an arbitrary user id.
-    if (!item.verificationAvailable || !item.verificationRequired) return;
+    if (!(item.verificationAvailable && item.verificationRequired) && item.siteUpdates.length === 0) return;
     listAdminUsers()
       .then(users => setVerifierNames(new Map(users.map(u => [u.id, u.fullName || u.email]))))
       .catch(() => {});
-  }, [item.verificationAvailable, item.verificationRequired]);
+  }, [item.verificationAvailable, item.verificationRequired, item.siteUpdates.length]);
 
   const nameOf = (id: string | null | undefined) => (id ? (verifierNames.get(id) ?? id.slice(0, 8)) : '');
 
@@ -284,6 +288,24 @@ function StageReviewCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Site updates (088) — the record of who reported what, when */}
+      {item.siteUpdates.length > 0 && (
+        <div className="px-5 py-3 border-t border-brand-border-grey">
+          <p className="text-xs font-semibold text-brand-near-black">{t('admin.siteUpdates.title')}</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {item.siteUpdates.slice(0, 5).map(u => (
+              <li key={u.id} className="text-xs">
+                <span className="text-brand-mid-grey">
+                  {t('admin.siteUpdates.by', { name: nameOf(u.submittedBy), when: formatRelative(u.submittedAt) })}
+                  {u.evidencePaths.length > 0 && <> · {t('admin.siteUpdates.files', { n: u.evidencePaths.length })}</>}
+                </span>
+                {u.description && <p className="text-brand-near-black">{u.description}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Verification (087) */}
       {item.verificationAvailable && (
@@ -434,13 +456,13 @@ export default function AdminReviews() {
       // applied (the queries return `available: false` and the card shows the queue as
       // it was before verification existed).
       const projectIds = [...new Set(stages.map((s: Record<string, unknown>) => (s.projects as Record<string, unknown>).id as string))];
-      const layer = new Map<string, { verifications: StageVerification[]; verifiers: ProjectVerifier[]; available: boolean }>();
+      const layer = new Map<string, { verifications: StageVerification[]; verifiers: ProjectVerifier[]; updates: SiteUpdate[]; available: boolean }>();
       await Promise.all(projectIds.map(async pid => {
         try {
-          const [v, pv] = await Promise.all([listProjectVerifications(pid), listProjectVerifiers(pid)]);
-          layer.set(pid, { verifications: v.rows, verifiers: pv.rows, available: v.available && pv.available });
+          const [v, pv, su] = await Promise.all([listProjectVerifications(pid), listProjectVerifiers(pid), listSiteUpdates(pid)]);
+          layer.set(pid, { verifications: v.rows, verifiers: pv.rows, updates: su.rows, available: v.available && pv.available });
         } catch {
-          layer.set(pid, { verifications: [], verifiers: [], available: false });
+          layer.set(pid, { verifications: [], verifiers: [], updates: [], available: false });
         }
       }));
 
@@ -448,8 +470,9 @@ export default function AdminReviews() {
         const proj = s.projects as Record<string, unknown>;
         const profile = owners.get(proj.user_id as string);
         const substages = (s.project_substages as Record<string, unknown>[]) ?? [];
-        const l = layer.get(proj.id as string) ?? { verifications: [], verifiers: [], available: false };
+        const l = layer.get(proj.id as string) ?? { verifications: [], verifiers: [], updates: [], available: false };
         return {
+          siteUpdates:           l.updates.filter(u => u.stageId === (s.id as string)),
           verificationRequired:  s.verification_required === true,
           verificationAvailable: l.available,
           latestVerification:    latestForStage(l.verifications, s.id as string),

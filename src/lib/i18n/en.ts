@@ -416,6 +416,14 @@ export const en = {
       unavailable:      'Verification needs migration 087; approvals work as before until then.',
     },
 
+    // Site updates on the review queue (migration 088).
+    siteUpdates: {
+      title:      'Site updates',
+      none:       'No site update has been filed on this stage yet.',
+      by:         '{name} · {when}',
+      files:      '{n} file(s)',
+    },
+
     budgetsTitle:     'Budget Confirmations',
     budgetsEmpty:     'No Jalla Management projects are awaiting a budget.',
     loadingProjects:  'Loading pending projects…',
