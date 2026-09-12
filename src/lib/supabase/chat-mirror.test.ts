@@ -44,6 +44,47 @@ describe('the chat mirror cannot echo', () => {
   });
 });
 
+/**
+ * The other direction. GoHighLevel delivers at least once; a retried event used to become
+ * a second identical row and a second "new message" email. Migration 085 puts a unique
+ * index on `ghl_message_id`, and the handler has to actually lean on it — an insert that
+ * ignores the index just errors, and an upsert that forgets `ignoreDuplicates` overwrites.
+ */
+describe('an inbound reply files at most once', () => {
+  const delivery  = read('api/_handlers/conversation-delivery.ts');
+  const migration = read('supabase/migrations/085_message_idempotency.sql');
+
+  it('upserts on the GHL message id and ignores the duplicate', () => {
+    expect(delivery).toMatch(/\.upsert\(/);
+    expect(delivery, 'the conflict target is the GHL id').toMatch(/onConflict:\s*'ghl_message_id'/);
+    expect(delivery, 'a replay must be a no-op, not an overwrite').toMatch(/ignoreDuplicates:\s*true/);
+  });
+
+  it('is backed by a PLAIN unique index, because ON CONFLICT cannot target a partial one', () => {
+    // Proven on a local Postgres: `ON CONFLICT (ghl_message_id)` against a partial index
+    // raises "no unique or exclusion constraint matching the ON CONFLICT specification".
+    expect(migration).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS project_messages_ghl_message_id_key/);
+    const idx = migration.slice(migration.indexOf('CREATE UNIQUE INDEX'));
+    expect(idx.slice(0, idx.indexOf(';')), 'no WHERE clause on the index').not.toMatch(/WHERE/);
+  });
+
+  it('removes existing duplicates before adding the index', () => {
+    const dedupAt = migration.indexOf('DELETE FROM public.project_messages');
+    const indexAt = migration.indexOf('CREATE UNIQUE INDEX');
+    expect(dedupAt).toBeGreaterThan(-1);
+    expect(dedupAt, 'the index would fail to build over duplicates').toBeLessThan(indexAt);
+  });
+
+  it('sends no email for a replay', () => {
+    // The doorbell for this message already went out with the first delivery.
+    const dupAt  = delivery.indexOf('if (filing.duplicate)');
+    const sendAt = delivery.indexOf('https://api.resend.com/emails');
+    expect(dupAt).toBeGreaterThan(-1);
+    expect(dupAt, 'the duplicate return must come before the send is composed').toBeLessThan(sendAt);
+    expect(delivery, 'and it must answer 200 so GHL stops retrying').toMatch(/filing\.duplicate[\s\S]{0,120}res\.status\(200\)/);
+  });
+});
+
 describe('the mirror is actually reachable', () => {
   it('sends the access token the handler requires', () => {
     // `requireUser` reads the Supabase JWT off the Authorization header and returns null

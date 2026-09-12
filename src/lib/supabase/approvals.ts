@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { approveStageRpc } from './verifications';
 import { notifyAdmins } from './notifications';
 import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml, stageApprovedSubject } from '../email/stage-approved-html';
@@ -104,56 +105,15 @@ export async function approveStage(
     return;
   }
 
-  // self_verify: approve immediately
-  const { error: stageErr } = await supabase
-    .from('project_stages')
-    .update({ status: 'complete', completed_at: new Date().toISOString() })
-    .eq('id', stageId);
-
-  if (stageErr) throw stageErr;
-
-  // Unlock + activate next stage
-  const nextStageNumber = stageNumber + 1;
-  const isFinalStage = nextStageNumber > 10;
-
-  if (!isFinalStage) {
-    const { data: nextStage, error: nextFetchErr } = await supabase
-      .from('project_stages')
-      .select('id')
-      .eq('project_id', projectId)
-      .eq('stage_number', nextStageNumber)
-      .single();
-
-    if (nextFetchErr) throw nextFetchErr;
-
-    if (nextStage) {
-      const { error: activateErr } = await supabase
-        .from('project_stages').update({ status: 'active' }).eq('id', nextStage.id);
-      if (activateErr) throw activateErr;
-
-      const { error: subUnlockErr } = await supabase
-        .from('project_substages').update({ status: 'pending' }).eq('stage_id', nextStage.id);
-      if (subUnlockErr) throw subUnlockErr;
-    }
-  }
-
-  const { error: projectErr } = await supabase
-    .from('projects')
-    .update({
-      current_stage: isFinalStage ? stageNumber : nextStageNumber,
-      status:        isFinalStage ? 'completed' : 'active',
-    })
-    .eq('id', projectId);
-
-  if (projectErr) throw projectErr;
-
+  // self_verify: approve — in the database (087). `approve_stage()` re-checks that the
+  // caller owns a Self Verify project, that the stage is paid and every substage complete
+  // (the same two checks this function made above, now enforced where they cannot be
+  // skipped), completes the stage, activates the next one, advances the project and
+  // writes the audit row, all in one transaction. A trigger refuses `status = 'complete'`
+  // from anywhere else, so this is no longer a client decision.
+  await approveStageRpc(stageId);
   trackEvent('stage_approved', { stage_number: stageNumber, tier });
-
-  await supabase.from('project_audit_log').insert({
-    project_id: projectId, stage_id: stageId,
-    action: 'stage_approved', actor_id: userId,
-    details: { tier, stage_number: stageNumber },
-  });
+  void userId;
 }
 
 /**
@@ -182,8 +142,6 @@ export async function adminApproveStage(
   stageNumber: number,
   adminId: string,
 ): Promise<void> {
-  const now = new Date().toISOString();
-
   // Fetch current stage name upfront. `stage_key` (migration 024) is what lets the
   // email render the stage in the owner's language — `name` is the stored English.
   const { data: stageData } = await supabase
@@ -191,44 +149,23 @@ export async function adminApproveStage(
   const stageName = stageData?.name ?? `Stage ${stageNumber}`;
   const stageKey  = stageData?.stage_key ?? null;
 
-  // Mark all pending substages approved
-  await supabase
-    .from('project_substages')
-    .update({ status: 'complete', approved_by: adminId, approved_at: now })
-    .eq('stage_id', stageId)
-    .neq('status', 'complete');
+  // The transition, in the database (087). Refuses `not_verified:` when independent
+  // verification is required and the latest decision is not `verified` — an admin cannot
+  // approve past an open request or a rejection, whatever this screen shows. Completes
+  // the substages, the stage, activates the next, advances the project and writes the
+  // audit row with the verification it rested on. Everything below is notification.
+  const result = await approveStageRpc(stageId);
+  void adminId;
 
-  // Mark stage complete
-  const { error: stageErr } = await supabase
-    .from('project_stages')
-    .update({ status: 'complete', completed_at: now })
-    .eq('id', stageId);
-  if (stageErr) throw stageErr;
-
-  // Unlock next stage
-  const nextStageNumber = stageNumber + 1;
-  const isFinalStage = nextStageNumber > 10;
+  const isFinalStage = result.isFinal;
   let nextStageName = 'Project Complete';
   let nextStageKey: string | null = null;
-
-  if (!isFinalStage) {
+  if (result.nextStageId) {
     const { data: nextStage } = await supabase
-      .from('project_stages').select('id, name, stage_key')
-      .eq('project_id', projectId).eq('stage_number', nextStageNumber).single();
-
-    if (nextStage) {
-      nextStageName = nextStage.name ?? nextStageName;
-      nextStageKey  = nextStage.stage_key ?? null;
-      await supabase.from('project_stages').update({ status: 'active' }).eq('id', nextStage.id);
-      await supabase.from('project_substages').update({ status: 'pending' }).eq('stage_id', nextStage.id);
-    }
+      .from('project_stages').select('name, stage_key').eq('id', result.nextStageId).single();
+    nextStageName = nextStage?.name ?? nextStageName;
+    nextStageKey  = nextStage?.stage_key ?? null;
   }
-
-  // Update project
-  await supabase.from('projects').update({
-    current_stage: isFinalStage ? stageNumber : nextStageNumber,
-    status:        isFinalStage ? 'completed' : 'active',
-  }).eq('id', projectId);
 
   // Notify homeowner (bell + email)
   const { data: proj } = await supabase
@@ -301,12 +238,8 @@ export async function adminApproveStage(
   }
 
   trackEvent('stage_approved', { stage_number: stageNumber, tier: 'jalla_verify', approved_by: 'admin' });
-
-  await supabase.from('project_audit_log').insert({
-    project_id: projectId, stage_id: stageId,
-    action: 'stage_approved_by_admin', actor_id: adminId,
-    details: { stage_number: stageNumber },
-  });
+  // The audit row (`stage.approved`, with the verification it rested on) is written by
+  // approve_stage() in the same transaction as the change.
 }
 
 // =========================================================

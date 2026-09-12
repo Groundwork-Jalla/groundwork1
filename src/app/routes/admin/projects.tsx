@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2, ExternalLink, Search, UserPlus, Trash2, Plus } from 'lucide-react';
+import { Loader2, ExternalLink, Search, UserPlus, Trash2, Plus, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
 import { deleteProjectAsAdmin } from '@/lib/supabase/admin-projects';
+import { listVerifierOptions, assignVerifier, type VerifierOption } from '@/lib/supabase/verifiers';
+import { isMissingTable } from '@/lib/errors';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { errorMessage } from '@/lib/errors';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -66,6 +68,55 @@ export default function AdminProjects() {
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading]   = useState(true);
   const [query, setQuery]       = useState('');
+
+  // ── Verifier assignment (086) ──
+  const [verTarget,     setVerTarget]     = useState<AdminProject | null>(null);
+  const [verOptions,    setVerOptions]    = useState<VerifierOption[] | null>(null);
+  const [verUser,       setVerUser]       = useState('');
+  const [verDiscipline, setVerDiscipline] = useState('');
+  const [verBusy,       setVerBusy]       = useState(false);
+  const [verError,      setVerError]      = useState<string | null>(null);
+  const [verNotice,     setVerNotice]     = useState<string | null>(null);
+  // False once a call has told us 086 is not applied; the action then hides itself.
+  const [verAvailable,  setVerAvailable]  = useState(true);
+
+  async function openAssignVerifier(p: AdminProject) {
+    setVerTarget(p); setVerUser(''); setVerDiscipline(''); setVerError(null);
+    if (verOptions === null) {
+      try { setVerOptions(await listVerifierOptions()); }
+      catch { setVerOptions([]); }
+    }
+  }
+
+  /**
+   * The rules are the database's, not this handler's: `assign_verifier()` refuses a
+   * non-admin, a user without the role, a contractor on this project, and a blank
+   * discipline, each with its own prefix. This maps the prefix to a sentence.
+   */
+  async function handleAssignVerifier() {
+    if (!verTarget || !verUser) return;
+    if (!verDiscipline.trim()) { setVerError(t('admin.verifier.errDiscipline')); return; }
+    setVerBusy(true); setVerError(null);
+    try {
+      await assignVerifier(verTarget.id, verUser, verDiscipline.trim());
+      const who = verOptions?.find(o => o.userId === verUser);
+      setVerNotice(t('admin.verifier.assigned', {
+        name: who?.name || who?.email || verUser, project: verTarget.name, discipline: verDiscipline.trim(),
+      }));
+      setVerTarget(null);
+    } catch (err) {
+      if (isMissingTable(err)) { setVerAvailable(false); setVerTarget(null); return; }
+      const msg = errorMessage(err, '');
+      setVerError(
+        msg.includes('contractor_cannot_verify') ? t('admin.verifier.errContractor')
+        : msg.includes('not_verifier')           ? t('admin.verifier.errNotVerifier')
+        : msg.includes('discipline_required')    ? t('admin.verifier.errDiscipline')
+        : msg || t('common.somethingWrong'),
+      );
+    } finally {
+      setVerBusy(false);
+    }
+  }
 
   const [delTarget, setDelTarget] = useState<AdminProject | null>(null);
   const [deleting,  setDeleting]  = useState(false);
@@ -223,6 +274,17 @@ export default function AdminProjects() {
                       >
                         <UserPlus className="size-4" />
                       </button>
+                      {verAvailable && (
+                        <button
+                          type="button"
+                          onClick={() => openAssignVerifier(p)}
+                          className="text-brand-mid-grey transition-colors hover:text-brand-near-black"
+                          title={t('admin.verifier.assign')}
+                          aria-label={`${t('admin.verifier.assign')} ${p.name}`}
+                        >
+                          <ShieldCheck className="size-4" />
+                        </button>
+                      )}
                       <Link
                         to={`/projects/${p.id}`}
                         target="_blank"
@@ -260,6 +322,96 @@ export default function AdminProjects() {
         <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5 text-xs text-brand-near-black">
           {t('admin.assignedNotice', { detail: assignDone })}
         </p>
+      )}
+
+      {verNotice && (
+        <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5 text-xs text-brand-near-black">
+          {verNotice}
+        </p>
+      )}
+      {!verAvailable && (
+        <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-4 py-2.5 text-xs text-brand-mid-grey">
+          {t('admin.verifier.notAvailable')}
+        </p>
+      )}
+
+      {verTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setVerTarget(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-white p-6"
+            role="dialog"
+            aria-modal="true"
+          >
+            <h2 className="text-sm font-bold text-brand-near-black">{t('admin.verifier.title')}</h2>
+            <p className="mt-1 text-xs text-brand-mid-grey">
+              {t('admin.verifier.bodyPre')}{' '}
+              <span className="font-medium text-brand-near-black">{verTarget.name}</span>{' '}
+              {t('admin.verifier.bodyPost')}
+            </p>
+
+            <label htmlFor="ver-user" className="mt-4 block text-xs font-medium text-brand-near-black">
+              {t('admin.verifier.who')}
+            </label>
+            {verOptions === null ? (
+              <p className="mt-1.5 flex items-center gap-2 text-xs text-brand-mid-grey">
+                <Loader2 className="size-3.5 animate-spin" /> {t('common.loading')}
+              </p>
+            ) : verOptions.length === 0 ? (
+              <p className="mt-1.5 text-xs text-brand-mid-grey">{t('admin.verifier.noneAvailable')}</p>
+            ) : (
+              <select
+                id="ver-user"
+                value={verUser}
+                onChange={e => setVerUser(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+              >
+                <option value="">{t('admin.verifier.whoPlaceholder')}</option>
+                {verOptions.map(o => (
+                  <option key={o.userId} value={o.userId}>{o.name ? `${o.name} — ${o.email}` : o.email}</option>
+                ))}
+              </select>
+            )}
+
+            <label htmlFor="ver-discipline" className="mt-3 block text-xs font-medium text-brand-near-black">
+              {t('admin.verifier.discipline')}
+            </label>
+            <input
+              id="ver-discipline"
+              type="text"
+              value={verDiscipline}
+              onChange={e => setVerDiscipline(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAssignVerifier(); }}
+              placeholder={t('admin.verifier.disciplinePlaceholder')}
+              className="mt-1.5 w-full rounded-lg border border-brand-border-grey px-3 py-2 text-sm text-brand-near-black placeholder:text-brand-mid-grey focus:border-brand-near-black focus:outline-none"
+            />
+
+            {verError && (
+              <p className="mt-2 text-xs text-state-alert" role="alert">{verError}</p>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setVerTarget(null)}
+                className="flex-1 rounded-lg border border-brand-border-grey py-2 text-xs font-semibold text-brand-near-black hover:bg-brand-off-white"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleAssignVerifier}
+                disabled={verBusy || !verUser || !verDiscipline.trim()}
+                className="flex-1 rounded-lg bg-brand-near-black py-2 text-xs font-semibold text-white disabled:opacity-40"
+              >
+                {verBusy ? t('admin.verifier.assigning') : t('admin.verifier.assign')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {delNotice && (

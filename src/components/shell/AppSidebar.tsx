@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { NavLink, Link } from 'react-router';
 import { LogOut, User } from 'lucide-react';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
@@ -62,24 +63,32 @@ export function AppSidebar({
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
-        {nav.map(({ to, labelKey, icon: Icon, exact }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={exact}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-brand-near-black text-white'
-                  : 'text-brand-mid-grey hover:bg-brand-off-white hover:text-brand-near-black',
-              )
-            }
-          >
-            <Icon className="size-4 shrink-0" />
-            {t(labelKey)}
-          </NavLink>
+        {nav.map(({ to, labelKey, icon: Icon, exact, section }, i) => (
+          <Fragment key={to}>
+            {/* A heading above the first item of each section. The client nav has no
+                sections and renders exactly as before. */}
+            {section && nav[i - 1]?.section !== section && (
+              <p className="mb-1 mt-3 px-3 text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey first:mt-0">
+                {t(section)}
+              </p>
+            )}
+            <NavLink
+              to={to}
+              end={exact}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                cn(
+                  'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-brand-near-black text-white'
+                    : 'text-brand-mid-grey hover:bg-brand-off-white hover:text-brand-near-black',
+                )
+              }
+            >
+              <Icon className="size-4 shrink-0" />
+              {t(labelKey)}
+            </NavLink>
+          </Fragment>
         ))}
       </nav>
 

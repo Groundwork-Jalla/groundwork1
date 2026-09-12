@@ -407,6 +407,7 @@ Everything except this README lives in [`docs/`](docs/).
 | [docs/PAGES.md](docs/PAGES.md) | Every route, section by section — the reference |
 | [docs/GHL-SETUP.md](docs/GHL-SETUP.md) | GoHighLevel setup, step by step — **current** |
 | [docs/GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md) | CRM field mapping |
+| [docs/ADMIN-DASHBOARD.md](docs/ADMIN-DASHBOARD.md) | The admin panel as an operations desk — health rules, needs-attention, and the phased roadmap |
 | [docs/SECURITY.md](docs/SECURITY.md) | Password policy, 2FA, reset flow — **and the two Supabase settings they need** |
 | [docs/STRIPE.md](docs/STRIPE.md) | Stripe products, webhook, going live |
 | [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md) | The decided A/B variant for all 20 screens — **read before restyling anything** |

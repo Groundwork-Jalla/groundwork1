@@ -22,6 +22,25 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+/**
+ * Where a notification goes when clicked.
+ *
+ * Used to be `project_id` or nothing. The support and inquiry triggers carry `ticket_id`
+ * and `inquiry_id` instead, so those notifications were a dead click — they marked
+ * themselves read and stayed put. Each id the triggers write now has a page.
+ */
+export function destinationFor(data: Record<string, unknown> | null | undefined): string | null {
+  if (!data) return null;
+  const s = (k: string) => (typeof data[k] === 'string' && data[k] ? (data[k] as string) : null);
+  const application = s('application_id');
+  if (application)       return `/admin/applications/${application}`;
+  if (s('ticket_id'))    return '/admin/support';
+  if (s('inquiry_id'))   return '/admin/inquiries';
+  const project = s('project_id');
+  if (project)           return `/projects/${project}`;
+  return null;
+}
+
 function NotifItem({
   notif,
   onRead,
@@ -33,8 +52,8 @@ function NotifItem({
 
   function handleClick() {
     if (!notif.read_at) onRead(notif.id);
-    const projectId = notif.data?.project_id as string | undefined;
-    if (projectId) navigate(`/projects/${projectId}`);
+    const to = destinationFor(notif.data);
+    if (to) navigate(to);
   }
 
   return (

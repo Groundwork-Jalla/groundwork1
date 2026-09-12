@@ -60,7 +60,7 @@ async function fileIntoProjectChat(
   recipientEmail: string,
   bodyText: string,
   raw: Record<string, unknown>,
-): Promise<{ filed: boolean; projectId?: string; reason: string }> {
+): Promise<{ filed: boolean; projectId?: string; reason: string; duplicate?: boolean }> {
   if (!recipientEmail || !bodyText) return { filed: false, reason: 'no_body' };
 
   let admin;
@@ -84,22 +84,36 @@ async function fileIntoProjectChat(
     const who =
       str(raw.userName) || str(raw.fromName) || addr(raw.emailFrom) || 'Jalla';
 
-    const { error } = await admin.from('project_messages').insert({
-      project_id:  profile.ghl_thread_project_id,
-      // Null: the person who typed this may have no Groundwork account. See migration 077.
-      sender_id:   null,
-      sender_name: who,
-      content:     bodyText,
-      // The echo guard. Without it the mirror would push this straight back to GHL and
-      // the thread would fill with its own reflection.
-      origin:      'ghl',
-      ghl_message_id: str(raw.messageId) || str(raw.id) || null,
-      ghl_synced_at:  new Date().toISOString(),
-    });
+    // Upsert, not insert. GoHighLevel delivers at least once — a retry, or a redeploy
+    // mid-request — and the same event used to become two identical rows and two
+    // "new message" emails. `project_messages_ghl_message_id_key` (085) is a plain unique
+    // index; `ignoreDuplicates` makes PostgREST emit ON CONFLICT … DO NOTHING against it.
+    // A message with no GHL id (null) never conflicts, so platform chat is untouched.
+    //
+    // `.select('id')` is what tells us which happened: DO NOTHING returns no row.
+    const { data: inserted, error } = await admin
+      .from('project_messages')
+      .upsert({
+        project_id:  profile.ghl_thread_project_id,
+        // Null: the person who typed this may have no Groundwork account. See migration 077.
+        sender_id:   null,
+        sender_name: who,
+        content:     bodyText,
+        // The echo guard. Without it the mirror would push this straight back to GHL and
+        // the thread would fill with its own reflection.
+        origin:      'ghl',
+        ghl_message_id: str(raw.messageId) || str(raw.id) || null,
+        ghl_synced_at:  new Date().toISOString(),
+      }, { onConflict: 'ghl_message_id', ignoreDuplicates: true })
+      .select('id');
 
     if (error) {
       console.error('[ghl-delivery] could not file reply into chat:', error.message);
       return { filed: false, reason: 'insert_failed' };
+    }
+    if (!inserted || inserted.length === 0) {
+      // Already filed by an earlier delivery of the same event. Nothing to send.
+      return { filed: false, reason: 'duplicate', duplicate: true, projectId: profile.ghl_thread_project_id as string };
     }
     return { filed: true, projectId: profile.ghl_thread_project_id as string, reason: 'filed' };
   } catch (e) {
@@ -267,6 +281,14 @@ export async function handler(req: any, res: any) {
    * the alternative is a notification pointing at a message that does not exist.
    */
   const filing = await fileIntoProjectChat(to, str(body.plainText) || html, body);
+
+  // A replayed event has already been filed AND already produced its doorbell email.
+  // Stop here: sending again is the very duplicate 085 exists to prevent, and the
+  // 200 tells GHL the delivery is complete so it stops retrying.
+  if (filing.duplicate) {
+    res.status(200).json({ ok: true, duplicate: true, projectId: filing.projectId });
+    return;
+  }
 
   const base       = siteUrl(req);
   const threadLink = filing.projectId ? `${base}/projects/${filing.projectId}` : base;

@@ -26,6 +26,12 @@ export interface NavItem {
   icon: typeof LayoutDashboard;
   /** Match this path exactly rather than by prefix. */
   exact?: boolean;
+  /**
+   * Heading printed above this item when it differs from the item before. Groups a
+   * long nav by workflow without changing its shape — `pageTitleKey` and the mobile
+   * tab bar read `to`/`labelKey` only and never see it.
+   */
+  section?: TKey;
 }
 
 /** Client app. The first five also become the mobile tab bar. */
@@ -44,20 +50,27 @@ export const CLIENT_NAV: NavItem[] = [
   { to: '/help',          labelKey: 'nav.help',                                    icon: HelpCircle },
 ];
 
+// Grouped by workflow, not by when each page was added. Thirteen flat items had become a
+// list you scan rather than a map you navigate. The first five still feed the mobile tab
+// bar, so the overview and the two review queues stay at the top.
 export const ADMIN_NAV: NavItem[] = [
-  { to: '/admin',             labelKey: 'nav.overview',    icon: LayoutDashboard, exact: true },
-  { to: '/admin/reviews',     labelKey: 'nav.reviews',     icon: ClipboardCheck },
-  { to: '/admin/budgets',     labelKey: 'nav.budgets',     icon: Wallet },
-  { to: '/admin/projects',    labelKey: 'nav.projects',    icon: FolderOpen },
-  { to: '/admin/users',       labelKey: 'nav.users',       icon: Users },
-  { to: '/admin/contractors', labelKey: 'nav.contractors', icon: HardHat },
+  { to: '/admin',              labelKey: 'nav.overview',     icon: LayoutDashboard, exact: true },
+
+  { to: '/admin/reviews',      labelKey: 'nav.reviews',      icon: ClipboardCheck, section: 'nav.sectionOperations' },
+  { to: '/admin/budgets',      labelKey: 'nav.budgets',      icon: Wallet },
+  { to: '/admin/projects',     labelKey: 'nav.projects',     icon: FolderOpen },
+
+  { to: '/admin/users',        labelKey: 'nav.users',        icon: Users,          section: 'nav.sectionPeople' },
+  { to: '/admin/contractors',  labelKey: 'nav.contractors',  icon: HardHat },
   { to: '/admin/applications', labelKey: 'nav.applications', icon: FileText },
-  { to: '/admin/waitlist',     labelKey: 'nav.waitlist',     icon: Mailbox },
   { to: '/admin/drafts',       labelKey: 'nav.drafts',       icon: FilePen },
-  { to: '/admin/requests',     labelKey: 'nav.requests',     icon: Clapperboard },
-  { to: '/admin/support',      labelKey: 'nav.support',      icon: LifeBuoy },
+
+  { to: '/admin/waitlist',     labelKey: 'nav.waitlist',     icon: Mailbox,        section: 'nav.sectionGrowth' },
   { to: '/admin/inquiries',    labelKey: 'nav.inquiries',    icon: MessagesSquare },
   { to: '/admin/crm',          labelKey: 'nav.crm',          icon: Radio },
+
+  { to: '/admin/support',      labelKey: 'nav.support',      icon: LifeBuoy,       section: 'nav.sectionDesk' },
+  { to: '/admin/requests',     labelKey: 'nav.requests',     icon: Clapperboard },
 ];
 
 /**
