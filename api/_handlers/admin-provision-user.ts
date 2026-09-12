@@ -148,6 +148,22 @@ export async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
+  // The record (089): a person-level activity row — no project yet, so project_id is
+  // NULL and the row is visible to admins only. The service role bypasses RLS; the actor
+  // is the caller this handler verified above, not anything the request body said.
+  // Fail-soft: the account is already made and marked, and an audit row that cannot be
+  // written (the migration not yet pasted) must not fail the provisioning.
+  const { error: auditErr } = await admin.from('project_audit_log').insert({
+    project_id:  null,
+    action:      'client.provisioned',
+    actor_id:    caller.id,
+    person_id:   userId,
+    entity_type: 'profile',
+    entity_id:   userId,
+    details:     { email, tier: 'jalla_management', by: 'admin' },
+  });
+  if (auditErr) console.error('[provision] audit row not written:', auditErr.message);
+
   // The password appears in exactly one place: this response body.
   res.status(200).json({ userId, email, password });
 }

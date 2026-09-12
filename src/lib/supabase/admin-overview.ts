@@ -44,10 +44,14 @@ export interface OpsBacklog {
 
 export interface AuditEntry {
   id: string;
+  /** Empty for a person-level row (089): activity with no project, e.g. a client provisioned. */
   projectId: string;
   projectName: string;
   action: string;
   actorName: string;
+  /** Who the row is about, when it is about a person (089). Empty otherwise. */
+  personName: string;
+  entityType: string;
   createdAt: string;
 }
 
@@ -70,6 +74,19 @@ async function count(table: string, apply: (q: any) => any): Promise<number> {
   return n ?? 0;
 }
 
+// The 089 columns, with the pre-089 shape as the fallback: a deploy can land before the
+// migration is pasted, and PostgREST refuses a select naming a column that is not there
+// (42703) rather than returning nulls.
+async function recentAudit() {
+  const q = (cols: string) => supabase.from('project_audit_log')
+    .select(cols)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  const wide = await q('id, project_id, action, actor_id, person_id, entity_type, created_at');
+  if (!wide.error || wide.error.code !== '42703') return wide;
+  return q('id, project_id, action, actor_id, created_at');
+}
+
 export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOverviewData> {
   const [
     projectsRes, stagesRes, activityRes, owners, auditRes,
@@ -82,10 +99,7 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
       .select('project_id, stage_number, name, stage_key, status, payment_status, planned_end, completed_at'),
     supabase.rpc('admin_project_activity'),
     ownerLookup(),
-    supabase.from('project_audit_log')
-      .select('id, project_id, action, actor_id, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20),
+    recentAudit(),
     count('project_stages', q => q.eq('status', 'pending_review')),
     count('projects', q => q.in('tier', ['jalla_management', 'enterprise']).is('tracking_started_at', null)),
     count('contractor_applications', q => q.eq('status', 'pending')),
@@ -148,12 +162,14 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
 
   // ── Recent activity, with names resolved client-side (same reason as ownerLookup) ─
   const nameOf = new Map(projects.map(p => [p.id, p.name]));
-  const recent: AuditEntry[] = ((auditRes.data ?? []) as Row[]).map(r => ({
+  const recent: AuditEntry[] = ((auditRes.data ?? []) as unknown as Row[]).map(r => ({
     id:          str(r.id),
     projectId:   str(r.project_id),
     projectName: nameOf.get(str(r.project_id)) ?? '',
     action:      str(r.action),
     actorName:   owners.get(str(r.actor_id))?.name ?? '',
+    personName:  owners.get(str(r.person_id))?.name ?? '',
+    entityType:  str(r.entity_type),
     createdAt:   str(r.created_at),
   }));
 

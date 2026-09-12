@@ -278,17 +278,24 @@ export default function AdminOverview() {
           ) : (
             <ul className="divide-y divide-brand-border-grey">
               {data.recent.slice(0, 10).map(e => {
-                const key = `admin.ops.action.${e.action}` as TKey;
+                // Action names since 086 are dotted (`stage.approved`); the dictionary is flat.
+                const key = `admin.ops.action.${e.action.replace(/\./g, '_')}` as TKey;
                 const verb = t(key) === key ? t('admin.ops.action.other') : t(key);
                 return (
                   <li key={e.id} className="px-4 py-2.5">
                     <p className="text-xs text-brand-near-black">
                       <span className="font-medium">{e.actorName || '—'}</span> {verb}
+                      {e.personName && <span className="text-brand-mid-grey"> · {e.personName}</span>}
                     </p>
                     <p className="mt-0.5 flex items-center justify-between text-[11px] text-brand-mid-grey">
-                      <Link to={`/projects/${e.projectId}`} target="_blank" className="truncate hover:text-brand-near-black">
-                        {e.projectName || e.projectId.slice(0, 8)}
-                      </Link>
+                      {e.projectId ? (
+                        <Link to={`/projects/${e.projectId}`} target="_blank" className="truncate hover:text-brand-near-black">
+                          {e.projectName || e.projectId.slice(0, 8)}
+                        </Link>
+                      ) : (
+                        // A person-level row (089): no project to open.
+                        <span className="truncate">{t('admin.ops.noProject')}</span>
+                      )}
                       <span className="shrink-0">{formatRelative(e.createdAt)}</span>
                     </p>
                   </li>

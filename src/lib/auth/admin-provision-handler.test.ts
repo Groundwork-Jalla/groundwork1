@@ -17,6 +17,8 @@ const state = {
   createUserCalls: [] as Row[],
   profileUpdates: [] as { values: Row; id: string }[],
   deletedUsers: [] as string[],
+  auditInsertError: null as null | { message: string },
+  auditRows: [] as Row[],
 };
 
 function fakeAdmin() {
@@ -37,6 +39,10 @@ function fakeAdmin() {
             return { error: state.profileUpdateError };
           },
         }),
+        insert: async (row: Row) => {
+          if (table === 'project_audit_log') state.auditRows.push(row);
+          return { error: state.auditInsertError };
+        },
       };
       return chain;
     },
@@ -80,6 +86,8 @@ beforeEach(() => {
   state.createUserCalls = [];
   state.profileUpdates = [];
   state.deletedUsers = [];
+  state.auditInsertError = null;
+  state.auditRows = [];
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -133,6 +141,28 @@ describe('the account it creates', () => {
       tier: 'jalla_management',
       onboarding_complete: true,
     });
+  });
+
+  it('records the provisioning as a person-level activity row (089): no project, actor = the verified caller', async () => {
+    await call(GOOD);
+    expect(state.auditRows).toHaveLength(1);
+    expect(state.auditRows[0]).toMatchObject({
+      project_id: null,
+      action: 'client.provisioned',
+      actor_id: 'admin-1',
+      person_id: 'new-user-id',
+      entity_type: 'profile',
+      entity_id: 'new-user-id',
+    });
+    // Nothing from the request body decides who the actor is.
+    expect(state.auditRows[0].actor_id).not.toBe('new-user-id');
+  });
+
+  it('still provisions when the audit row cannot be written (089 not yet applied)', async () => {
+    state.auditInsertError = { message: 'column "person_id" does not exist' };
+    const res = await call(GOOD);
+    expect(res.statusCode).toBe(200);
+    expect(state.deletedUsers).toEqual([]);
   });
 
   it('marks the profile provisioned with both first-sign-in steps armed', async () => {

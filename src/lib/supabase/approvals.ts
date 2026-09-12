@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { approveStageRpc } from './verifications';
+import { isMissingRpc, requestRework, submitStageForReview } from './activity';
 import { notifyAdmins } from './notifications';
 import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml, stageApprovedSubject } from '../email/stage-approved-html';
@@ -76,18 +77,25 @@ export async function approveStage(
   if (!allReady) throw new Error('Not all substages are ready for approval.');
 
   if (!isSelfVerify) {
-    // jalla_verify: submit stage for admin review
-    const { error } = await supabase
-      .from('project_stages')
-      .update({ status: 'pending_review' })
-      .eq('id', stageId);
-    if (error) throw error;
-
-    await supabase.from('project_audit_log').insert({
-      project_id: projectId, stage_id: stageId,
-      action: 'stage_submitted_for_review', actor_id: userId,
-      details: { tier, stage_number: stageNumber },
-    });
+    // jalla_verify: submit stage for admin review — in the database (089), which
+    // re-checks the preconditions above and writes the audit row in the same
+    // transaction. The direct update is the fallback for a deploy that lands before the
+    // migration is pasted; once 089 is live the browser can no longer write an audit row.
+    try {
+      await submitStageForReview(stageId);
+    } catch (err) {
+      if (!isMissingRpc(err)) throw err;
+      const { error } = await supabase
+        .from('project_stages')
+        .update({ status: 'pending_review' })
+        .eq('id', stageId);
+      if (error) throw error;
+      await supabase.from('project_audit_log').insert({
+        project_id: projectId, stage_id: stageId,
+        action: 'stage_submitted_for_review', actor_id: userId,
+        details: { tier, stage_number: stageNumber },
+      });
+    }
 
     // Notify admins (fire-and-forget)
     Promise.all([
@@ -267,14 +275,23 @@ export async function adminRequestRework(
     .eq('stage_id', stageId)
     .eq('status', 'pending_review');
 
-  // Reset stage to active
-  await supabase.from('project_stages').update({ status: 'active' }).eq('id', stageId);
-
-  // Reset pending_review substages to in_progress
-  await supabase.from('project_substages')
-    .update({ status: 'in_progress', approved_by: null, approved_at: null })
-    .eq('stage_id', stageId)
-    .eq('status', 'pending_review');
+  // Reset the stage and its reviewed substages, and write the audit row — one RPC (089).
+  // The direct writes remain only as the fallback for a deploy ahead of the migration.
+  try {
+    await requestRework(stageId, reason);
+  } catch (err) {
+    if (!isMissingRpc(err)) throw err;
+    await supabase.from('project_stages').update({ status: 'active' }).eq('id', stageId);
+    await supabase.from('project_substages')
+      .update({ status: 'in_progress', approved_by: null, approved_at: null })
+      .eq('stage_id', stageId)
+      .eq('status', 'pending_review');
+    await supabase.from('project_audit_log').insert({
+      project_id: projectId, stage_id: stageId,
+      action: 'rework_requested', actor_id: adminId,
+      details: { stage_number: stageNumber, reason },
+    });
+  }
 
   // Notify homeowner (bell + email)
   const { data: proj } = await supabase
@@ -314,11 +331,6 @@ export async function adminRequestRework(
     }).catch(() => {});
   }
 
-  await supabase.from('project_audit_log').insert({
-    project_id: projectId, stage_id: stageId,
-    action: 'rework_requested', actor_id: adminId,
-    details: { stage_number: stageNumber, reason },
-  });
 }
 
 // updateSubstageEvidenceUrls is gone (088). It wrote `evidence_urls` straight from the
