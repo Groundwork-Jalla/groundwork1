@@ -213,10 +213,6 @@ export default function ProjectDetail() {
     await loadAll();
   }, [user, project, loadAll]);
 
-  const handleStagePaymentUpdate = useCallback((stageId: string, status: PaymentStatus) => {
-    setStages(prev => prev.map(s => s.id === stageId ? { ...s, payment_status: status } : s));
-  }, []);
-
   // Render prop — passes EvidenceUpload down without creating circular imports
   const renderEvidenceUpload = useCallback((props: {
     substageId: string;
@@ -490,7 +486,6 @@ export default function ProjectDetail() {
               <ProjectPayments
                 project={project}
                 stages={stages}
-                onPaymentUpdated={handleStagePaymentUpdate}
                 openPayStageId={payStageId}
                 onOpenPayStageHandled={() => setPayStageId(null)}
               />

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Wallet, History, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
-import { updatePaymentStatus } from '@/lib/supabase/projects';
+import { notifyAdmins } from '@/lib/supabase/notifications';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { normalizeTier } from '@/lib/payments/config';
 import { useT, type TKey } from '@/lib/i18n';
@@ -11,16 +11,15 @@ import EscrowWallet from '@/components/payments/EscrowWallet';
 import PaymentHistory from '@/components/payments/PaymentHistory';
 import MilestonePaymentModal from '@/components/payments/MilestonePaymentModal';
 import PayoutStatusModal from '@/components/payments/PayoutStatusModal';
-import type { ProjectRow, ProjectStageRow, PaymentStatus, ConstructionRate } from '@/types/project';
+import type { ProjectRow, ProjectStageRow, ConstructionRate } from '@/types/project';
 
 type View = 'wallet' | 'history';
 
 export default function ProjectPayments({
-  project, stages, onPaymentUpdated, openPayStageId, onOpenPayStageHandled,
+  project, stages, openPayStageId, onOpenPayStageHandled,
 }: {
   project: ProjectRow;
   stages: ProjectStageRow[];
-  onPaymentUpdated: (stageId: string, status: PaymentStatus) => void;
   /**
    * Open the payment modal for this stage as soon as the tab mounts.
    *
@@ -63,9 +62,17 @@ export default function ProjectPayments({
       .then(({ data }) => { if (data?.[0]?.email) setContractor(data[0].email); });
   }, [project.id]);
 
+  // A client cannot mark their own stage as funded (090): received money is confirmed by
+  // staff or by the provider, into the ledger, and `payment_status` follows from that.
+  // Until the provider is wired, "Confirm payment" here tells Jalla the client has paid;
+  // an admin confirms the tranche and the stage flips on its own (realtime, in detail.tsx).
   async function confirmPayment(stage: ProjectStageRow) {
-    await updatePaymentStatus(stage.id, 'paid');
-    onPaymentUpdated(stage.id, 'paid');
+    await notifyAdmins(
+      'funding_reported',
+      'Client reports a payment',
+      `${project.name}: the client reports paying stage ${stage.stage_number} (${stage.name})`,
+      { project_id: project.id, stage_id: stage.id, stage_number: stage.stage_number, amount_usd: stage.payment_milestone_usd ?? null },
+    );
   }
 
   const canUpgrade = tier !== 'jalla_management';

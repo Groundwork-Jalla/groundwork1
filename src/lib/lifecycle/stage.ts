@@ -1,5 +1,6 @@
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import type { StageVerification } from '@/lib/supabase/verifications';
+import type { Payment } from '@/lib/supabase/payments';
 
 // =========================================================
 // The one derived stage lifecycle. Never stored (Phase 3 §2, §8).
@@ -14,10 +15,20 @@ import type { StageVerification } from '@/lib/supabase/verifications';
 // `{ state: 'approved', blockers: ['awaiting_funding'] }` is an approved stage that
 // cannot yet be paid — not a new state, not a flag.
 //
-// Ships with 087 (status + verifications) and 088 (site updates → `evidence_submitted`).
-// The payment states (`release_authorised`, `disbursed`, `payment_failed`) and the
-// `awaiting_funding` blocker arrive with 090, when there is a ledger to read; until then
-// `approved` is the end of the ladder and eligibility is not evaluated.
+// Ships with 087 (status + verifications), 088 (site updates → `evidence_submitted`) and
+// 090 (the ledger → eligibility, `release_authorised`, `disbursement_initiated`,
+// `disbursed`, `payment_failed`, and the `awaiting_funding` blocker).
+//
+// ELIGIBILITY IS COMPUTED HERE AND NOWHERE STORED. It never reads
+// `project_stages.payment_status` — that column is a projection of the same ledger, kept
+// for older screens. The same rule runs again inside authorise_release() in SQL, under a
+// lock, and that is the one that decides; this one only tells a screen what to show.
+//
+//   eligible ⇔ complete ∧ (¬verification_required ∨ latest decision = verified)
+//            ∧ funded − disbursed − authorised ≥ milestone ∧ project not on_hold
+//
+// `payments === null` means "no ledger to read" (090 not applied): the ladder ends at
+// `approved` and no funding blocker is reported, as before 090.
 // =========================================================
 
 export type StageLifecycleState =
@@ -29,10 +40,16 @@ export type StageLifecycleState =
   | 'rejected'
   | 'verified'
   | 'approved'
+  | 'payment_eligible'
+  | 'release_authorised'
+  | 'disbursement_initiated'
+  | 'disbursed'
+  | 'payment_failed'
   | 'completed';
 
 export type StageBlocker =
   | 'verifier_not_selected'   // pending_review, verification required, nobody asked yet
+  | 'awaiting_funding'        // approved, but funded − disbursed − authorised < milestone
   | 'on_hold';                // the project is on hold — reported on every state
 
 export interface StageLifecycle {
@@ -40,7 +57,22 @@ export interface StageLifecycle {
   blockers: StageBlocker[];
 }
 
-type StageInput   = Pick<ProjectStageRow, 'id' | 'status' | 'stage_number'> & { verification_required?: boolean | null };
+type StageInput   = Pick<ProjectStageRow, 'id' | 'status' | 'stage_number'> & { verification_required?: boolean | null; payment_milestone_usd?: number | null };
+type LedgerRow    = Pick<Payment, 'stageId' | 'direction' | 'state' | 'amount' | 'createdAt'>;
+
+/** Funds the project can still release: funded − every live out row (authorised, initiated, disbursed, reconciling). */
+export function availableFunds(payments: LedgerRow[]): number {
+  const funded = payments.filter(p => p.direction === 'in' && (p.state === 'funded' || p.state === 'reconciled')).reduce((a, p) => a + p.amount, 0);
+  const out    = payments.filter(p => p.direction === 'out' && p.state !== 'failed').reduce((a, p) => a + p.amount, 0);
+  return funded - out;
+}
+
+/** The newest out row for the stage, live or failed. */
+function latestRelease(payments: LedgerRow[], stageId: string): LedgerRow | null {
+  const mine = payments.filter(p => p.direction === 'out' && p.stageId === stageId);
+  if (mine.length === 0) return null;
+  return mine.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+}
 type ProjectInput = Pick<ProjectRow, 'status'>;
 
 /** Newest verification for the stage, by created_at then requested_at. */
@@ -58,6 +90,8 @@ export function stageLifecycle(
   nextStageStarted: boolean = false,
   /** When work was last reported on this stage (088). Null: no site update yet. */
   lastSiteUpdateAt: string | null = null,
+  /** The project's ledger rows (090). Null: no ledger to read — eligibility is not evaluated. */
+  payments: LedgerRow[] | null = null,
 ): StageLifecycle {
   const blockers: StageBlocker[] = [];
   if (project.status === 'on_hold') blockers.push('on_hold');
@@ -98,9 +132,26 @@ export function stageLifecycle(
       }
       break;
 
-    case 'complete':
-      state = nextStageStarted ? 'completed' : 'approved';
+    case 'complete': {
+      const release = payments ? latestRelease(payments, stage.id) : null;
+      if (release && release.state !== 'failed') {
+        // Money is moving or moved: the ledger row is the state.
+        state = release.state === 'release_authorised' ? 'release_authorised'
+              : release.state === 'initiated'          ? 'disbursement_initiated'
+              : release.state === 'disbursed'          ? (nextStageStarted ? 'completed' : 'disbursed')
+              : 'payment_failed';                        // reconciling
+        break;
+      }
+      if (release?.state === 'failed') { state = 'payment_failed'; break; }
+      if (!payments) { state = nextStageStarted ? 'completed' : 'approved'; break; }
+      // Approved and unpaid: eligible only when verified (if required), funded, and not on
+      // hold. Otherwise approved with the first reason as a blocker — never a stored flag.
+      const verifiedOk = !required || v?.decision === 'verified';
+      const milestone  = stage.payment_milestone_usd ?? 0;
+      if (availableFunds(payments) < milestone) blockers.push('awaiting_funding');
+      state = verifiedOk && blockers.length === 0 ? 'payment_eligible' : 'approved';
       break;
+    }
 
     default:
       state = 'locked';
@@ -111,13 +162,18 @@ export function stageLifecycle(
 
 /** Sort key for "worst first" lists. */
 export const STATE_SEVERITY: Record<StageLifecycleState, number> = {
-  rejected: 0,
-  verification_pending: 1,
-  verification_in_progress: 2,
-  verified: 3,
-  evidence_submitted: 4,
-  in_progress: 5,
-  approved: 6,
-  locked: 7,
-  completed: 8,
+  payment_failed: 0,
+  rejected: 1,
+  verification_pending: 2,
+  verification_in_progress: 3,
+  payment_eligible: 4,
+  verified: 5,
+  evidence_submitted: 6,
+  in_progress: 7,
+  approved: 8,
+  release_authorised: 9,
+  disbursement_initiated: 10,
+  disbursed: 11,
+  locked: 12,
+  completed: 13,
 };

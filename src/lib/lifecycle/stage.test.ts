@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stageLifecycle } from './stage';
+import { availableFunds, stageLifecycle } from './stage';
 import type { StageVerification } from '@/lib/supabase/verifications';
 
 /**
@@ -21,6 +21,15 @@ const v = (over: Partial<StageVerification>): StageVerification => ({
 
 const active = { status: 'active' as const };
 const onHold = { status: 'on_hold' as const };
+
+// 090: the ledger. A stage with a $1000 milestone, funded or not, released or not.
+const paid = (status: 'complete' | 'active' = 'complete', required = true) =>
+  ({ id: 's1', stage_number: 2, status, verification_required: required, payment_milestone_usd: 1000 });
+const verified = v({ decision: 'verified', visitedAt: '2026-09-10T11:00:00Z', decidedAt: '2026-09-10T12:00:00Z' });
+type L = { stageId: string | null; direction: 'in' | 'out'; state: 'expected' | 'funded' | 'reconciled' | 'release_authorised' | 'initiated' | 'disbursed' | 'failed' | 'reconciling'; amount: number; createdAt: string };
+const fundedIn  = (amount: number, stageId: string | null = 's1'): L => ({ stageId, direction: 'in', state: 'funded', amount, createdAt: '2026-09-11T00:00:00Z' });
+const expected  = (amount: number): L => ({ stageId: 's1', direction: 'in', state: 'expected', amount, createdAt: '2026-09-11T00:00:00Z' });
+const out       = (state: L['state'], amount = 1000, createdAt = '2026-09-12T00:00:00Z'): L => ({ stageId: 's1', direction: 'out', state, amount, createdAt });
 
 describe('the four stored statuses map to derived states', () => {
   it('locked → locked', () => {
@@ -111,6 +120,55 @@ describe('on_hold is a blocker on every state, never a state', () => {
     const r = stageLifecycle(stage(status), [], onHold);
     expect(r.blockers).toContain('on_hold');
     expect(r.state).not.toBe('on_hold' as never);
+  });
+});
+
+describe('the ledger (090): eligibility is computed, authorisation is a row', () => {
+  it('no ledger (null) → approved with no funding blocker, as before 090', () => {
+    expect(stageLifecycle(paid(), [verified], active, false, null, null)).toEqual({ state: 'approved', blockers: [] });
+  });
+  it('approved + verified + funded → payment_eligible; no stored flag anywhere in the answer', () => {
+    const r = stageLifecycle(paid(), [verified], active, false, null, [fundedIn(1000)]);
+    expect(r).toEqual({ state: 'payment_eligible', blockers: [] });
+  });
+  it('funding short by one unit → approved + awaiting_funding, never payment_eligible', () => {
+    expect(stageLifecycle(paid(), [verified], active, false, null, [fundedIn(999)])).toEqual({ state: 'approved', blockers: ['awaiting_funding'] });
+  });
+  it('an expected (unconfirmed) tranche is not funding', () => {
+    expect(stageLifecycle(paid(), [verified], active, false, null, [expected(1000)]).blockers).toEqual(['awaiting_funding']);
+  });
+  it('funding is project-wide: another stage\u2019s tranche counts, and live releases are subtracted', () => {
+    expect(stageLifecycle(paid(), [verified], active, false, null, [fundedIn(1000, 'other')]).state).toBe('payment_eligible');
+    const spent = { ...out('release_authorised', 1000), stageId: 'other' };
+    expect(stageLifecycle(paid(), [verified], active, false, null, [fundedIn(1000, 'other'), spent]).blockers).toEqual(['awaiting_funding']);
+    const failedElsewhere = { ...out('failed', 1000), stageId: 'other' };
+    expect(stageLifecycle(paid(), [verified], active, false, null, [fundedIn(1000, 'other'), failedElsewhere]).state).toBe('payment_eligible');
+  });
+  it('verification required and not verified → approved, not eligible, even when funded', () => {
+    expect(stageLifecycle(paid(), [], active, false, null, [fundedIn(1000)])).toEqual({ state: 'approved', blockers: [] });
+    expect(stageLifecycle(paid(), [v({ decision: 'rejected', decidedAt: '2026-09-10T12:00:00Z' })], active, false, null, [fundedIn(1000)]).state).toBe('approved');
+  });
+  it('self-verify goes straight from complete to eligible', () => {
+    expect(stageLifecycle(paid('complete', false), [], active, false, null, [fundedIn(1000)]).state).toBe('payment_eligible');
+  });
+  it('on_hold blocks eligibility as an overlay', () => {
+    expect(stageLifecycle(paid(), [verified], onHold, false, null, [fundedIn(1000)])).toEqual({ state: 'approved', blockers: ['on_hold'] });
+  });
+  it('the out row is the state: authorised → initiated → disbursed → completed; failed / reconciling → payment_failed', () => {
+    const led = (st: L['state']) => stageLifecycle(paid(), [verified], active, false, null, [fundedIn(1000), out(st)]);
+    expect(led('release_authorised').state).toBe('release_authorised');
+    expect(led('initiated').state).toBe('disbursement_initiated');
+    expect(led('disbursed').state).toBe('disbursed');
+    expect(led('failed').state).toBe('payment_failed');
+    expect(led('reconciling').state).toBe('payment_failed');
+    expect(stageLifecycle(paid(), [verified], active, true, null, [fundedIn(1000), out('disbursed')]).state).toBe('completed');
+  });
+  it('after a failure the newest row wins: a re-authorisation supersedes the failed one', () => {
+    const rows = [fundedIn(2000), out('failed', 1000, '2026-09-12T00:00:00Z'), out('release_authorised', 1000, '2026-09-13T00:00:00Z')];
+    expect(stageLifecycle(paid(), [verified], active, false, null, rows).state).toBe('release_authorised');
+  });
+  it('availableFunds = funded − every live out row', () => {
+    expect(availableFunds([fundedIn(3000), out('disbursed', 1000), out('release_authorised', 500), out('failed', 700), expected(9999)])).toBe(1500);
   });
 });
 

@@ -359,18 +359,6 @@ export async function fetchContractorProjects(userId: string): Promise<ProjectRo
   return data ?? [];
 }
 
-// =========================================================
-// updatePaymentStatus
-// Updates payment_status on a single project_stage row
-// =========================================================
-export async function updatePaymentStatus(
-  stageId: string,
-  status: PaymentStatus,
-): Promise<void> {
-  const { error } = await supabase
-    .from('project_stages')
-    .update({ payment_status: status })
-    .eq('id', stageId);
-
-  if (error) throw error;
-}
+// updatePaymentStatus is gone (090). `project_stages.payment_status` is a projection of
+// the payments ledger with exactly one writer — a trigger — and a guard that refuses any
+// other write. Funding is confirmed with confirmFunding() in lib/supabase/payments.ts.

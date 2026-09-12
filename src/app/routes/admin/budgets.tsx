@@ -9,6 +9,7 @@ import { decomposeBudget, formatUSDFull } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import LedgerPanel from '@/components/admin/LedgerPanel';
 
 interface PendingBudget {
   id: string;
@@ -240,6 +241,10 @@ export default function AdminBudgets() {
           ))}
         </div>
       )}
+
+      {/* The ledger (090): funding received and releases authorised, per the IA this page
+          absorbs milestone state (01 §"Payments & Budgets"). */}
+      <LedgerPanel />
 
       <AnimatePresence>
         {selected && (
