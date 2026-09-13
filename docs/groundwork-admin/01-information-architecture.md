@@ -35,33 +35,33 @@ Two decisions are adopted here and can be reversed by Philip before Phase 2:
 
 Four surfaces carry the product: **Overview** (what is happening), **Action Center** (what do I do), **Project Workspace** (this project), **Unified Inbox** (what are people saying). Every other item is a queue, a directory or a setting that opens into one of those four. GoHighLevel and SwyChr are integrations *under* the product, never top-level items.
 
-## 2. The sidebar (locked)
+## 2. The sidebar (locked — labels amended 13 September 2026)
 
 ```
 OVERVIEW
   Overview
   Action Center
 
-PROJECT OPERATIONS
+WORK
   Projects
-  Stages & Reviews
+  Reviews & Approvals
+  Budgets
   Site Updates
-  Verification
-  Payments & Budgets
-  Tasks
-  Issues & Risks
   Inspections
+  Tasks
 
 PEOPLE
   Clients
   Contractors
-  Verifiers
+  Site Managers
+  Users
   Agents
-  Team
 
 COMMUNICATION
   Inbox
   WhatsApp
+  Notifications
+  Jalla Messages
   Email
   Calls
 
@@ -77,7 +77,6 @@ SUPPORT
 
 ANALYTICS
   Analytics
-  Reports
 
 SYSTEM
   Integrations
@@ -87,7 +86,23 @@ SYSTEM
   Settings
 ```
 
-Thirty-two items in eight groups. Eleven exist today as pages, seven are renames or moves, fourteen are new. The mobile tab bar takes the first five (Overview, Action Center, Projects, Stages & Reviews, Site Updates) — the shell already does this (`AppShell.tsx`, `nav.slice(0, 5)`).
+Thirty-one items in eight groups. The mobile tab bar takes the first five (Overview, Action Center, Projects, Reviews & Approvals, Budgets) — the shell already does this (`AppShell.tsx`, `nav.slice(0, 5)`).
+
+**Amendment of 13 September 2026** (product decision, made against the dark-mode concept in `docs/admin/`; the concept supplies the *visual* language, the light concept the *content*, and neither supplies data). Labels changed, semantics kept:
+
+| Before | After | Semantics |
+|---|---|---|
+| Stages & Reviews | **Reviews & Approvals** | same queue (`/admin/reviews`) |
+| Payments & Budgets | **Budgets** | same page (`/admin/budgets`); it carries the 090 ledger |
+| Team (People) | **Users** | same page (`/admin/users`) |
+| — | **Site Managers** | *no backing entity* (01 §5 stands) — an honest empty state until one exists |
+| — | **Notifications** (Communication) | the admin's notification list; the bell stays in the top bar |
+| — | **Jalla Messages** (Communication) | the platform-chat channel filter on the Inbox (rule 4 stands: one conversation store) |
+| Verification, Verifiers | *removed from the sidebar* | verification lives in Reviews & Approvals and the Workspace's Stages tab (087); verifiers are Users with the role |
+| Reports | *removed* | folded into Analytics |
+| Agent Requests (Acquisition) | **not adopted** | `agent_requests` (054–058) is the Claude automation desk → **Automation Requests** under System, as before; sales-agent requests are a future feature with no data |
+
+Items with no page yet render an honest empty state at their own URL — never a dead link, never invented rows (rules 1, 3, 5).
 
 ## 3. Item by item
 

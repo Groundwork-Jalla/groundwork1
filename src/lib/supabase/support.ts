@@ -82,6 +82,22 @@ export async function listSupportTickets(limit = 200): Promise<SupportTicket[]> 
 }
 
 /**
+ * The open queue — `open` and `in_progress`, newest first. The Overview and the Action
+ * Center read tickets through here rather than querying the table, so every path to
+ * `support_tickets` stays in this module (schema-coverage.test.ts pins that).
+ */
+export async function listOpenSupportTickets(limit = 200): Promise<SupportTicket[]> {
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select('*')
+    .in('status', ['open', 'in_progress'])
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SupportTicket[];
+}
+
+/**
  * Move a ticket through the queue. Admin only, enforced by RLS.
  *
  * `subject`, `message`, `email`, `kind` and `user_id` cannot be changed here or anywhere

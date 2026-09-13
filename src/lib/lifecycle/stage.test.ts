@@ -167,7 +167,18 @@ describe('the ledger (090): eligibility is computed, authorisation is a row', ()
     const rows = [fundedIn(2000), out('failed', 1000, '2026-09-12T00:00:00Z'), out('release_authorised', 1000, '2026-09-13T00:00:00Z')];
     expect(stageLifecycle(paid(), [verified], active, false, null, rows).state).toBe('release_authorised');
   });
-  it('availableFunds = funded − every live out row', () => {
+  it('a stage that owes nothing is never payment_eligible \u2014 there is nothing to authorise', () => {
+    // 45 production stages are priced at $0 (a legitimate apply_budget_milestones output).
+    // availableFunds(0) >= 0 would have made them "payment ready", and authorise_release()
+    // refuses any positive amount on them (over_milestone). See 092 / the $0 rule.
+    const zero = { id: 's1', stage_number: 2, status: 'complete' as const, verification_required: true, payment_milestone_usd: 0 };
+    expect(stageLifecycle(zero, [verified], active, false, null, [fundedIn(5000)])).toEqual({ state: 'approved', blockers: [] });
+    const noMilestone = { ...zero, payment_milestone_usd: null };
+    expect(stageLifecycle(noMilestone, [verified], active, false, null, [fundedIn(5000)]).state).toBe('approved');
+    // and it still completes normally once the next stage starts
+    expect(stageLifecycle(zero, [verified], active, true, null, [fundedIn(5000)]).state).toBe('completed');
+  });
+  it('availableFunds = funded \u2212 every live out row', () => {
     expect(availableFunds([fundedIn(3000), out('disbursed', 1000), out('release_authorised', 500), out('failed', 700), expected(9999)])).toBe(1500);
   });
 });

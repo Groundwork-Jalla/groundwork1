@@ -93,13 +93,16 @@ export function LanguageToggle({
       onClick={toggle}
       title={title}
       className={cn(
-        'flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors dark:hover:text-white dark:hover:bg-[#2c2c2c]',
+        'flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors',
+        onDark
+          ? 'text-white/60 hover:text-white hover:bg-white/10'
+          : 'text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white dark:hover:text-white dark:hover:bg-[#2c2c2c]',
         className,
       )}
     >
       <Languages className="size-4 shrink-0" />
       <span className="flex-1 text-left">{t('lang.language')}</span>
-      <span className="text-[11px] font-bold text-brand-near-black dark:text-white">
+      <span className={cn('text-[11px] font-bold', onDark ? 'text-white' : 'text-brand-near-black dark:text-white')}>
         {LANG_META[lang].short}
       </span>
     </button>

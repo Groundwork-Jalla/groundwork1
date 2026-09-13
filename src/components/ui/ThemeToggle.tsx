@@ -6,7 +6,7 @@ import { useT } from '@/lib/i18n';
 // It now comes from ThemeProvider so every toggle agrees and the choice is stored
 // against the account — see contexts/ThemeContext.tsx.
 
-export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+export function ThemeToggle({ compact = false, onDark = false }: { compact?: boolean; /** Light-on-dark, for a surface that stays dark in both themes (the admin sidebar). */ onDark?: boolean }) {
   const { theme, toggle } = useTheme();
   const t = useT();
   const dark = theme === 'dark';
@@ -18,7 +18,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         onClick={toggle}
         title={label}
         aria-label={label}
-        className="flex size-8 items-center justify-center rounded-lg text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
+        className={onDark
+          ? 'flex size-8 items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors'
+          : 'flex size-8 items-center justify-center rounded-lg text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors'}
       >
         {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </button>
@@ -30,7 +32,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       onClick={toggle}
       title={label}
       aria-label={label}
-      className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
+      className={onDark
+        ? 'flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors'
+        : 'flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors'}
     >
       {dark ? <Sun className="size-4 shrink-0" /> : <Moon className="size-4 shrink-0" />}
       {dark ? t('theme.lightMode') : t('theme.darkMode')}

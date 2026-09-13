@@ -2,6 +2,8 @@ import {
   LayoutDashboard, FolderOpen, BookOpen, HardHat, CreditCard, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
   FileText, Mailbox, FilePen, Radio, Clapperboard, LifeBuoy, MessagesSquare,
+  ListChecks, Camera, SearchCheck, ListTodo, UserRound, UserCog, Handshake,
+  Inbox, MessageCircle, Mail, Phone, FileQuestion, BarChart3, Plug, ShieldCheck, ScrollText,
 } from 'lucide-react';
 import type { TKey } from '@/lib/i18n';
 
@@ -50,28 +52,77 @@ export const CLIENT_NAV: NavItem[] = [
   { to: '/help',          labelKey: 'nav.help',                                    icon: HelpCircle },
 ];
 
-// Grouped by workflow, not by when each page was added. Thirteen flat items had become a
-// list you scan rather than a map you navigate. The first five still feed the mobile tab
-// bar, so the overview and the two review queues stay at the top.
+// The sidebar of docs/groundwork-admin/01-information-architecture.md §2 (labels amended
+// 13 Sep 2026). Eight groups; the first five items feed the mobile tab bar. Items whose
+// page is not built yet point at their own URL and render an honest empty state
+// (routes/admin/placeholder.tsx) — never a dead link, never invented rows.
 export const ADMIN_NAV: NavItem[] = [
-  { to: '/admin',              labelKey: 'nav.overview',     icon: LayoutDashboard, exact: true },
+  { to: '/admin',                    labelKey: 'nav.overview',           icon: LayoutDashboard, exact: true, section: 'nav.sectionOverview' },
+  { to: '/admin/action-center',      labelKey: 'nav.actionCenter',       icon: ListChecks },
 
-  { to: '/admin/reviews',      labelKey: 'nav.reviews',      icon: ClipboardCheck, section: 'nav.sectionOperations' },
-  { to: '/admin/budgets',      labelKey: 'nav.budgets',      icon: Wallet },
-  { to: '/admin/projects',     labelKey: 'nav.projects',     icon: FolderOpen },
+  { to: '/admin/projects',           labelKey: 'nav.projects',           icon: FolderOpen,     section: 'nav.sectionWork' },
+  { to: '/admin/reviews',            labelKey: 'nav.reviewsApprovals',   icon: ClipboardCheck },
+  { to: '/admin/budgets',            labelKey: 'nav.budgets',            icon: Wallet },
+  { to: '/admin/site-updates',       labelKey: 'nav.siteUpdates',        icon: Camera },
+  { to: '/admin/inspections',        labelKey: 'nav.inspections',        icon: SearchCheck },
+  { to: '/admin/tasks',              labelKey: 'nav.tasks',              icon: ListTodo },
 
-  { to: '/admin/users',        labelKey: 'nav.users',        icon: Users,          section: 'nav.sectionPeople' },
-  { to: '/admin/contractors',  labelKey: 'nav.contractors',  icon: HardHat },
-  { to: '/admin/applications', labelKey: 'nav.applications', icon: FileText },
-  { to: '/admin/drafts',       labelKey: 'nav.drafts',       icon: FilePen },
+  { to: '/admin/clients',            labelKey: 'nav.clients',            icon: UserRound,      section: 'nav.sectionPeople' },
+  { to: '/admin/contractors',        labelKey: 'nav.contractors',        icon: HardHat },
+  { to: '/admin/site-managers',      labelKey: 'nav.siteManagers',       icon: UserCog },
+  { to: '/admin/users',              labelKey: 'nav.users',              icon: Users },
+  { to: '/admin/agents',             labelKey: 'nav.agents',             icon: Handshake },
 
-  { to: '/admin/waitlist',     labelKey: 'nav.waitlist',     icon: Mailbox,        section: 'nav.sectionGrowth' },
-  { to: '/admin/inquiries',    labelKey: 'nav.inquiries',    icon: MessagesSquare },
-  { to: '/admin/crm',          labelKey: 'nav.crm',          icon: Radio },
+  { to: '/admin/inbox',              labelKey: 'nav.inbox',              icon: Inbox,          section: 'nav.sectionCommunication' },
+  { to: '/admin/whatsapp',           labelKey: 'nav.whatsapp',           icon: MessageCircle },
+  { to: '/admin/notifications',      labelKey: 'nav.notifications',      icon: Bell },
+  { to: '/admin/messages',           labelKey: 'nav.jallaMessages',      icon: MessagesSquare },
+  { to: '/admin/email',              labelKey: 'nav.email',              icon: Mail },
+  { to: '/admin/calls',              labelKey: 'nav.calls',              icon: Phone },
 
-  { to: '/admin/support',      labelKey: 'nav.support',      icon: LifeBuoy,       section: 'nav.sectionDesk' },
-  { to: '/admin/requests',     labelKey: 'nav.requests',     icon: Clapperboard },
+  { to: '/admin/applications',       labelKey: 'nav.applications',       icon: FileText,       section: 'nav.sectionAcquisition' },
+  { to: '/admin/drafts',             labelKey: 'nav.startedApplications', icon: FilePen },
+  { to: '/admin/waitlist',           labelKey: 'nav.waitlist',           icon: Mailbox },
+  { to: '/admin/inquiries',          labelKey: 'nav.quoteRequests',      icon: FileQuestion },
+  { to: '/admin/crm',                labelKey: 'nav.crm',                icon: Radio },
+
+  { to: '/admin/support',            labelKey: 'nav.support',            icon: LifeBuoy,       section: 'nav.sectionSupport' },
+
+  { to: '/admin/analytics',          labelKey: 'nav.analytics',          icon: BarChart3,      section: 'nav.sectionAnalytics' },
+
+  { to: '/admin/integrations',       labelKey: 'nav.integrations',       icon: Plug,           section: 'nav.sectionSystem' },
+  { to: '/admin/requests',           labelKey: 'nav.automationRequests', icon: Clapperboard },
+  { to: '/admin/team',               labelKey: 'nav.teamPermissions',    icon: ShieldCheck },
+  { to: '/admin/audit-log',          labelKey: 'nav.auditLog',           icon: ScrollText },
+  { to: '/admin/settings',           labelKey: 'nav.adminSettings',      icon: Settings },
 ];
+
+/**
+ * Admin destinations that have a sidebar entry but no page yet. `routes/admin/placeholder.tsx`
+ * answers `/admin/:section` for exactly these and 404s for anything else; each renders an
+ * honest empty state and, where the information already lives somewhere, a link to it.
+ * TEMPORARY by design — an entry leaves this list the day its page ships.
+ */
+export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: string; existingKey?: TKey }> = {
+  'action-center': { labelKey: 'nav.actionCenter' },
+  'site-updates':  { labelKey: 'nav.siteUpdates',   existingTo: '/admin/reviews',  existingKey: 'nav.reviewsApprovals' },
+  'inspections':   { labelKey: 'nav.inspections' },
+  'tasks':         { labelKey: 'nav.tasks' },
+  'clients':       { labelKey: 'nav.clients',       existingTo: '/admin/users',    existingKey: 'nav.users' },
+  'site-managers': { labelKey: 'nav.siteManagers' },
+  'agents':        { labelKey: 'nav.agents' },
+  'inbox':         { labelKey: 'nav.inbox' },
+  'whatsapp':      { labelKey: 'nav.whatsapp' },
+  'notifications': { labelKey: 'nav.notifications' },
+  'messages':      { labelKey: 'nav.jallaMessages' },
+  'email':         { labelKey: 'nav.email' },
+  'calls':         { labelKey: 'nav.calls' },
+  'analytics':     { labelKey: 'nav.analytics' },
+  'integrations':  { labelKey: 'nav.integrations',  existingTo: '/admin/crm',      existingKey: 'nav.crm' },
+  'team':          { labelKey: 'nav.teamPermissions', existingTo: '/admin/users',  existingKey: 'nav.users' },
+  'audit-log':     { labelKey: 'nav.auditLog',      existingTo: '/admin',          existingKey: 'nav.overview' },
+  'settings':      { labelKey: 'nav.adminSettings' },
+};
 
 /**
  * Title shown in the top bar. Longest match wins, so `/projects/:id` resolves to

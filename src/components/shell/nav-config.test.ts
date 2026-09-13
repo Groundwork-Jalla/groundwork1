@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ADMIN_NAV, CLIENT_NAV, pageTitleKey } from './nav-config';
+import { ADMIN_NAV, ADMIN_PLACEHOLDERS, CLIENT_NAV, pageTitleKey } from './nav-config';
 
 /**
  * The sidebar is data, and data can point at nothing.
@@ -20,16 +20,34 @@ const declared = new Set(
 );
 
 describe('nav points at real routes', () => {
+  // An admin item may instead be answered by the temporary `admin/:section` placeholder.
+  const placeholderRoute = declared.has('/admin/:section');
   for (const item of [...CLIENT_NAV, ...ADMIN_NAV]) {
     it(`${item.to} is declared in routes.ts`, () => {
-      expect(declared.has(item.to), `no route for ${item.to}`).toBe(true);
+      const viaPlaceholder = placeholderRoute && ADMIN_PLACEHOLDERS[item.to.replace('/admin/', '')] !== undefined;
+      expect(declared.has(item.to) || viaPlaceholder, `no route for ${item.to}`).toBe(true);
     });
   }
 });
 
 describe('admin nav shape', () => {
-  it('leads with the overview and the two review queues (mobile tab bar takes the first five)', () => {
-    expect(ADMIN_NAV.slice(0, 3).map(i => i.to)).toEqual(['/admin', '/admin/reviews', '/admin/budgets']);
+  it('leads with Overview, Action Center, Projects, Reviews & Approvals, Budgets (the mobile tab bar takes the first five — IA 01 §2)', () => {
+    expect(ADMIN_NAV.slice(0, 5).map(i => i.to)).toEqual(['/admin', '/admin/action-center', '/admin/projects', '/admin/reviews', '/admin/budgets']);
+  });
+
+  it('eight groups, in the IA\u2019s order', () => {
+    const sections = ADMIN_NAV.map(i => i.section).filter(Boolean);
+    expect(sections).toEqual(['nav.sectionOverview', 'nav.sectionWork', 'nav.sectionPeople', 'nav.sectionCommunication', 'nav.sectionAcquisition', 'nav.sectionSupport', 'nav.sectionAnalytics', 'nav.sectionSystem']);
+  });
+
+  it('every unbuilt item has a placeholder entry and every placeholder has a sidebar item — the list is temporary and must not drift', () => {
+    const built = new Set([...declared].filter(p => p.startsWith('/admin') && !p.includes(':')));
+    for (const item of ADMIN_NAV) {
+      const key = item.to.replace('/admin/', '');
+      if (built.has(item.to)) expect(ADMIN_PLACEHOLDERS[key], `${item.to} is built but still listed as a placeholder`).toBeUndefined();
+      else expect(ADMIN_PLACEHOLDERS[key], `${item.to} has neither a page nor a placeholder`).toBeDefined();
+    }
+    for (const key of Object.keys(ADMIN_PLACEHOLDERS)) expect(ADMIN_NAV.some(i => i.to === `/admin/${key}`), `placeholder ${key} has no sidebar item`).toBe(true);
   });
 
   it('every admin page is reachable from the sidebar', () => {

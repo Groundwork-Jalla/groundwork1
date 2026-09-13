@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router';
 import { AppShell } from '@/components/shell/AppShell';
 import { ADMIN_NAV } from '@/components/shell/nav-config';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { AdminTopBarActions } from '@/components/admin/AdminTopBarActions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT } from '@/lib/i18n';
 
@@ -54,7 +55,8 @@ export default function AdminLayout() {
       // The support (074) and inquiry (076) triggers have written admin notifications
       // since they shipped; without this the only place an admin could see them was the
       // client shell's /notifications page, which admins never open.
-      topBarActions={<NotificationBell userId={user?.id ?? ''} />}
+      topBarActions={<AdminTopBarActions userId={user?.id ?? ''} />}
+      sidebarTone="dark"
     >
       <Outlet />
     </AppShell>

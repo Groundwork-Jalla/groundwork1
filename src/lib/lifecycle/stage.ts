@@ -146,8 +146,15 @@ export function stageLifecycle(
       if (!payments) { state = nextStageStarted ? 'completed' : 'approved'; break; }
       // Approved and unpaid: eligible only when verified (if required), funded, and not on
       // hold. Otherwise approved with the first reason as a blocker — never a stored flag.
+      //
+      // A stage with NO milestone (null or 0) owes nothing, so there is nothing to
+      // authorise and it is never `payment_eligible`: `authorise_release()` refuses any
+      // positive amount on it (`over_milestone`), and an Action Center item offering a
+      // release the database would refuse is worse than no item. 092's projection agrees —
+      // a $0 stage reads as paid. Production has 45 such stages.
       const verifiedOk = !required || v?.decision === 'verified';
       const milestone  = stage.payment_milestone_usd ?? 0;
+      if (milestone <= 0) { state = nextStageStarted ? 'completed' : 'approved'; break; }
       if (availableFunds(payments) < milestone) blockers.push('awaiting_funding');
       state = verifiedOk && blockers.length === 0 ? 'payment_eligible' : 'approved';
       break;

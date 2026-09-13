@@ -1,5 +1,11 @@
 import { supabase } from './client';
 import { ownerLookup } from './admin-users';
+import { isMissingTable } from '@/lib/errors';
+import { getCrmStatus, listCrmBacklog, listSyncFailures, type CrmStatus } from './admin-applications';
+import { listOpenSupportTickets } from './support';
+import { listAdminUsers } from './admin-users';
+import { listApplications, listDirectory, listWaitlist } from './admin-applications';
+import { fetchApplicationDrafts } from './application-drafts';
 import { projectHealth, type ActivityStamps, type ProjectHealth } from '@/lib/admin/health';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 
@@ -31,6 +37,9 @@ export interface ScoredProject extends OverviewProject {
   health: ProjectHealth;
   /** Most recent of every activity signal, for the "last update" column. */
   lastActivityAt: string | null;
+  /** Stage rows complete / total — progress is this ratio, nothing estimated. */
+  stagesComplete: number;
+  stagesTotal: number;
 }
 
 export interface OpsBacklog {
@@ -55,7 +64,35 @@ export interface AuditEntry {
   createdAt: string;
 }
 
+export interface LocationCount { country: string; city: string | null; count: number }
+export interface OpenTicket { id: string; subject: string; who: string; status: string; createdAt: string }
+export interface CrmState {
+  /** null when the status call itself failed (not signed in as admin, function down). */
+  status: CrmStatus | null;
+  /** Outbox rows still to deliver, and rows that failed. */
+  backlog: number;
+  failures: number;
+  /** Newest inbound webhook event and newest outbox row, when readable. */
+  lastInboundAt: string | null;
+  lastOutboundAt: string | null;
+}
+
+/** One step of the real contractor funnel. `status` is the database's own value. */
+export interface FunnelStep { key: string; count: number; to: string }
+/** Contractors grouped by a real column on the directory row. */
+export interface DistributionSlice { label: string; count: number }
+
 export interface AdminOverviewData {
+  /** The signed-in admin's own name, from their profile — for the greeting. */
+  viewerName: string;
+  /** Every account the admin may list (admin_list_users). null when the call failed. */
+  totalUsers: number | null;
+  /** contractor_inquiries still open. */
+  quoteRequests: number | null;
+  /** waitlist → started → pending → reviewing → accepted, from the real rows. */
+  funnel: FunnelStep[] | null;
+  /** Published contractors by trade — the directory's own column. */
+  contractorsByTrade: DistributionSlice[] | null;
   projects: ScoredProject[];
   /** Stage number → count of tracked, unfinished projects currently on it. */
   pipeline: Map<number, number>;
@@ -63,6 +100,13 @@ export interface AdminOverviewData {
   recent: AuditEntry[];
   /** False when the 084 RPC is not applied; health then leans on updated_at only. */
   activityAvailable: boolean;
+  /** Real aggregation of projects.country / city — a table, not a map (no pins until Phase 7). */
+  locations: LocationCount[];
+  /** conversations.status <> 'resolved' (091). null when the table is not there yet. */
+  openConversations: number | null;
+  /** Open and in-progress support tickets, newest first. */
+  tickets: OpenTicket[];
+  crm: CrmState;
 }
 
 type Row = Record<string, unknown>;
@@ -107,6 +151,23 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     count('contractor_inquiries', q => q.eq('status', 'open')),
     count('agent_requests', q => q.eq('status', 'new')),
   ]);
+  // Independent, fail-soft: 091's table may not be there; the CRM status call may fail;
+  // neither may hide the page. Every miss is reported as null / empty, never as a number.
+  const [convRes, ticketsRes, crmStatusRes, outboxRes, failuresRes, inboundRes,
+         usersRes, quotesRes, appsRes, waitlistRes, draftsRes, directoryRes] = await Promise.allSettled([
+    supabase.from('conversations').select('id', { count: 'exact', head: true }).neq('status', 'resolved'),
+    listOpenSupportTickets(5),
+    getCrmStatus(),
+    listCrmBacklog(),
+    listSyncFailures(),
+    supabase.from('ghl_inbound_events').select('created_at').order('created_at', { ascending: false }).limit(1),
+    listAdminUsers(),
+    count('contractor_inquiries', q => q.eq('status', 'open')),
+    listApplications(),
+    listWaitlist(),
+    fetchApplicationDrafts(true),
+    listDirectory(),
+  ]);
 
   if (projectsRes.error) throw projectsRes.error;
   if (stagesRes.error)   throw stagesRes.error;
@@ -144,8 +205,11 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
       .filter((x): x is string => !!x)
       .sort()
       .at(-1) ?? null;
+    const mine = stagesByProject.get(p.id) ?? [];
     return {
       ...p,
+      stagesComplete: mine.filter(s => s.status === 'complete').length,
+      stagesTotal: mine.length,
       ownerName:  owner?.name  ?? '',
       ownerEmail: owner?.email ?? '',
       health,
@@ -161,7 +225,15 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
   }
 
   // ── Recent activity, with names resolved client-side (same reason as ownerLookup) ─
+  // Names for every project the audit log can reference — including archived ones, which
+  // the scored list excludes. Without this an older row shows a raw uuid as its project.
   const nameOf = new Map(projects.map(p => [p.id, p.name]));
+  const auditProjectIds = [...new Set(((auditRes.data ?? []) as unknown as Row[])
+    .map(r => str(r.project_id)).filter(id => id && !nameOf.has(id)))];
+  if (auditProjectIds.length > 0) {
+    const { data: extra } = await supabase.from('projects').select('id, name').in('id', auditProjectIds);
+    for (const p of (extra ?? []) as unknown as Row[]) nameOf.set(str(p.id), str(p.name));
+  }
   const recent: AuditEntry[] = ((auditRes.data ?? []) as unknown as Row[]).map(r => ({
     id:          str(r.id),
     projectId:   str(r.project_id),
@@ -173,7 +245,72 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     createdAt:   str(r.created_at),
   }));
 
+  // ── Locations: a real GROUP BY over the rows already loaded ────────────────────────
+  const locMap = new Map<string, LocationCount>();
+  for (const p of projects) {
+    const country = (p.country ?? '').toUpperCase() || '—';
+    const city = p.city?.trim() || null;
+    const key = `${country}|${city ?? ''}`;
+    const cur = locMap.get(key) ?? { country, city, count: 0 };
+    cur.count += 1; locMap.set(key, cur);
+  }
+  const locations = [...locMap.values()].sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+
+  const openConversations =
+    convRes.status === 'fulfilled' && !convRes.value.error ? (convRes.value.count ?? 0)
+    : convRes.status === 'fulfilled' && isMissingTable(convRes.value.error) ? null
+    : null;
+
+  const tickets: OpenTicket[] = ticketsRes.status === 'fulfilled'
+    ? ticketsRes.value.map(t => ({ id: t.id, subject: t.subject, who: t.name || t.email, status: t.status, createdAt: t.created_at }))
+    : [];
+
+  const outbox = outboxRes.status === 'fulfilled' ? outboxRes.value : [];
+  const crm: CrmState = {
+    status:         crmStatusRes.status === 'fulfilled' ? crmStatusRes.value : null,
+    backlog:        outbox.filter(r => r.status === 'pending').length,
+    failures:       failuresRes.status === 'fulfilled' ? failuresRes.value.length : 0,
+    lastInboundAt:  inboundRes.status === 'fulfilled' && !inboundRes.value.error ? (str((inboundRes.value.data?.[0] as Row | undefined)?.created_at) || null) : null,
+    lastOutboundAt: outbox.length ? outbox.map(r => r.created_at).sort().at(-1) ?? null : null,
+  };
+
+  // The viewer's own name. `ownerLookup()` is already loaded and keyed by user id, so
+  // this costs nothing beyond the session read — and it is their real profile name, not
+  // the local part of their email address.
+  const { data: auth } = await supabase.auth.getUser();
+  const viewerName = (auth.user ? owners.get(auth.user.id)?.name : '') || '';
+
+  // ── The contractor funnel, from the rows themselves ────────────────────────────────
+  const apps = appsRes.status === 'fulfilled' ? appsRes.value : null;
+  const byStatus = (st: string) => apps?.filter(a => a.status === st).length ?? 0;
+  const funnel: FunnelStep[] | null = apps
+    ? [
+        { key: 'waitlist',  count: waitlistRes.status === 'fulfilled' ? waitlistRes.value.length : 0, to: '/admin/waitlist' },
+        { key: 'started',   count: draftsRes.status === 'fulfilled' ? draftsRes.value.length : 0,     to: '/admin/drafts' },
+        { key: 'pending',   count: byStatus('pending'),   to: '/admin/applications' },
+        { key: 'reviewing', count: byStatus('reviewing'), to: '/admin/applications' },
+        { key: 'accepted',  count: byStatus('accepted'),  to: '/admin/applications' },
+      ]
+    : null;
+
+  // ── Contractors by trade — the directory's own column, nothing derived ────────────
+  let contractorsByTrade: DistributionSlice[] | null = null;
+  if (directoryRes.status === 'fulfilled') {
+    const byTrade = new Map<string, number>();
+    for (const c of directoryRes.value) {
+      const label = c.trade?.trim() || '';
+      if (!label) continue;
+      byTrade.set(label, (byTrade.get(label) ?? 0) + 1);
+    }
+    contractorsByTrade = [...byTrade].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+  }
+
   return {
+    viewerName,
+    totalUsers:    usersRes.status === 'fulfilled' ? usersRes.value.length : null,
+    quoteRequests: quotesRes.status === 'fulfilled' ? num(quotesRes.value) : null,
+    funnel,
+    contractorsByTrade,
     projects: scored,
     pipeline,
     backlog: {
@@ -186,5 +323,9 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     },
     recent,
     activityAvailable,
+    locations,
+    openConversations,
+    tickets,
+    crm,
   };
 }

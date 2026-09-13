@@ -28,12 +28,14 @@ export interface AppShellProps {
   userCaptionKey?: AppShellPropsCaption;
   /** Rendered at the right of the top bar — the notification bell, avatar, etc. */
   topBarActions?: ReactNode;
+  /** Sidebar treatment; see AppSidebar. The admin passes `dark`. */
+  sidebarTone?: 'light' | 'dark';
   children: ReactNode;
 }
 type AppShellPropsCaption = Parameters<ReturnType<typeof useT>>[0];
 
 export function AppShell({
-  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, children,
+  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, sidebarTone, children,
 }: AppShellProps) {
   const { pathname } = useLocation();
   const [drawer, setDrawer] = useState(false);
@@ -48,6 +50,7 @@ export function AppShell({
       userCaptionKey={userCaptionKey}
       onLogout={onLogout}
       onNavigate={onNavigate}
+      tone={sidebarTone}
     />
   );
 

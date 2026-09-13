@@ -84,5 +84,8 @@ export default [
     route("admin/requests",         "routes/admin/requests.tsx"),
     route("admin/support",          "routes/admin/support.tsx"),
     route("admin/inquiries",        "routes/admin/inquiries.tsx"),
+    // TEMPORARY: sidebar items with no page yet (ADMIN_PLACEHOLDERS in nav-config.ts). A
+    // static route above always wins over this dynamic one; anything not in the list 404s.
+    route("admin/:section",         "routes/admin/placeholder.tsx"),
   ]),
 ] satisfies RouteConfig;
