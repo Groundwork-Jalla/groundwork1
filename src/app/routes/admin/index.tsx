@@ -45,6 +45,14 @@ import { cn } from '@/lib/utils';
 /** TEMPORARY (Phase 5): the Workspace route does not exist yet, so a project opens the
  *  client-facing page in a new tab, as the projects list does today. When
  *  `/admin/projects/:id` ships this becomes that link and the flag goes. */
+/**
+ * The dashboard's ONE spacing token. Every gap on this page — between the KPI cards,
+ * between the columns, between the cards inside a column, and between the body and the
+ * rail — is this value, so the page has a single vertical and horizontal rhythm instead
+ * of four arbitrary margins that happened to look right once.
+ */
+const DASHBOARD_GAP = 'gap-5';
+
 const WORKSPACE_READY = false;
 const projectLink = (id: string) => (WORKSPACE_READY ? `/admin/projects/${id}` : `/projects/${id}`);
 
@@ -75,7 +83,7 @@ export default function AdminOverview() {
     : [];
 
   return (
-    <div className="flex flex-col gap-5 p-5 sm:p-6 2xl:p-8">
+    <div className={cn('flex flex-col p-5 sm:p-6 2xl:p-8', DASHBOARD_GAP)}>
       <OverviewHero name={firstName(data?.viewerName, user)} now={now} />
 
       {error && (
@@ -91,13 +99,23 @@ export default function AdminOverview() {
         </p>
       )}
 
-      {/* Main dashboard + right operational rail. The rail drops below the body on
-          tablets and stacks on phones. */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex min-w-0 flex-col gap-5">
+      {/*
+        THREE INDEPENDENT COLUMN STACKS (Favour, 14 Sep 2026).
 
-          {/* ── Eight metrics ──────────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        The body used to be two synchronised grid ROWS, so the tallest card in a row set
+        the height of everything beside it — Map View made Applications Funnel 400px tall
+        with 150px of nothing under its five bars. Rows are gone. The main area is two
+        `flex-col` stacks and the rail is a third, so every card is exactly as tall as its
+        own content and no card is ever stretched to match a neighbour.
+
+        Cards are NOT padded, stretched or filled to line up. Natural content height plus
+        one consistent gap is the whole rhythm — DASHBOARD_GAP below is that one token.
+      */}
+      <div className={cn('grid xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]', DASHBOARD_GAP)}>
+        <div className={cn('flex min-w-0 flex-col', DASHBOARD_GAP)}>
+
+          {/* ── Eight metrics: 4 x 2, and they stop where the rail starts ───────────── */}
+          <div className={cn('grid grid-cols-2 sm:grid-cols-4', DASHBOARD_GAP)}>
             <Kpi labelKey="admin.kpiRow.totalProjects"  value={data ? projects.length : null}             to={KPI_LINKS.totalProjects}  subtitle={t('admin.kpiRow.totalProjectsSub')} />
             <Kpi labelKey="admin.kpiRow.pendingReviews" value={data?.backlog.pendingReviews ?? null}      to={KPI_LINKS.pendingReviews} subtitle={t('admin.kpiRow.pendingReviewsSub')} />
             <Kpi labelKey="admin.kpiRow.totalUsers"     value={data ? data.totalUsers : null}             to={KPI_LINKS.totalUsers}     subtitle={t('admin.kpiRow.totalUsersSub')} />
@@ -108,48 +126,53 @@ export default function AdminOverview() {
             <Kpi labelKey="admin.kpiRow.pendingBudgets" value={data?.backlog.pendingBudgets ?? null}      to={KPI_LINKS.pendingBudgets} subtitle={t('admin.kpiRow.pendingBudgetsSub')} accent="held" />
           </div>
 
-          {/* ── Where the projects are · how applications progress ─────────────────── */}
-          <div className="grid items-start gap-5 lg:grid-cols-2">
-            <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo={SEE_ALL_LINKS.locations}>
-              {!data?.locations.length
-                ? <CardEmpty messageKey="admin.map.empty" />
-                : <ProjectsMap locations={data.locations} />}
-            </Card>
+          {/* The two main stacks. 1.15:1 — the left carries the map, which wants the
+              width; below `lg` they become one stack in this reading order. */}
+          <div className={cn('grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]', DASHBOARD_GAP)}>
 
-            <Card titleKey="admin.funnel.title" subtitleKey="admin.funnel.subtitle" viewAllTo={SEE_ALL_LINKS.funnel}>
-              {!data?.funnel
-                ? <CardEmpty messageKey="admin.funnel.empty" />
-                : <ApplicationsFunnel steps={data.funnel} />}
-            </Card>
-          </div>
+            {/* ── Left stack: where the work is · who does it ─────────────────────── */}
+            <div className={cn('flex min-w-0 flex-col', DASHBOARD_GAP)}>
+              <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo={SEE_ALL_LINKS.locations}>
+                {!data?.locations.length
+                  ? <CardEmpty messageKey="admin.map.empty" />
+                  : <ProjectsMap locations={data.locations} />}
+              </Card>
 
-          {/* ── Where the contractors are · what needs me ──────────────────────────── */}
-          <div className="grid items-start gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <Card titleKey="admin.distribution.title" subtitleKey="admin.distribution.subtitle" viewAllTo={SEE_ALL_LINKS.contractors}>
-              {!data?.contractorsByTrade?.length
-                ? <CardEmpty messageKey="admin.distribution.empty" />
-                : <ContractorDistribution slices={data.contractorsByTrade} />}
-            </Card>
+              <Card titleKey="admin.distribution.title" subtitleKey="admin.distribution.subtitle" viewAllTo={SEE_ALL_LINKS.contractors}>
+                {!data?.contractorsByTrade?.length
+                  ? <CardEmpty messageKey="admin.distribution.empty" />
+                  : <ContractorDistribution slices={data.contractorsByTrade} />}
+              </Card>
+            </div>
 
-            <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo={SEE_ALL_LINKS.attention}>
-              {!actions ? (
-                <CardEmpty messageKey="common.loading" />
-              ) : actions.items.length === 0 ? (
-                <CardEmpty messageKey="admin.attention.empty" />
-              ) : (
-                <AttentionList items={actions.items} now={now} limit={OVERVIEW_ROWS} />
-              )}
-              {unavailable.length > 0 && (
-                <p className="border-t border-brand-border-grey px-5 py-3 text-[11px] text-brand-mid-grey dark:border-[#2c2c2c]">
-                  {t('admin.attention.partial', { what: unavailable.join(', ') })}
-                </p>
-              )}
-            </Card>
+            {/* ── Right stack: what is coming in · what is waiting on me ──────────── */}
+            <div className={cn('flex min-w-0 flex-col', DASHBOARD_GAP)}>
+              <Card titleKey="admin.funnel.title" subtitleKey="admin.funnel.subtitle" viewAllTo={SEE_ALL_LINKS.funnel}>
+                {!data?.funnel
+                  ? <CardEmpty messageKey="admin.funnel.empty" />
+                  : <ApplicationsFunnel steps={data.funnel} />}
+              </Card>
+
+              <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo={SEE_ALL_LINKS.attention}>
+                {!actions ? (
+                  <CardEmpty messageKey="common.loading" />
+                ) : actions.items.length === 0 ? (
+                  <CardEmpty messageKey="admin.attention.empty" />
+                ) : (
+                  <AttentionList items={actions.items} now={now} limit={OVERVIEW_ROWS} />
+                )}
+                {unavailable.length > 0 && (
+                  <p className="border-t border-brand-border-grey px-5 py-3 text-[11px] text-brand-mid-grey dark:border-[#2c2c2c]">
+                    {t('admin.attention.partial', { what: unavailable.join(', ') })}
+                  </p>
+                )}
+              </Card>
+            </div>
           </div>
         </div>
 
         {/* ── The operational rail ─────────────────────────────────────────────────── */}
-        <aside className="flex min-w-0 flex-col gap-5">
+        <aside className={cn('flex min-w-0 flex-col', DASHBOARD_GAP)}>
           <Card titleKey="admin.ops.recentTitle" subtitleKey="admin.ops.recentSubtitle" viewAllTo={SEE_ALL_LINKS.activity}>
             {!data?.recent.length ? (
               <CardEmpty messageKey="admin.ops.recentEmpty" />
