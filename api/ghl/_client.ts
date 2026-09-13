@@ -346,7 +346,7 @@ export async function addConversationMessage(
   providerId: string,
   msg: ConversationMessage,
   bearer?: string,
-): Promise<GhlResult<{ messageId?: string }>> {
+): Promise<GhlResult<{ messageId?: string; conversationId?: string }>> {
   const conversationId = await ensureConversation(cfg, msg.contactId, bearer);
   if (!conversationId) {
     return { ok: false, status: 0, error: 'no_conversation' };
@@ -375,7 +375,9 @@ export async function addConversationMessage(
   if (!r.ok) return { ok: false, status: r.status, error: r.error };
   const d = r.data ?? {};
   const id = d.messageId ?? d.id ?? d._id;
-  return { ok: true, status: r.status, data: { messageId: id ? String(id) : undefined } };
+  // The thread id comes back with the message id: 091 records it on `conversations`
+  // as the thread's identity across the boundary.
+  return { ok: true, status: r.status, data: { messageId: id ? String(id) : undefined, conversationId } };
 }
 
 export async function addConversationEmail(

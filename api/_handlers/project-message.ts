@@ -18,8 +18,9 @@ import { accessToken } from '../ghl/_oauth.js';
  * thread, and everyone else's is `outbound` on it. Mirroring to the contractor's thread
  * as well would duplicate the conversation into two half-views of itself.
  *
- * `profiles.ghl_thread_project_id` is stamped on the way past, so a reply typed in GHL
- * knows which project it belongs to — see conversation-delivery.
+ * The GHL conversation id is recorded on our `conversations` row (091), so a reply
+ * typed in GHL is filed by the thread it belongs to — see conversation-delivery. The
+ * older `profiles.ghl_thread_project_id` heuristic is no longer written.
  *
  * ── Failure is not an error here ─────────────────────────────────────────────────────
  * The message is already in the database and already on the recipient's screen; the
@@ -77,6 +78,22 @@ export async function handler(req: any, res: any): Promise<void> {
   // handler ignoring it.
   if (msg.origin !== 'platform') {
     res.status(200).json({ ok: true, skipped: 'not_ours' });
+    return;
+  }
+
+  // `direction` and `conversation_id` arrive with 091. Selecting them in the query above
+  // would 42703 the whole call before the migration is pasted, so they are a second,
+  // fail-soft read.
+  const thread = await admin
+    .from('project_messages')
+    .select('direction, conversation_id')
+    .eq('id', messageId)
+    .maybeSingle();
+  const direction      = (thread.data?.direction as string | undefined) ?? null;
+  const conversationId = (thread.data?.conversation_id as string | undefined) ?? null;
+  // An internal note is staff talking to staff. It never leaves the platform.
+  if (direction === 'internal') {
+    res.status(200).json({ ok: true, skipped: 'internal' });
     return;
   }
 
@@ -142,6 +159,7 @@ export async function handler(req: any, res: any): Promise<void> {
 
     if (!posted.ok) {
       console.error('[chat-mirror] GHL rejected the message:', posted.status, posted.error);
+      if (conversationId) await admin.from('project_messages').update({ status: 'failed' }).eq('id', msg.id);
       res.status(200).json({ ok: false, reason: 'ghl_rejected', status: posted.status });
       return;
     }
@@ -151,16 +169,22 @@ export async function handler(req: any, res: any): Promise<void> {
       .update({
         ghl_message_id: posted.data?.messageId ?? 'sent',
         ghl_synced_at:  new Date().toISOString(),
+        ...(conversationId ? { status: 'delivered' } : {}),
       })
       .eq('id', msg.id);
 
-    // Which project this thread is currently about, so a reply lands in the right chat.
-    await admin
-      .from('profiles')
-      .update({ ghl_thread_project_id: project.id })
-      .eq('id', owner.id);
+    // The thread's identity across the boundary (091): GHL's conversation and contact
+    // ids on our conversation row, so a reply is filed by conversation — not by the
+    // per-profile `ghl_thread_project_id` heuristic, which is no longer written.
+    if (conversationId && posted.data?.conversationId) {
+      await admin
+        .from('conversations')
+        .update({ ghl_conversation_id: posted.data.conversationId, ghl_contact_id: contactId })
+        .eq('id', conversationId)
+        .is('ghl_conversation_id', null);
+    }
 
-    res.status(200).json({ ok: true, messageId: posted.data?.messageId });
+    res.status(200).json({ ok: true, messageId: posted.data?.messageId, conversationId: posted.data?.conversationId ?? null });
   } catch (e) {
     console.error('[chat-mirror] failed:', e);
     // Still a 200: the message is sent and delivered, only the CRM copy is missing, and

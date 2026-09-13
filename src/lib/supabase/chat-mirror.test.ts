@@ -113,18 +113,33 @@ describe('the mirror is actually reachable', () => {
   });
 });
 
-describe('a reply knows which project it belongs to', () => {
-  it('stamps the thread on the way out and reads it on the way in', () => {
-    // A GHL conversation is per contact, so a reply carries no project. The outbound
-    // mirror records which project the thread was last about; the inbound files against
-    // it. If either half goes, replies land in the wrong chat or in none.
-    expect(read('api/_handlers/project-message.ts')).toMatch(/ghl_thread_project_id/);
-    expect(read('api/_handlers/conversation-delivery.ts')).toMatch(/ghl_thread_project_id/);
-    expect(read('supabase/migrations/077_chat_ghl_mirror.sql')).toMatch(/ghl_thread_project_id/);
+describe('a reply knows which thread it belongs to (091)', () => {
+  it('the mirror records GHL\u2019s conversation id on our conversation and no longer stamps the profile', () => {
+    // A GHL conversation is per contact. Since 091 the thread's identity across the
+    // boundary is conversations.ghl_conversation_id, written by the mirror on the way
+    // out; the inbound handler resolves by it on the way in. The 077 per-profile
+    // heuristic (`ghl_thread_project_id`) is no longer written by anything.
+    const mirror = read('api/_handlers/project-message.ts');
+    expect(mirror).toMatch(/\.from\('conversations'\)\s*\.update\(\{ ghl_conversation_id: posted\.data\.conversationId, ghl_contact_id: contactId \}\)/);
+    expect(mirror).not.toMatch(/update\(\{ ghl_thread_project_id/);
+    expect(read('api/ghl/_client.ts')).toMatch(/conversationId \} \};\s*\}/);
   });
 
-  it('files nothing rather than guessing when the thread has no project', () => {
-    expect(read('api/_handlers/conversation-delivery.ts')).toMatch(/no_thread_project/);
+  it('the inbound handler resolves the thread in the database, and keeps the 077 heuristic only as the not-yet-applied fallback', () => {
+    const delivery = read('api/_handlers/conversation-delivery.ts');
+    expect(delivery).toMatch(/admin\.rpc\('ensure_inbound_conversation', \{/);
+    const rpcAt = delivery.indexOf("rpc('ensure_inbound_conversation'");
+    const legacyAt = delivery.indexOf('no_thread_project');
+    expect(legacyAt).toBeGreaterThan(rpcAt);
+    expect(delivery.slice(rpcAt, legacyAt)).toMatch(/PGRST202/);
+  });
+
+  it('an internal note never leaves the platform', () => {
+    expect(read('api/_handlers/project-message.ts')).toMatch(/if \(direction === 'internal'\) \{\s*res\.status\(200\)\.json\(\{ ok: true, skipped: 'internal' \}\);/);
+  });
+
+  it('files nothing rather than guessing when the recipient has no account', () => {
+    expect(read('api/_handlers/conversation-delivery.ts')).toMatch(/no_person/);
   });
 });
 

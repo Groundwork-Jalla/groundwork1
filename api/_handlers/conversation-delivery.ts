@@ -60,7 +60,7 @@ async function fileIntoProjectChat(
   recipientEmail: string,
   bodyText: string,
   raw: Record<string, unknown>,
-): Promise<{ filed: boolean; projectId?: string; reason: string; duplicate?: boolean }> {
+): Promise<{ filed: boolean; projectId?: string; conversationId?: string; reason: string; duplicate?: boolean }> {
   if (!recipientEmail || !bodyText) return { filed: false, reason: 'no_body' };
 
   let admin;
@@ -71,48 +71,82 @@ async function fileIntoProjectChat(
   }
 
   try {
+    // The person the message is for. A reply to someone with no account has no thread
+    // in Groundwork and goes out as email only.
     const { data: profile } = await admin
       .from('profiles')
       .select('id, ghl_thread_project_id')
       .ilike('email', recipientEmail)
       .maybeSingle();
+    if (!profile?.id) return { filed: false, reason: 'no_person' };
 
-    if (!profile?.ghl_thread_project_id) return { filed: false, reason: 'no_thread_project' };
-
-    // Whoever typed it in GHL. Falls back to the product name rather than to an empty
-    // bubble, because a message with no attribution reads as broken.
     const who =
       str(raw.userName) || str(raw.fromName) || addr(raw.emailFrom) || 'Jalla';
+    const ghlMessageId = str(raw.messageId) || str(raw.id) || null;
 
-    // Upsert, not insert. GoHighLevel delivers at least once — a retry, or a redeploy
-    // mid-request — and the same event used to become two identical rows and two
-    // "new message" emails. `project_messages_ghl_message_id_key` (085) is a plain unique
-    // index; `ignoreDuplicates` makes PostgREST emit ON CONFLICT … DO NOTHING against it.
-    // A message with no GHL id (null) never conflicts, so platform chat is untouched.
-    //
-    // `.select('id')` is what tells us which happened: DO NOTHING returns no row.
+    // ── The thread (091) ──────────────────────────────────────────────────────────
+    // Resolved in the database by GHL's conversation id, then contact id, then the
+    // person's newest open thread; created pre-project when none exists. Idempotent and
+    // safe under concurrent delivery (advisory lock + unique index).
+    const resolved = await admin.rpc('ensure_inbound_conversation', {
+      p_person:              profile.id,
+      p_ghl_conversation_id: str(raw.conversationId) || null,
+      p_ghl_contact_id:      str(raw.contactId) || null,
+      p_channel:             'email',
+    });
+
+    if (resolved.error && resolved.error.code !== 'PGRST202' && resolved.error.code !== '42883') {
+      console.error('[ghl-delivery] could not resolve the conversation:', resolved.error.message);
+      return { filed: false, reason: 'no_conversation' };
+    }
+
+    if (!resolved.error) {
+      const conversationId = resolved.data as string;
+      // Staff wrote this in GHL to the client: outbound from Groundwork's side. The
+      // BEFORE INSERT trigger fills project_id from the thread.
+      const { data: inserted, error } = await admin
+        .from('project_messages')
+        .upsert({
+          conversation_id: conversationId,
+          sender_id:       null,
+          sender_name:     who,
+          content:         bodyText,
+          origin:          'ghl',
+          direction:       'outbound',
+          channel:         'email',
+          ghl_message_id:  ghlMessageId,
+          ghl_synced_at:   new Date().toISOString(),
+        }, { onConflict: 'ghl_message_id', ignoreDuplicates: true })
+        .select('id, project_id');
+      if (error) {
+        console.error('[ghl-delivery] could not file reply into chat:', error.message);
+        return { filed: false, reason: 'insert_failed' };
+      }
+      if (!inserted || inserted.length === 0) {
+        return { filed: false, reason: 'duplicate', duplicate: true, conversationId };
+      }
+      return { filed: true, projectId: (inserted[0].project_id as string | null) ?? undefined, conversationId, reason: 'filed' };
+    }
+
+    // ── Before 091 is applied: the 077 heuristic, unchanged ───────────────────────
+    if (!profile.ghl_thread_project_id) return { filed: false, reason: 'no_thread_project' };
     const { data: inserted, error } = await admin
       .from('project_messages')
       .upsert({
         project_id:  profile.ghl_thread_project_id,
-        // Null: the person who typed this may have no Groundwork account. See migration 077.
         sender_id:   null,
         sender_name: who,
         content:     bodyText,
-        // The echo guard. Without it the mirror would push this straight back to GHL and
-        // the thread would fill with its own reflection.
         origin:      'ghl',
-        ghl_message_id: str(raw.messageId) || str(raw.id) || null,
+        ghl_message_id: ghlMessageId,
         ghl_synced_at:  new Date().toISOString(),
       }, { onConflict: 'ghl_message_id', ignoreDuplicates: true })
       .select('id');
-
     if (error) {
       console.error('[ghl-delivery] could not file reply into chat:', error.message);
       return { filed: false, reason: 'insert_failed' };
     }
     if (!inserted || inserted.length === 0) {
-      // Already filed by an earlier delivery of the same event. Nothing to send.
       return { filed: false, reason: 'duplicate', duplicate: true, projectId: profile.ghl_thread_project_id as string };
     }
     return { filed: true, projectId: profile.ghl_thread_project_id as string, reason: 'filed' };
@@ -122,7 +156,6 @@ async function fileIntoProjectChat(
   }
 }
 
-/** Constant-time compare, so a wrong secret cannot be found a character at a time. */
 function secretMatches(provided: string, expected: string): boolean {
   if (provided.length !== expected.length) return false;
   let diff = 0;
@@ -286,7 +319,7 @@ export async function handler(req: any, res: any) {
   // Stop here: sending again is the very duplicate 085 exists to prevent, and the
   // 200 tells GHL the delivery is complete so it stops retrying.
   if (filing.duplicate) {
-    res.status(200).json({ ok: true, duplicate: true, projectId: filing.projectId });
+    res.status(200).json({ ok: true, duplicate: true, projectId: filing.projectId ?? null, conversationId: filing.conversationId ?? null });
     return;
   }
 

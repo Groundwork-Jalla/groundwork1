@@ -1,9 +1,15 @@
 import { supabase } from './client';
 import { notifyProjectMembers } from './notifications';
+import { ensureProjectConversation, isConversationsUnavailable, sendConversationMessage } from './conversations';
 import type { ProjectMessageRow } from '@/types/project';
 
 // =========================================================
 // fetchMessages — ordered by oldest first (chat order)
+//
+// By project: after 091 every message on a project's threads carries project_id (the
+// backfill, the BEFORE INSERT trigger, and link_conversation all keep it so), and RLS
+// hides staff's internal notes from non-staff readers. Reading by conversation is the
+// Inbox's job (Phase 6); the project chat shows the project.
 // =========================================================
 export async function fetchMessages(projectId: string): Promise<ProjectMessageRow[]> {
   const { data, error } = await supabase
@@ -17,7 +23,8 @@ export async function fetchMessages(projectId: string): Promise<ProjectMessageRo
 }
 
 // =========================================================
-// sendMessage
+// sendMessage — through the thread (091), with the pre-091 insert as the fallback for a
+// deploy that lands before the migration is pasted.
 // =========================================================
 export async function sendMessage(
   projectId: string,
@@ -25,21 +32,28 @@ export async function sendMessage(
   senderName: string,
   content: string,
 ): Promise<void> {
-  const { data, error } = await supabase
-    .from('project_messages')
-    .insert({ project_id: projectId, sender_id: senderId, sender_name: senderName, content })
-    .select('id')
-    .single();
-
-  if (error) throw error;
+  let messageId: string | null = null;
+  try {
+    const conversationId = await ensureProjectConversation(projectId);
+    messageId = await sendConversationMessage(conversationId, content);
+  } catch (err) {
+    if (!isConversationsUnavailable(err)) throw err;
+    const { data, error } = await supabase
+      .from('project_messages')
+      .insert({ project_id: projectId, sender_id: senderId, sender_name: senderName, content })
+      .select('id')
+      .single();
+    if (error) throw error;
+    messageId = data?.id ?? null;
+  }
 
   // Mirror onto the owner's GoHighLevel thread so the team can see the conversation and
   // answer from the inbox they actually work in. Fire-and-forget on purpose: the message
   // is already stored and already on the other person's screen, so a CRM outage must not
   // surface as a failed send. A miss leaves `ghl_message_id` null, which is the backlog
   // the partial index in migration 077 exists to answer.
-  if (data?.id) {
-    void mirrorToCrm(data.id);
+  if (messageId) {
+    void mirrorToCrm(messageId);
   }
 
   // Notify other project members (fire-and-forget)
