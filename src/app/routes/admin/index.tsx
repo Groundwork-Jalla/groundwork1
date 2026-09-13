@@ -7,9 +7,9 @@ import { OverviewHero } from '@/components/admin/OverviewHero';
 import { Card, CardEmpty, Kpi } from '@/components/admin/overview/Card';
 import { AttentionList } from '@/components/admin/overview/AttentionList';
 import {
-  ApplicationsFunnel, ContractorDistribution, LocationList, TicketList, OVERVIEW_ROWS,
-  type DistributionDimension,
+  ApplicationsFunnel, ContractorDistribution, TicketList, OVERVIEW_ROWS,
 } from '@/components/admin/overview/Blocks';
+import { ProjectsMap } from '@/components/admin/overview/ProjectsMap';
 import { KPI_LINKS, SEE_ALL_LINKS } from '@/lib/admin/overview-links';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -55,7 +55,6 @@ export default function AdminOverview() {
   const [data, setData]       = useState<AdminOverviewData | null>(null);
   const [actions, setActions] = useState<ActionCenterData | null>(null);
   const [error, setError]     = useState<string | null>(null);
-  const [dimension, setDimension] = useState<DistributionDimension>('trade');
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +70,6 @@ export default function AdminOverview() {
   const projects = data?.projects ?? [];
   // The SAME call /admin/projects filters by. One definition of "at risk", not two.
   const atRisk = projects.filter(p => p.health.band === 'at_risk').length;
-  const slices = dimension === 'trade' ? data?.contractorsByTrade : data?.contractorsByLocation;
   const unavailable = actions
     ? Object.entries(actions.available).filter(([, ok]) => !ok).map(([k]) => k)
     : [];
@@ -115,7 +113,7 @@ export default function AdminOverview() {
             <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo={SEE_ALL_LINKS.locations}>
               {!data?.locations.length
                 ? <CardEmpty messageKey="admin.map.empty" />
-                : <LocationList locations={data.locations} />}
+                : <ProjectsMap locations={data.locations} />}
             </Card>
 
             <Card titleKey="admin.funnel.title" subtitleKey="admin.funnel.subtitle" viewAllTo={SEE_ALL_LINKS.funnel}>
@@ -128,9 +126,9 @@ export default function AdminOverview() {
           {/* ── Where the contractors are · what needs me ──────────────────────────── */}
           <div className="grid items-start gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
             <Card titleKey="admin.distribution.title" subtitleKey="admin.distribution.subtitle" viewAllTo={SEE_ALL_LINKS.contractors}>
-              {!slices?.length
+              {!data?.contractorsByTrade?.length
                 ? <CardEmpty messageKey="admin.distribution.empty" />
-                : <ContractorDistribution slices={slices} dimension={dimension} onDimension={setDimension} />}
+                : <ContractorDistribution slices={data.contractorsByTrade} />}
             </Card>
 
             <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo={SEE_ALL_LINKS.attention}>

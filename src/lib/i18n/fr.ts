@@ -445,11 +445,12 @@ export const fr: Mirror<EnDict> = {
       pendingBudgetsSub: 'Chantiers Management sans budget confirm\u00e9',
     },
     map: {
-      title:    'O\u00f9 sont les projets',
-      subtitle: 'Selon le pays et la ville de chaque projet \u2014 aucune coordonn\u00e9e enregistr\u00e9e, donc aucune \u00e9pingle',
+      title:    'Carte',
+      subtitle: 'Pays coloris\u00e9s selon le nombre r\u00e9el de projets \u2014 fronti\u00e8res Natural Earth, aucune \u00e9pingle',
       empty:    'Aucun lieu enregistr\u00e9.',
       noCity:   'Ville non renseign\u00e9e',
       moreCountries: 'Les {shown} premiers pays sur {total} \u2014 voir tout pour le reste',
+      geometryUnavailable: 'La carte n\u2019a pas pu \u00eatre charg\u00e9e. Les chiffres ci-dessous ne sont pas affect\u00e9s.',
     },
     funnel: {
       title:    'Entonnoir des candidatures',
@@ -464,12 +465,9 @@ export const fr: Mirror<EnDict> = {
       },
     },
     distribution: {
-      title:      'R\u00e9partition des prestataires',
-      subtitle:   'Fiches publi\u00e9es, group\u00e9es selon ce qu\u2019ils ont d\u00e9clar\u00e9',
-      empty:      'Aucun prestataire publi\u00e9.',
-      dimension:  'Grouper les prestataires par',
-      byTrade:    'Par m\u00e9tier',
-      byLocation: 'Par lieu',
+      title:    'Prestataires par m\u00e9tier',
+      subtitle: 'Fiches publi\u00e9es, selon le m\u00e9tier de candidature',
+      empty:    'Aucun prestataire publi\u00e9.',
     },
     inspections: {
       title:    'Inspections \u00e0 venir',

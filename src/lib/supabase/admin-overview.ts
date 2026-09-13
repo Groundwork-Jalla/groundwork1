@@ -93,8 +93,6 @@ export interface AdminOverviewData {
   funnel: FunnelStep[] | null;
   /** Published contractors by trade — the directory's own column. */
   contractorsByTrade: DistributionSlice[] | null;
-  /** The same contractors by the `location` they entered. Free text, shown as stored. */
-  contractorsByLocation: DistributionSlice[] | null;
   projects: ScoredProject[];
   /** Stage number → count of tracked, unfinished projects currently on it. */
   pipeline: Map<number, number>;
@@ -302,25 +300,20 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
       ]
     : null;
 
-  // ── Contractor distribution — the directory's own columns, nothing derived ────────
-  // Both dimensions are computed because "distribution" has two readings and both are
-  // real: `trade` is the enum the contractor picked on the form, `location` is the free
-  // text they typed. Neither is normalised here — a value is shown as it was stored.
+  // ── Contractors by trade — the directory's own column, nothing derived ────────────
+  // Trade, and only trade: where the work is happening is Map View's question, and the
+  // Overview answers each question in exactly one place (Favour, 14 Sep 2026).
   let contractorsByTrade: DistributionSlice[] | null = null;
-  let contractorsByLocation: DistributionSlice[] | null = null;
   if (directoryRes.status === 'fulfilled') {
-    const directory = directoryRes.value;
-    const group = (pick: (c: (typeof directory)[number]) => string) => {
-      const by = new Map<string, number>();
-      for (const c of directory) {
-        const label = pick(c).trim();
-        if (!label) continue;
-        by.set(label, (by.get(label) ?? 0) + 1);
-      }
-      return [...by].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-    };
-    contractorsByTrade    = group(c => c.trade ?? '');
-    contractorsByLocation = group(c => c.location ?? '');
+    const byTrade = new Map<string, number>();
+    for (const c of directoryRes.value) {
+      const label = (c.trade ?? '').trim();
+      if (!label) continue;
+      byTrade.set(label, (byTrade.get(label) ?? 0) + 1);
+    }
+    contractorsByTrade = [...byTrade]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   }
 
   return {
@@ -329,7 +322,6 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     quoteRequests: quotesRes.status === 'fulfilled' ? num(quotesRes.value) : null,
     funnel,
     contractorsByTrade,
-    contractorsByLocation,
     projects: scored,
     pipeline,
     backlog: {

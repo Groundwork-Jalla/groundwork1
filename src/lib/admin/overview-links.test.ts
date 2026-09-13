@@ -48,6 +48,23 @@ describe('every Overview destination is a real page', () => {
   }
 });
 
+/**
+ * The Inbox is Phase 6 and deliberately not built, so "Active conversations" is the one
+ * destination that lands on an honest placeholder instead of a filtered module. Favour
+ * allowed exactly that exemption on 14 Sep 2026 and said not to let it spread — so it is
+ * pinned to one path here. When the Inbox ships, `?status=active` must render the real
+ * filtered (and, today, empty) list, and this test starts failing until it does.
+ */
+describe('exactly one Overview destination is still deferred', () => {
+  it('is the Inbox, and nothing else', () => {
+    const deferred = ALL_LINKS
+      .map(([name, link]) => [name, link.split('?')[0]] as const)
+      .filter(([, path]) => !FILE_FOR.has(path));
+    expect(deferred).toEqual([['KPI_LINKS.conversations', '/admin/inbox']]);
+    expect(ADMIN_PLACEHOLDERS['inbox'], 'the deferral must be an honest placeholder').toBeDefined();
+  });
+});
+
 describe('every parameter an Overview link carries is actually read', () => {
   for (const [name, link] of ALL_LINKS) {
     const [path, query] = link.split('?');

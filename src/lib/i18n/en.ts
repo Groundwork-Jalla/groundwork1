@@ -438,11 +438,12 @@ export const en = {
       pendingBudgetsSub: 'Management builds awaiting a budget',
     },
     map: {
-      title:    'Where the projects are',
-      subtitle: 'By the country and city on each project \u2014 no coordinates are recorded, so no pins',
+      title:    'Map view',
+      subtitle: 'Countries shaded by real project counts \u2014 Natural Earth boundaries, no project pins',
       empty:    'No location recorded yet.',
       noCity:   'City not recorded',
       moreCountries: 'Top {shown} of {total} countries — see all for the rest',
+      geometryUnavailable: 'The map could not load. The counts below are unaffected.',
     },
     funnel: {
       title:    'Applications funnel',
@@ -457,12 +458,9 @@ export const en = {
       },
     },
     distribution: {
-      title:      'Contractor distribution',
-      subtitle:   'Published directory entries, grouped by what they told us',
-      empty:      'No contractor published yet.',
-      dimension:  'Group contractors by',
-      byTrade:    'By trade',
-      byLocation: 'By location',
+      title:    'Contractors by trade',
+      subtitle: 'Published directory entries, by the trade each one applied under',
+      empty:    'No contractor published yet.',
     },
     inspections: {
       title:    'Upcoming inspections',
