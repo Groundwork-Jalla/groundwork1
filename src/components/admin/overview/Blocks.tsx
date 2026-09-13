@@ -1,5 +1,7 @@
 import { Link } from 'react-router';
+import { MapPin } from 'lucide-react';
 import type { DistributionSlice, FunnelStep, LocationCount, OpenTicket } from '@/lib/supabase/admin-overview';
+import { findCountry } from '@/lib/countries';
 import { formatRelative } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -17,39 +19,67 @@ import { cn } from '@/lib/utils';
 export const OVERVIEW_ROWS = 5;
 
 /**
- * Where the projects are. A table by country and city, not a map: `projects` records a
- * country and a city, never coordinates, and a pin placed at a guessed point would be a
- * fabricated fact. A real map arrives with real coordinates.
+ * Where the projects are.
+ *
+ * OPTION B of the two the reviewer allowed (14 Sep 2026). A true Map View needs country
+ * geometry; `projects` records a country code and a city and no coordinates, and this
+ * codebase carries no boundary data, so a drawn map would either need fabricated
+ * geometry or a new geodata dependency. Neither is a decision to make inside a dashboard
+ * card, so this stays a geographic summary and says so in its own subtitle.
+ *
+ * What it is NOT allowed to become: a world map with pins dropped at guessed points.
+ * The upgrade path is real — store coordinates on the project, or add Natural Earth
+ * country geometry — and the data this reads (country, city, count) is already the input
+ * a choropleth would take.
  */
 export function LocationList({ locations }: { locations: LocationCount[] }) {
   const t = useT();
   const total = locations.reduce((a, l) => a + l.count, 0);
   const byCountry = new Map<string, number>();
   for (const l of locations) byCountry.set(l.country, (byCountry.get(l.country) ?? 0) + l.count);
+  const ranked = [...byCountry].sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="px-5 py-4">
-      <ul className="space-y-2.5">
-        {[...byCountry].sort((a, b) => b[1] - a[1]).slice(0, OVERVIEW_ROWS).map(([country, count]) => (
-          <li key={country}>
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="font-medium text-brand-near-black dark:text-white">{country}</span>
-              <span className="tabular-nums text-brand-mid-grey">{count}</span>
-            </div>
-            <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
-              <span className="block h-full rounded-full bg-brand-near-black dark:bg-white"
-                style={{ width: `${total > 0 ? Math.round((count / total) * 100) : 0}%` }} />
-            </span>
-            <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
-              {locations.filter(l => l.country === country).slice(0, 4).map(l => (
-                <li key={`${l.country}|${l.city ?? ''}`} className="text-[11px] text-brand-mid-grey">
-                  {l.city ?? t('admin.map.noCity')} <span className="tabular-nums">{l.count}</span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
+      <ul className="space-y-3">
+        {ranked.slice(0, OVERVIEW_ROWS).map(([country, count]) => {
+          const share = total > 0 ? Math.round((count / total) * 100) : 0;
+          // The country's real name where we know the code; the code itself otherwise —
+          // never a name guessed from an unrecognised code.
+          const name = findCountry(country)?.name ?? country;
+          return (
+            <li key={country}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="shrink-0 rounded border border-brand-border-grey px-1.5 py-px text-[10px] font-semibold tabular-nums tracking-wide text-brand-mid-grey dark:border-[#2c2c2c]">
+                    {country}
+                  </span>
+                  <span className="truncate text-xs font-medium text-brand-near-black dark:text-white">{name}</span>
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-brand-mid-grey">
+                  {count}<span className="ml-1.5 text-brand-muted-grey">{share}%</span>
+                </span>
+              </div>
+              <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
+                <span className="block h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${share}%` }} />
+              </span>
+              <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                {locations.filter(l => l.country === country).slice(0, 4).map(l => (
+                  <li key={`${l.country}|${l.city ?? ''}`} className="flex items-center gap-1 text-[11px] text-brand-mid-grey">
+                    <MapPin className="size-2.5 shrink-0 text-brand-muted-grey" />
+                    {l.city ?? t('admin.map.noCity')} <span className="tabular-nums">{l.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          );
+        })}
       </ul>
+      {ranked.length > OVERVIEW_ROWS && (
+        <p className="mt-3 text-[11px] text-brand-muted-grey">
+          {t('admin.map.moreCountries', { shown: OVERVIEW_ROWS, total: ranked.length })}
+        </p>
+      )}
     </div>
   );
 }
@@ -80,37 +110,69 @@ export function ApplicationsFunnel({ steps }: { steps: FunnelStep[] }) {
   );
 }
 
+export type DistributionDimension = 'trade' | 'location';
+
 /**
- * Contractors grouped by the directory's own `trade` column. The stored value is the
- * application form's own enum (`land_lawyer`), so it is shown through that form's
- * dictionary — the same words the contractor picked — and falls back to the raw value
- * for a trade the dictionary does not carry rather than hiding the row.
+ * Contractors, grouped by one of the directory's own columns.
+ *
+ * "Distribution" has two readings and the data supports both, so the card carries both
+ * and the admin picks: `trade` is the enum the contractor chose on the application form,
+ * shown through that form's own dictionary (so `land_lawyer` reads "Land Lawyer");
+ * `location` is the free text they typed, shown exactly as stored — normalising
+ * "Douala" and "douala, CM" into one bar would be inventing a fact about where they are.
  */
-export function ContractorDistribution({ slices }: { slices: DistributionSlice[] }) {
+export function ContractorDistribution({ slices, dimension, onDimension }: {
+  slices: DistributionSlice[];
+  dimension: DistributionDimension;
+  onDimension: (d: DistributionDimension) => void;
+}) {
   const t = useT();
   const total = slices.reduce((a, s) => a + s.count, 0);
-  const label = (trade: string) => {
-    const key = `contractorApply.form.role.${trade}` as TKey;
+  const label = (raw: string) => {
+    if (dimension === 'location') return raw;
+    const key = `contractorApply.form.role.${raw}` as TKey;
     const hit = t(key);
-    return hit === key ? trade : hit;
+    return hit === key ? raw : hit;
   };
+
   return (
-    <ul className="space-y-2.5 px-5 py-4">
-      {slices.slice(0, OVERVIEW_ROWS).map(s => (
-        <li key={s.label}>
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="min-w-0 truncate text-brand-near-black dark:text-white">{label(s.label)}</span>
-            <span className="shrink-0 tabular-nums text-brand-mid-grey">
-              {s.count}{total > 0 && <span className="ml-1.5 text-brand-muted-grey">{Math.round((s.count / total) * 100)}%</span>}
+    <div className="px-5 py-4">
+      <div className="mb-3 flex gap-1" role="group" aria-label={t('admin.distribution.dimension')}>
+        {(['trade', 'location'] as const).map(d => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => onDimension(d)}
+            aria-pressed={dimension === d}
+            className={cn(
+              'rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors',
+              dimension === d
+                ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
+                : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
+            )}
+          >
+            {t(d === 'trade' ? 'admin.distribution.byTrade' : 'admin.distribution.byLocation')}
+          </button>
+        ))}
+      </div>
+
+      <ul className="space-y-2.5">
+        {slices.slice(0, OVERVIEW_ROWS).map(s => (
+          <li key={s.label}>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="min-w-0 truncate text-brand-near-black dark:text-white">{label(s.label)}</span>
+              <span className="shrink-0 tabular-nums text-brand-mid-grey">
+                {s.count}{total > 0 && <span className="ml-1.5 text-brand-muted-grey">{Math.round((s.count / total) * 100)}%</span>}
+              </span>
+            </div>
+            <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
+              <span className="block h-full rounded-full bg-brand-near-black dark:bg-white"
+                style={{ width: `${total > 0 ? Math.round((s.count / total) * 100) : 0}%` }} />
             </span>
-          </div>
-          <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
-            <span className="block h-full rounded-full bg-brand-near-black dark:bg-white"
-              style={{ width: `${total > 0 ? Math.round((s.count / total) * 100) : 0}%` }} />
-          </span>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

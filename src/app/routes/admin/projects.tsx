@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { Loader2, ExternalLink, Search, UserPlus, Trash2, Plus, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { ownerLookup } from '@/lib/supabase/admin-users';
@@ -9,7 +9,10 @@ import { isMissingTable } from '@/lib/errors';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { errorMessage } from '@/lib/errors';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { useT } from '@/lib/i18n';
+import { projectHealth, type ActivityStamps, type HealthBand } from '@/lib/admin/health';
+import { matchesStatusFilter, parseHealthFilter, parseStatusFilter } from '@/lib/admin/project-filters';
+import { FilterBanner } from '@/components/admin/FilterBanner';
+import { useT, type TKey } from '@/lib/i18n';
 
 interface AdminProject {
   id: string;
@@ -21,7 +24,23 @@ interface AdminProject {
   currentStage: number;
   country: string;
   createdAt: string;
+  /**
+   * The derived band, from `projectHealth()` — the SAME call the Overview counts with,
+   * so "at risk" cannot mean two things. Null until the health inputs are loaded, which
+   * only happens when a `health` filter asks for them.
+   */
+  health: HealthBand | null;
 }
+
+/** Filter labels, in the admin's own words. Health bands reuse the Overview's wording. */
+const HEALTH_LABEL: Record<HealthBand, TKey> = {
+  at_risk:   'admin.healthCard.atRisk',
+  attention: 'admin.healthCard.attention',
+  on_track:  'admin.healthCard.onTrack',
+  planning:  'admin.healthCard.planning',
+  done:      'admin.healthCard.completed',
+  archived:  'admin.filter.archived',
+};
 
 /** Tier values that hold a free-plan slot. `starter` is the pre-008 name. */
 function isFreeTier(tier: string): boolean {
@@ -67,7 +86,26 @@ export default function AdminProjects() {
   }
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [query, setQuery]       = useState('');
+
+  // ── Filters, from the URL ─────────────────────────────────────────────────────────
+  // The Overview links here with the metric's own condition attached; the search box and
+  // the filters share one source of truth so a link, a typed URL and a bookmark all
+  // produce the same list.
+  const [params, setParams] = useSearchParams();
+  const query        = params.get('q') ?? '';
+  const statusFilter = parseStatusFilter(params.get('status'));
+  const healthFilter = parseHealthFilter(params.get('health'));
+
+  const setQuery = (next: string) => {
+    const p = new URLSearchParams(params);
+    if (next) p.set('q', next); else p.delete('q');
+    setParams(p, { replace: true });
+  };
+  const clearFilters = () => {
+    const p = new URLSearchParams(params);
+    p.delete('status'); p.delete('health');
+    setParams(p, { replace: true });
+  };
 
   // ── Verifier assignment (086) ──
   const [verTarget,     setVerTarget]     = useState<AdminProject | null>(null);
@@ -125,13 +163,42 @@ export default function AdminProjects() {
         // request 400'd and this page always read "0 total". Owners are resolved
         // separately now, which also keeps a project visible when its owner has no
         // profile row (the `!inner` would have dropped it even if the join worked).
-        const [{ data }, owners] = await Promise.all([
+        // Health is derived, never stored, so filtering by it means computing it — which
+        // needs the stage rows and the activity stamps. Both are loaded here rather than
+        // only when `?health=` is present: the column is worth showing either way, and
+        // two extra reads over a fleet this size cost less than a filter that is
+        // sometimes available and sometimes not.
+        const [{ data }, owners, stagesRes, activityRes] = await Promise.all([
           supabase
             .from('projects')
-            .select('id, name, user_id, tier, status, current_stage, country, created_at')
+            .select('id, name, user_id, tier, status, current_stage, country, created_at, tracking_started_at, updated_at')
             .order('created_at', { ascending: false }),
           ownerLookup(),
+          supabase.from('project_stages')
+            .select('project_id, stage_number, name, stage_key, status, payment_status, planned_end, completed_at'),
+          supabase.rpc('admin_project_activity'),
         ]);
+
+        const stagesBy = new Map<string, Record<string, unknown>[]>();
+        for (const row of (stagesRes.data ?? []) as Record<string, unknown>[]) {
+          const id = row.project_id as string;
+          stagesBy.set(id, [...(stagesBy.get(id) ?? []), row]);
+        }
+        // Fail-soft, exactly as the Overview is: without 084 the stamps are empty and
+        // `projectHealth` leans on `updated_at`. It never guesses.
+        const stampsBy = new Map<string, ActivityStamps>();
+        if (!activityRes.error) {
+          for (const r of (activityRes.data ?? []) as Record<string, unknown>[]) {
+            stampsBy.set(r.project_id as string, {
+              lastEvidenceAt: (r.last_evidence_at as string | null) ?? null,
+              lastReviewAt:   (r.last_review_at   as string | null) ?? null,
+              lastMessageAt:  (r.last_message_at  as string | null) ?? null,
+              lastAuditAt:    (r.last_audit_at    as string | null) ?? null,
+            });
+          }
+        }
+        const now = new Date();
+
         setProjects((data ?? []).map((p: Record<string, unknown>) => {
           const profile = owners.get(p.user_id as string);
           return {
@@ -144,6 +211,12 @@ export default function AdminProjects() {
             currentStage: p.current_stage as number,
             country:      p.country as string,
             createdAt:    p.created_at as string,
+            health: projectHealth(
+              p as unknown as Parameters<typeof projectHealth>[0],
+              (stagesBy.get(p.id as string) ?? []) as unknown as Parameters<typeof projectHealth>[1],
+              stampsBy.get(p.id as string) ?? {},
+              now,
+            ).band,
           };
         }));
       } finally {
@@ -153,20 +226,35 @@ export default function AdminProjects() {
     load();
   }, []);
 
-  const filtered = query
-    ? projects.filter(p =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.ownerEmail.toLowerCase().includes(query.toLowerCase()) ||
-        p.ownerName.toLowerCase().includes(query.toLowerCase()),
-      )
-    : projects;
+  // Filters compose: the URL's condition first, then whatever is typed in the box.
+  const inFilter = useMemo(
+    () => projects.filter(p =>
+      (!statusFilter || matchesStatusFilter(p.status, statusFilter)) &&
+      (!healthFilter || p.health === healthFilter)),
+    [projects, statusFilter, healthFilter],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return inFilter;
+    return inFilter.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      p.ownerEmail.toLowerCase().includes(q) ||
+      p.ownerName.toLowerCase().includes(q));
+  }, [inFilter, query]);
+
+  const filterLabel = healthFilter
+    ? t(HEALTH_LABEL[healthFilter])
+    : statusFilter
+      ? t(`admin.filter.status.${statusFilter}` as TKey)
+      : '';
 
   return (
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allProjects')}</h1>
-          <p className="mt-1 text-sm text-brand-mid-grey">{projects.length} total</p>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('admin.filter.total', { n: projects.length })}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -187,6 +275,10 @@ export default function AdminProjects() {
         </div>
         </div>
       </div>
+
+      {filterLabel && !loading && (
+        <FilterBanner label={filterLabel} shown={inFilter.length} total={projects.length} onClear={clearFilters} />
+      )}
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-brand-mid-grey">
@@ -266,7 +358,7 @@ export default function AdminProjects() {
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-sm text-brand-mid-grey">
-                    {t('admin.noProjectsMatch', { query })}
+                    {t('admin.noProjectsMatch', { query: query || filterLabel })}
                   </td>
                 </tr>
               )}

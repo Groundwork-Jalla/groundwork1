@@ -47,12 +47,20 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     softRows('payment_events', 'id, received_at', q => q.eq('outcome', 'unmatched')),
     unansweredConversations(),
     supabase.from('contractor_applications').select('id, full_name, email, created_at').eq('status', 'pending'),
-    supabase.from('contractor_inquiries').select('id, name, email, created_at').eq('status', 'open'),
+    // `contractor_inquiries` has no `email` column (076 deliberately stores only the
+    // name and location typed in the dialog). Asking for one made PostgREST answer 400,
+    // and because a PostgREST error arrives as a value rather than a throw, the quote
+    // requests silently vanished from the Action Center instead of failing loudly.
+    supabase.from('contractor_inquiries').select('id, name, location, created_at').eq('status', 'open'),
     listOpenSupportTickets(),
     ownerLookup(),
   ]);
   if (projectsRes.error) throw projectsRes.error;
   if (stagesRes.error)   throw stagesRes.error;
+  // A PostgREST error is a value, not a throw: an unchecked one reads as an empty queue,
+  // which is how a broken select becomes "nothing needs your attention".
+  if (appsRes.error) throw appsRes.error;
+  if (inqRes.error)  throw inqRes.error;
 
   const activeVerifiers = new Map<string, number>();
   for (const r of verifiersRes.rows) activeVerifiers.set(str(r.project_id), (activeVerifiers.get(str(r.project_id)) ?? 0) + 1);
@@ -86,7 +94,7 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
       personName: w.personId ? (owners.get(w.personId)?.name || owners.get(w.personId)?.email) : undefined,
     })),
     applications: ((appsRes.data ?? []) as Row[]).map(a => ({ id: str(a.id), label: str(a.full_name) || str(a.email), since: str(a.created_at) })),
-    inquiries:    ((inqRes.data ?? []) as Row[]).map(q => ({ id: str(q.id), label: str(q.name) || str(q.email), since: str(q.created_at) })),
+    inquiries:    ((inqRes.data ?? []) as Row[]).map(q => ({ id: str(q.id), label: str(q.name) || str(q.location), since: str(q.created_at) })),
     tickets:      ticketsRes.map(t => ({ id: t.id, label: t.subject || t.name || t.email, since: t.created_at })),
   };
 

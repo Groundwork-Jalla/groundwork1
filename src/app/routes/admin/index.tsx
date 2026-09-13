@@ -8,7 +8,9 @@ import { Card, CardEmpty, Kpi } from '@/components/admin/overview/Card';
 import { AttentionList } from '@/components/admin/overview/AttentionList';
 import {
   ApplicationsFunnel, ContractorDistribution, LocationList, TicketList, OVERVIEW_ROWS,
+  type DistributionDimension,
 } from '@/components/admin/overview/Blocks';
+import { KPI_LINKS, SEE_ALL_LINKS } from '@/lib/admin/overview-links';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +23,14 @@ import { cn } from '@/lib/utils';
 // Composition is the layout agreed 14 Sep 2026: hero, eight metrics, a main body that
 // answers "where are the projects · how are applications progressing · where are the
 // contractors · what needs me", and a right-hand operational rail. The visual language
-// is the dark concept's, adapted to both themes; the admin sidebar stays dark in both.
+// is the dark concept's; both themes wear it, including the sidebar, which follows the
+// theme like everything else.
+//
+// A KPI IS A DATASET, NOT A SHORTCUT (Favour, 14 Sep 2026). Clicking "Projects at risk —
+// 3" lands on exactly those three, because the destination filters with the same call
+// this page counted with. The destinations live in lib/admin/overview-links.ts, and a
+// test opens each destination's route file to prove the parameter is actually read —
+// a URL that looks filtered but shows everything is the same lie as a fake number.
 //
 // EVERY VALUE COMES FROM A QUERY — `loadAdminOverview()` and `loadActionCenter()`, both
 // over real Supabase/GoHighLevel rows. No seeded numbers, no map pins (projects record a
@@ -46,6 +55,7 @@ export default function AdminOverview() {
   const [data, setData]       = useState<AdminOverviewData | null>(null);
   const [actions, setActions] = useState<ActionCenterData | null>(null);
   const [error, setError]     = useState<string | null>(null);
+  const [dimension, setDimension] = useState<DistributionDimension>('trade');
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +69,9 @@ export default function AdminOverview() {
   }, [t, now]);
 
   const projects = data?.projects ?? [];
+  // The SAME call /admin/projects filters by. One definition of "at risk", not two.
   const atRisk = projects.filter(p => p.health.band === 'at_risk').length;
+  const slices = dimension === 'trade' ? data?.contractorsByTrade : data?.contractorsByLocation;
   const unavailable = actions
     ? Object.entries(actions.available).filter(([, ok]) => !ok).map(([k]) => k)
     : [];
@@ -88,25 +100,25 @@ export default function AdminOverview() {
 
           {/* ── Eight metrics ──────────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Kpi labelKey="admin.kpiRow.totalProjects"  value={data ? projects.length : null}                 to="/admin/projects" />
-            <Kpi labelKey="admin.kpiRow.pendingReviews" value={data?.backlog.pendingReviews ?? null}          to="/admin/reviews" />
-            <Kpi labelKey="admin.kpiRow.totalUsers"     value={data ? data.totalUsers : null}                 to="/admin/users" />
-            <Kpi labelKey="admin.kpiRow.applications"   value={data?.backlog.pendingApplications ?? null}     to="/admin/applications" />
-            <Kpi labelKey="admin.kpiRow.quoteRequests"  value={data ? data.quoteRequests : null}              to="/admin/inquiries" />
-            <Kpi labelKey="admin.kpiRow.conversations"  value={data ? data.openConversations : null}          to="/admin/inbox" />
-            <Kpi labelKey="admin.kpiRow.atRisk"         value={data ? atRisk : null}                          to="/admin/projects" accent="alert" />
-            <Kpi labelKey="admin.kpiRow.pendingBudgets" value={data?.backlog.pendingBudgets ?? null}          to="/admin/budgets" accent="held" />
+            <Kpi labelKey="admin.kpiRow.totalProjects"  value={data ? projects.length : null}             to={KPI_LINKS.totalProjects}  subtitle={t('admin.kpiRow.totalProjectsSub')} />
+            <Kpi labelKey="admin.kpiRow.pendingReviews" value={data?.backlog.pendingReviews ?? null}      to={KPI_LINKS.pendingReviews} subtitle={t('admin.kpiRow.pendingReviewsSub')} />
+            <Kpi labelKey="admin.kpiRow.totalUsers"     value={data ? data.totalUsers : null}             to={KPI_LINKS.totalUsers}     subtitle={t('admin.kpiRow.totalUsersSub')} />
+            <Kpi labelKey="admin.kpiRow.applications"   value={data?.backlog.pendingApplications ?? null} to={KPI_LINKS.applications}   subtitle={t('admin.kpiRow.applicationsSub')} />
+            <Kpi labelKey="admin.kpiRow.quoteRequests"  value={data ? data.quoteRequests : null}          to={KPI_LINKS.quoteRequests}  subtitle={t('admin.kpiRow.quoteRequestsSub')} />
+            <Kpi labelKey="admin.kpiRow.conversations"  value={data ? data.openConversations : null}      to={KPI_LINKS.conversations}  subtitle={t('admin.kpiRow.conversationsSub')} />
+            <Kpi labelKey="admin.kpiRow.atRisk"         value={data ? atRisk : null}                      to={KPI_LINKS.atRisk}         subtitle={t('admin.kpiRow.atRiskSub')}       accent="alert" />
+            <Kpi labelKey="admin.kpiRow.pendingBudgets" value={data?.backlog.pendingBudgets ?? null}      to={KPI_LINKS.pendingBudgets} subtitle={t('admin.kpiRow.pendingBudgetsSub')} accent="held" />
           </div>
 
           {/* ── Where the projects are · how applications progress ─────────────────── */}
-          <div className="grid gap-5 lg:grid-cols-2">
-            <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo="/admin/projects">
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <Card titleKey="admin.map.title" subtitleKey="admin.map.subtitle" viewAllTo={SEE_ALL_LINKS.locations}>
               {!data?.locations.length
                 ? <CardEmpty messageKey="admin.map.empty" />
                 : <LocationList locations={data.locations} />}
             </Card>
 
-            <Card titleKey="admin.funnel.title" subtitleKey="admin.funnel.subtitle" viewAllTo="/admin/applications">
+            <Card titleKey="admin.funnel.title" subtitleKey="admin.funnel.subtitle" viewAllTo={SEE_ALL_LINKS.funnel}>
               {!data?.funnel
                 ? <CardEmpty messageKey="admin.funnel.empty" />
                 : <ApplicationsFunnel steps={data.funnel} />}
@@ -114,14 +126,14 @@ export default function AdminOverview() {
           </div>
 
           {/* ── Where the contractors are · what needs me ──────────────────────────── */}
-          <div className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <Card titleKey="admin.distribution.title" subtitleKey="admin.distribution.subtitle" viewAllTo="/admin/contractors">
-              {!data?.contractorsByTrade?.length
+          <div className="grid items-start gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <Card titleKey="admin.distribution.title" subtitleKey="admin.distribution.subtitle" viewAllTo={SEE_ALL_LINKS.contractors}>
+              {!slices?.length
                 ? <CardEmpty messageKey="admin.distribution.empty" />
-                : <ContractorDistribution slices={data.contractorsByTrade} />}
+                : <ContractorDistribution slices={slices} dimension={dimension} onDimension={setDimension} />}
             </Card>
 
-            <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo="/admin/action-center">
+            <Card titleKey="admin.attention.title" subtitleKey="admin.attention.subtitle" viewAllTo={SEE_ALL_LINKS.attention}>
               {!actions ? (
                 <CardEmpty messageKey="common.loading" />
               ) : actions.items.length === 0 ? (
@@ -140,7 +152,7 @@ export default function AdminOverview() {
 
         {/* ── The operational rail ─────────────────────────────────────────────────── */}
         <aside className="flex min-w-0 flex-col gap-5">
-          <Card titleKey="admin.ops.recentTitle" viewAllTo="/admin/audit-log">
+          <Card titleKey="admin.ops.recentTitle" subtitleKey="admin.ops.recentSubtitle" viewAllTo={SEE_ALL_LINKS.activity}>
             {!data?.recent.length ? (
               <CardEmpty messageKey="admin.ops.recentEmpty" />
             ) : (
@@ -177,13 +189,13 @@ export default function AdminOverview() {
             <CardEmpty messageKey="admin.inspections.empty" />
           </Card>
 
-          <Card titleKey="admin.supportCard.title" subtitleKey="admin.supportCard.subtitle" viewAllTo="/admin/support">
+          <Card titleKey="admin.supportCard.title" subtitleKey="admin.supportCard.subtitle" viewAllTo={SEE_ALL_LINKS.support}>
             {!data?.tickets.length
               ? <CardEmpty messageKey="admin.supportCard.empty" />
               : <TicketList tickets={data.tickets} />}
           </Card>
 
-          <Card titleKey="admin.ghl.title" subtitleKey="admin.ghl.subtitle" viewAllTo="/admin/crm">
+          <Card titleKey="admin.ghl.title" subtitleKey="admin.ghl.subtitle" viewAllTo={SEE_ALL_LINKS.crm}>
             {!data ? (
               <CardEmpty messageKey="common.loading" />
             ) : !data.crm.status ? (
@@ -240,12 +252,14 @@ function GhlRow({ labelKey, ok }: { labelKey: TKey; ok: boolean }) {
 
 /**
  * The greeting's name: the signed-in admin's own, first word only — their profile name
- * first (what they chose to be called), then the session's metadata, and only as a last
- * resort the local part of their email address, which is a login, not a name.
+ * (what they chose to be called), then the session's metadata.
+ *
+ * NO EMAIL FALLBACK (Favour, 14 Sep 2026). The local part of an address is a login, not
+ * a name, and capitalising it produced "Good morning, Phavorfavor." When there is no
+ * real name the hero greets without one — `OverviewHero` has a second set of strings for
+ * exactly that, and an unnamed greeting is better than a wrong name.
  */
-function firstName(profileName: string | undefined, user: { user_metadata?: { full_name?: string }; email?: string } | null): string {
+export function firstName(profileName: string | undefined, user: { user_metadata?: { full_name?: string }; email?: string } | null): string {
   const full = profileName?.trim() || user?.user_metadata?.full_name?.trim();
-  if (full) return full.split(' ')[0];
-  const local = user?.email?.split('@')[0] ?? '';
-  return local ? local.charAt(0).toUpperCase() + local.slice(1) : '';
+  return full ? full.split(' ')[0] : '';
 }

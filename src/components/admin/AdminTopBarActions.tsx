@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { MessageCircle, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import { useT } from '@/lib/i18n';
 
 // =========================================================
@@ -13,6 +14,9 @@ import { useT } from '@/lib/i18n';
 // "New" offers only what an admin can actually create today: a project and a client
 // account, both existing routes. Nothing here reports a connection status — a badge
 // saying "connected" that nothing proves is exactly the fiction we refuse.
+//
+// WhatsApp keeps its own green in both themes (Favour, 14 Sep 2026) — the one brand
+// exception to the monochrome icon rule. See ui/WhatsAppIcon.tsx.
 // =========================================================
 
 export function AdminTopBarActions({ userId }: { userId: string }) {
@@ -25,9 +29,9 @@ export function AdminTopBarActions({ userId }: { userId: string }) {
         to="/admin/whatsapp"
         title={t('admin.header.whatsapp')}
         aria-label={t('admin.header.whatsapp')}
-        className="flex size-8 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-brand-near-black dark:hover:bg-[#2c2c2c] dark:hover:text-white"
+        className="flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-[#25D366]/10"
       >
-        <MessageCircle className="size-4" />
+        <WhatsAppIcon className="size-4" />
       </Link>
 
       <div className="relative">

@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { AppShell } from '@/components/shell/AppShell';
 import { ADMIN_NAV } from '@/components/shell/nav-config';
-import { NotificationBell } from '@/components/ui/NotificationBell';
 import { AdminTopBarActions } from '@/components/admin/AdminTopBarActions';
+import { AdminSearch } from '@/components/admin/AdminSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT } from '@/lib/i18n';
 
@@ -37,9 +37,11 @@ export default function AdminLayout() {
     );
   }
 
-  const displayName = user?.user_metadata?.full_name
-    ?? user?.email?.split('@')[0]
-    ?? 'Admin';
+  // The account's real name, then the address it signs in with, then the role. NEVER the
+  // local part of the address: capitalising it produced "Phavorfavor", which is nobody.
+  const displayName = user?.user_metadata?.full_name?.trim()
+    || user?.email
+    || 'Admin';
 
   async function handleLogout() {
     await signOut();
@@ -56,7 +58,7 @@ export default function AdminLayout() {
       // since they shipped; without this the only place an admin could see them was the
       // client shell's /notifications page, which admins never open.
       topBarActions={<AdminTopBarActions userId={user?.id ?? ''} />}
-      sidebarTone="dark"
+      topBarSearch={<AdminSearch />}
     >
       <Outlet />
     </AppShell>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Loader2, Search, HardHat } from 'lucide-react';
 import {
   listInquiries, updateInquiry,
@@ -36,7 +37,15 @@ export default function AdminInquiries() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [query, setQuery]     = useState('');
-  const [filter, setFilter]   = useState<'open' | 'all'>('open');
+  // `?status=open` is the Overview's "Quote requests" link: the same condition the KPI
+  // counted, carried into the page rather than left to its default.
+  const [params, setParams]   = useSearchParams();
+  const filter: 'open' | 'all' = params.get('status') === 'all' ? 'all' : 'open';
+  const setFilter = (next: 'open' | 'all') => {
+    const p = new URLSearchParams(params);
+    p.set('status', next);
+    setParams(p, { replace: true });
+  };
   const [busyId, setBusyId]   = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 

@@ -101,7 +101,14 @@ describe('readers and the one server-side writer', () => {
   it('the overview reads the new columns and falls back to the pre-089 select on 42703', () => {
     expect(overview).toMatch(/person_id, entity_type, created_at/);
     expect(overview).toMatch(/wide\.error\.code !== '42703'/);
-    expect(overview).toMatch(/personName:\s+owners\.get\(str\(r\.person_id\)\)/);
+    expect(overview).toMatch(/personName:\s+who\(str\(r\.person_id\)\)/);
+  });
+  it('names an actor by their profile name, then by the address they sign in with', () => {
+    // A blank was rendering as "— approved a stage", which reads as an unattributed
+    // action on a log whose whole purpose is attribution. `admin_list_users()` carries
+    // both fields; an account with no profile name still has an address.
+    expect(overview).toMatch(/return hit \? \(hit\.name \|\| hit\.email\) : '';/);
+    expect(overview).toMatch(/actorName:\s+who\(str\(r\.actor_id\)\)/);
   });
   it('provisioning writes a person-level row with the verified caller as actor, fail-soft', () => {
     expect(provision).toMatch(/action:\s+'client\.provisioned'/);

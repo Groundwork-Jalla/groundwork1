@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { KeyRound, Loader2, Search, Trash2, UserPlus } from 'lucide-react';
 import { listAdminUsers, deleteUser, type AdminUser } from '@/lib/supabase/admin-users';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
@@ -20,7 +20,14 @@ export default function AdminUsers() {
   const [users, setUsers]   = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const [query, setQuery]     = useState('');
+  // `?q=` is how global search arrives here — the row it found is the row on screen.
+  const [params, setParams]   = useSearchParams();
+  const query = params.get('q') ?? '';
+  const setQuery = (next: string) => {
+    const p = new URLSearchParams(params);
+    if (next) p.set('q', next); else p.delete('q');
+    setParams(p, { replace: true });
+  };
   const [target, setTarget]   = useState<AdminUser | null>(null);
   const [busy, setBusy]       = useState(false);
   const [delError, setDelError] = useState<string | null>(null);

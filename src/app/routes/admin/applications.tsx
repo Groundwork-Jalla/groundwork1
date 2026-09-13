@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Loader2, Search, ArrowUpRight, CloudOff, Cloud, MailWarning } from 'lucide-react';
 import {
   listApplications, APPLICATION_STATUSES,
@@ -81,7 +81,17 @@ export default function AdminApplications() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [query, setQuery]     = useState('');
-  const [filter, setFilter]   = useState<ApplicationStatus | 'all'>('all');
+  // The status tab is in the URL so the Overview's "Contractor applications — 29" can
+  // land on exactly the 29 it counted, and so the view survives a reload or a bookmark.
+  const [params, setParams]   = useSearchParams();
+  const raw = params.get('status');
+  const filter: ApplicationStatus | 'all' =
+    APPLICATION_STATUSES.includes(raw as ApplicationStatus) ? (raw as ApplicationStatus) : 'all';
+  const setFilter = (next: ApplicationStatus | 'all') => {
+    const p = new URLSearchParams(params);
+    if (next === 'all') p.delete('status'); else p.set('status', next);
+    setParams(p, { replace: true });
+  };
   /** Narrows the table to the people still owed an acknowledgement. */
   const [showUnackedOnly, setShowUnackedOnly] = useState(false);
 

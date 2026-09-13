@@ -37,3 +37,93 @@ export async function requestRework(stageId: string, reason: string): Promise<vo
   const { error } = await supabase.rpc('request_rework', { p_stage: stageId, p_reason: reason });
   if (error) throw error;
 }
+
+// =========================================================
+// Reading the log.
+//
+// The Overview's rail shows five rows; this is what "See all" opens onto. Same table,
+// same shape, no limit of five — a preview and its module must never be two datasets.
+//
+// Names are resolved in the browser for the reason `ownerLookup()` exists: PostgREST
+// cannot join `project_audit_log.actor_id` to a profile, because the column references
+// `auth.users`. An actor with no profile name is shown by the address they sign in with,
+// which is a fact; nothing is invented from it.
+// =========================================================
+
+export interface AuditRow {
+  id: string;
+  /** Empty for a person-level row (089) — activity with no project. */
+  projectId: string;
+  projectName: string;
+  action: string;
+  actorName: string;
+  personName: string;
+  entityType: string;
+  createdAt: string;
+}
+
+export interface AuditPage {
+  rows: AuditRow[];
+  /** False when the table answered but there was nothing more after this page. */
+  hasMore: boolean;
+}
+
+/**
+ * One page of the audit log, newest first.
+ *
+ * `before` is the `created_at` of the last row already shown — keyset paging, so a row
+ * written while the admin is reading cannot shift the page boundary and hide an entry.
+ */
+export async function listAuditLog(limit = 50, before?: string): Promise<AuditPage> {
+  const { ownerLookup } = await import('./admin-users');
+
+  const select = (cols: string) => {
+    let q = supabase.from('project_audit_log').select(cols)
+      .order('created_at', { ascending: false })
+      .limit(limit + 1);
+    if (before) q = q.lt('created_at', before);
+    return q;
+  };
+
+  // 089's columns, with the pre-089 shape as the fallback: PostgREST refuses a select
+  // naming a column that is not there (42703) rather than returning nulls.
+  let res = await select('id, project_id, action, actor_id, person_id, entity_type, created_at');
+  if (res.error && res.error.code === '42703') {
+    res = await select('id, project_id, action, actor_id, created_at');
+  }
+  if (res.error) throw res.error;
+
+  const raw = (res.data ?? []) as unknown as Record<string, unknown>[];
+  const hasMore = raw.length > limit;
+  const page = hasMore ? raw.slice(0, limit) : raw;
+
+  const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const owners = await ownerLookup();
+  const name = (id: string) => {
+    const hit = owners.get(id);
+    return hit ? (hit.name || hit.email) : '';
+  };
+
+  // Project names, including archived ones — the scored lists exclude those, and without
+  // this an older row would show a raw uuid where its project's name belongs.
+  const ids = [...new Set(page.map(r => s(r.project_id)).filter(Boolean))];
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data } = await supabase.from('projects').select('id, name').in('id', ids);
+    for (const p of (data ?? []) as unknown as Record<string, unknown>[]) names.set(s(p.id), s(p.name));
+  }
+
+  return {
+    hasMore,
+    rows: page.map(r => ({
+      id:          s(r.id),
+      projectId:   s(r.project_id),
+      projectName: names.get(s(r.project_id)) ?? '',
+      action:      s(r.action),
+      actorName:   name(s(r.actor_id)),
+      personName:  name(s(r.person_id)),
+      entityType:  s(r.entity_type),
+      createdAt:   s(r.created_at),
+    })),
+  };
+}

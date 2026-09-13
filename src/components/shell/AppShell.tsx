@@ -28,14 +28,14 @@ export interface AppShellProps {
   userCaptionKey?: AppShellPropsCaption;
   /** Rendered at the right of the top bar — the notification bell, avatar, etc. */
   topBarActions?: ReactNode;
-  /** Sidebar treatment; see AppSidebar. The admin passes `dark`. */
-  sidebarTone?: 'light' | 'dark';
+  /** Rendered beside the page title — the admin's global search. */
+  topBarSearch?: ReactNode;
   children: ReactNode;
 }
 type AppShellPropsCaption = Parameters<ReturnType<typeof useT>>[0];
 
 export function AppShell({
-  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, sidebarTone, children,
+  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, topBarSearch, children,
 }: AppShellProps) {
   const { pathname } = useLocation();
   const [drawer, setDrawer] = useState(false);
@@ -50,12 +50,11 @@ export function AppShell({
       userCaptionKey={userCaptionKey}
       onLogout={onLogout}
       onNavigate={onNavigate}
-      tone={sidebarTone}
     />
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-brand-off-white font-sans">
+    <div className="flex h-screen overflow-hidden bg-[#f7f7f5] font-sans dark:bg-[#141414]">
 
       <div className="hidden shrink-0 md:block">{sidebar()}</div>
 
@@ -80,29 +79,30 @@ export function AppShell({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-brand-border-grey bg-white px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[#e4e3df] bg-[#ffffff] px-4 dark:border-[#2c2c2c] dark:bg-[#161616] sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
               aria-label={t('nav.mainNavigation')}
-              className="flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-brand-off-white md:hidden"
+              className="flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-[#f7f7f5] dark:hover:bg-white/10 md:hidden"
               onClick={() => setDrawer(true)}
             >
-              <Menu className="size-5 text-brand-near-black" />
+              <Menu className="size-5 text-[#0a0a0a] dark:text-white" />
             </button>
             <div className="md:hidden"><GroundworkLogo size="sm" /></div>
-            <h1 className="hidden text-sm font-semibold text-brand-near-black md:block">
+            <h1 className="hidden shrink-0 text-sm font-semibold text-[#0a0a0a] dark:text-white md:block">
               {t(pageTitleKey(pathname, nav))}
             </h1>
+            {topBarSearch}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             <LanguageToggle compact />
             <ThemeToggle compact />
             {topBarActions}
             {profileTo && (
               <Link
                 to={profileTo}
-                className="flex size-8 items-center justify-center rounded-full bg-brand-light-grey text-[11px] font-bold text-brand-near-black transition-colors hover:bg-brand-border-grey"
+                className="flex size-8 items-center justify-center rounded-full bg-[#f2f1ee] text-[11px] font-bold text-[#0a0a0a] transition-colors hover:bg-[#e4e3df] dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
               >
                 {displayName.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
                   || <User className="size-3.5" />}
@@ -114,7 +114,7 @@ export function AppShell({
         <main className="flex-1 overflow-y-auto">{children}</main>
 
         {/* Mobile tab bar — the first five destinations, mirroring the sidebar. */}
-        <nav className="flex shrink-0 items-center border-t border-brand-border-grey bg-white md:hidden">
+        <nav className="flex shrink-0 items-center border-t border-[#e4e3df] bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#0f0f0f] md:hidden">
           {nav.slice(0, 5).map(({ to, labelKey, shortKey, icon: Icon, exact }) => (
             <NavLink
               key={to}
@@ -123,7 +123,7 @@ export function AppShell({
               className={({ isActive }) =>
                 cn(
                   'flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
-                  isActive ? 'text-brand-near-black' : 'text-brand-mid-grey',
+                  isActive ? 'text-[#0a0a0a] dark:text-white' : 'text-[#5a5a57] dark:text-white/55',
                 )
               }
             >

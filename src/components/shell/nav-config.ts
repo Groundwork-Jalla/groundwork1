@@ -104,7 +104,6 @@ export const ADMIN_NAV: NavItem[] = [
  * TEMPORARY by design — an entry leaves this list the day its page ships.
  */
 export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: string; existingKey?: TKey }> = {
-  'action-center': { labelKey: 'nav.actionCenter' },
   'site-updates':  { labelKey: 'nav.siteUpdates',   existingTo: '/admin/reviews',  existingKey: 'nav.reviewsApprovals' },
   'inspections':   { labelKey: 'nav.inspections' },
   'tasks':         { labelKey: 'nav.tasks' },
@@ -120,7 +119,6 @@ export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: s
   'analytics':     { labelKey: 'nav.analytics' },
   'integrations':  { labelKey: 'nav.integrations',  existingTo: '/admin/crm',      existingKey: 'nav.crm' },
   'team':          { labelKey: 'nav.teamPermissions', existingTo: '/admin/users',  existingKey: 'nav.users' },
-  'audit-log':     { labelKey: 'nav.auditLog',      existingTo: '/admin',          existingKey: 'nav.overview' },
   'settings':      { labelKey: 'nav.adminSettings' },
 };
 

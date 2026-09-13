@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 // =========================================================
 
 export interface OverviewHeroProps {
+  /** Empty when the account has no real name — the greeting then carries no name at all. */
   name: string;
   /** Supplied once Jalla provides the photograph. Absent → the tonal brand treatment. */
   image?: string;
@@ -26,7 +27,12 @@ export interface OverviewHeroProps {
 export function OverviewHero({ name, image, now }: OverviewHeroProps) {
   const t = useT();
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'admin.hero.morning' : hour < 17 ? 'admin.hero.afternoon' : 'admin.hero.evening';
+  // No name, no name: an admin whose profile carries no full name is greeted plainly
+  // rather than by something derived from their email address.
+  const part = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const greeting = (name ? `admin.hero.${part}` : `admin.hero.${part}Plain`) as
+    'admin.hero.morning' | 'admin.hero.afternoon' | 'admin.hero.evening'
+    | 'admin.hero.morningPlain' | 'admin.hero.afternoonPlain' | 'admin.hero.eveningPlain';
   const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
 
   return (

@@ -67,6 +67,11 @@ export default [
   // Admin panel (role-guarded inside its own layout)
   layout("routes/admin/_admin-layout.tsx", [
     route("admin",               "routes/admin/index.tsx"),
+    // Both are what the Overview's "See all" opens onto: the full Action Center queue and
+    // the full activity log. They ship with the Overview because a five-row preview whose
+    // See all lands on a placeholder is the dead end the Overview must not have.
+    route("admin/action-center", "routes/admin/action-center.tsx"),
+    route("admin/audit-log",     "routes/admin/audit-log.tsx"),
     route("admin/reviews",       "routes/admin/reviews.tsx"),
     route("admin/budgets",       "routes/admin/budgets.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
