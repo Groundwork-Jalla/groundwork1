@@ -80,7 +80,7 @@ export function FinancialsTab({ loaded, onChanged }: { loaded: LoadedWorkspace; 
     <div className="flex flex-col gap-5 p-5 sm:p-6 2xl:p-8">
       {/* ── Summary ─────────────────────────────────────────────────────────────── */}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <Figure label={t('admin.workspace.overview.budget')}     value={fin.budgetUsd} />
+        <Figure label={t('admin.workspace.overview.budget')}     value={ws.project.budget_usd == null ? null : fin.budgetUsd} />
         <Figure label={t('admin.workspace.overview.funded')}     value={fin.funded} />
         <Figure label={t('admin.workspace.overview.available')}  value={fin.availableFunds} emphasis />
         <Figure label={t('admin.workspace.overview.authorised')} value={fin.authorised} />
@@ -347,12 +347,13 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="px-5 py-6 text-center text-xs text-brand-mid-grey">{children}</p>;
 }
 
-function Figure({ label, value, emphasis }: { label: string; value: number; emphasis?: boolean }) {
+/** `null` is "not recorded" and renders as a dash — a real $0 is a number and renders as one. */
+function Figure({ label, value, emphasis }: { label: string; value: number | null; emphasis?: boolean }) {
   return (
     <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <dt className="text-[11px] text-brand-mid-grey">{label}</dt>
-      <dd className={cn('mt-0.5 truncate tabular-nums text-brand-near-black dark:text-white', emphasis ? 'text-lg font-bold' : 'text-base font-semibold')}>
-        {formatUSDFull(value)}
+      <dd className={cn('mt-0.5 truncate tabular-nums', value === null ? 'text-brand-muted-grey' : 'text-brand-near-black dark:text-white', emphasis ? 'text-lg font-bold' : 'text-base font-semibold')}>
+        {value === null ? '—' : formatUSDFull(value)}
       </dd>
     </div>
   );

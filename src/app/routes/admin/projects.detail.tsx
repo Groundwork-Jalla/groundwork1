@@ -10,6 +10,7 @@ import { SiteUpdatesTab } from '@/components/admin/workspace/SiteUpdatesTab';
 import { DocumentsTab } from '@/components/admin/workspace/DocumentsTab';
 import { FinancialsTab } from '@/components/admin/workspace/FinancialsTab';
 import { StagesTab } from '@/components/admin/workspace/StagesTab';
+import { ConversationsTab } from '@/components/admin/workspace/ConversationsTab';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
@@ -26,7 +27,7 @@ import { cn } from '@/lib/utils';
 // reads the assembled model. A project that does not exist — or that RLS will not show
 // this admin — renders the honest not-found state; nothing is invented in its place.
 //
-// Built so far: Overview (step 4); Activity, Site Updates, Documents (5a); Financials (5b.1); Stages (5b.2). The
+// Built so far: Overview (step 4); Activity, Site Updates, Documents (5a); Financials (5b.1); Stages (5b.2); Conversations (5b.3). The
 // other tabs are navigation targets that say so (BUILT_TABS), never blank pages and
 // never dead links.
 // =========================================================
@@ -46,7 +47,7 @@ export default function AdminProjectWorkspace() {
   const t = useT();
   const { id = '' } = useParams();
   const [params] = useSearchParams();
-  const { tab, stageId } = parseWorkspaceParams(params);
+  const { tab, stageId, conversationId } = parseWorkspaceParams(params);
 
   const [loaded, setLoaded]   = useState<LoadedWorkspace | null | undefined>(undefined);   // undefined = loading
   const [error, setError]     = useState<string | null>(null);
@@ -106,7 +107,8 @@ export default function AdminProjectWorkspace() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <WorkspaceHeader ws={ws} onNotice={setNotice} />
+      {/* A header act (assign verifier) is a write like any other: re-read, then render. */}
+      <WorkspaceHeader ws={ws} onNotice={n => { setNotice(n); reload(); }} />
 
       {/* Tabs: a scrollable strip; the active tab is the URL's. */}
       <nav aria-label={t('admin.workspace.tabs.overview')}
@@ -149,6 +151,8 @@ export default function AdminProjectWorkspace() {
         <FinancialsTab loaded={loaded} onChanged={reload} />
       ) : tab === 'stages' ? (
         <StagesTab loaded={loaded} stageId={stageId} onChanged={reload} />
+      ) : tab === 'conversations' ? (
+        <ConversationsTab loaded={loaded} conversationId={conversationId} onChanged={reload} />
       ) : BUILT_TABS.includes(tab) ? null : (
         <div className="p-8">
           <EmptyState title={t(TAB_LABEL[tab])} description={t('admin.workspace.tabNotBuilt')} />

@@ -62,12 +62,12 @@ describe('the URL is the state', () => {
     expect(routes).toMatch(/route\("admin\/projects\/new"/);
   });
 
-  it('every tab has a label in both dictionaries, and the built list is exactly steps 4 + 5a + 5b.1 + 5b.2', () => {
+  it('every tab has a label in both dictionaries, and the built list is exactly steps 4 + 5a + 5b', () => {
     for (const tab of WORKSPACE_TABS) {
       expect(lookup(en, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
       expect(lookup(fr, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
     }
-    expect(BUILT_TABS).toEqual(['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages']);
+    expect(BUILT_TABS).toEqual(['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages', 'conversations']);
     expect(src(ROUTE)).toContain("t('admin.workspace.tabNotBuilt')");
   });
 });
@@ -205,6 +205,17 @@ describe('the Overview is a preview', () => {
 });
 
 // ── Both themes, both languages ──────────────────────────────────────────────────────
+
+describe('Phase 5 audit findings, pinned', () => {
+  it('a header act re-reads the workspace like every other write', () => {
+    expect(code(ROUTE)).toContain('onNotice={n => { setNotice(n); reload(); }}');
+  });
+
+  it('a project with no budget estimate reads "—", never "$0.00"', () => {
+    expect(code(TAB)).toContain('value={p.budget_usd == null ? null : fin.budgetUsd}');
+    expect(code('src/components/admin/workspace/FinancialsTab.tsx')).toContain('value={ws.project.budget_usd == null ? null : fin.budgetUsd}');
+  });
+});
 
 describe('themes and languages', () => {
   it('every light surface in the workspace has a dark counterpart', () => {

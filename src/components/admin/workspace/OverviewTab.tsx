@@ -118,7 +118,7 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
             <DomainNote state={ledgerState} reason={loaded.errors.ledger} />
           ) : (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">
-              <Money label={t('admin.workspace.overview.budget')}     value={fin.budgetUsd} />
+              <Money label={t('admin.workspace.overview.budget')}     value={p.budget_usd == null ? null : fin.budgetUsd} />
               <Money label={t('admin.workspace.overview.funded')}     value={fin.funded} />
               <Money label={t('admin.workspace.overview.available')}  value={fin.availableFunds} emphasis />
               <Money label={t('admin.workspace.overview.authorised')} value={fin.authorised} />
@@ -180,12 +180,13 @@ function peopleOf(ws: Workspace) {
   return m;
 }
 
-function Money({ label, value, emphasis }: { label: string; value: number; emphasis?: boolean }) {
+/** `null` is "not recorded" and renders as a dash — a real $0 is a number and renders as one. */
+function Money({ label, value, emphasis }: { label: string; value: number | null; emphasis?: boolean }) {
   return (
     <div className="min-w-0">
       <dt className="text-[11px] text-brand-mid-grey">{label}</dt>
-      <dd className={cn('mt-0.5 truncate tabular-nums text-brand-near-black dark:text-white', emphasis ? 'text-base font-bold' : 'text-sm font-semibold')}>
-        {formatUSDFull(value)}
+      <dd className={cn('mt-0.5 truncate tabular-nums', value === null ? 'text-brand-muted-grey' : 'text-brand-near-black dark:text-white', emphasis ? 'text-base font-bold' : 'text-sm font-semibold')}>
+        {value === null ? '—' : formatUSDFull(value)}
       </dd>
     </div>
   );
