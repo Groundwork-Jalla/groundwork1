@@ -219,3 +219,66 @@ export async function unansweredConversations(): Promise<{ rows: UnansweredConve
 export function isConversationsUnavailable(err: unknown): boolean {
   return isMissingTable(err) || isMissingRpc(err);
 }
+
+// =========================================================
+// One thread's messages (05 §9) — the Workspace's Conversations tab reads by
+// `conversation_id`, oldest first, so a thread reads top to bottom.
+//
+// This is the 091 shape (direction, channel, status, attachments), not `fetchMessages`'
+// pre-091 `select('*')` by project: a project can have several threads and a message's
+// side of the screen is its `direction`, never "was the sender the owner". RLS already
+// hides `internal` rows from non-staff (091 `member_read_messages`); an admin sees all.
+// =========================================================
+
+export interface ConversationMessage {
+  id: string;
+  conversationId: string;
+  projectId: string | null;
+  senderId: string | null;
+  senderName: string;
+  content: string;
+  direction: MessageDirection;
+  channel: Channel;
+  status: 'sent' | 'delivered' | 'failed' | null;
+  attachments: unknown[];
+  /** Set when the row was mirrored from GoHighLevel (077). */
+  ghlMessageId: string | null;
+  createdAt: string;
+}
+
+const MESSAGE_COLUMNS =
+  'id, conversation_id, project_id, sender_id, sender_name, content, direction, channel, status, attachments, ghl_message_id, created_at';
+
+export async function listConversationMessages(conversationId: string):
+  Promise<{ rows: ConversationMessage[]; available: boolean }> {
+  const { data, error } = await supabase
+    .from('project_messages')
+    .select(MESSAGE_COLUMNS)
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+  if (error) {
+    // 42703: `conversation_id` is not there — 091 has not been pasted. The table exists
+    // (it predates 091), so `isMissingTable` would say the wrong thing here.
+    if (isMissingTable(error) || (error as { code?: string }).code === '42703') return { rows: [], available: false };
+    throw error;
+  }
+  const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const sn = (v: unknown) => (typeof v === 'string' && v ? v : null);
+  return {
+    available: true,
+    rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(r => ({
+      id:             s(r.id),
+      conversationId: s(r.conversation_id),
+      projectId:      sn(r.project_id),
+      senderId:       sn(r.sender_id),
+      senderName:     s(r.sender_name),
+      content:        s(r.content),
+      direction:      (r.direction as MessageDirection) ?? 'outbound',
+      channel:        (r.channel as Channel) ?? 'jalla',
+      status:         (r.status as 'sent' | 'delivered' | 'failed' | null) ?? null,
+      attachments:    Array.isArray(r.attachments) ? (r.attachments as unknown[]) : [],
+      ghlMessageId:   sn(r.ghl_message_id),
+      createdAt:      s(r.created_at),
+    })),
+  };
+}

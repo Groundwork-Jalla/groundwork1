@@ -127,3 +127,55 @@ export async function listAuditLog(limit = 50, before?: string): Promise<AuditPa
     })),
   };
 }
+
+// =========================================================
+// One project's activity (05 §8) — the Workspace's Activity tab and its Overview's
+// "last 5" are this list, whole and sliced. No second table, no cache.
+//
+// Raw rows only: ids, not names. The workspace loader resolves actor and person once for
+// everything it shows, and this reader must not spend a second `admin_list_users()` call
+// doing the same job. Person-level rows (project_id NULL, 089) never match the filter.
+// =========================================================
+
+export interface ProjectActivityRow {
+  id: string;
+  action: string;
+  actorId: string;
+  /** Who the row is about, when it is about a person (089). Null otherwise. */
+  personId: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  /** The pre-089 column, still written for `project_stage` entities. */
+  stageId: string | null;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+
+export async function listProjectActivity(projectId: string, limit = 200): Promise<ProjectActivityRow[]> {
+  const select = (cols: string) => supabase.from('project_audit_log').select(cols)
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  // 089's columns, with the pre-089 shape as the fallback (42703: PostgREST refuses a
+  // select naming a column that is not there rather than returning nulls).
+  let res = await select('id, action, actor_id, person_id, entity_type, entity_id, stage_id, details, created_at');
+  if (res.error && res.error.code === '42703') {
+    res = await select('id, action, actor_id, stage_id, details, created_at');
+  }
+  if (res.error) throw res.error;
+
+  const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const sn = (v: unknown) => (typeof v === 'string' && v ? v : null);
+  return ((res.data ?? []) as unknown as Record<string, unknown>[]).map(r => ({
+    id:         s(r.id),
+    action:     s(r.action),
+    actorId:    s(r.actor_id),
+    personId:   sn(r.person_id),
+    entityType: sn(r.entity_type),
+    entityId:   sn(r.entity_id),
+    stageId:    sn(r.stage_id),
+    details:    (r.details && typeof r.details === 'object' ? r.details : {}) as Record<string, unknown>,
+    createdAt:  s(r.created_at),
+  }));
+}

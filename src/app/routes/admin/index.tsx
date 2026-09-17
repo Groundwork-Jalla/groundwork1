@@ -11,6 +11,7 @@ import {
 } from '@/components/admin/overview/Blocks';
 import { ProjectsMap } from '@/components/admin/overview/ProjectsMap';
 import { KPI_LINKS, SEE_ALL_LINKS } from '@/lib/admin/overview-links';
+import { actionLabel } from '@/lib/admin/action-labels';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -179,8 +180,7 @@ export default function AdminOverview() {
             ) : (
               <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
                 {data.recent.slice(0, OVERVIEW_ROWS).map(e => {
-                  const key = `admin.ops.action.${e.action.replace(/\./g, '_')}` as TKey;
-                  const verb = t(key) === key ? t('admin.ops.action.other') : t(key);
+                  const verb = actionLabel(e.action, t);
                   return (
                     <li key={e.id} className="px-5 py-2.5">
                       <p className="text-xs leading-snug text-brand-near-black dark:text-white">

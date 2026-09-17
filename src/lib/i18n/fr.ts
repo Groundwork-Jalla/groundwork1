@@ -474,6 +474,32 @@ export const fr: Mirror<EnDict> = {
       subtitle: 'Visites de chantier programm\u00e9es',
       empty:    'Les inspections ne font pas encore partie de Groundwork \u2014 il n\u2019y a rien \u00e0 afficher, et rien n\u2019est invent\u00e9 ici.',
     },
+    // ── Le cycle de vie d\u00e9riv\u00e9 des \u00e9tapes, tel que le badge le dit (05 §7). ──
+    lifecycle: {
+      state: {
+        locked:                   'Verrouill\u00e9e',
+        in_progress:              'En cours',
+        evidence_submitted:       'Preuves soumises',
+        verification_pending:     'V\u00e9rification en attente',
+        verification_in_progress: 'V\u00e9rification en cours',
+        rejected:                 'Rejet\u00e9e',
+        verified:                 'V\u00e9rifi\u00e9e',
+        approved:                 'Approuv\u00e9e',
+        payment_eligible:         'Paiement \u00e9ligible',
+        release_authorised:       'D\u00e9caissement autoris\u00e9',
+        disbursement_initiated:   'D\u00e9caissement lanc\u00e9',
+        disbursed:                'D\u00e9caiss\u00e9e',
+        payment_failed:           'Paiement \u00e9chou\u00e9',
+        completed:                'Termin\u00e9e',
+        // Un \u00e9tat inconnu de cette version — affich\u00e9 plut\u00f4t que devin\u00e9.
+        unknown:                  '\u00c9tat inconnu',
+      },
+      blocker: {
+        verifier_not_selected: 'aucun v\u00e9rificateur choisi',
+        awaiting_funding:      'en attente de fonds',
+        on_hold:               'En pause',
+      },
+    },
     // ── Destinations filtr\u00e9es (le jeu de donn\u00e9es propre \u00e0 un indicateur) ──
     filter: {
       showing:  'Affichage\u00a0: {label}',
@@ -561,6 +587,22 @@ export const fr: Mirror<EnDict> = {
         site_update_submitted:      'a soumis une mise à jour de chantier',
         tier_changed:               'a changé la formule',
         client_provisioned:         'a créé un compte client',
+        // 090 — le registre. `payment.<state>` suit les noms d\u2019\u00e9tat du registre.
+        funding_received:           'a confirm\u00e9 la r\u00e9ception des fonds',
+        payment_release_authorised: 'a autoris\u00e9 un d\u00e9caissement',
+        payment_initiated:          'un d\u00e9caissement a \u00e9t\u00e9 lanc\u00e9',
+        payment_disbursed:          'un d\u00e9caissement a \u00e9t\u00e9 effectu\u00e9',
+        payment_failed:             'un d\u00e9caissement a \u00e9chou\u00e9',
+        payment_reconciling:        'a ouvert un rapprochement',
+        // 091 — conversations, d\u00e9cisions, liens support.
+        conversation_created:       'a ouvert une conversation',
+        conversation_assigned:      'a attribu\u00e9 une conversation',
+        conversation_linked:        'a li\u00e9 une conversation au projet',
+        conversation_resolved:      'a r\u00e9solu une conversation',
+        message_internal_note:      'a ajout\u00e9 une note interne',
+        decision_recorded:          'a enregistr\u00e9 une d\u00e9cision',
+        decision_approved:          'a confirm\u00e9 une d\u00e9cision',
+        ticket_linked:              'a li\u00e9 un ticket de support',
         other:                      'a mis à jour le chantier',
       },
       noProject:       'Aucun projet',

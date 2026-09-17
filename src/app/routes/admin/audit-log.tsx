@@ -5,7 +5,8 @@ import { listAuditLog, type AuditRow } from '@/lib/supabase/activity';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { actionLabel } from '@/lib/admin/action-labels';
+import { useT, useLanguage } from '@/lib/i18n';
 
 // =========================================================
 // /admin/audit-log — what "See all" on the Overview's Recent activity opens.
@@ -70,8 +71,7 @@ export default function AdminAuditLog() {
         <>
           <ul className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             {rows.map(r => {
-              const key = `admin.ops.action.${r.action.replace(/\./g, '_')}` as TKey;
-              const verb = t(key) === key ? t('admin.ops.action.other') : t(key);
+              const verb = actionLabel(r.action, t);
               return (
                 <li key={r.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-brand-border-grey px-5 py-3 last:border-b-0 dark:border-[#2c2c2c]">
                   <span className="text-sm text-brand-near-black dark:text-white">

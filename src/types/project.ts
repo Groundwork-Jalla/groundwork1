@@ -389,7 +389,16 @@ export interface ProjectStageRow {
    */
   fixed_amount_usd: number | null;
   payment_milestone_usd: number | null;
+  /**
+   * LEGACY PROJECTION (090): derived by a trigger from the ledger, kept for the older
+   * screens that still read it. Never an input to `stageLifecycle()`.
+   */
   payment_status: PaymentStatus;
+  /**
+   * Whether an independent verification gates approval (migration 086; seeded from the
+   * tier). Optional because a `select` that predates 086 does not name it.
+   */
+  verification_required?: boolean | null;
   completed_at: string | null;
   planned_start: string | null;
   planned_end: string | null;

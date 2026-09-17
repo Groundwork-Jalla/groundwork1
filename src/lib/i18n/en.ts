@@ -467,6 +467,32 @@ export const en = {
       subtitle: 'Site visits scheduled ahead',
       empty:    'Inspections are not part of Groundwork yet \u2014 there is nothing to show, and nothing is invented here.',
     },
+    // ── The derived stage lifecycle, as the badge says it (05 §7). One word per state. ──
+    lifecycle: {
+      state: {
+        locked:                   'Locked',
+        in_progress:              'In progress',
+        evidence_submitted:       'Evidence submitted',
+        verification_pending:     'Verification pending',
+        verification_in_progress: 'Verification in progress',
+        rejected:                 'Rejected',
+        verified:                 'Verified',
+        approved:                 'Approved',
+        payment_eligible:         'Payment eligible',
+        release_authorised:       'Release authorised',
+        disbursement_initiated:   'Disbursement initiated',
+        disbursed:                'Disbursed',
+        payment_failed:           'Payment failed',
+        completed:                'Completed',
+        // A state this build does not know — shown rather than guessed.
+        unknown:                  'Unknown state',
+      },
+      blocker: {
+        verifier_not_selected: 'no verifier selected',
+        awaiting_funding:      'awaiting funding',
+        on_hold:               'On hold',
+      },
+    },
     // ── Filtered destinations (a KPI's own dataset) ──
     filter: {
       showing:  'Showing: {label}',
@@ -557,6 +583,22 @@ export const en = {
         site_update_submitted:      'submitted a site update',
         tier_changed:               'changed the plan',
         client_provisioned:         'created a client account',
+        // 090 — the ledger. `payment.<state>` follows the ledger's own state names.
+        funding_received:           'confirmed funding received',
+        payment_release_authorised: 'authorised a release',
+        payment_initiated:          'a disbursement was initiated',
+        payment_disbursed:          'a disbursement was completed',
+        payment_failed:             'a disbursement failed',
+        payment_reconciling:        'opened a reconciliation',
+        // 091 — conversations, decisions, support links.
+        conversation_created:       'opened a conversation',
+        conversation_assigned:      'assigned a conversation',
+        conversation_linked:        'linked a conversation to the project',
+        conversation_resolved:      'resolved a conversation',
+        message_internal_note:      'added an internal note',
+        decision_recorded:          'recorded a decision',
+        decision_approved:          'confirmed a decision',
+        ticket_linked:              'linked a support ticket',
         other:                      'updated the project',
       },
       noProject:       'No project',
