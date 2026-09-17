@@ -36,7 +36,7 @@ async function softRows(table: string, columns: string, modify?: (q: Filter) => 
   return { rows: (data ?? []) as unknown as Row[], available: true };
 }
 
-export async function loadActionCenter(now: Date = new Date(), workspaceReady = false): Promise<ActionCenterData> {
+export async function loadActionCenter(now: Date = new Date(), workspaceReady = true): Promise<ActionCenterData> {
   const [projectsRes, stagesRes, verRes, verifiersRes, updatesRes, ledger, eventsRes, waiting, appsRes, inqRes, ticketsRes, owners] = await Promise.all([
     supabase.from('projects').select('id, name, user_id, status, tier, tracking_started_at, created_at').neq('status', 'archived'),
     supabase.from('project_stages').select('id, project_id, stage_number, status, verification_required, payment_milestone_usd, completed_at'),

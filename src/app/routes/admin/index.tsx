@@ -12,6 +12,7 @@ import {
 import { ProjectsMap } from '@/components/admin/overview/ProjectsMap';
 import { KPI_LINKS, SEE_ALL_LINKS } from '@/lib/admin/overview-links';
 import { actionLabel } from '@/lib/admin/action-labels';
+import { workspaceHref } from '@/lib/admin/workspace-params';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,8 +55,10 @@ import { cn } from '@/lib/utils';
  */
 const DASHBOARD_GAP = 'gap-5';
 
-const WORKSPACE_READY = false;
-const projectLink = (id: string) => (WORKSPACE_READY ? `/admin/projects/${id}` : `/projects/${id}`);
+/** The Workspace route shipped (Phase 5 step 4); a project opens there, in-app. The flag
+ *  stays as the one switch the Action Center reads, so its deep links agree with these. */
+const WORKSPACE_READY = true;
+const projectLink = (id: string) => workspaceHref(id);
 
 export default function AdminOverview() {
   const t = useT();

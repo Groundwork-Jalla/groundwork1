@@ -76,6 +76,9 @@ export default [
     route("admin/budgets",       "routes/admin/budgets.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
     route("admin/projects/new",  "routes/admin/projects.new.tsx"),
+    // The Project Workspace (Phase 5). Declared after /new so the literal segment wins;
+    // tab, stage and conversation are search params, never nested routes (05 §5).
+    route("admin/projects/:id",   "routes/admin/projects.detail.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
     route("admin/users/new",     "routes/admin/users.new.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),

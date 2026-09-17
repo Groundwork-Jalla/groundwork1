@@ -20,6 +20,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ReworkModal } from '@/components/admin/stages/ReworkModal';
 import { RecordVerificationModal } from '@/components/admin/stages/RecordVerificationModal';
 import { useT } from '@/lib/i18n';
+import { workspaceHref } from '@/lib/admin/workspace-params';
 
 interface PendingStage {
   stageId: string;
@@ -197,6 +198,11 @@ function StageReviewCard({
               {item.projectName}
             </Link>
             {' · '}{item.ownerName || item.ownerEmail}
+            {' · '}
+            {/* The workspace, on this stage (05 §4); the queue re-points fully in Phase 7. */}
+            <Link to={workspaceHref(item.projectId, { tab: 'stages', stageId: item.stageId })} className="font-medium text-brand-near-black hover:underline dark:text-white">
+              {t('admin.workspace.openWorkspace')}
+            </Link>
           </p>
         </div>
         <button

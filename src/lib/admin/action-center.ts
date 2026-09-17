@@ -92,7 +92,7 @@ export function stageLink(projectId: string, stageId: string, workspaceReady: bo
   return workspaceReady ? `/admin/projects/${projectId}?tab=stages&stage=${stageId}` : '/admin/reviews';
 }
 
-export function actionCenterItems(input: ActionCenterInput, now: Date, workspaceReady = false): ActionItem[] {
+export function actionCenterItems(input: ActionCenterInput, now: Date, workspaceReady = true): ActionItem[] {
   const items: ActionItem[] = [];
   const projectById = new Map(input.projects.map(p => [p.id, p]));
   const stagesByProject = new Map<string, ActionStage[]>();

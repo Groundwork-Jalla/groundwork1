@@ -11,6 +11,7 @@ import { errorMessage } from '@/lib/errors';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { projectHealth, type ActivityStamps, type HealthBand } from '@/lib/admin/health';
 import { matchesStatusFilter, parseHealthFilter, parseStatusFilter } from '@/lib/admin/project-filters';
+import { workspaceHref } from '@/lib/admin/workspace-params';
 import { FilterBanner } from '@/components/admin/FilterBanner';
 import { useT, type TKey } from '@/lib/i18n';
 
@@ -299,7 +300,9 @@ export default function AdminProjects() {
             <tbody className="divide-y divide-brand-border-grey">
               {filtered.map(p => (
                 <tr key={p.id} className="hover:bg-brand-off-white transition-colors">
-                  <td className="px-4 py-3 font-medium text-brand-near-black max-w-[200px] truncate">{p.name}</td>
+                  <td className="px-4 py-3 font-medium text-brand-near-black max-w-[200px] truncate">
+                    <Link to={workspaceHref(p.id)} className="underline-offset-2 hover:underline">{p.name}</Link>
+                  </td>
                   <td className="px-4 py-3 text-brand-mid-grey max-w-[160px] truncate">
                     <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
                   </td>
