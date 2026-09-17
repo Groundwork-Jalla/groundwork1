@@ -5,6 +5,11 @@ import { loadWorkspace, type LoadedWorkspace } from '@/lib/supabase/workspace';
 import { BUILT_TABS, WORKSPACE_TABS, parseWorkspaceParams, workspaceHref, type WorkspaceTab } from '@/lib/admin/workspace-params';
 import { WorkspaceHeader } from '@/components/admin/workspace/WorkspaceHeader';
 import { OverviewTab } from '@/components/admin/workspace/OverviewTab';
+import { ActivityTab } from '@/components/admin/workspace/ActivityTab';
+import { SiteUpdatesTab } from '@/components/admin/workspace/SiteUpdatesTab';
+import { DocumentsTab } from '@/components/admin/workspace/DocumentsTab';
+import { FinancialsTab } from '@/components/admin/workspace/FinancialsTab';
+import { StagesTab } from '@/components/admin/workspace/StagesTab';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
@@ -21,8 +26,9 @@ import { cn } from '@/lib/utils';
 // reads the assembled model. A project that does not exist — or that RLS will not show
 // this admin — renders the honest not-found state; nothing is invented in its place.
 //
-// STEP 4 builds the header and the Overview tab. The other tabs are navigation targets
-// that say so (BUILT_TABS), never blank pages and never dead links.
+// Built so far: Overview (step 4); Activity, Site Updates, Documents (5a); Financials (5b.1); Stages (5b.2). The
+// other tabs are navigation targets that say so (BUILT_TABS), never blank pages and
+// never dead links.
 // =========================================================
 
 const TAB_LABEL: Record<WorkspaceTab, TKey> = {
@@ -46,14 +52,20 @@ export default function AdminProjectWorkspace() {
   const [error, setError]     = useState<string | null>(null);
   const [notice, setNotice]   = useState<string | null>(null);
 
+  // `generation` bumps after an act (a ledger confirmation, later an approval) so the
+  // whole model is re-read from the database — the only place the truth changed.
+  const [generation, setGeneration] = useState(0);
+  const reload = () => setGeneration(g => g + 1);
+
   useEffect(() => {
     let alive = true;
-    setLoaded(undefined); setError(null);
+    if (generation === 0) setLoaded(undefined);
+    setError(null);
     loadWorkspace(id)
       .then(r => { if (alive) setLoaded(r); })
       .catch(e => { if (alive) { setError(errorMessage(e, t('admin.workspace.loadFailed'))); setLoaded(null); } });
     return () => { alive = false; };
-  }, [id, t]);
+  }, [id, t, generation]);
 
   if (loaded === undefined) {
     return (
@@ -127,6 +139,16 @@ export default function AdminProjectWorkspace() {
 
       {tab === 'overview' ? (
         <OverviewTab loaded={loaded} stageId={stageId} />
+      ) : tab === 'activity' ? (
+        <ActivityTab loaded={loaded} />
+      ) : tab === 'site-updates' ? (
+        <SiteUpdatesTab loaded={loaded} />
+      ) : tab === 'documents' ? (
+        <DocumentsTab loaded={loaded} />
+      ) : tab === 'financials' ? (
+        <FinancialsTab loaded={loaded} onChanged={reload} />
+      ) : tab === 'stages' ? (
+        <StagesTab loaded={loaded} stageId={stageId} onChanged={reload} />
       ) : BUILT_TABS.includes(tab) ? null : (
         <div className="p-8">
           <EmptyState title={t(TAB_LABEL[tab])} description={t('admin.workspace.tabNotBuilt')} />

@@ -145,3 +145,47 @@ export function ineligibilityReason(err: unknown): string | null {
   const m = /not_eligible:(\w+)/.exec(msg);
   return m ? m[1] : null;
 }
+
+// =========================================================
+// Reconciliation: the provider's own events against our rows (05 §10 §5).
+//
+// `payment_events` is what the provider told us — one row per event it sent, keyed by
+// (provider, provider_event_id) so a retry cannot apply twice. `outcome` is NULL when
+// the event moved a row, and names the reason when it did not (`unmatched`,
+// `illegal_transition`, `unknown_type`). Events carry no project id; they are read by
+// the project's payment ids, which the caller already holds.
+// =========================================================
+
+export interface PaymentEvent {
+  id: string;
+  paymentId: string | null;
+  provider: string;
+  providerEventId: string;
+  eventType: string;
+  receivedAt: string;
+  processedAt: string | null;
+  /** Null when the event was applied; otherwise why it was not. */
+  outcome: string | null;
+}
+
+export async function listPaymentEvents(paymentIds: string[]): Promise<{ rows: PaymentEvent[]; available: boolean }> {
+  if (paymentIds.length === 0) return { rows: [], available: true };
+  const { data, error } = await supabase
+    .from('payment_events')
+    .select('id, payment_id, provider, provider_event_id, event_type, received_at, processed_at, outcome')
+    .in('payment_id', paymentIds)
+    .order('received_at', { ascending: false });
+  if (error) {
+    if (isMissingTable(error)) return { rows: [], available: false };
+    throw error;
+  }
+  const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const sn = (v: unknown) => (typeof v === 'string' && v ? v : null);
+  return {
+    available: true,
+    rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(r => ({
+      id: s(r.id), paymentId: sn(r.payment_id), provider: s(r.provider), providerEventId: s(r.provider_event_id),
+      eventType: s(r.event_type), receivedAt: s(r.received_at), processedAt: sn(r.processed_at), outcome: sn(r.outcome),
+    })),
+  };
+}

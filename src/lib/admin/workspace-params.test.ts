@@ -62,12 +62,12 @@ describe('the URL is the state', () => {
     expect(routes).toMatch(/route\("admin\/projects\/new"/);
   });
 
-  it('every tab has a label in both dictionaries, and only overview is built in this step', () => {
+  it('every tab has a label in both dictionaries, and the built list is exactly steps 4 + 5a + 5b.1 + 5b.2', () => {
     for (const tab of WORKSPACE_TABS) {
       expect(lookup(en, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
       expect(lookup(fr, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
     }
-    expect(BUILT_TABS).toEqual(['overview']);
+    expect(BUILT_TABS).toEqual(['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages']);
     expect(src(ROUTE)).toContain("t('admin.workspace.tabNotBuilt')");
   });
 });
@@ -183,7 +183,10 @@ describe('the Overview is a preview', () => {
 
   it('the ladder lists every stage in order as links that select via ?stage=', () => {
     const ladder = code(LADDER);
-    expect(ladder).toContain("workspaceHref(projectId, { tab: 'overview', stageId: view.stage.id })");
+    // Selection stays within the tab the ladder is shown on; the Overview passes nothing
+    // and gets `overview`, the Stages tab passes itself (5b.2).
+    expect(ladder).toContain("workspaceHref(projectId, { tab, stageId: view.stage.id })");
+    expect(ladder).toContain("tab = 'overview'");
     expect(ladder).toContain('stages.map(');
     // Ordering is the loader's (assembleWorkspace sorts by stage_number) — the ladder must not re-sort.
     expect(ladder).not.toContain('.sort(');

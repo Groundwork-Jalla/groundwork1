@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import type { StageView } from '@/lib/admin/workspace';
-import { workspaceHref } from '@/lib/admin/workspace-params';
+import { workspaceHref, type WorkspaceTab } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { useStageLabels } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
@@ -15,10 +15,12 @@ import { cn } from '@/lib/utils';
 // here reads `payment_status` or decides a state; the ladder is the lifecycle, listed.
 // =========================================================
 
-export function StageLadder({ projectId, stages, selectedId }: {
+export function StageLadder({ projectId, stages, selectedId, tab = 'overview' }: {
   projectId: string;
   stages: StageView[];
   selectedId: string | null;
+  /** The tab a row selects within — the Overview by default, the Stages tab on itself. */
+  tab?: WorkspaceTab;
 }) {
   const { stageLabel } = useStageLabels();
   return (
@@ -28,7 +30,7 @@ export function StageLadder({ projectId, stages, selectedId }: {
         return (
           <li key={view.stage.id}>
             <Link
-              to={workspaceHref(projectId, { tab: 'overview', stageId: view.stage.id })}
+              to={workspaceHref(projectId, { tab, stageId: view.stage.id })}
               replace
               aria-current={active ? 'true' : undefined}
               className={cn(

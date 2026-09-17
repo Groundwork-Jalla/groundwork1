@@ -19,6 +19,13 @@ import { useStageLabels } from '@/lib/stage-labels';
 export interface BudgetViewProps {
   project: ProjectRow;
   stages: ProjectStageRow[];
+  /**
+   * The Released / Held / Remaining boxes are milestone buckets by STAGE STATUS — an
+   * owner-facing estimate of where the budget stands, not money that moved. The admin
+   * workspace shows the ledger (090) beside this view and passes `false` so two different
+   * "released" figures never share a screen. Default keeps the client page as it is.
+   */
+  showMilestoneBuckets?: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -452,7 +459,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
 
 // ── Main component ───────────────────────────────────────────
 
-export default function BudgetView({ project, stages }: BudgetViewProps) {
+export default function BudgetView({ project, stages, showMilestoneBuckets = true }: BudgetViewProps) {
   const { stageLabel } = useStageLabels();
   const { lang } = useLanguage();
   const t = useT();
@@ -583,9 +590,13 @@ export default function BudgetView({ project, stages }: BudgetViewProps) {
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <MetricBox label={t('project.costing.totalBudget')} value={budget.total} />
-        <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />
-        <MetricBox label={t('project.costing.held')}        value={held}     dimmed={held === 0} />
-        <MetricBox label={t('project.costing.remaining')}   value={remaining} dimmed={remaining === 0} />
+        {showMilestoneBuckets && (
+          <>
+            <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />
+            <MetricBox label={t('project.costing.held')}        value={held}     dimmed={held === 0} />
+            <MetricBox label={t('project.costing.remaining')}   value={remaining} dimmed={remaining === 0} />
+          </>
+        )}
       </div>
 
       {/* ── Section 3: Per-Floor Breakdown (multi-floor only) ── */}

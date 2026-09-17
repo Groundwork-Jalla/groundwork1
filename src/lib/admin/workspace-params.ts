@@ -19,8 +19,9 @@ export const WORKSPACE_TABS = [
 ] as const;
 export type WorkspaceTab = typeof WORKSPACE_TABS[number];
 
-/** The tabs Step 4 renders. The others exist as navigation targets with an honest "not built yet". */
-export const BUILT_TABS: readonly WorkspaceTab[] = ['overview'];
+/** The tabs built so far (4: overview; 5a: activity, site-updates, documents; 5b.1: financials;
+ *  5b.2: stages). The others exist as navigation targets with an honest "not built yet". */
+export const BUILT_TABS: readonly WorkspaceTab[] = ['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages'];
 
 export interface WorkspaceParams {
   tab: WorkspaceTab;
@@ -84,4 +85,21 @@ export function domainStateOf(
   count: number,
 ): DomainState {
   return domainState(ws.available[domain], errors[domain], count);
+}
+
+/**
+ * A display name for any account the workspace has already resolved — owner, contractor,
+ * verifier, or anyone who appears in the activity log. Profile name, then the address they
+ * sign in with, then nothing: never a guess and never a raw id.
+ */
+export function nameLookup(ws: Pick<Workspace, 'team' | 'activity'>): (id: string | null | undefined) => string {
+  const m = new Map<string, string>();
+  if (ws.team.owner) m.set(ws.team.owner.id, ws.team.owner.name || ws.team.owner.email);
+  for (const c of ws.team.contractors) if (c.contractor_user_id) m.set(c.contractor_user_id, c.name || c.email);
+  for (const v of ws.team.verifiers) m.set(v.userId, v.name || v.email);
+  for (const a of ws.activity) {
+    if (a.actorId && a.actorName && !m.has(a.actorId)) m.set(a.actorId, a.actorName);
+    if (a.personId && a.personName && !m.has(a.personId)) m.set(a.personId, a.personName);
+  }
+  return id => (id ? (m.get(id) ?? '') : '');
 }
