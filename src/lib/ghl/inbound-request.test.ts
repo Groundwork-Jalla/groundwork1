@@ -31,6 +31,17 @@ const vercelRequest = (extra: Record<string, string> = {}) => ({
     'x-vercel-id': 'iad1::abcd-1700000000000-0123456789ab',
     'x-forwarded-proto': 'https',
     'x-forwarded-host': 'tryjalla.com',
+    // What the first real capture (18 Sep 2026) showed Vercel actually adds. Placeholder values.
+    'x-invocation-id': 'sfo1::placeholder',
+    'x-vercel-forwarded-for': '198.51.100.7',
+    'x-vercel-proxied-for': '198.51.100.7',
+    'x-vercel-ip-city': 'Placeholder%20City',
+    'x-vercel-ip-latitude': '0.0000',
+    'x-vercel-ip-longitude': '0.0000',
+    'x-vercel-ja4-digest': 'placeholder_fingerprint',
+    'x-vercel-proxy-signature': 'Bearer placeholder',
+    'x-vercel-proxy-signature-ts': '0',
+    'x-vercel-deployment-url': 'placeholder.vercel.app',
     ...extra,
   },
 });
@@ -60,6 +71,14 @@ describe('3–6: what can never enter request.headers', () => {
       expect(m.headers, n).not.toHaveProperty(n);
     }
     expect(JSON.stringify(m)).not.toContain('203.0.113.10');
+  });
+  it("6b. Vercel's own spellings — every x-vercel-* (IP, geo, fingerprint, proxy signature), x-invocation-id, x-forwarded-*", () => {
+    const m = requestMeta(vercelRequest())!;
+    expect(Object.keys(m.headers).filter(k => k.startsWith('x-vercel-') || k.startsWith('x-forwarded-') || k === 'x-invocation-id')).toEqual([]);
+    const j = JSON.stringify(m);
+    for (const leak of ['198.51.100.7', 'Placeholder%20City', 'placeholder_fingerprint', 'Bearer placeholder', 'sfo1::placeholder']) expect(j).not.toContain(leak);
+    // What survives of a real Vercel request is only the generic client headers.
+    expect(Object.keys(m.headers).sort()).toEqual(['accept', 'content-length', 'host']);
   });
   it('keeps what could establish identity — an unknown vendor header survives untouched', () => {
     const m = requestMeta(vercelRequest({ 'x-ghl-request-id': 'req_placeholder', 'x-wh-signature': 'sig_placeholder' }))!;

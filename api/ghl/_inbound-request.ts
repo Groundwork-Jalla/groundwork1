@@ -8,8 +8,11 @@
  *
  *   never   x-groundwork-secret, authorization, cookie, and any name containing
  *           secret / token / key
- *   never   the client-IP headers the edge adds: x-forwarded-for, x-real-ip, forwarded,
- *           cf-connecting-ip, true-client-ip
+ *   never   anything the edge adds about the caller: every x-vercel-* header (the first
+ *           real capture on 18 Sep 2026 showed Vercel spells the client IP
+ *           x-vercel-forwarded-for / x-vercel-proxied-for and adds ip-city, ip-latitude,
+ *           ja4-digest, proxy-signature …), x-invocation-id, and any name containing
+ *           forwarded / proxied / real-ip / client-ip
  *   not     user-agent, content-type — already known to say nothing about identity
  *
  * Values are cut at 512 characters, the whole object at 8 KB. Pure: no I/O, no logging.
@@ -22,14 +25,16 @@ export const REQUEST_META_MAX_BYTES = 8 * 1024;
 const DROP_EXACT = new Set([
   'x-groundwork-secret', 'authorization', 'cookie',
   'x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip',
-  'user-agent', 'content-type',
+  'x-invocation-id', 'user-agent', 'content-type',
 ]);
-/** Name fragments that never leave the request. */
-const DROP_FRAGMENT = /secret|token|key/;
+/** Name fragments that never leave the request: secrets, and anything about the caller. */
+const DROP_FRAGMENT = /secret|token|key|forwarded|proxied|real-ip|client-ip/;
+/** Whole families the platform adds about the request — never GHL's identity. */
+const DROP_PREFIX = ['x-vercel-'];
 
 export const keepHeader = (name: string): boolean => {
   const n = name.toLowerCase();
-  return !DROP_EXACT.has(n) && !DROP_FRAGMENT.test(n);
+  return !DROP_EXACT.has(n) && !DROP_FRAGMENT.test(n) && !DROP_PREFIX.some(p => n.startsWith(p));
 };
 
 const cut = (v: string): string => (v.length > HEADER_VALUE_MAX ? v.slice(0, HEADER_VALUE_MAX) : v);

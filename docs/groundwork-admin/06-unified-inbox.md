@@ -446,3 +446,35 @@ Approved with the amendment: headers are identity-focused — client-IP headers 
 Gate: 68 files / 1118 tests, `tsc` clean, `git diff --check` clean. Uncommitted. `GHL_INBOUND_ACT` off; 6.3 blocked.
 
 **Deploy order when approved:** rotate the secret (both places) → apply 094 in Supabase → deploy → send one real message → read `request` from the newest row (Supabase SQL editor; service role only) → identity decision (§16.7 last paragraph). Don't count `x-vercel-*`, `x-forwarded-*`, `host`, `accept` as GHL identity.
+
+### 16.9 Option 2 result (18 Sep 2026): no GHL-issued identifier in the request either
+
+Production sequence completed: secret rotated, 094 applied, capture-only handler deployed, one real message sent. The newest event (08:55:50 UTC) carries `request`. Its 25 headers, in full: `accept`, `accept-encoding`, `connection`, `content-length`, `host`, `x-forwarded-host`, `x-forwarded-proto`, `x-invocation-id`, and seventeen `x-vercel-*` (`deployment-url`, `enable-rewrite-caching`, `forwarded-for`, `id`, `ip-as-number`, `ip-city`, `ip-continent`, `ip-country`, `ip-country-region`, `ip-latitude`, `ip-longitude`, `ip-postal-code`, `ip-timezone`, `ja4-digest`, `proxied-for`, `proxy-signature`, `proxy-signature-ts`). Every one is a standard client header or added by Vercel's edge (`x-vercel-proxy-signature` is Vercel's, not GHL's). **GoHighLevel's workflow webhook sets no header of its own** — no request id, event id or signature. Query string: `action=crm-inbound` only.
+
+**Options 1 and 2 are closed.** The workflow webhook — body, configurable fields, and request — carries no stable message, conversation or event identity. 094 stays as the request audit; it is not asked to do more, and no idempotency key is manufactured.
+
+**Sanitiser gap found by the evidence, and fixed.** The amendment excluded client-IP headers by the five conventional names; Vercel spells them `x-vercel-forwarded-for` / `x-vercel-proxied-for` and adds geo (`x-vercel-ip-*`), a TLS fingerprint (`x-vercel-ja4-digest`) and its proxy signature. Those reached the stored row (the IP is GHL's Google Cloud egress, `104.198.20.240`, not a person's — still the excluded class). `_inbound-request.ts` now drops every `x-vercel-*`, `x-invocation-id`, and any name containing `forwarded`/`proxied`/`real-ip`/`client-ip`; the tests carry the real header names with placeholder values; of a real Vercel request only `accept`, `content-length`, `host` survive. Local proof 19/19; 1119 tests; `tsc` and `diff --check` clean. **Not yet deployed** (uncommitted). Recommended production tidy-up, Favour's call, one statement:
+
+```sql
+update ghl_inbound_events
+   set request = jsonb_set(request, '{headers}',
+         (select coalesce(jsonb_object_agg(k, v), '{}'::jsonb)
+            from jsonb_each(request->'headers') as h(k, v)
+           where k not like 'x-vercel-%' and k not like 'x-forwarded-%' and k <> 'x-invocation-id'))
+ where request is not null;
+```
+
+### 16.10 The identity decision — authority gate
+
+The trigger source in use cannot carry identity. The choice is now explicit:
+
+| | **A. Marketplace `InboundMessage` webhook** | **B. Act-time lookup via the Conversations API** |
+|---|---|---|
+| Identity | GHL-issued `messageId`, `conversationId`, `contactId`, `locationId`, `direction`, `messageType`, `dateAdded` in the event itself (the shape the provisional parser was written against — still to be confirmed from a real capture, never assumed) | None in the webhook; Groundwork calls `/conversations/search?contactId` (existing `ensureConversation`) then `/conversations/{id}/messages` and picks the message it believes the webhook meant |
+| Idempotency | 085 as designed: `ghl_message_id` | Must be redesigned: matching on body + time window, ambiguous for identical texts and bursts; retries and out-of-order arrivals need their own rules |
+| Reliability | One HTTP call in; no dependency on GHL's API at file time | Two API calls per event; GHL API down = nothing filed; rate limits |
+| Security | Marketplace webhooks are signed (public-key signature) — stronger than the shared header secret | Unchanged shared-secret boundary, plus a token with conversation read scope in the act path |
+| Prerequisites | The Marketplace app's Conversations token is expired (CRM card: "reinstall from the app's install link"); the app must subscribe to `InboundMessage`; the webhook URL and signature verification are new work; the `crm-inbound` action stays (or a sibling action, still under the function cap) | The private integration token needs conversation read scopes (unverified); no new subscription |
+| Fit with 091 | Direct: `ensure_inbound_conversation(person, ghl_conversation_id, ghl_contact_id, channel)` and `direction = 'inbound'` explicit, as built | Indirect: the conversation id is looked up, the message id is inferred |
+
+Recommendation: **A**, on the condition that it is done capture-first exactly as 6.2 was — subscribe, capture one real `InboundMessage`, read it, then correct the parser against the real shape. B is a fallback if A's token cannot be restored. The workflow webhook stays in place meanwhile: it is a working, recorded signal that a client replied, even without identity.
