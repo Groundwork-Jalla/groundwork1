@@ -112,6 +112,12 @@ export async function handler(req: any, res: any) {
     // Inbound
     inboundSecret:     has('GHL_INBOUND_SECRET'),
     /**
+     * Phase 6.2. 'capture' = the webhook records events and nothing else (the default);
+     * 'acting' = an identified person's inbound message is filed onto their thread. Reported
+     * as a word rather than a tick so no screen can read "configured" as "live".
+     */
+    inboundMode:       cfg.GHL_INBOUND_ACT.value === 'on' ? 'acting' : 'capture',
+    /**
      * Without this, emails are recorded as notes instead of on the Conversations thread.
      * A note cannot be replied to, so follow-up leaves GHL — which is the whole thing
      * this integration exists to avoid. Surfaced as its own row because it is the one

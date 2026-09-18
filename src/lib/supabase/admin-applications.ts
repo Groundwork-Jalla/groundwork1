@@ -63,6 +63,9 @@ export interface ApplicationDetail extends ApplicationSummary {
   concurrentProjects: string;
   agreedToTerms: boolean;
   syncedToGhlAt: string | null;
+  /** Last admin edit to the applicant's content (migration 093). NULL = as submitted. */
+  editedAt: string | null;
+  editedBy: string | null;
 }
 
 
@@ -147,7 +150,110 @@ export async function getApplication(id: string): Promise<ApplicationDetail | nu
     concurrentProjects:  s(r.concurrent_projects),
     agreedToTerms:       r.agreed_to_terms === true,
     syncedToGhlAt:       sn(r.synced_to_ghl_at),
+    editedAt:            sn(r.edited_at),
+    editedBy:            sn(r.edited_by),
   };
+}
+
+// =========================================================
+// Editing an application
+//
+// Everything the applicant typed, and nothing else. Status has its own function and
+// its own consequences; `uploads` are files in a private bucket, not text; and
+// `agreed_to_terms` is the applicant's consent, which staff cannot give on their behalf.
+// The database stamps edited_at / edited_by on any change to these columns (093).
+// =========================================================
+
+export type ApplicationEdit = Pick<ApplicationDetail,
+  | 'fullName' | 'businessName' | 'email' | 'phone' | 'country' | 'city' | 'portfolioUrl' | 'lang'
+  | 'role' | 'roleOther'
+  | 'yearsExperience' | 'operatesAs' | 'teamSize' | 'projectTypes'
+  | 'credentials' | 'projects'
+  | 'acceptsMilestones' | 'acceptsVerification' | 'acceptsNoSidePay'
+  | 'videoUrl' | 'whyJoin' | 'differentiator' | 'readyForEarly'
+  | 'regions' | 'concurrentProjects'
+>;
+
+export type ApplicationEditProblem =
+  | 'fullName' | 'email' | 'phone' | 'country' | 'city' | 'role' | 'roleOther'
+  | 'yearsExperience' | 'operatesAs' | 'projectTypes' | 'whyJoin' | 'differentiator'
+  | 'regions' | 'concurrentProjects';
+
+/**
+ * The same floor the public form enforces, so an admin cannot save a row the applicant
+ * could not have submitted — and the two database CHECKs (NOT NULL columns, and 081's
+ * "role = other needs role_other") are met before the round trip rather than after it.
+ * Returns the first problem, so the editor can point at one field.
+ */
+export function validateApplicationEdit(e: ApplicationEdit): ApplicationEditProblem | null {
+  const blank = (v: string | null) => !v || !v.trim();
+  if (blank(e.fullName)) return 'fullName';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email.trim())) return 'email';
+  if (blank(e.phone)) return 'phone';
+  if (blank(e.country)) return 'country';
+  if (blank(e.city)) return 'city';
+  if (blank(e.role)) return 'role';
+  if (e.role === 'other' && blank(e.roleOther)) return 'roleOther';
+  if (blank(e.yearsExperience)) return 'yearsExperience';
+  if (blank(e.operatesAs)) return 'operatesAs';
+  if (e.projectTypes.length === 0) return 'projectTypes';
+  if (blank(e.whyJoin)) return 'whyJoin';
+  if (blank(e.differentiator)) return 'differentiator';
+  if (blank(e.regions)) return 'regions';
+  if (blank(e.concurrentProjects)) return 'concurrentProjects';
+  return null;
+}
+
+/** camelCase edit → the row's columns. Optional text goes to NULL, never ''. */
+export function applicationEditToRow(e: ApplicationEdit): Record<string, unknown> {
+  const opt = (v: string | null) => (v && v.trim() ? v.trim() : null);
+  return {
+    full_name:            e.fullName.trim(),
+    business_name:        opt(e.businessName),
+    email:                e.email.trim().toLowerCase(),
+    phone:                e.phone.trim(),
+    country:              e.country.trim(),
+    city:                 e.city.trim(),
+    portfolio_url:        opt(e.portfolioUrl),
+    lang:                 e.lang,
+    role:                 e.role,
+    role_other:           e.role === 'other' ? opt(e.roleOther) : null,
+    years_experience:     e.yearsExperience,
+    operates_as:          e.operatesAs,
+    team_size:            opt(e.teamSize),
+    project_types:        e.projectTypes,
+    credentials:          e.credentials,
+    projects:             e.projects,
+    accepts_milestones:   e.acceptsMilestones,
+    accepts_verification: e.acceptsVerification,
+    accepts_no_side_pay:  e.acceptsNoSidePay,
+    video_url:            opt(e.videoUrl),
+    why_join:             e.whyJoin.trim(),
+    differentiator:       e.differentiator.trim(),
+    ready_for_early:      e.readyForEarly,
+    regions:              e.regions.trim(),
+    concurrent_projects:  e.concurrentProjects,
+  };
+}
+
+/**
+ * Save an edit. Throws on a validation failure (message = the field) so a caller that
+ * skipped validateApplicationEdit() still cannot write a bad row, and on a database
+ * error. Returns the row as stored — the stamp is the trigger's, so it has to be read back.
+ */
+export async function updateApplication(id: string, edit: ApplicationEdit): Promise<ApplicationDetail> {
+  const problem = validateApplicationEdit(edit);
+  if (problem) throw new Error(`invalid:${problem}`);
+
+  const { error } = await supabase
+    .from('contractor_applications')
+    .update(applicationEditToRow(edit))
+    .eq('id', id);
+  if (error) throw error;
+
+  const fresh = await getApplication(id);
+  if (!fresh) throw new Error('application vanished after update');
+  return fresh;
 }
 
 export async function setApplicationStatus(

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Loader2, Search, ArrowUpRight, CloudOff, Cloud, MailWarning } from 'lucide-react';
+import { Loader2, Search, ArrowUpRight, CloudOff, Cloud, MailWarning, Pencil } from 'lucide-react';
 import {
   listApplications, APPLICATION_STATUSES,
   type ApplicationSummary, type ApplicationStatus,
@@ -265,13 +265,23 @@ export default function AdminApplications() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        to={`/admin/applications/${a.id}`}
-                        aria-label={t('admin.apps.open')}
-                        className="inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-light-grey hover:text-brand-near-black"
-                      >
-                        <ArrowUpRight className="size-4" />
-                      </Link>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          to={`/admin/applications/${a.id}?edit=1`}
+                          aria-label={`${t('admin.apps.editButton')} ${a.fullName}`}
+                          title={t('admin.apps.editButton')}
+                          className="inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-light-grey hover:text-brand-near-black"
+                        >
+                          <Pencil className="size-3.5" />
+                        </Link>
+                        <Link
+                          to={`/admin/applications/${a.id}`}
+                          aria-label={t('admin.apps.open')}
+                          className="inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-light-grey hover:text-brand-near-black"
+                        >
+                          <ArrowUpRight className="size-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

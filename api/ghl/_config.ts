@@ -53,6 +53,23 @@ export const GHL_KEYS = [
    */
   'GHL_CONTRACTOR_WEBHOOK_MODE',
   /**
+   * Whether the inbound webhook ACTS on a client's message or only records it (Phase 6.2).
+   *
+   *   unset / anything but 'on' — capture mode: every event is stored in
+   *                                ghl_inbound_events and nothing else happens. The default,
+   *                                and the state production is in until a real payload has
+   *                                been read and the parser pinned against it.
+   *   'on'                        — an inbound message from an identified person is filed
+   *                                onto their thread. The kill switch is turning it off.
+   *
+   * A setting rather than code so acting can be stopped with one UPDATE and no deploy.
+   *
+   * NOT TO BE TURNED ON (6.2 gate, 18 Sep 2026) until a real captured payload has been
+   * inspected and the location/account-identifier check has been decided from what GHL
+   * actually sends — see docs/groundwork-admin/06-unified-inbox.md §15.5.
+   */
+  'GHL_INBOUND_ACT',
+  /**
    * The Marketplace app id that lets us write onto a contact's Conversations thread.
    *
    * Without it, an email we send is recorded as a *note* — visible, searchable, and on

@@ -134,3 +134,56 @@ describe('the app', () => {
     expect(events).toMatch(/crm-delivery/);
   });
 });
+
+/**
+ * Phase 6.1 (18 Sep 2026) — the data foundation for the Inbox, verified rather than built.
+ *
+ * Decisions D1–D5 were all answered by the model 091 already provides, so there is no
+ * migration 093. What 6.2 (inbound acting) will rely on is pinned here so that a later
+ * migration cannot quietly change the contract the pipe is written against.
+ */
+describe('Phase 6.1 — the inbound contract 091 already supports', () => {
+  it('D1: the channel set is exactly jalla · whatsapp · email · call — no sms until a real payload justifies it', () => {
+    const checks = [...ddl.matchAll(/channel\s+text[^,]*CHECK \(channel IN \(([^)]+)\)\)/g)].map(m => m[1].replace(/['\s]/g, '').split(',').sort().join(','));
+    expect(checks.length).toBeGreaterThanOrEqual(2);   // conversations and project_messages
+    for (const c of checks) expect(c).toBe('call,email,jalla,whatsapp');
+    const all = readdirMigrations();
+    expect(all.some(f => /sms/i.test(read(`supabase/migrations/${f}`)) && /channel/.test(read(`supabase/migrations/${f}`)))).toBe(false);
+  });
+
+  it('D2: an unknown person cannot get a thread — the resolver refuses no_person and only a service role may call it', () => {
+    expect(ddl).toMatch(/RAISE EXCEPTION 'no_person: cannot open a thread for an unknown person'/);
+    expect(ddl).toMatch(/REVOKE ALL ON FUNCTION public\.ensure_inbound_conversation\(uuid, text, text, text\)\s+FROM PUBLIC, anon, authenticated;/);
+  });
+
+  it('D3: no per-user read state exists anywhere — "waiting on us" is the derived queue', () => {
+    for (const f of readdirMigrations()) expect(read(`supabase/migrations/${f}`)).not.toMatch(/conversation_reads|last_read_at/);
+  });
+
+  it('6.2 will set direction explicitly: the BEFORE trigger only derives it when the writer left it NULL', () => {
+    expect(ddl).toMatch(/IF NEW\.direction IS NULL THEN/);
+    // With no session and origin = ghl the default is OUTBOUND (a staff reply typed in GHL) —
+    // so an inbound client message MUST arrive with direction = 'inbound' already set.
+    expect(ddl).toMatch(/IF NEW\.origin = 'ghl' AND v_actor IS NULL THEN\s+NEW\.direction := 'outbound';/);
+  });
+
+  it('6.2 needs nothing else: an inbound insert moves the thread to waiting_on_us, stamps last_message_at, and reopens a resolved thread', () => {
+    expect(ddl).toMatch(/WHEN NEW\.direction = 'inbound'\s+THEN 'waiting_on_us'/);
+    expect(ddl).toMatch(/last_message_at = GREATEST\(COALESCE\(last_message_at, NEW\.created_at\), NEW\.created_at\)/);
+    expect(ddl).toMatch(/resolved_at = CASE WHEN NEW\.direction = 'internal' THEN resolved_at ELSE NULL END/);
+    // and the message is idempotent on GHL's id (085), so a replayed webhook files nothing twice.
+    expect(read('supabase/migrations/085_message_idempotency.sql')).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS project_messages_ghl_message_id_key/);
+  });
+
+  it('the inbound webhook records first, always; acting (6.2) is behind GHL_INBOUND_ACT and defaults to capture', () => {
+    const inbound = read('api/_handlers/inbound.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(inbound.indexOf("from('ghl_inbound_events').insert(")).toBeGreaterThan(-1);
+    expect(inbound.indexOf("from('ghl_inbound_events').insert(")).toBeLessThan(inbound.indexOf("GHL_INBOUND_ACT.value === 'on'"));
+    expect(inbound.indexOf("GHL_INBOUND_ACT.value === 'on'")).toBeLessThan(inbound.indexOf('ensure_inbound_conversation'));
+    // The detailed pins (order, hard invariants, partial failure) live in src/lib/ghl/inbound-message.test.ts.
+  });
+});
+
+function readdirMigrations(): string[] {
+  return require('node:fs').readdirSync(join(ROOT, 'supabase', 'migrations')).filter((f: string) => f.endsWith('.sql'));
+}

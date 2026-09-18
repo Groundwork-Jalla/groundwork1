@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import {
-  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, Cloud, AlertTriangle, Check, Mail,
+  Loader2, ArrowLeft, Download, ExternalLink, CloudOff, Cloud, AlertTriangle, Check, Mail, Pencil,
 } from 'lucide-react';
 import {
   getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
@@ -11,6 +11,7 @@ import {
   ASSIGNABLE_STATUSES, type ApplicationDetail,
 } from '@/lib/supabase/admin-applications';
 import { StatusPill, useRoleLabel, fmtDate } from './applications';
+import { ApplicationEditor } from '@/components/admin/ApplicationEditor';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
@@ -104,6 +105,10 @@ export default function AdminApplicationDetail() {
   const { lang } = useLanguage();
   const roleLabel = useRoleLabel();
   const { id } = useParams<{ id: string }>();
+  // `?edit=1` is the list page's pencil: open straight into the editor.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editing = searchParams.get('edit') === '1';
+  const setEditing = (on: boolean) => setSearchParams(on ? { edit: '1' } : {}, { replace: true });
 
   const [app, setApp]         = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -211,6 +216,36 @@ export default function AdminApplicationDetail() {
     }
   }
 
+  /**
+   * An edit has landed. Two other systems hold copies of these fields, and both are
+   * refreshed here rather than left to drift:
+   *
+   *   · the public directory, if the application was accepted — promote is idempotent
+   *     on application_id, so re-running it updates the listing in place;
+   *   · the CRM contact, if it was ever synced — the CRM upserts by email, so a changed
+   *     email address will create a second contact there; that is reported as done, and
+   *     is the one case worth tidying by hand.
+   *
+   * Each is reported separately from the save, which has already succeeded.
+   */
+  async function afterEdit(fresh: ApplicationDetail) {
+    setApp(fresh);
+    setEditing(false);
+    const parts: string[] = [t('admin.apps.edit.saved')];
+    let ok = true;
+
+    if (fresh.status === 'accepted') {
+      try { await promoteApplication(fresh.id); parts.push(t('admin.apps.edit.directoryRefreshed')); }
+      catch { ok = false; parts.push(t('admin.apps.edit.directoryStale')); }
+    }
+    if (fresh.syncedToGhl) {
+      try { await resyncApplicationToCrm(fresh.id); parts.push(t('admin.apps.edit.crmRefreshed')); }
+      catch { ok = false; parts.push(t('admin.apps.edit.crmStale')); }
+    }
+    setNotice({ ok, text: parts.join(' ') });
+    window.scrollTo({ top: 0 });
+  }
+
   /** Retry the CRM push that was thrown away at submission. */
   async function resyncCrm() {
     if (!id) return;
@@ -257,7 +292,24 @@ export default function AdminApplicationDetail() {
           <p className="mt-1 text-sm text-brand-mid-grey">
             {app.businessName ? `${app.businessName} · ` : ''}{app.city}, {app.country}
           </p>
-          <div className="mt-2"><StatusPill status={app.status} /></div>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <StatusPill status={app.status} />
+            {!editing && (
+              <button
+                type="button" onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
+              >
+                <Pencil className="size-3.5" /> {t('admin.apps.editButton')}
+              </button>
+            )}
+          </div>
+          {/* The row is the applicant's own account of themselves; a change by staff is
+              never invisible. Stamped by the database (093), not by this page. */}
+          {app.editedAt && (
+            <p className="mt-2 text-[11px] text-brand-mid-grey">
+              {t('admin.apps.editedOn', { date: fmtDate(app.editedAt, lang) })}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-2">
@@ -338,6 +390,9 @@ export default function AdminApplicationDetail() {
         </button>
       </div>
 
+      {editing ? (
+        <ApplicationEditor app={app} onCancel={() => setEditing(false)} onSaved={afterEdit} />
+      ) : (
       <div className="flex flex-col gap-4">
         <Section title={t('admin.apps.sBasic')}>
           <Grid>
@@ -442,6 +497,7 @@ export default function AdminApplicationDetail() {
           </p>
         </Section>
       </div>
+      )}
     </div>
   );
 }

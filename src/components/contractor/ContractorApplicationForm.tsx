@@ -15,6 +15,7 @@ import {
   type ContractorApplicationInput, type ContractorRole,
   type ProjectEntry, type UploadedFile,
 } from '@/lib/supabase/contractor-applications';
+import { YEARS_KEYS, OPERATES_KEYS, PROJECT_TYPE_KEYS, CONCURRENT_KEYS } from '@/lib/contractor/application-options';
 import {
   clearDraftId, draftId, markDraftSubmitted, saveApplicationDraft, fetchDraftPayload, existingDraftId,
 } from '@/lib/supabase/application-drafts';
@@ -600,7 +601,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
   }
 
   const roleOpts  = CONTRACTOR_ROLES.map(r => ({ key: r, label: f(`role.${r}`) }));
-  const typeKeys  = ['residential','multi_family','commercial','renovations','land','legal','infrastructure','other'];
+  const typeKeys  = PROJECT_TYPE_KEYS;
   const legalKeys = ['land_verification','contract_drafting','property_transfer','dispute_resolution','title_review','other'];
 
   return (
@@ -731,7 +732,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
             <Field label={f('yearsQ')} required htmlFor="ca-years">
               <Select id="ca-years" value={years} onChange={setYears}>
                 <option value="">—</option>
-                {['under1','y1_3','y3_5','y5_10','y10'].map(k => (
+                {YEARS_KEYS.map(k => (
                   <option key={k} value={k}>{f(`years.${k}`)}</option>
                 ))}
               </Select>
@@ -739,7 +740,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
             <Field label={f('operatesQ')} required htmlFor="ca-operates">
               <Select id="ca-operates" value={operatesAs} onChange={setOperatesAs}>
                 <option value="">—</option>
-                {['registered','independent','small_team','larger_firm'].map(k => (
+                {OPERATES_KEYS.map(k => (
                   <option key={k} value={k}>{f(`operates.${k}`)}</option>
                 ))}
               </Select>
@@ -972,7 +973,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
           <Field label={f('concurrentQ')} required htmlFor="ca-concurrent">
             <Select id="ca-concurrent" value={concurrent} onChange={setConcurrent}>
               <option value="">—</option>
-              {['one','two_three','four_five','five_plus'].map(k => (
+              {CONCURRENT_KEYS.map(k => (
                 <option key={k} value={k}>{f(`concurrent.${k}`)}</option>
               ))}
             </Select>
