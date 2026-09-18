@@ -80,12 +80,19 @@ describe('3–6: what can never enter request.headers', () => {
     // What survives of a real Vercel request is only the generic client headers.
     expect(Object.keys(m.headers).sort()).toEqual(['accept', 'content-length', 'host']);
   });
-  it('keeps what could establish identity — an unknown vendor header survives untouched', () => {
+  it('keeps what could establish identity — an unknown vendor header survives; a signature does not (it is a credential)', () => {
     const m = requestMeta(vercelRequest({ 'x-ghl-request-id': 'req_placeholder', 'x-wh-signature': 'sig_placeholder' }))!;
     expect(m.headers['x-ghl-request-id']).toBe('req_placeholder');
-    expect(m.headers['x-wh-signature']).toBe('sig_placeholder');
+    expect(m.headers).not.toHaveProperty('x-wh-signature');
+    expect(JSON.stringify(m)).not.toContain('sig_placeholder');
     expect(m.method).toBe('POST');
     expect(m.query).toEqual({ action: 'crm-inbound' });
+  });
+  it('7b. request.auth records the method only — secret | signature | null — and never a value', () => {
+    expect(requestMeta(vercelRequest(), 'secret')!.auth).toBe('secret');
+    expect(requestMeta(vercelRequest(), 'signature')!.auth).toBe('signature');
+    expect(requestMeta(vercelRequest())!.auth).toBeNull();
+    expect(Object.keys(requestMeta(vercelRequest(), 'secret')!).sort()).toEqual(['auth', 'headers', 'method', 'query']);
   });
   it('the same names are secrets in the query string too', () => {
     const m = requestMeta({ method: 'POST', query: { action: 'crm-inbound', token: 'x', secret: 'y' }, headers: {} })!;
@@ -120,7 +127,7 @@ describe('the handler and the migration', () => {
 
   it('1. payload is still the body, unchanged, and 2. request is a separate nullable column', () => {
     expect(h).toContain('payload: body');
-    expect(h).toContain('request: requestMeta(req)');
+    expect(h).toContain('request: requestMeta(req, auth)');
     expect(h).not.toMatch(/payload:\s*\{/);                       // never wrapped or merged
     const m = src('supabase/migrations/094_inbound_event_request.sql');
     expect(m).toMatch(/ADD COLUMN IF NOT EXISTS request JSONB;/);
@@ -128,14 +135,15 @@ describe('the handler and the migration', () => {
     expect(m).not.toMatch(/ALTER COLUMN\s+payload|DROP COLUMN/);
   });
 
-  it('3 again, at the boundary: the secret is compared, then the request is sanitised by requestMeta and nothing else touches headers', () => {
-    expect(at("req.headers?.['x-groundwork-secret']")).toBeLessThan(at('requestMeta(req)'));
-    // The handler reads headers for exactly one thing; storage goes through the sanitiser.
+  it('3 again, at the boundary: credentials are checked, then the request is sanitised by requestMeta and nothing else touches headers', () => {
+    expect(at("header(req, 'x-groundwork-secret')")).toBeLessThan(at('requestMeta(req, auth)'));
+    // The handler reads headers through one accessor (credentials) and stores through the sanitiser only.
     expect((h.match(/req\.headers/g) ?? []).length).toBe(1);
+    expect(h).not.toMatch(/request:\s*\{/);                       // never a hand-built request object
   });
 
   it('9. the write happens before the GHL_INBOUND_ACT gate, and 10–11. nothing else changed: capture-only, no new conversation/message write', () => {
-    expect(at('request: requestMeta(req)')).toBeLessThan(at("GHL_INBOUND_ACT.value === 'on'"));
+    expect(at('request: requestMeta(req, auth)')).toBeLessThan(at("GHL_INBOUND_ACT.value === 'on'"));
     // A missing column (094 not yet applied) falls back to the pre-094 insert — capture never fails on evidence.
     expect(h).toContain("inserted.error?.code === 'PGRST204'");
     const beforeGate = h.slice(0, at("GHL_INBOUND_ACT.value === 'on'"));

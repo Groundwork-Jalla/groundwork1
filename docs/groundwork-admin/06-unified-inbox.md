@@ -478,3 +478,25 @@ The trigger source in use cannot carry identity. The choice is now explicit:
 | Fit with 091 | Direct: `ensure_inbound_conversation(person, ghl_conversation_id, ghl_contact_id, channel)` and `direction = 'inbound'` explicit, as built | Indirect: the conversation id is looked up, the message id is inferred |
 
 Recommendation: **A**, on the condition that it is done capture-first exactly as 6.2 was — subscribe, capture one real `InboundMessage`, read it, then correct the parser against the real shape. B is a fallback if A's token cannot be restored. The workflow webhook stays in place meanwhile: it is a working, recorded signal that a client replied, even without identity.
+
+### 16.11 A.0 — the Marketplace door: implemented, held at the gate (18 Sep 2026)
+
+Built to the approved spec. Uncommitted; nothing deployed; no portal configuration yet.
+
+| File | Change |
+|---|---|
+| `api/ghl/_config.ts` | `GHL_WEBHOOK_PUBLIC_KEY` in `GHL_KEYS` — the PEM GHL publishes, to be pasted by a person into `app_config`. Not in the repo; no PEM anywhere under `api/`, `src/`, `supabase/`, `docs/` (pinned). |
+| `api/_lib/body.ts` | *new.* `readRawBody`, `parseBody` (JSON / form / text / bytes; empty → undefined; bad JSON → 400 — Vercel's rules), `attachBody(req, res)` sets `req.rawBody` (Buffer) and `req.body` once. |
+| `api/events.ts` | `export const config = { api: { bodyParser: false } }`; `attachBody` runs before routing. Every action receives the same `req.body` as before; only `crm-inbound` reads `req.rawBody` (pinned). Still one function. |
+| `api/ghl/_inbound-auth.ts` | *new.* `secretMatches` (`timingSafeEqual`), `signatureMatches` (RSA-SHA256 / `createVerify('SHA256')`, base64, over the raw bytes; malformed key or signature → false, never throws), `authenticateInbound` → `'secret' \| 'signature' \| null` — secret first, then signature. |
+| `api/_handlers/inbound.ts` | Two doors, one endpoint. 503 only when *neither* credential is configured; 401 when neither presented credential verifies, with a log naming the step (never the content). `request.auth` records the door. Everything after authentication is unchanged: same insert, same 094 fallback, same `GHL_INBOUND_ACT` gate, same parser, same 085/091 path. |
+| `api/ghl/_inbound-request.ts` | `x-wh-signature` and any `*signature*` name dropped from stored headers (a signature is a credential); `auth` field added. The tightened Vercel-header filter from §16.9 ships with this. |
+| `src/lib/ghl/inbound-auth.test.ts` | 14 tests, per-run generated RSA pair: byte-exactness (re-serialised JSON and a one-byte change both fail), body parsing rules, valid signature, wrong key / tampered / garbage / empty / unparseable key / door closed when unconfigured, secret path unchanged and first, neither → null, refusal precedes the insert, 503 only when both unset, `request.auth` method-only, no credential in logs or rows, no PEM in the tree, one insert + one gate (the door never changes what happens next), parser/085/091 untouched, acting documented off. |
+
+**End-to-end proof through the real code** — `api/events.ts` → `attachBody` → `inbound.ts` → `authenticateInbound` → insert, bundled with `@supabase/supabase-js` swapped for a psql bridge to the local PG16 harness, requests given as byte streams as Vercel gives them: **16/16**. Secret door 200/`auth=secret`; signed Marketplace bytes 200/`auth=signature`/`event_type=InboundMessage`/`handled_at NULL`/no thread, no message; wrong key 401; neither 401; one byte changed 401; rotated-away secret 401; both presented with a bad secret and a good signature → signature door; form body parses; bad JSON 400 before any write; unknown action 400; public key removed → signature door 401 while the secret door stays 200; **local-only** acting on → the signature door runs the unchanged 6.2 path (files once, replay is a duplicate) and the real workflow shape is still refused as `malformed`; no secret, signature, IP, `x-vercel-*` or proxy signature in any stored row. The 6.2 SQL replay proof still passes 19/19.
+
+Gate: 69 files / **1134 tests**, `tsc` clean, `diff --check` clean. `GHL_INBOUND_ACT` off; 085, 091, parser untouched; old 094 row not cleaned; 6.3 blocked.
+
+**Assumption to be confirmed by the first real delivery, not before:** GHL's signature is RSA-SHA256 (PKCS#1 v1.5) over the raw body, base64 in `x-wh-signature`, per their documentation. If the real scheme differs, the first delivery answers 401 and the Vercel log reads `signed request refused: signature did not verify rawBody bytes: N` — that line is the evidence to correct against; nothing is recorded on a refusal by design.
+
+**Next (yours, in order):** paste GHL's webhook public key into `app_config` as `ghl_webhook_public_key` → deploy → in the developer portal, reinstall the app via its install link, set the Webhook URL to `https://www.tryjalla.com/api/events?action=crm-inbound`, subscribe to `InboundMessage` → send one real message → the newest row with `request.auth = 'signature'` is the evidence for §16.10 step 5.

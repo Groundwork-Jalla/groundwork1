@@ -6,12 +6,13 @@
  * and the admin console shows a contractor as "waiting" while a call is already in the
  * diary.
  *
- * ── Authentication ───────────────────────────────────────────────────────────────────
- * GHL's outbound webhooks do not sign their requests the way Stripe does — there is no
- * secret to verify a body against. What GHL *can* do is send a custom header, so this
- * requires a shared secret in `X-Groundwork-Secret` and compares it in constant time.
- * That is weaker than a signature (a leaked secret is replayable), which is exactly why
- * this endpoint only ever *records* — see below.
+ * ── Authentication: two doors ────────────────────────────────────────────────────────
+ * A *workflow* Webhook action can set a custom header, so it sends `X-Groundwork-Secret`
+ * (constant-time compare; replayable if leaked — hence record-only). A *Marketplace*
+ * webhook cannot set headers; GHL signs it (`x-wh-signature`, RSA-SHA256 over the exact
+ * bytes) and we verify against GHL's published public key (`GHL_WEBHOOK_PUBLIC_KEY`).
+ * Either door opens the same, narrow endpoint; neither → 401. Which one opened is stored
+ * as `request.auth` — the method, never the credential. See `../ghl/_inbound-auth.ts`.
  *
  * ── It records; and, since 6.2, may file a message ──────────────────────────────────
  * Nothing here changes an application's status, a subscription, or anything a person
@@ -26,25 +27,23 @@
  * with `direction = 'inbound'` set explicitly, idempotent on `ghl_message_id` (085) —
  * and only then is the event stamped `handled_at`. The 091 trigger moves the thread;
  * nothing here updates a conversation. The service role bypasses RLS, so what bounds this
- * write is the secret, the parser, the person lookup, idempotency and the shortness of
- * this list — at worst a forged request puts a message on an existing person's thread,
- * marked origin=ghl, visible with its raw payload. It cannot create a person, accept an
- * application, touch a stage or move money.
+ * write is the authentication, the parser, the person lookup, idempotency and the
+ * shortness of this list — at worst a forged request puts a message on an existing
+ * person's thread, marked origin=ghl, visible with its raw payload. It cannot create a
+ * person, accept an application, touch a stage or move money.
  */
 
 import { ghlSettings } from '../ghl/_config.js';
+import { authenticateInbound } from '../ghl/_inbound-auth.js';
 import { inboundMessageRow, parseInboundMessage, resolvePerson } from '../ghl/_inbound-message.js';
 import { requestMeta } from '../ghl/_inbound-request.js';
 
 const MAX_BODY = 64 * 1024;
 
-/** Constant-time compare, so a wrong secret cannot be found a character at a time. */
-function secretMatches(provided: string, expected: string): boolean {
-  if (provided.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < provided.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0;
-}
+const header = (req: any, name: string): string => {
+  const raw = req.headers?.[name];
+  return String(Array.isArray(raw) ? raw[0] : raw ?? '');
+};
 
 export async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -52,18 +51,27 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  const expected = (await ghlSettings()).GHL_INBOUND_SECRET.value;
-  if (!expected) {
+  const settings = await ghlSettings();
+  const expectedSecret = settings.GHL_INBOUND_SECRET.value ?? '';
+  const publicKeyPem = settings.GHL_WEBHOOK_PUBLIC_KEY.value ?? '';
+  if (!expectedSecret && !publicKeyPem) {
     // Refuse rather than accept anonymously. An unconfigured inbound endpoint that took
     // anything offered would be a public write into our database.
-    console.error('[ghl-inbound] GHL_INBOUND_SECRET is not set — refusing');
+    console.error('[ghl-inbound] neither GHL_INBOUND_SECRET nor GHL_WEBHOOK_PUBLIC_KEY is set — refusing');
     res.status(503).json({ error: 'Not configured' });
     return;
   }
 
-  const raw = req.headers?.['x-groundwork-secret'];
-  const provided = String(Array.isArray(raw) ? raw[0] : raw ?? '');
-  if (!provided || !secretMatches(provided, expected)) {
+  const providedSignature = header(req, 'x-wh-signature');
+  const auth = authenticateInbound({
+    providedSecret: header(req, 'x-groundwork-secret'), expectedSecret,
+    providedSignature, publicKeyPem,
+    rawBody: Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.alloc(0),
+  });
+  if (!auth) {
+    // The log names the step, never the content: it is the evidence if GHL's real
+    // signature scheme differs from the documented one. Nothing is recorded on a refusal.
+    if (providedSignature) console.error('[ghl-inbound] signed request refused:', publicKeyPem ? 'signature did not verify' : 'no public key configured', 'rawBody bytes:', req.rawBody?.length ?? 0);
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -100,11 +108,12 @@ export async function handler(req: any, res: any) {
     });
 
     // Recorded whole: the body as `payload`, and — since 094 — the request around it as
-    // `request`, sanitised before this object exists (no secret, no cookie, no client IP).
+    // `request`, sanitised before this object exists (no secret, no signature, no cookie,
+    // no client IP) plus which door opened (`auth`).
     // If 094 is not applied yet PostgREST refuses the unknown column (PGRST204); then the
     // event is still recorded without it. Capture must never fail on evidence-gathering.
     const row = { event_type: eventType, email, ghl_contact_id: contactId, payload: body };
-    let inserted = await db.from('ghl_inbound_events').insert({ ...row, request: requestMeta(req) }).select('id').single();
+    let inserted = await db.from('ghl_inbound_events').insert({ ...row, request: requestMeta(req, auth) }).select('id').single();
     if (inserted.error?.code === 'PGRST204') {
       inserted = await db.from('ghl_inbound_events').insert(row).select('id').single();
     }

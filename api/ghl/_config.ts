@@ -91,6 +91,20 @@ export const GHL_KEYS = [
    */
   'GHL_CLIENT_ID',
   'GHL_CLIENT_SECRET',
+  /**
+   * The public key GoHighLevel signs Marketplace webhooks with (Phase 6.2 A.0, 06 §16.10).
+   *
+   * A Marketplace app's webhooks (`InboundMessage` among them) are sent by GHL's platform,
+   * not by a workflow, so they cannot carry our `X-Groundwork-Secret` header. They carry
+   * `x-wh-signature` instead: an RSA-SHA256 signature over the exact request bytes, made
+   * with GHL's private key. This is the matching public key — PEM, copied from GHL's
+   * developer documentation by a person and pasted into app_config. It is not a secret
+   * (it is published), but it is the thing a forged webhook would need to defeat, so it
+   * is configuration, never a literal in code.
+   *
+   * Unset — Marketplace webhooks are refused (401) and only the shared-secret path is open.
+   */
+  'GHL_WEBHOOK_PUBLIC_KEY',
 ] as const;
 
 export type GhlKey = (typeof GHL_KEYS)[number];

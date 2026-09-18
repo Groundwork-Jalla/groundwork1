@@ -16,6 +16,7 @@ import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
+import { attachBody } from './_lib/body.js';
 
 /**
  * One endpoint, several actions.
@@ -41,7 +42,15 @@ import { handler as adminProvisionUser } from './_handlers/admin-provision-user.
  * token, an admin check, a shared secret for GHL's inbound calls — and collapsing that
  * into one gate here would be how the weakest one becomes everyone's. The dispatcher
  * routes; the handlers decide.
+ *
+ * ── Body ─────────────────────────────────────────────────────────────────────────────
+ * Vercel's body parser is off for this function (Phase 6.2 A.0): a signed webhook can
+ * only be verified against the exact bytes that were signed. `attachBody` reads them once
+ * and sets `req.rawBody` for the one action that needs it (`crm-inbound`) and `req.body`
+ * parsed exactly as before for everyone else. See `_lib/body.ts`.
  */
+
+export const config = { api: { bodyParser: false } };
 
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
@@ -71,6 +80,8 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
 };
 
 export default async function handler(req: any, res: any) {
+  if (!(await attachBody(req, res))) return;
+
   // Accepted from the query as well as the body: GHL's outbound webhook builder can set
   // a URL but not always a body field, and its calls have to reach `crm-inbound`.
   const fromQuery = typeof req.query?.action === 'string' ? req.query.action : undefined;

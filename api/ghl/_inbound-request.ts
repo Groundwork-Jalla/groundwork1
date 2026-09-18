@@ -6,8 +6,9 @@
  * header is unknown because `inbound.ts` never kept headers. This keeps them — sanitised
  * BEFORE the row exists, so nothing secret or network-identifying can reach the table:
  *
- *   never   x-groundwork-secret, authorization, cookie, and any name containing
- *           secret / token / key
+ *   never   x-groundwork-secret, x-wh-signature, authorization, cookie, and any name
+ *           containing secret / token / key / signature (a signature is a credential:
+ *           replayable, and the thing a forger would want)
  *   never   anything the edge adds about the caller: every x-vercel-* header (the first
  *           real capture on 18 Sep 2026 showed Vercel spells the client IP
  *           x-vercel-forwarded-for / x-vercel-proxied-for and adds ip-city, ip-latitude,
@@ -23,12 +24,12 @@ export const REQUEST_META_MAX_BYTES = 8 * 1024;
 
 /** Exact names that never leave the request. Lower-case; Node lower-cases header names. */
 const DROP_EXACT = new Set([
-  'x-groundwork-secret', 'authorization', 'cookie',
+  'x-groundwork-secret', 'x-wh-signature', 'authorization', 'cookie',
   'x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip',
   'x-invocation-id', 'user-agent', 'content-type',
 ]);
 /** Name fragments that never leave the request: secrets, and anything about the caller. */
-const DROP_FRAGMENT = /secret|token|key|forwarded|proxied|real-ip|client-ip/;
+const DROP_FRAGMENT = /secret|token|key|signature|forwarded|proxied|real-ip|client-ip/;
 /** Whole families the platform adds about the request — never GHL's identity. */
 const DROP_PREFIX = ['x-vercel-'];
 
@@ -45,6 +46,8 @@ export interface RequestMeta {
   method: string | null;
   query: Record<string, string>;
   headers: Record<string, string>;
+  /** Which door authenticated the request — the method, never the credential. */
+  auth: 'secret' | 'signature' | null;
 }
 
 /**
@@ -52,7 +55,7 @@ export interface RequestMeta {
  * null only when there is nothing at all to keep. Applied to a request whose secret has
  * already been checked — the secret itself is dropped by name, whatever else happens.
  */
-export function requestMeta(req: { method?: unknown; query?: unknown; headers?: unknown }): RequestMeta | null {
+export function requestMeta(req: { method?: unknown; query?: unknown; headers?: unknown }, auth: 'secret' | 'signature' | null = null): RequestMeta | null {
   const headers: Record<string, string> = {};
   const rawHeaders = req?.headers && typeof req.headers === 'object' ? (req.headers as Record<string, unknown>) : {};
   for (const [name, value] of Object.entries(rawHeaders)) {
@@ -69,8 +72,8 @@ export function requestMeta(req: { method?: unknown; query?: unknown; headers?: 
     if (s !== null) query[name] = cut(s);
   }
 
-  const meta: RequestMeta = { method: typeof req?.method === 'string' ? req.method : null, query, headers };
-  if (!meta.method && !Object.keys(query).length && !Object.keys(headers).length) return null;
+  const meta: RequestMeta = { method: typeof req?.method === 'string' ? req.method : null, query, headers, auth };
+  if (!meta.method && !Object.keys(query).length && !Object.keys(headers).length && !auth) return null;
 
   // Cap the whole object: drop the longest header values first until it fits.
   while (JSON.stringify(meta).length > REQUEST_META_MAX_BYTES) {
