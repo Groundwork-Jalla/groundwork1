@@ -373,3 +373,76 @@ The documented-shape fixture remains a parser-development aid, not evidence of t
 **Rollout, unchanged and binding:** capture-only production → a real inbound event arrives → inspect the actual payload → sanitised fixture → confirm field map and location/account semantics → update parser and tests → authority review → only then consider `GHL_INBOUND_ACT = 'on'`.
 
 **Next gate is production capture and payload inspection, not 6.3.** It brings back: the sanitised payload shape; the actual type/direction/channel fields; the actual contact and conversation identifiers; the actual location/account identifier if supplied; the parser mapping; the security validation decision; the updated tests.
+
+## 16. First real inbound event (18 Sep 2026) — findings, and the identity gap
+
+### 16.1 What was captured (as reported from the Supabase SQL editor; the row itself is personal data and stays in the table)
+
+The GHL workflow *Customer Replied → Webhook* fired and `crm-inbound` recorded one row, `handled_at = NULL`. The payload is the **workflow Webhook action's contact-centric shape**, not the Marketplace `InboundMessage` event the provisional parser was written against:
+
+| Present | Absent |
+|---|---|
+| `location.id`, `location.name` (`Groundwork by Jalla`) | any `messageId` / `message.id` |
+| `contact_id` | any `conversationId` |
+| `message.body`, `message.type` (`19`) | `type` / `event` / `direction` / `dateAdded` |
+| contact fields (email, phone, first/last name) | any field named `*event*`, `*webhook*` |
+| custom fields `Project Id`, `User Id`, `Application Id` | |
+
+`message.type` is numeric here; GHL's public enum lists `19` as `TYPE_WHATSAPP` — to be confirmed against the channel the test was sent from, not assumed. **The provisional parser would refuse this payload as `malformed: no type`** — which is exactly what capture-first was for; it is corrected at the next step, not before.
+
+### 16.2 What the capture path keeps and drops
+
+[`api/_handlers/inbound.ts`](../../api/_handlers/inbound.ts) stores `payload: req.body` and nothing else. Request headers are read only for `x-groundwork-secret` and are **not stored**; `req.query` (only `action`) and the method are not stored. So there is **no evidence either way** about whether GHL puts an identifier in the request headers — the code never looked. Storing headers would have to exclude `x-groundwork-secret`, `authorization` and `cookie`.
+
+### 16.3 The gap, stated plainly
+
+Location and contact identity are established; **message identity and conversation identity are not**. The 085 idempotency key (`ghl_message_id`) and the 091 thread key (`ghl_conversation_id`) have nothing to bind to in this payload. A key manufactured from contact + body + time is not idempotency (identical legitimate messages; retries with different timestamps) and is rejected.
+
+### 16.4 Legitimate sources of an identifier — for the authority gate, none implemented
+
+1. **GHL workflow custom data.** The Webhook action accepts custom key/value fields populated from the trigger's merge fields. Whether *Customer Replied* exposes a message id or conversation id merge field is a fact to be read from the GHL merge-field picker, not assumed. If it does, the identifier arrives in the payload and the design holds unchanged.
+2. **Capture the request headers once** (sanitised) to answer the header question with evidence. Needs either a `headers` column (a migration — 093 is currently taken by unrelated in-progress work) or a reserved key inside `payload`.
+3. **Look the ids up at act time.** `ensureConversation(cfg, contactId)` in [`api/ghl/_client.ts`](../../api/ghl/_client.ts) already resolves a contact's GHL conversation id via `/conversations/search`; a subsequent `/conversations/{id}/messages` read would expose message ids. This makes the act path depend on the GHL API being reachable and on matching the webhook to a listed message, which is a threat-model and reliability change, not a parser fix.
+
+**Position:** `GHL_INBOUND_ACT` stays off; no 6.3; the parser is not rewritten until the identity source is decided. Decision requested: which of 1–3 (or an explicit "GHL provides no stable id; redesign the idempotency boundary") the acting path is built on.
+
+### 16.5 Decision (18 Sep 2026): 1 → 2 → 3, in that order
+
+Option 1 first — read the *Customer Replied → Webhook* action's merge-field picker in GHL for a message/conversation identifier; nothing assumed from documentation. If found: pin the real workflow payload shape, update the parser to it, map the identifier onto 085 (`ghl_message_id`) and 091 (`ghl_conversation_id`) unchanged, tests from a sanitised copy of the real payload, local harness re-run, security boundary re-inspected, then and only then consider acting. If not found: Option 2 — capture a sanitised header subset once (never `x-groundwork-secret`, `authorization`, `cookie`), with a migration numbered from the repository's actual state at that time (093 is occupied; not reused). Option 3 last, and only as an explicit redesign of the identity/idempotency boundary. `GHL_INBOUND_ACT` stays off; 6.3 does not start.
+
+### 16.6 Option 1 result (18 Sep 2026): no identifier exists in the workflow webhook
+
+Read from the GHL *Customer Replied → Webhook* action's Custom Data merge-field picker (screenshots, 18 Sep): the **Message** group offers exactly *Message Body*, *Message Subject*, *Message Attachments*. There is no **Conversation** group. The remaining groups — Contact, Company, User, Appointment, Calendar, Account, Right now, Phone Call, Client Portal Contact, Attribution, Voice AI, Conversation AI, Custom Values — carry no message or conversation identifier. **The workflow webhook cannot be configured to send a stable message id or conversation id.** Option 1 is closed.
+
+Operational note: the header value was visible in a screenshot shared during this check; the inbound secret is to be rotated (app_config + GHL header) before anything else.
+
+### 16.7 Option 2 — design for the gate (nothing implemented)
+
+**Question it answers, once:** does the HTTP request GHL sends carry an identifier outside the JSON body?
+
+**Change:** `ghl_inbound_events` gains one nullable column `request jsonb` holding `{ method, query, headers }` where `headers` is the request's headers **minus** `x-groundwork-secret`, `authorization`, `cookie`, and any header whose name contains `secret`, `token` or `key`; values truncated to 512 chars; whole object capped at 8 KB. Written in the same insert as `payload` — still record-only, before the acting gate, no behaviour change. Migration numbered from the repository's actual state at implementation time (today the tree holds an untracked, unapplied `093_application_edit_audit.sql` belonging to other work; this would be **094**, and must not depend on 093).
+
+**Reading the answer:** Vercel adds its own headers (`x-vercel-id`, `x-forwarded-for`, `x-real-ip`, …) — those identify *our* edge request, not GHL's message, and must not be mistaken for an id. Only a header GHL itself sets (a request id, event id, or signature) counts. `user-agent` and `content-type` are expected and tell us nothing about identity.
+
+**Tests:** static pin that the secret header can never reach the insert (the filter is applied before the row is built); unit test of the filter on a fixture header set. Local harness: insert with the new column.
+
+**Alternative rejected:** a temporary `console.log` of headers into Vercel runtime logs — ephemeral, and still a deploy. The column is durable evidence and stays useful as the request audit for every future event.
+
+**If Option 2 also yields nothing,** GHL provides no stable identifier for this trigger, and the acting path is a redesign of the identity/idempotency boundary (Option 3 territory — act-time lookup through the Conversations API, or a different trigger source such as the Marketplace `InboundMessage` webhook, which the earlier design note was written against and which does carry `messageId`/`conversationId`). That is an authority decision, not a parser fix.
+
+### 16.8 Option 2 — implemented, held at the gate (18 Sep 2026)
+
+Approved with the amendment: headers are identity-focused — client-IP headers (`x-forwarded-for`, `x-real-ip`, `forwarded`, `cf-connecting-ip`, `true-client-ip`), `user-agent` and `content-type` are dropped alongside the secret, `authorization`, `cookie` and any `*secret*`/`*token*`/`*key*` name. Values cut at 512 chars, object at 8 KB.
+
+| File | Change |
+|---|---|
+| `supabase/migrations/094_inbound_event_request.sql` | `ALTER TABLE ghl_inbound_events ADD COLUMN IF NOT EXISTS request JSONB` + column comment. Additive, nullable, no default, re-runnable, independent of 093. |
+| `api/ghl/_inbound-request.ts` | *new, pure.* `requestMeta(req)` → `{ method, query, headers }` sanitised as above; the same names are dropped from the query string; odd input never throws. |
+| `api/_handlers/inbound.ts` | The event insert now carries `request: requestMeta(req)` beside the unchanged `payload: body`, still before the `GHL_INBOUND_ACT` gate. If PostgREST reports the column unknown (`PGRST204` — 094 not yet applied) the insert is retried without it: capture never fails on evidence-gathering. `req.headers` is read in exactly one other place — the secret check. |
+| `src/lib/ghl/inbound-request.test.ts` | 13 tests covering the eleven gate points: payload unchanged; column nullable; secret / authorization / cookie / `*secret*|*token*|*key*` / client-IP / user-agent / content-type never stored; 512-char and 8 KB caps; write before the gate; capture-only (no new conversation/message write, the one 6.2 upsert unchanged); migration is 094, additive, no 093 dependency. |
+
+**Local proof** (harness rebuilt from scratch — 001–092 in production order, then 094): 17/17 — the real workflow-webhook shape is recorded with its request in capture mode and, were acting on, is refused by the provisional parser as `malformed: no type` with nothing filed; the nine 6.2 scenarios (documented shape) behave exactly as before; the stored request for a Vercel-shaped request keeps `host`, `accept`, `x-vercel-id`, `x-forwarded-proto` and a hypothetical vendor header, and contains no secret, no IP, no user-agent, no content-type; `payload` is byte-identical. On a copy of the database **without** the column, all nine scenarios still record (fallback taken).
+
+Gate: 68 files / 1118 tests, `tsc` clean, `git diff --check` clean. Uncommitted. `GHL_INBOUND_ACT` off; 6.3 blocked.
+
+**Deploy order when approved:** rotate the secret (both places) → apply 094 in Supabase → deploy → send one real message → read `request` from the newest row (Supabase SQL editor; service role only) → identity decision (§16.7 last paragraph). Don't count `x-vercel-*`, `x-forwarded-*`, `host`, `accept` as GHL identity.

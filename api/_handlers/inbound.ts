@@ -16,7 +16,9 @@
  * ── It records; and, since 6.2, may file a message ──────────────────────────────────
  * Nothing here changes an application's status, a subscription, or anything a person
  * relies on. An inbound event with weaker authentication than our other writes must not
- * be able to accept a contractor. It writes to `ghl_inbound_events` first, always.
+ * be able to accept a contractor. It writes to `ghl_inbound_events` first, always — the
+ * body as `payload` and, since 094, the sanitised request as `request` (06 §16.7), because
+ * the first real payload carried no message id and the question moved to the headers.
  *
  * Phase 6.2 (06 §14) adds one narrow act, behind `GHL_INBOUND_ACT` (default off): a
  * client's inbound message from an IDENTIFIED person is filed onto their thread —
@@ -32,6 +34,7 @@
 
 import { ghlSettings } from '../ghl/_config.js';
 import { inboundMessageRow, parseInboundMessage, resolvePerson } from '../ghl/_inbound-message.js';
+import { requestMeta } from '../ghl/_inbound-request.js';
 
 const MAX_BODY = 64 * 1024;
 
@@ -96,12 +99,16 @@ export async function handler(req: any, res: any) {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: eventRow, error } = await db.from('ghl_inbound_events').insert({
-      event_type: eventType,
-      email,
-      ghl_contact_id: contactId,
-      payload: body,
-    }).select('id').single();
+    // Recorded whole: the body as `payload`, and — since 094 — the request around it as
+    // `request`, sanitised before this object exists (no secret, no cookie, no client IP).
+    // If 094 is not applied yet PostgREST refuses the unknown column (PGRST204); then the
+    // event is still recorded without it. Capture must never fail on evidence-gathering.
+    const row = { event_type: eventType, email, ghl_contact_id: contactId, payload: body };
+    let inserted = await db.from('ghl_inbound_events').insert({ ...row, request: requestMeta(req) }).select('id').single();
+    if (inserted.error?.code === 'PGRST204') {
+      inserted = await db.from('ghl_inbound_events').insert(row).select('id').single();
+    }
+    const { data: eventRow, error } = inserted;
 
     if (error || !eventRow?.id) {
       // 500 on purpose: GHL retries, and an event we failed to store is one we would
