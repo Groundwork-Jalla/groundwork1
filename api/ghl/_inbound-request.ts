@@ -6,9 +6,9 @@
  * header is unknown because `inbound.ts` never kept headers. This keeps them — sanitised
  * BEFORE the row exists, so nothing secret or network-identifying can reach the table:
  *
- *   never   x-groundwork-secret, x-wh-signature, authorization, cookie, and any name
- *           containing secret / token / key / signature (a signature is a credential:
- *           replayable, and the thing a forger would want)
+ *   never   x-groundwork-secret, x-ghl-signature, x-wh-signature, authorization, cookie,
+ *           and any name containing secret / token / key / signature (a signature is a
+ *           credential: replayable, and the thing a forger would want)
  *   never   anything the edge adds about the caller: every x-vercel-* header (the first
  *           real capture on 18 Sep 2026 showed Vercel spells the client IP
  *           x-vercel-forwarded-for / x-vercel-proxied-for and adds ip-city, ip-latitude,
@@ -24,7 +24,7 @@ export const REQUEST_META_MAX_BYTES = 8 * 1024;
 
 /** Exact names that never leave the request. Lower-case; Node lower-cases header names. */
 const DROP_EXACT = new Set([
-  'x-groundwork-secret', 'x-wh-signature', 'authorization', 'cookie',
+  'x-groundwork-secret', 'x-ghl-signature', 'x-wh-signature', 'authorization', 'cookie',
   'x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip',
   'x-invocation-id', 'user-agent', 'content-type',
 ]);
@@ -47,7 +47,7 @@ export interface RequestMeta {
   query: Record<string, string>;
   headers: Record<string, string>;
   /** Which door authenticated the request — the method, never the credential. */
-  auth: 'secret' | 'signature' | null;
+  auth: 'secret' | 'ed25519' | 'rsa' | null;
 }
 
 /**
@@ -55,7 +55,7 @@ export interface RequestMeta {
  * null only when there is nothing at all to keep. Applied to a request whose secret has
  * already been checked — the secret itself is dropped by name, whatever else happens.
  */
-export function requestMeta(req: { method?: unknown; query?: unknown; headers?: unknown }, auth: 'secret' | 'signature' | null = null): RequestMeta | null {
+export function requestMeta(req: { method?: unknown; query?: unknown; headers?: unknown }, auth: 'secret' | 'ed25519' | 'rsa' | null = null): RequestMeta | null {
   const headers: Record<string, string> = {};
   const rawHeaders = req?.headers && typeof req.headers === 'object' ? (req.headers as Record<string, unknown>) : {};
   for (const [name, value] of Object.entries(rawHeaders)) {

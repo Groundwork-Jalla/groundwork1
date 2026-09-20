@@ -81,16 +81,18 @@ describe('3–6: what can never enter request.headers', () => {
     expect(Object.keys(m.headers).sort()).toEqual(['accept', 'content-length', 'host']);
   });
   it('keeps what could establish identity — an unknown vendor header survives; a signature does not (it is a credential)', () => {
-    const m = requestMeta(vercelRequest({ 'x-ghl-request-id': 'req_placeholder', 'x-wh-signature': 'sig_placeholder' }))!;
+    const m = requestMeta(vercelRequest({ 'x-ghl-request-id': 'req_placeholder', 'x-wh-signature': 'sig_placeholder', 'x-ghl-signature': 'sig_placeholder' }))!;
     expect(m.headers['x-ghl-request-id']).toBe('req_placeholder');
     expect(m.headers).not.toHaveProperty('x-wh-signature');
+    expect(m.headers).not.toHaveProperty('x-ghl-signature');
     expect(JSON.stringify(m)).not.toContain('sig_placeholder');
     expect(m.method).toBe('POST');
     expect(m.query).toEqual({ action: 'crm-inbound' });
   });
-  it('7b. request.auth records the method only — secret | signature | null — and never a value', () => {
+  it('7b. request.auth records the method only — secret | ed25519 | rsa | null — and never a value', () => {
     expect(requestMeta(vercelRequest(), 'secret')!.auth).toBe('secret');
-    expect(requestMeta(vercelRequest(), 'signature')!.auth).toBe('signature');
+    expect(requestMeta(vercelRequest(), 'ed25519')!.auth).toBe('ed25519');
+    expect(requestMeta(vercelRequest(), 'rsa')!.auth).toBe('rsa');
     expect(requestMeta(vercelRequest())!.auth).toBeNull();
     expect(Object.keys(requestMeta(vercelRequest(), 'secret')!).sort()).toEqual(['auth', 'headers', 'method', 'query']);
   });

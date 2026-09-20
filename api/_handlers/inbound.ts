@@ -6,13 +6,15 @@
  * and the admin console shows a contractor as "waiting" while a call is already in the
  * diary.
  *
- * ── Authentication: two doors ────────────────────────────────────────────────────────
+ * ── Authentication: three doors ──────────────────────────────────────────────────────
  * A *workflow* Webhook action can set a custom header, so it sends `X-Groundwork-Secret`
  * (constant-time compare; replayable if leaked — hence record-only). A *Marketplace*
- * webhook cannot set headers; GHL signs it (`x-wh-signature`, RSA-SHA256 over the exact
- * bytes) and we verify against GHL's published public key (`GHL_WEBHOOK_PUBLIC_KEY`).
- * Either door opens the same, narrow endpoint; neither → 401. Which one opened is stored
- * as `request.auth` — the method, never the credential. See `../ghl/_inbound-auth.ts`.
+ * webhook cannot set headers; GHL signs it over the exact bytes — `X-GHL-Signature`
+ * (Ed25519, current) or the legacy `X-WH-Signature` (RSA-SHA256) — and we verify against
+ * GHL's published public keys (`GHL_WEBHOOK_PUBLIC_KEY_ED25519` / `_RSA`), the GHL header
+ * decisive when present. Every door opens the same, narrow endpoint; none → 401. Which one
+ * opened is stored as `request.auth` — the method, never the credential. See
+ * `../ghl/_inbound-auth.ts`.
  *
  * ── It records; and, since 6.2, may file a message ──────────────────────────────────
  * Nothing here changes an application's status, a subscription, or anything a person
@@ -53,25 +55,32 @@ export async function handler(req: any, res: any) {
 
   const settings = await ghlSettings();
   const expectedSecret = settings.GHL_INBOUND_SECRET.value ?? '';
-  const publicKeyPem = settings.GHL_WEBHOOK_PUBLIC_KEY.value ?? '';
-  if (!expectedSecret && !publicKeyPem) {
+  const ed25519PublicKeyPem = settings.GHL_WEBHOOK_PUBLIC_KEY_ED25519.value ?? '';
+  const rsaPublicKeyPem = settings.GHL_WEBHOOK_PUBLIC_KEY_RSA.value ?? '';
+  if (!expectedSecret && !ed25519PublicKeyPem && !rsaPublicKeyPem) {
     // Refuse rather than accept anonymously. An unconfigured inbound endpoint that took
     // anything offered would be a public write into our database.
-    console.error('[ghl-inbound] neither GHL_INBOUND_SECRET nor GHL_WEBHOOK_PUBLIC_KEY is set — refusing');
+    console.error('[ghl-inbound] no inbound secret and no webhook public key is set — refusing');
     res.status(503).json({ error: 'Not configured' });
     return;
   }
 
-  const providedSignature = header(req, 'x-wh-signature');
+  const providedGhlSignature = header(req, 'x-ghl-signature');
+  const providedWhSignature = header(req, 'x-wh-signature');
   const auth = authenticateInbound({
     providedSecret: header(req, 'x-groundwork-secret'), expectedSecret,
-    providedSignature, publicKeyPem,
+    providedGhlSignature, providedWhSignature, ed25519PublicKeyPem, rsaPublicKeyPem,
     rawBody: Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.alloc(0),
   });
   if (!auth) {
     // The log names the step, never the content: it is the evidence if GHL's real
     // signature scheme differs from the documented one. Nothing is recorded on a refusal.
-    if (providedSignature) console.error('[ghl-inbound] signed request refused:', publicKeyPem ? 'signature did not verify' : 'no public key configured', 'rawBody bytes:', req.rawBody?.length ?? 0);
+    if (providedGhlSignature || providedWhSignature) {
+      console.error('[ghl-inbound] signed request refused:',
+        providedGhlSignature ? (ed25519PublicKeyPem ? 'x-ghl-signature (ed25519) did not verify' : 'x-ghl-signature present, no ed25519 key configured')
+                             : (rsaPublicKeyPem ? 'x-wh-signature (rsa) did not verify' : 'x-wh-signature present, no rsa key configured'),
+        'rawBody bytes:', req.rawBody?.length ?? 0);
+    }
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

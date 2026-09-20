@@ -1,5 +1,5 @@
 /**
- * Who is allowed to put an event into `ghl_inbound_events` — two doors, one answer.
+ * Who is allowed to put an event into `ghl_inbound_events` — three doors, one answer.
  *
  * ── The workflow door: a shared secret ───────────────────────────────────────────────
  * A GoHighLevel *workflow* Webhook action lets a person set a custom header, so it sends
@@ -7,26 +7,29 @@
  * in a screenshot on 18 Sep 2026 — rotated the same day), which is why the endpoint
  * records and, at most, files a message.
  *
- * ── The Marketplace door: GHL's signature (Phase 6.2 A.0, 06 §16.10) ─────────────────
+ * ── The Marketplace doors: GHL's signatures (Phase 6.2 A.0.1, 06 §16.10) ─────────────
  * A Marketplace app's webhooks are sent by GHL's platform and cannot carry our header.
- * GHL signs each delivery instead: `x-wh-signature` is a base64 RSA-SHA256 signature over
- * the exact request bytes, made with GHL's private key; we verify with the public key GHL
- * publishes (`GHL_WEBHOOK_PUBLIC_KEY`, pasted from their documentation, never a literal
- * here). This is the stronger door — a forged request would need GHL's private key, and a
- * captured request cannot be altered without breaking the signature.
+ * GHL signs each delivery over the exact request bytes, base64 in a header, and
+ * documents two schemes (Webhook Integration Guide, read 18 Sep 2026):
  *
- * Verification is over `rawBody` — the bytes as received, never a re-serialisation — which
- * is why `api/events.ts` keeps them. If GHL's real scheme differs from the documented one
- * (a different digest, say), the first real delivery is a 401 with a log line naming the
- * step that failed, not a silent drop: that log is the evidence to correct this against.
+ *   X-GHL-Signature  Ed25519     — the current standard
+ *   X-WH-Signature   RSA-SHA256  — legacy, deprecated 1 Sep 2026, may still accompany it
  *
- * Returns which door opened, or null. Never throws; a malformed key or signature is a
- * refusal, not a crash.
+ * Their flow, followed exactly: when `X-GHL-Signature` is present it is THE credential —
+ * verified with the Ed25519 key, and if it fails the request is refused even if a valid
+ * legacy header is also present (a forger who can only produce the deprecated signature
+ * must not get in by attaching a junk modern one). Only when no GHL header is present is
+ * `X-WH-Signature` tried against the RSA key. Public keys are configuration pasted from
+ * GHL's docs, never literals here; an unset key closes its door.
+ *
+ * Verification is over `rawBody` — the bytes as received, never a re-serialisation —
+ * which is why `api/events.ts` keeps them. Returns which door opened, or null. Never
+ * throws; a malformed key or signature is a refusal, not a crash.
  */
 
-import { createVerify, timingSafeEqual } from 'node:crypto';
+import { createPublicKey, createVerify, timingSafeEqual, verify as cryptoVerify } from 'node:crypto';
 
-export type InboundAuth = 'secret' | 'signature';
+export type InboundAuth = 'secret' | 'ed25519' | 'rsa';
 
 /** Constant-time compare, so a wrong secret cannot be found a character at a time. */
 export function secretMatches(provided: string, expected: string): boolean {
@@ -34,13 +37,27 @@ export function secretMatches(provided: string, expected: string): boolean {
   return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
 }
 
-/** RSA-SHA256 (PKCS#1 v1.5, `createVerify('SHA256')`) over the raw bytes, base64 signature. */
-export function signatureMatches(rawBody: Buffer, signature: string, publicKeyPem: string): boolean {
+/** Ed25519 over the raw bytes; base64 signature; `crypto.verify(null, …)` is Ed25519's form. */
+export function ed25519Matches(rawBody: Buffer, signature: string, publicKeyPem: string): boolean {
   if (!signature || !publicKeyPem || !rawBody) return false;
   try {
-    return createVerify('SHA256').update(rawBody).end().verify(publicKeyPem, signature, 'base64');
+    const key = createPublicKey(publicKeyPem);
+    if (key.asymmetricKeyType !== 'ed25519') return false;   // the RSA key in the Ed25519 slot is a misconfiguration, not a pass
+    return cryptoVerify(null, rawBody, key, Buffer.from(signature, 'base64'));
   } catch {
-    return false;   // unparseable key or signature: refuse, don't crash
+    return false;
+  }
+}
+
+/** RSA-SHA256 (PKCS#1 v1.5, `createVerify('SHA256')`) over the raw bytes; base64 signature. */
+export function rsaMatches(rawBody: Buffer, signature: string, publicKeyPem: string): boolean {
+  if (!signature || !publicKeyPem || !rawBody) return false;
+  try {
+    const key = createPublicKey(publicKeyPem);
+    if (key.asymmetricKeyType !== 'rsa') return false;
+    return createVerify('SHA256').update(rawBody).end().verify(key, signature, 'base64');
+  } catch {
+    return false;
   }
 }
 
@@ -49,19 +66,26 @@ export interface InboundCredentials {
   providedSecret: string;
   /** The configured secret, or '' when unset. */
   expectedSecret: string;
-  /** `x-wh-signature` as sent, or ''. */
-  providedSignature: string;
-  /** The configured PEM, or '' when unset. */
-  publicKeyPem: string;
+  /** `X-GHL-Signature` as sent, or ''. */
+  providedGhlSignature: string;
+  /** `X-WH-Signature` as sent, or ''. */
+  providedWhSignature: string;
+  /** The configured Ed25519 PEM, or '' when unset. */
+  ed25519PublicKeyPem: string;
+  /** The configured RSA PEM, or '' when unset. */
+  rsaPublicKeyPem: string;
   rawBody: Buffer;
 }
 
 /**
- * The secret first (cheap, and the door in use today), then the signature. A request that
- * presents both must satisfy at least one; neither → null → 401.
+ *   secret → X-GHL-Signature (Ed25519) → [only if no GHL header] X-WH-Signature (RSA) → null
  */
 export function authenticateInbound(c: InboundCredentials): InboundAuth | null {
   if (c.expectedSecret && c.providedSecret && secretMatches(c.providedSecret, c.expectedSecret)) return 'secret';
-  if (c.publicKeyPem && c.providedSignature && signatureMatches(c.rawBody, c.providedSignature, c.publicKeyPem)) return 'signature';
+  if (c.providedGhlSignature) {
+    // Present means decisive: verify it, and never fall through to the legacy header.
+    return ed25519Matches(c.rawBody, c.providedGhlSignature, c.ed25519PublicKeyPem) ? 'ed25519' : null;
+  }
+  if (c.providedWhSignature && rsaMatches(c.rawBody, c.providedWhSignature, c.rsaPublicKeyPem)) return 'rsa';
   return null;
 }

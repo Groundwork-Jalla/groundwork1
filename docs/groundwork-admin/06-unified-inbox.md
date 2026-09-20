@@ -499,4 +499,24 @@ Gate: 69 files / **1134 tests**, `tsc` clean, `diff --check` clean. `GHL_INBOUND
 
 **Assumption to be confirmed by the first real delivery, not before:** GHL's signature is RSA-SHA256 (PKCS#1 v1.5) over the raw body, base64 in `x-wh-signature`, per their documentation. If the real scheme differs, the first delivery answers 401 and the Vercel log reads `signed request refused: signature did not verify rawBody bytes: N` — that line is the evidence to correct against; nothing is recorded on a refusal by design.
 
-**Next (yours, in order):** paste GHL's webhook public key into `app_config` as `ghl_webhook_public_key` → deploy → in the developer portal, reinstall the app via its install link, set the Webhook URL to `https://www.tryjalla.com/api/events?action=crm-inbound`, subscribe to `InboundMessage` → send one real message → the newest row with `request.auth = 'signature'` is the evidence for §16.10 step 5.
+~~Next: paste a single public key…~~ **Superseded by §16.12 before deployment** — GHL's documentation, read the same day, shows two signature schemes; A.0.1 below replaces the single-key design.
+
+### 16.12 A.0.1 — two signature schemes, GHL's order (18 Sep 2026)
+
+Before A.0 was deployed, GHL's [Webhook Integration Guide](https://marketplace.gohighlevel.com/docs/webhook/WebhookIntegrationGuide/) was read: Marketplace webhooks are signed with **`X-GHL-Signature` (Ed25519, current)** and, during a transition, the **legacy `X-WH-Signature` (RSA-SHA256, deprecated 1 Sep 2026)**. Their flow: verify the GHL header with the Ed25519 key when present; only when absent, the legacy header with the RSA key. A.0 verified only the legacy scheme and would have refused the first real delivery. Amended, approved, built:
+
+| File | Change |
+|---|---|
+| `api/ghl/_config.ts` | `GHL_WEBHOOK_PUBLIC_KEY` replaced by `GHL_WEBHOOK_PUBLIC_KEY_ED25519` and `GHL_WEBHOOK_PUBLIC_KEY_RSA` — both PEMs pasted by a person from the guide; neither in the repo (pinned). |
+| `api/ghl/_inbound-auth.ts` | `ed25519Matches` (`crypto.verify(null, raw, key, sig)`), `rsaMatches`; each refuses a key of the wrong type in its slot. `authenticateInbound`: **secret → `X-GHL-Signature` decisive (Ed25519; invalid → null, never falls through) → only if no GHL header, `X-WH-Signature` (RSA) → null.** `InboundAuth = 'secret' \| 'ed25519' \| 'rsa'`. |
+| `api/_handlers/inbound.ts` | Reads both headers; 503 only when secret and both keys are unset; refusal log names which header and whether a key was configured, plus the byte count — never content. |
+| `api/ghl/_inbound-request.ts` | `x-ghl-signature` dropped by name as well (and by the `*signature*` fragment); `auth` widened. |
+| `src/lib/ghl/inbound-auth.test.ts` | 16 tests with per-run Ed25519 **and** RSA pairs — the thirteen gate points, including the no-fall-through rule pinned both behaviourally and in the source order. |
+
+**Documented envelope, recorded but not relied on:** the guide describes platform webhooks as `{ webhookId, type, timestamp, data }` with `webhookId` "for deduplication". That is documentation evidence; the parser and 085 are not wired to it until the first real `InboundMessage` shows it.
+
+**End-to-end proof** (real `events.ts` → `inbound.ts`, psql bridge, byte streams): **24/24** — Ed25519 valid → `auth=ed25519`; the documented envelope bytes captured whole; wrong Ed25519 key → 401; **invalid Ed25519 + valid RSA → 401**; both valid → `ed25519`; RSA alone → `rsa`; wrong RSA → 401; neither → 401; one byte changed → 401; bad secret + valid Ed25519 → `ed25519`; removing the Ed25519 key closes that door without falling through to RSA; removing the RSA key closes that one; all three unset → 503; local-only acting on runs the unchanged 6.2 path through either door; no secret, signature, key, IP or `x-vercel-*` in any stored row. 6.2 SQL replay still 19/19.
+
+Gate: 69 files / **1136 tests**, `tsc` clean, `diff --check` clean. Uncommitted, undeployed. `GHL_INBOUND_ACT` off; 085/091/parser untouched; no portal configuration.
+
+**Next (yours):** two `app_config` rows — `ghl_webhook_public_key_ed25519` and `ghl_webhook_public_key_rsa` — each the whole PEM block from the guide → deploy → developer portal: reinstall via the install link, Webhook URL `https://www.tryjalla.com/api/events?action=crm-inbound`, subscribe `InboundMessage` → one real message → newest row with `event_type = InboundMessage`, `request.auth = ed25519` (or `rsa` during the transition), `handled_at NULL` → stop; inspect the real envelope.
