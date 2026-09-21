@@ -265,14 +265,15 @@ export default function AdminApplications() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
+                        {/* A labelled button, not an icon: the first version was a grey
+                            pencil beside the arrow and nobody found it. */}
                         <Link
                           to={`/admin/applications/${a.id}?edit=1`}
                           aria-label={`${t('admin.apps.editButton')} ${a.fullName}`}
-                          title={t('admin.apps.editButton')}
-                          className="inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-light-grey hover:text-brand-near-black"
+                          className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-brand-border-grey bg-white px-2.5 py-1 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
                         >
-                          <Pencil className="size-3.5" />
+                          <Pencil className="size-3" /> {t('admin.apps.editButton')}
                         </Link>
                         <Link
                           to={`/admin/applications/${a.id}`}
