@@ -148,6 +148,18 @@ export async function handler(req: any, res: any) {
       return;
     }
     const m = parsed.message;
+
+    // ── Location authority (6.2 gate amendment, decided on the 21 Sep capture, 06 §16.13) ──
+    // A real InboundMessage names its location. Acting is for OUR sub-account only: absent,
+    // different, or nothing configured to compare against → recorded, unhandled, nothing
+    // filed. The three cases are told apart in `detail` so the table says which it was.
+    const expectedLocation = settings.GHL_LOCATION_ID.value ?? '';
+    const locationDetail = !expectedLocation ? 'unconfigured' : !m.locationId ? 'absent' : m.locationId !== expectedLocation ? 'mismatch' : null;
+    if (locationDetail) {
+      res.status(200).json({ received: true, acted: false, reason: 'wrong_location', detail: locationDetail });
+      return;
+    }
+
     const personId = await resolvePerson({
       byGhlContactId: async id => (await db.from('profiles').select('id').eq('ghl_contact_id', id).limit(1).maybeSingle()).data?.id ?? null,
       byEmail:        async e  => (await db.from('profiles').select('id').ilike('email', e).limit(1).maybeSingle()).data?.id ?? null,

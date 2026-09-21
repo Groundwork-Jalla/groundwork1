@@ -24,8 +24,8 @@ const rsa = rsaPair(), rsaOther = rsaPair(), ed = edPair(), edOther = edPair();
 const signRsa = (raw: Buffer, key = rsa.privateKey) => createSign('SHA256').update(raw).end().sign(key, 'base64');
 const signEd = (raw: Buffer, key = ed.privateKey) => cryptoSign(null, raw, key).toString('base64');
 
-/** A Marketplace-style body, placeholder values, with the whitespace GHL happens to send. */
-const RAW = Buffer.from('{"webhookId":"wh_placeholder","type":"InboundMessage","timestamp":"2026-09-18T10:00:00.000Z","data":{"locationId":"loc_placeholder","contactId":"ct_placeholder","messageId":"msg_placeholder","body":"hello"}}');
+/** The captured InboundMessage shape (flat, 06 §16.13), placeholder values, as bytes. */
+const RAW = Buffer.from('{"type":"InboundMessage","direction":"inbound","messageType":"WhatsApp","messageTypeId":19,"messageTypeString":"TYPE_WHATSAPP","messageId":"msg_placeholder_0000","conversationId":"cv_placeholder_0000","contactId":"ct_placeholder_0000","locationId":"loc_placeholder_0000","webhookId":"00000000-0000-4000-8000-000000000000","dateAdded":"2026-09-21T10:30:40.477Z","timestamp":"2026-09-21T10:30:41.508Z","body":"Hello?","contentType":"text/plain","status":"delivered","from":"+10000000000","to":"+10000000001","appId":"app_placeholder","versionId":"ver_placeholder","userId":""}');
 const base = { providedSecret: '', expectedSecret: 'expected-placeholder', providedGhlSignature: '', providedWhSignature: '',
   ed25519PublicKeyPem: ed.publicKey, rsaPublicKeyPem: rsa.publicKey, rawBody: RAW };
 

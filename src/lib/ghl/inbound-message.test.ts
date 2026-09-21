@@ -4,35 +4,78 @@ import { describe, expect, it, vi } from 'vitest';
 import { inboundMessageRow, parseInboundMessage, resolvePerson } from '../../../api/ghl/_inbound-message';
 
 /**
- * Phase 6.2 — the inbound pipe, proven without a webhook.
+ * Phase 6.2 — the inbound pipe, proven against the captured contract.
  *
- * THE FIXTURE IS SANITISED, NOT CAPTURED. Production has never received an inbound-message
- * event, so this shape is GoHighLevel's documented `InboundMessage` with placeholder values.
- * When the first real payload is captured it is inspected in `ghl_inbound_events`, the
- * parser is corrected against it, and THIS fixture is replaced by a redacted copy — same
- * keys, no personal data. It is never presented as a production event.
+ * THE FIXTURE IS THE SANITISED TWIN OF A REAL EVENT. On 21 Sep 2026 the first Marketplace
+ * `InboundMessage` was captured in `ghl_inbound_events` (06 §16.13). `real()` below has
+ * exactly its twenty top-level keys and their types; every value is fabricated (ids,
+ * phone numbers, body). The real row stays in the table and is never copied here.
  */
 const ROOT = resolve(__dirname, '..', '..', '..');
 const src = (f: string) => readFileSync(resolve(ROOT, f), 'utf8');
 const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-/** Documented shape, sanitised. PROVISIONAL until a captured payload replaces it. */
+/** The captured InboundMessage shape — flat, 20 keys — with placeholder values. */
+const REAL_KEYS = ['appId', 'body', 'contactId', 'contentType', 'conversationId', 'dateAdded', 'direction', 'from', 'locationId',
+  'messageId', 'messageType', 'messageTypeId', 'messageTypeString', 'status', 'timestamp', 'to', 'type', 'userId', 'versionId', 'webhookId'] as const;
+const real = (over: Record<string, unknown> = {}) => ({
+  appId: 'app_placeholder_00000000', body: 'Hello?', contactId: 'ct_placeholder_0000', contentType: 'text/plain',
+  conversationId: 'cv_placeholder_0000', dateAdded: '2026-09-21T10:30:40.477Z', direction: 'inbound', from: '+10000000000',
+  locationId: 'loc_placeholder_0000', messageId: 'msg_placeholder_0000', messageType: 'WhatsApp', messageTypeId: 19,
+  messageTypeString: 'TYPE_WHATSAPP', status: 'delivered', timestamp: '2026-09-21T10:30:41.508Z', to: '+10000000001',
+  type: 'InboundMessage', userId: '', versionId: 'ver_placeholder_00000000', webhookId: '00000000-0000-4000-8000-000000000000', ...over,
+});
+/** The old documented guess, kept only as "another spelling GHL uses" input. */
 const documented = (over: Record<string, unknown> = {}) => ({
   type: 'InboundMessage', locationId: 'loc_placeholder', contactId: 'ct_placeholder', conversationId: 'cv_placeholder',
   messageId: 'msg_placeholder_1', messageType: 'WhatsApp', direction: 'inbound', body: 'Hello, is the foundation done?',
   dateAdded: '2026-09-18T10:00:00.000Z', attachments: [], ...over,
 });
 
+describe('the fixture is the captured contract, sanitised', () => {
+  it('has exactly the twenty keys and the types of the 21 Sep 2026 capture, and no real value', () => {
+    const r = real();
+    expect(Object.keys(r).sort()).toEqual([...REAL_KEYS].sort());
+    for (const k of REAL_KEYS) expect(typeof r[k], k).toBe(k === 'messageTypeId' ? 'number' : 'string');
+    expect(r).not.toHaveProperty('attachments');
+    expect(r).not.toHaveProperty('data');
+    // Nothing that looks like a real GHL id (20 alnum chars) or a real phone appears in this file.
+    const me = src('src/lib/ghl/inbound-message.test.ts');
+    expect(me).not.toMatch(/['"][A-Za-z0-9]{20}['"]/);
+    expect(me).not.toMatch(/\+237\d{8,}|\+44\d{9,}|\+1[2-9]\d{9}/);
+  });
+});
+
 describe('parseInboundMessage — what is a client message we may file', () => {
-  it('accepts the documented WhatsApp shape and maps it onto 091', () => {
-    const r = parseInboundMessage(documented());
+  it('accepts the REAL WhatsApp shape and maps it onto 085/091 exactly', () => {
+    const r = parseInboundMessage(real());
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.message).toEqual({
-      ghlMessageId: 'msg_placeholder_1', ghlContactId: 'ct_placeholder', ghlConversationId: 'cv_placeholder',
-      channel: 'whatsapp', body: 'Hello, is the foundation done?', senderName: 'whatsapp',
-      sentAt: '2026-09-18T10:00:00.000Z', attachments: [], locationId: 'loc_placeholder',
+      ghlMessageId: 'msg_placeholder_0000',          // → project_messages.ghl_message_id (085)
+      ghlContactId: 'ct_placeholder_0000',           // → ensure_inbound_conversation(p_ghl_contact_id)
+      ghlConversationId: 'cv_placeholder_0000',      // → ensure_inbound_conversation(p_ghl_conversation_id)
+      channel: 'whatsapp', body: 'Hello?', senderName: 'whatsapp',
+      sentAt: '2026-09-21T10:30:40.477Z',            // dateAdded — the message time, not the delivery `timestamp`
+      attachments: [], locationId: 'loc_placeholder_0000',
     });
+  });
+  it('from / to are transport addresses: never sender_name, never anywhere in the row', () => {
+    const r = parseInboundMessage(real({ from: '+10000000099', to: '+10000000098' }));
+    if (!r.ok) throw new Error('fixture');
+    expect(r.message.senderName).toBe('whatsapp');
+    expect(JSON.stringify(inboundMessageRow('c', r.message))).not.toMatch(/\+1000000009[89]/);
+    expect(code('api/ghl/_inbound-message.ts')).not.toMatch(/first\(p,[^)]*'(from|to)'/);
+  });
+  it('channel from the word, else the TYPE_ string, else the number — and the number only when established', () => {
+    expect(parseInboundMessage(real({ messageType: undefined }))).toMatchObject({ ok: true, message: { channel: 'whatsapp' } });                          // messageTypeString
+    expect(parseInboundMessage(real({ messageType: undefined, messageTypeString: undefined }))).toMatchObject({ ok: true, message: { channel: 'whatsapp' } }); // messageTypeId 19
+    expect(parseInboundMessage(real({ messageType: undefined, messageTypeString: undefined, messageTypeId: 3 }))).toMatchObject({ ok: false, reason: 'malformed', detail: 'unknown messageType: id 3' });
+    expect(parseInboundMessage(real({ messageType: undefined, messageTypeString: undefined, messageTypeId: '19' }))).toMatchObject({ ok: false, reason: 'malformed' });   // a string is not the established number
+    expect(code('api/ghl/_inbound-message.ts')).toMatch(/CHANNEL_OF_ID[^=]*=\s*\{\s*19:\s*'whatsapp'\s*\}/);   // exactly one established mapping
+  });
+  it('the documented shape is still read (another spelling), so are snake_case keys', () => {
+    expect(parseInboundMessage(documented())).toMatchObject({ ok: true, message: { channel: 'whatsapp', ghlMessageId: 'msg_placeholder_1' } });
   });
 
   it('accepts email, snake_case keys, a contact name, and TYPE_ spellings', () => {
@@ -144,8 +187,14 @@ describe('the handler (static) — order, gates, and what it never touches', () 
     expect(status).toContain("cfg.GHL_INBOUND_ACT.value === 'on' ? 'acting' : 'capture'");
   });
 
-  it('no locationId check is enforced before a captured payload shows GHL supplies one', () => {
-    expect(h).not.toMatch(/locationId\s*!==|GHL_LOCATION_ID/);
+  it('location authority: after parse, before the person lookup; absent / mismatch / unconfigured are told apart; nothing filed', () => {
+    expect(at('parseInboundMessage(body)')).toBeLessThan(at("reason: 'wrong_location'"));
+    expect(at("reason: 'wrong_location'")).toBeLessThan(at('resolvePerson('));
+    expect(h).toContain("!expectedLocation ? 'unconfigured' : !m.locationId ? 'absent' : m.locationId !== expectedLocation ? 'mismatch' : null");
+    expect(h).toContain('settings.GHL_LOCATION_ID.value');
+    const refusal = h.slice(at("const locationDetail"), at('resolvePerson('));
+    expect(refusal).toContain('return;');
+    expect(refusal).not.toMatch(/project_messages|ensure_inbound_conversation|handled_at/);
   });
 
   it('is still the existing crm-inbound action — no new serverless function', () => {

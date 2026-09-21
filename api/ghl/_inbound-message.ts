@@ -1,18 +1,25 @@
 /**
  * GoHighLevel → Groundwork: what an inbound message webhook is, and what it becomes.
  *
- * ── Provisional, and marked so ───────────────────────────────────────────────────────
- * `ghl_inbound_events` has never received a real inbound-message event (0 rows on
- * 18 Sep 2026). The field map below is taken from GoHighLevel's public webhook
- * documentation for `InboundMessage` — `type`, `messageType`, `direction`, `contactId`,
- * `conversationId`, `messageId`, `body`, `attachments`, `dateAdded`, `locationId` — and is
- * read tolerantly (both camelCase and snake_case, several spellings of "message id"),
- * because guessing strictly would reject the first real event.
+ * ── Pinned to the captured contract (21 Sep 2026) ───────────────────────────────────
+ * The field map is taken from the first real Marketplace `InboundMessage` delivery,
+ * captured in `ghl_inbound_events` on 21 Sep 2026 (06 §16.13) — not from documentation.
+ * It is FLAT, twenty top-level keys, no `data` envelope:
  *
- * It is PROVISIONAL until step 2 of 06 §14.2: the first captured payload is read from
- * the table, the map is corrected against it, and the sanitised fixture in
- * `inbound-message.test.ts` is replaced by that shape. Until then `GHL_INBOUND_ACT` is
- * off and nothing this parser returns is acted on.
+ *   type "InboundMessage" · direction "inbound" · messageType "WhatsApp" ·
+ *   messageTypeId (number) · messageTypeString ("TYPE_WHATSAPP" spelling) · messageId ·
+ *   conversationId · contactId · locationId · webhookId · dateAdded (message time) ·
+ *   timestamp (delivery time) · body · contentType · status · from / to (phone numbers) ·
+ *   appId · versionId · userId
+ *
+ * A text message carries no `attachments` key and no contact name or email. `from` and
+ * `to` are transport addresses — personal data — and are never read into anything.
+ * The sanitised twin of that payload (same keys and types, fabricated values) is the
+ * fixture in `src/lib/ghl/inbound-message.test.ts`; the real one stays in the table.
+ *
+ * Reading stays tolerant of the other spellings GHL uses elsewhere (snake_case, the
+ * `TYPE_` words), because tolerance costs nothing and the validations that matter —
+ * a message, inbound, a known channel, an id, a contact, a body — are unchanged.
  *
  * ── Pure ─────────────────────────────────────────────────────────────────────────────
  * No I/O. `parseInboundMessage` decides whether a payload is a client's inbound message
@@ -49,9 +56,17 @@ const first = (o: Rec, ...keys: string[]): string => { for (const k of keys) { c
 /** GHL's message type words → our channel. Anything else is not a channel we file. */
 const CHANNEL_OF: Record<string, Channel | 'sms'> = {
   email: 'email', whatsapp: 'whatsapp', sms: 'sms', call: 'call',
-  // documented GHL spellings
+  // the `messageTypeString` spellings
   type_email: 'email', type_whatsapp: 'whatsapp', type_sms: 'sms', type_call: 'call', type_phone: 'call',
 };
+
+/**
+ * GHL's numeric `messageTypeId` → our channel — ONLY the values established by evidence.
+ * 19 = WhatsApp: the workflow webhook captured on 18 Sep 2026 carried `message.type: 19`
+ * on a WhatsApp message from the same contact (06 §16.1). Nothing else is mapped until a
+ * capture shows it; an unmapped number is `malformed`, never a guess.
+ */
+const CHANNEL_OF_ID: Record<number, Channel | 'sms'> = { 19: 'whatsapp' };
 
 export function parseInboundMessage(payload: unknown): ParseOutcome {
   const p = rec(payload);
@@ -68,9 +83,12 @@ export function parseInboundMessage(payload: unknown): ParseOutcome {
   const direction = first(p, 'direction').toLowerCase() || (/inbound/.test(type) ? 'inbound' : /outbound/.test(type) ? 'outbound' : '');
   if (direction !== 'inbound') return { ok: false, reason: 'not_inbound', detail: direction || 'no direction' };
 
-  const rawType = first(p, 'messageType', 'message_type', 'channel').toLowerCase().replace(/[\s-]+/g, '_');
-  const channel = CHANNEL_OF[rawType];
-  if (!channel) return { ok: false, reason: 'malformed', detail: `unknown messageType: ${rawType || 'none'}` };
+  // Channel: the word (`messageType`), else the TYPE_ spelling (`messageTypeString`), else
+  // the number (`messageTypeId`) when — and only when — that number has been seen.
+  const rawType = first(p, 'messageType', 'message_type', 'messageTypeString', 'channel').toLowerCase().replace(/[\s-]+/g, '_');
+  const typeId = typeof p.messageTypeId === 'number' ? p.messageTypeId : NaN;
+  const channel = CHANNEL_OF[rawType] ?? CHANNEL_OF_ID[typeId];
+  if (!channel) return { ok: false, reason: 'malformed', detail: `unknown messageType: ${rawType || (Number.isNaN(typeId) ? 'none' : `id ${typeId}`)}` };
   if (channel === 'sms') return { ok: false, reason: 'channel_disabled', detail: 'sms' };
 
   const ghlMessageId = first(p, 'messageId', 'message_id', 'id');
@@ -80,6 +98,8 @@ export function parseInboundMessage(payload: unknown): ParseOutcome {
   if (!ghlContactId) return { ok: false, reason: 'malformed', detail: 'no contact id' };
   if (!body) return { ok: false, reason: 'malformed', detail: 'empty body' };
 
+  // A name, when GHL sends one; otherwise the channel word. NEVER `from` / `to` — those are
+  // phone numbers or addresses, and a client's number must not become a display name.
   const contact = rec(p.contact);
   const senderName = first(p, 'fromName', 'from_name', 'contactName', 'userName') || first(contact, 'name', 'fullName')
     || [first(contact, 'firstName', 'first_name'), first(contact, 'lastName', 'last_name')].filter(Boolean).join(' ')
