@@ -62,9 +62,10 @@ export async function handler(req: any, res: any) {
   // caller's profile here would file the client's build under the admin's contact.
   const { data: profile } = await admin
     .from('profiles')
-    .select('full_name, email, country, preferred_lang')
+    .select('full_name, email, country, preferred_lang, ghl_contact_id')
     .eq('id', project.user_id)
     .maybeSingle();
+  const ownerContactId = (profile?.ghl_contact_id as string | null) ?? null;
 
   // No session-email fallback: `user.email` is the caller's, and for an admin-created
   // project that is the wrong person. A profile with no email simply is not forwarded.
@@ -76,7 +77,10 @@ export async function handler(req: any, res: any) {
     country:  (profile?.country as string | null) ?? (project.country as string | null),
     lang:     profile?.preferred_lang as string | null,
   }, {
-    user_id:      user.id,
+    // The OWNER, not the caller: this is identity metadata on the contact and in the
+    // outbox, and an admin creating a project for a client must not stamp the client's
+    // record with the admin's id (06 §17, found while designing the linkage backfill).
+    user_id:      project.user_id as string,
     project_id:   project.id as string,
     project_name: (project.name as string | null) ?? '',
     project_tier: (project.tier as string | null) ?? '',
@@ -87,9 +91,29 @@ export async function handler(req: any, res: any) {
     // Also as a tag, so "everyone on Jalla Verify" is a smart list rather than a
     // custom-field filter. See tierTag in _pipeline.ts.
     tier: project.tier as string | null,
+    // Address the contact the owner is already linked to, when known, rather than
+    // relying on GHL's email upsert to find the same person.
+    contactId: ownerContactId,
   });
+
+  // The OWNER's profile learns the contact the CRM now holds — as crm-user does on the
+  // API path (06 §16.15: this handler never did, which is why homeowners created through
+  // a project were unlinked and every inbound reply from them was `unmatched`). Never
+  // over an id it already has: a second contact for the same person is a CRM problem to
+  // merge, not something to paper over here — `.is(null)` makes that hold under a race.
+  let linked = false;
+  if (result.ok && result.contactId && !ownerContactId) {
+    const { data: stamped, error: linkErr } = await admin
+      .from('profiles')
+      .update({ ghl_contact_id: result.contactId })
+      .eq('id', project.user_id)
+      .is('ghl_contact_id', null)
+      .select('id');
+    if (linkErr) console.warn('[ghl] project forwarded but owner contact id not stored:', linkErr);
+    linked = !linkErr && (stamped?.length ?? 0) > 0;
+  }
 
   // 200 either way: the project exists and the caller is fire-and-forget. The reason is
   // returned for the logs rather than for the browser, which ignores it.
-  res.status(200).json({ ok: result.ok, reason: result.reason });
+  res.status(200).json({ ok: result.ok, reason: result.reason, linked });
 }

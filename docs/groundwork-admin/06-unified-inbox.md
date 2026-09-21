@@ -551,3 +551,59 @@ Built to the five-point GO. A.0.1 was committed and deployed by Favour meanwhile
 Gate: 69 files / **1140 tests**, `tsc` clean, `diff --check` clean. **`GHL_INBOUND_ACT` off. 6.3 blocked.** Awaiting the authority review before acting is enabled.
 
 **What enabling would mean, for that review:** `insert into app_config (key, value) values ('ghl_inbound_act', 'on')` — one row, no deploy; the kill switch is deleting it (60 s settings cache). Marketplace events from the sub-account, from a contact whose `profiles.ghl_contact_id` matches, would be filed onto their thread; everything else stays recorded and unhandled with a `reason`. Applicants (contact ids on `contractor_applications` only) are unmatched by design (D2). The unmatched count will not be zero.
+
+### 16.15 Pre-activation finding (21 Sep 2026): most homeowner profiles carry no `ghl_contact_id`
+
+Checked while preparing the activation runbook: the test contact (`favour@tryjalla.com`, source `groundwork_project_created`) maps to profile `c75b7bd7-…` whose `ghl_contact_id` is NULL. Cause, from the code: `crm-user` stores the id only when it creates the contact through the API (`api/_handlers/user.ts:91`); `crm-project` — the path that created this contact — never writes it back; `crm-backfill` does not either. So homeowner profiles synced through project creation or the webhook mode are unlinked.
+
+Consequence: Marketplace `InboundMessage` events carry no email, so for an unlinked profile the only resolution path fails and the message is a correct `unmatched`. The unmatched rate after activation will be high and means *unlinked profiles*, not a pipeline fault.
+
+**Activation runbook, one deliberate write (Favour, at the gate):** `update profiles set ghl_contact_id = '<id from the GHL contact URL>' where id = 'c75b7bd7-4d63-4b98-b5d3-a31a98389ab1' and ghl_contact_id is null;`
+
+**To close the gap for everyone — a decision for the review, none built:** (1) `crm-project` stores the id it gets back, as `crm-user` does; (2) a one-time backfill filling `profiles.ghl_contact_id` by email lookup in GHL (`contacts.readonly`, granted in 2.0.0); (3) the inbound handler, on no contact-id match, fetches the GHL contact and matches by its email — an act-time lookup on *contacts*, not messages, so it does not reopen the identity question, but it is a design change with its own gate.
+
+### 16.16 Decision (21 Sep 2026): the sequence to "Unified Inbox complete"
+
+§16.15 is **not** a blocker to the controlled activation test (the deterministic mapping above makes it meaningful) and **is** a blocker to calling the Inbox production-ready for the wider user base. Option 3 of §16.15 (inbound-time contact lookup) is not built; it stays a fallback design to be judged against what remains unmatched after the linkage fix.
+
+**Definition of complete:** a real customer reply resolves to the correct Groundwork person and conversation without manual intervention — not merely "the webhook works".
+
+**Dependency chain:**
+1. **Controlled activation** — link the test profile (one write, `… and ghl_contact_id is null returning id, email, ghl_contact_id`), pre-activation counts, enable the one row, one WhatsApp reply, prove event → message → thread → audit log, one replay → duplicate, sweep for unexpected writes/errors, then leave on or kill.
+2. **Fix GHL contact ↔ Groundwork profile linkage** (separate September task; acceptance criteria below).
+3. **Validate the Inbox in production** — real replies against the right person/project, `waiting_on_us` transitions, assignment/state behaviour, and the workflow + Marketplace double signal never producing two messages.
+4. **6.3 Inbox data/read model**, then the Inbox UI.
+
+**Task: Fix GHL Contact ↔ Groundwork Profile Linkage — acceptance criteria**
+- `crm-project` persists the returned `contactId` into `profiles.ghl_contact_id` (as `crm-user` does in API mode).
+- Existing homeowner profiles audited for missing `ghl_contact_id`.
+- One-time backfill matches existing profiles to GHL contacts by email; matching is case-insensitive; **ambiguous matches are not written**; existing non-null ids are never overwritten; idempotent and re-runnable.
+- Remaining unmatched profiles reported for manual review.
+- A newly created homeowner/project automatically receives a persisted `ghl_contact_id`.
+- A real `InboundMessage` for that homeowner resolves with no manual database intervention.
+- Tests and production proof recorded before the task closes.
+
+## 17. Linkage task — GHL contact ↔ Groundwork profile (22 Sep 2026)
+
+### 17.1 Step 1 — `crm-project` persists the returned contact id (PASS)
+[`api/_handlers/project.ts`](../../api/_handlers/project.ts): the owner's profile select includes `ghl_contact_id`; the known id is passed to `forwardToGhl` as `contactId`; after a successful forward that returned an id, and only when the owner has none, `UPDATE profiles SET ghl_contact_id … WHERE id = project.user_id AND ghl_contact_id IS NULL` — owner not caller, null guard in the database, stamp failure logged never fatal, response gains `linked`. Also fixed while here: the outbox/custom-field `user_id` is now `project.user_id`, not the caller's id (admin-created projects used to stamp the admin). Forwarding mode checked: `deliver()` uses the API whenever token+location are configured (they are — the CRM card says "Using the API"), so `project_created` returns a contact id; `GHL_CONTRACTOR_WEBHOOK_MODE` affects contractor applications only.
+
+### 17.2 Step 2 — the backfill (built, held at the production gate)
+
+**Source 1 — Groundwork's own evidence.** [`supabase/maintenance/link-ghl-contacts-source1.sql`](../../supabase/maintenance/link-ghl-contacts-source1.sql), *not* a migration. Identity is event-aware: `user_signup` → `payload.user_id → profiles.id`; `project_created` → `payload.project_id → projects.user_id → profiles.id` (never `payload.user_id`, which was the caller's); both require `lower(outbox.email) = lower(profile.email)`; only `status = 'sent'` rows with a `contact_id`; every other event type ignored. Per profile: one distinct consistent id → `eligible`; several → `conflict`; evidence with the wrong email → `mismatch`; unresolvable → `orphan` (counted). Part A reports; **part B is the identical CTE** feeding `UPDATE … WHERE ghl_contact_id IS NULL … RETURNING profile_id, email, ghl_contact_id` — nothing is copied from a report into a separate statement. Harness (gw62, seeded with every case): report = `already_linked 1, conflict 1, eligible 2, mismatch 1, orphan_rows 1`; apply wrote exactly the two eligible rows — including the **admin-created project linked to its owner while the admin (the payload's `user_id`) stayed NULL**; the already-linked profile kept `ct_already`, not the newer evidence; failed / pending / null-contact / other-event rows were not evidence; **second run: `UPDATE 0`**.
+
+**Source 2 — the GHL book.** [`api/ghl/_contact-links.ts`](../../api/ghl/_contact-links.ts) (pure `planLinks`: `eligible | no_email | not_found | ambiguous | taken | already_linked`, case-insensitive, one contact per email, a contact owned by another profile is `taken`) and [`api/_handlers/crm-link-contacts.ts`](../../api/_handlers/crm-link-contacts.ts), an `events.ts` action (function count still 11): admin-only via `is_admin` on the caller's token; one `listContacts` fetch (cap 2000); **dry-run by default, `apply: true` to write; refuses to apply when the book is partial (a page failed) or hit the cap**; writes only `eligible` pairs, each behind `.is('ghl_contact_id', null)`, and returns every changed row (`written`) — the rollback list. No UI: called from the browser console on `/admin/crm`. End-to-end through the real dispatcher with only the book stubbed: no token 401; homeowner 403; dry run reports without writing; partial book refused; capped book refused; apply writes exactly the eligible pairs (`RETURNING` shown); `taken` / `ambiguous` / `no_email` untouched and already-linked ids never replaced; **re-run applies 0**. 8/8.
+
+**Tests:** [`src/lib/ghl/contact-linkage.test.ts`](../../src/lib/ghl/contact-linkage.test.ts), 21 — step-1 pins (owner not caller, both guards, id only from the forward's result, payload `user_id` = owner), Source 1 script pins (event-aware identity, the two halves' rule CTEs textually identical, double null guard, RETURNING, not a migration), `planLinks` decisions incl. idempotence, action pins (admin gate before any fetch, single capped fetch, `apply` required, refusal on incomplete, `.is(null)` on the write, reads `profiles` only, touches nothing in GHL).
+
+**Gate:** 70 files / 1161 tests, `tsc` clean, `diff --check` clean. **No production writes. Backfill not run. `GHL_INBOUND_ACT` off.**
+
+**Production sequence (unchanged from the design):** before-counts → Source 1 part A (review) → part B (keep the RETURNING output) → part A again (zero eligible) → `crm-link-contacts` dry run → review → `apply: true` (keep `written`) → after-counts → step 3 (a new homeowner project links by itself) → step 4 (controlled `InboundMessage`).
+
+Console invocation on `/admin/crm`, signed in as an admin:
+```js
+const { data: { session } } = await window.supabase.auth.getSession();   // or however the page exposes the client
+await fetch('/api/events?action=crm-link-contacts', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({}) }).then(r => r.json());              // dry run
+// review, then:
+// … body: JSON.stringify({ apply: true }) …
+```
