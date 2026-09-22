@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useParams, useNavigate } from 'react-router';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Building2, Layers, Home, Wrench,
@@ -127,6 +127,8 @@ export default function ProjectDetail() {
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const attachmentFailed = searchParams.get('attachment') === 'failed';
   const { user } = useAuth();
   const t        = useT();
 
@@ -313,6 +315,15 @@ export default function ProjectDetail() {
 
       {/* Main — wider for overview, narrow for detail tabs */}
       <div className="mx-auto px-4 sm:px-6 py-8 sm:py-10 max-w-5xl">
+
+        {/* The wizard could not store the costing they attached. Said here because this
+            is where they land, and because the alternative — the old behaviour — was to
+            lose the file silently. */}
+        {attachmentFailed && (
+          <p role="alert" className="mb-6 rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3 text-sm text-brand-near-black dark:text-white">
+            {t('wizard.confirmBudget.quoteFailed')}
+          </p>
+        )}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}

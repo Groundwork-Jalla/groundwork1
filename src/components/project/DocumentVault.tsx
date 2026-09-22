@@ -23,16 +23,16 @@ import {
 } from '@/lib/supabase/documents';
 import type { ProjectDocumentRow, DocumentCategory } from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
 import { errorMessage } from '@/lib/errors';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const CATEGORY_ORDER: DocumentCategory[] = [
-  'contract', 'permit', 'receipt', 'invoice', 'report', 'site_photo', 'other',
+  'contract', 'boq', 'permit', 'receipt', 'invoice', 'report', 'site_photo', 'other',
 ];
 
 // ---------------------------------------------------------------------------
@@ -392,8 +392,12 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       if (!file) return;
       e.target.value = '';
 
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        setUploadError('File exceeds the 25 MB limit. Please choose a smaller file.');
+      // The bucket's rules, not this screen's: a file that passes here and fails at
+      // Storage is an upload that vanishes silently. See accepted-files.ts.
+      const problem = fileProblem(file);
+      if (problem) {
+        setUploadError(t(problem === 'size' ? 'project.documents.tooLarge' : 'project.documents.badType',
+          { mb: MAX_FILE_MB }));
         return;
       }
 
@@ -480,7 +484,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="*"
+        accept={FILE_ACCEPT_ATTR}
         className="sr-only"
         tabIndex={-1}
         aria-hidden

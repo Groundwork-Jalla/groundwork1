@@ -442,7 +442,8 @@ export interface ProjectSubstageRow {
 // -------------------------------------------------------
 // Phase 3 tables
 // -------------------------------------------------------
-export type DocumentCategory = 'contract' | 'permit' | 'receipt' | 'invoice' | 'report' | 'site_photo' | 'other';
+/** `boq` is a client-supplied bill of quantities or costing. CHECK lives in 096. */
+export type DocumentCategory = 'contract' | 'permit' | 'receipt' | 'invoice' | 'report' | 'site_photo' | 'boq' | 'other';
 
 export interface ProjectDocumentRow {
   id: string;

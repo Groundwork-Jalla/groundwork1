@@ -10,6 +10,7 @@ import { createProject } from '@/lib/supabase/projects';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import { startProjectTracking, adminStartProjectTracking } from '@/lib/supabase/tracking';
 import { uploadDocument } from '@/lib/supabase/documents';
+import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
 import { useFormat, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
@@ -77,13 +78,20 @@ export default function Step11ConfirmBudget() {
         await startProjectTracking(project.id, confirmed);
       }
 
-      // 3. The quote, if they attached one. Only possible now that a project id exists,
-      //    and deliberately not fatal — a failed upload must not lose the project.
+      // 3. The costing they attached, if any. Only possible now that a project id
+      //    exists, and deliberately not fatal — a failed upload must not lose the
+      //    project. Filed as 'boq': it is the number this build is priced on, not a
+      //    contract, and the Documents tab has a filter for it (migration 096).
+      //
+      //    A failure used to be swallowed entirely, with a comment claiming the
+      //    Documents tab would show it — nothing did. The person deliberately attached
+      //    this file, so they are told, on the project page they land on.
+      let attachmentFailed = false;
       if (file) {
         try {
-          await uploadDocument(project.id, ownerId, file, undefined, 'contract');
+          await uploadDocument(project.id, ownerId, file, undefined, 'boq');
         } catch {
-          // surfaced in the project's Documents tab instead; the build is created
+          attachmentFailed = true;
         }
       }
 
@@ -109,7 +117,7 @@ export default function Step11ConfirmBudget() {
       // through profiles.subscription_tier -> sync_projects_to_subscription (021).
       if (data.tier === 'jalla_verify') {
         try {
-          await startJallaVerifyCheckout(`/projects/${project.id}`);
+          await startJallaVerifyCheckout(`/projects/${project.id}${attachmentFailed ? '?attachment=failed' : ''}`);
           return;                       // the browser is leaving for Stripe
         } catch {
           // Checkout unreachable. The project exists and is usable on the free plan, so
@@ -118,7 +126,7 @@ export default function Step11ConfirmBudget() {
         }
       }
 
-      navigate(`/projects/${project.id}`);
+      navigate(`/projects/${project.id}${attachmentFailed ? '?attachment=failed' : ''}`);
     } catch (err) {
       setError(errorMessage(err, t('common.somethingWrong')));
       setBusy(false);
@@ -203,10 +211,28 @@ export default function Step11ConfirmBudget() {
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,.doc,.docx,image/*"
+              accept={FILE_ACCEPT_ATTR}
               className="hidden"
-              onChange={e => setFile(e.target.files?.[0] ?? null)}
+              onChange={e => {
+                const picked = e.target.files?.[0] ?? null;
+                e.target.value = '';
+                if (!picked) return;
+                // Checked here rather than at submit: finding out the spreadsheet was
+                // rejected after eleven steps and a project creation is the wrong moment.
+                const problem = fileProblem(picked);
+                if (problem) {
+                  setFile(null);
+                  setError(t(problem === 'size' ? 'wizard.confirmBudget.quoteTooLarge'
+                                                : 'wizard.confirmBudget.quoteBadType', { mb: MAX_FILE_MB }));
+                  return;
+                }
+                setError(null);
+                setFile(picked);
+              }}
             />
+            <p className="text-[11px] leading-relaxed text-brand-mid-grey">
+              {t('wizard.confirmBudget.quoteHint')}
+            </p>
           </div>
 
           {error && <p className="text-xs text-state-alert" role="alert">{error}</p>}

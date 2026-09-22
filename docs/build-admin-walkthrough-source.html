@@ -1,0 +1,412 @@
+<title>Setting Up a Client — Admin Walkthrough</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:#FFFFFF; --surface:#FAFAF9; --ink:#1A1D1F; --ink-soft:#55595C;
+    --ink-faint:#82878B; --rule:#DCDAD5; --rule-soft:#EAE8E3;
+    --accent:#1F4E5F; --accent-soft:#E8F0F2;
+    --warn:#8A6114; --warn-bg:#FBF4E6;
+    --stop:#A33A2E; --stop-bg:#F8EAE7;
+    --measure:70ch;
+  }
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink);
+         font-family:"Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+         font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased; margin:0; }
+  .wrap { max-width:960px; margin:0 auto; }
+  .col { max-width:var(--measure); }
+
+  h1,h2,h3,h4,.eyebrow,th,.num,.chip { font-family:Archivo, ui-sans-serif, system-ui, sans-serif; }
+  h1 { font-size:34px; font-weight:700; line-height:1.12; letter-spacing:-0.018em; margin:0 0 10px; text-wrap:balance; }
+  h2 { font-size:21px; font-weight:700; letter-spacing:-0.008em; margin:0; text-wrap:balance; }
+  h3 { font-size:15.5px; font-weight:600; margin:0 0 5px; }
+  p { margin:0 0 12px; orphans:2; widows:2; }
+  ul,ol { margin:0 0 12px; padding-left:20px; }
+  li { margin:0 0 5px; }
+  code,.mono { font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:0.85em; }
+  code { background:var(--rule-soft); padding:1.5px 5px; border-radius:3px; white-space:nowrap; }
+
+  .eyebrow { font-size:10.5px; font-weight:600; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-faint); }
+
+  header.masthead { border-bottom:2px solid var(--ink); padding-bottom:22px; margin-bottom:26px; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px 34px; margin-top:16px; }
+  .meta div { display:flex; flex-direction:column; gap:1px; }
+  .meta dt { font-size:10px; font-weight:600; letter-spacing:0.11em; text-transform:uppercase; color:var(--ink-faint); font-family:Archivo,sans-serif; }
+  .meta dd { margin:0; font-size:13.5px; }
+
+  /* A numbered step: the spine of the document. */
+  /* Content flows; only the indivisible pieces are held together. `break-inside:avoid`
+     on the whole step pushed any step taller than a page onto the next one, leaving the
+     page before it half empty and, for Part 3, entirely empty below the heading. */
+  .step { margin:0 0 22px; }
+  .step-head { break-after:avoid; }
+  .url { break-before:avoid; }
+  .step-head { display:flex; gap:12px; align-items:baseline; border-top:1px solid var(--rule); padding-top:12px; margin-bottom:8px; break-inside:avoid; }
+  .num { flex:none; font-size:12px; font-weight:700; color:var(--accent);
+         background:var(--accent-soft); border-radius:4px; padding:2px 8px; letter-spacing:0.02em; }
+  .step-head h3 { font-size:17px; font-weight:700; letter-spacing:-0.005em; margin:0; }
+
+  /* The URL bar that opens each step. */
+  .url { display:flex; align-items:center; gap:8px; background:var(--surface);
+         border:1px solid var(--rule); border-radius:6px; padding:7px 11px; margin:0 0 11px;
+         font-family:"IBM Plex Mono", monospace; font-size:12.5px; color:var(--ink); overflow-wrap:anywhere; }
+  .url .label { font-family:Archivo,sans-serif; font-size:9.5px; font-weight:600; letter-spacing:0.1em;
+                text-transform:uppercase; color:var(--ink-faint); flex:none; }
+
+  figure { margin:12px 0 4px; break-inside:avoid; }
+  figure img { display:block; width:100%; border:1px solid var(--rule); border-radius:6px; }
+  /* The two sign-in screenshots are half decorative artwork. At full width each one
+     takes most of a page and strands the rest; the form is still perfectly legible here. */
+  figure.narrow { max-width:62%; }
+  figcaption { font-size:12px; color:var(--ink-faint); margin-top:6px; max-width:var(--measure); }
+
+  .note { border-left:3px solid var(--accent); background:var(--accent-soft);
+          padding:10px 14px; margin:0 0 12px; border-radius:0 5px 5px 0; break-inside:avoid; }
+  .note.warn { border-left-color:var(--warn); background:var(--warn-bg); }
+  .note.stop { border-left-color:var(--stop); background:var(--stop-bg); }
+  .note p:last-child { margin-bottom:0; }
+  .note .t { font-family:Archivo,sans-serif; font-weight:600; font-size:13px; display:block; margin-bottom:2px; }
+
+  table { border-collapse:collapse; width:100%; margin:0 0 14px; font-size:13.5px; break-inside:avoid; }
+  th { text-align:left; font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+       color:var(--ink-faint); border-bottom:1.5px solid var(--ink); padding:0 10px 5px 0; }
+  td { padding:7px 10px 7px 0; border-bottom:1px solid var(--rule-soft); vertical-align:top; }
+  td:first-child { white-space:nowrap; }
+
+  section.part { break-before:page; padding-top:4px; }
+  /* A part that follows a tall figure would otherwise leave the page before it almost
+     empty. This one flows on instead, and earns its separation from the rule above it. */
+  section.part.flow { break-before:auto; border-top:2px solid var(--ink); padding-top:20px; margin-top:26px; }
+  section.part > .eyebrow { display:block; margin-bottom:3px; break-after:avoid; }
+  section.part > h2 { margin-bottom:6px; break-after:avoid; }
+  .lede { font-size:16.5px; color:var(--ink-soft); max-width:var(--measure); margin-bottom:20px; break-after:avoid; }
+
+  .toc { background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:16px 20px; margin-bottom:24px; }
+  .toc ol { margin:0; padding-left:18px; }
+  .toc li { margin-bottom:3px; font-size:14px; }
+  .toc .part-label { font-family:Archivo,sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em;
+                     text-transform:uppercase; color:var(--ink-faint); margin:12px 0 4px; }
+  .toc .part-label:first-child { margin-top:0; }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Groundwork by Jalla · Admin guide</p>
+  <h1>Setting up a client, end to end</h1>
+  <p class="lede" style="margin-bottom:0">Creating the client's account, handing over their sign-in, and building their
+  project for them — every screen, in order, with the address to type.</p>
+  <dl class="meta">
+    <div><dt>For</dt><dd>Anyone with a Jalla admin account</dd></div>
+    <div><dt>Applies to</dt><dd>Jalla Management clients</dd></div>
+    <div><dt>Site</dt><dd class="mono">www.tryjalla.com</dd></div>
+    <div><dt>Prepared</dt><dd>22 September 2026</dd></div>
+  </dl>
+</header>
+
+<div class="toc col">
+  <p class="part-label">Part 1 — The account</p>
+  <ol>
+    <li>Sign in to the admin area</li>
+    <li>Open the client list</li>
+    <li>Fill in what you collected</li>
+    <li>Hand over the two credentials</li>
+  </ol>
+  <p class="part-label">Part 2 — The project</p>
+  <ol start="5">
+    <li>Start a project for that client</li>
+    <li>Choose whose project it is</li>
+    <li>Work through the build questions</li>
+    <li>Confirm the budget and attach the BoQ</li>
+  </ol>
+  <p class="part-label">Part 3 — Their side</p>
+  <ol start="9">
+    <li>What the client does on first sign-in</li>
+    <li>If something goes wrong</li>
+  </ol>
+</div>
+
+<div class="note col">
+  <span class="t">Before you start</span>
+  <p>You need two things: <strong>an admin account on Groundwork</strong>, and <strong>the client's details already
+  collected</strong> — their full name, an email address they can actually open, and ideally a phone number. The email
+  matters more than anything else on the form: it becomes their username, and a code is sent to it the first time they
+  sign in. An address they cannot open is an account they cannot enter.</p>
+</div>
+
+<div class="note warn col">
+  <span class="t">The order matters</span>
+  <p>The account comes first, the project second. A project has to belong to somebody, so there is nothing to attach a
+  build to until the client exists. If you are already on the project screen and the client is not in the list, there is
+  a link there that takes you back to create them — Step&nbsp;6 covers it.</p>
+</div>
+
+<!-- ═══════════════════ PART 1 ═══════════════════ -->
+<section class="part">
+<p class="eyebrow">Part one</p>
+<h2>Creating the client's account</h2>
+<p class="lede">Roughly two minutes. It ends with a username and a password written on your screen, which you read out
+or send to the client.</p>
+
+<div class="step">
+  <div class="step-head"><span class="num">01</span><h3>Sign in to the admin area</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/login</div>
+  <div class="col">
+  <p>This is a separate door from the one clients use. There is no “sign up” here and no Google button — deliberately:
+  an admin account is only ever created by another admin.</p>
+  <p>Sign in with your own email and password. If two-factor authentication is switched on for your account, you will be
+  asked for a code before you get in. You land on the <strong>Overview</strong> page, with the full admin menu down the
+  left.</p>
+  </div>
+  <figure>
+    <img src="{{01-login}}" alt="The admin sign-in page: email and password fields under the heading Admin sign in.">
+    <figcaption>The admin door. If you see the ordinary client login instead, check the address — it must end in
+    <span class="mono">/admin/login</span>.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">02</span><h3>Open the client list</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/users</div>
+  <div class="col">
+  <p>In the left-hand menu, under <strong>People</strong>, click <strong>Users</strong>. This is everyone who has an
+  account on Groundwork — clients, contractors and staff alike.</p>
+  <p>Before creating anyone, <strong>search for them first</strong>. The search box takes a name or an email address. If
+  they are already here, do not create a second account; open the existing one. Creating a duplicate splits their
+  projects across two logins and neither one shows the whole picture.</p>
+  <p>When you are sure they are new, click <strong>Create a client account</strong>, top right.</p>
+  </div>
+  <figure>
+    <img src="{{02-users}}" alt="The Users page: a search box, a Create a client account button, and a table of users with name, email, role, plan, projects and joined date.">
+    <figcaption>The Users list. The <strong>Awaiting first sign-in</strong> mark under a name means that person was set
+    up by an admin and has not yet used the password they were given — see Step&nbsp;10.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">03</span><h3>Fill in what you collected</h3></div>
+  <div class="url"><span class="label">You are on</span> www.tryjalla.com/admin/users/new</div>
+  <table>
+    <thead><tr><th>Field</th><th>What to enter</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Full name</strong></td><td>As they would write it themselves. It appears on their dashboard and on anything Groundwork sends them.</td></tr>
+      <tr><td><strong>Email address</strong></td><td>Their username, and where the sign-in code goes. Check it twice — a typo here means an account nobody can enter.</td></tr>
+      <tr><td><strong>Phone</strong></td><td>Optional. Useful for reaching them; not used to sign in.</td></tr>
+      <tr><td><strong>Country</strong></td><td>Cameroon unless you know otherwise.</td></tr>
+      <tr><td><strong>Language for emails</strong></td><td>English or French. Everything Groundwork sends them follows this. They can change it later themselves.</td></tr>
+    </tbody>
+  </table>
+  <div class="col">
+  <p>Click <strong>Create account</strong>. Nothing is emailed to the client — you hand the details over yourself.</p>
+  </div>
+  <figure>
+    <img src="{{03-new-user}}" alt="The Create an account for a client form, showing Full name, Email address, Phone, Country, and Language for emails, with a Create account button.">
+    <figcaption>Five fields. The note under the email field is the one to read twice.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">04</span><h3>Hand over the two credentials</h3></div>
+  <div class="col">
+  <p>The screen changes to show two things, with a copy button beside each:</p>
+  <ul>
+    <li><strong>Username</strong> — the email address you just entered.</li>
+    <li><strong>Temporary password</strong> — generated for you, in the shape <span class="mono">Kf7m-Rq3x-Wn9p-Ht4y</span>.
+    Deliberately made of characters that survive being read aloud: no zero against letter O, no one against letter l.</li>
+  </ul>
+  </div>
+  <div class="note stop col">
+    <span class="t">This password is shown once and is stored nowhere</span>
+    <p>Leave the page and it is gone for good — not recoverable by you, by Favour, or from any record. Copy it out
+    <em>now</em>: read it to the client on a call, or put it in a message you delete afterwards.</p>
+    <p style="margin-top:8px">If it is lost anyway, <strong>do not create a second account</strong>. Send the client to
+    <span class="mono">www.tryjalla.com/auth/reset-password</span> and have them use <strong>Forgot password?</strong> —
+    that works, because the email address is already confirmed.</p>
+  </div>
+  <figure>
+    <img src="{{04-handover}}" alt="The handover screen: username and temporary password with copy buttons, a warning that the password is shown once, a three-step explanation of first sign-in, and a Create their project button.">
+    <figcaption>The handover screen. <strong>Create their project</strong>, at the bottom, carries the client straight
+    into Part&nbsp;2 with them already selected — the quickest route if you are doing both in one sitting.</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- ═══════════════════ PART 2 ═══════════════════ -->
+<section class="part">
+<p class="eyebrow">Part two</p>
+<h2>Creating the project for them</h2>
+<p class="lede">Ten screens of build questions, then the budget. The project belongs to the client from the moment it
+is created — it appears on their dashboard, not yours — and Groundwork records that you set it up.</p>
+
+<div class="step">
+  <div class="step-head"><span class="num">05</span><h3>Start a project for that client</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/projects</div>
+  <div class="col">
+  <p>In the left menu, under <strong>Work</strong>, click <strong>Projects</strong>, then
+  <strong>Create for a client</strong>, top right.</p>
+  <p>If you came straight from the handover screen in Step&nbsp;4, you have skipped this — you are already at the next
+  step with the client chosen.</p>
+  </div>
+  <figure>
+    <img src="{{05-projects}}" alt="The admin Projects page listing every project, with a Create for a client button at the top right.">
+    <figcaption>Every project on Groundwork, whoever owns it. The button that starts a new one sits top right.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">06</span><h3>Choose whose project it is</h3></div>
+  <div class="url"><span class="label">You are on</span> www.tryjalla.com/admin/projects/new</div>
+  <div class="col">
+  <p>Search by name or email, then click the client. Staff accounts are left out of this list on purpose — you are
+  picking the person who will own the build.</p>
+  <p>If they are not there, they have no account yet. The line at the bottom —
+  <strong>“Client not on Groundwork yet? Create their account first”</strong> — takes you back to Part&nbsp;1, and
+  returns you here with them already selected.</p>
+  </div>
+  <div class="note col">
+    <span class="t">Going straight to one client</span>
+    <p>Each client has a direct address:
+    <span class="mono">www.tryjalla.com/admin/projects/new?for=&lt;client id&gt;</span>. That is exactly what the
+    <strong>Create their project</strong> button uses. You never have to construct it by hand, but if you have that link
+    it skips the search.</p>
+  </div>
+  <figure>
+    <img src="{{06-picker}}" alt="The client picker: a search box above a grid of client cards showing name, email and project count.">
+    <figcaption>Choosing the owner. The count under each name tells you whether they already have a build running.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">07</span><h3>Work through the build questions</h3></div>
+  <div class="col">
+  <p>This is the same questionnaire a client would fill in themselves, with one difference you can see at the top of
+  every screen: an amber line reading <strong>Creating for [name] · Jalla Management</strong>. As long as that line is
+  there, everything you type is being recorded against <em>their</em> project, not yours.</p>
+  <p>The counter top right reads <strong>1 / 11</strong> through <strong>11 / 11</strong>. The plan-choice screen
+  (number 10) is skipped automatically — an admin-created project is Jalla Management by definition, so there is nothing
+  to choose.</p>
+  </div>
+  <table>
+    <thead><tr><th>Screen</th><th>What it asks</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · Location</strong></td><td>Country. Cameroon is offered first.</td></tr>
+      <tr><td><strong>2 · Project Type</strong></td><td>What kind of build this is.</td></tr>
+      <tr><td><strong>3 · Building</strong></td><td>The building type.</td></tr>
+      <tr><td><strong>4 · Floors</strong></td><td>Ground floor only, or how many storeys above it.</td></tr>
+      <tr><td><strong>5 · Rooms</strong></td><td>Room composition, <strong>one floor at a time</strong>. You must put at least one room on each floor before it will let you move to the next — this is what stops an upper floor being left empty by accident and under-pricing the build.</td></tr>
+      <tr><td><strong>6 · Quarters</strong></td><td>Whether there is a boys' quarters.</td></tr>
+      <tr><td><strong>7 · Roof</strong></td><td>Roof type.</td></tr>
+      <tr><td><strong>8 · Details</strong></td><td>Project name, ground-floor footprint in m², and the city. The city matters: rates differ by location and the estimate is adjusted for it.</td></tr>
+      <tr><td><strong>9 · Summary</strong></td><td>Everything so far, with the estimated budget and predicted build timeline. Read this back before continuing.</td></tr>
+      <tr><td><strong>11 · Confirm</strong></td><td>The budget. Covered in the next step.</td></tr>
+    </tbody>
+  </table>
+  <div class="col">
+  <p><strong>Back</strong> and <strong>Continue</strong> move between screens, and the numbered dots at the top jump to
+  any screen you have already completed. Nothing is saved to the client's account until the last step, so leaving
+  half-way loses the answers — but creates nothing wrong.</p>
+  </div>
+  <figure>
+    <img src="{{07-wizard}}" alt="Wizard screen one inside the admin area, with an amber banner reading Creating for Ada Mbala, Jalla Management, a country search, and a map of Cameroon on the right.">
+    <figcaption>Screen 1 of 11. The amber line is the thing to keep an eye on — if it is missing, you are creating a
+    project for yourself rather than for the client.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">08</span><h3>Confirm the budget and attach the BoQ</h3></div>
+  <div class="col">
+  <p>The last screen shows Groundwork's own estimate and a field holding the same figure, labelled
+  <strong>Your final budget</strong>. <strong>Overwrite it with the real contract figure whenever you have one.</strong>
+  Every stage payment is derived from whatever number is in that field, so it should be the number the build is actually
+  being run on, not the estimate.</p>
+  <p>Underneath is <strong>Upload your contractor's quote or bill of quantities</strong> — an Excel BoQ is exactly what
+  it is for. It accepts <strong>PDF, Word, Excel (.xls / .xlsx), CSV, OpenDocument spreadsheets and images</strong>, up
+  to <strong>20 MB</strong>, and files it into that project's <strong>Documents</strong> tab under
+  <strong>Bill of Quantities</strong>, stored privately — never on a public link.</p>
+  <p>Click <strong>Confirm budget &amp; create project</strong>. The project is created, its first stage opens, and you
+  are returned to <span class="mono">/admin/projects</span>, where it now appears.</p>
+  </div>
+  <div class="note warn col">
+    <span class="t">If the file is refused</span>
+    <p>You are told immediately, before the project is created, and nothing else is lost — pick a different file and
+    carry on. If the build is created but the attachment fails at the last moment, the project page says so and the file
+    can be added afterwards from the project's <strong>Documents</strong> tab.</p>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════ PART 3 ═══════════════════ -->
+<section class="part flow">
+<p class="eyebrow">Part three</p>
+<h2>What happens on the client's side</h2>
+<p class="lede">Worth knowing, because they will ring you about it.</p>
+
+<div class="step">
+  <div class="step-head"><span class="num">09</span><h3>Their first sign-in</h3></div>
+  <div class="url"><span class="label">Send them to</span> www.tryjalla.com/auth/login</div>
+  <div class="col">
+  <p>Three things happen, in this order:</p>
+  <ol>
+    <li>They sign in with the <strong>email and temporary password</strong> you gave them.</li>
+    <li>A <strong>six-digit code is emailed</strong> to that address. Entering it proves the inbox is theirs. This is
+    why the email address had to be one they can open.</li>
+    <li>They are asked to <strong>choose a password of their own</strong> before they can see anything else. The
+    temporary password stops working at that moment — so the one you knew is no longer a way into their account.</li>
+  </ol>
+  <p>After that they land on their dashboard, with the project you built already there.</p>
+  </div>
+  <figure class="narrow">
+    <img src="{{09-first-password}}" alt="The Choose your own password screen, explaining that the account was set up by the Jalla team with a temporary password.">
+    <figcaption>Step three, as the client sees it. Until this is done, they cannot reach the rest of the product.</figcaption>
+  </figure>
+  <figure class="narrow">
+    <img src="{{08-client-login}}" alt="The ordinary client login page with email and password fields and a Forgot password link.">
+    <figcaption>The client's door — <span class="mono">/auth/login</span>, not <span class="mono">/admin/login</span>.
+    Sending them to the admin page is the commonest mix-up.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">10</span><h3>If something goes wrong</h3></div>
+  <table>
+    <thead><tr><th>What you hear</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>“I've lost the password you gave me”</strong></td>
+          <td>Send them to <span class="mono">/auth/reset-password</span> and have them use <strong>Forgot password?</strong>. Do not create a second account.</td></tr>
+      <tr><td><strong>“No code arrived”</strong></td>
+          <td>Have them check spam first. There is a <strong>resend</strong> link on the code screen. If it still does not arrive, the address is probably wrong — check it on <span class="mono">/admin/users</span>.</td></tr>
+      <tr><td><strong>“That email already exists”</strong></td>
+          <td>Someone already has an account on it. Find them on <span class="mono">/admin/users</span> and use that account. Groundwork refuses to issue a fresh password for an address somebody already owns.</td></tr>
+      <tr><td><strong>They never signed in</strong></td>
+          <td><span class="mono">/admin/users</span> shows <strong>Awaiting first sign-in</strong> under their name for exactly this. It clears itself the moment they choose their own password.</td></tr>
+      <tr><td><strong>Wrong name or email on the account</strong></td>
+          <td>The client can change both themselves under <strong>Settings → Account</strong>. An email change is confirmed by link before it takes effect.</td></tr>
+      <tr><td><strong>The budget figure was wrong</strong></td>
+          <td>It can be revised afterwards from the project's <strong>Costing</strong> tab. Stage payments recalculate from the new figure.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="step">
+  <div class="step-head"><span class="num">—</span><h3>Every address in this guide</h3></div>
+  <table>
+    <thead><tr><th>Address</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">/admin/login</td><td>Staff sign-in</td></tr>
+      <tr><td class="mono">/admin/users</td><td>Everyone with an account; search here first</td></tr>
+      <tr><td class="mono">/admin/users/new</td><td>Create a client's account</td></tr>
+      <tr><td class="mono">/admin/projects</td><td>Every project on Groundwork</td></tr>
+      <tr><td class="mono">/admin/projects/new</td><td>Create a project for a client</td></tr>
+      <tr><td class="mono">/admin/projects/new?for=&lt;id&gt;</td><td>The same, with one client pre-selected</td></tr>
+      <tr><td class="mono">/auth/login</td><td>The client's sign-in</td></tr>
+      <tr><td class="mono">/auth/reset-password</td><td>Forgot password, for clients</td></tr>
+    </tbody>
+  </table>
+  <div class="col">
+  <p style="color:var(--ink-faint);font-size:13px">All addresses are relative to <span class="mono">www.tryjalla.com</span>.</p>
+  </div>
+</div>
+</section>
+
+</div>
