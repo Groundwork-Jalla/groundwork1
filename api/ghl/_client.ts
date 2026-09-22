@@ -329,6 +329,49 @@ export async function ensureConversation(
  * status verbatim.
  */
 /**
+ * Send a WhatsApp message through GoHighLevel's own WhatsApp integration (Phase 6.3).
+ *
+ * NOT the conversation-provider path. `addConversationMessage` posts `type: 'Custom'`,
+ * which *records* a message on the thread — it renders in the CRM and reaches nobody's
+ * phone. Sending on WhatsApp means GHL's integration, which is `type: 'WhatsApp'` on the
+ * same endpoint and refuses a `conversationProviderId`.
+ *
+ * Needs the thread GHL already knows (`conversations.ghl_conversation_id`, filed by the
+ * inbound webhook) and the contact. Returns the message id GHL assigns, which is what we
+ * store so a reply is never sent or recorded twice.
+ *
+ * An unconnected WhatsApp integration answers 4xx with GHL's own words; those are
+ * returned verbatim (`verboseErrors`) because "why did my reply not send" is exactly the
+ * question where a generic message wastes an afternoon.
+ */
+export async function sendWhatsAppMessage(
+  cfg: GhlConfig,
+  msg: { contactId: string; conversationId: string | null; body: string },
+  bearer?: string,
+): Promise<GhlResult<{ messageId?: string; conversationId?: string }>> {
+  const conversationId = msg.conversationId ?? await ensureConversation(cfg, msg.contactId, bearer);
+  if (!conversationId) return { ok: false, status: 0, error: 'no_conversation' };
+
+  const r = await ghlFetch<{ messageId?: string; id?: string; _id?: string; conversationId?: string }>(
+    cfg, '/conversations/messages', {
+      method: 'POST',
+      bearer,
+      verboseErrors: true,
+      body: {
+        type: 'WhatsApp',
+        contactId: msg.contactId,
+        conversationId,
+        message: msg.body,
+      },
+    });
+
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+  const d = r.data ?? {};
+  const id = d.messageId ?? d.id ?? d._id;
+  return { ok: true, status: r.status, data: { messageId: id ? String(id) : undefined, conversationId } };
+}
+
+/**
  * Put a chat message on a contact's GHL thread.
  *
  * Same provider plumbing as `addConversationEmail` — the OAuth bearer rather than the

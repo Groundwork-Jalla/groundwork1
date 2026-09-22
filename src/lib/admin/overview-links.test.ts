@@ -49,19 +49,18 @@ describe('every Overview destination is a real page', () => {
 });
 
 /**
- * The Inbox is Phase 6 and deliberately not built, so "Active conversations" is the one
- * destination that lands on an honest placeholder instead of a filtered module. Favour
- * allowed exactly that exemption on 14 Sep 2026 and said not to let it spread — so it is
- * pinned to one path here. When the Inbox ships, `?status=active` must render the real
- * filtered (and, today, empty) list, and this test starts failing until it does.
+ * The Inbox was the one deferred destination (14 Sep 2026). It shipped on 23 Sep, so
+ * nothing is deferred any more: every Overview link must reach a real page, and the
+ * Inbox must not be a placeholder.
  */
-describe('exactly one Overview destination is still deferred', () => {
-  it('is the Inbox, and nothing else', () => {
+describe('no Overview destination is deferred any more', () => {
+  it('every link lands on a real page, and the Inbox is one of them', () => {
     const deferred = ALL_LINKS
       .map(([name, link]) => [name, link.split('?')[0]] as const)
       .filter(([, path]) => !FILE_FOR.has(path));
-    expect(deferred).toEqual([['KPI_LINKS.conversations', '/admin/inbox']]);
-    expect(ADMIN_PLACEHOLDERS['inbox'], 'the deferral must be an honest placeholder').toBeDefined();
+    expect(deferred).toEqual([]);
+    expect(FILE_FOR.get('/admin/inbox'), 'the Inbox is a page now').toBeDefined();
+    expect(ADMIN_PLACEHOLDERS['inbox'], 'and must no longer be a placeholder').toBeUndefined();
   });
 });
 
@@ -72,13 +71,6 @@ describe('every parameter an Overview link carries is actually read', () => {
     const params = [...new URLSearchParams(query).keys()];
     for (const param of params) {
       it(`${name}: ${path} reads "${param}"`, () => {
-        // The Inbox is not built (Phase 6). Its placeholder is an honest "not yet", not a
-        // filtered list, and this test must not pretend otherwise — but it must also not
-        // let the exemption spread, so the path is named.
-        if (path === '/admin/inbox') {
-          expect(ADMIN_PLACEHOLDERS['inbox'], 'inbox must still be an honest placeholder').toBeDefined();
-          return;
-        }
         expect(source(path)).toContain(`params.get('${param}')`);
       });
     }

@@ -714,6 +714,20 @@ export const fr: Mirror<EnDict> = {
         certificate:      'Certificat \u00e9mis',
       },
     },
+    // ── Boîte de réception (06 §18) : tous les fils, liés ou non à un projet ──
+    inbox: {
+      title:         'Boîte de réception',
+      sub:           'Toutes les conversations — WhatsApp, e-mail et plateforme — au même endroit.',
+      empty:         'Aucune conversation pour l’instant',
+      emptyBody:     'Un fil apparaît ici dès qu’un client écrit à Groundwork. Rien n’est affiché avant.',
+      unavailable:   'Pas encore disponible — la migration des conversations n’a pas été appliquée.',
+      error:         'Impossible de lire les conversations : {reason}',
+      loading:       'Chargement des conversations…',
+      unknownPerson: 'Expéditeur non identifié',
+      openProject:   'Ouvrir le projet',
+      notDelivered:  'Enregistré dans Groundwork, mais non remis au client',
+      selectPrompt:  'Choisissez une conversation pour la lire.',
+    },
     // ── D\u00e9cisions (091) : ce que le projet va faire, distinct de ce qui a \u00e9t\u00e9 dit ──
     decision: {
       title:        'Enregistrer une d\u00e9cision',

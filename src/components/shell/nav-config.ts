@@ -74,7 +74,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/agents',             labelKey: 'nav.agents',             icon: Handshake },
 
   { to: '/admin/inbox',              labelKey: 'nav.inbox',              icon: Inbox,          section: 'nav.sectionCommunication' },
-  { to: '/admin/whatsapp',           labelKey: 'nav.whatsapp',           icon: MessageCircle },
+  { to: '/admin/inbox?channel=whatsapp',           labelKey: 'nav.whatsapp',           icon: MessageCircle },
   { to: '/admin/notifications',      labelKey: 'nav.notifications',      icon: Bell },
   { to: '/admin/messages',           labelKey: 'nav.jallaMessages',      icon: MessagesSquare },
   { to: '/admin/email',              labelKey: 'nav.email',              icon: Mail },
@@ -110,8 +110,6 @@ export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: s
   'clients':       { labelKey: 'nav.clients',       existingTo: '/admin/users',    existingKey: 'nav.users' },
   'site-managers': { labelKey: 'nav.siteManagers' },
   'agents':        { labelKey: 'nav.agents' },
-  'inbox':         { labelKey: 'nav.inbox' },
-  'whatsapp':      { labelKey: 'nav.whatsapp' },
   'notifications': { labelKey: 'nav.notifications' },
   'messages':      { labelKey: 'nav.jallaMessages' },
   'email':         { labelKey: 'nav.email' },

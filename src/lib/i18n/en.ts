@@ -708,6 +708,20 @@ export const en = {
         certificate:      'Certificate issued',
       },
     },
+    // ── Inbox (06 §18): every thread, whether or not it belongs to a project ──
+    inbox: {
+      title:         'Inbox',
+      sub:           'Every conversation — WhatsApp, email and platform — in one place.',
+      empty:         'No conversation yet',
+      emptyBody:     'A thread appears here the moment a client writes to Groundwork. Nothing is shown until then.',
+      unavailable:   'Not available yet — the migration behind conversations has not been applied.',
+      error:         'Conversations could not be read: {reason}',
+      loading:       'Loading conversations…',
+      unknownPerson: 'Unidentified sender',
+      openProject:   'Open project',
+      notDelivered:  'Saved in Groundwork, but not delivered to the client',
+      selectPrompt:  'Choose a conversation to read it.',
+    },
     // ── Decisions (091): what the project will now do, distinct from what was said ──
     decision: {
       title:        'Record a decision',

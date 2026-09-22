@@ -115,6 +115,35 @@ export async function sendConversationMessage(
   return data as string;
 }
 
+/**
+ * Ask for an outbound message to be delivered to the client (06 §18).
+ *
+ * Channel-agnostic on purpose: the Inbox knows it has sent something and wants it to
+ * reach the person, not which company carries it. The server picks the provider from the
+ * conversation's channel — GoHighLevel for WhatsApp today, whatever replaces it later —
+ * and this call does not change when that does.
+ *
+ * The message row already exists (`send_message` wrote it), so this reports DELIVERY
+ * only and never throws: a refusal is an answer the composer shows, not an exception
+ * that loses the reply. An internal note is never delivered.
+ */
+export async function deliverMessage(messageId: string): Promise<{ ok: boolean; reason?: string; detail?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { ok: false, reason: 'not_signed_in' };
+    const r = await fetch('/api/events?action=conversation-deliver', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ messageId }),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, reason: 'request_failed', detail: typeof body?.error === 'string' ? body.error : `HTTP ${r.status}` };
+    return { ok: body?.ok === true, reason: body?.reason, detail: typeof body?.detail === 'string' ? body.detail : undefined };
+  } catch (err) {
+    return { ok: false, reason: 'unreachable', detail: err instanceof Error ? err.message : undefined };
+  }
+}
+
 /** Staff: put a staff member on the thread (null to unassign). */
 export async function assignConversation(conversationId: string, userId: string | null): Promise<void> {
   const { error } = await supabase.rpc('assign_conversation', { p_conversation: conversationId, p_user: userId });

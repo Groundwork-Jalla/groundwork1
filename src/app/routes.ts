@@ -90,6 +90,7 @@ export default [
     route("admin/waitlist",         "routes/admin/waitlist.tsx"),
     route("admin/drafts",           "routes/admin/drafts.tsx"),
     route("admin/requests",         "routes/admin/requests.tsx"),
+    route("admin/inbox",            "routes/admin/inbox.tsx"),
     route("admin/support",          "routes/admin/support.tsx"),
     route("admin/inquiries",        "routes/admin/inquiries.tsx"),
     // TEMPORARY: sidebar items with no page yet (ADMIN_PLACEHOLDERS in nav-config.ts). A

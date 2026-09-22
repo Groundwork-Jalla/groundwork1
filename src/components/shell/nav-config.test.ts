@@ -24,8 +24,10 @@ describe('nav points at real routes', () => {
   const placeholderRoute = declared.has('/admin/:section');
   for (const item of [...CLIENT_NAV, ...ADMIN_NAV]) {
     it(`${item.to} is declared in routes.ts`, () => {
-      const viaPlaceholder = placeholderRoute && ADMIN_PLACEHOLDERS[item.to.replace('/admin/', '')] !== undefined;
-      expect(declared.has(item.to) || viaPlaceholder, `no route for ${item.to}`).toBe(true);
+      // A link may carry a filter (`/admin/inbox?channel=whatsapp`); the route is the path.
+      const path = item.to.split('?')[0];
+      const viaPlaceholder = placeholderRoute && ADMIN_PLACEHOLDERS[path.replace('/admin/', '')] !== undefined;
+      expect(declared.has(path) || viaPlaceholder, `no route for ${item.to}`).toBe(true);
     });
   }
 });
@@ -43,11 +45,14 @@ describe('admin nav shape', () => {
   it('every unbuilt item has a placeholder entry and every placeholder has a sidebar item — the list is temporary and must not drift', () => {
     const built = new Set([...declared].filter(p => p.startsWith('/admin') && !p.includes(':')));
     for (const item of ADMIN_NAV) {
-      const key = item.to.replace('/admin/', '');
-      if (built.has(item.to)) expect(ADMIN_PLACEHOLDERS[key], `${item.to} is built but still listed as a placeholder`).toBeUndefined();
+      // A nav link may carry a filter (the WhatsApp entry is the Inbox, one channel of
+      // it). The page it lands on is what must be built.
+      const path = item.to.split('?')[0];
+      const key = path.replace('/admin/', '');
+      if (built.has(path)) expect(ADMIN_PLACEHOLDERS[key], `${item.to} is built but still listed as a placeholder`).toBeUndefined();
       else expect(ADMIN_PLACEHOLDERS[key], `${item.to} has neither a page nor a placeholder`).toBeDefined();
     }
-    for (const key of Object.keys(ADMIN_PLACEHOLDERS)) expect(ADMIN_NAV.some(i => i.to === `/admin/${key}`), `placeholder ${key} has no sidebar item`).toBe(true);
+    for (const key of Object.keys(ADMIN_PLACEHOLDERS)) expect(ADMIN_NAV.some(i => i.to.split('?')[0] === `/admin/${key}`), `placeholder ${key} has no sidebar item`).toBe(true);
   });
 
   it('every admin page is reachable from the sidebar', () => {

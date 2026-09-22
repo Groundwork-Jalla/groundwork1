@@ -21,6 +21,9 @@ const src = (f: string) => readFileSync(resolve(ROOT, f), 'utf8');
 const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
 const TAB = 'src/components/admin/workspace/ConversationsTab.tsx';
 const MODAL = 'src/components/admin/conversations/RecordDecisionModal.tsx';
+// The thread itself is shared with the Inbox (06 §18) — same component, so the two
+// surfaces cannot drift. The tab renders it; these pins follow it to where it lives.
+const THREAD = 'src/components/admin/conversations/ConversationThread.tsx';
 
 describe('project scope — this is not the Inbox', () => {
   it('threads are ws.conversations; there is no discovery, no channel queue, no cross-project read', () => {
@@ -32,7 +35,7 @@ describe('project scope — this is not the Inbox', () => {
   });
 
   it('messages come from the thread reader, in the order it returns them, direction as stored', () => {
-    const c = code(TAB);
+    const c = code(THREAD);
     expect(c).toContain('listConversationMessages(conversation.id)');
     expect(c).not.toContain('.sort(');
     expect(c).not.toContain('fetchMessages(');
@@ -54,15 +57,15 @@ describe('project scope — this is not the Inbox', () => {
 
 describe('acts are the 091 RPCs, and every success re-reads', () => {
   it('Send and Internal note are the same RPC with two explicit directions', () => {
-    const c = code(TAB);
-    expect(c).toContain("sendConversationMessage(conversation.id, content, direction)");
+    const c = code(THREAD);
+    expect(c).toContain('sendConversationMessage(conversation.id, content, direction)');
     expect(c).toContain("send('outbound')");
     expect(c).toContain("send('internal')");
     expect(c).not.toMatch(/sendMessage\(/);   // the pre-091 path
   });
 
   it('Assign and Resolve call their functions; nobody is invented when the staff list is empty', () => {
-    const c = code(TAB);
+    const c = code(THREAD) + code(TAB);
     expect(c).toContain('assignConversation(conversation.id, assignee || null)');
     expect(c).toContain('resolveConversation(conversation.id)');
     expect(c).toContain("u.roles.split(',').map(r => r.trim()).includes('admin')");
@@ -70,15 +73,15 @@ describe('acts are the 091 RPCs, and every success re-reads', () => {
   });
 
   it('after any act the thread is re-read and the workspace reloaded; nothing is appended locally', () => {
-    const c = code(TAB);
+    const c = code(THREAD);
     expect(c).toContain('await fn(); await load(); onChanged(); return true;');
     expect(c).not.toMatch(/setMessages\(\s*(prev|m|msgs)\s*=>/);   // no optimistic append
     // Realtime: a new row triggers a re-read, not a raw payload push.
-    expect(c).toContain('subscribeToMessages(ws.project.id, () => { load(); })');
+    expect(c).toContain('subscribeToMessages(realtimeProjectId, () => { load(); })');
   });
 
   it('a refusal is shown as phrased and the draft survives it', () => {
-    const c = code(TAB);
+    const c = code(THREAD);
     expect(c).toContain("msg.includes('empty_message')");
     expect(c).toContain(".then(ok => { if (ok) setDraft(''); })");
   });
@@ -99,7 +102,7 @@ describe('Record Decision', () => {
     const c = code(TAB);
     expect(c).toContain('ws.decisions.map(');
     expect(c).not.toMatch(/setDecisions|decisions\s*=\s*\[/);   // never local
-    expect(c).toContain("onRecorded={() => { setRecording(false); setSource(null); onChanged(); }}");
+    expect(code(THREAD)).toContain('onRecorded={() => { setRecording(false); setSource(null); onChanged(); }}');
   });
 
   it('"approved by the client" names only the owner and is off by default', () => {
@@ -112,18 +115,18 @@ describe('Record Decision', () => {
   it('a decision is distinct from a message: separate list, its own vocabulary, a traced source', () => {
     expect(lookup(en, 'admin.decision.body')).toMatch(/what the project will now do/i);
     expect(code(TAB)).toContain("t('admin.decision.listTitle')");
-    expect(code(TAB)).toContain('message={source ? { id: source.id, senderName: source.senderName, content: source.content } : null}');
+    expect(code(THREAD)).toContain('message={source ? { id: source.id, senderName: source.senderName, content: source.content } : null}');
   });
 });
 
 describe('empty, unavailable, error', () => {
   it('the tab and the thread each tell the three apart', () => {
-    const c = code(TAB);
+    const c = code(TAB), th = code(THREAD);
     expect(c).toContain("state === 'unavailable' || state === 'error'");
     expect(c).toContain("state === 'empty'");
-    expect(c).toContain('messages === null ? (');           // read failed
-    expect(c).toContain('!available ? (');                   // 091 columns absent
-    expect(c).toContain("t('admin.workspace.conversations.noMessages')");
+    expect(th).toContain('messages === null ? (');           // read failed
+    expect(th).toContain('!available ? (');                   // 091 columns absent
+    expect(th).toContain("t('admin.workspace.conversations.noMessages')");
   });
 });
 
@@ -148,7 +151,7 @@ describe('both dictionaries, and no raw ids', () => {
   });
 
   it('renders no raw id, and keeps light/dark paired with accents only', () => {
-    for (const f of [TAB, MODAL]) {
+    for (const f of [TAB, MODAL, THREAD]) {
       const c = code(f);
       expect(c, f).not.toMatch(/\.slice\(0,\s*8\)/);
       expect(c, f).not.toMatch(/(?<![=$])\{(?:c|m|d)\.(?:id|senderId|assignedTo|recordedBy|approvedBy)\}/);

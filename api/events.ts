@@ -12,6 +12,7 @@ import { handler as crmDelivery } from './_handlers/conversation-delivery.js';
 import { handler as crmOauth } from './_handlers/crm-oauth.js';
 import { handler as crmBackfill } from './_handlers/crm-backfill.js';
 import { handler as crmLinkContacts } from './_handlers/crm-link-contacts.js';
+import { handler as conversationDeliver } from './_handlers/conversation-deliver.js';
 import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
@@ -56,7 +57,7 @@ export const config = { api: { bodyParser: false } };
 
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
-  | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts'
+  | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'crm-email-sync'
   | 'profile-geo';
 
@@ -74,6 +75,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-oauth': crmOauth,
   'crm-backfill': crmBackfill,
   'crm-link-contacts': crmLinkContacts,
+  'conversation-deliver': conversationDeliver,
   'crm-email-test': crmEmailTest,
   'crm-chat-mirror': crmChatMirror,
   'certificate-purge': certPurge,
