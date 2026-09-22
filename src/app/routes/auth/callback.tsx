@@ -7,6 +7,7 @@ import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
+import { googleWithoutPassword, passwordPromptDismissed, syncEmailChangeToCrm } from "@/lib/auth/account-security";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
 import {
@@ -200,6 +201,13 @@ export default function AuthCallback() {
    */
   async function continueAfterAuth(session: Session) {
     const params = new URLSearchParams(window.location.search);
+
+    // The email-change confirmation lands here. The CRM must follow the new address —
+    // the database has queued that already; this is the attempt that makes it immediate.
+    // Fire-and-forget on purpose: the person is signing in, not waiting on GoHighLevel.
+    if (params.get('type') === 'email_change' || params.get('flow') === 'email_change') {
+      void syncEmailChangeToCrm();
+    }
     const isRecovery =
       params.get("type") === 'recovery'
       || params.get("flow") === 'recovery'
@@ -223,6 +231,14 @@ export default function AuthCallback() {
     // is paid, so that path is not gated.
     if (await mustChangePassword(session.user.id)) {
       navigate(FORCED_PASSWORD_PATH, { replace: true });
+      return;
+    }
+
+    // Signed in with Google and never made a password: ask now, while the session is
+    // live and setting one is a single step. "Not now" is honoured for this browser
+    // session; the dashboard keeps a standing reminder until it is done.
+    if (googleWithoutPassword(session.user) && !passwordPromptDismissed(session.user.id)) {
+      navigate("/auth/new-password?reason=google", { replace: true });
       return;
     }
 

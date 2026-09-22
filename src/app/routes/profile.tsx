@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { createSupportTicket } from '@/lib/supabase/support';
 import { Button } from '@/components/ui/button';
+import { hasPassword, requestEmailChange } from '@/lib/auth/account-security';
 import { cn } from '@/lib/utils';
 import { useTierBilling } from '@/lib/tier-labels';
 import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
@@ -222,7 +223,13 @@ export default function ProfilePage() {
   const t = useT();
   const tiers = useTierBilling();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+  // `?tab=account` from the dashboard's security warning lands on the right tab.
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    requestedTab && ['profile', 'account', 'team', 'notifications', 'subscription', 'danger'].includes(requestedTab)
+      ? (requestedTab as ActiveTab) : 'profile',
+  );
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
 
@@ -251,6 +258,30 @@ export default function ProfilePage() {
   // ── Account tab state ──────────────────────────────────
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState('');
+
+  // ── Email change ───────────────────────────────────────
+  // Editing is a request, not a write: Supabase confirms the new address by link before
+  // anything moves. `pendingEmail` is what the account is waiting to become.
+  const [newEmail, setNewEmail]           = useState('');
+  const [emailState, setEmailState]       = useState<'idle' | 'saving' | 'sent' | 'error'>('idle');
+  const [emailError, setEmailError]       = useState('');
+  const pendingEmail = (user as { new_email?: string } | null)?.new_email ?? null;
+  const passwordExists = hasPassword(user);
+
+  async function handleEmailChange(e: React.FormEvent) {
+    e.preventDefault();
+    const next = newEmail.trim().toLowerCase();
+    if (!next || next === (user?.email ?? '').toLowerCase()) return;
+    setEmailState('saving'); setEmailError('');
+    try {
+      await requestEmailChange(next);
+      setEmailState('sent');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      setEmailError(msg === 'invalid_email' ? t('profile.emailInvalid') : msg || t('profile.emailFailed'));
+      setEmailState('error');
+    }
+  }
 
   // ── Notifications tab state ────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(() => {
@@ -733,20 +764,49 @@ export default function ProfilePage() {
                 transition={{ duration: 0.2 }}
                 className="flex flex-col"
               >
-                {/* Email address */}
+                {/* Email address — the sign-in identity, so it changes by confirmed link,
+                    never by a plain save. */}
                 <section>
                   <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.emailAddress')}</h2>
                   <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">{t('profile.emailSubtitle')}</p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      readOnly
-                      value={user?.email ?? ''}
-                      className="flex h-10 w-full rounded-md border border-brand-border-grey dark:border-[#2c2c2c] bg-brand-off-white dark:bg-[#1c1c1c] px-3 py-2 text-sm text-brand-mid-grey dark:text-brand-mid-grey outline-none cursor-not-allowed"
-                    />
-                  </div>
-                  <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-2">
-                    {t('profile.emailComingSoon')}
-                  </p>
+
+                  <p className="text-xs text-brand-mid-grey mb-1">{t('profile.emailCurrent')}</p>
+                  <p className="text-sm text-brand-near-black dark:text-white mb-4">{user?.email}</p>
+
+                  {emailState === 'sent' ? (
+                    <p role="status" className="text-xs text-state-complete bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 rounded-lg px-3 py-2">
+                      {t('profile.emailSent', { email: newEmail.trim().toLowerCase() })}
+                    </p>
+                  ) : (
+                    <form onSubmit={handleEmailChange} className="flex flex-col gap-2">
+                      {pendingEmail && pendingEmail !== user?.email && (
+                        <p className="text-xs text-state-held bg-brand-off-white border border-state-held/30 rounded-lg px-3 py-2">
+                          {t('profile.emailPending', { email: pendingEmail })}
+                        </p>
+                      )}
+                      <Field label={t('profile.emailNew')} htmlFor="new-email">
+                        <input
+                          id="new-email" type="email" autoComplete="email"
+                          value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                          placeholder={t('profile.emailNewPlaceholder')}
+                          className={inputClass}
+                        />
+                      </Field>
+                      {emailState === 'error' && emailError && (
+                        <p className="text-xs text-state-alert bg-brand-off-white border border-state-alert/30 rounded-lg px-3 py-2">
+                          {emailError}
+                        </p>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={emailState === 'saving' || !newEmail.trim() || newEmail.trim().toLowerCase() === (user?.email ?? '').toLowerCase()}
+                        className="self-start text-sm font-medium text-brand-near-black dark:text-white border border-brand-border-grey dark:border-[#2c2c2c] rounded-xl px-4 py-2 hover:bg-brand-light-grey dark:hover:bg-[#2c2c2c] transition-colors disabled:opacity-40"
+                      >
+                        {emailState === 'saving' ? t('profile.emailSaving') : t('profile.emailUpdate')}
+                      </button>
+                      <p className="text-xs text-brand-mid-grey">{t('profile.emailHow')}</p>
+                    </form>
+                  )}
                 </section>
 
                 <div className="border-t border-brand-border-grey dark:border-[#2c2c2c] my-6" />
@@ -755,10 +815,19 @@ export default function ProfilePage() {
                 <section>
                   <h2 className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">{t('profile.password')}</h2>
                   <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-4">
-                    {t('profile.passwordBody')}
+                    {t(passwordExists ? 'profile.passwordBody' : 'profile.passwordNoneBody')}
                   </p>
 
-                  {resetSent ? (
+                  {!passwordExists ? (
+                    // Signed in with Google: the session is live, so a password can be set
+                    // directly — no reset link, no waiting on an inbox.
+                    <Link
+                      to="/auth/new-password?reason=google"
+                      className="inline-flex self-start items-center rounded-xl bg-brand-near-black px-4 py-2 text-sm font-semibold text-white hover:bg-black transition-colors"
+                    >
+                      {t('profile.setPassword')}
+                    </Link>
+                  ) : resetSent ? (
                     <p className="text-xs text-state-complete dark:text-state-complete bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 dark:border-state-complete/50 rounded-lg px-3 py-2">
                       Reset link sent to {user?.email}
                     </p>

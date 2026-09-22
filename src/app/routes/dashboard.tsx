@@ -7,6 +7,7 @@ import {
   UserCircle, Check, Upload, MessageSquare, FolderArchive,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
+import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchProjects }              from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
@@ -641,6 +642,11 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Above everything else, for everyone: an account that cannot be recovered or
+          that anyone with the password can enter is a bigger problem than an empty
+          profile. Renders nothing once both are handled. */}
+      <SecurityNudges user={user} />
 
       {!loading && !isContractor && (
         <ProfileCompletion nameSet={nameSet} hasProject={projects.length > 0} />

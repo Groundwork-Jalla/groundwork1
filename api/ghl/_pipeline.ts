@@ -48,6 +48,8 @@ const SOURCE: Record<GhlEvent, string> = {
   application_decision: 'groundwork:contractor',
   subscription_changed: 'groundwork:subscriber',
   project_created:      'groundwork:building',
+  // Not a lifecycle moment and never tagged: it is a correction to an existing contact.
+  email_changed:        '',
 };
 
 /**

@@ -475,6 +475,56 @@ export async function updateContactPhone(
 }
 
 /**
+ * Move a contact to a new email address.
+ *
+ * By id, never by upsert: the upsert endpoint matches ON email, so sending the new
+ * address through it would create a second person and leave the first one — with all
+ * the history, tags and the Conversations thread — behind under the old address.
+ */
+export async function updateContactEmail(
+  cfg: GhlConfig,
+  contactId: string,
+  email: string,
+): Promise<GhlResult<unknown>> {
+  return ghlFetch(cfg, PATHS.contact(contactId), {
+    method: 'PUT',
+    body: { email },
+    verboseErrors: true,
+  });
+}
+
+/**
+ * The one contact with exactly this email, or null.
+ *
+ * Exact on purpose. GHL's search is tolerant, and "the contact that most resembles this
+ * address" is not something worth changing the email of: only a row whose stored email
+ * IS the one asked for is returned, and two such rows is treated as none — that is a
+ * duplicate for a person to merge, not for this code to pick between.
+ */
+export async function findContactByEmail(
+  cfg: GhlConfig,
+  email: string,
+): Promise<GhlResult<{ id: string } | null>> {
+  const wanted = email.trim().toLowerCase();
+  const r = await ghlFetch<Record<string, unknown>>(cfg, PATHS.searchContacts, {
+    method: 'POST',
+    body: {
+      locationId: cfg.locationId,
+      pageLimit: 20,
+      filters: [{ field: 'email', operator: 'eq', value: wanted }],
+    },
+  });
+  if (!r.ok) return { ok: false, status: r.status, error: r.error };
+
+  const d = (r.data ?? {}) as Record<string, unknown>;
+  const rows = ([d.contacts, d.data, r.data].find(Array.isArray) as Array<Record<string, unknown>> | undefined) ?? [];
+  const exact = rows.filter(row => String(row.email ?? '').trim().toLowerCase() === wanted);
+  if (exact.length !== 1) return { ok: true, status: r.status, data: null };
+  const id = String(exact[0].id ?? exact[0]._id ?? '');
+  return { ok: true, status: r.status, data: id ? { id } : null };
+}
+
+/**
  * Remove a contact. Irreversible beyond GoHighLevel's own restore window.
  *
  * Only ever called for a record that has a confirmed twin carrying the email and the

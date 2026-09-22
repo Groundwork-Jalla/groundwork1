@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { postAuthPath } from "@/lib/auth/post-auth-path";
+import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,10 @@ export default function NewPassword() {
   // handed. Same mechanics as a reset; the words have to say why it is being asked.
   const [searchParams] = useSearchParams();
   const firstSignIn = searchParams.get('first') === '1';
+  // `?reason=google`: a Google account adding its first password. Not a reset — nothing
+  // is being replaced — and not compulsory: "Not now" goes on into the app.
+  const addingPassword = searchParams.get('reason') === 'google';
+  const mode = firstSignIn ? 'first' : addingPassword ? 'google' : 'reset';
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [ready, setReady] = useState(false);
@@ -87,6 +92,12 @@ export default function NewPassword() {
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) { setSubmitting(false); setError(updateError.message); return; }
 
+    // Record that a password now exists. Supabase's own signal (an `email` identity)
+    // is not reliably added when an OAuth account sets one, and hasPassword() reads both.
+    if (addingPassword) {
+      await supabase.auth.updateUser({ data: { [PASSWORD_SET_MARKER]: new Date().toISOString() } }).catch(() => {});
+    }
+
     // Kill every OTHER session for this account.
     //
     // A password reset is what someone does when they think an account is compromised,
@@ -121,6 +132,13 @@ export default function NewPassword() {
     setDone(true);
   }
 
+  function skipForNow() {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) dismissPasswordPrompt(session.user.id);
+      handleContinue();
+    });
+  }
+
   function handleContinue() {
     navigate(postAuthPath({
       isAdmin: isAdminUser,
@@ -142,7 +160,9 @@ export default function NewPassword() {
           {t('auth.newPassword.doneTitle')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey">
-          {t(firstSignIn ? 'auth.newPassword.firstDoneBody' : 'auth.newPassword.doneBody')}
+          {t(mode === 'first' ? 'auth.newPassword.firstDoneBody'
+            : mode === 'google' ? 'auth.newPassword.googleDoneBody'
+            : 'auth.newPassword.doneBody')}
         </p>
 
         {/* Only claimed when it actually happened — see the catch in handleSubmit. */}
@@ -179,10 +199,14 @@ export default function NewPassword() {
   return (
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-        {t(firstSignIn ? 'auth.newPassword.firstTitle' : 'auth.newPassword.title')}
+        {t(mode === 'first' ? 'auth.newPassword.firstTitle'
+          : mode === 'google' ? 'auth.newPassword.googleTitle'
+          : 'auth.newPassword.title')}
       </h1>
       <p className="text-sm text-brand-mid-grey mt-2">
-        {t(firstSignIn ? 'auth.newPassword.firstSubtitle' : 'auth.newPassword.subtitle')}
+        {t(mode === 'first' ? 'auth.newPassword.firstSubtitle'
+          : mode === 'google' ? 'auth.newPassword.googleSubtitle'
+          : 'auth.newPassword.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
@@ -214,8 +238,19 @@ export default function NewPassword() {
         )}
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? t('auth.newPassword.submitting') : t('auth.newPassword.submit')}
+          {submitting ? t('auth.newPassword.submitting')
+            : mode === 'google' ? t('auth.newPassword.googleSubmit')
+            : t('auth.newPassword.submit')}
         </Button>
+
+        {mode === 'google' && (
+          <button
+            type="button" onClick={skipForNow} disabled={submitting}
+            className="block w-full text-center text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black"
+          >
+            {t('auth.newPassword.googleSkip')}
+          </button>
+        )}
       </form>
     </div>
   );

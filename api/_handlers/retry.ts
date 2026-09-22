@@ -25,7 +25,8 @@ const BATCH = 25;
 
 function isEvent(v: unknown): v is GhlEvent {
   return v === 'user_signup' || v === 'application_decision'
-      || v === 'subscription_changed' || v === 'project_created';
+      || v === 'subscription_changed' || v === 'project_created'
+      || v === 'email_changed';
 }
 
 export async function handler(req: any, res: any) {
@@ -119,6 +120,15 @@ export async function handler(req: any, res: any) {
         attempts: (row.attempts ?? 0) + 1,
         last_error: null,
       }).eq('id', row.id);
+
+      // An email change that had to find (or create) its contact now knows the id;
+      // keep it on the profile so the next event addresses the same person directly.
+      if (row.event === 'email_changed' && result.contactId && typeof payload.user_id === 'string') {
+        await db.from('profiles')
+          .update({ ghl_contact_id: result.contactId })
+          .eq('id', payload.user_id)
+          .is('ghl_contact_id', null);
+      }
     } else {
       failed++;
       await db.from('ghl_outbox').update({

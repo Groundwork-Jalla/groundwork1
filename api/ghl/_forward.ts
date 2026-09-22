@@ -1,4 +1,4 @@
-import { ghlConfig, upsertContact, addContactTags, moveToStage } from './_client.js';
+import { ghlConfig, upsertContact, addContactTags, moveToStage, updateContactEmail, findContactByEmail } from './_client.js';
 import type { GhlConfig } from './_client.js';
 import { ghlSettings } from './_config.js';
 import { normalisePhone } from './_phone.js';
@@ -40,7 +40,13 @@ export type GhlEvent =
   | 'user_signup'
   | 'application_decision'
   | 'subscription_changed'
-  | 'project_created';
+  | 'project_created'
+  /**
+   * The person's sign-in email changed (confirmed by link). Not an upsert — see
+   * deliverEmailChange: the CRM keys contacts on email, so this is the one event that
+   * must address the contact by id or it creates a stranger.
+   */
+  | 'email_changed';
 
 export interface GhlContact {
   email: string;
@@ -206,6 +212,8 @@ export async function deliver(
   const cfg = await ghlConfig();
   if (!cfg) return deliverViaWebhook(event, email, contact, fields, opts.variant);
 
+  if (event === 'email_changed') return deliverEmailChange(cfg, email, fields, opts);
+
   const viaApi = await deliverViaApi(cfg, event, email, contact, fields, opts);
   if (viaApi.ok) return viaApi;
 
@@ -229,6 +237,50 @@ export async function deliver(
   }
 
   return viaApi;
+}
+
+/**
+ * Re-address an existing contact. `email` is the NEW address.
+ *
+ * Finding the contact, in order of trust: the id stored on the profile (or passed in),
+ * then an exact search on the OLD address — which comes from the outbox payload the
+ * database wrote at the moment auth.users changed, never from the browser. A browser
+ * that could name the old address could point this at a stranger's CRM record.
+ *
+ * With no contact to be found, the person is created afresh under the new address by
+ * the ordinary upsert. The old record, if one exists, stays as it was for a human to
+ * merge — better a duplicate than an email quietly rewritten on the wrong person.
+ */
+async function deliverEmailChange(
+  cfg: GhlConfig,
+  email: string,
+  fields: Record<string, string | number | boolean | null>,
+  opts: GhlForwardOptions,
+): Promise<GhlForwardResult> {
+  const oldEmail = String(fields.old_email ?? '').trim().toLowerCase();
+  let contactId = (opts.contactId ?? (fields.contact_id as string | null) ?? '') || null;
+
+  if (!contactId && EMAIL_RE.test(oldEmail)) {
+    const found = await findContactByEmail(cfg, oldEmail);
+    if (!found.ok) {
+      return { ok: false, reason: found.status === 0 ? 'unreachable' : 'rejected', status: found.status, via: 'api' };
+    }
+    contactId = found.data?.id ?? null;
+  }
+
+  if (!contactId) {
+    const up = await upsertContact(cfg, { email, source: 'groundwork_email_changed' });
+    if (!up.ok || !up.data) {
+      return { ok: false, reason: up.status === 0 ? 'unreachable' : 'rejected', status: up.status, via: 'api' };
+    }
+    return { ok: true, contactId: up.data.contactId, via: 'api' };
+  }
+
+  const r = await updateContactEmail(cfg, contactId, email);
+  if (!r.ok) {
+    return { ok: false, reason: r.status === 0 ? 'unreachable' : 'rejected', status: r.status, via: 'api' };
+  }
+  return { ok: true, contactId, via: 'api' };
 }
 
 async function deliverViaApi(

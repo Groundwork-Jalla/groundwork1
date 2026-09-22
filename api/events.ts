@@ -17,6 +17,7 @@ import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
+import { handler as crmEmailSync } from './_handlers/crm-email-sync.js';
 import { attachBody } from './_lib/body.js';
 
 /**
@@ -56,7 +57,7 @@ export const config = { api: { bodyParser: false } };
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts'
-  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user'
+  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'crm-email-sync'
   | 'profile-geo';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
@@ -78,6 +79,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'certificate-purge': certPurge,
   'mfa-email': mfaEmail,
   'admin-provision-user': adminProvisionUser,
+  'crm-email-sync': crmEmailSync,
   'profile-geo': profileGeo,
 };
 
