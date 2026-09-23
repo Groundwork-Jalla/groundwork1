@@ -721,6 +721,14 @@ export const en = {
       openProject:   'Open project',
       notDelivered:  'Saved in Groundwork, but not delivered to the client',
       selectPrompt:  'Choose a conversation to read it.',
+      needsReply:      'Needs reply',
+      youPrefix:       'You:',
+      projectLinked:   'Project',
+      projectAccount:  'Account project',
+      accountProjects: 'Projects ({count})',
+      notLinked:       'This conversation is not linked to a project yet.',
+      noProject:       'No project yet',
+      stage:           'Stage',
     },
     // ── Decisions (091): what the project will now do, distinct from what was said ──
     decision: {

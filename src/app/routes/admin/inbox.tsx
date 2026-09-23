@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Loader2, MessagesSquare } from 'lucide-react';
-import { listConversations, type Conversation } from '@/lib/supabase/conversations';
+import { listConversationPreviews, listConversations, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
 import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
+import { listProjectsForPeople, type InboxProject } from '@/lib/supabase/inbox-context';
+import { personLabel, projectContext, type ProjectContext } from '@/lib/admin/inbox-context';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelative } from '@/lib/format';
@@ -54,12 +56,23 @@ export default function AdminInbox() {
   const [rows, setRows] = useState<Conversation[] | null>(null);
   const [available, setAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Map<string, ConversationPreview>>(new Map());
+  const [projectsByPerson, setProjectsByPerson] = useState<Map<string, InboxProject[]>>(new Map());
   const people = usePeople();
 
+  // Three reads for the whole screen, not one per row: the conversations, the last
+  // message of each (one query for every thread), and every project owned by the people
+  // in the list. A thread's context must not cost a round trip to look at.
   const load = useCallback(async () => {
     try {
       const r = await listConversations();
       setRows(r.rows); setAvailable(r.available); setError(null);
+      const [p, proj] = await Promise.all([
+        listConversationPreviews(r.rows.map(c => c.id)),
+        listProjectsForPeople(r.rows.map(c => c.personId).filter((id): id is string => !!id)),
+      ]);
+      setPreviews(p.previews);
+      setProjectsByPerson(proj.byPerson);
     } catch (err) {
       setRows([]); setError(errorMessage(err, t('common.somethingWrong')));
     }
@@ -70,17 +83,14 @@ export default function AdminInbox() {
     () => (people ? [...people.values()].filter(u => u.roles.split(',').map(r => r.trim()).includes('admin')).map(u => ({ id: u.id, label: u.fullName || u.email })) : null),
     [people],
   );
-  const personName = useCallback((id: string | null | undefined) => {
-    if (!id) return '';
-    const p = people?.get(id);
-    return p ? (p.fullName || p.email) : '';
-  }, [people]);
-  const staffName = useCallback((id: string | null) => personName(id) || t('admin.workspace.header.unknownAccount'), [personName, t]);
-
-  const title = useCallback(
-    (c: Conversation) => personName(c.personId) || c.subject || t('admin.inbox.unknownPerson'),
-    [personName, t],
-  );
+  // full_name → email → an honest generic label. A phone number is a transport address,
+  // never a display name.
+  const label = useCallback((id: string | null | undefined) => {
+    const p = id ? people?.get(id) : undefined;
+    return personLabel(p?.fullName, p?.email, t('admin.inbox.unknownPerson'));
+  }, [people, t]);
+  const staffName = useCallback((id: string | null) => (id ? label(id).primary : t('admin.workspace.header.unknownAccount')), [label, t]);
+  const title = useCallback((c: Conversation) => (c.personId ? label(c.personId).primary : c.subject || t('admin.inbox.unknownPerson')), [label, t]);
 
   const shown = useMemo(
     () => (rows ?? []).filter(c =>
@@ -90,13 +100,42 @@ export default function AdminInbox() {
   );
   const selected = shown.find(c => c.id === selectedId) ?? shown[0] ?? null;
 
+  // Needs reply is `waiting_on_us` and nothing else — 091 sets it when a client writes
+  // and clears it when staff answer. No second source of truth, no per-admin read state.
+  const needsReply = (rows ?? []).filter(c => c.status === 'waiting_on_us').length;
+  const needsReplyOn = statusFilter === 'waiting_on_us';
+  const setStatus = (value: string | null) => setParams(prev => {
+    const next = new URLSearchParams(prev);
+    if (value) next.set('status', value); else next.delete('status');
+    next.delete('conversation');
+    return next;
+  }, { replace: true });
+
+  const context = selected ? projectContext(selected, projectsByPerson) : null;
+  const preview = (id: string) => previews.get(id) ?? null;
+  const projectName = (projectId: string, personId: string | null) =>
+    (personId ? projectsByPerson.get(personId) ?? [] : []).find(p => p.id === projectId)?.name ?? '';
+
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-lg font-semibold text-brand-near-black dark:text-white">{t('admin.inbox.title')}</h1>
-        <p className="mt-0.5 text-xs text-brand-mid-grey">
-          {channelFilter ? t(`admin.workspace.conversations.channel.${channelFilter}` as TKey) : t('admin.inbox.sub')}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-brand-near-black dark:text-white">{t('admin.inbox.title')}</h1>
+          <p className="mt-0.5 text-xs text-brand-mid-grey">
+            {channelFilter ? t(`admin.workspace.conversations.channel.${channelFilter}` as TKey) : t('admin.inbox.sub')}
+          </p>
+        </div>
+        {/* Needs reply: the count is `waiting_on_us`, and the chip filters to exactly those. */}
+        {rows !== null && (
+          <button type="button" onClick={() => setStatus(needsReplyOn ? null : 'waiting_on_us')} aria-pressed={needsReplyOn}
+            className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+              needsReplyOn
+                ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#252525]')}>
+            {t('admin.inbox.needsReply')}
+            <span className={cn('ml-1.5 tabular-nums', needsReplyOn ? '' : 'text-brand-mid-grey')}>{needsReply}</span>
+          </button>
+        )}
       </header>
 
       {rows === null ? (
@@ -128,11 +167,26 @@ export default function AdminInbox() {
                       <p className="flex items-center gap-2 text-sm font-medium text-brand-near-black dark:text-white">
                         <span className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT[c.status])} />
                         <span className="truncate">{title(c)}</span>
+                        {c.lastMessageAt && <span className="ml-auto shrink-0 text-[11px] font-normal text-brand-mid-grey">{formatRelative(c.lastMessageAt)}</span>}
                       </p>
+                      {/* The last message, as stored. An internal note is marked as one:
+                          staff talking to each other must never read as the client's last word. */}
+                      {preview(c.id) && (
+                        <p className="mt-0.5 truncate text-xs text-brand-mid-grey">
+                          {preview(c.id)!.direction === 'internal' && (
+                            <span className="mr-1 font-semibold uppercase tracking-wide text-[10px]">{t('admin.workspace.conversations.internal')}:</span>
+                          )}
+                          {preview(c.id)!.direction === 'outbound' && (
+                            <span className="mr-1 text-[10px] uppercase tracking-wide">{t('admin.inbox.youPrefix')}</span>
+                          )}
+                          {preview(c.id)!.content}
+                        </p>
+                      )}
                       <p className="mt-0.5 truncate text-[11px] text-brand-mid-grey">
                         {t(`admin.workspace.conversations.channel.${c.channel}` as TKey)}
                         {' · '}{t(`admin.workspace.conversations.status.${c.status}` as TKey)}
-                        {c.lastMessageAt && ` · ${formatRelative(c.lastMessageAt)}`}
+                        {/* Only an explicitly linked project appears in the list: the row stays compact. */}
+                        {c.projectId && projectName(c.projectId, c.personId) && ` · ${projectName(c.projectId, c.personId)}`}
                       </p>
                     </button>
                   </li>
@@ -145,23 +199,15 @@ export default function AdminInbox() {
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             {selected ? (
               <>
+                <ContextHeader conversation={selected} label={label(selected.personId)} context={context} />
                 <ConversationThread
                   key={selected.id}
                   conversation={selected}
                   staff={staff}
                   staffName={staffName}
                   onChanged={load}
-                  title={title(selected)}
                   realtimeProjectId={selected.projectId}
                 />
-                {selected.projectId && (
-                  <div className="border-t border-brand-border-grey px-5 py-2.5 dark:border-[#2c2c2c]">
-                    <Link to={`/admin/projects/${selected.projectId}?tab=conversations&conversation=${selected.id}`}
-                      className="text-xs font-semibold text-brand-near-black underline-offset-2 hover:underline dark:text-white">
-                      {t('admin.inbox.openProject')}
-                    </Link>
-                  </div>
-                )}
               </>
             ) : (
               <p className="px-5 py-10 text-center text-xs text-brand-mid-grey">{t('admin.inbox.selectPrompt')}</p>
@@ -176,3 +222,69 @@ export default function AdminInbox() {
 const STATUS_DOT: Record<Conversation['status'], string> = {
   open: 'bg-state-active', waiting_on_us: 'bg-state-held', waiting_on_them: 'bg-brand-muted-grey', resolved: 'bg-state-complete',
 };
+
+/**
+ * Who this is, and what Groundwork is building for them (06 §19 D).
+ *
+ * A project the CONVERSATION names is stated as the conversation's. A project the PERSON
+ * owns is stated as the account's — context for the person answering, not a claim about
+ * what the message is about. Several projects are listed, not guessed between. None is
+ * said plainly. Nothing here writes `conversations.project_id`: linking a thread to a
+ * project stays an explicit act.
+ */
+function ContextHeader({ conversation, label, context }: {
+  conversation: Conversation;
+  label: { primary: string; secondary: string | null };
+  context: ProjectContext | null;
+}) {
+  const t = useT();
+  // `projects.current_stage` is a number, not a stage row — so it is said as a number
+  // rather than run through the stage-name lookup, which would render nothing.
+  const line = (p: InboxProject) => [
+    p.currentStage != null ? `${t('admin.inbox.stage')} ${p.currentStage}` : null,
+    p.status ? t(`admin.workspace.header.status.${p.status}` as TKey) : null,
+    [p.city, p.country].filter(Boolean).join(', ') || null,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <div className="border-b border-brand-border-grey px-5 py-3 dark:border-[#2c2c2c]">
+      <p className="text-sm font-semibold text-brand-near-black dark:text-white">{label.primary}</p>
+      {label.secondary && <p className="text-[11px] text-brand-mid-grey">{label.secondary}</p>}
+
+      <div className="mt-2 flex flex-wrap items-start gap-x-6 gap-y-2">
+        {context?.kind === 'none' || !context ? (
+          <p className="text-[11px] text-brand-mid-grey">{t('admin.inbox.noProject')}</p>
+        ) : context.kind === 'choice' ? (
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey">
+              {t('admin.inbox.accountProjects', { count: context.projects.length })}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {context.projects.map(p => (
+                <li key={p.id} className="text-xs">
+                  <Link to={`/admin/projects/${p.id}`} className="font-medium text-brand-near-black underline-offset-2 hover:underline dark:text-white">{p.name}</Link>
+                  <span className="text-brand-mid-grey"> — {line(p)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-brand-mid-grey">{t('admin.inbox.notLinked')}</p>
+          </div>
+        ) : context.project ? (
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey">
+              {context.kind === 'linked' ? t('admin.inbox.projectLinked') : t('admin.inbox.projectAccount')}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-medium text-brand-near-black dark:text-white">{context.project.name}</p>
+            <p className="truncate text-[11px] text-brand-mid-grey">{line(context.project)}</p>
+            <Link to={`/admin/projects/${context.project.id}${conversation.projectId ? `?tab=conversations&conversation=${conversation.id}` : ''}`}
+              className="mt-1 inline-block text-xs font-semibold text-brand-near-black underline-offset-2 hover:underline dark:text-white">
+              {t('admin.inbox.openProject')}
+            </Link>
+          </div>
+        ) : (
+          <p className="text-[11px] text-brand-mid-grey">{t('admin.inbox.noProject')}</p>
+        )}
+      </div>
+    </div>
+  );
+}

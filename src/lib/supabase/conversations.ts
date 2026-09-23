@@ -144,6 +144,51 @@ export async function deliverMessage(messageId: string): Promise<{ ok: boolean; 
   }
 }
 
+/**
+ * The last message on each of these threads, for the Inbox list (06 §19).
+ *
+ * One read for every thread rather than one per row: the ids are known, so the messages
+ * come back in a single ordered query and the first row per conversation wins. An empty
+ * list is not a query.
+ *
+ * `direction` comes with it because an internal note is not the client's last word and
+ * the list must not present it as one.
+ */
+export interface ConversationPreview {
+  content: string;
+  direction: MessageDirection;
+  senderName: string;
+  createdAt: string;
+}
+
+export async function listConversationPreviews(conversationIds: string[]):
+  Promise<{ previews: Map<string, ConversationPreview>; available: boolean }> {
+  const out = new Map<string, ConversationPreview>();
+  if (conversationIds.length === 0) return { previews: out, available: true };
+
+  const { data, error } = await supabase
+    .from('project_messages')
+    .select('conversation_id, content, direction, sender_name, created_at')
+    .in('conversation_id', conversationIds)
+    .order('created_at', { ascending: false });
+  if (error) {
+    if (isMissingTable(error) || (error as { code?: string }).code === '42703') return { previews: out, available: false };
+    throw error;
+  }
+
+  for (const r of (data ?? []) as unknown as Record<string, unknown>[]) {
+    const id = typeof r.conversation_id === 'string' ? r.conversation_id : '';
+    if (!id || out.has(id)) continue;          // ordered newest first: the first is the latest
+    out.set(id, {
+      content:    typeof r.content === 'string' ? r.content : '',
+      direction:  (r.direction as MessageDirection) ?? 'inbound',
+      senderName: typeof r.sender_name === 'string' ? r.sender_name : '',
+      createdAt:  typeof r.created_at === 'string' ? r.created_at : '',
+    });
+  }
+  return { previews: out, available: true };
+}
+
 /** Staff: put a staff member on the thread (null to unassign). */
 export async function assignConversation(conversationId: string, userId: string | null): Promise<void> {
   const { error } = await supabase.rpc('assign_conversation', { p_conversation: conversationId, p_user: userId });

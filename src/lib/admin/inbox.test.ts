@@ -38,11 +38,11 @@ describe('the Inbox needs no project', () => {
     expect(p).toContain('conversation={selected}');
   });
 
-  it('a project link is offered only when the thread has one — never required to read the thread', () => {
-    expect(p).toContain('{selected.projectId && (');
-    expect(p).toContain('to={`/admin/projects/${selected.projectId}?tab=conversations&conversation=${selected.id}`}');
-    // The thread renders before that link and does not depend on it.
-    expect(p.indexOf('<ConversationThread')).toBeLessThan(p.indexOf('{selected.projectId && ('));
+  it('the thread renders whatever the project context turns out to be', () => {
+    // Context is a header ABOVE the thread; the thread itself never waits on a project.
+    expect(p).toContain('<ContextHeader conversation={selected} label={label(selected.personId)} context={context} />');
+    expect(p).toContain('<ConversationThread');
+    expect(p).not.toMatch(/selected\.projectId \? <ConversationThread|if \(!context\) return/);
   });
 
   it('reads ?status=active, the parameter the Overview KPI sends', () => {
@@ -74,7 +74,7 @@ describe('the Inbox needs no project', () => {
 
   it('renders no raw id and keeps a person\'s name out of the uuid', () => {
     expect(p).not.toMatch(/(?<!key=)\{c\.(id|personId)\}/);
-    expect(p).toContain("personName(c.personId) || c.subject || t('admin.inbox.unknownPerson')");
+    expect(p).toContain("c.personId ? label(c.personId).primary : c.subject || t('admin.inbox.unknownPerson')");
   });
 });
 

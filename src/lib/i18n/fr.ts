@@ -727,6 +727,14 @@ export const fr: Mirror<EnDict> = {
       openProject:   'Ouvrir le projet',
       notDelivered:  'Enregistré dans Groundwork, mais non remis au client',
       selectPrompt:  'Choisissez une conversation pour la lire.',
+      needsReply:      'R\u00e9ponse attendue',
+      youPrefix:       'Vous :',
+      projectLinked:   'Projet',
+      projectAccount:  'Projet du compte',
+      accountProjects: 'Projets ({count})',
+      notLinked:       'Cette conversation n\u2019est pas encore li\u00e9e \u00e0 un projet.',
+      noProject:       'Aucun projet pour l\u2019instant',
+      stage:           '\u00c9tape',
     },
     // ── D\u00e9cisions (091) : ce que le projet va faire, distinct de ce qui a \u00e9t\u00e9 dit ──
     decision: {

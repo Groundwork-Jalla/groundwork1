@@ -115,7 +115,8 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           <p className="text-[11px] text-brand-mid-grey">
             <span className={cn('mr-1.5 inline-block size-1.5 rounded-full align-middle', STATUS_DOT[conversation.status])} />
             {t(`admin.workspace.conversations.status.${conversation.status}` as TKey)}
-            {' · '}{t(`admin.workspace.conversations.channel.${conversation.channel}` as TKey)}
+            {/* The channel is the heading when there is no subject; saying it twice is noise. */}
+            {(conversation.subject || title) && ` · ${t(`admin.workspace.conversations.channel.${conversation.channel}` as TKey)}`}
             {conversation.resolvedAt && ` · ${t('admin.workspace.conversations.resolvedAt', { when: formatRelative(conversation.resolvedAt) })}`}
           </p>
         </div>
