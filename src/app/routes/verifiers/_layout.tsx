@@ -23,19 +23,23 @@ import { useT } from '@/lib/i18n';
 // =========================================================
 
 export default function VerifiersLayout() {
-  const { session, loading, isVerifier, rolesChecked, isAdmin, adminChecked, signOut } = useAuth();
+  const { session, loading, isVerifier, rolesChecked, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const t = useT();
 
-  // Admins may look — they can already read every verification — but a signed-in client
-  // or contractor is sent to their own surface rather than shown an empty verifier one.
-  const allowed = isVerifier || isAdmin;
-  const resolved = rolesChecked && adminChecked;
+  // ── The door is the ROLE, not the privilege ────────────────────────────────────────
+  // An admin can read every verification row in the database, and that is not the same
+  // thing as belonging on the verifier's surface. /admin oversees, /verifiers verifies;
+  // an operator who is not also an appointed verifier has no work here and is sent back.
+  // Someone who holds both roles is let in — because they hold the role, not because
+  // they are an admin — while post-auth still prefers /admin for them.
+  const allowed = isVerifier;
+  const resolved = rolesChecked;
 
   useEffect(() => {
     if (loading) return;
-    if (!session) { navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true }); return; }
+    if (!session) { navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true }); return; }
     if (resolved && !allowed) navigate('/dashboard', { replace: true });
   }, [loading, session, resolved, allowed, navigate, location.pathname]);
 
@@ -57,7 +61,7 @@ export default function VerifiersLayout() {
           </Link>
           <div className="flex items-center gap-3 text-xs text-brand-mid-grey">
             <span className="hidden sm:inline">{session.user.email}</span>
-            <button type="button" onClick={() => { void signOut().then(() => navigate('/login', { replace: true })); }}
+            <button type="button" onClick={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}
               className="rounded-lg border border-brand-border-grey px-2.5 py-1 font-medium text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
               {t('common.logOut')}
             </button>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { holdsVerifierRole } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export default function NewPassword() {
   // Resolved while they type, so the confirmation screen's button goes somewhere the
   // instant it is pressed rather than pausing on an RPC after the work is already done.
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isVerifierUser, setIsVerifierUser] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,8 @@ export default function NewPassword() {
       if (session) {
         const { data } = await supabase.rpc('is_admin');
         if (!cancelled) setIsAdminUser(data === true);
+        const verifier = await holdsVerifierRole(session?.user?.id);
+        if (!cancelled) setIsVerifierUser(verifier);
       }
     });
     return () => { cancelled = true; };
@@ -142,6 +146,7 @@ export default function NewPassword() {
   function handleContinue() {
     navigate(postAuthPath({
       isAdmin: isAdminUser,
+      isVerifier: isVerifierUser,
       onboardingComplete: !!onboardingComplete,
     }), { replace: true });
   }
