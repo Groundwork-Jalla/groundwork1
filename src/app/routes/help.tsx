@@ -69,7 +69,7 @@ const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'How does my contractor get paid?',
-        a: 'Funds are held in a secure wallet and released only when a stage is verified. In Cameroon the payout reaches your contractor as mobile money in XAF, so they receive local currency without a bank transfer. Our payment providers are named in the Privacy Policy.',
+        a: 'Groundwork records what has been funded and authorises each milestone release once a stage is verified; the funds themselves are held and moved by a licensed payment provider. In Cameroon the payout reaches your contractor as mobile money in XAF, so they receive local currency without a bank transfer. Our payment providers are named in the Privacy Policy.',
       },
     ],
   },

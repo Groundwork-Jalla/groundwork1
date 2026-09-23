@@ -193,7 +193,7 @@ export default function MilestonePaymentModal({
               </button>
 
               <div className="flex items-center justify-center gap-4 mt-3.5">
-                {[['Encrypted', ShieldCheck], ['Held in escrow', Lock]].map(([t, Icon]) => {
+                {[['Encrypted', ShieldCheck], ['Released on verification', Lock]].map(([t, Icon]) => {
                   const I = Icon as React.ComponentType<{ className?: string }>;
                   return (
                     <span key={t as string} className="flex items-center gap-1 text-[10px] text-brand-mid-grey">
