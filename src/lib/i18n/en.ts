@@ -3121,7 +3121,7 @@ export const en = {
       t1: 'Access to Funded Diaspora Projects',
       d1: 'Work with clients who have real budgets, a clear scope of work, and a structured plan and timeline. No more ‘let\'s start and see.’',
       t2: 'Reliable Payment System',
-      d2: 'Funds secured before work begins. Milestone-based releases. Clear approval steps. If you complete the milestone, you get paid.',
+      d2: 'Funding confirmed before work begins. Milestone-based releases. Clear approval steps. If you complete the milestone, you get paid.',
       t3: 'Structured Project Environment',
       d3: 'You operate inside a coordinated sequence. Defined roles and responsibilities. Clean handoffs between professionals. Everyone knows their part. Work flows.',
       t4: 'Protection from Client Confusion',

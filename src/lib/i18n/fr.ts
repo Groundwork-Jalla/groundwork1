@@ -3067,7 +3067,7 @@ export const fr: Mirror<EnDict> = {
       t1: 'Accès à des chantiers de la diaspora déjà financés',
       d1: 'Travaillez avec des clients qui ont un vrai budget, un périmètre de travaux clair, un plan structuré et un calendrier. Fini le « on commence et on verra ».',
       t2: 'Un système de paiement fiable',
-      d2: 'Les fonds sont sécurisés avant le démarrage. Les versements suivent les jalons. Les étapes de validation sont claires. Jalon atteint, jalon payé.',
+      d2: 'Le financement est confirmé avant le démarrage. Les versements suivent les jalons. Les étapes de validation sont claires. Jalon atteint, jalon payé.',
       t3: 'Un cadre de chantier structuré',
       d3: 'Vous intervenez dans un enchaînement coordonné. Les rôles et les responsabilités sont définis. Les passations entre corps de métier sont nettes. Chacun sait ce qu\'il a à faire. Le chantier avance.',
       t4: 'À l\'abri des flottements du client',
