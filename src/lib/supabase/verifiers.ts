@@ -95,3 +95,19 @@ export async function removeVerifier(assignmentId: string): Promise<void> {
   const { error } = await supabase.rpc('remove_verifier', { p_assignment: assignmentId });
   if (error) throw error;
 }
+
+/**
+ * Put a contractor on a project, as an admin (029/030).
+ *
+ * Through `admin_assign_contractor` rather than the table: `contractor_invites` is scoped
+ * to the project OWNER by RLS and an admin is not the owner. The RPC re-checks
+ * `is_admin()` server-side and writes the audit row, so this cannot be driven from a
+ * client's console. Same call the projects list has always used — one assignment model,
+ * two places to reach it, and the future /contractors surface reads the same rows.
+ */
+export async function assignContractor(projectId: string, email: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_assign_contractor', {
+    p_project_id: projectId, p_email: email.trim(),
+  });
+  if (error) throw error;
+}

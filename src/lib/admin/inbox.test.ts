@@ -40,7 +40,7 @@ describe('the Inbox needs no project', () => {
 
   it('the thread renders whatever the project context turns out to be', () => {
     // Context is a header ABOVE the thread; the thread itself never waits on a project.
-    expect(p).toContain('<ContextHeader conversation={selected} label={label(selected.personId)} context={context} />');
+    expect(p).toContain('<ContextHeader conversation={selected} label={label(selected.personId)} context={context} onLinked={load} />');
     expect(p).toContain('<ConversationThread');
     expect(p).not.toMatch(/selected\.projectId \? <ConversationThread|if \(!context\) return/);
   });

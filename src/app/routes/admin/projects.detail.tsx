@@ -140,7 +140,7 @@ export default function AdminProjectWorkspace() {
       )}
 
       {tab === 'overview' ? (
-        <OverviewTab loaded={loaded} stageId={stageId} />
+        <OverviewTab loaded={loaded} stageId={stageId} onChanged={reload} onNotice={n => { setNotice(n); reload(); }} />
       ) : tab === 'activity' ? (
         <ActivityTab loaded={loaded} />
       ) : tab === 'site-updates' ? (

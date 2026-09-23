@@ -120,11 +120,39 @@ describe('D. project context: stated, never guessed, never written', () => {
     expect(lib).toContain(".in('user_id', ids)");
     expect(lib).toContain("neq('status', 'archived')");
   });
-  it('INFERENCE NEVER WRITES: nothing in the Inbox sets conversations.project_id', () => {
-    for (const f of [PAGE, 'src/lib/admin/inbox-context.ts', 'src/lib/supabase/inbox-context.ts']) {
+  it('INFERENCE NEVER WRITES: the rules and the readers cannot link anything', () => {
+    for (const f of ['src/lib/admin/inbox-context.ts', 'src/lib/supabase/inbox-context.ts']) {
       const c = code(f);
       expect(c, f).not.toMatch(/linkConversation|project_id:\s|\.update\(|\.insert\(|\.rpc\(/);
     }
+  });
+
+  it('a person links a conversation; nothing links it on their behalf', () => {
+    const p = code(PAGE);
+    // One call site, and it is inside the handler a button invokes with a chosen id.
+    expect((p.match(/linkConversation\(/g) ?? []).length).toBe(1);
+    expect(p).toContain('const link = async (projectId: string) => {');
+    expect(p).toContain('await linkConversation(conversation.id, projectId);');
+    expect(p).toContain('onClick={() => link(p.id)}');                 // one of several
+    expect(p).toContain("onClick={() => link(context.project!.id)}");  // the single account project
+    // Never from the inference itself, never on load, never in an effect.
+    expect(p).not.toMatch(/useEffect\([^)]*link\(|context\.project[^)]*\)\s*;\s*\/\/ *link/);
+    expect(p).not.toMatch(/if \(context\.kind === 'account'\) *\{?\s*link\(/);
+  });
+
+  it('linking re-reads rather than patching state, and a refusal is shown as phrased', () => {
+    const p = code(PAGE);
+    expect(p).toContain('onLinked();');
+    expect(p).toContain("msg.includes('already_linked') ? t('admin.inbox.alreadyLinked')");
+    expect(p).not.toMatch(/setRows\(\s*(prev|rows)\s*=>/);
+  });
+
+  it('the linked project is shown as the conversation\'s, and opens its thread in the workspace', () => {
+    const p = code(PAGE);
+    expect(p).toContain("context.kind === 'linked' ? t('admin.inbox.projectLinked') : t('admin.inbox.projectAccount')");
+    expect(p).toContain('${conversation.projectId ? `?tab=conversations&conversation=${conversation.id}` : \'\'}');
+    // Only an unlinked account project offers the link button.
+    expect(p).toContain("{context.kind === 'account' && (");
   });
   it('Open project goes to that project\'s workspace, and only a LINKED thread deep-links to the thread there', () => {
     const p = code(PAGE);

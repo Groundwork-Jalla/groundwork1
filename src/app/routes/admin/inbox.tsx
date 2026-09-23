@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Loader2, MessagesSquare } from 'lucide-react';
-import { listConversationPreviews, listConversations, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
+import { linkConversation, listConversationPreviews, listConversations, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
 import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
 import { listProjectsForPeople, type InboxProject } from '@/lib/supabase/inbox-context';
 import { personLabel, projectContext, type ProjectContext } from '@/lib/admin/inbox-context';
@@ -199,7 +199,7 @@ export default function AdminInbox() {
           <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             {selected ? (
               <>
-                <ContextHeader conversation={selected} label={label(selected.personId)} context={context} />
+                <ContextHeader conversation={selected} label={label(selected.personId)} context={context} onLinked={load} />
                 <ConversationThread
                   key={selected.id}
                   conversation={selected}
@@ -232,12 +232,32 @@ const STATUS_DOT: Record<Conversation['status'], string> = {
  * said plainly. Nothing here writes `conversations.project_id`: linking a thread to a
  * project stays an explicit act.
  */
-function ContextHeader({ conversation, label, context }: {
+function ContextHeader({ conversation, label, context, onLinked }: {
   conversation: Conversation;
   label: { primary: string; secondary: string | null };
   context: ProjectContext | null;
+  /** Re-read after linking: the answer comes back from the row, never from local state. */
+  onLinked: () => void;
 }) {
   const t = useT();
+  const [linking, setLinking] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  // Linking is an ACT, and only a person may do it. `link_conversation` (091, staff only)
+  // moves the thread and every message on it onto the project; Groundwork never does this
+  // on its own, because only the admin reading the words knows which build they are about.
+  const link = async (projectId: string) => {
+    setLinking(projectId); setLinkError(null);
+    try {
+      await linkConversation(conversation.id, projectId);
+      onLinked();
+    } catch (err) {
+      const msg = errorMessage(err, '');
+      setLinkError(msg.includes('already_linked') ? t('admin.inbox.alreadyLinked') : msg || t('common.somethingWrong'));
+    } finally {
+      setLinking(null);
+    }
+  };
   // `projects.current_stage` is a number, not a stage row — so it is said as a number
   // rather than run through the stage-name lookup, which would render nothing.
   const line = (p: InboxProject) => [
@@ -261,13 +281,18 @@ function ContextHeader({ conversation, label, context }: {
             </p>
             <ul className="mt-1 space-y-1">
               {context.projects.map(p => (
-                <li key={p.id} className="text-xs">
+                <li key={p.id} className="flex flex-wrap items-baseline gap-x-2 text-xs">
                   <Link to={`/admin/projects/${p.id}`} className="font-medium text-brand-near-black underline-offset-2 hover:underline dark:text-white">{p.name}</Link>
-                  <span className="text-brand-mid-grey"> — {line(p)}</span>
+                  <span className="text-brand-mid-grey">— {line(p)}</span>
+                  <button type="button" onClick={() => link(p.id)} disabled={linking !== null}
+                    className="rounded-lg border border-brand-border-grey px-2 py-0.5 text-[11px] font-semibold text-brand-near-black disabled:opacity-40 dark:border-[#2c2c2c] dark:text-white">
+                    {linking === p.id ? <Loader2 className="size-3 animate-spin" /> : t('admin.inbox.linkThis')}
+                  </button>
                 </li>
               ))}
             </ul>
             <p className="mt-1 text-[11px] text-brand-mid-grey">{t('admin.inbox.notLinked')}</p>
+            {linkError && <p role="alert" className="mt-1 text-[11px] text-state-alert">{linkError}</p>}
           </div>
         ) : context.project ? (
           <div className="min-w-0">
@@ -276,10 +301,21 @@ function ContextHeader({ conversation, label, context }: {
             </p>
             <p className="mt-0.5 truncate text-sm font-medium text-brand-near-black dark:text-white">{context.project.name}</p>
             <p className="truncate text-[11px] text-brand-mid-grey">{line(context.project)}</p>
-            <Link to={`/admin/projects/${context.project.id}${conversation.projectId ? `?tab=conversations&conversation=${conversation.id}` : ''}`}
-              className="mt-1 inline-block text-xs font-semibold text-brand-near-black underline-offset-2 hover:underline dark:text-white">
-              {t('admin.inbox.openProject')}
-            </Link>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <Link to={`/admin/projects/${context.project.id}${conversation.projectId ? `?tab=conversations&conversation=${conversation.id}` : ''}`}
+                className="text-xs font-semibold text-brand-near-black underline-offset-2 hover:underline dark:text-white">
+                {t('admin.inbox.openProject')}
+              </Link>
+              {/* The person owns it; nobody has said the conversation is about it. Saying so
+                  is one click, and it is a click, never an inference. */}
+              {context.kind === 'account' && (
+                <button type="button" onClick={() => link(context.project!.id)} disabled={linking !== null}
+                  className="rounded-lg border border-brand-border-grey px-2 py-0.5 text-[11px] font-semibold text-brand-near-black disabled:opacity-40 dark:border-[#2c2c2c] dark:text-white">
+                  {linking ? <Loader2 className="size-3 animate-spin" /> : t('admin.inbox.linkThis')}
+                </button>
+              )}
+            </div>
+            {linkError && <p className="mt-1 text-[11px] text-state-alert" role="alert">{linkError}</p>}
           </div>
         ) : (
           <p className="text-[11px] text-brand-mid-grey">{t('admin.inbox.noProject')}</p>
