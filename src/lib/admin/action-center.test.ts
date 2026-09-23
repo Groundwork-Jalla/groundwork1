@@ -64,9 +64,20 @@ describe('Action Center rules (03 §5)', () => {
     const items = actionCenterItems(base({ stages: [stage(1, 'complete')], payments: [{ id: 'o', projectId: 'p1', stageId: 's1', direction: 'out', state: 'failed', amount: 1000, createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T01:00:00Z' }], unmatchedEvents: [{ id: 'e', receivedAt: '2026-09-12T02:00:00Z' }] }), NOW);
     expect(items.map(i => [i.kind, i.priority])).toEqual([['disbursement_failed', 'critical'], ['disbursement_failed', 'critical']]);
   });
-  it('unanswered conversations carry the database’s band and go to the Inbox', () => {
-    const items = actionCenterItems(base({ waiting: [{ conversationId: 'c', projectId: 'p1', personName: 'Ada', waitingSince: '2026-09-13T06:00:00Z', band: 'high' }] }), NOW);
-    expect(items[0]).toMatchObject({ kind: 'unanswered_conversation', priority: 'high', projectName: 'House', to: '/admin/inbox' });
+  it('unanswered conversations carry the database’s band and open the thread itself', () => {
+    const items = actionCenterItems(base({ waiting: [{ conversationId: 'c', projectId: 'p1', personName: 'Ada', waitingSince: '2026-09-13T06:00:00Z', band: 'high', channel: 'whatsapp', preview: 'Is the foundation done?' }] }), NOW);
+    expect(items[0]).toMatchObject({
+      kind: 'unanswered_conversation', priority: 'high', projectName: 'House', personName: 'Ada',
+      channel: 'whatsapp', preview: 'Is the foundation done?',
+      // One click from "who is waiting" to answering them, with the filter kept.
+      to: '/admin/inbox?status=waiting_on_us&conversation=c',
+    });
+  });
+  it('a waiting conversation with no project is still an item — it just names no project', () => {
+    const items = actionCenterItems(base({ waiting: [{ conversationId: 'c2', projectId: null, personName: 'Ada', waitingSince: '2026-09-13T06:00:00Z', band: 'medium' }] }), NOW);
+    expect(items[0]).toMatchObject({ kind: 'unanswered_conversation', personName: 'Ada' });
+    expect(items[0].projectId).toBeUndefined();
+    expect(items[0].projectName).toBeUndefined();
   });
   it('the three queues become one item per row', () => {
     const items = actionCenterItems(base({ applications: [{ id: 'a', label: 'Bob', since: '2026-09-12T00:00:00Z' }], inquiries: [{ id: 'q', label: 'Roof', since: '2026-09-12T00:00:00Z' }], tickets: [{ id: 't', label: 'Login', since: '2026-09-12T00:00:00Z' }] }), NOW);

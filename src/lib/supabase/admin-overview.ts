@@ -104,6 +104,12 @@ export interface AdminOverviewData {
   locations: LocationCount[];
   /** conversations.status <> 'resolved' (091). null when the table is not there yet. */
   openConversations: number | null;
+  /**
+   * `conversations.status = 'waiting_on_us'` — 091's own state, the same one the Inbox
+   * counts and the Action Center bands. A client wrote and nobody has answered. null
+   * when 091 is not applied; 0 is a real zero and says so.
+   */
+  needsReply: number | null;
   /** Open and in-progress support tickets, newest first. */
   tickets: OpenTicket[];
   crm: CrmState;
@@ -153,9 +159,10 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
   ]);
   // Independent, fail-soft: 091's table may not be there; the CRM status call may fail;
   // neither may hide the page. Every miss is reported as null / empty, never as a number.
-  const [convRes, ticketsRes, crmStatusRes, outboxRes, failuresRes, inboundRes,
+  const [convRes, needsReplyRes, ticketsRes, crmStatusRes, outboxRes, failuresRes, inboundRes,
          usersRes, quotesRes, appsRes, waitlistRes, draftsRes, directoryRes] = await Promise.allSettled([
     supabase.from('conversations').select('id', { count: 'exact', head: true }).neq('status', 'resolved'),
+    supabase.from('conversations').select('id', { count: 'exact', head: true }).eq('status', 'waiting_on_us'),
     listOpenSupportTickets(5),
     getCrmStatus(),
     listCrmBacklog(),
@@ -268,6 +275,11 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     : convRes.status === 'fulfilled' && isMissingTable(convRes.value.error) ? null
     : null;
 
+  // Needs reply, counted the same way: a number is a number, a missing 091 is null.
+  // Zero is a real answer and is shown as zero, never as "nothing to see".
+  const needsReply =
+    needsReplyRes.status === 'fulfilled' && !needsReplyRes.value.error ? (needsReplyRes.value.count ?? 0) : null;
+
   const tickets: OpenTicket[] = ticketsRes.status === 'fulfilled'
     ? ticketsRes.value.map(t => ({ id: t.id, subject: t.subject, who: t.name || t.email, status: t.status, createdAt: t.created_at }))
     : [];
@@ -336,6 +348,7 @@ export async function loadAdminOverview(now: Date = new Date()): Promise<AdminOv
     activityAvailable,
     locations,
     openConversations,
+    needsReply,
     tickets,
     crm,
   };

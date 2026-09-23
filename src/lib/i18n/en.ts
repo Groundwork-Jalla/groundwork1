@@ -418,6 +418,8 @@ export const en = {
       openSettings: 'Open CRM',
     },
     kpiRow: {
+      needsReply:        'Needs reply',
+      needsReplySub:     'Clients waiting on us',
       totalProjects:    'Total projects',
       pendingReviews:   'Pending reviews',
       totalUsers:       'Total users',

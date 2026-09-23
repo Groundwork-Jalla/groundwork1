@@ -46,6 +46,10 @@ export interface ActionItem {
   stageNumber?: number;
   /** Where one click takes the admin (a queue, or the Workspace deep link). */
   to: string;
+  /** The conversation's channel, for a waiting conversation. */
+  channel?: string;
+  /** The last message on a waiting conversation — triage without opening it. */
+  preview?: string;
   /** Stable key for React lists and de-duplication. */
   key: string;
 }
@@ -64,6 +68,10 @@ export interface ActionVerifierCount { projectId: string; active: number }
 export interface WaitingConversation {
   conversationId: string; projectId: string | null; personName?: string;
   waitingSince: string; band: 'medium' | 'high' | 'critical';
+  /** The channel it came in on, so the row says WhatsApp rather than "a conversation". */
+  channel?: string;
+  /** The last message, as stored. An internal note is not offered as one. */
+  preview?: string;
 }
 export interface QueueRow { id: string; label: string; since: string }
 export interface UnmatchedEvent { id: string; receivedAt: string }
@@ -204,7 +212,11 @@ export function actionCenterItems(input: ActionCenterInput, now: Date, workspace
     items.push({
       kind: 'unanswered_conversation', priority: w.band, since: w.waitingSince,
       projectId: w.projectId ?? undefined, projectName: project?.name, personName: w.personName,
-      to: '/admin/inbox', key: `conversation:${w.conversationId}`,
+      channel: w.channel, preview: w.preview,
+      // Straight to the thread, not to the list: one click from "who is waiting" to
+      // answering them. The Inbox selects by id and keeps the filter in the URL.
+      to: `/admin/inbox?status=waiting_on_us&conversation=${w.conversationId}`,
+      key: `conversation:${w.conversationId}`,
     });
   }
 

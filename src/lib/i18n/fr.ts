@@ -425,6 +425,8 @@ export const fr: Mirror<EnDict> = {
       openSettings: 'Ouvrir le CRM',
     },
     kpiRow: {
+      needsReply:        'Réponse attendue',
+      needsReplySub:     'Clients qui attendent notre réponse',
       totalProjects:    'Projets au total',
       pendingReviews:   'Revues en attente',
       totalUsers:       'Utilisateurs',

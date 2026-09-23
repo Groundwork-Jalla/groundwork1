@@ -150,3 +150,69 @@ describe('D. project context: stated, never guessed, never written', () => {
     }
   });
 });
+
+/**
+ * 06 §20 — the Overview knows who is waiting.
+ *
+ * One truth, `conversations.status = 'waiting_on_us'`, counted by the Overview, banded by
+ * the database for the Action Center, and filtered by the Inbox. No second definition of
+ * "needs attention", no read state, and nothing written from the Overview.
+ */
+describe('Overview integration', () => {
+  const overview = code('src/lib/supabase/admin-overview.ts');
+  const page = code('src/app/routes/admin/index.tsx');
+  const centre = code('src/lib/admin/action-center.ts');
+  const loader = code('src/lib/supabase/action-center.ts');
+  const list = code('src/components/admin/overview/AttentionList.tsx');
+
+  it('the KPI counts waiting_on_us — not "not resolved", not an invention', () => {
+    expect(overview).toContain("select('id', { count: 'exact', head: true }).eq('status', 'waiting_on_us')");
+    expect(page).toContain('value={data ? data.needsReply : null}');
+    expect(page).toContain('labelKey="admin.kpiRow.needsReply"');
+  });
+
+  it('unavailable, error and zero stay different things', () => {
+    // A missing 091 is null (the card shows "not available"); a real zero is 0.
+    expect(overview).toContain("needsReplyRes.status === 'fulfilled' && !needsReplyRes.value.error ? (needsReplyRes.value.count ?? 0) : null");
+  });
+
+  it('the KPI opens exactly the conversations it counted', () => {
+    expect(src('src/lib/admin/overview-links.ts')).toContain("conversations:  '/admin/inbox?status=waiting_on_us'");
+    expect(code('src/app/routes/admin/inbox.tsx')).toContain("params.get('status')");
+  });
+
+  it('attention rows carry the person, the channel and what was said, and open the thread', () => {
+    expect(centre).toContain('to: `/admin/inbox?status=waiting_on_us&conversation=${w.conversationId}`');
+    expect(list).toContain('{item.preview && <span');
+    expect(list).toContain("item.channel && t(`admin.workspace.conversations.channel.${item.channel}` as TKey)");
+  });
+
+  it('an internal note is never offered as the thing the client is waiting on', () => {
+    expect(loader).toContain("previews.get(w.conversationId)?.direction === 'internal' ? undefined : previews.get(w.conversationId)?.content");
+  });
+
+  it('the extra reads are bounded by the waiting list and skipped when it is empty', () => {
+    expect(loader).toContain('waitingIds.length === 0');
+    expect(loader).toContain('listConversationPreviews(waitingIds)');
+  });
+
+  it('the Overview never infers a project for a conversation, and never writes', () => {
+    expect(centre).toContain('const project = w.projectId ? projectById.get(w.projectId) : undefined;');
+    for (const f of ['src/lib/supabase/admin-overview.ts', 'src/lib/supabase/action-center.ts', 'src/components/admin/overview/AttentionList.tsx', 'src/app/routes/admin/index.tsx']) {
+      expect(code(f), f).not.toMatch(/\.update\(|\.insert\(|sendConversationMessage|resolveConversation|assignConversation|linkConversation/);
+    }
+  });
+
+  it('no unread state was invented on the Overview either', () => {
+    for (const f of [overview, loader, list, page]) expect(f).not.toMatch(/conversation_reads|last_read_at|unread/i);
+  });
+
+  it('both dictionaries carry the KPI strings, translated', () => {
+    for (const k of ['needsReply', 'needsReplySub']) {
+      const e = lookup(en, `admin.kpiRow.${k}`), f = lookup(fr, `admin.kpiRow.${k}`);
+      expect(e, k).toBeTypeOf('string');
+      expect(f, k).toBeTypeOf('string');
+      expect(e, `${k} is not translated`).not.toBe(f);
+    }
+  });
+});

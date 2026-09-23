@@ -31,7 +31,11 @@ export function AttentionList({ items, now, limit }: { items: ActionItem[]; now:
         const age = hours >= 48
           ? t('admin.attention.ageDays', { days: Math.round(hours / 24) })
           : t('admin.attention.age', { hours: Math.max(1, Math.round(hours)) });
-        const context = [item.projectName, item.personName].filter(Boolean).join(' · ');
+        // Person · project · channel. A conversation with no project says nothing about
+        // one rather than borrowing the person's other builds — that inference belongs to
+        // the Inbox, where an admin can see which project it might be.
+        const context = [item.personName, item.projectName, item.channel && t(`admin.workspace.conversations.channel.${item.channel}` as TKey)]
+          .filter(Boolean).join(' · ');
         return (
           <li key={item.key}>
             <Link
@@ -47,6 +51,8 @@ export function AttentionList({ items, now, limit }: { items: ActionItem[]; now:
                     <span className="font-normal text-brand-mid-grey"> · {t('admin.ops.pipelineStage', { n: item.stageNumber })}</span>
                   )}
                 </span>
+                {/* What they actually said, when we have it: triage without opening it. */}
+                {item.preview && <span className="mt-0.5 block truncate text-xs text-brand-near-black dark:text-white">{item.preview}</span>}
                 {context && <span className="mt-0.5 block truncate text-[11px] text-brand-mid-grey">{context}</span>}
               </span>
               <span className="shrink-0 tabular-nums text-[11px] text-brand-mid-grey">{age}</span>

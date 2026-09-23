@@ -125,7 +125,7 @@ export default function AdminOverview() {
             <Kpi labelKey="admin.kpiRow.totalUsers"     value={data ? data.totalUsers : null}             to={KPI_LINKS.totalUsers}     subtitle={t('admin.kpiRow.totalUsersSub')} />
             <Kpi labelKey="admin.kpiRow.applications"   value={data?.backlog.pendingApplications ?? null} to={KPI_LINKS.applications}   subtitle={t('admin.kpiRow.applicationsSub')} />
             <Kpi labelKey="admin.kpiRow.quoteRequests"  value={data ? data.quoteRequests : null}          to={KPI_LINKS.quoteRequests}  subtitle={t('admin.kpiRow.quoteRequestsSub')} />
-            <Kpi labelKey="admin.kpiRow.conversations"  value={data ? data.openConversations : null}      to={KPI_LINKS.conversations}  subtitle={t('admin.kpiRow.conversationsSub')} />
+            <Kpi labelKey="admin.kpiRow.needsReply"     value={data ? data.needsReply : null}              to={KPI_LINKS.conversations}  subtitle={t('admin.kpiRow.needsReplySub')} />
             <Kpi labelKey="admin.kpiRow.atRisk"         value={data ? atRisk : null}                      to={KPI_LINKS.atRisk}         subtitle={t('admin.kpiRow.atRiskSub')}       accent="alert" />
             <Kpi labelKey="admin.kpiRow.pendingBudgets" value={data?.backlog.pendingBudgets ?? null}      to={KPI_LINKS.pendingBudgets} subtitle={t('admin.kpiRow.pendingBudgetsSub')} accent="held" />
           </div>

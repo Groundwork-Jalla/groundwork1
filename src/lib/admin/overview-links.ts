@@ -29,10 +29,11 @@ export const KPI_LINKS = {
   applications:   '/admin/applications?status=pending',
   quoteRequests:  '/admin/inquiries?status=open',
   /**
-   * The Inbox is not built (Phase 6). The destination is its honest placeholder rather
-   * than a nearer page that would show something else and call it conversations.
+   * Needs reply — `conversations.status = 'waiting_on_us'`, 091's own state. The Inbox
+   * reads `status` and shows exactly those, so the number and the page agree by
+   * construction rather than by two definitions kept in step by hand.
    */
-  conversations:  '/admin/inbox?status=active',
+  conversations:  '/admin/inbox?status=waiting_on_us',
   /** `projectHealth(p).band === 'at_risk'` — the same call the Overview counted with. */
   atRisk:         '/admin/projects?health=at_risk',
   /** The page is the queue: Management projects with no `tracking_started_at`. */

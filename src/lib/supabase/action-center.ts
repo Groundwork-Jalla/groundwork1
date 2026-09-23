@@ -5,6 +5,7 @@ import { listAllPayments } from './payments';
 import { unansweredConversations } from './conversations';
 import { listOpenSupportTickets } from './support';
 import { actionCenterItems, type ActionCenterInput, type ActionItem } from '@/lib/admin/action-center';
+import { listConversationPreviews, listConversations } from './conversations';
 import type { StageVerification } from './verifications';
 
 // =========================================================
@@ -62,6 +63,16 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
   if (appsRes.error) throw appsRes.error;
   if (inqRes.error)  throw inqRes.error;
 
+  // Two more reads, both bounded by the waiting list and skipped entirely when it is
+  // empty: what channel each waiting thread is on, and what was last said on it.
+  const waitingIds = waiting.rows.map(w => w.conversationId);
+  const [channelOf, previews] = waitingIds.length === 0
+    ? [new Map<string, string>(), new Map<string, { content: string; direction: string }>()]
+    : await Promise.all([
+        listConversations().then(r => new Map(r.rows.map(c => [c.id, c.channel as string]))).catch(() => new Map<string, string>()),
+        listConversationPreviews(waitingIds).then(r => r.previews as Map<string, { content: string; direction: string }>).catch(() => new Map<string, { content: string; direction: string }>()),
+      ]);
+
   const activeVerifiers = new Map<string, number>();
   for (const r of verifiersRes.rows) activeVerifiers.set(str(r.project_id), (activeVerifiers.get(str(r.project_id)) ?? 0) + 1);
 
@@ -92,6 +103,9 @@ export async function loadActionCenter(now: Date = new Date(), workspaceReady = 
     waiting: waiting.rows.map(w => ({
       conversationId: w.conversationId, projectId: w.projectId, waitingSince: w.waitingSince, band: w.band,
       personName: w.personId ? (owners.get(w.personId)?.name || owners.get(w.personId)?.email) : undefined,
+      channel: channelOf.get(w.conversationId),
+      // The client's last word. A staff internal note is not offered as the thing waiting.
+      preview: previews.get(w.conversationId)?.direction === 'internal' ? undefined : previews.get(w.conversationId)?.content,
     })),
     applications: ((appsRes.data ?? []) as Row[]).map(a => ({ id: str(a.id), label: str(a.full_name) || str(a.email), since: str(a.created_at) })),
     inquiries:    ((inqRes.data ?? []) as Row[]).map(q => ({ id: str(q.id), label: str(q.name) || str(q.location), since: str(q.created_at) })),
