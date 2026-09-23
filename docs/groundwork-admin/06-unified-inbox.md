@@ -607,3 +607,18 @@ await fetch('/api/events?action=crm-link-contacts', { method: 'POST', headers: {
 // review, then:
 // … body: JSON.stringify({ apply: true }) …
 ```
+
+## 18. The Inbox, and the round trip proven in production (23 Sep 2026)
+
+`a547d67` — `/admin/inbox`: every conversation, project or not; the Phase 5 thread extracted into `ConversationThread` and shared by the Inbox and the workspace tab; `?conversation=`, `?status=active`, `?channel=whatsapp` all read; Inbox and WhatsApp no longer placeholders. Delivery is asked for **by channel, never by provider**: the composer calls `deliverMessage()`, and `conversation-deliver` maps channel → provider in one table (`{ whatsapp: 'ghl', email: null, call: null, jalla: null }`). GHL is the WhatsApp *transport*; the conversation, the messages and the screen are Groundwork's. Replacing that provider later touches one arm of that table.
+
+**Production evidence (23 Sep, 00:35–00:37 UTC).** Two real client messages arrived through the Ed25519 door, `handled_at` set, filed onto one thread (`ghl_conversation_id V5m3ms8Gc1S3asb1pdUM`, person `favour@tryjalla.com`, no project — as designed). Both render in `/admin/inbox?channel=whatsapp`. A reply typed in Groundwork was written by `send_message`, delivered through GHL, stamped `status=sent` with the provider's id (`qPT0NAuaatQjx5CRtu1X…`, `ghl_synced_at` +3.6 s), **arrived on the client's phone**, and 091 moved the thread to `waiting_on_them`. Three message rows for three messages; the workflow-webhook copies were refused by the parser, as intended.
+
+```
+WhatsApp → GHL → signed InboundMessage → Groundwork → conversation + messages
+         → Admin Inbox → reply → delivery layer → GHL → WhatsApp ✅
+```
+
+**Findings, logged not fixed.** (1) `send_message` (091) hard-codes `channel = 'jalla'` on insert instead of inheriting the thread's channel, so an outbound WhatsApp reply is recorded as `jalla`; delivery is unaffected (the *conversation's* channel picks the provider), but the row misdescribes how it left — a one-line fix in a future migration. (2) The Inbox shows `favour@tryjalla.com` and `phavorfavor@gmail.com` because both profiles have an empty `full_name` and every label falls back to the address: the person and the staff sender are both correct, the labels are fallbacks.
+
+**Phase 6.2 is closed.** What remains on the Inbox — names over addresses, list previews, unread state, search, filters, assignment — is product work on a working screen, not plumbing.
