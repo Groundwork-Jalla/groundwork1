@@ -13,6 +13,10 @@ interface AuthContextValue {
   isAdmin: boolean;
   /** False until the admin check has resolved for the current session. */
   adminChecked: boolean;
+  /** True when the signed-in user holds the `verifier` role (user_roles, RLS-trusted). */
+  isVerifier: boolean;
+  /** False until the role check has resolved for the current session. */
+  rolesChecked: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -23,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
+  const [isVerifier, setIsVerifier] = useState(false);
+  const [rolesChecked, setRolesChecked] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -80,12 +86,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [loading, session?.user?.id]);
 
+  // The verifier role, from the same canonical table and behind the same `loading` guard
+  // as the admin check — for the same reason: a "no" computed before the session is
+  // restored is not an answer, and a layout that believed it would bounce a verifier out
+  // of their own surface on every refresh.
+  useEffect(() => {
+    let cancelled = false;
+    if (loading) return;
+
+    const uid = session?.user?.id;
+    if (!uid) { setIsVerifier(false); setRolesChecked(true); return; }
+
+    setRolesChecked(false);
+    (async () => {
+      const { data, error } = await supabase
+        .from('user_roles').select('role').eq('user_id', uid).eq('role', 'verifier').limit(1);
+      if (cancelled) return;
+      setIsVerifier(!error && (data?.length ?? 0) > 0);
+      setRolesChecked(true);
+    })();
+
+    return () => { cancelled = true; };
+  }, [loading, session?.user?.id]);
+
   async function signOut() {
     await supabase.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, rolesChecked, signOut }}>
       {children}
     </AuthContext.Provider>
   );

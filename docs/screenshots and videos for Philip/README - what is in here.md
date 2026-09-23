@@ -7,7 +7,7 @@ from the running application — no mockups, no redrawn screens.
 
 ## The video
 
-`video/Groundwork - client journey.mp4` — **1 min 15 sec**, no sound.
+`video/Groundwork - client journey.mp4` — **1 min 8 sec**, no sound.
 The client's path end to end: the public site → signing up → the dashboard → describing a
 build → the live estimate → tracking the build → stage payments → the verified certificate.
 

@@ -65,6 +65,14 @@ export default [
   route("admin/login",           "routes/admin/login.tsx"),
 
   // Admin panel (role-guarded inside its own layout)
+  // ── /verifiers — the independent verifier's surface (06 §22) ──
+  // A separate product from /admin: the same core data, a different actor, a different
+  // authority. The gate is the role; the isolation is RLS (086/087).
+  layout("routes/verifiers/_layout.tsx", [
+    route("verifiers",     "routes/verifiers/index.tsx"),
+    route("verifiers/:id", "routes/verifiers/detail.tsx"),
+  ]),
+
   layout("routes/admin/_admin-layout.tsx", [
     route("admin",               "routes/admin/index.tsx"),
     // Both are what the Overview's "See all" opens onto: the full Action Center queue and
