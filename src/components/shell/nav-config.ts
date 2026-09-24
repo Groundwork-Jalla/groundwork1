@@ -109,8 +109,6 @@ export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: s
   'tasks':         { labelKey: 'nav.tasks' },
   'site-managers': { labelKey: 'nav.siteManagers' },
   'agents':        { labelKey: 'nav.agents' },
-  'analytics':     { labelKey: 'nav.analytics' },
-  'team':          { labelKey: 'nav.teamPermissions', existingTo: '/admin/users',  existingKey: 'nav.users' },
   'settings':      { labelKey: 'nav.adminSettings' },
 };
 

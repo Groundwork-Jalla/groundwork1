@@ -91,6 +91,8 @@ export default [
     // the full activity log. They ship with the Overview because a five-row preview whose
     // See all lands on a placeholder is the dead end the Overview must not have.
     route("admin/action-center", "routes/admin/action-center.tsx"),
+    route("admin/analytics",     "routes/admin/analytics.tsx"),
+    route("admin/team",          "routes/admin/team.tsx"),
     route("admin/audit-log",     "routes/admin/audit-log.tsx"),
     route("admin/reviews",       "routes/admin/reviews.tsx"),
     route("admin/site-updates",  "routes/admin/site-updates.tsx"),

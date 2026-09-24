@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, AlertTriangle, Mail } from 'lucide-react';
+import { Link } from 'react-router';
+import { Loader2, Search, AlertTriangle, MessagesSquare } from 'lucide-react';
 import {
   listSupportTickets, updateSupportTicket,
   type SupportTicket, type TicketStatus,
 } from '@/lib/supabase/support';
+import { linkTicket, listConversations, type Conversation } from '@/lib/supabase/conversations';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
@@ -42,6 +44,15 @@ export default function AdminSupport() {
   const [filter, setFilter]   = useState<'open' | 'all'>('open');
   const [busyId, setBusyId]   = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  /**
+   * The person's existing threads (091), so a reply happens in Groundwork rather than in
+   * whatever mail client the operator happens to have open. A ticket is a CASE with a
+   * lifecycle; the words belong in the one conversation store, never a second one.
+   *
+   * `null` while unknown and when 091 is absent — the action is then honestly
+   * unavailable rather than a button that does nothing.
+   */
+  const [threads, setThreads] = useState<Map<string, Conversation> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -51,6 +62,35 @@ export default function AdminSupport() {
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [t]);
+
+  // One read for the page: every conversation, indexed by the person it is with. The
+  // newest thread per person wins — that is the one an operator would answer in.
+  useEffect(() => {
+    let alive = true;
+    listConversations()
+      .then(({ rows, available }) => {
+        if (!alive) return;
+        if (!available) { setThreads(null); return; }
+        const byPerson = new Map<string, Conversation>();
+        for (const c of rows) {
+          if (!c.personId) continue;
+          const seen = byPerson.get(c.personId);
+          if (!seen || (c.lastMessageAt ?? c.createdAt) > (seen.lastMessageAt ?? seen.createdAt)) byPerson.set(c.personId, c);
+        }
+        setThreads(byPerson);
+      })
+      .catch(() => { if (alive) setThreads(null); });
+    return () => { alive = false; };
+  }, []);
+
+  /**
+   * Opening the thread also records that this ticket is about it (`link_ticket`, 091),
+   * so the case and the conversation stop being two unrelated facts. A failure to link
+   * must not stop an operator answering a customer, so it is logged, not surfaced.
+   */
+  function noteLink(ticket: SupportTicket, conversationId: string) {
+    void linkTicket(ticket.id, undefined, conversationId).catch(() => { /* the reply matters more */ });
+  }
 
   async function setStatus(ticket: SupportTicket, status: TicketStatus) {
     setBusyId(ticket.id); setSaveError(null);
@@ -174,10 +214,7 @@ export default function AdminSupport() {
                   </div>
                   <p className="mt-0.5 text-xs text-brand-mid-grey">
                     {r.name ? `${r.name} · ` : ''}
-                    <a href={`mailto:${r.email}?subject=Re: ${encodeURIComponent(r.subject)}`}
-                       className="underline underline-offset-2 hover:text-brand-near-black">
-                      {r.email}
-                    </a>
+                    <span>{r.email}</span>
                     {' · '}
                     <span className="tabular-nums">{fmt(r.created_at)}</span>
                     {/* The account may since have been closed; the ticket outlives it. */}
@@ -186,12 +223,30 @@ export default function AdminSupport() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  <a
-                    href={`mailto:${r.email}?subject=Re: ${encodeURIComponent(r.subject)}`}
-                    className="flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
-                  >
-                    <Mail className="size-3" /> {t('admin.support.reply')}
-                  </a>
+                  {/* Reply where the conversation is, not in a mail client Groundwork
+                      cannot see. No thread with this person yet: say so. */}
+                  {(() => {
+                    const thread = r.user_id && threads ? threads.get(r.user_id) : undefined;
+                    if (thread) {
+                      return (
+                        <Link
+                          to={`/admin/inbox?conversation=${thread.id}`}
+                          onClick={() => noteLink(r, thread.id)}
+                          className="flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white"
+                        >
+                          <MessagesSquare className="size-3" /> {t('admin.support.openThread')}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <span
+                        title={t(threads === null ? 'admin.support.inboxUnavailable' : 'admin.support.noThreadHint')}
+                        className="flex cursor-default items-center gap-1.5 rounded-lg border border-dashed border-brand-border-grey px-2.5 py-1.5 text-xs font-medium text-brand-mid-grey"
+                      >
+                        <MessagesSquare className="size-3" /> {t('admin.support.noThread')}
+                      </span>
+                    );
+                  })()}
                   <select
                     value={r.status}
                     disabled={busyId === r.id}
