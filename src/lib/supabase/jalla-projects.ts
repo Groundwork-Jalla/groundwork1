@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { ownerLookup } from './admin-users';
+import { ownerLookup, listAdminUsers } from './admin-users';
 import { isMissingTable } from '@/lib/errors';
 
 /**
@@ -26,6 +26,54 @@ export interface JallaProject {
   ownerId: string | null;
   ownerName: string | null;
   ownerEmail: string | null;
+}
+
+/** An account, and the projects it owns. The unit the picker's first step works in. */
+export interface JallaAccount {
+  id: string;
+  name: string | null;
+  email: string | null;
+  projects: JallaProject[];
+}
+
+/**
+ * Every account, grouped with the projects it owns.
+ *
+ * Accounts with no project are kept and returned with an empty list rather than filtered
+ * out: an admin looking for somebody needs to find them and be told why they cannot be
+ * messaged, not wonder whether the search is broken. A Jalla message is about a build, so
+ * an account with no build has nothing to attach one to — and the picker says exactly
+ * that instead of hiding the row.
+ */
+export async function listAccountsForJalla(): Promise<{ rows: JallaAccount[]; available: boolean }> {
+  const [{ rows: projects, available }, people] = await Promise.all([
+    listProjectsForJalla(),
+    listAdminUsers().catch(() => [] as Awaited<ReturnType<typeof listAdminUsers>>),
+  ]);
+  if (!available) return { rows: [], available: false };
+
+  const byOwner = new Map<string, JallaProject[]>();
+  for (const p of projects) {
+    if (!p.ownerId) continue;
+    byOwner.set(p.ownerId, [...(byOwner.get(p.ownerId) ?? []), p]);
+  }
+
+  const accounts = new Map<string, JallaAccount>();
+  for (const u of people) {
+    accounts.set(u.id, { id: u.id, name: u.fullName || null, email: u.email || null, projects: byOwner.get(u.id) ?? [] });
+  }
+  // An owner the account list could not name still owns projects that can be messaged
+  // about. Keep them, identified by whatever the project itself carries.
+  for (const [ownerId, owned] of byOwner) {
+    if (accounts.has(ownerId)) continue;
+    accounts.set(ownerId, { id: ownerId, name: owned[0]?.ownerName ?? null, email: owned[0]?.ownerEmail ?? null, projects: owned });
+  }
+
+  // Accounts that can actually be messaged first; then by name, so the list is stable.
+  const rows = [...accounts.values()].sort((a, b) =>
+    Number(b.projects.length > 0) - Number(a.projects.length > 0)
+    || (a.name ?? a.email ?? '').localeCompare(b.name ?? b.email ?? ''));
+  return { rows, available: true };
 }
 
 export async function listProjectsForJalla(): Promise<{ rows: JallaProject[]; available: boolean }> {

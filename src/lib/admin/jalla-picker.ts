@@ -1,4 +1,4 @@
-import type { JallaProject } from '@/lib/supabase/jalla-projects';
+import type { JallaAccount, JallaProject } from '@/lib/supabase/jalla-projects';
 
 // =========================================================
 // Choosing a project to message about (01 §3 COMMUNICATION) — pure.
@@ -27,6 +27,21 @@ export function matchesProject(p: JallaProject, query: string): boolean {
 export function canMessage(p: JallaProject): boolean {
   return !!p.ownerId;
 }
+
+/**
+ * Matches an account by the things written on its row, or by any project it owns — so
+ * typing a project name finds the person who owns it, which is how an admin who
+ * remembers the build but not the client will actually search.
+ */
+export function matchesAccount(a: JallaAccount, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if ([a.name ?? '', a.email ?? ''].some(v => v.toLowerCase().includes(q))) return true;
+  return a.projects.some(p => matchesProject(p, q));
+}
+
+/** Nothing to attach a message to. Shown, disabled, and told why. */
+export const canMessageAccount = (a: JallaAccount): boolean => a.projects.some(canMessage);
 
 /** Where the Inbox opens a native thread. Same addressing as every other admin deep link. */
 export const jallaHref = (conversationId: string): string =>

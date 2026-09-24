@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { ArrowLeft, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
 import { openClientWhatsApp } from '@/lib/supabase/project-whatsapp';
 import { ensureProjectConversation } from '@/lib/supabase/conversations';
-import { jallaHref } from '@/lib/admin/jalla-picker';
+import { workspaceHref } from '@/lib/admin/workspace-params';
 import { inboxHref } from '@/lib/admin/whatsapp-shortcut';
 import type { Workspace } from '@/lib/admin/workspace';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
@@ -64,16 +64,22 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
    * a bug. Nothing is created unless the provider actually answered.
    */
   /**
-   * This project's native thread. `ensure_project_conversation` returns the existing one
-   * or creates it under an advisory lock, so there is no picker to show and no way to
-   * end up with two. Unlike WhatsApp, the thread is the PROJECT's — two projects of the
-   * same client are two conversations, which is the right shape when Groundwork owns the
-   * model rather than a provider.
+   * This project's native thread, opened WITHOUT leaving the project.
+   *
+   * The Conversations tab is already here and already renders this exact thread, so
+   * sending the admin to the Inbox would cost them the stage, the budget and the team
+   * they were looking at in order to read a message about them. WhatsApp goes to the
+   * Inbox because its thread belongs to the person and spans every project; this one is
+   * the project's own.
+   *
+   * `ensure_project_conversation` returns the existing thread or creates it under an
+   * advisory lock, so there is no picker to show and no way to end up with two.
    */
   async function jalla() {
     setJallaBusy(true);
     try {
-      navigate(jallaHref(await ensureProjectConversation(p.id)));
+      const id = await ensureProjectConversation(p.id);
+      navigate(workspaceHref(p.id, { tab: 'conversations', conversationId: id }));
     } catch (err) {
       onNotice(errorMessage(err, t('common.somethingWrong')));
     } finally {

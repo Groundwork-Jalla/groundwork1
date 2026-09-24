@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { matchesProject, canMessage, jallaHref } from './jalla-picker';
-import type { JallaProject } from '@/lib/supabase/jalla-projects';
+import { matchesProject, matchesAccount, canMessage, canMessageAccount, jallaHref } from './jalla-picker';
+import type { JallaAccount, JallaProject } from '@/lib/supabase/jalla-projects';
 import { lookup } from '@/lib/i18n/translate';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
@@ -25,6 +25,51 @@ const migration = src('supabase/migrations/091_conversations.sql');
 const proj = (o: Partial<JallaProject> = {}): JallaProject => ({
   id: 'j1', name: 'House of Lux', status: 'active', city: 'Douala', country: 'CM',
   currentStage: 3, ownerId: 'mary', ownerName: 'Mary Smith', ownerEmail: 'mary@example.cm', ...o,
+});
+
+const acct = (o: Partial<JallaAccount> = {}): JallaAccount => ({
+  id: 'mary', name: 'Mary Smith', email: 'mary@example.cm', projects: [proj()], ...o,
+});
+
+describe('account first, then project — but the project still decides', () => {
+  it('the account step narrows the list; it never reaches the RPC', () => {
+    // Only a project id is ever sent, so choosing an account cannot pair a project with
+    // the wrong person — the person is not an argument.
+    expect(modal).toContain('ensureProjectConversation(project.id)');
+    expect(modal).toContain('setAccount(a)');
+    expect(modal).not.toMatch(/ensureProjectConversation\([^)]*account/);
+  });
+
+  it('an account with no project is shown, disabled, and told why', () => {
+    expect(canMessageAccount(acct())).toBe(true);
+    expect(canMessageAccount(acct({ projects: [] }))).toBe(false);
+    expect(canMessageAccount(acct({ projects: [proj({ ownerId: null })] }))).toBe(false);
+    expect(modal).toContain('noProjectsForAccount');
+    // Hidden rows make a search look broken; a disabled row with a reason does not.
+    expect(modal).toContain('disabled={!ok}');
+  });
+
+  it('typing a project name finds the account that owns it', () => {
+    const a = acct({ name: 'Mary Smith', projects: [proj({ name: 'House of Lux' })] });
+    expect(matchesAccount(a, 'house')).toBe(true);
+    expect(matchesAccount(a, 'mary')).toBe(true);
+    expect(matchesAccount(a, 'mary@example')).toBe(true);
+    expect(matchesAccount(a, 'yaounde')).toBe(false);
+    expect(matchesAccount(a, '')).toBe(true);
+  });
+
+  it('going back to the account list clears the pick', () => {
+    expect(modal).toContain('function back() { setAccount(null); setPicked(null); }');
+  });
+
+  it('accounts that can be messaged sort first', () => {
+    expect(loader).toContain('Number(b.projects.length > 0) - Number(a.projects.length > 0)');
+  });
+
+  it('an owner the account list cannot name still appears, from the project', () => {
+    expect(loader).toContain('if (accounts.has(ownerId)) continue;');
+    expect(loader).toContain('name: owned[0]?.ownerName ?? null');
+  });
 });
 
 describe('the project determines the client — it is not a second choice', () => {
@@ -109,9 +154,13 @@ describe('the entry points', () => {
     expect(inbox).toContain('admin.jalla.newMessage');
   });
 
-  it('inside a project there is no picker — it opens that project\'s thread', () => {
-    expect(header).toContain('jallaHref(await ensureProjectConversation(p.id))');
+  it('inside a project there is no picker, and it does not leave the project', () => {
+    // The Conversations tab already renders this thread. Sending the admin to the Inbox
+    // would cost them the stage, budget and team they were looking at.
+    expect(header).toContain("workspaceHref(p.id, { tab: 'conversations', conversationId: id })");
+    expect(header).toContain('ensureProjectConversation(p.id)');
     expect(header).not.toContain('NewJallaMessage');
+    expect(header).not.toContain('jallaHref');
   });
 
   it('both land on the same addressing the Inbox already reads', () => {
@@ -149,7 +198,7 @@ describe('honest states', () => {
   it('unreadable, empty and no-match are three different answers', () => {
     expect(modal).toContain('state === null || !state.available');
     expect(modal).toContain('admin.jalla.unavailable');
-    expect(modal).toContain('admin.jalla.noProjects');
+    expect(modal).toContain('admin.jalla.noAccounts');
     expect(modal).toContain('admin.jalla.noMatch');
   });
 
@@ -165,6 +214,8 @@ describe('EN and FR parity', () => {
       'admin.jalla.newMessage', 'admin.jalla.newTitle', 'admin.jalla.newSub', 'admin.jalla.search',
       'admin.jalla.start', 'admin.jalla.message', 'admin.jalla.noOwner', 'admin.jalla.ownerUnknown',
       'admin.jalla.noProjects', 'admin.jalla.noMatch', 'admin.jalla.unavailable', 'admin.jalla.confirm',
+      'admin.jalla.pickProject', 'admin.jalla.searchProjects', 'admin.jalla.projectCount',
+      'admin.jalla.noProjectsForAccount', 'admin.jalla.noAccounts',
     ];
     for (const key of keys) {
       const e = lookup(en, key), f = lookup(fr, key);
