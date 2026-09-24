@@ -43,7 +43,7 @@ describe('the workspace says who is on the project', () => {
     expect(c).toContain('onChanged();');
     expect(c).not.toMatch(/setContractors|setVerifiers|contractors\.push/);
     expect(code('src/app/routes/admin/projects.detail.tsx'))
-      .toContain('<OverviewTab loaded={loaded} stageId={stageId} onChanged={reload} onNotice={n => { setNotice(n); reload(); }} />');
+      .toContain('<TeamTab loaded={loaded} onChanged={reload} onNotice={n => { setNotice(n); reload(); }} />');
   });
 
   it('empty is said plainly, and 086 missing is "not available" rather than "nobody"', () => {
@@ -72,6 +72,12 @@ describe('the workspace says who is on the project', () => {
       // 'Client' is the same word in both languages; everything else must differ.
       if (k !== 'client') expect(e, `${k} is not translated`).not.toBe(f);
     }
+  });
+
+  it('the tab bar keeps its promise: Team is a real destination, and the card lives there, not on Overview', () => {
+    expect(code('src/components/admin/workspace/TeamTab.tsx')).toContain('<TeamCard ws={ws}');
+    expect(code('src/components/admin/workspace/OverviewTab.tsx')).not.toContain('TeamCard');
+    expect(code('src/app/routes/admin/projects.detail.tsx')).toContain("tab === 'team' ?");
   });
 
   it('the project workspace does not become the contractor or verifier product', () => {

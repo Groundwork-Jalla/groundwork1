@@ -89,3 +89,63 @@ export function isSiteUpdatesUnavailable(err: unknown): boolean {
   const code = (err as { code?: string } | null)?.code;
   return code === 'PGRST202'; // function not found
 }
+
+/**
+ * Every site update across every project, newest first — the admin's field feed
+ * (01 §3, "Site Updates").
+ *
+ * The per-project reader above answers "what happened on this build"; this answers "what
+ * has happened on site anywhere", which is a different question and the reason the
+ * sidebar has its own item for it. Same table, no second entity.
+ *
+ * Names are resolved in one lookup rather than per row, and a project the admin cannot
+ * see simply does not appear — RLS decides that, not this function.
+ */
+export interface SiteUpdateFeedRow extends SiteUpdate {
+  projectName: string;
+  stageNumber: number | null;
+  stageName: string;
+  substageName: string | null;
+  reporterName: string;
+}
+
+export async function listAllSiteUpdates(limit = 200):
+  Promise<{ rows: SiteUpdateFeedRow[]; available: boolean }> {
+  const { data, error } = await supabase
+    .from('site_updates')
+    .select('*, projects(name), project_stages(stage_number, name), project_substages(name)')
+    .order('submitted_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    if (isMissingTable(error)) return { rows: [], available: false };
+    throw error;
+  }
+
+  const raw = (data ?? []) as unknown as Record<string, unknown>[];
+  const reporterIds = [...new Set(raw.map(r => String(r.submitted_by ?? '')).filter(Boolean))];
+
+  // One name lookup for the page. `admin_list_users` is the only reader that may resolve
+  // an account to a name, so a missing name stays blank rather than becoming a uuid.
+  const names = new Map<string, string>();
+  if (reporterIds.length > 0) {
+    const { listAdminUsers } = await import('./admin-users');
+    try {
+      for (const u of await listAdminUsers()) names.set(u.id, u.fullName || u.email);
+    } catch { /* names are a courtesy; the feed still reads without them */ }
+  }
+
+  const rows = raw.map(r => {
+    const project = (r.projects ?? {}) as Record<string, unknown>;
+    const stage = (r.project_stages ?? {}) as Record<string, unknown>;
+    const substage = (r.project_substages ?? {}) as Record<string, unknown>;
+    return {
+      ...row(r),
+      projectName:  typeof project.name === 'string' ? project.name : '',
+      stageNumber:  typeof stage.stage_number === 'number' ? stage.stage_number : null,
+      stageName:    typeof stage.name === 'string' ? stage.name : '',
+      substageName: typeof substage.name === 'string' ? substage.name : null,
+      reporterName: names.get(String(r.submitted_by ?? '')) ?? '',
+    };
+  });
+  return { rows, available: true };
+}

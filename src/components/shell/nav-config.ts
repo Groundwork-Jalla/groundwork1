@@ -69,6 +69,7 @@ export const ADMIN_NAV: NavItem[] = [
 
   { to: '/admin/clients',            labelKey: 'nav.clients',            icon: UserRound,      section: 'nav.sectionPeople' },
   { to: '/admin/contractors',        labelKey: 'nav.contractors',        icon: HardHat },
+  { to: '/admin/verifiers',          labelKey: 'nav.verifiers',          icon: ShieldCheck },
   { to: '/admin/site-managers',      labelKey: 'nav.siteManagers',       icon: UserCog },
   { to: '/admin/users',              labelKey: 'nav.users',              icon: Users },
   { to: '/admin/agents',             labelKey: 'nav.agents',             icon: Handshake },
@@ -76,9 +77,9 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/inbox',              labelKey: 'nav.inbox',              icon: Inbox,          section: 'nav.sectionCommunication' },
   { to: '/admin/inbox?channel=whatsapp',           labelKey: 'nav.whatsapp',           icon: MessageCircle },
   { to: '/admin/notifications',      labelKey: 'nav.notifications',      icon: Bell },
-  { to: '/admin/messages',           labelKey: 'nav.jallaMessages',      icon: MessagesSquare },
-  { to: '/admin/email',              labelKey: 'nav.email',              icon: Mail },
-  { to: '/admin/calls',              labelKey: 'nav.calls',              icon: Phone },
+  { to: '/admin/inbox?channel=jalla',            labelKey: 'nav.jallaMessages',      icon: MessagesSquare },
+  { to: '/admin/inbox?channel=email',            labelKey: 'nav.email',              icon: Mail },
+  { to: '/admin/inbox?channel=call',             labelKey: 'nav.calls',              icon: Phone },
 
   { to: '/admin/applications',       labelKey: 'nav.applications',       icon: FileText,       section: 'nav.sectionAcquisition' },
   { to: '/admin/drafts',             labelKey: 'nav.startedApplications', icon: FilePen },
@@ -104,18 +105,11 @@ export const ADMIN_NAV: NavItem[] = [
  * TEMPORARY by design — an entry leaves this list the day its page ships.
  */
 export const ADMIN_PLACEHOLDERS: Record<string, { labelKey: TKey; existingTo?: string; existingKey?: TKey }> = {
-  'site-updates':  { labelKey: 'nav.siteUpdates',   existingTo: '/admin/reviews',  existingKey: 'nav.reviewsApprovals' },
   'inspections':   { labelKey: 'nav.inspections' },
   'tasks':         { labelKey: 'nav.tasks' },
-  'clients':       { labelKey: 'nav.clients',       existingTo: '/admin/users',    existingKey: 'nav.users' },
   'site-managers': { labelKey: 'nav.siteManagers' },
   'agents':        { labelKey: 'nav.agents' },
-  'notifications': { labelKey: 'nav.notifications' },
-  'messages':      { labelKey: 'nav.jallaMessages' },
-  'email':         { labelKey: 'nav.email' },
-  'calls':         { labelKey: 'nav.calls' },
   'analytics':     { labelKey: 'nav.analytics' },
-  'integrations':  { labelKey: 'nav.integrations',  existingTo: '/admin/crm',      existingKey: 'nav.crm' },
   'team':          { labelKey: 'nav.teamPermissions', existingTo: '/admin/users',  existingKey: 'nav.users' },
   'settings':      { labelKey: 'nav.adminSettings' },
 };

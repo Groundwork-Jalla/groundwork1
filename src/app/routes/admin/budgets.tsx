@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import LedgerPanel from '@/components/admin/LedgerPanel';
+import { FinancialOperations } from '@/components/admin/FinancialOperations';
 
 interface PendingBudget {
   id: string;
@@ -242,8 +243,12 @@ export default function AdminBudgets() {
         </div>
       )}
 
-      {/* The ledger (090): funding received and releases authorised, per the IA this page
-          absorbs milestone state (01 §"Payments & Budgets"). */}
+      {/* Financial operations across every project: where the money of each build stands,
+          worst first, each row opening that project's Financials tab (01 §"Payments &
+          Budgets"). Groundwork's business state only — no provider anywhere. */}
+      <FinancialOperations />
+
+      {/* The ledger (090) itself: every funding and release row, newest first. */}
       <LedgerPanel />
 
       <AnimatePresence>

@@ -21,7 +21,7 @@ export type WorkspaceTab = typeof WORKSPACE_TABS[number];
 
 /** The tabs built so far (4: overview; 5a: activity, site-updates, documents; 5b.1: financials;
  *  5b.2: stages; 5b.3: conversations). Team is the one navigation target still saying "not built yet". */
-export const BUILT_TABS: readonly WorkspaceTab[] = ['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages', 'conversations'];
+export const BUILT_TABS: readonly WorkspaceTab[] = ['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages', 'conversations', 'team'];
 
 export interface WorkspaceParams {
   tab: WorkspaceTab;

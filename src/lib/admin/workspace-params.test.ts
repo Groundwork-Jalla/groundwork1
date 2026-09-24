@@ -62,12 +62,15 @@ describe('the URL is the state', () => {
     expect(routes).toMatch(/route\("admin\/projects\/new"/);
   });
 
-  it('every tab has a label in both dictionaries, and the built list is exactly steps 4 + 5a + 5b', () => {
+  it('every tab has a label in both dictionaries, and every tab in the bar is built', () => {
     for (const tab of WORKSPACE_TABS) {
       expect(lookup(en, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
       expect(lookup(fr, `admin.workspace.tabs.${tab}`), tab).toBeTypeOf('string');
     }
-    expect(BUILT_TABS).toEqual(['overview', 'activity', 'site-updates', 'documents', 'financials', 'stages', 'conversations']);
+    // The tab bar may not advertise a destination that does not exist. Team was the last
+    // one that did (01 §3 PEOPLE); it is built, so the two lists now match exactly.
+    expect([...BUILT_TABS].sort()).toEqual([...WORKSPACE_TABS].sort());
+    // The "not built yet" branch stays in the route for the next tab that is added.
     expect(src(ROUTE)).toContain("t('admin.workspace.tabNotBuilt')");
   });
 });

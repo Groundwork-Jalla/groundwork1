@@ -4,7 +4,6 @@ import type { LoadedWorkspace } from '@/lib/supabase/workspace';
 import { domainStateOf, selectedStage, workspaceHref, type DomainState } from '@/lib/admin/workspace-params';
 import { actionLabel } from '@/lib/admin/action-labels';
 import { BLOCKER_LABEL, LIFECYCLE_META } from '@/lib/admin/lifecycle-badge';
-import { TeamCard } from './TeamCard';
 import { Card, CardEmpty } from '@/components/admin/overview/Card';
 import { StageLadder } from './StageLadder';
 import { SelectedStagePanel } from './SelectedStagePanel';
@@ -31,12 +30,7 @@ import { cn } from '@/lib/utils';
 
 const OVERVIEW_ROWS = 5;
 
-export function OverviewTab({ loaded, stageId, onChanged, onNotice }: {
-  loaded: LoadedWorkspace; stageId: string | null;
-  /** Reload the workspace after an assignment — nothing is patched locally. */
-  onChanged: () => void;
-  onNotice: (message: string) => void;
-}) {
+export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stageId: string | null }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
   const ws = loaded.workspace;
@@ -83,10 +77,6 @@ export function OverviewTab({ loaded, stageId, onChanged, onNotice }: {
 
       {/* ── Right stack: what this stage needs · what blocks · money · activity ──── */}
       <div className="flex min-w-0 flex-col gap-5">
-        {/* Who is on this project — an administrative view of the same assignments the
-            future /contractors and /verifiers surfaces read (06 §21). */}
-        <TeamCard ws={ws} available={loaded.workspace.available.verifiers} onChanged={onChanged} onNotice={onNotice} />
-
         <Card titleKey="admin.workspace.overview.selected" subtitleKey="admin.workspace.overview.selectedSub">
           {!selected
             ? <CardEmpty messageKey="admin.workspace.overview.noSchedule" />

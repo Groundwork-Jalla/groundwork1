@@ -107,7 +107,7 @@ export default function LedgerPanel() {
                     <li key={p.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm text-brand-near-black">
-                          <Link to={`/projects/${p.projectId}`} target="_blank" className="font-medium hover:underline">{projects.get(p.projectId) ?? p.projectId.slice(0, 8)}</Link>
+                          <Link to={`/admin/projects/${p.projectId}?tab=financials`} className="font-medium hover:underline">{projects.get(p.projectId) ?? p.projectId.slice(0, 8)}</Link>
                           {st && <span className="text-brand-mid-grey"> · {t('admin.ledger.stage', { n: st.stageNumber })} {st.name && `· ${st.name}`}</span>}
                         </p>
                         <p className="mt-0.5 text-[11px] text-brand-mid-grey">

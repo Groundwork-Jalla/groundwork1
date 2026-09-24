@@ -11,6 +11,7 @@ import { DocumentsTab } from '@/components/admin/workspace/DocumentsTab';
 import { FinancialsTab } from '@/components/admin/workspace/FinancialsTab';
 import { StagesTab } from '@/components/admin/workspace/StagesTab';
 import { ConversationsTab } from '@/components/admin/workspace/ConversationsTab';
+import { TeamTab } from '@/components/admin/workspace/TeamTab';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
@@ -140,7 +141,7 @@ export default function AdminProjectWorkspace() {
       )}
 
       {tab === 'overview' ? (
-        <OverviewTab loaded={loaded} stageId={stageId} onChanged={reload} onNotice={n => { setNotice(n); reload(); }} />
+        <OverviewTab loaded={loaded} stageId={stageId} />
       ) : tab === 'activity' ? (
         <ActivityTab loaded={loaded} />
       ) : tab === 'site-updates' ? (
@@ -151,6 +152,8 @@ export default function AdminProjectWorkspace() {
         <FinancialsTab loaded={loaded} onChanged={reload} />
       ) : tab === 'stages' ? (
         <StagesTab loaded={loaded} stageId={stageId} onChanged={reload} />
+      ) : tab === 'team' ? (
+        <TeamTab loaded={loaded} onChanged={reload} onNotice={n => { setNotice(n); reload(); }} />
       ) : tab === 'conversations' ? (
         <ConversationsTab loaded={loaded} conversationId={conversationId} onChanged={reload} />
       ) : BUILT_TABS.includes(tab) ? null : (

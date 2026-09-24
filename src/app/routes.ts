@@ -93,6 +93,7 @@ export default [
     route("admin/action-center", "routes/admin/action-center.tsx"),
     route("admin/audit-log",     "routes/admin/audit-log.tsx"),
     route("admin/reviews",       "routes/admin/reviews.tsx"),
+    route("admin/site-updates",  "routes/admin/site-updates.tsx"),
     route("admin/budgets",       "routes/admin/budgets.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
     route("admin/projects/new",  "routes/admin/projects.new.tsx"),
@@ -101,16 +102,20 @@ export default [
     route("admin/projects/:id",   "routes/admin/projects.detail.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
     route("admin/users/new",     "routes/admin/users.new.tsx"),
+    route("admin/clients",       "routes/admin/clients.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),
+    route("admin/verifiers",     "routes/admin/verifiers.tsx"),
     // Path is fixed: api/ghl/contractor.ts writes /admin/applications/:id into
     // every CRM record as `application_url`.
     route("admin/applications",     "routes/admin/applications.tsx"),
     route("admin/applications/:id", "routes/admin/applications.detail.tsx"),
     route("admin/crm",              "routes/admin/crm.tsx"),
+    route("admin/integrations",     "routes/admin/integrations.tsx"),
     route("admin/waitlist",         "routes/admin/waitlist.tsx"),
     route("admin/drafts",           "routes/admin/drafts.tsx"),
     route("admin/requests",         "routes/admin/requests.tsx"),
     route("admin/inbox",            "routes/admin/inbox.tsx"),
+    route("admin/notifications",    "routes/admin/notifications.tsx"),
     route("admin/support",          "routes/admin/support.tsx"),
     route("admin/inquiries",        "routes/admin/inquiries.tsx"),
     // TEMPORARY: sidebar items with no page yet (ADMIN_PLACEHOLDERS in nav-config.ts). A

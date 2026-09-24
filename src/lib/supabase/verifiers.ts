@@ -111,3 +111,107 @@ export async function assignContractor(projectId: string, email: string): Promis
   });
   if (error) throw error;
 }
+
+/**
+ * The admin's directory of verifiers (01 §3 PEOPLE, "Verifiers").
+ *
+ * ── A management surface, not /verifiers ─────────────────────────────────────────────
+ * /verifiers is where a verifier does the work. This answers the operator's question:
+ * who can verify, in what discipline, where, are they available, what are they carrying
+ * right now, and what have they decided before. Same rows, different actor.
+ *
+ * Everything below is read from what exists — `user_roles` for the role,
+ * `verifier_profiles` (086) for credentials, `project_verifiers` for assignments,
+ * `stage_verifications` (087) for workload and history. No rating, no score, no
+ * availability we compute ourselves: `available` is the column the verifier sets.
+ */
+export interface VerifierDirectoryRow {
+  userId: string;
+  name: string;
+  email: string;
+  /** From verifier_profiles (086). Null when they hold the role but have no profile. */
+  disciplines: string[] | null;
+  registrationBody: string | null;
+  registrationNo: string | null;
+  city: string | null;
+  available: boolean | null;
+  /** Active project assignments (project_verifiers.status = 'active'). */
+  activeProjects: number;
+  /** Verifications waiting on them (decision = 'pending'). */
+  pending: number;
+  /** Verifications they have decided, ever. */
+  decided: number;
+  /** The most recent decision they recorded, for "when did we last hear from them". */
+  lastDecidedAt: string | null;
+}
+
+export interface VerifierDirectory {
+  rows: VerifierDirectoryRow[];
+  /** 086 applied — profiles and assignments could be read. */
+  profilesAvailable: boolean;
+  /** 087 applied — the workload figures are real rather than unknown. */
+  verificationsAvailable: boolean;
+}
+
+export async function listVerifierDirectory(): Promise<VerifierDirectory> {
+  const users = await listAdminUsers();
+  const verifiers = users.filter(u => u.roles.split(',').map(r => r.trim()).includes('verifier'));
+
+  const [profilesRes, assignmentsRes, verificationsRes] = await Promise.all([
+    supabase.from('verifier_profiles').select('user_id, disciplines, registration_body, registration_no, city, available'),
+    supabase.from('project_verifiers').select('user_id, project_id, status').eq('status', 'active'),
+    supabase.from('stage_verifications').select('verifier_id, decision, decided_at'),
+  ]);
+
+  const profilesAvailable = !profilesRes.error;
+  const verificationsAvailable = !verificationsRes.error;
+
+  const profile = new Map<string, Record<string, unknown>>();
+  for (const r of (profilesRes.data ?? []) as Record<string, unknown>[]) profile.set(String(r.user_id ?? ''), r);
+
+  const active = new Map<string, Set<string>>();
+  for (const r of (assignmentsRes.data ?? []) as Record<string, unknown>[]) {
+    const u = String(r.user_id ?? '');
+    if (!u) continue;
+    const set = active.get(u) ?? new Set<string>();
+    set.add(String(r.project_id ?? ''));
+    active.set(u, set);
+  }
+
+  const pending = new Map<string, number>();
+  const decided = new Map<string, number>();
+  const lastDecided = new Map<string, string>();
+  for (const r of (verificationsRes.data ?? []) as Record<string, unknown>[]) {
+    const u = String(r.verifier_id ?? '');
+    if (!u) continue;
+    if (r.decision === 'pending') {
+      pending.set(u, (pending.get(u) ?? 0) + 1);
+    } else {
+      decided.set(u, (decided.get(u) ?? 0) + 1);
+      const at = typeof r.decided_at === 'string' ? r.decided_at : '';
+      if (at && at > (lastDecided.get(u) ?? '')) lastDecided.set(u, at);
+    }
+  }
+
+  const rows = verifiers.map(u => {
+    const p = profile.get(u.id);
+    return {
+      userId: u.id,
+      name: u.fullName,
+      email: u.email,
+      disciplines: p && Array.isArray(p.disciplines) ? (p.disciplines as unknown[]).map(String) : null,
+      registrationBody: p && typeof p.registration_body === 'string' ? p.registration_body : null,
+      registrationNo:   p && typeof p.registration_no === 'string' ? p.registration_no : null,
+      city:             p && typeof p.city === 'string' ? p.city : null,
+      available:        p && typeof p.available === 'boolean' ? p.available : null,
+      activeProjects: active.get(u.id)?.size ?? 0,
+      pending: pending.get(u.id) ?? 0,
+      decided: decided.get(u.id) ?? 0,
+      lastDecidedAt: lastDecided.get(u.id) ?? null,
+    };
+  });
+
+  // Most pending work first: the directory's job is to find who is free.
+  rows.sort((a, b) => b.pending - a.pending || (a.name || a.email).localeCompare(b.name || b.email));
+  return { rows, profilesAvailable, verificationsAvailable };
+}
