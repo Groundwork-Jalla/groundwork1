@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Loader2, MessagesSquare } from 'lucide-react';
+import { Loader2, MessagesSquare, Plus } from 'lucide-react';
 import { linkConversation, listConversationPreviews, listConversations, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
 import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
 import { listProjectsForPeople, type InboxProject } from '@/lib/supabase/inbox-context';
 import { personLabel, projectContext, type ProjectContext } from '@/lib/admin/inbox-context';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
+import { NewJallaMessage } from '@/components/admin/NewJallaMessage';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -52,6 +53,12 @@ export default function AdminInbox() {
   const statusFilter = params.get('status');
   // The sidebar's WhatsApp entry is this page filtered to that channel.
   const channelFilter = params.get('channel');
+  /**
+   * Starting a thread is only meaningful on the native channel: WhatsApp, email and
+   * calls are threads somebody else opened, and Groundwork cannot conjure one. So the
+   * button appears for `jalla` and nowhere else.
+   */
+  const [newJalla, setNewJalla] = useState(false);
 
   const [rows, setRows] = useState<Conversation[] | null>(null);
   const [available, setAvailable] = useState(true);
@@ -125,6 +132,16 @@ export default function AdminInbox() {
             {channelFilter ? t(`admin.workspace.conversations.channel.${channelFilter}` as TKey) : t('admin.inbox.sub')}
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        {channelFilter === 'jalla' && (
+          <button
+            type="button" onClick={() => setNewJalla(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-near-black px-3 py-1.5 text-xs font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white dark:border-white dark:text-white dark:hover:bg-[#252525]"
+          >
+            <Plus className="size-3.5" />
+            {t('admin.jalla.newMessage')}
+          </button>
+        )}
         {/* Needs reply: the count is `waiting_on_us`, and the chip filters to exactly those. */}
         {rows !== null && (
           <button type="button" onClick={() => setStatus(needsReplyOn ? null : 'waiting_on_us')} aria-pressed={needsReplyOn}
@@ -136,7 +153,10 @@ export default function AdminInbox() {
             <span className={cn('ml-1.5 tabular-nums', needsReplyOn ? '' : 'text-brand-mid-grey')}>{needsReply}</span>
           </button>
         )}
+        </div>
       </header>
+
+      {newJalla && <NewJallaMessage onClose={() => setNewJalla(false)} />}
 
       {rows === null ? (
         <p className="flex items-center gap-2 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('admin.inbox.loading')}</p>

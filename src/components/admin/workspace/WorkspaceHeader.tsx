@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, ExternalLink, ShieldCheck, MessageCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
 import { openClientWhatsApp } from '@/lib/supabase/project-whatsapp';
+import { ensureProjectConversation } from '@/lib/supabase/conversations';
+import { jallaHref } from '@/lib/admin/jalla-picker';
 import { inboxHref } from '@/lib/admin/whatsapp-shortcut';
 import type { Workspace } from '@/lib/admin/workspace';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
@@ -9,6 +11,7 @@ import { AssignVerifierModal } from '@/components/admin/team/AssignVerifierModal
 import { useDomainLabels } from '@/lib/domain-labels';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatDate, formatRelative } from '@/lib/format';
+import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +54,7 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
   const { stageLabel } = useStageLabels();
   const [assignVerifier, setAssignVerifier] = useState(false);
   const [waBusy, setWaBusy] = useState(false);
+  const [jallaBusy, setJallaBusy] = useState(false);
   const navigate = useNavigate();
 
   /**
@@ -59,6 +63,24 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
    * thread — because "nothing happened" on a button like this is indistinguishable from
    * a bug. Nothing is created unless the provider actually answered.
    */
+  /**
+   * This project's native thread. `ensure_project_conversation` returns the existing one
+   * or creates it under an advisory lock, so there is no picker to show and no way to
+   * end up with two. Unlike WhatsApp, the thread is the PROJECT's — two projects of the
+   * same client are two conversations, which is the right shape when Groundwork owns the
+   * model rather than a provider.
+   */
+  async function jalla() {
+    setJallaBusy(true);
+    try {
+      navigate(jallaHref(await ensureProjectConversation(p.id)));
+    } catch (err) {
+      onNotice(errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setJallaBusy(false);
+    }
+  }
+
   async function whatsapp() {
     setWaBusy(true);
     try {
@@ -141,6 +163,15 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
               {t('admin.verifier.assign')}
             </button>
           )}
+          <button
+            type="button"
+            onClick={jalla}
+            disabled={jallaBusy}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border-grey px-3 py-2 text-xs font-medium text-brand-near-black transition-colors hover:border-brand-near-black disabled:opacity-60 dark:border-[#2c2c2c] dark:text-white dark:hover:border-white/40"
+          >
+            {jallaBusy ? <Loader2 className="size-3.5 animate-spin" /> : <MessagesSquare className="size-3.5" />}
+            {t('admin.jalla.message')}
+          </button>
           {/* WhatsApp keeps its colour here as everywhere else in Groundwork. */}
           <button
             type="button"
