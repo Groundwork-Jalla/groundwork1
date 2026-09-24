@@ -495,7 +495,23 @@ export async function listWaitlist(): Promise<WaitlistEntry[]> {
 /** Where a setting resolved from. `app_config` overrides the deployment environment. */
 export type ConfigSource = 'database' | 'environment' | 'unset';
 
+/** SwyChr's setup, as booleans and words. No credential ever crosses this boundary. */
+export interface SwychrStatus {
+  configured: boolean;
+  apiKey: boolean;
+  login: boolean;
+  webhookSecret: boolean;
+  callbackUrl: boolean;
+  /**
+   * `true` once a login was actually accepted, `false` when refused, `null` when nothing
+   * could be proved — an API key cannot be tested without spending a real call, so it is
+   * reported as untested rather than assumed good. Same distinction as `tokenAccepted`.
+   */
+  authenticated: boolean | null;
+}
+
 export interface CrmStatus {
+  swychr?: SwychrStatus;
   contractorWebhook: boolean;
   eventWebhook: boolean;
   apiToken: boolean;

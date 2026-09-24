@@ -98,7 +98,29 @@ export async function handler(req: any, res: any) {
 
   const oauth = await oauthStatus();
 
+  // SwyChr, reported the same way: booleans and words, never a credential. Its own module
+  // owns the reachability check so this handler learns nothing it should not hold.
+  const { swychrSettings } = await import('../swychr/_config.js');
+  const { swychrReachable } = await import('../swychr/_client.js');
+  const swy = await swychrSettings();
+  const swychrLive = await swychrReachable().catch(() => ({ configured: false, authenticated: null as boolean | null }));
+
   res.status(200).json({
+    swychr: {
+      // Which halves of the setup exist. A payout needs the login; the payin Direct API
+      // is happy with the key alone.
+      apiKey:        !!swy.SWYCHR_API_KEY.value,
+      login:         !!(swy.SWYCHR_EMAIL.value && swy.SWYCHR_PASSWORD.value),
+      webhookSecret: !!swy.SWYCHR_WEBHOOK_SECRET.value,
+      callbackUrl:   !!swy.SWYCHR_CALLBACK_URL.value,
+      /**
+       * `true` once a login has actually been accepted, `false` when it was refused, and
+       * `null` when nothing could be proved — an API key cannot be tested without
+       * spending a real call, so it is reported as untested rather than assumed good.
+       */
+      authenticated: swychrLive.authenticated,
+      configured:    swychrLive.configured,
+    },
     // Phase 1 — the webhooks
     contractorWebhook: has('GHL_CONTRACTOR_WEBHOOK_URL'),
     eventWebhook:      has('GHL_EVENT_WEBHOOK_URL'),

@@ -36,6 +36,17 @@ export default function AdminIntegrations() {
   }, [t]);
   useEffect(() => { load(); }, [load]);
 
+  const swy = crm?.swychr;
+  /**
+   * Configured is not connected. A key that has never been used is `ok` only in the sense
+   * that nothing is missing; a login SwyChr refused is a real problem and says so.
+   */
+  const swyHealth: Health = !swy?.configured ? 'off'
+    : swy.authenticated === false ? 'warn'
+    // The money cannot move without somewhere to hear about it.
+    : !swy.webhookSecret || !swy.callbackUrl ? 'warn'
+    : 'ok';
+
   // The one question that matters for GHL: is it carrying events, and does GHL accept us?
   const ghlHealth: Health = crm == null ? 'off'
     : crm.tokenAccepted === false ? 'warn'
@@ -91,21 +102,27 @@ export default function AdminIntegrations() {
           <Card
             name={t('admin.integrations.swychr.name')}
             purpose={t('admin.integrations.swychr.purpose')}
-            health="off"
-            healthLabel={t('admin.integrations.health.off')}
+            health={swyHealth}
+            healthLabel={t(`admin.integrations.health.${swyHealth}` as TKey)}
           >
-            {/* The same shape as the card above it, and every row the same answer. This
-                is presentation, not state: there is no SwyChr configuration to read, so
-                nothing here is asked of a system. No control, because there is nothing
-                to control — an action here would imply a code path that does not exist. */}
+            {/* Read, not asserted. Every row is a question asked of the server, so the
+                day a credential lands these change on their own. */}
             <dl className="divide-y divide-brand-border-grey text-xs dark:divide-[#2c2c2c]">
-              <Fact label={t('admin.integrations.swychr.credentials')}    value={t('admin.integrations.notConfigured')} />
-              <Fact label={t('admin.integrations.swychr.endpoint')}       value={t('admin.integrations.notConfigured')} />
-              <Fact label={t('admin.integrations.swychr.callback')}       value={t('admin.integrations.notConfigured')} />
-              <Fact label={t('admin.integrations.swychr.reconciliation')} value={t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.credentials')}
+                value={swy?.apiKey ? t('admin.integrations.swychr.keySet')
+                     : swy?.login ? t('admin.integrations.swychr.loginSet')
+                     : t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.accepted')}
+                value={swy?.authenticated === true ? t('admin.integrations.swychr.loginAccepted')
+                     : swy?.authenticated === false ? t('admin.integrations.swychr.loginRefused')
+                     : t('admin.integrations.swychr.untested')} />
+              <Fact label={t('admin.integrations.swychr.callback')}
+                value={swy?.callbackUrl ? t('admin.integrations.configured') : t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.webhookSecret')}
+                value={swy?.webhookSecret ? t('admin.integrations.configured') : t('admin.integrations.notConfigured')} />
             </dl>
             <div className="border-t border-brand-border-grey px-5 py-4 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">
-              <p>{t('admin.integrations.swychr.detail')}</p>
+              <p>{swy?.configured ? t('admin.integrations.swychr.live') : t('admin.integrations.swychr.detail')}</p>
               <p className="mt-2 text-[11px]">{t('admin.integrations.swychr.meanwhile')}</p>
             </div>
           </Card>

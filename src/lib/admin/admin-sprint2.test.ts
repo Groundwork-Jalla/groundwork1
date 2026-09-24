@@ -61,12 +61,19 @@ describe('the three new pages are real destinations', () => {
 describe('integrations reports configuration, it does not assume it', () => {
   const page = code('src/app/routes/admin/integrations.tsx');
 
-  it('the SwyChr card is full enough to balance the page and still says nothing untrue', () => {
-    // Four rows, every one of them "not configured" — presentation, not a state read.
+  it('the SwyChr card reports real state and still says nothing untrue', () => {
+    // It began as four rows all reading "not configured" — presentation, not a state
+    // read. Now every row is a question asked of the server, so the day a credential
+    // lands these change on their own.
     expect(page).toContain('swychr.credentials');
-    expect(page).toContain('swychr.endpoint');
-    expect(page).toContain('swychr.reconciliation');
-    expect(page).toMatch(/health="off"/);
+    expect(page).toContain('swychr.accepted');
+    expect(page).toContain('swychr.webhookSecret');
+    expect(page).toContain('swy?.configured');
+    expect(page).toContain('swy.authenticated === false');
+    // Configured is not connected: a key nobody has spent a call on is untested, and a
+    // login SwyChr refused is a warning rather than a tick.
+    expect(page).toContain('swychr.untested');
+    expect(page).not.toMatch(/health="off"/);
     for (const banned of ['uptime', 'Uptime', 'healthy', 'Healthy', 'wallet', 'Wallet', 'escrow', 'Escrow', 'balance', 'Balance', 'Connect', 'Retry', 'Test connection']) {
       expect(page, `${banned} would imply a connection that does not exist`).not.toContain(banned);
     }

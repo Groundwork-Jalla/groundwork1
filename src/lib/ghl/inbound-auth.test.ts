@@ -59,13 +59,16 @@ describe('every other action still receives the same parsed req.body', () => {
     const bytes = parseBody(Buffer.from([1, 2, 3]), 'application/octet-stream');
     expect(bytes.ok && Buffer.isBuffer(bytes.body)).toBe(true);
   });
-  it('attachBody sets req.body and req.rawBody once, before routing; only crm-inbound reads rawBody', () => {
+  it('attachBody sets req.body and req.rawBody once, before routing; only signed webhooks read rawBody', () => {
     const b = code('api/_lib/body.ts');
     expect(b).toContain('req.rawBody = raw;');
     expect(b).toContain('req.body = parsed.body;');
     const { execSync } = require('node:child_process');
+    // The raw bytes exist for one reason: a provider signed them. GHL signs the body;
+    // SwyChr signs `{timestamp}.{body}`. Any OTHER handler reading rawBody would be
+    // parsing the request a second way, which is how the two copies drift apart.
     const users = execSync("grep -l 'rawBody' api/_handlers/*.ts", { cwd: ROOT, encoding: 'utf8' }).trim().split('\n');
-    expect(users).toEqual(['api/_handlers/inbound.ts']);
+    expect(users.sort()).toEqual(['api/_handlers/inbound.ts', 'api/_handlers/swychr-callback.ts']);
     expect(src('api/events.ts')).toContain("from './_lib/body.js'");
   });
 });
