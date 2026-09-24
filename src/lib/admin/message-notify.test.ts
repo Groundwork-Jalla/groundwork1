@@ -11,9 +11,11 @@ import { describe, expect, it } from 'vitest';
  * verifier needs more foundation photos" and the client would find out whenever they next
  * happened to open the project.
  *
- * Proven against PostgreSQL 16 with real rows: one outbound staff message notifies the
- * client once; an internal note notifies nobody; the client's own reply notifies neither
- * of them; and an author who is also the thread's person is still not notified.
+ * Proven against PostgreSQL 16 with every migration applied and real rows: an outbound
+ * staff message on a native thread notifies the owner once; an internal note, the
+ * client's own reply, an outbound message on a WHATSAPP thread, and a thread whose person
+ * is not the project's owner each notify nobody; a broken mail path still leaves the bell
+ * and the message intact.
  */
 const ROOT = resolve(__dirname, '..', '..', '..');
 const sql = readFileSync(resolve(ROOT, 'supabase/migrations/097_message_notifies_client.sql'), 'utf8');
@@ -36,13 +38,33 @@ describe('who gets told', () => {
   });
 
   it('never the author — including an author who is also the thread\'s person', () => {
-    expect(sql).toContain('IF v_conv.person_id = NEW.sender_id THEN RETURN NEW; END IF;');
+    expect(code).toContain('IF v_recipient = NEW.sender_id THEN RETURN NEW; END IF;');
   });
 
-  it('the person on the conversation, never a project member list', () => {
-    // 013 fans out to owner + contractors. This is a reply to one thread, so it goes to
-    // the one person that thread is with.
-    expect(code).toContain('v_conv.person_id');
+  it('the recipient is the project owner, not whoever the thread names', () => {
+    // The notification says "your project" and links to it. A thread associated with the
+    // wrong person would otherwise tell them about somebody else's build.
+    expect(code).toContain('v_recipient := v_project.user_id;');
+    expect(code).toContain("INSERT INTO public.notifications (user_id, type, title, body, data)");
+    expect(code).toMatch(/VALUES \(\s*\n?\s*v_recipient,/);
+  });
+
+  it('a thread whose person is not the owner is skipped, not delivered', () => {
+    expect(code).toContain('IF v_conv.person_id IS DISTINCT FROM v_recipient THEN');
+    expect(code).toContain('notification skipped, conversation person');
+    // Fails closed: the skip returns before anything is sent.
+    const skip = code.indexOf('IF v_conv.person_id IS DISTINCT FROM v_recipient');
+    expect(skip).toBeLessThan(code.indexOf('INSERT INTO public.notifications'));
+  });
+
+  it('only a native thread — judged by the CONVERSATION, not the message row', () => {
+    // send_message stamps every row 'jalla', including on a WhatsApp conversation, so
+    // NEW.channel would send a "you have a Jalla message" mail about a WhatsApp send.
+    expect(code).toContain("IF v_conv.channel IS DISTINCT FROM 'jalla' THEN RETURN NEW; END IF;");
+    expect(code).not.toMatch(/NEW\.channel/);
+  });
+
+  it('never fans out to a project member list', () => {
     expect(code).not.toContain('notify_project_members');
     expect(code).not.toContain('contractor_invites');
   });
@@ -86,7 +108,7 @@ describe('it can never cost the message', () => {
 
   it('a thread with no project still rings the bell but sends no email', () => {
     // The mail names a project; a person-level thread has none to name.
-    expect(sql).toContain("IF v_email IS NULL OR v_email = '' OR v_project.id IS NULL THEN RETURN NEW; END IF;");
+    expect(code).toContain("IF v_email IS NULL OR v_email = '' THEN RETURN NEW; END IF;");
   });
 });
 
