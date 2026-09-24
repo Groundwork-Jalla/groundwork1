@@ -16,6 +16,13 @@ import { isMissingTable } from '@/lib/errors';
  * the row says so rather than being hidden.
  */
 
+/**
+ * Staff, by the same test the Clients page uses. Kept here rather than imported so the
+ * two cannot drift apart silently — if one changes, this one's test fails.
+ */
+export const isStaffAccount = (roles: string): boolean =>
+  roles.split(',').map(r => r.trim()).some(r => r === 'admin' || r === 'verifier');
+
 export interface JallaProject {
   id: string;
   name: string;
@@ -37,13 +44,22 @@ export interface JallaAccount {
 }
 
 /**
- * Every account, grouped with the projects it owns.
+ * Every CLIENT account, grouped with the projects it owns.
  *
- * Accounts with no project are kept and returned with an empty list rather than filtered
- * out: an admin looking for somebody needs to find them and be told why they cannot be
- * messaged, not wonder whether the search is broken. A Jalla message is about a build, so
- * an account with no build has nothing to attach one to — and the picker says exactly
- * that instead of hiding the row.
+ * ── Staff are not clients ────────────────────────────────────────────────────────────
+ * Same rule as the Clients page: an account holding an `admin` or `verifier` role is
+ * staff, and Groundwork does not build for its own team. Without this a staff member who
+ * owns a test project appears in the picker as somebody to message, and choosing them
+ * would open a thread whose `person_id` is the person writing it.
+ *
+ * A staff-owned project is still reachable from its own workspace, which is where
+ * messaging about it would actually make sense.
+ *
+ * ── Accounts with no project are kept ────────────────────────────────────────────────
+ * Returned with an empty list rather than filtered out: an admin looking for somebody
+ * needs to find them and be told why they cannot be messaged, not wonder whether the
+ * search is broken. A Jalla message is about a build, so an account with no build has
+ * nothing to attach one to — and the picker says exactly that instead of hiding the row.
  */
 export async function listAccountsForJalla(): Promise<{ rows: JallaAccount[]; available: boolean }> {
   const [{ rows: projects, available }, people] = await Promise.all([
@@ -59,13 +75,16 @@ export async function listAccountsForJalla(): Promise<{ rows: JallaAccount[]; av
   }
 
   const accounts = new Map<string, JallaAccount>();
+  const staff = new Set<string>();
   for (const u of people) {
+    if (isStaffAccount(u.roles)) { staff.add(u.id); continue; }
     accounts.set(u.id, { id: u.id, name: u.fullName || null, email: u.email || null, projects: byOwner.get(u.id) ?? [] });
   }
   // An owner the account list could not name still owns projects that can be messaged
-  // about. Keep them, identified by whatever the project itself carries.
+  // about. Keep them, identified by whatever the project itself carries — unless they
+  // were left out above for being staff.
   for (const [ownerId, owned] of byOwner) {
-    if (accounts.has(ownerId)) continue;
+    if (accounts.has(ownerId) || staff.has(ownerId)) continue;
     accounts.set(ownerId, { id: ownerId, name: owned[0]?.ownerName ?? null, email: owned[0]?.ownerEmail ?? null, projects: owned });
   }
 

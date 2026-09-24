@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { matchesProject, matchesAccount, canMessage, canMessageAccount, jallaHref } from './jalla-picker';
+import { isStaffAccount } from '@/lib/supabase/jalla-projects';
 import type { JallaAccount, JallaProject } from '@/lib/supabase/jalla-projects';
 import { lookup } from '@/lib/i18n/translate';
 import { en } from '@/lib/i18n/en';
@@ -29,6 +30,34 @@ const proj = (o: Partial<JallaProject> = {}): JallaProject => ({
 
 const acct = (o: Partial<JallaAccount> = {}): JallaAccount => ({
   id: 'mary', name: 'Mary Smith', email: 'mary@example.cm', projects: [proj()], ...o,
+});
+
+describe('staff are not clients', () => {
+  it('uses the same test the Clients page uses', () => {
+    expect(isStaffAccount('admin')).toBe(true);
+    expect(isStaffAccount('verifier')).toBe(true);
+    expect(isStaffAccount('homeowner,admin')).toBe(true);
+    expect(isStaffAccount('homeowner')).toBe(false);
+    expect(isStaffAccount('contractor')).toBe(false);
+    expect(isStaffAccount('')).toBe(false);
+    // Spacing in the stored list must not change the answer.
+    expect(isStaffAccount(' homeowner , admin ')).toBe(true);
+  });
+
+  it('the two rules are literally the same expression', () => {
+    // If one is ever loosened, this fails rather than the picker quietly disagreeing
+    // with the Clients page about who Groundwork builds for.
+    const clients = code('src/lib/supabase/admin-clients.ts');
+    const expr = /roles\.split\(','\)\.map\(r => r\.trim\(\)\)\.some\(r => r === 'admin' \|\| r === 'verifier'\)/;
+    expect(clients).toMatch(expr);
+    expect(code('src/lib/supabase/jalla-projects.ts')).toMatch(expr);
+  });
+
+  it('a staff-owned project never re-enters through the unnamed-owner path', () => {
+    // The fallback that rescues owners the account list could not name must not rescue
+    // the very accounts just excluded.
+    expect(loader).toContain('if (accounts.has(ownerId) || staff.has(ownerId)) continue;');
+  });
 });
 
 describe('account first, then project — but the project still decides', () => {
@@ -67,7 +96,7 @@ describe('account first, then project — but the project still decides', () => 
   });
 
   it('an owner the account list cannot name still appears, from the project', () => {
-    expect(loader).toContain('if (accounts.has(ownerId)) continue;');
+    expect(loader).toContain('if (accounts.has(ownerId) || staff.has(ownerId)) continue;');
     expect(loader).toContain('name: owned[0]?.ownerName ?? null');
   });
 });
