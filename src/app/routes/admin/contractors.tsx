@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2 } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2, ChevronRight } from 'lucide-react';
 import {
   listDirectory, setDirectoryActive, deleteDirectoryEntry, type DirectoryEntry,
 } from '@/lib/supabase/admin-applications';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
+import { ContractorOversight } from '@/components/admin/ContractorOversight';
+import { matchesQuery } from '@/lib/admin/contractor-oversight';
 import { useRoleLabel } from './applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
@@ -20,6 +23,18 @@ import { useT, useLanguage } from '@/lib/i18n';
 //
 // This is the directory clients browse. Entries arrive by being accepted on an
 // application, which calls admin_promote_application() (migration 033).
+//
+// ── And, since slice 15, the oversight surface ──────────────────────────────────────
+// Expanding a row shows what Groundwork holds ABOUT that contractor — assignments,
+// verification history on those projects, evidence they filed, money recorded as owed to
+// them. Reads and links only: an admin manages the actor here and performs no work as
+// them. /work is where a contractor works.
+//
+// Two columns on this table are NOT performance measures and are labelled accordingly.
+// `completed_projects` is `jsonb_array_length(application.projects)` (033) — the jobs the
+// applicant typed into their own form before joining, not work done here. `rating` and
+// `review_count` have no writer anywhere and are permanently 0, so they are not shown at
+// all. See src/lib/admin/contractor-oversight.ts.
 // =========================================================
 
 export default function AdminContractors() {
@@ -31,7 +46,18 @@ export default function AdminContractors() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [busy, setBusy]       = useState<string | null>(null);
-  const [query, setQuery]     = useState('');
+  // `?q=` so a deep link — the Quote Requests contractor link among them — opens the
+  // directory already searched. One implementation: the box writes the URL and the URL
+  // is the only source the filter reads, so the two cannot drift apart.
+  const [params, setParams]   = useSearchParams();
+  const query = params.get('q') ?? '';
+  const selectedId = params.get('contractor');
+  const put = useCallback((key: string, value: string | null) => {
+    const p = new URLSearchParams(params);
+    if (value === null || value === '') p.delete(key); else p.set(key, value);
+    setParams(p, { replace: true });
+  }, [params, setParams]);
+  const setQuery = useCallback((v: string) => put('q', v), [put]);
   const [onlyInactive, setOnlyInactive] = useState(false);
   const [target, setTarget]     = useState<DirectoryEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -74,15 +100,13 @@ export default function AdminContractors() {
 
   const inactiveCount = useMemo(() => rows.filter(r => !r.active).length, [rows]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter(r => {
-      if (onlyInactive && r.active) return false;
-      if (!q) return true;
-      return [r.name, r.location, r.email ?? '', tradeLabel(r.trade)]
-        .some(v => v.toLowerCase().includes(q));
-    });
-  }, [rows, query, onlyInactive, tradeLabel]);
+  const filtered = useMemo(() => rows.filter(r => {
+    if (onlyInactive && r.active) return false;
+    // The trade is stored as a role key and shown translated, so the translated word is
+    // what a person would type — it is matched as well as the stored fields.
+    return matchesQuery({ ...r, trade: tradeLabel(r.trade) }, query)
+        || matchesQuery(r, query);
+  }), [rows, query, onlyInactive, tradeLabel]);
 
   const fmt = (iso: string) => {
     const d = new Date(iso);
@@ -147,21 +171,32 @@ export default function AdminContractors() {
             </thead>
             <tbody className="divide-y divide-brand-border-grey">
               {filtered.map(r => (
-                <tr key={r.id} className={cn('transition-colors hover:bg-brand-off-white', !r.active && 'opacity-55')}>
+                <Fragment key={r.id}>
+                <tr className={cn('transition-colors hover:bg-brand-off-white', !r.active && 'opacity-55')}>
                   <td className="px-4 py-3">
-                    <p className="flex items-center gap-1.5 font-medium text-brand-near-black">
+                    <button
+                      type="button"
+                      onClick={() => put('contractor', r.id === selectedId ? null : r.id)}
+                      aria-expanded={r.id === selectedId}
+                      className="flex items-center gap-1.5 text-left font-medium text-brand-near-black"
+                    >
+                      <ChevronRight className={cn('size-3.5 shrink-0 text-brand-mid-grey transition-transform', r.id === selectedId && 'rotate-90')} aria-hidden />
                       {r.name}
                       {r.verified && <BadgeCheck className="size-3.5 shrink-0 text-state-complete" aria-label={t('admin.dir.verified')} />}
                       {r.applicationId && <Link2 className="size-3 shrink-0 text-brand-mid-grey" aria-label={t('admin.dir.fromApplication')} />}
-                    </p>
-                    <p className="text-xs text-brand-mid-grey">{r.email ?? '—'}</p>
+                    </button>
+                    <p className="ml-5 text-xs text-brand-mid-grey">{r.email ?? '—'}</p>
                   </td>
                   <td className="px-4 py-3 text-brand-mid-grey">{tradeLabel(r.trade)}</td>
                   <td className="px-4 py-3 text-brand-mid-grey">{r.location || '—'}</td>
                   <td className="px-4 py-3 text-brand-mid-grey tabular-nums">
                     {t('admin.dir.yearsValue', { years: r.yearsExp })}
+                    {/* Self-reported on the application form, so it is labelled as that
+                        and never as work completed on Groundwork. */}
                     {r.completedProjects > 0 && (
-                      <span className="ml-1.5 text-xs">· {t('admin.dir.projectsValue', { count: r.completedProjects })}</span>
+                      <span className="ml-1.5 text-xs" title={t('admin.dir.listedHint')}>
+                        · {t('admin.dir.listedValue', { count: r.completedProjects })}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -191,6 +226,14 @@ export default function AdminContractors() {
                     </button>
                   </td>
                 </tr>
+                {r.id === selectedId && (
+                  <tr className="bg-brand-off-white/40">
+                    <td colSpan={7} className="p-0">
+                      <ContractorOversight contractor={r} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
