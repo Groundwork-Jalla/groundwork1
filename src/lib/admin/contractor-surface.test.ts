@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { postAuthPath } from '@/lib/auth/post-auth-path';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
 
@@ -198,5 +199,48 @@ describe('routing', () => {
     // The existing directory keeps its path; this surface is not it.
     expect(routes).toMatch(/route\("contractors",\s+"routes\/contractors\.tsx"\)/);
     expect(routes).not.toMatch(/layout\("routes\/work\/_layout\.tsx"[\s\S]{0,200}route\("contractors"/);
+  });
+});
+
+describe('post-auth routing', () => {
+  const done = { onboardingComplete: true };
+
+  it('sends a contractor to their own surface, not the client dashboard', () => {
+    expect(postAuthPath({ isContractor: true, ...done })).toBe('/work');
+  });
+
+  it('keeps the precedence deliberate: admin → verifier → contractor → client', () => {
+    expect(postAuthPath({ isAdmin: true, isVerifier: true, isContractor: true, ...done })).toBe('/admin');
+    expect(postAuthPath({ isVerifier: true, isContractor: true, ...done })).toBe('/verifiers');
+    expect(postAuthPath({ isContractor: true, ...done })).toBe('/work');
+    expect(postAuthPath({ ...done })).toBe('/dashboard');
+  });
+
+  it('does not divert a contractor into client onboarding', () => {
+    // Onboarding sets up a build of your own. Someone invited onto somebody else's
+    // project has none, and would be stuck on a step that does not apply to them.
+    expect(postAuthPath({ isContractor: true, onboardingComplete: false })).toBe('/work');
+  });
+
+  it('still honours a safe deep link, and still refuses an unsafe one', () => {
+    expect(postAuthPath({ isContractor: true, redirect: '/work/projects/abc', ...done }))
+      .toBe('/work/projects/abc');
+    expect(postAuthPath({ isContractor: true, redirect: '//evil.example', ...done })).toBe('/work');
+  });
+
+  it('every caller passes contractor standing, or the routing silently never fires', () => {
+    for (const f of ['src/app/routes/auth/login.tsx',
+                     'src/app/routes/auth/callback.tsx',
+                     'src/app/routes/auth/new-password.tsx']) {
+      expect(code(f), f).toMatch(/isContractor/);
+    }
+  });
+
+  it('resolves contractor standing from the database, never from a login hint', () => {
+    // A `?as=contractor` intent may say which surface someone WANTS; it must never be
+    // what decides where they land.
+    for (const f of ['src/app/routes/auth/login.tsx', 'src/app/routes/auth/callback.tsx']) {
+      expect(code(f), f).toMatch(/holdsContractorAssignment/);
+    }
   });
 });

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { holdsVerifierRole } from '@/lib/auth/roles';
+import { holdsVerifierRole, holdsContractorAssignment } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export default function NewPassword() {
   // instant it is pressed rather than pausing on an RPC after the work is already done.
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isVerifierUser, setIsVerifierUser] = useState(false);
+  const [isContractorUser, setIsContractorUser] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   useEffect(() => {
@@ -72,8 +73,11 @@ export default function NewPassword() {
       if (session) {
         const { data } = await supabase.rpc('is_admin');
         if (!cancelled) setIsAdminUser(data === true);
-        const verifier = await holdsVerifierRole(session?.user?.id);
-        if (!cancelled) setIsVerifierUser(verifier);
+        const [verifier, contractor] = await Promise.all([
+          holdsVerifierRole(session?.user?.id),
+          holdsContractorAssignment(session?.user?.id),
+        ]);
+        if (!cancelled) { setIsVerifierUser(verifier); setIsContractorUser(contractor); }
       }
     });
     return () => { cancelled = true; };
@@ -147,6 +151,7 @@ export default function NewPassword() {
     navigate(postAuthPath({
       isAdmin: isAdminUser,
       isVerifier: isVerifierUser,
+      isContractor: isContractorUser,
       onboardingComplete: !!onboardingComplete,
     }), { replace: true });
   }

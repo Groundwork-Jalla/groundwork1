@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
-import { holdsVerifierRole } from '@/lib/auth/roles';
+import { holdsVerifierRole, holdsContractorAssignment } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,10 +69,15 @@ export default function Login() {
 
     const { data: { session } } = await supabase.auth.getSession();
     const { data: isAdmin } = await supabase.rpc('is_admin');
-    const isVerifier = await holdsVerifierRole(session?.user?.id);
+    // Resolved together: two independent awaits would serialise the sign-in for no reason.
+    const [isVerifier, isContractor] = await Promise.all([
+      holdsVerifierRole(session?.user?.id),
+      holdsContractorAssignment(session?.user?.id),
+    ]);
     navigate(postAuthPath({
       isAdmin: isAdmin === true,
       isVerifier,
+      isContractor,
       onboardingComplete: !!session?.user?.user_metadata?.onboarding_complete,
       redirect: redirectTo,
     }), { replace: true });
