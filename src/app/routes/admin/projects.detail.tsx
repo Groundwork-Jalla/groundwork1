@@ -109,7 +109,7 @@ export default function AdminProjectWorkspace() {
   return (
     <div className="flex min-h-full flex-col">
       {/* A header act (assign verifier) is a write like any other: re-read, then render. */}
-      <WorkspaceHeader ws={ws} onNotice={n => { setNotice(n); reload(); }} />
+      <WorkspaceHeader ws={ws} onNotice={n => { setNotice(n); reload(); }} onReload={reload} />
 
       {/* Tabs: a scrollable strip; the active tab is the URL's. */}
       <nav aria-label={t('admin.workspace.tabs.overview')}

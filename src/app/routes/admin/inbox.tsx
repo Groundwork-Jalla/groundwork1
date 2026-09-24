@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Loader2, MessagesSquare, Plus } from 'lucide-react';
 import { linkConversation, listConversationPreviews, listConversations, type Conversation, type ConversationPreview } from '@/lib/supabase/conversations';
@@ -86,6 +86,27 @@ export default function AdminInbox() {
   }, [t]);
   useEffect(() => { load(); }, [load]);
 
+  /**
+   * A thread the URL names but the list has never heard of.
+   *
+   * The conversations are read once, when the screen mounts. Anything created after that
+   * — by "New message" here, by the Jalla or WhatsApp button in a project, by the support
+   * chooser, by a colleague in another tab — is a real row that this page simply has not
+   * seen, and rendering the empty state for it says "no conversation yet" about a
+   * conversation that exists. So an unknown id triggers exactly one re-read.
+   *
+   * Once per id: if it is still missing afterwards it is genuinely not ours to show, and
+   * re-reading forever would turn a bad link into a loop.
+   */
+  const refetched = useRef(new Set<string>());
+  useEffect(() => {
+    if (!selectedId || rows === null) return;
+    if (rows.some(c => c.id === selectedId)) return;
+    if (refetched.current.has(selectedId)) return;
+    refetched.current.add(selectedId);
+    void load();
+  }, [selectedId, rows, load]);
+
   const staff = useMemo(
     () => (people ? [...people.values()].filter(u => u.roles.split(',').map(r => r.trim()).includes('admin')).map(u => ({ id: u.id, label: u.fullName || u.email })) : null),
     [people],
@@ -156,7 +177,7 @@ export default function AdminInbox() {
         </div>
       </header>
 
-      {newJalla && <NewJallaMessage onClose={() => setNewJalla(false)} />}
+      {newJalla && <NewJallaMessage onClose={() => setNewJalla(false)} onCreated={load} />}
 
       {rows === null ? (
         <p className="flex items-center gap-2 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('admin.inbox.loading')}</p>

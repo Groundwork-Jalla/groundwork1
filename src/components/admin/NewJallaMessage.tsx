@@ -27,7 +27,11 @@ import { cn } from '@/lib/utils';
 // from this modal: it hands the admin the real Inbox composer.
 // =========================================================
 
-export function NewJallaMessage({ onClose }: { onClose: () => void }) {
+export function NewJallaMessage({ onClose, onCreated }: {
+  onClose: () => void;
+  /** Re-read the Inbox before navigating, so the new thread is already in the list. */
+  onCreated?: () => Promise<void> | void;
+}) {
   const t = useT();
   const navigate = useNavigate();
 
@@ -71,6 +75,10 @@ export function NewJallaMessage({ onClose }: { onClose: () => void }) {
     try {
       // Reuse or create — one call, and the database decides which.
       const id = await ensureProjectConversation(project.id);
+      // The Inbox read its list when it mounted, so a thread created just now is not in
+      // it. Without this the URL names a real conversation and the page says there is
+      // none. Awaited, so the list is ready before the navigation lands.
+      await onCreated?.();
       navigate(jallaHref(id));
       onClose();
     } catch (err) {

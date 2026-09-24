@@ -48,7 +48,12 @@ const STATUS_DOT: Record<string, string> = {
   archived:  'bg-state-locked',
 };
 
-export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (text: string) => void }) {
+export function WorkspaceHeader({ ws, onNotice, onReload }: {
+  ws: Workspace;
+  onNotice: (text: string) => void;
+  /** Re-read the workspace, so a thread created just now is in the tab it opens. */
+  onReload?: () => Promise<void> | void;
+}) {
   const t = useT();
   const labels = useDomainLabels();
   const { stageLabel } = useStageLabels();
@@ -79,6 +84,9 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
     setJallaBusy(true);
     try {
       const id = await ensureProjectConversation(p.id);
+      // The workspace read its conversations when it mounted. A thread created by this
+      // very click is not in that model yet, so the tab would open and show nothing.
+      await onReload?.();
       navigate(workspaceHref(p.id, { tab: 'conversations', conversationId: id }));
     } catch (err) {
       onNotice(errorMessage(err, t('common.somethingWrong')));

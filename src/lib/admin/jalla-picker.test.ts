@@ -147,6 +147,31 @@ describe('search matches what a person would type', () => {
   });
 });
 
+describe('a thread created just now is visible immediately', () => {
+  it('the Inbox re-reads before the navigation lands', () => {
+    // Without this the URL names a real conversation and the page renders the empty
+    // state — "no conversation yet" about a conversation that exists.
+    expect(modal).toContain('await onCreated?.()');
+    expect(modal.indexOf('await onCreated?.()')).toBeLessThan(modal.indexOf('navigate(jallaHref(id))'));
+    expect(inbox).toContain('onCreated={load}');
+  });
+
+  it('the workspace re-reads before opening its Conversations tab', () => {
+    expect(header).toContain('await onReload?.()');
+    expect(header.indexOf('await onReload?.()')).toBeLessThan(header.indexOf('navigate(workspaceHref'));
+    expect(code('src/app/routes/admin/projects.detail.tsx')).toContain('onReload={reload}');
+  });
+
+  it('an unknown conversation id re-reads once, and only once', () => {
+    // Covers every other way a fresh thread can be deep-linked: the project buttons, the
+    // support chooser, a colleague in another tab.
+    expect(inbox).toContain('refetched.current.has(selectedId)');
+    expect(inbox).toContain('refetched.current.add(selectedId)');
+    // A bad id must not loop.
+    expect(inbox).toMatch(/refetched\.current\.add\(selectedId\);\s*\n\s*void load\(\);/);
+  });
+});
+
 describe('the entry points', () => {
   it('New message appears on the native channel and nowhere else', () => {
     expect(inbox).toContain("channelFilter === 'jalla'");
