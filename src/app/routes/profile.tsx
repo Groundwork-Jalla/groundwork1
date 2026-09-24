@@ -11,6 +11,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { loadClientContact, saveClientPhone, syncPhoneToCrm } from '@/lib/supabase/client-contact';
 import { supabase } from '@/lib/supabase/client';
 import { createSupportTicket } from '@/lib/supabase/support';
 import { Button } from '@/components/ui/button';
@@ -237,7 +238,15 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState(
     user?.user_metadata?.full_name ?? '',
   );
-  const [phone, setPhone] = useState(user?.user_metadata?.phone ?? '');
+  /**
+   * The number lives in `profiles.phone`. It used to be saved only into
+   * `user_metadata`, where nothing could read it — so a value found there and nowhere
+   * else is offered as the starting value rather than discarded, and becomes canonical
+   * the moment this form is saved.
+   */
+  const [phone, setPhone] = useState('');
+  const [phoneLegacy, setPhoneLegacy] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const [country, setCountry] = useState(user?.user_metadata?.country ?? DEFAULT_COUNTRY_CODE);
   const [idDocumentPath, setIdDocumentPath] = useState(
     user?.user_metadata?.id_document_path ?? '',
@@ -299,6 +308,19 @@ export default function ProfilePage() {
   const [deleteResult, setDeleteResult] = useState<string | null>(null);
 
   // Derived meta for completion meter (tracks live form state)
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    loadClientContact(user.id, user.user_metadata)
+      .then(c => {
+        if (!alive) return;
+        setPhone(c.phone ?? c.legacyPhone ?? '');
+        setPhoneLegacy(!c.phone && !!c.legacyPhone);
+      })
+      .catch(() => { /* the form still works; it just starts empty */ });
+    return () => { alive = false; };
+  }, [user?.id, user?.user_metadata]);
+
   const liveMeta: ProfileMeta = { displayName, phone, country, idDocumentPath };
 
   // ── Cleanup timers ─────────────────────────────────────
@@ -320,10 +342,29 @@ export default function ProfilePage() {
     setSaveState('saving');
     setSaveError('');
 
+    // `profiles.phone` is the canonical field — normalised here, at the write, so what is
+    // stored is what a provider can actually send to. A number that cannot be messaged is
+    // refused rather than stored looking valid.
+    let canonicalPhone: string | null = null;
+    if (user?.id) {
+      const saved = await saveClientPhone(user.id, phone, country.trim() || null)
+        .catch(() => ({ ok: false, problem: 'invalid' } as const));
+      if (!saved.ok) {
+        setPhoneError(t('profile.phoneInvalid'));
+        setSaveState('error');
+        return;
+      }
+      canonicalPhone = saved.phone;
+      setPhone(canonicalPhone ?? '');
+      setPhoneLegacy(false);
+      setPhoneError('');
+    }
+
+    // Kept aligned because other account UI still reads it — a copy, never the source.
     const { error } = await supabase.auth.updateUser({
       data: {
         full_name: displayName.trim(),
-        phone: phone.trim(),
+        phone: canonicalPhone ?? '',
         country: country.trim(),
       },
     });
@@ -338,6 +379,10 @@ export default function ProfilePage() {
     }
 
     setSaveState('saved');
+    // The CRM contact has to carry the number for WhatsApp to reach it. Fire-and-forget:
+    // a CRM that is down must never stop a client recording their own phone number, and
+    // the value is already stored by this point.
+    if (canonicalPhone) void syncPhoneToCrm();
     savedTimerRef.current = setTimeout(() => setSaveState('idle'), 2000);
   }
 
@@ -593,8 +638,20 @@ export default function ProfilePage() {
                           onChange={e => setPhone(e.target.value)}
                           placeholder={t('fields.phonePlaceholder')}
                           className={inputClass}
+                          aria-describedby="phone-help"
+                          aria-invalid={!!phoneError}
                         />
                       </div>
+                      <p id="phone-help" className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">
+                        {t('profile.phoneHelp')}
+                      </p>
+                      {/* Not "verified": nobody has proved they own this number. */}
+                      {phoneLegacy && (
+                        <p className="mt-1 text-[11px] font-medium text-state-held">{t('profile.phoneLegacy')}</p>
+                      )}
+                      {phoneError && (
+                        <p role="alert" className="mt-1 text-[11px] font-medium text-state-alert">{phoneError}</p>
+                      )}
                     </Field>
 
                     <Field label={t('fields.country')} htmlFor="country">

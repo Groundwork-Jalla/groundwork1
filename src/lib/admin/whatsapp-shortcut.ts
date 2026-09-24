@@ -1,3 +1,7 @@
+// Relative and extensioned: this module is reached from `api/`, where no `@/*`
+// alias exists to expand. See api-import-graph.test.ts.
+import { isE164 } from '../phone.js';
+
 // =========================================================
 // Which WhatsApp thread is *the* client's (06 §22) — pure.
 //
@@ -67,16 +71,11 @@ export function resolveWhatsAppThread(rows: WhatsAppRow[], personId: string): Re
 /**
  * Is this a number WhatsApp could actually reach?
  *
- * `normalisePhone` returns its input unchanged when it cannot place the number, so a
- * successful call is not the same as a valid result. E.164: a leading `+` and 7–15
- * digits, per the ITU.
+ * One implementation, shared with the profile form that stores the number and the GHL
+ * layer that sends to it — a number accepted at the keyboard and rejected at the provider
+ * would be the worst of both.
  */
-export function isDeliverablePhone(value: string | null | undefined): boolean {
-  const v = (value ?? '').trim();
-  if (!v.startsWith('+')) return false;
-  const digits = v.slice(1).replace(/\D/g, '');
-  return digits.length >= 7 && digits.length <= 15 && /^\+\d+$/.test(v);
-}
+export const isDeliverablePhone = isE164;
 
 /** Where the Inbox opens a thread. One addressing pattern, shared with the rest of admin. */
 export const inboxHref = (conversationId: string): string =>

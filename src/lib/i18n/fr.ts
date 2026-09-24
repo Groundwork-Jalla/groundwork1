@@ -2027,6 +2027,9 @@ export const fr: Mirror<EnDict> = {
 
   // ── Profil / paramètres ───────────────────────────────────
   profile: {
+      phoneHelp:    'Groundwork peut utiliser ce num\u00e9ro pour vous joindre sur WhatsApp au sujet de votre projet. Indiquez l\u2019indicatif du pays, ou \u00e9crivez-le comme d\u2019habitude et nous l\u2019ajouterons.',
+      phoneLegacy:  'Nous avons retrouv\u00e9 un num\u00e9ro saisi pr\u00e9c\u00e9demment. Enregistrez pour le confirmer \u2014 il ne nous parvient pas encore.',
+      phoneInvalid: 'Ce num\u00e9ro ne semble pas joignable. V\u00e9rifiez les chiffres, ou ajoutez l\u2019indicatif du pays.',
     tabs: {
       profile:       'Profil',
       account:       'Compte',

@@ -40,7 +40,7 @@ export async function handler(req: any, res: any) {
 
   const { data: profile, error } = await admin
     .from('profiles')
-    .select('full_name, email, country, preferred_lang, synced_to_ghl, ghl_contact_id')
+    .select('full_name, email, country, preferred_lang, phone, synced_to_ghl, ghl_contact_id')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -52,7 +52,38 @@ export async function handler(req: any, res: any) {
     return;
   }
 
-  if (profile.synced_to_ghl) {
+  // ── A phone number that changed after the first sync ───────────────────────────────
+  // The gate below is `synced_to_ghl`, which is the right rule for announcing a person
+  // once — and the wrong one for a detail they edit later. A client who adds their phone
+  // number a month after signing up was already synced, so without this branch the
+  // number would sit in `profiles.phone` and never reach the contact that has to carry
+  // it for WhatsApp to work.
+  //
+  // By contact id, so the existing contact is UPDATED. The upsert endpoint matches on
+  // email and would leave a second person behind holding none of the history.
+  if (req.body?.syncPhone === true) {
+    const phone = (profile.phone as string | null) ?? null;
+    const contactId = (profile.ghl_contact_id as string | null) ?? null;
+
+    // Nothing to send is a success: clearing the field is a legitimate choice, and there
+    // is no "delete the number" call worth inventing for it.
+    if (!phone) { res.status(200).json({ ok: true, reason: 'no_phone' }); return; }
+    // No contact yet: fall through to the normal first-sync path below, which creates one
+    // and now carries the phone with it.
+    if (contactId) {
+      const { ghlConfig, updateContactPhone } = await import('../ghl/_client.js');
+      const cfg = await ghlConfig();
+      if (!cfg) { res.status(200).json({ ok: false, reason: 'not_configured' }); return; }
+      const r = await updateContactPhone(cfg, contactId, phone);
+      if (!r.ok) {
+        console.error('[ghl] could not update the contact phone for', user.id, r.error);
+        res.status(200).json({ ok: false, reason: 'provider_rejected', detail: r.error });
+        return;
+      }
+      res.status(200).json({ ok: true, updated: 'phone' });
+      return;
+    }
+  } else if (profile.synced_to_ghl) {
     res.status(200).json({ ok: true, alreadySynced: true });
     return;
   }
@@ -66,6 +97,9 @@ export async function handler(req: any, res: any) {
     fullName: profile.full_name as string | null,
     country:  profile.country as string | null,
     lang:     profile.preferred_lang as string | null,
+    // Carried from the first sync onwards, so a contact created today is messageable
+    // today. Null when the client has not given one — never a placeholder.
+    phone:    (profile.phone as string | null) ?? null,
   }, {
     user_id: user.id,
   }, {

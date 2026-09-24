@@ -2050,6 +2050,9 @@ export const en = {
 
   // ── Profile / settings ────────────────────────────────────
   profile: {
+      phoneHelp:    'Groundwork may use this number to reach you on WhatsApp about your project. Include your country code, or write it the way you normally would and we will add it.',
+      phoneLegacy:  'We found a number you entered before. Save to confirm it \u2014 it is not reaching us yet.',
+      phoneInvalid: 'That does not look like a phone number we can reach. Check the digits, or add your country code.',
     tabs: {
       profile:       'Profile',
       account:       'Account',
