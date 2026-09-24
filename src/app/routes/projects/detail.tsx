@@ -26,7 +26,7 @@ import ProjectChat               from '@/components/project/ProjectChat';
 import ContractorInvite          from '@/components/project/ContractorInvite';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
-import ProjectPayments          from '@/components/project/ProjectPayments';
+import ProjectPaymentsLedger    from '@/components/project/ProjectPaymentsLedger';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import RelatedGuides             from '@/components/project/RelatedGuides';
 import DangerZone                from '@/components/project/DangerZone';
@@ -494,12 +494,10 @@ export default function ProjectDetail() {
           {/* Tab: Payments */}
           {activeTab === 'payments' && (
             <div>
-              <ProjectPayments
-                project={project}
-                stages={stages}
-                openPayStageId={payStageId}
-                onOpenPayStageHandled={() => setPayStageId(null)}
-              />
+              {/* The ledger (090) is the source. The previous screen computed
+                  `budget_usd − milestones marked paid` and called it an escrow balance;
+                  Groundwork holds no funds, so there was no balance to show. */}
+              <ProjectPaymentsLedger project={project} stages={stages} />
               <RelatedGuides tab="payments" />
             </div>
           )}
