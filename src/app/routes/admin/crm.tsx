@@ -5,6 +5,7 @@ import {
   listSyncFailures, testCrmEmailLog, type SyncFailureRow,
   type CrmStatus, type OutboxRow, type ConfigSource,
 } from '@/lib/supabase/admin-applications';
+import { CrmPipeline } from '@/components/admin/CrmPipeline';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 import { fmtDate } from './applications';
@@ -21,6 +22,14 @@ import { fmtDate } from './applications';
 // Two questions, in the order they matter:
 //   1. Is it configured, and which route are events taking right now?
 //   2. What has not arrived, and can I send it?
+//
+// ── And, since the pipeline tab, a third ─────────────────────────────────────────────
+// Where is everybody in acquisition? That is a different question from the two above —
+// it is about leads, not about plumbing — so it gets its own tab rather than another
+// panel in a page already full of repair tools. System → Integrations answers "is the
+// connection healthy"; this tab answers "who is in the funnel"; the Setup tab keeps the
+// deep repair tooling that Integrations links into. None of the three duplicates
+// another, and only this file's Setup tab ever renders configuration.
 // =========================================================
 
 /**
@@ -61,6 +70,7 @@ export default function AdminCrm() {
   const t = useT();
   const { lang } = useLanguage();
 
+  const [view, setTab] = useState<'pipeline' | 'setup'>('pipeline');
   const [status, setStatus]   = useState<CrmStatus | null>(null);
   const [rows, setRows]       = useState<OutboxRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -272,11 +282,30 @@ export default function AdminCrm() {
 
   return (
     <div className="p-6 sm:p-8">
-      <header className="mb-6">
+      <header className="mb-5">
         <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.crm.title')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.crm.subtitle')}</p>
       </header>
 
+      <div className="mb-6 flex items-center gap-1.5 border-b border-brand-border-grey">
+        {(['pipeline', 'setup'] as const).map(tab => (
+          <button
+            key={tab} type="button" onClick={() => setTab(tab)}
+            aria-pressed={view === tab}
+            className={cn(
+              '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+              view === tab
+                ? 'border-brand-near-black text-brand-near-black'
+                : 'border-transparent text-brand-mid-grey hover:text-brand-near-black',
+            )}
+          >
+            {t(tab === 'pipeline' ? 'admin.crm.tabPipeline' : 'admin.crm.tabSetup')}
+          </button>
+        ))}
+      </div>
+
+      {view === 'pipeline' ? <CrmPipeline /> : (
+      <>
       {error && (
         <p className="mb-4 rounded-xl border border-state-alert/30 px-4 py-2.5 text-sm text-state-alert">
           {error}
@@ -578,6 +607,8 @@ export default function AdminCrm() {
           )}
         </section>
       </div>
+      </>
+      )}
     </div>
   );
 }

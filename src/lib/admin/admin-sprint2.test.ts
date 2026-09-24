@@ -34,7 +34,7 @@ describe('the three new pages are real destinations', () => {
       expect(ADMIN_PLACEHOLDERS[key], `${key} is built and must not be a placeholder`).toBeUndefined();
     }
     // The ones with no entity behind them are still honest placeholders, not empty pages.
-    for (const key of ['tasks', 'inspections', 'agents', 'site-managers', 'settings']) {
+    for (const key of ['tasks', 'inspections', 'agents', 'site-managers']) {
       expect(ADMIN_PLACEHOLDERS[key], `${key} has no entity and must stay a placeholder`).toBeDefined();
     }
   });
