@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { ArrowLeft, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { ArrowLeft, ExternalLink, ShieldCheck, MessageCircle, Loader2 } from 'lucide-react';
+import { openClientWhatsApp } from '@/lib/supabase/project-whatsapp';
+import { inboxHref } from '@/lib/admin/whatsapp-shortcut';
 import type { Workspace } from '@/lib/admin/workspace';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { AssignVerifierModal } from '@/components/admin/team/AssignVerifierModal';
@@ -26,6 +28,14 @@ import { cn } from '@/lib/utils';
 // Quick actions are the existing RPCs only (05 §5): Assign verifier (086, the extracted
 // modal) and the client view (an existing page). Assign contractor arrives with the Team
 // tab, whose extraction it belongs to; nothing new is invented here.
+//
+// ── WhatsApp means "message this client", not "a chat for this project" ─────────────
+// A WhatsApp conversation belongs to the PERSON: GHL gives one thread per contact, and
+// `conversations.ghl_conversation_id` is UNIQUE, so a client with two projects has one
+// chat reached from either. The button resolves it server-side and navigates into the
+// Inbox; it never writes `conversations.project_id`, so clicking from one project cannot
+// move the thread away from another. Linking a thread to a project stays the separate,
+// explicit act it already was.
 // =========================================================
 
 const STATUS_DOT: Record<string, string> = {
@@ -40,6 +50,27 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
   const labels = useDomainLabels();
   const { stageLabel } = useStageLabels();
   const [assignVerifier, setAssignVerifier] = useState(false);
+  const [waBusy, setWaBusy] = useState(false);
+  const navigate = useNavigate();
+
+  /**
+   * Resolve the client's one WhatsApp thread and go to it. Every refusal names itself —
+   * no phone, a CRM that would not make the contact, a provider that would not open the
+   * thread — because "nothing happened" on a button like this is indistinguishable from
+   * a bug. Nothing is created unless the provider actually answered.
+   */
+  async function whatsapp() {
+    setWaBusy(true);
+    try {
+      const r = await openClientWhatsApp(p.id);
+      if (r.ok) { navigate(inboxHref(r.conversationId)); return; }
+      onNotice(t(`admin.workspace.header.whatsappFail.${r.reason}` as TKey));
+    } catch {
+      onNotice(t('admin.workspace.header.whatsappFail.error'));
+    } finally {
+      setWaBusy(false);
+    }
+  }
   const [verifierAvailable, setVerifierAvailable] = useState(ws.available.verifiers);
 
   const p = ws.project;
@@ -110,6 +141,16 @@ export function WorkspaceHeader({ ws, onNotice }: { ws: Workspace; onNotice: (te
               {t('admin.verifier.assign')}
             </button>
           )}
+          {/* WhatsApp keeps its colour here as everywhere else in Groundwork. */}
+          <button
+            type="button"
+            onClick={whatsapp}
+            disabled={waBusy}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#25d366]/40 px-3 py-2 text-xs font-medium text-[#1a8d45] transition-colors hover:border-[#25d366] disabled:opacity-60 dark:text-[#25d366]"
+          >
+            {waBusy ? <Loader2 className="size-3.5 animate-spin" /> : <MessageCircle className="size-3.5" />}
+            {t('admin.workspace.header.whatsapp')}
+          </button>
           <a
             href={`/projects/${p.id}`}
             target="_blank"

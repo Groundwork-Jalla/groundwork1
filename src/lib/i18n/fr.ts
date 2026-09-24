@@ -530,6 +530,18 @@ export const fr: Mirror<EnDict> = {
         lastActivity:   'Derni\u00e8re activit\u00e9 {when}',
         noActivity:     'Aucune activit\u00e9 enregistr\u00e9e',
         openClient:     'Ouvrir la vue client',
+        whatsapp:     'WhatsApp',
+        whatsappFail: {
+          no_client:                 'Ce projet n\u2019a pas de compte client\u00a0: il n\u2019y a personne \u00e0 contacter.',
+          no_phone:                  'WhatsApp indisponible \u2014 ce client n\u2019a pas de num\u00e9ro de t\u00e9l\u00e9phone valide sur son compte.',
+          not_configured:            'WhatsApp indisponible \u2014 la connexion au CRM n\u2019est pas configur\u00e9e.',
+          contact_failed:            'Le CRM n\u2019a pas cr\u00e9\u00e9 de contact pour ce client\u00a0: aucune discussion n\u2019a \u00e9t\u00e9 ouverte.',
+          provider_failed:           'Le prestataire n\u2019a pas ouvert de fil WhatsApp. Rien n\u2019a \u00e9t\u00e9 cr\u00e9\u00e9.',
+          record_failed:             'La discussion existe chez le prestataire mais Groundwork n\u2019a pas pu l\u2019enregistrer. R\u00e9essayez.',
+          conversations_unavailable: 'Les conversations n\u2019ont pas pu \u00eatre lues.',
+          ambiguous:                 'Ce client a plusieurs fils WhatsApp enregistr\u00e9s. Il faut les d\u00e9m\u00ealer avant d\u2019envoyer un message \u2014 ouvrez la bo\u00eete de r\u00e9ception.',
+          error:                     'L\u2019op\u00e9ration a \u00e9chou\u00e9. Rien n\u2019a \u00e9t\u00e9 cr\u00e9\u00e9.',
+        },
         unknownAccount: 'Compte inconnu',
         status: {
           active:    'Actif',

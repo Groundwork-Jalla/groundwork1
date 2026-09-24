@@ -5,6 +5,7 @@ import { handler as crmRetry }    from './_handlers/retry.js';
 import { handler as crmInbound }  from './_handlers/inbound.js';
 import { handler as profileGeo }  from './_handlers/profile-geo.js';
 import { handler as adminSettings } from './_handlers/admin-settings.js';
+import { handler as projectWhatsApp } from './_handlers/project-whatsapp.js';
 import { handler as crmStatus }   from './_handlers/crm-status.js';
 import { handler as crmDiagnose } from './_handlers/crm-diagnose.js';
 import { handler as crmFields } from './_handlers/crm-fields.js';
@@ -60,7 +61,7 @@ type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'crm-email-sync'
-  | 'profile-geo' | 'admin-settings';
+  | 'profile-geo' | 'admin-settings' | 'project-whatsapp';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -85,6 +86,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-email-sync': crmEmailSync,
   'profile-geo': profileGeo,
   'admin-settings': adminSettings,
+  'project-whatsapp': projectWhatsApp,
 };
 
 export default async function handler(req: any, res: any) {

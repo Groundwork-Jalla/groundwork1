@@ -523,6 +523,18 @@ export const en = {
         lastActivity:   'Last activity {when}',
         noActivity:     'No activity recorded',
         openClient:     'Open client view',
+        whatsapp:     'WhatsApp',
+        whatsappFail: {
+          no_client:                 'This project has no client account, so there is nobody to message.',
+          no_phone:                  'WhatsApp unavailable \u2014 this client does not have a valid phone number on their account.',
+          not_configured:            'WhatsApp unavailable \u2014 the CRM connection is not configured.',
+          contact_failed:            'The CRM would not create a contact for this client, so no chat was opened.',
+          provider_failed:           'The provider would not open a WhatsApp thread. Nothing was created.',
+          record_failed:             'The chat exists at the provider but Groundwork could not record it. Try again.',
+          conversations_unavailable: 'Conversations could not be read.',
+          ambiguous:                 'This client has more than one WhatsApp thread on record. That needs sorting out before a new message is sent \u2014 open the Inbox to see them.',
+          error:                     'That did not work. Nothing was created.',
+        },
         unknownAccount: 'Unknown account',
         status: {
           active:    'Active',

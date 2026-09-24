@@ -159,10 +159,33 @@ export async function handler(req: any, res: any) {
   if (stampErr) console.warn('[conversation-deliver] sent but not stamped:', stampErr.message);
 
   // Learn the thread id if this is the first message we ever sent on it.
+  //
+  // This update can legitimately fail, and the failure is worth knowing about: GHL gives
+  // one conversation per CONTACT, and `conversations.ghl_conversation_id` is UNIQUE, so
+  // if another local row already holds this provider thread the insert is refused. That
+  // means two Groundwork rows are pointing at one external chat — the inbound handler
+  // will file every reply onto whichever one owns the id, and this row will look alive
+  // while receiving nothing.
+  //
+  // The collision is reported, never resolved by overwriting: taking the id from the
+  // other row would move that conversation's entire history onto this one.
+  let providerThread: 'learnt' | 'known' | 'collision' | 'failed' = 'known';
   if (!conversation.ghl_conversation_id && sent.data?.conversationId) {
-    await svc.from('conversations').update({ ghl_conversation_id: sent.data.conversationId })
-      .eq('id', conversation.id).is('ghl_conversation_id', null);
+    const { data: learnt, error: learnErr } = await svc.from('conversations')
+      .update({ ghl_conversation_id: sent.data.conversationId })
+      .eq('id', conversation.id).is('ghl_conversation_id', null)
+      .select('id');
+    if (learnErr) {
+      const duplicate = learnErr.code === '23505';
+      providerThread = duplicate ? 'collision' : 'failed';
+      console.error('[conversation-deliver] the message was sent but the provider thread id was not recorded:',
+        duplicate ? `another conversation already holds ${sent.data.conversationId}` : learnErr.message);
+    } else {
+      providerThread = learnt && learnt.length > 0 ? 'learnt' : 'known';
+    }
   }
 
-  res.status(200).json({ ok: true, provider, providerMessageId: ghlMessageId, stamped: !stampErr });
+  res.status(200).json({
+    ok: true, provider, providerMessageId: ghlMessageId, stamped: !stampErr, providerThread,
+  });
 }
