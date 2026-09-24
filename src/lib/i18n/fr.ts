@@ -828,6 +828,28 @@ export const fr: Mirror<EnDict> = {
         noMatch:       'Aucun projet ne correspond.',
         unavailable:   'Les projets n\u2019ont pas pu \u00eatre lus.',
       },
+    flow: {
+      title:            'O\u00f9 en est l\u2019argent de chaque \u00e9tape',
+      subtitle:         'L\u2019argent re\u00e7u du client, le d\u00e9caissement autoris\u00e9 par Groundwork, et ce que le prestataire en a fait.',
+      noProviderNote:   'Aucun prestataire de paiement n\u2019a jamais \u00e9crit dans ce registre\u00a0: un d\u00e9caissement autoris\u00e9 ne peut donc pas avancer. Les d\u00e9caissements resteront \u00ab\u00a0Approuv\u00e9\u00a0\u00bb tant qu\u2019aucun n\u2019est connect\u00e9.',
+      openIntegrations: 'Ouvrir Int\u00e9grations',
+      noMilestone:      'Aucun jalon',
+      leg: {
+        funding:      'Client \u2192 Groundwork',
+        authorised:   'D\u00e9caissement autoris\u00e9',
+        toProvider:   'Groundwork \u2192 prestataire',
+        toContractor: 'Prestataire \u2192 entreprise',
+      },
+      state: {
+        waiting:      'Pas encore',
+        inFlight:     'En cours',
+        done:         'Effectu\u00e9',
+        failed:       '\u00c9chec',
+        review:       'En cours d\u2019examen',
+        noProvider:   'Aucun prestataire connect\u00e9',
+        notScheduled: 'Non pr\u00e9vu',
+      },
+    },
     settings: {
       title:     'Param\u00e8tres',
       subtitle:  'Les param\u00e8tres produit que Groundwork conserve dans sa propre configuration. Les identifiants des prestataires ne s\u2019y trouvent pas, et ne s\u2019y trouveront jamais.',

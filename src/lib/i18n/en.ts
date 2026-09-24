@@ -822,6 +822,28 @@ export const en = {
         noMatch:       'No project matches that.',
         unavailable:   'Projects could not be read.',
       },
+    flow: {
+      title:            'Where each stage\u2019s money is',
+      subtitle:         'The client\u2019s money in, the release Groundwork authorised, and what the provider has done with it.',
+      noProviderNote:   'No payment provider has ever written to this ledger, so an authorised release cannot move. Releases will sit at \u201cApproved\u201d until one is connected.',
+      openIntegrations: 'Open Integrations',
+      noMilestone:      'No milestone',
+      leg: {
+        funding:      'Client \u2192 Groundwork',
+        authorised:   'Release authorised',
+        toProvider:   'Groundwork \u2192 provider',
+        toContractor: 'Provider \u2192 contractor',
+      },
+      state: {
+        waiting:      'Not yet',
+        inFlight:     'In progress',
+        done:         'Done',
+        failed:       'Failed',
+        review:       'Under review',
+        noProvider:   'No provider connected',
+        notScheduled: 'Not scheduled',
+      },
+    },
     settings: {
       title:     'Settings',
       subtitle:  'The product settings Groundwork keeps in its own configuration. Provider credentials are not here and never will be.',

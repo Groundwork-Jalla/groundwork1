@@ -8,6 +8,7 @@ import { LedgerModal, type Contractor, type LedgerModalState, type StageRef } fr
 import BudgetView from '@/components/project/BudgetView';
 import { domainStateOf, workspaceHref } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
+import { MoneyFlow } from './MoneyFlow';
 import { DomainNote } from './DomainNote';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatUSDFull } from '@/lib/budget';
@@ -124,7 +125,18 @@ export function FinancialsTab({ loaded, onChanged }: { loaded: LoadedWorkspace; 
         )}
       </Section>
 
-      {/* ── 2. Milestone releases: per stage, provider → contractor ────────────── */}
+      {/* ── 2. Where each stage's money is ─────────────────────────────────────── */}
+      {/* The panels around this one are organised by domain — every tranche, every
+          release. This one is organised by journey, which is how "where is stage 3's
+          money?" is actually asked. */}
+      <MoneyFlow
+        projectId={ws.project.id}
+        payments={fin.payments}
+        stages={ws.stages.map(v => v.stage)}
+        nameOf={nameOf}
+      />
+
+      {/* ── 3. Milestone releases: per stage, provider → contractor ────────────── */}
       <Section title={t('admin.ledger.releases')} sub={t('admin.workspace.financials.releasesSub')}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[40rem] text-xs">
