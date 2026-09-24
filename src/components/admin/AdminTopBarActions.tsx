@@ -9,8 +9,13 @@ import { useT } from '@/lib/i18n';
 // The admin top bar's actions: WhatsApp · New · notifications.
 //
 // Both controls go somewhere real. WhatsApp opens the Inbox's WhatsApp channel — the
-// conversation model (091) carries `channel`, so the filter is a real view of real rows;
-// until the Inbox ships, that URL is the honest empty state the sidebar already uses.
+// conversation model (091) carries `channel`, so the filter is a real view of real rows.
+//
+// It pointed at `/admin/whatsapp` until the Inbox shipped, when the per-channel
+// placeholders were removed and the sidebar moved to `?channel=`. This link was missed,
+// and the `admin/:section` catch-all then served it as "There is no such section" — a
+// dead end that no link check could see, because the catch-all matches every /admin/*
+// path. `admin-links.test.ts` now excludes it for exactly that reason.
 // "New" offers only what an admin can actually create today: a project and a client
 // account, both existing routes. Nothing here reports a connection status — a badge
 // saying "connected" that nothing proves is exactly the fiction we refuse.
@@ -26,7 +31,7 @@ export function AdminTopBarActions({ userId }: { userId: string }) {
   return (
     <>
       <Link
-        to="/admin/whatsapp"
+        to="/admin/inbox?channel=whatsapp"
         title={t('admin.header.whatsapp')}
         aria-label={t('admin.header.whatsapp')}
         className="flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-[#25D366]/10"
