@@ -1561,6 +1561,84 @@ export const en = {
     terms:   'Terms of Service',
   },
   // ── The verifier's own surface (/verifiers, 06 §22) ──
+  // ── /work — the contractor's execution surface ──────────────
+  contractor: {
+    surface: { title: 'Groundwork · Contractor' },
+    nav: { dashboard: 'Dashboard', projects: 'My projects' },
+    loadFailed: 'Your work could not be loaded. Refresh the page, and tell us if it keeps happening.',
+    dashboard: {
+      title:    'Contractor Dashboard',
+      subtitle: 'Your assigned projects and the work Groundwork is waiting on.',
+      greeting: 'Your assigned projects, {name} — and the work Groundwork is waiting on.',
+    },
+    kpi: {
+      assigned:     'Assigned projects',
+      activeStages: 'Stages open for work',
+      needsAction:  'Needs your action',
+      payments:     'Payments naming you',
+      paymentsHint: 'Only releases where you are the named beneficiary.',
+      unavailable:  'Not available right now',
+    },
+    needsAction: {
+      title:    'Needs your action',
+      subtitle: 'Stages a reviewer sent back, with what they asked for.',
+      empty:    'Nothing has been sent back to you.',
+      stage:    'Stage {n}',
+      open:     'Open the project',
+    },
+    decision: {
+      rejected:          'Rejected',
+      needsMoreEvidence: 'More evidence needed',
+    },
+    projects: {
+      title:         'My projects',
+      subtitle:      'Every build you have been assigned to.',
+      emptyTitle:    'No projects assigned to you yet',
+      emptyBody:     'When a client or the Jalla team assigns you to a build, it appears here.',
+      stageOf:       '{n} of {total} stages complete',
+      noStages:      'Stages not set up yet',
+      nothingActive: 'No stage open for work',
+    },
+  },
+
+  contractorProject: {
+    back:              'Back to my projects',
+    notYours:          'This project is not assigned to you.',
+    tabWork:           'Work',
+    tabDocuments:      'Documents',
+    tabPayments:       'Payments',
+    pipeline:          'Construction pipeline',
+    noActiveStage:     'No stage is open for work',
+    noActiveStageBody: 'Groundwork opens the next stage once the current one has been approved.',
+    noDocuments:       'No documents have been shared with you on this project.',
+  },
+  contractorStageStatus: {
+    locked:         'Locked',
+    active:         'Open',
+    pending_review: 'Under review',
+    complete:       'Complete',
+  },
+  contractorPayments: {
+    note:        'Groundwork records what has been funded and what has been released. A licensed payment provider holds and moves the money.',
+    unavailable: 'Payment records are not available right now.',
+    none:        'No release on this project names you as the beneficiary.',
+    milestone:   'Stage milestone',
+  },
+  contractorSubmit: {
+    title:      'Report work on this stage',
+    subtitle:   'Send photos, video or documents. Groundwork and the reviewer see what you submit.',
+    whichItem:  'Which item is this for?',
+    wholeStage: 'The stage as a whole',
+    notes:      'Notes',
+    files:      'Photos, video or documents — up to {mb} MB each',
+    cta:        'Submit work',
+    sending:    'Submitting…',
+    sent:       'Submitted. Groundwork and the reviewer can see it.',
+    failed:     'That did not submit. Check your connection and try again.',
+    closed:     'This stage is not open for submissions right now.',
+    photoCount: '{n} file(s)',
+  },
+
   verifier: {
     surface: {
       title: 'Groundwork Verification',
@@ -1635,6 +1713,7 @@ export const en = {
     createAccount:  'Create account',
     logIn:          'Log in',
     logOut:         'Log out',
+    remove:         'Remove',
     signIn:         'Sign in',
     signUp:         'Sign up',
     download:       'Download',

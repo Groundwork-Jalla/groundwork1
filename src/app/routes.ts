@@ -65,6 +65,18 @@ export default [
   route("admin/login",           "routes/admin/login.tsx"),
 
   // Admin panel (role-guarded inside its own layout)
+  // ── /work — the contractor's execution surface ──
+  //
+  // NOT /contractors: that path is the client-facing directory of contractors to browse
+  // and request quotes from, and renaming it would break the client nav and every link
+  // already pointing at it. /work says what the surface is for — "what am I expected to
+  // do now" — and deliberately avoids /jobs, since Jalla is not a job board.
+  layout("routes/work/_layout.tsx", [
+    route("work",                   "routes/work/index.tsx"),
+    route("work/projects",          "routes/work/projects.tsx"),
+    route("work/projects/:projectId","routes/work/projects.detail.tsx"),
+  ]),
+
   // ── /verifiers — the independent verifier's surface (06 §22) ──
   // A separate product from /admin: the same core data, a different actor, a different
   // authority. The gate is the role; the isolation is RLS (086/087).

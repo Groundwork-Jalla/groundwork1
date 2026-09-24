@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { holdsContractorAssignment } from '@/lib/auth/roles';
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
@@ -15,6 +16,8 @@ interface AuthContextValue {
   adminChecked: boolean;
   /** True when the signed-in user holds the `verifier` role (user_roles, RLS-trusted). */
   isVerifier: boolean;
+  /** Has at least one accepted contractor assignment. See holdsContractorAssignment. */
+  isContractor: boolean;
   /** False until the role check has resolved for the current session. */
   rolesChecked: boolean;
   signOut: () => Promise<void>;
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
   const [isVerifier, setIsVerifier] = useState(false);
+  const [isContractor, setIsContractor] = useState(false);
   const [rolesChecked, setRolesChecked] = useState(false);
 
   useEffect(() => {
@@ -86,23 +90,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [loading, session?.user?.id]);
 
-  // The verifier role, from the same canonical table and behind the same `loading` guard
-  // as the admin check — for the same reason: a "no" computed before the session is
-  // restored is not an answer, and a layout that believed it would bounce a verifier out
-  // of their own surface on every refresh.
+  // ── Both non-admin roles resolve together ──────────────────────────────────────────
+  //
+  // One effect, one flag. They were two effects sharing `rolesChecked`, and only the
+  // verifier one set it — so the flag could say "roles are resolved" while the contractor
+  // answer was still in flight. /work read that as a decided "no" and redirected a real
+  // contractor to /dashboard; whether it happened depended on which fetch won the race,
+  // which is why it looked intermittent.
+  //
+  // `rolesChecked` now means what its name says: every role answer is in. Behind the same
+  // `loading` guard as the admin check, for the same reason — a "no" computed before the
+  // session is restored is not an answer.
   useEffect(() => {
     let cancelled = false;
     if (loading) return;
 
     const uid = session?.user?.id;
-    if (!uid) { setIsVerifier(false); setRolesChecked(true); return; }
+    if (!uid) { setIsVerifier(false); setIsContractor(false); setRolesChecked(true); return; }
 
     setRolesChecked(false);
     (async () => {
-      const { data, error } = await supabase
-        .from('user_roles').select('role').eq('user_id', uid).eq('role', 'verifier').limit(1);
+      const [verifier, contractor] = await Promise.all([
+        supabase.from('user_roles').select('role').eq('user_id', uid).eq('role', 'verifier').limit(1)
+          .then(({ data, error }) => !error && (data?.length ?? 0) > 0),
+        holdsContractorAssignment(uid),
+      ]);
       if (cancelled) return;
-      setIsVerifier(!error && (data?.length ?? 0) > 0);
+      setIsVerifier(verifier);
+      setIsContractor(contractor);
       setRolesChecked(true);
     })();
 
@@ -114,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, rolesChecked, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, isContractor, rolesChecked, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1538,6 +1538,84 @@ export const fr: Mirror<EnDict> = {
     terms:   "Conditions d'utilisation",
   },
   // ── La surface du vérificateur (/verifiers, 06 §22) ──
+  // ── /work — la surface d'exécution de l'entrepreneur ────────
+  contractor: {
+    surface: { title: 'Groundwork · Entrepreneur' },
+    nav: { dashboard: 'Tableau de bord', projects: 'Mes projets' },
+    loadFailed: 'Vos travaux n\'ont pas pu être chargés. Actualisez la page, et signalez-le si cela persiste.',
+    dashboard: {
+      title:    'Tableau de bord entrepreneur',
+      subtitle: 'Vos projets assignés et les travaux que Groundwork attend.',
+      greeting: 'Vos projets assignés, {name} — et les travaux que Groundwork attend.',
+    },
+    kpi: {
+      assigned:     'Projets assignés',
+      activeStages: 'Étapes ouvertes aux travaux',
+      needsAction:  'Votre action requise',
+      payments:     'Paiements à votre nom',
+      paymentsHint: 'Uniquement les déblocages dont vous êtes le bénéficiaire désigné.',
+      unavailable:  'Indisponible pour le moment',
+    },
+    needsAction: {
+      title:    'Votre action requise',
+      subtitle: 'Étapes renvoyées par un évaluateur, avec ce qu\'il demande.',
+      empty:    'Rien ne vous a été renvoyé.',
+      stage:    'Étape {n}',
+      open:     'Ouvrir le projet',
+    },
+    decision: {
+      rejected:          'Rejetée',
+      needsMoreEvidence: 'Justificatifs supplémentaires requis',
+    },
+    projects: {
+      title:         'Mes projets',
+      subtitle:      'Tous les chantiers auxquels vous êtes assigné.',
+      emptyTitle:    'Aucun projet ne vous est encore assigné',
+      emptyBody:     'Dès qu\'un client ou l\'équipe Jalla vous assigne à un chantier, il apparaît ici.',
+      stageOf:       '{n} étapes terminées sur {total}',
+      noStages:      'Étapes pas encore définies',
+      nothingActive: 'Aucune étape ouverte aux travaux',
+    },
+  },
+
+  contractorProject: {
+    back:              'Retour à mes projets',
+    notYours:          "Ce projet ne vous est pas assigné.",
+    tabWork:           'Travaux',
+    tabDocuments:      'Documents',
+    tabPayments:       'Paiements',
+    pipeline:          'Déroulé du chantier',
+    noActiveStage:     'Aucune étape ouverte aux travaux',
+    noActiveStageBody: "Groundwork ouvre l'étape suivante une fois l'étape en cours approuvée.",
+    noDocuments:       "Aucun document ne vous a été partagé sur ce projet.",
+  },
+  contractorStageStatus: {
+    locked:         'Verrouillée',
+    active:         'Ouverte',
+    pending_review: 'En cours d\'examen',
+    complete:       'Terminée',
+  },
+  contractorPayments: {
+    note:        'Groundwork enregistre ce qui a été financé et ce qui a été débloqué. Un prestataire de paiement agréé détient et transfère les fonds.',
+    unavailable: 'Les enregistrements de paiement sont indisponibles pour le moment.',
+    none:        "Aucun déblocage sur ce projet ne vous désigne comme bénéficiaire.",
+    milestone:   "Jalon d'étape",
+  },
+  contractorSubmit: {
+    title:      'Déclarer les travaux de cette étape',
+    subtitle:   "Envoyez photos, vidéos ou documents. Groundwork et l'évaluateur voient ce que vous soumettez.",
+    whichItem:  'À quel poste cela correspond-il ?',
+    wholeStage: "L'étape dans son ensemble",
+    notes:      'Notes',
+    files:      'Photos, vidéos ou documents — {mb} Mo maximum par fichier',
+    cta:        'Soumettre les travaux',
+    sending:    'Envoi…',
+    sent:       "Soumis. Groundwork et l'évaluateur peuvent le voir.",
+    failed:     "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
+    closed:     "Cette étape n'accepte pas de soumission pour le moment.",
+    photoCount: '{n} fichier(s)',
+  },
+
   verifier: {
     surface: {
       title: 'V\u00e9rification Groundwork',
@@ -1612,6 +1690,7 @@ export const fr: Mirror<EnDict> = {
     createAccount:  'Créer un compte',
     logIn:          'Se connecter',
     logOut:         'Se déconnecter',
+    remove:         'Retirer',
     signIn:         'Connexion',
     signUp:         "S'inscrire",
     download:       'Télécharger',
