@@ -94,9 +94,18 @@ export default function AdminIntegrations() {
             health="off"
             healthLabel={t('admin.integrations.health.off')}
           >
-            <div className="px-5 py-4 text-xs text-brand-mid-grey">
-              <p className="text-brand-near-black dark:text-white">{t('admin.integrations.swychr.state')}</p>
-              <p className="mt-1">{t('admin.integrations.swychr.detail')}</p>
+            {/* The same shape as the card above it, and every row the same answer. This
+                is presentation, not state: there is no SwyChr configuration to read, so
+                nothing here is asked of a system. No control, because there is nothing
+                to control — an action here would imply a code path that does not exist. */}
+            <dl className="divide-y divide-brand-border-grey text-xs dark:divide-[#2c2c2c]">
+              <Fact label={t('admin.integrations.swychr.credentials')}    value={t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.endpoint')}       value={t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.callback')}       value={t('admin.integrations.notConfigured')} />
+              <Fact label={t('admin.integrations.swychr.reconciliation')} value={t('admin.integrations.notConfigured')} />
+            </dl>
+            <div className="border-t border-brand-border-grey px-5 py-4 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">
+              <p>{t('admin.integrations.swychr.detail')}</p>
               <p className="mt-2 text-[11px]">{t('admin.integrations.swychr.meanwhile')}</p>
             </div>
           </Card>

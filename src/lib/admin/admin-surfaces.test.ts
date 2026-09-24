@@ -37,7 +37,7 @@ describe('every new item is a real destination', () => {
     }
     expect(ADMIN_NAV.some(i => i.to === '/admin/verifiers'), 'Verifiers belongs in PEOPLE').toBe(true);
     // The ones with no entity stay honest placeholders.
-    for (const key of ['tasks', 'inspections', 'agents', 'site-managers', 'analytics', 'settings']) {
+    for (const key of ['tasks', 'inspections', 'agents', 'site-managers', 'settings']) {
       expect(ADMIN_PLACEHOLDERS[key], `${key} has no entity and must stay a placeholder`).toBeDefined();
     }
     expect(nav).toContain("labelKey: 'nav.verifiers'");

@@ -41,6 +41,12 @@ export default function AdminAnalytics() {
 
   const { projects, finance, verification, communication, acquisition, field, support } = data;
 
+  // A row whose column was NULL comes back keyed 'unknown'. It is a real count of real
+  // projects, so it is shown — but under a word, not a raw key from the database.
+  const STATUSES = ['active', 'on_hold', 'completed', 'archived'];
+  const statusLabel = (k: string) =>
+    (STATUSES.includes(k) ? t(`admin.workspace.header.status.${k}` as TKey) : t('admin.analytics.unknownKey'));
+
   return (
     <div className="space-y-5">
       <header>
@@ -50,7 +56,7 @@ export default function AdminAnalytics() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Panel title={t('admin.analytics.projects')} sub={t('admin.analytics.projectsSub', { n: projects.total })}>
-          <Bars rows={projects.byStatus} total={projects.total} label={k => t(`admin.workspace.header.status.${k}` as TKey)} />
+          <Bars rows={projects.byStatus} total={projects.total} label={statusLabel} />
           <Split>
             <Bars rows={projects.byTier} total={projects.total} label={k => labels.tier(k)} />
           </Split>
@@ -58,7 +64,7 @@ export default function AdminAnalytics() {
         </Panel>
 
         <Panel title={t('admin.analytics.stages')} sub={t('admin.analytics.stagesSub')}>
-          <Bars rows={projects.byStage} total={projects.total} label={k => t('admin.ops.pipelineStage', { n: Number(k) })} />
+          <Bars rows={projects.byStage} total={projects.total} label={k => (Number.isFinite(Number(k)) ? t('admin.ops.pipelineStage', { n: Number(k) }) : t('admin.analytics.noStage'))} />
         </Panel>
 
         <Panel title={t('admin.analytics.finance')} sub={t('admin.analytics.financeSub')}>
@@ -66,13 +72,16 @@ export default function AdminAnalytics() {
             <Unavailable text={t('admin.ledger.unavailable')} />
           ) : (
             <>
-              <Figures rows={[
-                [t('admin.finops.expected'),   formatUSDFull(finance.expected)],
-                [t('admin.finops.funded'),     formatUSDFull(finance.funded)],
-                [t('admin.finops.authorised'), formatUSDFull(finance.authorised)],
-                [t('admin.finops.inTransit'),  formatUSDFull(finance.inTransit)],
-                [t('admin.finops.disbursed'),  formatUSDFull(finance.disbursed)],
-              ]} />
+              {/* Five real states of the same money, drawn against the largest of them.
+                  The bar is a proportion of what is already on the page — not a target,
+                  not a forecast, and never a comparison with a month nobody recorded. */}
+              <Meter rows={[
+                [t('admin.finops.expected'),   finance.expected],
+                [t('admin.finops.funded'),     finance.funded],
+                [t('admin.finops.authorised'), finance.authorised],
+                [t('admin.finops.inTransit'),  finance.inTransit],
+                [t('admin.finops.disbursed'),  finance.disbursed],
+              ]} format={formatUSDFull} />
               <Foot>
                 <Link to="/admin/budgets" className="font-semibold underline-offset-2 hover:underline">
                   {t('admin.analytics.needsAttention', { n: finance.needsAttention })}
@@ -84,11 +93,11 @@ export default function AdminAnalytics() {
 
         <Panel title={t('admin.analytics.verification')} sub={t('admin.analytics.verificationSub')}>
           {verification === null ? <Unavailable text={t('admin.verifiers.profilesUnavailable')} /> : (
-            <Figures rows={[
-              [t('verifier.decision.pending'),             String(verification.pending)],
-              [t('verifier.decision.verified'),            String(verification.verified)],
-              [t('verifier.decision.rejected'),            String(verification.rejected)],
-              [t('verifier.decision.needs_more_evidence'), String(verification.needsMore)],
+            <Counts rows={[
+              [t('verifier.decision.pending'),             verification.pending],
+              [t('verifier.decision.verified'),            verification.verified],
+              [t('verifier.decision.rejected'),            verification.rejected],
+              [t('verifier.decision.needs_more_evidence'), verification.needsMore],
             ]} />
           )}
         </Panel>
@@ -96,10 +105,10 @@ export default function AdminAnalytics() {
         <Panel title={t('admin.analytics.communication')} sub={t('admin.analytics.communicationSub')}>
           {communication === null ? <Unavailable text={t('admin.inbox.unavailable')} /> : (
             <>
-              <Figures rows={[
-                [t('admin.analytics.conversations'), String(communication.conversations)],
-                [t('admin.inbox.needsReply'),        String(communication.needsReply)],
-                [t('admin.workspace.conversations.status.resolved'), String(communication.resolved)],
+              <Counts rows={[
+                [t('admin.analytics.conversations'), communication.conversations],
+                [t('admin.inbox.needsReply'),        communication.needsReply],
+                [t('admin.workspace.conversations.status.resolved'), communication.resolved],
               ]} />
               <Foot>
                 <Link to="/admin/inbox?status=waiting_on_us" className="font-semibold underline-offset-2 hover:underline">
@@ -111,12 +120,12 @@ export default function AdminAnalytics() {
         </Panel>
 
         <Panel title={t('admin.analytics.acquisition')} sub={t('admin.analytics.acquisitionSub')}>
-          <Figures rows={[
-            [t('nav.applications'),  String(acquisition.applicationsPending)],
-            [t('nav.startedApplications'), String(acquisition.drafts)],
-            [t('nav.waitlist'),      String(acquisition.waitlist)],
-            [t('nav.quoteRequests'), String(acquisition.quoteRequests)],
-            [t('nav.support'),       String(support.open)],
+          <Counts rows={[
+            [t('nav.applications'),        acquisition.applicationsPending],
+            [t('nav.startedApplications'), acquisition.drafts],
+            [t('nav.waitlist'),            acquisition.waitlist],
+            [t('nav.quoteRequests'),       acquisition.quoteRequests],
+            [t('nav.support'),             support.open],
           ]} />
         </Panel>
 
@@ -127,6 +136,7 @@ export default function AdminAnalytics() {
                 [t('admin.analytics.updates'),      String(field.siteUpdates)],
                 [t('admin.analytics.contributors'), String(field.contributors)],
               ]} />
+
               <Foot>
                 <Link to="/admin/site-updates" className="font-semibold underline-offset-2 hover:underline">
                   {t('admin.analytics.openFeed')}
@@ -167,6 +177,37 @@ function Bars({ rows, total, label }: { rows: Bucket[]; total: number; label: (k
           </div>
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-brand-off-white dark:bg-[#252525]">
             <div className="h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${Math.round((r.count / total) * 100)}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Counts drawn against the largest count on the same card. A category with no rows still
+ * appears, at zero — "nobody has been rejected" is a fact worth seeing, and hiding it
+ * would make the card change shape as the data does.
+ */
+function Counts({ rows }: { rows: [string, number][] }) {
+  return <Meter rows={rows} format={n => String(n)} />;
+}
+
+function Meter({ rows, format }: { rows: [string, number][]; format: (n: number) => string }) {
+  const max = Math.max(...rows.map(([, v]) => v), 0);
+  return (
+    <ul className="space-y-2.5 px-5 py-4">
+      {rows.map(([label, value]) => (
+        <li key={label}>
+          <div className="flex items-baseline justify-between gap-3 text-xs">
+            <span className="truncate text-brand-near-black dark:text-white">{label}</span>
+            <span className="shrink-0 font-semibold tabular-nums text-brand-near-black dark:text-white">{format(value)}</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-brand-off-white dark:bg-[#252525]">
+            <div
+              className="h-full rounded-full bg-brand-near-black dark:bg-white"
+              style={{ width: max > 0 ? `${Math.round((value / max) * 100)}%` : '0%' }}
+            />
           </div>
         </li>
       ))}

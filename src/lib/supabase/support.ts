@@ -31,6 +31,13 @@ export interface SupportTicket {
   message: string;
   status: TicketStatus;
   admin_notes: string | null;
+  /**
+   * The links 091 added. Absent (undefined) on a database where that migration has not
+   * been applied — `select('*')` simply returns no such field — so every read of them
+   * treats undefined and null as the same fact: nothing is linked.
+   */
+  project_id?: string | null;
+  conversation_id?: string | null;
   created_at: string;
   updated_at: string;
 }
