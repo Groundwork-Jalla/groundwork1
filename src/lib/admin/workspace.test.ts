@@ -47,7 +47,7 @@ const update = (stageId: string, submittedAt: string): SiteUpdate => ({
 
 const pay = (p: Partial<Payment> & Pick<Payment, 'direction' | 'state' | 'amount'>): Payment => ({
   id: `pay-${p.direction}-${p.state}-${p.stageId ?? 'x'}`, projectId: PROJECT, stageId: null, currency: 'USD',
-  beneficiaryId: null, fundingSource: null, confirmedBy: null, confirmedAt: null, authorisedBy: null, authorisedAt: null,
+  beneficiaryId: null, fundingSource: null, confirmedBy: null, confirmedAt: null, authorisedBy: null, authorisedAt: null, initiatedAt: null,
   note: null, provider: null, providerRef: null, failureReason: null, settledAt: null,
   createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', ...p,
 });

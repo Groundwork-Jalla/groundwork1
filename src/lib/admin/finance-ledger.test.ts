@@ -27,7 +27,7 @@ const loader   = code('src/lib/supabase/finance-ledger.ts');
 const P = (over: Partial<Payment>): Payment => ({
   id: 'p1', projectId: 'j1', stageId: null, direction: 'in', state: 'funded', amount: 100,
   currency: 'USD', beneficiaryId: null, fundingSource: 'staff_confirmed',
-  confirmedBy: null, confirmedAt: null, authorisedBy: null, authorisedAt: null, note: null,
+  confirmedBy: null, confirmedAt: null, authorisedBy: null, authorisedAt: null, initiatedAt: null, note: null,
   provider: null, providerRef: null, failureReason: null, settledAt: null,
   createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', ...over,
 });

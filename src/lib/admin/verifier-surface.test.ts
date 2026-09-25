@@ -20,6 +20,9 @@ const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\
 const LAYOUT = 'src/app/routes/verifiers/_layout.tsx';
 const LIST   = 'src/app/routes/verifiers/index.tsx';
 const DETAIL = 'src/app/routes/verifiers/detail.tsx';
+const WORKSPACE = 'src/components/verifier/VerificationWorkspace.tsx';
+const SHELL = 'src/components/verifier/VerifierShell.tsx';
+const CHROME = 'src/components/shell/PortalShell.tsx';
 const READER = 'src/lib/supabase/verifier-work.ts';
 
 describe('routing: a verifier lands on their own surface', () => {
@@ -90,12 +93,12 @@ describe('isolation: only this verifier\'s work', () => {
   it('a guessed id returns nothing — the URL is not authority', () => {
     expect(r).toContain("loadVerification(verificationId: string, userId: string)");
     expect(r).toContain(".eq('id', verificationId)\n    .eq('verifier_id', userId)");
-    expect(code(DETAIL)).toContain('loadVerification(id, user.id)');
-    expect(code(DETAIL)).toContain("t('verifier.detail.notFound')");
+    expect(code(WORKSPACE)).toContain('loadVerification(id, user.id)');
+    expect(code(WORKSPACE)).toContain("t('verifier.detail.notFound')");
   });
 
   it('the surface never reads across projects: no portfolio, no other verifiers, no clients', () => {
-    for (const f of [LIST, DETAIL, READER]) {
+    for (const f of [LIST, DETAIL, WORKSPACE, SHELL, CHROME, READER]) {
       const c = code(f);
       expect(c, f).not.toMatch(/listAdminUsers|admin_list_users|loadAdminOverview|listAllPayments|ownerLookup/);
       expect(c, f).not.toMatch(/from\('profiles'\)|from\('payments'\)|from\('conversations'\)/);
@@ -110,16 +113,16 @@ describe('isolation: only this verifier\'s work', () => {
 
 describe('authority: record a finding, and nothing else', () => {
   it('the only write is the existing record_verification', () => {
-    const d = code(DETAIL);
+    const d = code(WORKSPACE);
     expect(d).toContain('await recordVerification({');
     expect(d).not.toMatch(/approveStage|approve_stage|request_rework|requestRework|assignVerifier|assign_verifier|removeVerifier|requestVerification|request_verification/);
-    for (const f of [LIST, LAYOUT, READER]) {
+    for (const f of [LIST, LAYOUT, SHELL, CHROME, READER]) {
       expect(code(f), f).not.toMatch(/\.rpc\(|\.insert\(|\.update\(|\.delete\(/);
     }
   });
 
   it('no button implies approval of the stage', () => {
-    const d = src(DETAIL);
+    const d = src(WORKSPACE);
     expect(d).toContain("t('verifier.detail.submit')");
     expect(lookup(en, 'verifier.detail.submit')).toBe('Submit verification');
     expect(lookup(en, 'verifier.detail.submit')).not.toMatch(/approve/i);
@@ -127,24 +130,26 @@ describe('authority: record a finding, and nothing else', () => {
   });
 
   it('the three decisions are the database\'s three, and pending is not one of them', () => {
-    const d = code(DETAIL);
+    const d = code(WORKSPACE);
     expect(d).toContain("const DECISIONS = ['verified', 'rejected', 'needs_more_evidence'] as const;");
     expect(d).not.toMatch(/DECISIONS = \[[^\]]*pending/);
   });
 
   it('verified requires a visit date in the UI, and the database stays the authority', () => {
-    const d = code(DETAIL);
+    const d = code(WORKSPACE);
     expect(d).toContain("const needsVisit = decision === 'verified';");
-    expect(d).toContain('disabled={busy || (needsVisit && !visitedAt)}');
+    expect(d).toContain('disabled={busy || (needsVisit && !visitedAt) || !findings.trim()}');
     expect(d).toContain("msg.includes('visit_required') ? t('verifier.detail.visitRequired')");
     // The refusal is surfaced, not pre-empted: no client-side skip of the RPC.
     expect(d).not.toMatch(/if \(needsVisit && !visitedAt\) return;[\s\S]{0,80}recordVerification/);
   });
 
   it('after recording, the row is re-read rather than assumed', () => {
-    const d = code(DETAIL);
+    const d = code(WORKSPACE);
     expect(d).toContain('onRecorded();');
-    expect(d).toContain('<RecordFinding verificationId={work.id} onRecorded={load} />');
+    expect(d).toContain('onRecorded={refresh}');
+    expect(d).toContain('await load(); await onRecorded?.();');
+    expect(code(DETAIL)).toContain('<VerificationWorkspace key={id} verificationId={id} />');
     expect(d).not.toMatch(/setWork\(\{\s*\.\.\.work/);
     // A decided verification shows what was stored and cannot be edited here.
     expect(d).toContain("const decided = work.decision !== 'pending';");
@@ -157,20 +162,20 @@ describe('evidence: private files, signed on demand', () => {
     const r = code(READER);
     expect(r).toContain("createSignedUrl(path, 3600)");
     expect(r).not.toMatch(/getPublicUrl|\/storage\/v1\/object\/public/);
-    expect(code(DETAIL)).toContain('await signedFileUrl(bucket, path)');
-    expect(code(DETAIL)).not.toMatch(/getPublicUrl|supabaseUrl|\/public\//);
+    expect(code(WORKSPACE)).toContain('await signedFileUrl(bucket, path)');
+    expect(code(WORKSPACE)).not.toMatch(/getPublicUrl|supabaseUrl|\/public\//);
   });
 
   it('a file that cannot be signed says so instead of opening nothing', () => {
-    const d = code(DETAIL);
-    expect(d).toContain("if (!url) { setFailed(path); return; }");
+    const d = code(WORKSPACE);
+    expect(d).toContain("if (!url) { tab?.close(); setFailed(path); return; }");
     expect(d).toContain("t('verifier.detail.fileUnavailable')");
   });
 });
 
 describe('scope: this is not the admin workspace', () => {
   it('no financials, no assignment, no client management, no audit', () => {
-    for (const f of [LIST, DETAIL, LAYOUT]) {
+    for (const f of [LIST, DETAIL, WORKSPACE, LAYOUT, SHELL, CHROME]) {
       const c = code(f);
       expect(c, f).not.toMatch(/financial|budget|payment|disburse|authorise|invoice/i);
       expect(c, f).not.toMatch(/assignContractor|AssignVerifierModal|TeamCard|auditLog|listAuditLog/);

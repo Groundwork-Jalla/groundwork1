@@ -114,8 +114,11 @@ export async function loadVerification(verificationId: string, userId: string): 
 
   const [subs, docs] = await Promise.all([
     supabase.from('project_substages').select('id, name, status, evidence_urls').eq('stage_id', s(r.stage_id)).order('created_at'),
-    supabase.from('project_documents').select('id, name, file_path, created_at').eq('project_id', s(r.project_id)).order('created_at', { ascending: false }),
+    supabase.from('project_documents').select('id, file_name, file_path, created_at').eq('project_id', s(r.project_id)).order('created_at', { ascending: false }),
   ]);
+
+  if (subs.error) throw subs.error;
+  if (docs.error) throw docs.error;
 
   return {
     id:             s(r.id),
@@ -138,7 +141,7 @@ export async function loadVerification(verificationId: string, userId: string): 
       evidence: Array.isArray(x.evidence_urls) ? (x.evidence_urls as unknown[]).map(String) : [],
     })),
     documents: ((docs.data ?? []) as Record<string, unknown>[]).map(d => ({
-      id: s(d.id), name: s(d.name), path: s(d.file_path), uploadedAt: s(d.created_at),
+      id: s(d.id), name: s(d.file_name), path: s(d.file_path), uploadedAt: s(d.created_at),
     })),
   };
 }

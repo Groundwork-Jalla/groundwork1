@@ -20,6 +20,20 @@ const DOT: Record<Priority, string> = {
   low:      'bg-brand-border-grey',
 };
 
+/**
+ * The same four steps as words.
+ *
+ * Priority used to be the dot alone, with the word in a `title` — which is invisible on a
+ * phone, unreliable to screen readers, and useless to anyone who cannot separate amber
+ * from grey. The word now carries the meaning and the colour supplements it.
+ */
+const LABEL: Record<Priority, string> = {
+  critical: 'text-state-alert',
+  high:     'text-state-held',
+  medium:   'text-brand-mid-grey',
+  low:      'text-brand-muted-grey',
+};
+
 export function AttentionList({ items, now, limit }: { items: ActionItem[]; now: Date; limit?: number }) {
   const t = useT();
   const shown = limit ? items.slice(0, limit) : items;
@@ -42,8 +56,15 @@ export function AttentionList({ items, now, limit }: { items: ActionItem[]; now:
               to={item.to}
               className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-off-white dark:hover:bg-[#252525]"
             >
-              <span className={cn('size-2 shrink-0 rounded-full', DOT[item.priority])}
-                title={t(`admin.attention.priority.${item.priority}` as TKey)} />
+              {/* Dot and word together, on a shared minimum width so the items line up
+                  into a column without truncating a longer translation. The dot is
+                  decoration now that the word is present. */}
+              <span className="flex min-w-[5.25rem] shrink-0 items-center gap-1.5 self-start pt-0.5">
+                <span className={cn('size-2 shrink-0 rounded-full', DOT[item.priority])} aria-hidden />
+                <span className={cn('text-[10px] font-bold uppercase tracking-wide', LABEL[item.priority])}>
+                  {t(`admin.attention.priority.${item.priority}` as TKey)}
+                </span>
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-brand-near-black dark:text-white">
                   {t(`admin.attention.kind.${item.kind}` as TKey)}

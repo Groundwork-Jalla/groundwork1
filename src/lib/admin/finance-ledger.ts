@@ -49,13 +49,14 @@ export interface LedgerLine {
   /**
    * WHEN this movement happened, and what that timestamp means.
    *
-   * `confirmed` — receipt was established (in)
-   * `settled`   — the provider reported the money moved (out)
-   * `authorised`— a release was decided but has not moved (out)
-   * `created`   — nothing has happened yet; this is when the row was written
+   * `confirmed`  — receipt was established (in)
+   * `settled`    — the provider reported the money moved (out)
+   * `processing` — the payout entered processing (out, 098)
+   * `authorised` — a release was decided but has not moved (out)
+   * `created`    — nothing has happened yet; this is when the row was written
    */
   at: string;
-  atMeans: 'confirmed' | 'settled' | 'authorised' | 'created';
+  atMeans: 'confirmed' | 'settled' | 'processing' | 'authorised' | 'created';
 
   /** HOW receipt was established, for incoming rows only. */
   via: Payment['fundingSource'];
@@ -63,6 +64,12 @@ export interface LedgerLine {
   actorId: string | null;
   actorName: string | null;
 
+  /**
+   * When this payout entered processing (098). `null` for anything that never did, and
+   * for a pre-098 payout whose moment was never recorded — the screen then shows the
+   * status without a date rather than borrowing a nearby one.
+   */
+  initiatedAt: string | null;
   /** Only when the provider gave one. Never invented. */
   providerRef: string | null;
   failureReason: string | null;
@@ -78,8 +85,11 @@ export interface LedgerLine {
  * authorised release dated today has not moved today.
  */
 function when(p: Payment): { at: string; atMeans: LedgerLine['atMeans'] } {
-  if (p.settledAt)    return { at: p.settledAt,    atMeans: 'settled' };
-  if (p.confirmedAt)  return { at: p.confirmedAt,  atMeans: 'confirmed' };
+  if (p.settledAt)   return { at: p.settledAt,   atMeans: 'settled' };
+  if (p.confirmedAt) return { at: p.confirmedAt, atMeans: 'confirmed' };
+  // Only while it IS processing. A payment that went on to fail is dated by its
+  // authorisation, because "processing since" would describe a state it has left.
+  if (p.state === 'initiated' && p.initiatedAt) return { at: p.initiatedAt, atMeans: 'processing' };
   if (p.authorisedAt) return { at: p.authorisedAt, atMeans: 'authorised' };
   return { at: p.createdAt, atMeans: 'created' };
 }
@@ -115,6 +125,7 @@ export function ledgerLine(
     via: p.fundingSource,
     actorId,
     actorName: opts.nameOf(actorId),
+    initiatedAt: p.initiatedAt,
     providerRef: p.providerRef,
     failureReason: p.failureReason,
     note: p.note,

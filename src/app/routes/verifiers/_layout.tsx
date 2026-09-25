@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useT } from '@/lib/i18n';
+import { VerifierShell } from '@/components/verifier/VerifierShell';
 
 // =========================================================
 // /verifiers — the independent verifier's surface (06 §22).
@@ -26,7 +26,6 @@ export default function VerifiersLayout() {
   const { session, loading, isVerifier, rolesChecked, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const t = useT();
 
   // ── The door is the ROLE, not the privilege ────────────────────────────────────────
   // An admin can read every verification row in the database, and that is not the same
@@ -51,26 +50,11 @@ export default function VerifiersLayout() {
     );
   }
 
+  const displayName = (session.user.user_metadata?.full_name as string | undefined)
+    ?? session.user.email?.split('@')[0] ?? '';
   return (
-    <div className="min-h-screen bg-brand-off-white dark:bg-[#141414]">
-      <header className="border-b border-brand-border-grey bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-          <Link to="/verifiers" className="flex items-center gap-2">
-            <ShieldCheck className="size-4 text-brand-near-black dark:text-white" />
-            <span className="text-sm font-semibold text-brand-near-black dark:text-white">{t('verifier.surface.title')}</span>
-          </Link>
-          <div className="flex items-center gap-3 text-xs text-brand-mid-grey">
-            <span className="hidden sm:inline">{session.user.email}</span>
-            <button type="button" onClick={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}
-              className="rounded-lg border border-brand-border-grey px-2.5 py-1 font-medium text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-              {t('common.logOut')}
-            </button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-5 py-6">
-        <Outlet />
-      </main>
-    </div>
+    <VerifierShell displayName={displayName} onLogout={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}>
+      <Outlet />
+    </VerifierShell>
   );
 }

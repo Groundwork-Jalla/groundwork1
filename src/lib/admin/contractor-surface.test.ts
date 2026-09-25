@@ -38,7 +38,7 @@ const LAYOUT = 'src/app/routes/work/_layout.tsx';
 const DATA   = 'src/lib/supabase/contractor-work.ts';
 const DASH   = 'src/app/routes/work/index.tsx';
 const DETAIL = 'src/app/routes/work/projects.detail.tsx';
-const SURFACES = [LAYOUT, DASH, DETAIL, 'src/app/routes/work/projects.tsx', 'src/components/shell/WorkShell.tsx', 'src/components/contractor/WorkOverview.tsx', DATA];
+const SURFACES = [LAYOUT, DASH, DETAIL, 'src/app/routes/work/projects.tsx', 'src/components/shell/WorkShell.tsx', 'src/components/shell/PortalShell.tsx', 'src/components/contractor/WorkOverview.tsx', DATA];
 
 describe('the door', () => {
   it('gates on contractor standing, never on admin privilege', () => {

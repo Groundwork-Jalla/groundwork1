@@ -40,6 +40,12 @@ export interface Payment {
   confirmedAt: string | null;
   authorisedBy: string | null;
   authorisedAt: string | null;
+  /**
+   * The first time this payment entered `initiated`, from 098. NOT `authorised_at` and
+   * NOT a poll time: `null` means the moment is genuinely unknown — a payout that entered
+   * processing before the column existed, with no audit row to recover it from.
+   */
+  initiatedAt: string | null;
   note: string | null;
   provider: string | null;
   providerRef: string | null;
@@ -51,7 +57,7 @@ export interface Payment {
 
 const COLUMNS =
   'id, project_id, stage_id, direction, state, amount, currency, beneficiary_id, funding_source, ' +
-  'confirmed_by, confirmed_at, authorised_by, authorised_at, note, provider, provider_ref, ' +
+  'confirmed_by, confirmed_at, authorised_by, authorised_at, initiated_at, note, provider, provider_ref, ' +
   'failure_reason, settled_at, created_at, updated_at';
 
 function rowToPayment(r: Record<string, unknown>): Payment {
@@ -69,6 +75,7 @@ function rowToPayment(r: Record<string, unknown>): Payment {
     confirmedAt:   (r.confirmed_at as string | null) ?? null,
     authorisedBy:  (r.authorised_by as string | null) ?? null,
     authorisedAt:  (r.authorised_at as string | null) ?? null,
+    initiatedAt:   (r.initiated_at as string | null) ?? null,
     note:          (r.note as string | null) ?? null,
     provider:      (r.provider as string | null) ?? null,
     providerRef:   (r.provider_ref as string | null) ?? null,
