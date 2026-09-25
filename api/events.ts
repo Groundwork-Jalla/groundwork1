@@ -7,6 +7,7 @@ import { handler as profileGeo }  from './_handlers/profile-geo.js';
 import { handler as adminSettings } from './_handlers/admin-settings.js';
 import { handler as projectWhatsApp } from './_handlers/project-whatsapp.js';
 import { handler as swychrCallback } from './_handlers/swychr-callback.js';
+import { handler as swychrPoll } from './_handlers/swychr-poll.js';
 import { handler as crmStatus }   from './_handlers/crm-status.js';
 import { handler as crmDiagnose } from './_handlers/crm-diagnose.js';
 import { handler as crmFields } from './_handlers/crm-fields.js';
@@ -62,7 +63,7 @@ type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'crm-email-sync'
-  | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback';
+  | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -89,6 +90,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'admin-settings': adminSettings,
   'project-whatsapp': projectWhatsApp,
   'swychr-callback': swychrCallback,
+  'swychr-poll': swychrPoll,
 };
 
 export default async function handler(req: any, res: any) {

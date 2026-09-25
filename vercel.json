@@ -7,8 +7,18 @@
       "destination": "/api/events?action=crm-oauth"
     },
     {
+      "source": "/api/swychr-poll",
+      "destination": "/api/events?action=swychr-poll"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/swychr-poll",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
