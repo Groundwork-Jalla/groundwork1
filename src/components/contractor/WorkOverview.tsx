@@ -19,6 +19,11 @@ export function WorkOverview({ projects, payments }: {
   const { stageLabel } = useStageLabels();
   const [selected, setSelected] = useState('');
   const current = projects.find(p => p.project.id === selected) ?? projects[0];
+  const paymentLabel = (state: string) => {
+    const key = `admin.ledger.state.${state}` as TKey;
+    const label = t(key);
+    return label === key ? state.replaceAll('_', ' ') : label;
+  };
   return <>
     {current && <div className="grid min-w-0 gap-5 xl:grid-cols-[3fr_2fr]">
       <section className={panel}>
@@ -31,7 +36,7 @@ export function WorkOverview({ projects, payments }: {
         {current.stages.length === 0 ? <p className="py-8 text-sm text-brand-mid-grey">{t('contractor.projects.noStages')}</p> : <>
           <p className="mt-5 text-xs text-brand-mid-grey">{t('contractor.projects.stageOf', { n: current.completedStages, total: current.totalStages })}</p>
           <ol aria-label={t('contractorProject.pipeline')} tabIndex={0} className="flex overflow-x-auto py-7">
-            {current.stages.map(s => <li key={s.id} aria-current={s.id === current.activeStage?.id ? 'step' : undefined} className="relative min-w-24 flex-1 text-center">
+            {current.stages.map(s => <li key={s.id} aria-current={s.id === current.activeStage?.id ? 'step' : undefined} className="relative min-w-20 flex-1 xl:min-w-14 text-center">
               <div aria-hidden="true" className="absolute left-0 right-0 top-4 h-px bg-brand-border-grey" />
               <span className={cn('relative mx-auto flex size-8 items-center justify-center rounded-full border text-xs font-semibold', s.status === 'complete' ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black' : s.id === current.activeStage?.id ? 'border-brand-near-black bg-brand-light-grey text-brand-near-black ring-4 ring-brand-border-grey/40 dark:border-white dark:bg-[#444] dark:text-white' : 'border-brand-border-grey bg-[#ffffff] text-brand-mid-grey dark:bg-[#1e1e1e]')}>
                 {s.status === 'complete' ? <Check className="size-4" /> : s.stage_number}
@@ -52,6 +57,7 @@ export function WorkOverview({ projects, payments }: {
         <Evidence key={`${current.project.id}:${current.activeStage?.id}`} assigned={current} />
       </section>
     </div>}
+    {!current && <section id="evidence" className={`${panel} scroll-mt-24`}><h2 className="text-sm font-semibold">{t('contractorDashboard.evidence')}</h2><p className="mt-3 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p></section>}
     <div className="grid gap-5 xl:grid-cols-[2fr_1fr]">
       <section id="payments" className={`${panel} scroll-mt-24`}>
         <h2 className="text-sm font-semibold">{t('contractor.kpi.payments')}</h2>
@@ -62,12 +68,12 @@ export function WorkOverview({ projects, payments }: {
             <tbody className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">{payments.rows.map(p => <tr key={p.id}>
               <td className="p-3"><p className="font-medium">{projects.find(a => a.project.id === p.projectId)?.project.name ?? t('contractorPayments.milestone')}</p>{p.note && <p className="mt-1 text-brand-mid-grey">{p.note}</p>}</td>
               <td className="whitespace-nowrap p-3 font-semibold tabular-nums">{formatMoney(p.amount, p.currency)}</td>
-              <td className="p-3"><span className="inline-block rounded-full bg-brand-off-white px-3 py-1 text-brand-mid-grey dark:bg-[#2c2c2c]">{p.state.replaceAll('_', ' ')}</span></td>
+              <td className="p-3"><span className="inline-block rounded-full bg-brand-off-white px-3 py-1 text-brand-mid-grey dark:bg-[#2c2c2c]">{paymentLabel(p.state)}</span></td>
             </tr>)}</tbody>
           </table>
         </div>}
       </section>
-      {current && <Documents key={current.project.id} assigned={current} />}
+      {current ? <Documents key={current.project.id} assigned={current} /> : <section id="documents" className={`${panel} scroll-mt-24`}><h2 className="text-sm font-semibold">{t('contractorProject.tabDocuments')}</h2><p className="mt-3 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p></section>}
     </div>
   </>;
 }
@@ -127,6 +133,6 @@ function PrivateFile({ path, name, bucket }: { path: string; name: string; bucke
     {bucket === 'evidence' ? <Image className="size-4 shrink-0 text-brand-mid-grey" /> : <FileText className="size-4 shrink-0 text-brand-mid-grey" />}
     <span className="min-w-0 flex-1 truncate" title={name}>{name}</span>
     {url ? <a href={url} target="_blank" rel="noopener noreferrer" className="underline">{t('common.open')}</a> : <button type="button" disabled={busy} onClick={() => void open()} aria-label={`${t('common.open')} ${name}`} className="rounded-md border border-brand-border-grey px-2 py-1 disabled:opacity-50 dark:border-[#444]">{busy ? <Loader2 className="size-3 animate-spin" /> : t('common.open')}</button>}
-    {failed && <p role="alert" className="w-full text-state-alert">{t('verifier.detail.fileUnavailable')}</p>}
+    {failed && <p role="alert" className="w-full text-state-alert">{t('contractorDashboard.fileUnavailable')}</p>}
   </li>;
 }

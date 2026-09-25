@@ -38,7 +38,7 @@ const LAYOUT = 'src/app/routes/work/_layout.tsx';
 const DATA   = 'src/lib/supabase/contractor-work.ts';
 const DASH   = 'src/app/routes/work/index.tsx';
 const DETAIL = 'src/app/routes/work/projects.detail.tsx';
-const SURFACES = [LAYOUT, DASH, DETAIL, 'src/app/routes/work/projects.tsx', DATA];
+const SURFACES = [LAYOUT, DASH, DETAIL, 'src/app/routes/work/projects.tsx', 'src/components/shell/WorkShell.tsx', 'src/components/contractor/WorkOverview.tsx', DATA];
 
 describe('the door', () => {
   it('gates on contractor standing, never on admin privilege', () => {
@@ -178,7 +178,7 @@ describe('i18n', () => {
           typeof v === 'object' && v !== null ? keys(v, `${prefix}${k}.`) : [`${prefix}${k}`])
       : [];
 
-  it.each(['contractor', 'contractorProject', 'contractorStageStatus', 'contractorPayments', 'contractorSubmit'])(
+  it.each(['contractor', 'contractorDashboard', 'contractorProject', 'contractorStageStatus', 'contractorPayments', 'contractorSubmit'])(
     '%s has full EN/FR parity', ns => {
       const enKeys = keys((en as Record<string, unknown>)[ns]);
       const frKeys = keys((fr as Record<string, unknown>)[ns]);

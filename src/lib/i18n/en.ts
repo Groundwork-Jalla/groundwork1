@@ -2021,6 +2021,7 @@ export const en = {
   },
 
   contractorDashboard: {
+    fileUnavailable: 'This file could not be opened.',
     search: 'Search assigned projects, stages or locations…',
     noResults: 'No assigned projects match your search.',
     progress: 'Current project progress',

@@ -1998,6 +1998,7 @@ export const fr: Mirror<EnDict> = {
   },
 
   contractorDashboard: {
+    fileUnavailable: 'Impossible d’ouvrir ce fichier.',
     search: 'Rechercher un projet attribué, une étape ou un lieu…',
     noResults: 'Aucun projet attribué ne correspond à votre recherche.',
     progress: 'Avancement du projet sélectionné',

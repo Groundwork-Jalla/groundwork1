@@ -123,7 +123,7 @@ export default function ContractorDashboard() {
 
       <div className="grid min-w-0 gap-5 xl:grid-cols-[3fr_2fr]">
       {/* ── My projects ───────────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <section className="min-w-0 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
             {t('contractor.projects.title')}
@@ -151,7 +151,8 @@ export default function ContractorDashboard() {
             ))}
           </ul>
         )}
-      </section>      <section className="min-w-0 rounded-2xl border border-brand-border-grey bg-[#ffffff] p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      </section>
+      <section className="min-w-0 rounded-2xl border border-brand-border-grey bg-[#ffffff] p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <h2 className="flex items-center gap-2 border-b border-brand-border-grey pb-4 text-sm font-semibold dark:border-[#2c2c2c]"><ClipboardList className="size-4 text-brand-mid-grey" />{t('contractorDashboard.tasks')}</h2>
         {visibleProjects.every(a => !a.activeStage) ? <p className="py-8 text-xs text-brand-mid-grey">{t('contractorProject.noActiveStage')}</p> : <ul className="max-h-80 divide-y divide-brand-border-grey overflow-y-auto dark:divide-[#2c2c2c]">
           {visibleProjects.filter(a => a.activeStage).map(a => <li key={a.project.id}>

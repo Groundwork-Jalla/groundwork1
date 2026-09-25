@@ -35,7 +35,7 @@ export function WorkShell({ children, displayName, onLogout }: {
       <a href="#work-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3 focus:text-black">{t('nav.skipToContent')}</a>
       <header className="sticky top-0 z-30 flex h-20 items-center border-b border-brand-border-grey bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div className="flex items-center gap-3 px-5 md:w-60 md:shrink-0 md:border-r md:border-brand-border-grey dark:md:border-[#2c2c2c]">
-          <button type="button" aria-label={t(open ? 'common.close' : 'contractor.nav.dashboard')} aria-expanded={open} onClick={() => setOpen(!open)} className="p-2 md:hidden">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button>
+          <button type="button" aria-label={t(open ? 'common.close' : 'nav.mainNavigation')} aria-expanded={open} aria-controls="work-navigation" onClick={() => setOpen(!open)} className="p-2 md:hidden">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button>
           <span className="dark:hidden"><GroundworkLogo linkTo="/work" size="lg" /></span>
           <span className="hidden dark:block"><GroundworkLogo linkTo="/work" size="lg" variant="light" /></span>
         </div>
@@ -44,7 +44,7 @@ export function WorkShell({ children, displayName, onLogout }: {
           <input key={params.get('q')} type="search" name="q" defaultValue={params.get('q') ?? ''} aria-label={t('contractorDashboard.search')} placeholder={t('contractorDashboard.search')} className="w-full rounded-xl border border-brand-border-grey bg-brand-off-white py-2.5 pl-10 pr-4 text-xs outline-none focus:ring-2 focus:ring-brand-mid-grey dark:border-[#444] dark:bg-[#141414]" />
         </Form>
         <div className="ml-auto flex min-w-0 items-center gap-3 px-4 sm:px-6">
-          <LanguageToggle /><ThemeToggle />
+          <LanguageToggle compact /><ThemeToggle compact />
           <div className="hidden border-l border-brand-border-grey pl-4 sm:block dark:border-[#2c2c2c]">
             <p className="max-w-48 truncate text-sm font-semibold">{displayName}</p>
             <p className="text-xs text-brand-mid-grey">{t('contractor.surface.title')}</p>
@@ -53,7 +53,7 @@ export function WorkShell({ children, displayName, onLogout }: {
         </div>
       </header>
       {open && <button aria-label={t('common.close')} onClick={() => setOpen(false)} className="fixed inset-0 top-20 z-30 bg-black/30 md:hidden" />}
-      <aside className={cn('fixed bottom-0 left-0 top-20 z-40 w-60 flex-col overflow-y-auto border-r border-brand-border-grey bg-[#ffffff] p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] md:flex', open ? 'flex' : 'hidden')}>
+      <aside id="work-navigation" className={cn('fixed bottom-0 left-0 top-20 z-40 w-60 flex-col overflow-y-auto border-r border-brand-border-grey bg-[#ffffff] p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] md:flex', open ? 'flex' : 'hidden')}>
         <nav aria-label={t('nav.mainNavigation')} className="space-y-2">
           {links.map(({ to, label, icon: Icon }) => {
             const active = to === '/work' ? location.pathname === to && !location.hash : to === '/work/projects' ? location.pathname.startsWith(to) : `${location.pathname}${location.hash}` === to;
