@@ -46,6 +46,7 @@ export default function ContractorDashboard() {
         const assigned = await fetchAssignedProjects();
         if (!alive) return;
         setProjects(assigned);
+        setError(null);
         const [r, p] = await Promise.all([fetchRework(assigned), fetchMyPayments()]);
         if (!alive) return;
         setRework(r);

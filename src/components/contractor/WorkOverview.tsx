@@ -41,7 +41,7 @@ export function WorkOverview({ projects, payments }: {
               <span className={cn('relative mx-auto flex size-8 items-center justify-center rounded-full border text-xs font-semibold', s.status === 'complete' ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black' : s.id === current.activeStage?.id ? 'border-brand-near-black bg-brand-light-grey text-brand-near-black ring-4 ring-brand-border-grey/40 dark:border-white dark:bg-[#444] dark:text-white' : 'border-brand-border-grey bg-[#ffffff] text-brand-mid-grey dark:bg-[#1e1e1e]')}>
                 {s.status === 'complete' ? <Check className="size-4" /> : s.stage_number}
               </span>
-              <p className="mt-3 px-1 text-[11px] font-medium">{stageLabel(s)}</p>
+              <p className="mt-3 break-words px-1 text-[11px] font-medium">{stageLabel(s)}</p>
               <p className="mt-1 px-1 text-[10px] text-brand-mid-grey">{t(`contractorStageStatus.${s.status}` as TKey)}</p>
             </li>)}
           </ol>
