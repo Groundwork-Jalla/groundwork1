@@ -1193,6 +1193,11 @@ export const en = {
         payment_disbursed:          'a disbursement was completed',
         payment_failed:             'a disbursement failed',
         payment_reconciling:        'opened a reconciliation',
+        // 099 — where a contractor is paid. The numbers themselves never reach this log.
+        payout_destination_added:       'added payout details',
+        payout_destination_default_set: 'changed the default payout details',
+        payout_destination_retired:     'retired payout details',
+        payout_destination_verified:    'verified payout details',
         // 091 — conversations, decisions, support links.
         conversation_created:       'opened a conversation',
         conversation_assigned:      'assigned a conversation',

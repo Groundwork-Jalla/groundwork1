@@ -1196,6 +1196,11 @@ export const fr: Mirror<EnDict> = {
         payment_disbursed:          'un d\u00e9caissement a \u00e9t\u00e9 effectu\u00e9',
         payment_failed:             'un d\u00e9caissement a \u00e9chou\u00e9',
         payment_reconciling:        'a ouvert un rapprochement',
+        // 099 — o\u00f9 une entreprise est pay\u00e9e. Les num\u00e9ros eux-m\u00eames n\u2019apparaissent jamais ici.
+        payout_destination_added:       'a ajout\u00e9 des coordonn\u00e9es de paiement',
+        payout_destination_default_set: 'a chang\u00e9 les coordonn\u00e9es de paiement par d\u00e9faut',
+        payout_destination_retired:     'a retir\u00e9 des coordonn\u00e9es de paiement',
+        payout_destination_verified:    'a v\u00e9rifi\u00e9 des coordonn\u00e9es de paiement',
         // 091 — conversations, d\u00e9cisions, liens support.
         conversation_created:       'a ouvert une conversation',
         conversation_assigned:      'a attribu\u00e9 une conversation',

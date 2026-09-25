@@ -96,8 +96,9 @@ describe('entityTab', () => {
       for (const m of sql.matchAll(/log_activity\(\s*(?:[^,()]|\([^)]*\))+,\s*(?:'[a-z_.]+'|CASE[\s\S]*?END),\s*'([a-z_]+)'/g)) written.add(m[1]);
     }
     expect([...written].sort()).toEqual([
-      'contractor_invite', 'conversation', 'decision', 'payment', 'project_stage',
-      'project_verifier', 'site_update', 'stage_verification', 'support_ticket',
+      'contractor_invite', 'conversation', 'decision', 'payment', 'payout_destination',
+      'project_stage', 'project_verifier', 'site_update', 'stage_verification',
+      'support_ticket',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
     expect(entityTab('stage_verification')).toBe('stages');
@@ -109,6 +110,9 @@ describe('entityTab', () => {
     expect(entityTab('project_verifier')).toBe('team');
     // Support tickets are Support's, not a workspace tab: no link, by decision.
     expect(entityTab('support_ticket')).toBeNull();
+    // A payout destination belongs to a person and is reused across projects, so no
+    // single project's workspace owns it — its audit rows carry a null project.
+    expect(entityTab('payout_destination')).toBeNull();
     expect(entityTab(null)).toBeNull();
   });
 });
