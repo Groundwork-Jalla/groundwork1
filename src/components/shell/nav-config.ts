@@ -1,4 +1,5 @@
 import {
+  Landmark, ArrowDownLeft, ArrowUpRight,
   LayoutDashboard, FolderOpen, BookOpen, HardHat, CreditCard, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
   FileText, Mailbox, FilePen, Radio, Clapperboard, LifeBuoy, MessagesSquare,
@@ -62,10 +63,14 @@ export const ADMIN_NAV: NavItem[] = [
 
   { to: '/admin/projects',           labelKey: 'nav.projects',           icon: FolderOpen,     section: 'nav.sectionWork' },
   { to: '/admin/reviews',            labelKey: 'nav.reviewsApprovals',   icon: ClipboardCheck },
-  { to: '/admin/budgets',            labelKey: 'nav.budgets',            icon: Wallet },
   { to: '/admin/site-updates',       labelKey: 'nav.siteUpdates',        icon: Camera },
   { to: '/admin/inspections',        labelKey: 'nav.inspections',        icon: SearchCheck },
   { to: '/admin/tasks',              labelKey: 'nav.tasks',              icon: ListTodo },
+
+  { to: '/admin/finance',                  labelKey: 'nav.financeOverview',    icon: Landmark,       section: 'nav.sectionFinance' },
+  { to: '/admin/finance/inflows',          labelKey: 'nav.inflows',            icon: ArrowDownLeft },
+  { to: '/admin/finance/disbursements',    labelKey: 'nav.disbursements',      icon: ArrowUpRight },
+  { to: '/admin/budgets',                  labelKey: 'nav.budgetsFees',        icon: Wallet },
 
   { to: '/admin/clients',            labelKey: 'nav.clients',            icon: UserRound,      section: 'nav.sectionPeople' },
   { to: '/admin/contractors',        labelKey: 'nav.contractors',        icon: HardHat },

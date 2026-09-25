@@ -33,13 +33,18 @@ describe('nav points at real routes', () => {
 });
 
 describe('admin nav shape', () => {
-  it('leads with Overview, Action Center, Projects, Reviews & Approvals, Budgets (the mobile tab bar takes the first five — IA 01 §2)', () => {
-    expect(ADMIN_NAV.slice(0, 5).map(i => i.to)).toEqual(['/admin', '/admin/action-center', '/admin/projects', '/admin/reviews', '/admin/budgets']);
+  it('leads with Overview, Action Center, Projects, Reviews & Approvals, Site Updates (the mobile tab bar takes the first five — IA 01 §2)', () => {
+    // Budgets held the fifth place until Finance became its own group and took it. The
+    // mobile tab bar is the first five items, so moving an item changes what a phone
+    // shows — which is why this is pinned rather than left to be noticed later.
+    expect(ADMIN_NAV.slice(0, 5).map(i => i.to)).toEqual(['/admin', '/admin/action-center', '/admin/projects', '/admin/reviews', '/admin/site-updates']);
   });
 
-  it('eight groups, in the IA\u2019s order', () => {
+  it('nine groups, in the IA\u2019s order, with Finance between Work and People', () => {
+    // Projects tell us what is being built; Finance tells us what happened to the money
+    // for it. It reads in that order, so it sits in that order.
     const sections = ADMIN_NAV.map(i => i.section).filter(Boolean);
-    expect(sections).toEqual(['nav.sectionOverview', 'nav.sectionWork', 'nav.sectionPeople', 'nav.sectionCommunication', 'nav.sectionAcquisition', 'nav.sectionSupport', 'nav.sectionAnalytics', 'nav.sectionSystem']);
+    expect(sections).toEqual(['nav.sectionOverview', 'nav.sectionWork', 'nav.sectionFinance', 'nav.sectionPeople', 'nav.sectionCommunication', 'nav.sectionAcquisition', 'nav.sectionSupport', 'nav.sectionAnalytics', 'nav.sectionSystem']);
   });
 
   it('every unbuilt item has a placeholder entry and every placeholder has a sidebar item — the list is temporary and must not drift', () => {

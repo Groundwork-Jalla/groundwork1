@@ -121,6 +121,27 @@ export function ledgerLine(
   };
 }
 
+/**
+ * What this money was for, in the order the ledger can actually answer it.
+ *
+ *   1. the stage it is attached to — the real reason a milestone moves
+ *   2. the note a person wrote on the row
+ *   3. nothing
+ *
+ * `null` is returned for the third case and the screen says "Purpose not recorded".
+ * There is no fourth step: inferring a purpose from the project, the amount or the date
+ * would put a sentence in an audit trail that nobody wrote.
+ */
+export function purposeOf(line: Pick<LedgerLine, 'stage' | 'note'>): string | null {
+  if (line.stage) return line.stage.name;
+  const note = (line.note ?? '').trim();
+  return note || null;
+}
+
+/** Money that needs a person: a release that failed, or one whose fate is being established. */
+export const needsAttention = (lines: LedgerLine[]): LedgerLine[] =>
+  lines.filter(l => l.direction === 'out' && (l.state === 'failed' || l.state === 'reconciling'));
+
 /** Newest movement first. The date shown is the date sorted on, so the order reads true. */
 export const byWhen = (lines: LedgerLine[]): LedgerLine[] =>
   [...lines].sort((a, b) => b.at.localeCompare(a.at));
@@ -140,6 +161,10 @@ export interface DirectionTotals {
   settled: number;
   /** Decided or expected, but not moved. */
   pending: number;
+  /** Outgoing: authorised and sitting there. A decision, not a payment. */
+  approved: number;
+  /** Outgoing: handed to the provider and in flight. */
+  processing: number;
   /** Outgoing rows the provider could not complete. */
   failed: number;
   count: number;
@@ -148,18 +173,25 @@ export interface DirectionTotals {
 export function totalsFor(lines: LedgerLine[], direction: 'in' | 'out'): DirectionTotals {
   const mine = lines.filter(l => l.direction === direction);
   const sum = (pred: (l: LedgerLine) => boolean) => mine.filter(pred).reduce((a, l) => a + l.amount, 0);
-  return direction === 'in'
-    ? {
-        settled: sum(l => l.state === 'funded' || l.state === 'reconciled'),
-        pending: sum(l => l.state === 'expected'),
-        failed: 0,   // 090 gives incoming rows no failed state.
-        count: mine.length,
-      }
-    : {
-        settled: sum(l => l.state === 'disbursed'),
-        // Authorised, in flight, or under review: committed, not yet gone.
-        pending: sum(l => l.state === 'release_authorised' || l.state === 'initiated' || l.state === 'reconciling'),
-        failed: sum(l => l.state === 'failed'),
-        count: mine.length,
-      };
+  if (direction === 'in') {
+    return {
+      settled: sum(l => l.state === 'funded' || l.state === 'reconciled'),
+      // Expected. Kept apart from `settled` everywhere: it has not arrived.
+      pending: sum(l => l.state === 'expected'),
+      approved: 0, processing: 0,
+      failed: 0,   // 090 gives incoming rows no failed state.
+      count: mine.length,
+    };
+  }
+  const approved   = sum(l => l.state === 'release_authorised');
+  const processing = sum(l => l.state === 'initiated' || l.state === 'reconciling');
+  return {
+    settled: sum(l => l.state === 'disbursed'),
+    // Committed but not gone — the two above, together.
+    pending: approved + processing,
+    approved,
+    processing,
+    failed: sum(l => l.state === 'failed'),
+    count: mine.length,
+  };
 }

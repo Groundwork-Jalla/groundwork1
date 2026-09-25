@@ -97,6 +97,9 @@ export default [
     route("admin/reviews",       "routes/admin/reviews.tsx"),
     route("admin/site-updates",  "routes/admin/site-updates.tsx"),
     route("admin/budgets",       "routes/admin/budgets.tsx"),
+    route("admin/finance",                "routes/admin/finance.tsx"),
+    route("admin/finance/inflows",        "routes/admin/finance.inflows.tsx"),
+    route("admin/finance/disbursements",  "routes/admin/finance.disbursements.tsx"),
     route("admin/projects",      "routes/admin/projects.tsx"),
     route("admin/projects/new",  "routes/admin/projects.new.tsx"),
     // The Project Workspace (Phase 5). Declared after /new so the literal segment wins;
