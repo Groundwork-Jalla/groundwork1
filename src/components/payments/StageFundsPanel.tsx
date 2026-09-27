@@ -30,7 +30,7 @@ const LEGEND: [FundState, TKey][] = [
   ['locked',   'project.payments.legendLocked'],
 ];
 
-export default function EscrowWallet({
+export default function StageFundsPanel({
   project, stages, onPay, onViewPayout,
 }: {
   project: ProjectRow;
@@ -57,7 +57,7 @@ export default function EscrowWallet({
     <div>
       {/* Dark escrow hero */}
       <div className="rounded-2xl bg-brand-near-black text-white text-center px-7 py-7 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{t('project.payments.escrowLabel')}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">{t('project.payments.notReleasedLabel')}</p>
         <p className="text-4xl font-black mt-1 tabular-nums">{formatUSD(escrow)}</p>
         <p className="text-[13px] text-white/45 mt-1">{tPlural('project.payments.heldSecurely', remaining)}</p>
 

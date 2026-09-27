@@ -7,7 +7,7 @@ import { notifyAdmins } from '@/lib/supabase/notifications';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { normalizeTier } from '@/lib/payments/config';
 import { useT, type TKey } from '@/lib/i18n';
-import EscrowWallet from '@/components/payments/EscrowWallet';
+import StageFundsPanel from '@/components/payments/StageFundsPanel';
 import PaymentHistory from '@/components/payments/PaymentHistory';
 import MilestonePaymentModal from '@/components/payments/MilestonePaymentModal';
 import PayoutStatusModal from '@/components/payments/PayoutStatusModal';
@@ -108,7 +108,7 @@ export default function ProjectPayments({
       </div>
 
       {view === 'wallet' ? (
-        <EscrowWallet
+        <StageFundsPanel
           project={project}
           stages={stages}
           onPay={setPayStage}

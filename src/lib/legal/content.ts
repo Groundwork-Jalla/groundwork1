@@ -11,7 +11,7 @@ import type { Lang } from '@/lib/i18n/types';
 //
 // ⚠️  DRAFT — NOT LEGAL ADVICE.
 // This was written to describe what the product genuinely does (the processors
-// listed are the ones actually wired up: Supabase, Resend, Stripe, Switchr,
+// listed are the ones actually wired up: Supabase, Resend, Stripe,
 // GoHighLevel, Google, Vercel, Sentry). It is a starting point for review by a
 // qualified lawyer in your operating jurisdictions — not a substitute for one.
 // Google and Stripe both require these links before you can go live.
@@ -81,7 +81,14 @@ const PRIVACY_EN: LegalDoc = {
         '- Supabase — database, file storage, and authentication.',
         '- Resend — transactional email delivery.',
         '- Stripe — subscription billing and payment processing.',
-        '- Switchr — contractor payouts in local currency.',
+        // No payout provider is listed, because none processes anybody's data yet: the
+        // outbound rail has no caller and no client money has moved through it. This
+        // list names processors actually in use, per the rule at the top of this file.
+        //
+        // ⚠️  PUT IT BACK BEFORE THE FIRST LIVE PAYOUT. A disclosure that lags the
+        // system it describes is the failure mode here, so the test in
+        // legal/subprocessors.test.ts fails the build the moment milestone payments
+        // stop being preview — it does not rely on anyone remembering this comment.
         '- GoHighLevel — customer relationship management for contractor applications and waitlist enquiries.',
         '- Google — sign-in, if you choose to use it.',
         '- Vercel — application hosting.',
@@ -183,7 +190,6 @@ const PRIVACY_FR: LegalDoc = {
         "- Supabase — base de données, stockage de fichiers et authentification.",
         '- Resend — envoi des e-mails transactionnels.',
         '- Stripe — facturation des abonnements et traitement des paiements.',
-        '- Switchr — versements aux entrepreneurs en monnaie locale.',
         "- GoHighLevel — gestion de la relation client pour les candidatures d'entrepreneurs et les demandes de liste d'attente.",
         '- Google — connexion, si vous choisissez de l’utiliser.',
         "- Vercel — hébergement de l'application.",

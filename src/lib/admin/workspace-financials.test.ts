@@ -116,10 +116,10 @@ describe('one "released" per screen', () => {
 describe('no provider is implemented here (14 Sep meeting: the payment architecture is still hypothetical)', () => {
   it('names no provider and invents no provider state — every state word is the 090 ledger vocabulary', () => {
     const c = src(TAB);
-    expect(c).not.toMatch(/swychr|switcha|switcher|switchr/i);
+    expect(c).not.toMatch(/swychr|switcha|switcher|swychr/i);
     for (const dict of [en, fr]) {
       const ws = JSON.stringify((dict as { admin: { workspace: unknown } }).admin.workspace);
-      expect(ws).not.toMatch(/swychr|switcha|switcher|switchr/i);
+      expect(ws).not.toMatch(/swychr|switcha|switcher|swychr/i);
     }
     // Ledger states are rendered through one key family, whose members are the 090 enum.
     const stateKeys = [...code(TAB).matchAll(/admin\.ledger\.state\.\$\{([a-zA-Z.]+)\}/g)].map(m => m[1]);

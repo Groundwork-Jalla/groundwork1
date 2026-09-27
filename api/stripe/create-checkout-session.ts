@@ -10,7 +10,7 @@ import {
  * redirect to.
  *
  * This charges the CLIENT for their Jalla Verify plan. It has nothing to do with paying
- * contractors; that money moves on the Switchr rail in XAF.
+ * contractors; that money moves on the SwyChr rail in XAF.
  */
 export default async function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') {

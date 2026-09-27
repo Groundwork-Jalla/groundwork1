@@ -1237,41 +1237,6 @@ export const en = {
 
     // Verifier assignment (migration 086). The role value has existed since 001.
     verifier: {
-    dashboard: {
-      "title": "Verifier Dashboard",
-      "assignments": "Assigned verifications",
-      "pending": "Pending verifications",
-      "visitedToday": "Visited today",
-      "needsFindings": "Needs findings",
-      "week": "Recorded this week",
-      "visits": "Visits to arrange",
-      "visitsHint": "Requests without a recorded visit. Arrange a visit with your project contact.",
-      "workspace": "Evidence & review",
-      "recent": "Recent decisions",
-      "scope": "You only see verification work assigned to you. Record your independent findings here.",
-      "search": "Search assigned projects, stages or reference IDs…",
-      "noResults": "No assigned verifications match these filters.",
-      "all": "All assignments",
-      "requested": "Requested",
-      "location": "Location",
-      "status": "Status",
-      "context": "Project context",
-      "stageReview": "Stage review",
-      "siteVisit": "Site visit",
-      "siteVisitHint": "Record the date you visited this site. Include your observations in the findings.",
-      "findings": "Findings (required)",
-      "findingsRequired": "Add your findings before submitting.",
-      "openReview": "Open verification",
-      "select": "Review",
-      "selected": "Selected",
-      "reference": "Reference",
-      "noVisit": "No visit recorded",
-      "noHistory": "No findings have been recorded yet.",
-      "reviewHint": "Choose an assigned verification to review its evidence and record your findings.",
-      "checklistHint": "Reported work items. Your finding does not change their status.",
-      "date": "Date",
-      "retry": "Try again"
-},
       assign:            'Assign verifier',
       title:             'Assign an independent verifier',
       bodyPre:           'Gives them sight of',
@@ -2120,6 +2085,43 @@ export const en = {
   },
 
   verifier: {
+    // The verifier portal (/verifiers) is its own surface, not part of /admin.
+    // These strings belong to that surface, so they live here and not under admin.
+    dashboard: {
+      "title": "Verifier Dashboard",
+      "assignments": "Assigned verifications",
+      "pending": "Pending verifications",
+      "visitedToday": "Visited today",
+      "needsFindings": "Needs findings",
+      "week": "Recorded this week",
+      "visits": "Visits to arrange",
+      "visitsHint": "Requests without a recorded visit. Arrange a visit with your project contact.",
+      "workspace": "Evidence & review",
+      "recent": "Recent decisions",
+      "scope": "You only see verification work assigned to you. Record your independent findings here.",
+      "search": "Search assigned projects, stages or reference IDs…",
+      "noResults": "No assigned verifications match these filters.",
+      "all": "All assignments",
+      "requested": "Requested",
+      "location": "Location",
+      "status": "Status",
+      "context": "Project context",
+      "stageReview": "Stage review",
+      "siteVisit": "Site visit",
+      "siteVisitHint": "Record the date you visited this site. Include your observations in the findings.",
+      "findings": "Findings (required)",
+      "findingsRequired": "Add your findings before submitting.",
+      "openReview": "Open verification",
+      "select": "Review",
+      "selected": "Selected",
+      "reference": "Reference",
+      "noVisit": "No visit recorded",
+      "noHistory": "No findings have been recorded yet.",
+      "reviewHint": "Choose an assigned verification to review its evidence and record your findings.",
+      "checklistHint": "Reported work items. Your finding does not change their status.",
+      "date": "Date",
+      "retry": "Try again"
+    },
     surface: {
       title: 'Groundwork Verification',
     },
@@ -2328,7 +2330,7 @@ export const en = {
 
   // ── Contractor directory ──────────────────────────────────
   contractors: {
-    // TEMPORARY (demo gate) — remove with lib/demo-gate.ts.
+    // The upgrade prompt shown when a plan does not include the directory.
     lockedTitle: 'Contractors are part of Jalla Verify',
     lockedBody:  'Upgrade to see verified contractors in your region, their track record, and request quotes without leaving Groundwork.',
     lockedCta:   'Upgrade to Jalla Verify',
@@ -4441,6 +4443,9 @@ export const en = {
       managedNote:   'This stage is managed by Jalla. Progress will be updated by your project manager.',
       badgeActive:   'Active',
       badgeReview:   'In Review',
+      // Self Verify has no external reviewer: the owner is the approver, so the same
+      // stage state is their own to-do rather than a wait on Jalla. See lib/tier.ts.
+      badgeYourApproval: 'Your approval',
       badgeComplete: 'Complete',
       badgeLocked:   'Locked',
       awaitingReview:'Awaiting review',
@@ -4541,6 +4546,7 @@ export const en = {
       statusDone:      'Done',
       statusProgress:  'In Progress',
       statusReview:    'In Review',
+      statusYourApproval: 'Ready for your approval',
       statusLocked:    'Locked',
       noSubstages:  'No substages recorded for this stage.',
       paidSummary:  "You've paid {paid} of {total} ({pct}%).",
@@ -4636,10 +4642,14 @@ export const en = {
       statusCompleted:  'Completed',
       statusInProgress: 'In Progress',
       statusAwaiting:   'Awaiting Approval',
+      statusYourApproval: 'Ready for your approval',
+      selfVerified:     'Self-verified',
+      jallaVerified:    'Jalla Verified',
       statusUpcoming:   'Upcoming',
       legendCompleted:  'Completed',
       legendInProgress: 'In progress',
       legendAwaiting:   'Awaiting approval',
+      legendYourApproval: 'Your approval',
       legendUpcoming:   'Upcoming',
     },
 
@@ -4649,7 +4659,7 @@ export const en = {
       wallet:        'Funding',
       history:       'History',
       upgradePlan:   'Upgrade plan',
-      escrowLabel:   'Not yet released',
+      notReleasedLabel:   'Not yet released',
       heldSecurely:  'awaiting stage verification · {count} stage remaining',
       heldSecurely_plural: 'awaiting stage verification · {count} stages remaining',
       totalProject:  'Total project',

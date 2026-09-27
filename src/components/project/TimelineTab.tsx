@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, Lock, AlertCircle, BadgeCheck, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -67,23 +68,26 @@ function computeTimeline(stages: ProjectStageRow[], project: ProjectRow): Comput
 
 // ── Status helpers ────────────────────────────────────────
 
-function statusLabelKey(status: string): TKey {
+// On Self Verify there is nobody to await: the owner approves their own stages, so
+// "Awaiting Approval" would describe a plan they did not buy. See lib/tier.ts.
+function statusLabelKey(status: string, tier: string): TKey {
   if (status === 'complete')       return 'project.timeline.statusCompleted';
   if (status === 'active')         return 'project.timeline.statusInProgress';
-  if (status === 'pending_review') return 'project.timeline.statusAwaiting';
+  if (status === 'pending_review')
+    return isSelfVerify(tier) ? 'project.timeline.statusYourApproval' : 'project.timeline.statusAwaiting';
   return 'project.timeline.statusUpcoming';
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status, tier }: { status: string; tier: string }) {
   const t = useT();
   const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide';
   if (status === 'complete')
-    return <span className={cn(base, 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black')}><CheckCircle2 className="size-2.5" />{t(statusLabelKey(status))}</span>;
+    return <span className={cn(base, 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black')}><CheckCircle2 className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   if (status === 'active')
-    return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status))}</span>;
+    return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   if (status === 'pending_review')
-    return <span className={cn(base, 'bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held text-state-held dark:text-state-held')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status))}</span>;
-  return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{t(statusLabelKey(status))}</span>;
+    return <span className={cn(base, 'bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held text-state-held dark:text-state-held')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
+  return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
 }
 
 // ── List view ─────────────────────────────────────────────
@@ -95,12 +99,10 @@ function ListView({
   project: ProjectRow;
 }) {
   const { stageLabel } = useStageLabels();
-  const verificationLabel = project.tier === 'self_verify' || (project.tier as string) === 'starter'
-    ? 'Self-verified'
-    : 'Jalla Verified';
-  const VerifyIcon = project.tier === 'self_verify' || (project.tier as string) === 'starter'
-    ? BadgeCheck
-    : ShieldCheck;
+  const t = useT();
+  const selfVerify = isSelfVerify(project.tier);
+  const verificationLabel = t(selfVerify ? 'project.timeline.selfVerified' : 'project.timeline.jallaVerified');
+  const VerifyIcon = selfVerify ? BadgeCheck : ShieldCheck;
 
   return (
     <div className="flex flex-col divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
@@ -138,7 +140,7 @@ function ListView({
                 <span className="text-[10px] text-brand-mid-grey whitespace-nowrap">
                   Est: {durationDays}d
                 </span>
-                <StatusPill status={stage.status} />
+                <StatusPill status={stage.status} tier={project.tier} />
               </div>
             </div>
 
@@ -331,7 +333,11 @@ function GanttView({
           {([
             { color: '#22c55e', key: 'project.timeline.legendCompleted'  as TKey },
             { color: '#3b82f6', key: 'project.timeline.legendInProgress' as TKey },
-            { color: '#f59e0b', key: 'project.timeline.legendAwaiting'   as TKey },
+            // Same reason as the pill: on Self Verify the amber band is the owner's own
+            // queue, not a wait on Jalla.
+            { color: '#f59e0b', key: (isSelfVerify(project.tier)
+                ? 'project.timeline.legendYourApproval'
+                : 'project.timeline.legendAwaiting') as TKey },
             { color: '#d1d5db', key: 'project.timeline.legendUpcoming'   as TKey },
           ]).map(item => (
             <div key={item.key} className="flex items-center gap-1.5">

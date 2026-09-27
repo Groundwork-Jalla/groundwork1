@@ -5,20 +5,20 @@ import type { ProjectTier } from '@/types/project';
 // These fees / prices / caps are NOT final. They are centralized here so the
 // real numbers can be dropped in one place once confirmed, and so the public
 // pricing page (already approved) is never coupled to them.
-// Real charging (Stripe hold) + payouts (Switchr XAF) are not wired yet.
+// Real charging (Stripe hold) + payouts (SwyChr XAF) are not wired yet.
 // =========================================================
 
 /**
  * Two rails, two states — they are not both preview any more.
  *
  *   Stripe   Jalla Verify subscription, client → Jalla.   LIVE (see api/stripe/)
- *   Switchr  project funds + contractor payouts in XAF.   NOT WIRED
+ *   SwyChr  project funds + contractor payouts in XAF.   NOT WIRED
  *
  * Contractors are never paid through Stripe: Stripe Connect does not support payouts to
  * Cameroon, and no milestone money passes through a Stripe balance.
  */
 
-/** Milestone charging and contractor payouts still await the Switchr integration. */
+/** Milestone charging and contractor payouts still await the SwyChr integration. */
 export const MILESTONE_PAYMENTS_ARE_PREVIEW = true;
 
 /** Subscriptions run on Stripe Checkout. Keep true only if the keys are not yet set. */

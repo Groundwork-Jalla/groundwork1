@@ -9,7 +9,7 @@ import type { ProjectTier } from '@/types/project';
  * columns that is not the Stripe webhook acting as service_role.
  *
  * SCOPE: this is the Jalla Verify plan the client pays Jalla. Contractor payouts run on
- * Switchr in XAF and have nothing to do with Stripe.
+ * SwyChr in XAF and have nothing to do with Stripe.
  */
 
 export type SubscriptionStatus =

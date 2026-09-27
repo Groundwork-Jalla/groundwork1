@@ -157,7 +157,7 @@ describe('attribution needs an account, and says so when there is none', () => {
   it('no bank details, no provider, no custody language', () => {
     for (const banned of [
       'iban', 'IBAN', 'account_number', 'accountNumber', 'bank', 'Bank',
-      'swychr', 'SwyChr', 'Switchr', 'provider_ref', 'wallet', 'Wallet', 'escrow', 'Escrow', 'payout',
+      'swychr', 'SwyChr', 'SwyChr', 'provider_ref', 'wallet', 'Wallet', 'escrow', 'Escrow', 'payout',
     ]) {
       expect(panel.replace(/Banknote/g, ''), `${banned} must not appear`).not.toContain(banned);
     }

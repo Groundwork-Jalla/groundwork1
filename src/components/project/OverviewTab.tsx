@@ -6,6 +6,7 @@ import {
   ShieldCheck, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isSelfVerify } from '@/lib/tier';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import {
   formatUSDFull, formatUSD,
@@ -1012,11 +1013,13 @@ function SubstageChecks({ substages }: { substages: ProjectSubstageRow[] }) {
 }
 
 function StageWithSubstages({
-  stage, substages, defaultOpen,
+  stage, substages, defaultOpen, tier,
 }: {
   stage: ProjectStageRow;
   substages: ProjectSubstageRow[];
   defaultOpen: boolean;
+  /** Decides whether `pending_review` reads as a wait on Jalla or the owner's own to-do. */
+  tier: string;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
@@ -1053,7 +1056,8 @@ function StageWithSubstages({
           })}>
             {stage.status === 'complete' ? t('project.overview.statusDone')
               : stage.status === 'active' ? t('project.overview.statusProgress')
-              : stage.status === 'pending_review' ? t('project.overview.statusReview')
+              : stage.status === 'pending_review'
+                ? t(isSelfVerify(tier) ? 'project.overview.statusYourApproval' : 'project.overview.statusReview')
               : t('project.overview.statusLocked')}
           </span>
           <ChevronDown className={cn('size-3.5 text-brand-mid-grey transition-transform', open && 'rotate-180')} />
@@ -1246,6 +1250,7 @@ export default function OverviewTab({
                   stage={stage}
                   substages={substages}
                   defaultOpen={stage.id === activeStage?.id}
+                  tier={project.tier}
                 />
               ))}
             </div>

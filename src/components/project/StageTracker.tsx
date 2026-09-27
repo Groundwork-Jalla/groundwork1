@@ -6,6 +6,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { formatUSD } from '@/lib/budget';
+import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 
@@ -71,11 +72,17 @@ function StageCircle({
 
 // ── Stage badge ────────────────────────────────────────────
 
-function StageBadge({ status }: { status: StageStatus }) {
+// `tier` is not decoration here. On Self Verify nobody at Jalla reviews a stage, so
+// "In Review" would name a wait that does not exist — the stage is the owner's own to
+// approve. Anything that renders a stage state has to know which plan it is on.
+function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
   const t = useT();
   const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
     active:         { labelKey: 'project.stages.badgeActive',   className: 'bg-brand-near-black text-white' },
-    pending_review: { labelKey: 'project.stages.badgeReview',   className: 'border border-brand-border-grey text-brand-mid-grey' },
+    pending_review: {
+      labelKey:  isSelfVerify(tier) ? 'project.stages.badgeYourApproval' : 'project.stages.badgeReview',
+      className: 'border border-brand-border-grey text-brand-mid-grey',
+    },
     complete:       { labelKey: 'project.stages.badgeComplete', className: 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey' },
     locked:         { labelKey: 'project.stages.badgeLocked',   className: 'text-brand-mid-grey' },
   };
@@ -107,7 +114,7 @@ function ApproveButton({
 }) {
   const t = useT();
   const label =
-    tier === 'self_verify' || tier === 'starter'
+    isSelfVerify(tier)
       ? t('project.stages.approveStage', { n: stageNumber })
       : t('project.stages.requestVerify');
 
@@ -164,7 +171,7 @@ function StageDetail({
   const allSubstagesReady =
     substages.length > 0 &&
     substages.every(sub =>
-      tier === 'self_verify' || tier === 'starter'
+      isSelfVerify(tier)
         ? sub.status === 'complete'
         : sub.status === 'pending_review' || sub.status === 'complete',
     );
@@ -211,7 +218,7 @@ function StageDetail({
             {formatUSD(stage.payment_milestone_usd ?? 0)}{' '}
             <span className="text-[10px]">({stage.budget_pct}%)</span>
           </span>
-          <StageBadge status={stage.status} />
+          <StageBadge status={stage.status} tier={tier} />
         </div>
       </div>
 
@@ -291,17 +298,17 @@ function StageDetail({
       <ConfirmModal
         open={confirmOpen}
         title={
-          tier === 'self_verify' || tier === 'starter'
+          isSelfVerify(tier)
             ? t('project.stages.confirmApproveTitle')
             : t('project.stages.confirmVerifyTitle')
         }
         description={
-          tier === 'self_verify' || tier === 'starter'
+          isSelfVerify(tier)
             ? t('project.stages.confirmApproveBody')
             : t('project.stages.confirmVerifyBody')
         }
         confirmLabel={
-          tier === 'self_verify' || tier === 'starter'
+          isSelfVerify(tier)
             ? t('project.stages.confirmApproveCta')
             : t('project.stages.confirmVerifyCta')
         }

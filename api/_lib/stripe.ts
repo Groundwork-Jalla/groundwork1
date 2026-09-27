@@ -5,9 +5,9 @@ import { createClient } from '@supabase/supabase-js';
  * Server-only Stripe and Supabase clients.
  *
  * SCOPE: Stripe handles the Jalla Verify subscription and nothing else. Contractors are
- * paid by Switchr in XAF — Stripe Connect does not support payouts to Cameroon, and no
+ * paid by SwyChr in XAF — Stripe Connect does not support payouts to Cameroon, and no
  * milestone money passes through a Stripe balance. If you find yourself adding a
- * PaymentIntent for a construction stage here, stop: that belongs on the Switchr rail.
+ * PaymentIntent for a construction stage here, stop: that belongs on the SwyChr rail.
  *
  * Nothing in this directory may be imported from src/ — these read process.env secrets
  * that must never reach the client bundle.

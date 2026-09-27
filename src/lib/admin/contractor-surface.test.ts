@@ -167,7 +167,7 @@ describe('custody language stays out of the contractor surface', () => {
       (en as Record<string, unknown>).contractorPayments,
       (fr as Record<string, unknown>).contractorPayments,
     ]);
-    expect(copy).not.toMatch(/swychr|switchr|stripe|momo|gohighlevel|ghl/i);
+    expect(copy).not.toMatch(/swychr|swychr|stripe|momo|gohighlevel|ghl/i);
   });
 });
 

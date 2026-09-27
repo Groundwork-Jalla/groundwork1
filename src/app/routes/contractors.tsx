@@ -15,7 +15,7 @@ import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
 import { createContractorInquiry, type BuildType } from '@/lib/supabase/inquiries';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { CONTRACTORS_LOCKED_FOR_DEMO } from '@/lib/demo-gate';
+import { CONTRACTOR_DIRECTORY_REQUIRES_PLAN } from '@/lib/contractor-directory-access';
 import { getSubscription, isSubscriptionActive } from '@/lib/payments/subscription';
 
 // ── Types ─────────────────────────────────────────────────
@@ -603,7 +603,7 @@ export default function ContractorsPage() {
 
   useEffect(() => {
     const uid = user?.id;
-    if (!CONTRACTORS_LOCKED_FOR_DEMO) { setEntitled(true); return; }
+    if (!CONTRACTOR_DIRECTORY_REQUIRES_PLAN) { setEntitled(true); return; }
     if (!uid) { setEntitled(false); return; }
     let cancelled = false;
     void getSubscription(uid).then(sub => {
@@ -641,7 +641,7 @@ export default function ContractorsPage() {
 
   const visible = contractors.filter(c => matchesFilter(c, activeFilter) && matchesQuery(c, query));
 
-  // Gate — see lib/demo-gate.ts. Nothing rendered until the tier is known, so an
+  // Plan gate — see lib/contractor-directory-access.ts. Nothing rendered until the tier is known, so an
   // entitled subscriber never sees the paywall flash before their directory loads.
   if (entitled === undefined) return null;
   if (!entitled) return <ContractorsLocked />;
@@ -802,11 +802,11 @@ export default function ContractorsPage() {
   );
 }
 
-// ── TEMPORARY: demo gate prompt ────────────────────────────
+// ── The upgrade prompt shown in place of the directory ─────
 //
-// Delete this component together with lib/demo-gate.ts. It deliberately borrows the
-// page's own surface and the Lock affordance already used by the plan gate above, so
-// it reads as the same product rather than a placeholder bolted on.
+// See lib/contractor-directory-access.ts. It deliberately borrows the page's own
+// surface and the Lock affordance already used by the plan gate above, so it reads as
+// the same product rather than a placeholder bolted on.
 
 function ContractorsLocked() {
   const t = useT();
