@@ -860,6 +860,22 @@ export const en = {
       authorisedBy:       'Authorised by',
       via:                'Receipt established',
       providerRef:        'Provider reference',
+      // Filing the SwyChr transaction that settled an authorised release. Groundwork
+      // records the movement; it does not make it.
+      attach: {
+        label:       'Record the SwyChr transaction',
+        hint:        'SwyChr moved this money, so Groundwork needs the transaction ID to follow it. Once recorded, its status is checked every five minutes.',
+        placeholder: 'SwyChr transaction ID',
+        cta:         'Record',
+        err: {
+          not_outgoing:     'This is money coming in, not a payout.',
+          not_authorised:   'Only an authorised release can take a transaction ID.',
+          already_attached: 'A transaction is already recorded here. Open reconciliation to correct it.',
+          bad_reference:    'That does not look like a transaction ID.',
+          not_found:        'That payment no longer exists.',
+          missing_payment:  'No payment was named.',
+        },
+      },
       whyFailed:          'Why it failed',
       note:               'Note',
       openProject:        'Open project financials',

@@ -1,0 +1,568 @@
+<title>Groundwork Admin — Testing Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{--ground:#FFFFFF;--surface:#FAFAF9;--ink:#1A1D1F;--ink-soft:#55595C;--ink-faint:#82878B;
+        --rule:#DCDAD5;--rule-soft:#EAE8E3;--accent:#1F4E5F;--accent-soft:#E8F0F2;
+        --warn:#8A6114;--warn-bg:#FBF4E6;--stop:#A33A2E;--stop-bg:#F8EAE7;
+        --ok:#2F6B4F;--ok-bg:#E9F2ED;--measure:72ch;}
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:"Source Sans 3",ui-sans-serif,system-ui,sans-serif;
+       font-size:15px;line-height:1.58;-webkit-font-smoothing:antialiased;margin:0}
+  .wrap{max-width:980px;margin:0 auto}
+  .col{max-width:var(--measure)}
+  h1,h2,h3,h4,.eyebrow,th,.num{font-family:Archivo,ui-sans-serif,system-ui,sans-serif}
+  h1{font-size:33px;font-weight:700;line-height:1.12;letter-spacing:-.018em;margin:0 0 10px;text-wrap:balance}
+  h2{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px;text-wrap:balance}
+  h3{font-size:16px;font-weight:700;margin:0}
+  p{margin:0 0 11px;orphans:2;widows:2}
+  ul,ol{margin:0 0 11px;padding-left:19px}li{margin:0 0 4px}
+  code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.85em}
+  code{background:var(--rule-soft);padding:1.5px 5px;border-radius:3px;white-space:nowrap}
+  .eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint)}
+
+  header.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:24px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 32px;margin-top:16px}
+  .meta div{display:flex;flex-direction:column;gap:1px}
+  .meta dt{font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint);font-family:Archivo,sans-serif}
+  .meta dd{margin:0;font-size:13.5px}
+
+  /* One screen = one entry */
+  .screen{margin:0 0 20px}
+  .screen-head{display:flex;gap:11px;align-items:baseline;border-top:1px solid var(--rule);padding-top:11px;margin-bottom:7px;break-inside:avoid;break-after:avoid}
+  .num{flex:none;font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 7px}
+  .url{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+       padding:6px 10px;margin:0 0 10px;font-family:"IBM Plex Mono",monospace;font-size:12px;overflow-wrap:anywhere;break-before:avoid}
+  .url .label{font-family:Archivo,sans-serif;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);flex:none}
+
+  figure{margin:11px 0 4px;break-inside:avoid}
+  figure img{display:block;width:100%;border:1px solid var(--rule);border-radius:6px}
+  /* Two shots are mostly empty ground — the dark sign-in page and the unbuilt-section
+     placeholder. At full width each eats a page and says nothing extra. */
+  figure.narrow{max-width:62%}
+  figcaption{font-size:11.5px;color:var(--ink-faint);margin-top:5px;max-width:var(--measure)}
+
+  .note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:9px 13px;margin:0 0 11px;border-radius:0 5px 5px 0;break-inside:avoid}
+  .note.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+  .note.stop{border-left-color:var(--stop);background:var(--stop-bg)}
+  .note.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+  .note p:last-child{margin-bottom:0}
+  .note .t{font-family:Archivo,sans-serif;font-weight:600;font-size:12.5px;display:block;margin-bottom:2px}
+
+  table{border-collapse:collapse;width:100%;margin:0 0 12px;font-size:13px;break-inside:avoid}
+  th{text-align:left;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);
+     border-bottom:1.5px solid var(--ink);padding:0 9px 5px 0}
+  td{padding:6px 9px 6px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  td:first-child{white-space:nowrap}
+
+  section.part{break-before:page;padding-top:2px}
+  section.part>.eyebrow{display:block;margin-bottom:3px;break-after:avoid}
+  section.part>h2{break-after:avoid}
+  .lede{font-size:15.5px;color:var(--ink-soft);max-width:var(--measure);margin:4px 0 18px;break-after:avoid}
+
+  .toc{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 18px;margin-bottom:20px}
+  .toc ol{margin:0;padding-left:17px;columns:2;column-gap:28px}
+  .toc li{margin-bottom:2px;font-size:13px;break-inside:avoid}
+  .toc .g{font-family:Archivo,sans-serif;font-weight:600;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+          color:var(--ink-faint);margin:10px 0 3px;column-span:all}
+  .toc .g:first-child{margin-top:0}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Groundwork by Jalla · Admin testing guide</p>
+  <h1>What you are looking at</h1>
+  <p class="lede" style="margin-bottom:0">Every page of the Groundwork admin, what it shows, what you can do on it,
+  and — just as important — what it deliberately will not let you do.</p>
+  <dl class="meta">
+    <div><dt>For</dt><dd>Anyone testing the admin with a staff account</dd></div>
+    <div><dt>Sign in at</dt><dd class="mono">www.tryjalla.com/admin/login</dd></div>
+    <div><dt>Built pages</dt><dd>30 of 34 menu items</dd></div>
+    <div><dt>Prepared</dt><dd>27 September 2026</dd></div>
+  </dl>
+</header>
+
+<div class="toc col" style="max-width:none">
+  <p class="g">Start here</p>
+  <ol>
+    <li>Signing in</li>
+    <li>The shell: sidebar, sections, top bar</li>
+  </ol>
+  <p class="g">Overview</p>
+  <ol start="3"><li>Overview</li><li>Action Center</li></ol>
+  <p class="g">Work</p>
+  <ol start="5"><li>Projects</li><li>The project workspace</li><li>Reviews &amp; Approvals</li><li>Site Updates</li></ol>
+  <p class="g">Finance</p>
+  <ol start="9"><li>Finance overview</li><li>Inflows</li><li>Disbursements</li><li>Budgets &amp; fees</li></ol>
+  <p class="g">People</p>
+  <ol start="13"><li>Clients</li><li>Contractors</li><li>Verifiers</li><li>Users</li></ol>
+  <p class="g">Communication, acquisition, support</p>
+  <ol start="17"><li>Inbox</li><li>Contractor Applications</li><li>Support</li></ol>
+  <p class="g">System</p>
+  <ol start="20"><li>Audit log</li><li>Pages not built yet</li></ol>
+  <p class="g">Before you report a bug</p>
+  <ol start="22"><li>What admin deliberately cannot do</li><li>Empty, zero and unavailable</li></ol>
+</div>
+
+<div class="note col">
+  <span class="t">The screenshots use sample data</span>
+  <p>Every screen in this guide is the real interface, captured from the running application — but the projects,
+  people and figures in them are a worked example (a G+1 in Bonapriso, four stages done, $96,400). No client's
+  information appears anywhere. <strong>Your admin will show whatever is really in the system</strong>, which on a
+  quiet day may be a lot emptier than these pictures.</p>
+</div>
+
+<!-- ══════════════ START HERE ══════════════ -->
+<section class="part">
+<p class="eyebrow">Start here</p>
+<h2>Getting in, and reading the furniture</h2>
+<p class="lede">Two things to know before the tour: the admin has its own door, and its own permanent frame.</p>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">01</span><h3>Signing in</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/login</div>
+  <div class="col">
+  <p>This is a <strong>separate door</strong> from the one clients use. There is no “sign up” and no Google button,
+  deliberately: a staff account is only ever created by another member of staff. The page says
+  <em>“This area is restricted to Groundwork staff.”</em></p>
+  <p>If you land on the ordinary client login instead, check the address — it must end in
+  <span class="mono">/admin/login</span>. Signing in at <span class="mono">/auth/login</span> with a staff account
+  works too and will route you to the admin, but the restricted door is the one to bookmark.</p>
+  <p>If two-factor authentication is on for your account you will be asked for a code before you get in.</p>
+  </div>
+  <figure class="narrow"><img src="{{00-login}}" alt="The admin sign-in page: email and password under the heading Admin sign in.">
+  <figcaption>The staff door. “Forgot password?” works here and sends a real reset link.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">02</span><h3>The shell: sidebar, sections, top bar</h3></div>
+  <div class="col">
+  <p>Every admin page sits in the same frame, so once you can read it you can read all of them.</p>
+  <p><strong>The left sidebar</strong> is grouped into eight labelled sections — Overview, Work, Finance, People,
+  Communication, Acquisition, Support, Analytics and System. The grouping is the mental model: you are never hunting
+  alphabetically, you are asking “is this about money, or about people?”</p>
+  <p><strong>The top bar</strong> carries the page title, a search box covering projects and people, a language
+  toggle (EN/FR — the whole admin is translated), a dark-mode toggle, a WhatsApp shortcut, a <strong>+ New</strong>
+  button and the notification bell. At the bottom of the sidebar: your name, language, dark mode and log out.</p>
+  <p>Dark mode is remembered against your account, not the browser, so it follows you between devices.</p>
+  </div>
+  <div class="note col"><span class="t">Four menu items are not built yet</span>
+  <p>Inspections, Tasks, Site Managers and Agents are in the menu but open an honest “not built yet” page rather
+  than a fake one. Section 21 covers this. Everything else in the menu is real.</p></div>
+</div>
+</section>
+
+<!-- ══════════════ OVERVIEW ══════════════ -->
+<section class="part">
+<p class="eyebrow">Overview</p>
+<h2>Where you land, and what is waiting</h2>
+<p class="lede">These two pages answer “how is the business doing?” and “what needs me today?” — in that order.</p>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">03</span><h3>Overview</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin</div>
+  <div class="col">
+  <p>The landing page. It greets you by name and dates itself, then shows <strong>eight live counts</strong>:</p>
+  </div>
+  <table>
+    <thead><tr><th>Card</th><th>What it counts</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Total projects</strong></td><td>Everything not archived</td></tr>
+      <tr><td><strong>Pending reviews</strong></td><td>Stages awaiting your approval</td></tr>
+      <tr><td><strong>Total users</strong></td><td>Every account on Groundwork</td></tr>
+      <tr><td><strong>Contractor applications</strong></td><td>Awaiting a decision</td></tr>
+      <tr><td><strong>Quote requests</strong></td><td>Introductions still to make</td></tr>
+      <tr><td><strong>Needs reply</strong></td><td>Clients waiting on us to answer</td></tr>
+      <tr><td><strong>Projects at risk</strong></td><td>Derived from live state — <em>not</em> a flag anyone sets</td></tr>
+      <tr><td><strong>Pending budgets</strong></td><td>Management builds awaiting a budget</td></tr>
+    </tbody>
+  </table>
+  <div class="col">
+  <p>Every card is a <strong>filtered dataset, not a decoration</strong> — clicking one takes you to the list it counted.
+  Below the cards: a map shaded by real project counts per country (no invented pins), contractors by trade,
+  the applications funnel by real status, recent activity from the audit log, open support tickets and the
+  GoHighLevel integration state.</p>
+  </div>
+  <figure><img src="{{01-overview}}" alt="Admin overview with eight KPI cards, a map of Cameroon, applications funnel, recent activity and support tickets.">
+  <figcaption>Lists show a five-row preview with a real “View all”. Nothing here is a sample row.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">04</span><h3>Action Center</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/action-center</div>
+  <div class="col">
+  <p>The single queue of everything waiting on the desk, ranked <strong>Critical / High / Medium / Low</strong>.
+  Typical items: a project with no verifier assigned, an application to decide, a stage awaiting funding,
+  an open quote request, a client waiting on a reply.</p>
+  <p>The important property, stated on the page itself: it is <em>“computed from live state on each load — nothing is
+  stored and nothing can be dismissed.”</em> There is no “mark as done”. An item leaves the list when the underlying
+  fact changes — you assign the verifier, you decide the application. That is deliberate: a dismissable queue drifts
+  away from reality within a week.</p>
+  <p>Each row shows who and which project it concerns, and how long it has been waiting.</p>
+  </div>
+  <figure><img src="{{02-action-center}}" alt="Action Center listing items by severity with age in days.">
+  <figcaption>Age in days is the pressure signal. “24d” on a High item is the thing to look at.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ WORK ══════════════ -->
+<section class="part">
+<p class="eyebrow">Work</p>
+<h2>The builds themselves</h2>
+<p class="lede">Projects, the workspace where one is run, the approval queue, and what site has reported.</p>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">05</span><h3>Projects</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/projects</div>
+  <div class="col">
+  <p>Every project on Groundwork, whoever owns it: project name, owner, tier (Self Verify / Jalla Verify /
+  Jalla Management), status, stage as <span class="mono">5 / 10</span>, and created date.</p>
+  <p><strong>Create for a client</strong>, top right, runs the full eleven-step build questionnaire on a client's
+  behalf and produces a Jalla Management project owned by them. Row actions let you open the workspace, assign a
+  contractor, or delete.</p>
+  </div>
+  <figure><img src="{{03-projects}}" alt="All Projects table with owner, tier, status, stage and created columns."><figcaption>Stage “5 / 10” is the real position in the ten-stage model, not a percentage guess.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">06</span><h3>The project workspace</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/projects/&lt;project id&gt;</div>
+  <div class="col">
+  <p>Where a single build is actually run. A header strip carries the client, plan, stage position, tracking state
+  and last activity, plus the actions: <strong>Assign verifier</strong>, <strong>Jalla message</strong>,
+  <strong>WhatsApp</strong>, and <strong>Open client view</strong> (see it as the client sees it).</p>
+  <p>Seven tabs: <strong>Overview · Stages · Financials · Site updates · Documents · Conversations · Activity</strong>.
+  Stages is where you approve or request changes; Financials is this project's slice of the ledger; Activity is the
+  audit trail for this project alone.</p>
+  </div>
+  <figure><img src="{{04-project-workspace}}" alt="Project workspace header with client, plan, stage and seven tabs."><figcaption>This is a <em>management</em> view. It does not become the contractor's or verifier's own screen.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">07</span><h3>Reviews &amp; Approvals</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/reviews</div>
+  <div class="col">
+  <p>The approval queue: Jalla Verify stages submitted and waiting on you. Each card expands to the stage's
+  substages with the evidence attached to each — <em>“Evidence 1, Evidence 2”</em> open the real files through
+  signed links, and substages with nothing yet say <strong>“No evidence uploaded”</strong> rather than looking done.</p>
+  <p>Below that, any <strong>site updates</strong> filed against the stage, and an <strong>Independent verification</strong>
+  panel. When no verifier is assigned it says so plainly and tells you where to fix it.</p>
+  <p>Two actions: <strong>Request changes</strong> and <strong>Approve stage</strong>. Approving is what unlocks the
+  next stage and its milestone.</p>
+  </div>
+  <div class="note col"><span class="t">This is where the verification boundary shows</span>
+  <p>A verifier records an independent finding; <strong>only an admin approves the stage.</strong> If a verifier is
+  assigned, their finding appears here as evidence for your decision — it does not make the decision.</p></div>
+  <figure><img src="{{05-reviews}}" alt="Stage Reviews showing a stage in review, substages with evidence links, site updates and approve or request-changes actions."><figcaption>An empty queue says “All caught up”, which means submitted-and-waiting is zero — not that nothing is happening.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">08</span><h3>Site Updates</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/site-updates</div>
+  <div class="col">
+  <p>What has been reported from site, across every project, newest first — who filed it, when, how many files, and
+  the note they wrote. Filter by project and by person.</p>
+  <p>This is the raw feed from contractors on the ground. The same updates appear inside each project's workspace;
+  this page is for scanning everything at once.</p>
+  </div>
+  <figure><img src="{{06-site-updates}}" alt="Site updates feed filtered by project and person."><figcaption>Files open through signed links, not public URLs.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ FINANCE ══════════════ -->
+<section class="part">
+<p class="eyebrow">Finance</p>
+<h2>Money: the plan, and what happened</h2>
+<p class="lede">Budgets and fees are the plan. The ledger is what actually moved. Groundwork records and governs it;
+a licensed payment provider holds and moves the funds.</p>
+
+<div class="note stop col">
+  <span class="t">Read this before judging the money screens</span>
+  <p><strong>Groundwork does not hold client money.</strong> It records what has been funded, authorises each
+  milestone release, and tracks what the provider did. You will not find the words escrow or wallet anywhere, and
+  that is deliberate rather than an oversight.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">09</span><h3>Finance overview</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/finance</div>
+  <div class="col">
+  <p>Four figures across the top — <strong>Confirmed inflows</strong>, <strong>Approved for release</strong>,
+  <strong>Disbursed</strong>, and <strong>Available project funding</strong> (what is left after approved releases).
+  Then <em>Recent money movement</em>: every inflow and disbursement with project, stage, amount, state and date.</p>
+  <p>Money in and money out read differently on purpose. Inflows are <em>Funding confirmed</em>; outflows move through
+  <em>Release approved</em> → <em>Processing</em> → <em>Paid</em>.</p>
+  </div>
+  <figure><img src="{{07-finance}}" alt="Finance overview: confirmed inflows, approved for release, disbursed, available funding, and a list of recent movements."><figcaption>The subtitle states the split: “Budgets and fees are the plan; this is the ledger.”</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">10</span><h3>Inflows</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/finance/inflows</div>
+  <div class="col">
+  <p>Money arriving from clients, against the stage it funds. Totals for <strong>Confirmed received</strong> and
+  <strong>Expected funding</strong>, a movement count, and tabs for <strong>Received</strong> and
+  <strong>Expected</strong>. Each row names the client, the project and stage, the amount, and the confirmation date.</p>
+  </div>
+  <figure><img src="{{08-inflows}}" alt="Inflows page with confirmed received and expected totals and a list of client payments by stage."><figcaption>“Expected” is a tranche the model anticipates; “Received” is money confirmed in.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">11</span><h3>Disbursements</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/finance/disbursements</div>
+  <div class="col">
+  <p>Money leaving to contractors, against the work it pays for. Four states across the top —
+  <strong>Release approved</strong>, <strong>Processing</strong>, <strong>Paid</strong>, and
+  <strong>Payment issue</strong> — then the rows, each naming the contractor, project, stage and amount.</p>
+  <p>“Payment issue” is a real failure state reported back by the provider, not a warning badge.</p>
+  </div>
+  <figure><img src="{{09-disbursements}}" alt="Disbursements page with release approved, processing, paid and payment issue totals."><figcaption>A release is authorised here; the provider executes it. The two are tracked separately.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">12</span><h3>Budgets &amp; fees</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/budgets</div>
+  <div class="col">
+  <p>Two jobs on one page. At the top, <strong>Budget Confirmations</strong> — Jalla Management projects awaiting a
+  confirmed budget before tracking can begin, each with the estimate and a <strong>Set budget</strong> action. Until
+  a budget is set, the build cannot start its stages.</p>
+  <p>Below, <strong>Financial operations</strong>: where the money of each build stands, with
+  <em>“what needs a person comes first”</em>. Totals for Funded, Expected, Release authorised, In transit and
+  Disbursed, then a per-project breakdown. Projects with nothing recorded say <strong>“nothing recorded yet”</strong>
+  rather than showing zeroes.</p>
+  </div>
+  <figure><img src="{{10-budgets}}" alt="Budget confirmations awaiting a set budget, and financial operations totals per project."><figcaption>This is the plan side. The ledger side is Finance.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ PEOPLE ══════════════ -->
+<section class="part">
+<p class="eyebrow">People</p>
+<h2>Everyone Groundwork works with</h2>
+<p class="lede">Four lists over the same records: clients, contractors, verifiers, and every account.</p>
+
+<div class="note col"><span class="t">Admin manages the actor; admin does not become the actor</span>
+  <p>These pages are <strong>management and oversight</strong> — identity, status, assignments, projects, activity,
+  and the actions staff may take. They are not the screens those people use to do their jobs. A contractor works at
+  <span class="mono">/work</span> and a verifier at <span class="mono">/verifiers</span>; you never need to sign in
+  there to manage them.</p></div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">13</span><h3>Clients</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/clients</div>
+  <div class="col">
+  <p>The people Groundwork builds for, and how their builds are going. Each card: name, email, when they joined,
+  when they were last seen, and counts for <strong>Projects</strong>, <strong>Conversations</strong> and
+  <strong>Open tickets</strong> — then their projects listed with stage, tier, status and location.</p>
+  <p>Two honest states worth recognising: <em>“never signed in”</em> against someone provisioned but not yet active,
+  and <em>“No project yet — this account has signed up but not started a build.”</em></p>
+  </div>
+  <figure><img src="{{11-clients}}" alt="Clients page with per-client cards showing projects, conversations, open tickets and build status."><figcaption>A “Building now” count at the top separates active clients from registered ones.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">14</span><h3>Contractors</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/contractors</div>
+  <div class="col">
+  <p>The <strong>published directory clients browse</strong> — not everyone who applied. Entries appear here when an
+  application is accepted, which is the single route in. Tabs for All and Hidden; hiding an entry keeps its history
+  and is reversible, deleting is not.</p>
+  <p>An empty directory says <em>“No contractors published yet. Accept an application to add one.”</em> — which tells
+  you the fix rather than just the fact.</p>
+  </div>
+  <figure><img src="{{12-contractors}}" alt="Contractor Directory with All and Hidden tabs and an empty state explaining how entries get added."><figcaption>Applications live under Acquisition; this page is the published result.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">15</span><h3>Verifiers</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/verifiers</div>
+  <div class="col">
+  <p>Who can verify, in what discipline, and what they are carrying now. Each person shows their profile —
+  disciplines, registration body and number where recorded — plus <strong>Projects</strong>,
+  <strong>Pending</strong> and <strong>Decided</strong> counts and when they last decided something.</p>
+  <p>Someone holding the role without a profile is shown as
+  <em>“No verifier profile yet — they hold the role but have recorded no disciplines.”</em> Assignment happens
+  from a project workspace, and the page says so.</p>
+  </div>
+  <figure><img src="{{13-verifiers}}" alt="Verifiers page listing each verifier with disciplines, project count and pending and decided verifications."><figcaption>Verifier profiles are admin-controlled; there is no self-service onboarding yet.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">16</span><h3>Users</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/users</div>
+  <div class="col">
+  <p>Every account on Groundwork in one table — name, email, role (Client / Contractor / Verifier / Admin), plan,
+  project count, joined date. Search by name, email or role.</p>
+  <p><strong>Create a client account</strong> provisions a Jalla Management client and shows you a temporary
+  password <em>once</em> to hand over. An account created that way and not yet used is marked
+  <strong>“Awaiting first sign-in”</strong>, which clears itself when they choose their own password.</p>
+  <p><strong>Send everyone to the CRM</strong> pushes contacts to GoHighLevel. It is safe to re-run — anyone already
+  contacted has their thread backfilled and is never emailed again — and <strong>Preview</strong> shows you what it
+  would do first.</p>
+  </div>
+  <figure><img src="{{14-users}}" alt="All Users table with role and plan columns, a create-client-account button and the CRM backfill panel."><figcaption>“Plan” is the tier of their most recent project, so it is blank for someone with none.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ COMMS / ACQUISITION / SUPPORT ══════════════ -->
+<section class="part">
+<p class="eyebrow">Communication, acquisition and support</p>
+<h2>Talking to people, and who is asking</h2>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">17</span><h3>Inbox</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/inbox</div>
+  <div class="col">
+  <p>Every conversation — <strong>WhatsApp, email and platform messages</strong> — in one place, with a
+  <strong>Needs reply</strong> count that is the same number the Overview shows. The sidebar's WhatsApp, Jalla
+  Messages, Email and Calls entries are all filtered views of this one page, not separate inboxes.</p>
+  <p>WhatsApp is live in production and round-trips: a client's message arrives here, and your reply reaches their
+  phone. A thread can be linked to a project so the conversation sits with the build it concerns.</p>
+  <p>With nothing yet it says <em>“A thread appears here the moment a client writes to Groundwork. Nothing is shown
+  until then.”</em></p>
+  </div>
+  <figure><img src="{{15-inbox}}" alt="Inbox with a Needs reply counter and an empty state explaining when threads appear."><figcaption>One inbox, filtered by channel — not four separate ones.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">18</span><h3>Contractor Applications</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/applications</div>
+  <div class="col">
+  <p>Founding-network applications, filtered by status — All, Pending, Reviewing, Accepted, Rejected, Disqualified.
+  A banner flags anyone who was never told their application arrived, so the backlog is visible rather than
+  remembered.</p>
+  <p>Open one to see the full submission: contact details, trade, experience, credentials and uploaded documents
+  (through signed links), project history with client references, and the standards they accepted. From there you
+  can set status, send the decision email, re-send the acknowledgement, push to the CRM, and <strong>edit</strong>
+  the application — corrections are stamped with who made them and when.</p>
+  <p><strong>Accepting publishes them to the public contractor directory.</strong> That is the only route in.</p>
+  </div>
+  <figure><img src="{{16-applications}}" alt="Contractor Applications with status filters, a CRM panel and a banner about unacknowledged applicants."><figcaption>Drafts, Waitlist and Quote requests sit alongside this under Acquisition.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">19</span><h3>Support</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/support</div>
+  <div class="col">
+  <p>Messages from the help form and account-deletion requests. Every ticket also emails the team inbox when it
+  arrives, so this page is the record rather than the only alert.</p>
+  <p>Each ticket carries the sender, their email, the date, the message, and a status you can move through
+  <strong>Open → In progress → Resolved → Closed</strong>. “Open” in the counts means open <em>and</em> in progress —
+  everything still owed to someone.</p>
+  <p>Deletion requests are flagged separately with a 48-hour promise made to the sender.</p>
+  </div>
+  <figure><img src="{{17-support}}" alt="Support queue with an open ticket, its message and status controls."><figcaption>A ticket outlives the account that filed it, on purpose: deleting the user must not delete the evidence.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ SYSTEM ══════════════ -->
+<section class="part">
+<p class="eyebrow">System</p>
+<h2>The record, and the gaps</h2>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">20</span><h3>Audit log</h3></div>
+  <div class="url"><span class="label">Go to</span> www.tryjalla.com/admin/audit-log</div>
+  <div class="col">
+  <p>Everything Groundwork recorded, newest first: who did what, on which project, and when. Stage approvals,
+  evidence uploads, assignments, budget changes.</p>
+  <p>The line that matters is on the page: <em>“Written by the database itself — nothing here can be edited from a
+  browser.”</em> Staff cannot alter it, which is what makes it worth anything in a dispute.</p>
+  </div>
+  <figure><img src="{{18-audit-log}}" alt="Audit log listing recorded actions with actor, project and time."><figcaption>Each project's own slice of this is the Activity tab in its workspace.</figcaption></figure>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">21</span><h3>Pages not built yet</h3></div>
+  <div class="col">
+  <p>Four menu items open an honest placeholder: <strong>Inspections</strong>, <strong>Tasks</strong>,
+  <strong>Site Managers</strong> and <strong>Agents</strong>. The page says the section is part of the admin but
+  its page is not built, and promises that when it ships everything on it will come from real data.</p>
+  <p>These are not bugs. They are in the menu because the information architecture is settled even though the pages
+  are not, and a dead link would be worse than an honest one.</p>
+  <p>Also present and real, but not given their own entry in this guide:
+  <strong>Started applications</strong> (abandoned drafts), <strong>Waitlist</strong>,
+  <strong>Quote requests</strong>, <strong>CRM</strong> (GoHighLevel sync state and backlog),
+  <strong>Notifications</strong>, <strong>Analytics</strong>, <strong>Integrations</strong>,
+  <strong>Automation requests</strong>, <strong>Team &amp; permissions</strong> and <strong>Settings</strong>.</p>
+  </div>
+  <figure class="narrow"><img src="{{19-placeholder}}" alt="A placeholder page explaining the section is not built yet and nothing is invented."><figcaption>What an unbuilt section looks like. If you see invented rows anywhere, that is a bug worth reporting.</figcaption></figure>
+</div>
+</section>
+
+<!-- ══════════════ BEFORE YOU REPORT A BUG ══════════════ -->
+<section class="part">
+<p class="eyebrow">Before you report a bug</p>
+<h2>Two things that look like faults and are not</h2>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">22</span><h3>What admin deliberately cannot do</h3></div>
+  <div class="col">
+  <p>Some absences are designed. Groundwork's value is that the record is trustworthy, and that requires staff to be
+  limited in specific ways:</p>
+  </div>
+  <table>
+    <thead><tr><th>You cannot</th><th>Because</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Record a verification</strong></td><td>Only the assigned verifier does that. You approve the stage afterwards; the finding is theirs.</td></tr>
+      <tr><td><strong>Edit the audit log</strong></td><td>The database writes it. A record staff can edit proves nothing.</td></tr>
+      <tr><td><strong>Hold or move client money</strong></td><td>Groundwork records and authorises; a licensed provider holds and moves it.</td></tr>
+      <tr><td><strong>Submit site evidence as a contractor</strong></td><td>Evidence is filed by the person who did the work; a verifier is explicitly refused too.</td></tr>
+      <tr><td><strong>Enter <span class="mono">/work</span> or <span class="mono">/verifiers</span></strong></td><td>Being an admin is not being a contractor or verifier. Manage them from the People pages instead.</td></tr>
+      <tr><td><strong>Issue a certificate on Self Verify</strong></td><td>Certificates require independent verification. Self Verify has none by definition.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">23</span><h3>Empty, zero and unavailable are three different things</h3></div>
+  <div class="col">
+  <p>The admin is careful to distinguish them, and the difference is usually the answer to “is this broken?”</p>
+  </div>
+  <table>
+    <thead><tr><th>You see</th><th>It means</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0</strong></td><td>A real count that is genuinely zero. Nothing is wrong.</td></tr>
+      <tr><td><strong>An empty state with a sentence</strong></td><td>Read fine, there is nothing there — usually with the reason, e.g. “Accept an application to add one.”</td></tr>
+      <tr><td><strong>“Not available”</strong> or a dash</td><td>The source could not be read. This one <em>is</em> worth reporting.</td></tr>
+      <tr><td><strong>“Nothing recorded yet”</strong></td><td>The project exists but has no entries of this kind — different from a zero balance.</td></tr>
+    </tbody>
+  </table>
+  <div class="note ok col"><span class="t">If you see a row you cannot explain, that is the bug</span>
+  <p>The admin shows only real Supabase and GoHighLevel data. There are no sample projects, placeholder figures or
+  demo threads anywhere in it. So a project you do not recognise, a number that cannot be sourced, or a person who
+  does not exist is worth reporting immediately — the rule is that it should be impossible.</p></div>
+</div>
+
+<div class="screen">
+  <div class="screen-head"><span class="num">—</span><h3>Every address in this guide</h3></div>
+  <table>
+    <thead><tr><th>Address</th><th>Page</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">/admin/login</td><td>Staff sign-in</td></tr>
+      <tr><td class="mono">/admin</td><td>Overview</td></tr>
+      <tr><td class="mono">/admin/action-center</td><td>Everything waiting on the desk</td></tr>
+      <tr><td class="mono">/admin/projects</td><td>Every project</td></tr>
+      <tr><td class="mono">/admin/projects/&lt;id&gt;</td><td>One project's workspace</td></tr>
+      <tr><td class="mono">/admin/reviews</td><td>Stages awaiting approval</td></tr>
+      <tr><td class="mono">/admin/site-updates</td><td>What site has reported</td></tr>
+      <tr><td class="mono">/admin/finance</td><td>The ledger</td></tr>
+      <tr><td class="mono">/admin/finance/inflows</td><td>Money in, by stage</td></tr>
+      <tr><td class="mono">/admin/finance/disbursements</td><td>Money out, by work</td></tr>
+      <tr><td class="mono">/admin/budgets</td><td>Budgets and financial operations</td></tr>
+      <tr><td class="mono">/admin/clients</td><td>Who we build for</td></tr>
+      <tr><td class="mono">/admin/contractors</td><td>Published directory</td></tr>
+      <tr><td class="mono">/admin/verifiers</td><td>Who can verify</td></tr>
+      <tr><td class="mono">/admin/users</td><td>Every account</td></tr>
+      <tr><td class="mono">/admin/inbox</td><td>All conversations</td></tr>
+      <tr><td class="mono">/admin/applications</td><td>Contractor applications</td></tr>
+      <tr><td class="mono">/admin/support</td><td>Support tickets</td></tr>
+      <tr><td class="mono">/admin/audit-log</td><td>The permanent record</td></tr>
+    </tbody>
+  </table>
+  <div class="col"><p style="color:var(--ink-faint);font-size:12.5px">All addresses are relative to
+  <span class="mono">www.tryjalla.com</span>.</p></div>
+</div>
+</section>
+
+</div>

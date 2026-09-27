@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, Search, AlertTriangle, ArrowDownLeft, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { loadFinanceLedger, type LedgerData } from '@/lib/supabase/finance-ledger';
+import { attachPayoutReference } from '@/lib/supabase/payout-attach';
+import { attachRefusal } from '@/lib/payments/payout-reference';
 import { matchesLine, totalsFor, purposeOf, type LedgerLine } from '@/lib/admin/finance-ledger';
 import { workspaceHref } from '@/lib/admin/workspace-params';
 import { formatUSDFull } from '@/lib/budget';
@@ -37,6 +39,76 @@ const TONE: Record<string, string> = {
   initiated: 'text-state-held', reconciling: 'text-state-alert',
   failed: 'text-state-alert',
 };
+
+// ── Filing the transaction that paid a release ────────────
+//
+// Groundwork does not move this money — SwyChr does, and their payout API publishes no
+// webhook and cannot be asked which transactions exist. So the link between an
+// authorised release and the transfer that settled it is a fact only a person holds.
+//
+// Once it is filed the row reaches `initiated` and the five-minute poll takes over,
+// driving it to disbursed or failed on SwyChr's word. Nothing here decides an amount.
+function AttachReference({ line, onFiled }: { line: LedgerLine; onFiled: () => void }) {
+  const t = useT();
+  const [reference, setReference] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // The same rule the server enforces, so the field is absent rather than rejected.
+  if (attachRefusal({ direction: line.direction, state: line.state, providerRef: line.providerRef }, 'x') !== null) {
+    return null;
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    try {
+      await attachPayoutReference(line.id, reference);
+      setReference('');
+      onFiled();
+    } catch (err) {
+      // The server's reason code, translated. An unknown one is shown as itself rather
+      // than as a friendly sentence that might describe a different failure.
+      const code = err instanceof Error ? err.message : 'unknown';
+      setError(code);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-2 border-t border-brand-border-grey/60 pt-2.5 dark:border-[#2c2c2c]">
+      <label htmlFor={`ref-${line.id}`} className="block text-[11px] font-semibold text-brand-near-black dark:text-white">
+        {t('admin.finance.attach.label')}
+      </label>
+      <p className="mt-0.5 text-[11px] text-brand-mid-grey">{t('admin.finance.attach.hint')}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        <input
+          id={`ref-${line.id}`}
+          value={reference}
+          onChange={e => setReference(e.target.value)}
+          placeholder={t('admin.finance.attach.placeholder')}
+          className="min-w-0 flex-1 rounded-lg border border-brand-border-grey bg-white px-2.5 py-1.5 text-xs text-brand-near-black dark:border-[#3d3d3d] dark:bg-[#1e1e1e] dark:text-white"
+        />
+        <button
+          type="submit"
+          disabled={busy || reference.trim().length < 4}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black"
+        >
+          {busy && <Loader2 className="size-3 animate-spin" aria-hidden />}
+          {t('admin.finance.attach.cta')}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="mt-1.5 text-[11px] text-state-alert">
+          {t(`admin.finance.attach.err.${error}` as TKey) === `admin.finance.attach.err.${error}`
+            ? error
+            : t(`admin.finance.attach.err.${error}` as TKey)}
+        </p>
+      )}
+    </form>
+  );
+}
 
 export function FinanceLedger({ direction }: { direction: 'in' | 'out' }) {
   const t = useT();
@@ -200,6 +272,7 @@ export function FinanceLedger({ direction }: { direction: 'in' | 'out' }) {
                   {l.providerRef && <Row label={t('admin.finance.providerRef')} value={l.providerRef} />}
                   {l.failureReason && <Row label={t('admin.finance.whyFailed')} value={l.failureReason} tone="text-state-alert" />}
                   {l.note && <Row label={t('admin.finance.note')} value={l.note} />}
+                  {direction === 'out' && <AttachReference line={l} onFiled={load} />}
                   <div className="pt-1.5">
                     <Link
                       to={workspaceHref(l.projectId, { tab: 'financials' })}

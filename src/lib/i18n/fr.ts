@@ -866,6 +866,21 @@ export const fr: Mirror<EnDict> = {
       authorisedBy:       'Autoris\u00e9 par',
       via:                'R\u00e9ception \u00e9tablie',
       providerRef:        'R\u00e9f\u00e9rence prestataire',
+      // Enregistrement de la transaction SwyChr qui a r\u00e9gl\u00e9 un d\u00e9caissement autoris\u00e9.
+      attach: {
+        label:       'Enregistrer la transaction SwyChr',
+        hint:        'C\u2019est SwyChr qui a d\u00e9plac\u00e9 cet argent : Groundwork a besoin de l\u2019identifiant de transaction pour en suivre l\u2019issue. Une fois enregistr\u00e9, son statut est v\u00e9rifi\u00e9 toutes les cinq minutes.',
+        placeholder: 'Identifiant de transaction SwyChr',
+        cta:         'Enregistrer',
+        err: {
+          not_outgoing:     'Il s\u2019agit d\u2019une entr\u00e9e d\u2019argent, pas d\u2019un versement.',
+          not_authorised:   'Seul un d\u00e9caissement autoris\u00e9 peut recevoir un identifiant de transaction.',
+          already_attached: 'Une transaction est d\u00e9j\u00e0 enregistr\u00e9e ici. Ouvrez un rapprochement pour la corriger.',
+          bad_reference:    'Cela ne ressemble pas \u00e0 un identifiant de transaction.',
+          not_found:        'Ce paiement n\u2019existe plus.',
+          missing_payment:  'Aucun paiement n\u2019a \u00e9t\u00e9 indiqu\u00e9.',
+        },
+      },
       whyFailed:          'Motif de l\u2019\u00e9chec',
       note:               'Note',
       openProject:        'Ouvrir les finances du projet',
