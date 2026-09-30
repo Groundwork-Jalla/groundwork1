@@ -63,11 +63,11 @@ describe('the door', () => {
     expect(l).not.toMatch(/navigate\('\/login'/);
   });
 
-  it('asks the same question the database asks', () => {
-    // is_contractor_on() checks accepted contractor_invites; the gate must agree, or the
-    // door opens onto reads that then refuse.
+  it('uses canonical roles and retains assignment-based access', () => {
     const roles = code('src/lib/auth/roles.ts');
-    expect(roles).toMatch(/holdsContractorAssignment/);
+    expect(roles).toMatch(/holdsContractorAccess/);
+    expect(roles).toMatch(/from\('user_roles'\)/);
+    expect(roles).toMatch(/\.eq\('role', 'contractor'\)/);
     expect(roles).toMatch(/from\('contractor_invites'\)/);
     expect(roles).toMatch(/\.eq\('status', 'accepted'\)/);
     // NOT user_metadata, which the client can write.
@@ -240,7 +240,7 @@ describe('post-auth routing', () => {
     // A `?as=contractor` intent may say which surface someone WANTS; it must never be
     // what decides where they land.
     for (const f of ['src/app/routes/auth/login.tsx', 'src/app/routes/auth/callback.tsx']) {
-      expect(code(f), f).toMatch(/holdsContractorAssignment/);
+      expect(code(f), f).toMatch(/holdsContractorAccess/);
     }
   });
 });

@@ -47,6 +47,8 @@ export function entityTab(entityType: string | null | undefined):
     case 'project_verifier':  return 'team';
     // Two entity types deliberately have no workspace tab:
     //   `support_ticket` (091)     — a ticket is Support's, not a project's.
+    //   `contractor_application` (100) — about joining Groundwork, not about a project;
+    //                                it predates the applicant even having an account.
     //   `payout_destination` (099) — a destination belongs to a PERSON and is reused
     //                                across projects, so no single project owns it. Its
     //                                audit rows carry a null project for the same reason.

@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
-import { holdsVerifierRole, holdsContractorAssignment } from '@/lib/auth/roles';
+import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +72,7 @@ export default function Login() {
     // Resolved together: two independent awaits would serialise the sign-in for no reason.
     const [isVerifier, isContractor] = await Promise.all([
       holdsVerifierRole(session?.user?.id),
-      holdsContractorAssignment(session?.user?.id),
+      holdsContractorAccess(session?.user?.id),
     ]);
     navigate(postAuthPath({
       isAdmin: isAdmin === true,

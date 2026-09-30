@@ -5,9 +5,8 @@
 //
 // Admin status is resolved by the caller via the is_admin() RPC (user_roles), and the
 // verifier role by reading user_roles directly (a user may read their own rows, 001) —
-// not JWT metadata. Contractor standing is an accepted `contractor_invites` row, which is
-// the same question `is_contractor_on()` asks inside every RLS policy. Keep this and
-// AuthContext on those canonical sources.
+// not JWT metadata. Contractor standing is a canonical contractor role or an accepted
+// assignment. Project access is still enforced separately by database policies.
 //
 // Precedence is deliberate, not incidental: admin → verifier → contractor → client. A
 // surface only wins when the one above it cannot do its job — /admin can reach everything
@@ -22,7 +21,7 @@ export function postAuthPath(opts: {
   isAdmin?: boolean;
   /** Holds the `verifier` role (user_roles). Their surface is /verifiers, not /dashboard. */
   isVerifier?: boolean;
-  /** Has an accepted contractor assignment. Their surface is /work. */
+  /** Has the contractor role or an accepted assignment. Their surface is /work. */
   isContractor?: boolean;
   onboardingComplete?: boolean;
   redirect?: string | null;

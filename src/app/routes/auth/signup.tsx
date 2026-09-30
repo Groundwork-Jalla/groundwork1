@@ -10,12 +10,17 @@ import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
+import { signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH } from "@/lib/auth/signup-account";
 
 export default function Signup() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const inviteToken    = searchParams.get("invite") ?? "";
   const inviteEmail    = searchParams.get("email")  ?? "";
   const isInviteFlow   = !!inviteToken;
+  const accountType = signupAccountType(searchParams);
+  const isContractorSignup = accountType === 'contractor';
+  // The radio does not make an account: contractors are reviewed first (100).
+  const sendToApplication  = signupGoesToApplication(searchParams);
   const t              = useT();
 
   const [fullName,        setFullName]        = useState("");
@@ -90,7 +95,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: signupMetadata(fullName),
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -168,13 +173,48 @@ export default function Signup() {
   return (
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-        {isInviteFlow ? t('auth.signup.titleInvite') : t('auth.signup.title')}
+        {isInviteFlow ? t('auth.signup.titleInvite') : isContractorSignup ? t('auth.signup.titleContractor') : t('auth.signup.title')}
       </h1>
       <p className="text-sm text-brand-mid-grey mt-2">
-        {isInviteFlow ? t('auth.signup.subtitleInvite') : t('auth.signup.subtitle')}
+        {isInviteFlow ? t('auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
+        {!isInviteFlow && (
+          <fieldset disabled={submitting} className="space-y-2">
+            <legend className="text-sm font-medium">{t('auth.signup.accountType')}</legend>
+            <div className="flex flex-wrap gap-4">
+              {(['homeowner', 'contractor'] as const).map(type => (
+                <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="accountType" value={type} checked={accountType === type}
+                    onChange={() => {
+                      const next = new URLSearchParams(searchParams);
+                      next.set('role', type);
+                      setSearchParams(next, { replace: true });
+                      setError(null);
+                    }} />
+                  {t(type === 'contractor' ? 'auth.signup.contractor' : 'auth.signup.homeowner')}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        {sendToApplication ? (
+          /* Groundwork reviews contractors before they hold an account (100). Offering a
+             signup form here would hand them one with no standing — which looks like
+             success and is not. The application is the real next step. */
+          <div className="rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <p className="text-sm text-brand-near-black dark:text-white">{t('auth.signup.contractorReviewed')}</p>
+            <p className="mt-1.5 text-sm text-brand-mid-grey">{t('auth.signup.contractorReviewedBody')}</p>
+            <Link
+              to={CONTRACTOR_APPLY_PATH}
+              className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
+            >
+              {t('auth.signup.contractorApplyCta')}
+            </Link>
+          </div>
+        ) : (
+        <>
         <div className="space-y-1.5">
           <Label htmlFor="fullName">{t('auth.signup.fullName')}</Label>
           <Input
@@ -247,12 +287,16 @@ export default function Signup() {
           </motion.p>
         )}
 
+        </>
+        )}
+        {!sendToApplication && (
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? t('auth.signup.submitting') : t('auth.signup.submit')}
         </Button>
+        )}
       </form>
 
-      {!isInviteFlow && (
+      {!isContractorSignup && !sendToApplication && (
         <>
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-brand-border-grey" />

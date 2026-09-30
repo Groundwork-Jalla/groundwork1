@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { holdsContractorAssignment } from '@/lib/auth/roles';
+import { holdsContractorAccess } from '@/lib/auth/roles';
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
@@ -16,7 +16,7 @@ interface AuthContextValue {
   adminChecked: boolean;
   /** True when the signed-in user holds the `verifier` role (user_roles, RLS-trusted). */
   isVerifier: boolean;
-  /** Has at least one accepted contractor assignment. See holdsContractorAssignment. */
+  /** Has the contractor role or an accepted assignment. See holdsContractorAccess. */
   isContractor: boolean;
   /** False until the role check has resolved for the current session. */
   rolesChecked: boolean;
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [verifier, contractor] = await Promise.all([
         supabase.from('user_roles').select('role').eq('user_id', uid).eq('role', 'verifier').limit(1)
           .then(({ data, error }) => !error && (data?.length ?? 0) > 0),
-        holdsContractorAssignment(uid),
+        holdsContractorAccess(uid),
       ]);
       if (cancelled) return;
       setIsVerifier(verifier);

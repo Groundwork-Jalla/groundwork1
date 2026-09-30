@@ -96,9 +96,9 @@ describe('entityTab', () => {
       for (const m of sql.matchAll(/log_activity\(\s*(?:[^,()]|\([^)]*\))+,\s*(?:'[a-z_.]+'|CASE[\s\S]*?END),\s*'([a-z_]+)'/g)) written.add(m[1]);
     }
     expect([...written].sort()).toEqual([
-      'contractor_invite', 'conversation', 'decision', 'payment', 'payout_destination',
-      'project_stage', 'project_verifier', 'site_update', 'stage_verification',
-      'support_ticket',
+      'contractor_application', 'contractor_invite', 'conversation', 'decision',
+      'payment', 'payout_destination', 'project_stage', 'project_verifier',
+      'site_update', 'stage_verification', 'support_ticket',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
     expect(entityTab('stage_verification')).toBe('stages');
@@ -113,6 +113,10 @@ describe('entityTab', () => {
     // A payout destination belongs to a person and is reused across projects, so no
     // single project's workspace owns it — its audit rows carry a null project.
     expect(entityTab('payout_destination')).toBeNull();
+    // An application is about joining Groundwork, not about any one project — it exists
+    // before the applicant has an account, let alone a project. Its audit rows carry a
+    // null project for the same reason.
+    expect(entityTab('contractor_application')).toBeNull();
     expect(entityTab(null)).toBeNull();
   });
 });

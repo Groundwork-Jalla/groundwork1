@@ -7,19 +7,9 @@ import { WorkShell } from '@/components/shell/WorkShell';
 // =========================================================
 // /work — the contractor's execution surface.
 //
-// ── The door is the ASSIGNMENT, not a privilege ──────────────────────────────────────
-// A contractor is someone holding at least one accepted `contractor_invites` row. That is
-// exactly what `is_contractor_on()` checks inside every RLS policy behind this surface
-// (086), so the gate asks the same question the rooms do — a door opening onto reads that
-// then refuse would be worse than no door.
-//
-// An admin is NOT admitted for being an admin. /admin oversees, /work executes; an
-// operator with no site work here has nothing to do and is sent back. Someone who is both
-// an operator and a real contractor is admitted, because they hold the assignment.
-//
-// Nothing below queries every project and narrows it in the browser: RLS returns only the
-// contractor's projects, so a mistake here is an inconvenience, not a disclosure.
-// =========================================================
+// A contractor role or an accepted assignment opens this dashboard. New signups see
+// an empty workspace until assigned. Project, evidence and payment access stays
+// controlled by the existing database policies; a role alone grants no project access.
 
 export default function WorkLayout() {
   const { session, loading, isContractor, rolesChecked, user, signOut } = useAuth();

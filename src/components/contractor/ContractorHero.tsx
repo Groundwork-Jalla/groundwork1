@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, HardHat, Scale, Compass, Ruler, Zap, Wrench, CheckCircle2 } from "lucide-react";
 import { Reveal } from "@/components/landing/Reveal";
@@ -131,6 +132,15 @@ export default function ContractorHero() {
                 </a>
               </Button>
             </motion.div>
+            <p className="mt-5 text-sm text-white/80">
+              <Link to="/auth/signup?role=contractor" className="underline underline-offset-4 hover:text-white">
+                {t('auth.signup.contractorLink')}
+              </Link>
+              {' · '}
+              <Link to="/auth/login" className="underline underline-offset-4 hover:text-white">
+                {t('auth.signup.logIn')}
+              </Link>
+            </p>
           </Reveal>
         </div>
 

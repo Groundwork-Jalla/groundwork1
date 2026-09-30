@@ -19,21 +19,19 @@ export async function holdsVerifierRole(userId: string | null | undefined): Prom
 }
 
 /**
- * Does this account have contractor standing on Groundwork?
- *
- * Assignment, not a role grant. A contractor IS someone with at least one accepted
- * `contractor_invites` row — that is what `is_contractor_on()` checks inside every RLS
- * policy (086), so gating the surface on anything else would let someone through a door
- * that every read behind it then refuses. `user_roles.role = 'contractor'` exists as a
- * value (001) but is not what the data layer enforces, and a contractor who was never
- * granted it would be locked out of their own work.
- *
- * Deliberately NOT `user_metadata.role === 'contractor'`, which `dashboard.tsx` still
- * reads: user metadata is client-writable and is not an authorisation boundary.
- *
- * `contractors_read_own_invites` (20260714000000) scopes this read to the caller's own
- * rows, so it cannot enumerate anyone else's assignments.
+ * A contractor role opens /work before the first assignment. Existing contractors
+ * with accepted assignments retain access even without an explicit role grant.
+ * Project RLS continues to require membership; client metadata never grants access.
  */
+export async function holdsContractorAccess(userId: string | null | undefined): Promise<boolean> {
+  if (!userId) return false;
+  const [role, assignment] = await Promise.all([
+    supabase.from('user_roles').select('role').eq('user_id', userId).eq('role', 'contractor').limit(1),
+    holdsContractorAssignment(userId),
+  ]);
+  return (!role.error && (role.data?.length ?? 0) > 0) || assignment;
+}
+
 export async function holdsContractorAssignment(userId: string | null | undefined): Promise<boolean> {
   if (!userId) return false;
   const { data, error } = await supabase

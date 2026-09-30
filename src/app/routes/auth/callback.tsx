@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
-import { holdsVerifierRole, holdsContractorAssignment } from '@/lib/auth/roles';
+import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
@@ -261,7 +261,7 @@ export default function AuthCallback() {
     const { data: isAdmin } = await supabase.rpc('is_admin');
     const [isVerifier, isContractor] = await Promise.all([
       holdsVerifierRole(session?.user?.id),
-      holdsContractorAssignment(session?.user?.id),
+      holdsContractorAccess(session?.user?.id),
     ]);
     navigate(postAuthPath({ isAdmin: isAdmin === true, isVerifier, isContractor, onboardingComplete }), { replace: true });
   }

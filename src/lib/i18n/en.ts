@@ -1214,6 +1214,7 @@ export const en = {
         payout_destination_default_set: 'changed the default payout details',
         payout_destination_retired:     'retired payout details',
         payout_destination_verified:    'verified payout details',
+        contractor_account_claimed:     'claimed their contractor account',
         // 091 — conversations, decisions, support links.
         conversation_created:       'opened a conversation',
         conversation_assigned:      'assigned a conversation',
@@ -3764,6 +3765,17 @@ export const en = {
 
     signup: {
       title:          'Sign up',
+      titleContractor: 'Create your contractor account',
+      subtitleContractor: 'Sign up with email and password to manage your assigned work. No project is needed to get started.',
+      accountType: 'I am signing up as a',
+      homeowner: 'Client',
+      contractor: 'Contractor',
+      // Choosing "Contractor" does not open an account: Groundwork reviews contractors
+      // first, and the application is the honest next step (migration 100).
+      contractorReviewed:     'Contractors are reviewed before they get an account',
+      contractorReviewedBody: 'Tell us about your work and the trades you cover. Once Jalla approves your application we will email you a link to set up your account.',
+      contractorApplyCta:     'Apply to join Groundwork',
+      contractorLink: 'Create a contractor account',
       titleInvite:    'Create your account',
       subtitle:       'Join the diaspora builders who never lost track of their money.',
       subtitleInvite: 'Set a password to accept your project invite.',

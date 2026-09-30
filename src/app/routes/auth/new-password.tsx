@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { holdsVerifierRole, holdsContractorAssignment } from '@/lib/auth/roles';
+import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ export default function NewPassword() {
         if (!cancelled) setIsAdminUser(data === true);
         const [verifier, contractor] = await Promise.all([
           holdsVerifierRole(session?.user?.id),
-          holdsContractorAssignment(session?.user?.id),
+          holdsContractorAccess(session?.user?.id),
         ]);
         if (!cancelled) { setIsVerifierUser(verifier); setIsContractorUser(contractor); }
       }

@@ -1216,6 +1216,7 @@ export const fr: Mirror<EnDict> = {
         payout_destination_default_set: 'a chang\u00e9 les coordonn\u00e9es de paiement par d\u00e9faut',
         payout_destination_retired:     'a retir\u00e9 des coordonn\u00e9es de paiement',
         payout_destination_verified:    'a v\u00e9rifi\u00e9 des coordonn\u00e9es de paiement',
+        contractor_account_claimed:     'a r\u00e9clam\u00e9 son compte entrepreneur',
         // 091 — conversations, d\u00e9cisions, liens support.
         conversation_created:       'a ouvert une conversation',
         conversation_assigned:      'a attribu\u00e9 une conversation',
@@ -3705,6 +3706,16 @@ export const fr: Mirror<EnDict> = {
 
     signup: {
       title:          'Inscription',
+      titleContractor: 'Créez votre compte entrepreneur',
+      subtitleContractor: 'Inscrivez-vous avec votre e-mail et un mot de passe pour gérer vos chantiers. Aucun projet requis pour commencer.',
+      accountType: 'Je souhaite créer un compte',
+      homeowner: 'Client',
+      contractor: 'Entrepreneur',
+      // Choisir « Entrepreneur » n’ouvre pas de compte : Jalla examine d’abord la candidature.
+      contractorReviewed:     'Les entrepreneurs sont examinés avant d’obtenir un compte',
+      contractorReviewedBody: 'Parlez-nous de votre travail et de vos corps de métier. Dès que Jalla approuve votre candidature, nous vous enverrons un lien pour créer votre compte.',
+      contractorApplyCta:     'Postuler pour rejoindre Groundwork',
+      contractorLink: 'Créer un compte entrepreneur',
       titleInvite:    'Créez votre compte',
       subtitle:       'Rejoignez les bâtisseurs de la diaspora qui ne perdent jamais la trace de leur argent.',
       subtitleInvite: 'Définissez un mot de passe pour accepter votre invitation au projet.',
