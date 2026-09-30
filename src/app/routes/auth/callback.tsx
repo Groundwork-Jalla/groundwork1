@@ -265,7 +265,10 @@ export default function AuthCallback() {
       localStorage.removeItem("pendingInvite");
       try {
         const projectId = await acceptInvite(token);
-        navigate(`/projects/${projectId}`, { replace: true });
+        // A contractor's surface is /work, not the owner's project page. They can read
+        // the project either way (project_member, 086), but the client view assumes an
+        // owner — which is what made an accepted invite look like it had done nothing.
+        navigate(`/work/projects/${projectId}`, { replace: true });
         return;
       } catch {
         // Invalid/used token — fall through to normal routing

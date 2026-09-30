@@ -37,7 +37,9 @@ export default function InvitePage() {
     setAcceptErr(null);
     try {
       const projectId = await acceptInvite(token);
-      navigate(`/projects/${projectId}`, { replace: true });
+      // A contractor's surface is /work, not the owner's project page (086 lets them
+      // read it either way, but the client view assumes an owner).
+      navigate(`/work/projects/${projectId}`, { replace: true });
     } catch (err) {
       setAcceptErr(errorMessage(err, t('invite.acceptError')));
       setAccepting(false);
