@@ -129,9 +129,24 @@ export default async function handler(req: any, res: any) {
     const { buildApplicationDecisionHtml, applicationDecisionSubject } =
       await import('../src/lib/email/application-decision-html.js');
 
+    // An acceptance carries the link that actually makes them a contractor. Issued as
+    // the CALLER, who was checked as an admin above: `issue_contractor_claim` reads
+    // auth.uid() and a service-role client has none. It is idempotent, so re-sending a
+    // decision never invalidates the link already sitting in the applicant's inbox.
+    //
+    // A failure here must not lose the decision email: the status is already saved, and
+    // an applicant who hears nothing is worse off than one who gets the old signup link
+    // and has to be re-invited from the admin page.
+    let claimToken: string | null = null;
+    if (decision === 'accepted') {
+      const { data, error } = await asCaller.rpc('issue_contractor_claim', { p_application: applicationId });
+      if (error) console.error('[decision] could not issue a claim token:', error.message);
+      else claimToken = typeof data === 'string' ? data : null;
+    }
+
     const subject = applicationDecisionSubject(lang, decision as Decision);
     const html = buildApplicationDecisionHtml(
-      lang, decision as Decision, app.full_name ?? '', site,
+      lang, decision as Decision, app.full_name ?? '', site, claimToken,
     );
 
     const r = await fetch('https://api.resend.com/emails', {

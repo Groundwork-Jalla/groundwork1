@@ -1652,6 +1652,10 @@ export const en = {
       applicantNotified: 'The applicant has been emailed.',
       notifyFailed:      'The applicant could not be emailed — the decision is saved, press the button again to retry.',
       statusFailed: 'Could not update the status.',
+      claimInvite:      'Invite to create account',
+      claimInviteHint:  'Re-sends the approval email with a link to set up their contractor account.',
+      claimSent:        'Invitation sent. They can now create their contractor account.',
+      claimFailed:      'The invitation could not be sent.',
       publishedToDirectory: 'Accepted and published to the contractor directory.',
       publishFailed: 'Accepted, but publishing to the directory failed. Press Accept again to retry.',
       disqualifiedNote: 'Auto-disqualified — answered No to a professional standard. Recorded rather than discarded.',
@@ -4075,6 +4079,21 @@ export const en = {
   },
 
   // ── Contractor invite ─────────────────────────────────────
+  // /claim/:token — an approved applicant turning their application into an account (100).
+  claim: {
+    eyebrow:       'Application approved',
+    title:         'Welcome to Groundwork, {name}',
+    body:          'Jalla has approved your application. Create your account to manage the projects clients invite you to, upload stage evidence, and get paid on milestones.',
+    cta:           'Claim my contractor account',
+    createAccount: 'Create my account',
+    haveAccount:   'I already have an account',
+    signIn:        'Sign in',
+    invalidTitle:  'This link is no longer valid',
+    invalidBody:   'It may have expired or already been used. Ask Jalla to send you a new one.',
+    alreadyTitle:  'This account has already been claimed',
+    alreadyBody:   'Sign in with the email you applied with to reach your work.',
+    failed:        'We could not finish setting up your account. Try again, or ask Jalla for a new link.',
+  },
   invite: {
     notFoundTitle: 'Invite not found',
     notFoundBody:  'This invite link is invalid or has already been used.',

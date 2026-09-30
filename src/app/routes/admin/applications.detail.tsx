@@ -3,6 +3,8 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import {
   Loader2, ArrowLeft, Download, ExternalLink, CloudOff, Cloud, AlertTriangle, Check, Mail, Pencil,
 } from 'lucide-react';
+import { errorMessage } from '@/lib/errors';
+import { inviteContractorToClaim } from '@/lib/supabase/contractor-claim';
 import {
   getApplication, setApplicationStatus, signCredentialUrl, promoteApplication,
   sendDecisionEmail,
@@ -116,6 +118,7 @@ export default function AdminApplicationDetail() {
   const [sendingAck, setSendingAck] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [notice, setNotice]   = useState<{ ok: boolean; text: string } | null>(null);
+  const [invitingClaim, setInvitingClaim] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -181,6 +184,28 @@ export default function AdminApplicationDetail() {
       setNotice({ ok: false, text: t('admin.apps.statusFailed') });
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * Send an accepted applicant the link that turns their application into an account.
+   *
+   * Accepting normally does this on its own now — the decision email carries the claim
+   * link (100). This is the manual send for applications accepted BEFORE that existed,
+   * whose acceptance email pointed at /auth/signup and so produced an ordinary account
+   * with no contractor standing. Issuing is idempotent, so pressing it twice re-sends the
+   * same link rather than invalidating the one already in their inbox.
+   */
+  async function inviteToClaim() {
+    if (!id) return;
+    setInvitingClaim(true); setNotice(null);
+    try {
+      await inviteContractorToClaim(id);
+      setNotice({ ok: true, text: t('admin.apps.claimSent') });
+    } catch (err) {
+      setNotice({ ok: false, text: errorMessage(err, t('admin.apps.claimFailed')) });
+    } finally {
+      setInvitingClaim(false);
     }
   }
 
@@ -336,6 +361,22 @@ export default function AdminApplicationDetail() {
           {/* The acknowledgement is normally automatic. This is the manual send for the
               applicants it never reached, and the timestamp is how you tell them apart —
               "never" is the backlog, a date is done. */}
+          {app.status === 'accepted' && (
+            <div className="mt-3 flex flex-col items-end gap-1">
+              <button
+                type="button" disabled={invitingClaim}
+                onClick={inviteToClaim}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-40"
+              >
+                {invitingClaim
+                  ? <Loader2 className="size-3.5 animate-spin" />
+                  : <Mail className="size-3.5" />}
+                {t('admin.apps.claimInvite')}
+              </button>
+              <p className="text-[11px] text-brand-mid-grey">{t('admin.apps.claimInviteHint')}</p>
+            </div>
+          )}
+
           <div className="mt-3 flex flex-col items-end gap-1">
             <button
               type="button" disabled={sendingAck}

@@ -1645,6 +1645,10 @@ export const fr: Mirror<EnDict> = {
       applicantNotified: "Le candidat a été informé par e-mail.",
       notifyFailed:      "Impossible d'envoyer l'e-mail au candidat — la décision est enregistrée, appuyez à nouveau pour réessayer.",
       statusFailed: 'Impossible de mettre à jour le statut.',
+      claimInvite:      'Inviter \u00e0 cr\u00e9er un compte',
+      claimInviteHint:  'Renvoie l\u2019e-mail d\u2019approbation avec un lien pour cr\u00e9er son compte entrepreneur.',
+      claimSent:        'Invitation envoy\u00e9e. Cette personne peut cr\u00e9er son compte entrepreneur.',
+      claimFailed:      'L\u2019invitation n\u2019a pas pu \u00eatre envoy\u00e9e.',
       publishedToDirectory: "Acceptée et publiée dans l'annuaire des prestataires.",
       publishFailed: "Acceptée, mais la publication dans l'annuaire a échoué. Appuyez à nouveau sur Accepter pour réessayer.",
       disqualifiedNote: "Disqualifiée automatiquement — a répondu Non à une norme professionnelle. Conservée plutôt que supprimée.",
@@ -3998,6 +4002,21 @@ export const fr: Mirror<EnDict> = {
   },
 
   // ── Invitation entrepreneur ───────────────────────────────
+  // /claim/:token — un candidat approuvé transforme sa candidature en compte (100).
+  claim: {
+    eyebrow:       'Candidature approuvée',
+    title:         'Bienvenue sur Groundwork, {name}',
+    body:          'Jalla a approuvé votre candidature. Créez votre compte pour gérer les chantiers auxquels les clients vous invitent, déposer les preuves d’avancement et être payé par jalon.',
+    cta:           'Réclamer mon compte entrepreneur',
+    createAccount: 'Créer mon compte',
+    haveAccount:   'J’ai déjà un compte',
+    signIn:        'Se connecter',
+    invalidTitle:  'Ce lien n’est plus valide',
+    invalidBody:   'Il a peut-être expiré ou déjà été utilisé. Demandez à Jalla de vous en envoyer un nouveau.',
+    alreadyTitle:  'Ce compte a déjà été réclamé',
+    alreadyBody:   'Connectez-vous avec l’adresse e-mail utilisée lors de votre candidature.',
+    failed:        'Nous n’avons pas pu finaliser votre compte. Réessayez ou demandez un nouveau lien à Jalla.',
+  },
   invite: {
     notFoundTitle: 'Invitation introuvable',
     notFoundBody:  "Ce lien d'invitation est invalide ou a déjà été utilisé.",

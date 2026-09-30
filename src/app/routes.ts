@@ -25,6 +25,8 @@ export default [
     route("auth/callback",       "routes/auth/callback.tsx"),
     route("onboarding",          "routes/onboarding.tsx"),
     route("invite/:token",       "routes/invite.tsx"),
+    // An approved applicant turning their application into a contractor account (100).
+    route("claim/:token",        "routes/claim.tsx"),
   ]),
 
   // Project wizard — full-screen, no sidebar (WizardShell owns the viewport)

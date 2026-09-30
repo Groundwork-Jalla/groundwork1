@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
+import { claimContractorAccount, takeRememberedClaim } from "@/lib/supabase/contractor-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
@@ -241,6 +242,21 @@ export default function AuthCallback() {
     if (googleWithoutPassword(session.user) && !passwordPromptDismissed(session.user.id)) {
       navigate("/auth/new-password?reason=google", { replace: true });
       return;
+    }
+
+    // An approved applicant who just created their account finishes the claim here, so
+    // they are never asked to press anything twice (100). Before the project invite
+    // below: a contractor claiming their account has no project yet.
+    const claim = takeRememberedClaim();
+    if (claim) {
+      try {
+        await claimContractorAccount(claim);
+        navigate("/work", { replace: true });
+        return;
+      } catch {
+        // Used, revoked or claimed by someone else — fall through to normal routing
+        // rather than stranding them on a dead page.
+      }
     }
 
     // Process any pending invite (stored in localStorage before signup)
