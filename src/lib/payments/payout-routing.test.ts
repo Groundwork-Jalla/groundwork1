@@ -270,3 +270,106 @@ describe('the contractor surface keeps its boundaries', () => {
     expect(code('src/components/shell/WorkShell.tsx')).toMatch(/\/work\/payouts/);
   });
 });
+
+describe('the bank field is named for what it holds', () => {
+  const SQL = read(MIGRATION);
+
+  it('renames 099’s bank_code, which meant a provider routing code', () => {
+    // `createPayout()` passes its bankCode argument straight into SwyChr's
+    // `create_transaction` as `bank_code`. A Groundwork slug in a column of that name is an
+    // invitation to send `uba` where a routing number belongs.
+    expect(SQL).toMatch(/RENAME COLUMN bank_code TO bank_key/);
+    expect(SQL).toMatch(/p_bank_key text DEFAULT NULL/);
+  });
+
+  it('leaves the provider’s own name free for the provider’s own code', () => {
+    // No new bank_code column is created here. It is reserved.
+    expect(SQL).not.toMatch(/ADD COLUMN IF NOT EXISTS bank_code/);
+    expect(SQL).toMatch(/reserved for SwyChr/);
+  });
+
+  it('never hands our key to the provider call', () => {
+    // The outbound client's field is `bankCode`; ours is `bankKey`. They must not be wired
+    // together without a mapping, and no mapping exists yet.
+    const client = read('api/swychr/_client.ts');
+    expect(client).toMatch(/bank_code: req\.bankCode/);
+    expect(client).not.toMatch(/bankKey|bank_key/);
+  });
+
+  it('keeps the two names apart in TypeScript too', () => {
+    const pure = code('src/lib/payments/payout-destination.ts');
+    expect(pure).toMatch(/bankKey: string \| null;/);
+    expect(pure).not.toMatch(/bankCode/);
+  });
+});
+
+describe('the outbound payout must use the snapshotted destination', () => {
+  const SQL = read(MIGRATION);
+  const fn = SQL.match(/FUNCTION public\.payout_initiation_target[\s\S]*?END \$\$;/)?.[0] ?? '';
+
+  it('derives the destination from the payment row, not from the contractor', () => {
+    // The failure this prevents: admin authorises to A, contractor switches default to B,
+    // handler sends the authorised release to B. Nobody approved B.
+    expect(fn).toMatch(/v_pay\.destination_id/);
+    expect(fn).not.toMatch(/is_default/);
+  });
+
+  it('cannot be asked the wrong question — it takes no destination argument', () => {
+    expect(SQL).toMatch(/FUNCTION public\.payout_initiation_target\(p_payment uuid\)/);
+  });
+
+  it('rechecks that the destination still belongs to the beneficiary', () => {
+    expect(fn).toMatch(/v_dest\.owner_id IS DISTINCT FROM v_pay\.beneficiary_id/);
+    expect(fn).toMatch(/beneficiary_mismatch/);
+  });
+
+  it('fails closed when the snapshot is no longer eligible', () => {
+    // Retired between authorisation and payout: refuse. Never substitute another default.
+    expect(fn).toMatch(/NOT public\.payout_destination_eligible/);
+    expect(fn).toMatch(/destination_not_eligible/);
+  });
+
+  it('refuses a release that carries no snapshot at all', () => {
+    expect(fn).toMatch(/no_destination_snapshot/);
+  });
+
+  it('refuses anything already sent, so a payout cannot be made twice', () => {
+    expect(fn).toMatch(/v_pay\.state <> 'release_authorised'/);
+    expect(fn).toMatch(/wrong_state/);
+  });
+
+  it('is server-only, because account numbers come out of it', () => {
+    expect(SQL).toMatch(/REVOKE ALL ON FUNCTION public\.payout_initiation_target\(uuid\) FROM PUBLIC, anon, authenticated;/);
+    expect(SQL).toMatch(/GRANT  EXECUTE ON FUNCTION public\.payout_initiation_target\(uuid\) TO service_role;/);
+  });
+});
+
+describe('a verified destination can be retired', () => {
+  it('fixes 099’s constraint, which made retiring a checked account impossible', () => {
+    // 099: CHECK ((status = 'verified') = (verified_at IS NOT NULL)). `retire_payout_destination`
+    // sets status='retired' and leaves verified_at, so the equality failed and the row could
+    // not be stood down — leaving a closed bank account eligible for payouts.
+    const SQL = read(MIGRATION);
+    expect(SQL).toMatch(/DROP CONSTRAINT IF EXISTS payout_destination_verified_dated/);
+    expect(SQL).toMatch(/CHECK \(status <> 'verified' OR verified_at IS NOT NULL\)/);
+  });
+});
+
+describe('what the primary-contractor flag does and does not guarantee', () => {
+  const SQL = read(MIGRATION);
+
+  it('says plainly that contractor removal is not modelled', () => {
+    // contractor_invites.status is pending|accepted|rejected. There is no removal state, so
+    // "cleared when the assignment ends" would be claiming an invariant the schema cannot
+    // express. The comment must not overstate it.
+    expect(SQL).toMatch(/no removal state/);
+    expect(SQL).toMatch(/removal is NOT modelled/);
+  });
+
+  it('still proves the four things the schema CAN express', () => {
+    expect(SQL).toMatch(/CHECK \(NOT is_primary OR status = 'accepted'\)/);
+    expect(SQL).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS contractor_invites_one_primary[\s\S]{0,120}WHERE is_primary = true/);
+    expect(SQL).toMatch(/IF NEW\.status <> 'accepted' THEN NEW\.is_primary := false; END IF;/);
+    expect(SQL).toMatch(/not_accepted: this contractor has not accepted/);
+  });
+});

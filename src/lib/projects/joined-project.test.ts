@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { stageFromDescription, STAGE_KEYS, stageNumberOf } from '@/lib/projects/stage-from-description';
 import { joinedBudget, STAGE_BUDGET_PCT } from '@/lib/budget/joined-project';
 import type { BudgetBreakdown } from '@/types/project';
+import { en } from '@/lib/i18n/en';
+import { fr } from '@/lib/i18n/fr';
 
 /**
  * Onboarding a build that was already under way.
@@ -15,6 +17,11 @@ import type { BudgetBreakdown } from '@/types/project';
  */
 const ROOT = resolve(__dirname, '..', '..', '..');
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
+/** Source with comments stripped: a comment explaining a rule is not a breach of it. */
+const code = (p: string) =>
+  read(p)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n').filter(l => !/^\s*(\*|\/\/)/.test(l)).join('\n');
 
 const at = (text: string) => stageFromDescription(text).stageNumber;
 
@@ -336,5 +343,78 @@ describe('the database side of joining mid-build', () => {
   it('is admin-only', () => {
     const fn = SQL.match(/FUNCTION public\.admin_start_project_at_stage[\s\S]*?END \$\$;/)?.[0] ?? '';
     expect(fn).toMatch(/IF NOT public\.is_admin\(\) THEN RAISE EXCEPTION 'not_admin/);
+  });
+});
+
+describe('a pre-existing stage never claims money moved', () => {
+  const SQL = read('supabase/migrations/103_join_project_in_progress.sql');
+
+  it('is its own lifecycle state, not "completed"', () => {
+    // Every payment surface asks stageLifecycle() what a stage is. Left as `completed`, a
+    // screen reading 090's legacy `payment_status` projection (which says `paid` for anything
+    // with no milestone) would report that money moved. Nothing moved.
+    const life = code('src/lib/lifecycle/stage.ts');
+    expect(life).toMatch(/\| 'pre_existing'/);
+    expect(life).toMatch(/if \(stage\.pre_existing === true\) return \{ state: 'pre_existing'/);
+  });
+
+  it('is answered before any payment or verification reasoning', () => {
+    const life = code('src/lib/lifecycle/stage.ts');
+    const at = life.indexOf("state: 'pre_existing'");
+    expect(at).toBeGreaterThan(0);
+    // Ahead of the switch on stage.status, where every milestone and ledger branch lives.
+    expect(at).toBeLessThan(life.indexOf('switch (stage.status)'));
+  });
+
+  it('is never dressed as an approved stage', () => {
+    // Green is Groundwork saying a stage went through our process. This one did not.
+    const badge = code('src/lib/admin/lifecycle-badge.ts');
+    expect(badge).toMatch(/pre_existing:\s+\{ labelKey: 'admin\.lifecycle\.state\.pre_existing',\s+accent: 'grey' \}/);
+  });
+
+  it('reads "Completed outside Groundwork", in both languages', () => {
+    const e = (en.admin as Record<string, any>).lifecycle.state.pre_existing;
+    const f = (fr.admin as Record<string, any>).lifecycle.state.pre_existing;
+    expect(e).toBe('Completed outside Groundwork');
+    expect(f).toBeTypeOf('string');
+    // And never the word that would mean a payment.
+    expect(String(e).toLowerCase()).not.toContain('paid');
+    expect(String(e).toLowerCase()).not.toContain('approved');
+  });
+
+  it('is refused a release by name, ahead of the amount checks', () => {
+    // Not left to a positive-amount CHECK exploding after a screen already offered the action.
+    const blocker = SQL.match(/FUNCTION public\.stage_release_blocker[\s\S]*?END \$\$;/)?.[0] ?? '';
+    expect(blocker).toMatch(/IF v_stage\.pre_existing THEN RETURN 'pre_existing'; END IF;/);
+    expect(blocker.indexOf("'pre_existing'")).toBeLessThan(blocker.indexOf('over_milestone'));
+    // A zero milestone also gets its own reason rather than reading as "too much".
+    expect(blocker).toMatch(/RETURN 'nothing_due'/);
+  });
+
+  it('is not offered a release by the admin UI either', () => {
+    // stage-actions only offers the release when milestone > 0; a pre-existing stage has 0.
+    const actions = code('src/lib/admin/stage-actions.ts');
+    expect(actions).toMatch(/milestone > 0/);
+  });
+});
+
+describe('what timestamps a pre-existing stage carries', () => {
+  const SQL = read('supabase/migrations/103_join_project_in_progress.sql');
+
+  it('does not claim the construction finished today', () => {
+    // Stamping now() would assert a foundation poured in 2019 completed the day an admin typed
+    // a sentence, and that date would flow into every timeline and export downstream.
+    expect(SQL).toMatch(/completed_at\s+= NULL/);
+    expect(SQL).not.toMatch(/completed_at\s+= now\(\)/);
+  });
+
+  it('records the one date we actually know', () => {
+    expect(SQL).toMatch(/pre_existing_recorded_at\s+= now\(\)/);
+    expect(SQL).toMatch(/CHECK \(pre_existing = \(pre_existing_recorded_at IS NOT NULL\)\)/);
+  });
+
+  it('names no approver on the substages', () => {
+    // A substage marked complete with an approver would name somebody who never saw the work.
+    expect(SQL).toMatch(/SET status = 'complete', approved_by = NULL, approved_at = NULL/);
   });
 });
