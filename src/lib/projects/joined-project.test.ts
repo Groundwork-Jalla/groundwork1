@@ -404,8 +404,24 @@ describe('what timestamps a pre-existing stage carries', () => {
   it('does not claim the construction finished today', () => {
     // Stamping now() would assert a foundation poured in 2019 completed the day an admin typed
     // a sentence, and that date would flow into every timeline and export downstream.
-    expect(SQL).toMatch(/completed_at\s+= NULL/);
-    expect(SQL).not.toMatch(/completed_at\s+= now\(\)/);
+    //
+    // Comments stripped: the file DOCUMENTS that an earlier version wrote `completed_at =
+    // now()`, and reading that sentence as the breach would mean deleting the explanation of
+    // why the corrective backfill exists.
+    const body = SQL.replace(/--[^\n]*/g, ' ');
+    expect(body).toMatch(/completed_at\s+= NULL/);
+    expect(body).not.toMatch(/completed_at\s+= now\(\)/);
+  });
+
+  it('moves the earlier run\u2019s stamped date instead of discarding it', () => {
+    // 103 was applied once before this review and stamped completed_at = now(). That value is
+    // not a completion date — it is when the stage was RECORDED, which is exactly the new
+    // column's meaning. Moving it keeps a true fact; deleting it would lose one.
+    const body = SQL.replace(/--[^\n]*/g, ' ');
+    expect(body).toMatch(/COALESCE\(pre_existing_recorded_at, completed_at, now\(\)\)/);
+    // And it has to run before the constraint, or re-applying aborts on those rows.
+    expect(body.indexOf('COALESCE(pre_existing_recorded_at, completed_at'))
+      .toBeLessThan(body.indexOf('project_stages_pre_existing_dated'));
   });
 
   it('records the one date we actually know', () => {

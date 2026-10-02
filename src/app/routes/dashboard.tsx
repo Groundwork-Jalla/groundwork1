@@ -35,6 +35,8 @@ interface ProjectStage {
   /** Stored milestone. Null on older rows — fall back to budget_pct × total. */
   payment_milestone_usd: number | null;
   payment_status: 'unpaid' | 'partial' | 'paid' | null;
+  /** Built before this project joined Groundwork (103). Complete, but never paid through us. */
+  pre_existing?: boolean | null;
 }
 
 // ── Stage status helpers ───────────────────────────────────
@@ -193,6 +195,11 @@ function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
   let released = 0, held = 0;
   for (const s of stages) {
     const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, construction);
+    // Work that predates Groundwork is complete but was never paid THROUGH us (103).
+    // Checked before the projection rather than relying on its milestone being 0: the
+    // `??` above would otherwise fall back to a percentage of the construction fee and
+    // show money as released that never moved.
+    if (s.pre_existing) continue;
     if (s.payment_status === 'paid') released += amount;
     else if (isActive(s)) held += amount;
   }
@@ -574,7 +581,7 @@ export default function Dashboard() {
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, payment_status')
+      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, payment_status, pre_existing')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {

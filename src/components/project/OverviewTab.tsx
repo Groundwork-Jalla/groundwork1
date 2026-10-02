@@ -1101,7 +1101,9 @@ export default function OverviewTab({
   const activeStage = sortedStages.find(s => s.status === 'active' || s.status === 'pending_review');
   const nextStage   = sortedStages.find(s => s.status !== 'complete');
 
-  const paidTotal   = sortedStages.filter(s => s.payment_status === 'paid').reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  // `pre_existing` first: those stages read 'paid' through 090's legacy projection because
+  // nothing is owed on them, which is not the same as money having moved (103).
+  const paidTotal   = sortedStages.filter(s => !s.pre_existing && s.payment_status === 'paid').reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
   // `budget` already resolves the owner's confirmed budget_usd (see projectBudget), so
   // the slices and this total are shares of one figure. Re-reading project.budget_usd
   // here is what used to make "41% × total = materials" a false statement.

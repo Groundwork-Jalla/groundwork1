@@ -176,7 +176,11 @@ function StageDetail({
         : sub.status === 'pending_review' || sub.status === 'complete',
     );
 
-  const stagePaid = stage.payment_status === 'paid';
+  // Funded through Groundwork, not merely 'nothing outstanding'. A pre-existing stage
+  // reads 'paid' on the legacy projection because its milestone is 0 (103), and must not
+  // unlock anything on that basis. Such a stage is `complete`, so these gates are already
+  // unreachable; saying it here means a future status change cannot quietly open them.
+  const stagePaid = stage.payment_status === 'paid' && !stage.pre_existing;
 
   const showApproveButton =
     !isContractor &&

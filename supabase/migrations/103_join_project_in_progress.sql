@@ -74,6 +74,33 @@ COMMENT ON COLUMN public.project_stages.pre_existing_recorded_at IS
   'completion date, which Groundwork does not know — `completed_at` stays NULL unless a '
   'historical date was actually supplied. See 103.';
 
+-- ── Rows an EARLIER version of this file already wrote ───────────────────────────────
+--
+-- 103 was applied to production once before this review, in a form that stamped
+-- `completed_at = now()` on every pre-existing stage. That value is not a completion date —
+-- it is the moment an administrator recorded the stage, which is exactly what
+-- `pre_existing_recorded_at` is for. So it is MOVED rather than discarded: the fiction in
+-- `completed_at` becomes the true fact in the new column, and `completed_at` goes back to
+-- NULL because we still do not know when the work was built.
+--
+-- This also has to run BEFORE the constraint below, or adding that constraint aborts on the
+-- rows the earlier run left behind — which is how re-applying this file would otherwise fail
+-- halfway on a live database.
+UPDATE public.project_stages
+   SET pre_existing_recorded_at = COALESCE(pre_existing_recorded_at, completed_at, now()),
+       completed_at             = NULL
+ WHERE pre_existing
+   AND (pre_existing_recorded_at IS NULL OR completed_at IS NOT NULL);
+
+-- Same reasoning for their substages: the earlier run closed them out without clearing an
+-- approver, and nobody at Groundwork approved this work.
+UPDATE public.project_substages sub
+   SET approved_by = NULL, approved_at = NULL
+  FROM public.project_stages ps
+ WHERE sub.stage_id = ps.id
+   AND ps.pre_existing
+   AND (sub.approved_by IS NOT NULL OR sub.approved_at IS NOT NULL);
+
 -- A pre-existing stage carries its recording date, and nothing else carries one.
 DO $$
 BEGIN
@@ -322,6 +349,12 @@ SELECT 'stages marked already-built', count(*)::text
 UNION ALL
 SELECT 'already-built stages wrongly owing money (expect 0)', count(*)::text
   FROM public.project_stages WHERE pre_existing AND COALESCE(payment_milestone_usd, 0) > 0
+UNION ALL
+SELECT 'already-built stages claiming a build date (expect 0)', count(*)::text
+  FROM public.project_stages WHERE pre_existing AND completed_at IS NOT NULL
+UNION ALL
+SELECT 'already-built stages missing their recording date (expect 0)', count(*)::text
+  FROM public.project_stages WHERE pre_existing AND pre_existing_recorded_at IS NULL
 UNION ALL
 SELECT 'already-built stages wrongly holding a certificate (expect 0)', count(*)::text
   FROM public.stage_verifications sv
