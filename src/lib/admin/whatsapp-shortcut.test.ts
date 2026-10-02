@@ -127,10 +127,22 @@ describe('the client is the project owner and nobody else', () => {
     expect(server).toContain("eq('person_id', personId)");
   });
 
-  it('no contractor or verifier contact can be reached from here', () => {
-    for (const banned of ['contractor_invites', 'project_verifiers', 'contractors', 'verifier_profiles', 'full_name.ilike', 'ilike']) {
-      expect(server, `${banned} is not how the client is found`).not.toContain(banned);
+  it('finds a person by assignment, never by searching for their name', () => {
+    // WIDENED for the recipient menu: contractor and verifier ARE reachable now, so the two
+    // assignment tables are legitimately read here (see whatsapp-recipient.test.ts, which
+    // pins WHO each role resolves to and that a named person must actually hold it).
+    //
+    // What this test was really protecting survives intact: a recipient is resolved from an
+    // ASSIGNMENT, never from a directory listing and never from a fuzzy match on a name. A
+    // name search is how you open a WhatsApp thread with the wrong Jean.
+    for (const banned of ["from('contractors')", "from('verifier_profiles')", 'full_name.ilike', 'ilike']) {
+      expect(server, `${banned} is not how a recipient is found`).not.toContain(banned);
     }
+  });
+
+  it('still reads the client from projects.user_id and nothing else', () => {
+    expect(server).toMatch(/from\('projects'\)\.select\('id, user_id'\)/);
+    expect(server).toMatch(/clientId: \(project\.user_id as string \| null\)/);
   });
 
   it('the phone comes from the client\'s own profile row', () => {
@@ -177,13 +189,17 @@ describe('the redirect opens the exact thread in the existing Inbox', () => {
 
   it('every refusal is named to the operator rather than failing silently', () => {
     expect(header).toContain('whatsappFail');
-    for (const reason of ['no_client', 'no_phone', 'not_configured', 'contact_failed',
+    for (const reason of ['no_client', 'no_contractor', 'no_verifier', 'choose_person',
+                          'no_phone', 'not_configured', 'contact_failed',
                           'provider_failed', 'record_failed', 'conversations_unavailable', 'ambiguous', 'error']) {
       expect(lookup(en, `admin.workspace.header.whatsappFail.${reason}`), reason).toBeTypeOf('string');
       expect(lookup(fr, `admin.workspace.header.whatsappFail.${reason}`), reason).toBeTypeOf('string');
     }
-    // Navigation happens only on a real ok.
-    expect(header).toMatch(/if \(r\.ok\) \{ navigate/);
+    // Navigation happens only on a real ok. The menu closes on the same line now, so the
+    // check is that `navigate` sits inside the ok branch and nowhere else in the handler.
+    expect(header).toMatch(/if \(r\.ok\) \{[^}]*navigate\(inboxHref/);
+    // A refusal shows the reason and goes nowhere.
+    expect(header).toMatch(/onNotice\(t\(`admin\.workspace\.header\.whatsappFail\./);
   });
 });
 

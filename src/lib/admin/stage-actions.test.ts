@@ -15,7 +15,7 @@ import { fr } from '@/lib/i18n/fr';
  *
  * Production has no verification, no site update, no funded tranche, no release and no
  * accepted contractor, so every act there is either held with a reason or absent. This
- * is where the full 14-state matrix is exercised: for each derived state, which of the
+ * is where the full 15-state matrix is exercised: for each derived state, which of the
  * six existing acts is offered, which is live, and — where it is held — that the reason
  * is a sentence the database itself uses, never a new one.
  */
@@ -146,7 +146,7 @@ describe('the matrix: every derived state, every act', () => {
 
   it('covers every state the lifecycle can return, and every act, without throwing', () => {
     const states = Object.keys(STATE_SEVERITY) as StageLifecycleState[];
-    expect(states).toHaveLength(14);
+    expect(states).toHaveLength(15);
     const seen = new Set<StageActionKind>();
     for (const state of states) for (const status of ['locked', 'active', 'pending_review', 'complete'] as const) {
       const acts = stageActions(view({ status, state }), ctx());

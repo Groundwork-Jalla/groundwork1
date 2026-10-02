@@ -52,6 +52,8 @@ export function entityTab(entityType: string | null | undefined):
     //   `payout_destination` (099) — a destination belongs to a PERSON and is reused
     //                                across projects, so no single project owns it. Its
     //                                audit rows carry a null project for the same reason.
+    //   `project` (103)            — the project IS the workspace. A chip linking to the
+    //                                page you are already on is noise.
     default:                  return null;
   }
 }

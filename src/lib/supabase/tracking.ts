@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { trackEvent } from '@/lib/analytics';
 import type { BudgetBreakdown } from '@/types/project';
+import type { JoinedBudget } from '@/lib/budget/joined-project';
 
 // Both RPCs take the whole breakdown, not just the total.
 //
@@ -67,4 +68,62 @@ export async function adminStartProjectTracking(
   });
 
   trackEvent('project_tracking_started', { project_id: projectId, by: 'admin' });
+}
+
+// =========================================================
+// adminStartProjectAtStage (a build Groundwork joined halfway through)
+//
+// A partner contractor brings a client whose house is already at the roof. The stages below
+// the one they have reached are marked complete and `pre_existing` — no milestone, no
+// verification, no certificate — and the project opens active on the stage they are actually
+// on. Guarded server-side by is_admin() (103).
+//
+// Every figure still comes from TypeScript. `joinedBudget()` re-prices the breakdown for the
+// remaining work; the construction fee it returns is deliberately the FULL one, so each
+// stage still to be built keeps its true milestone and only the skipped ones are zeroed.
+// =========================================================
+export async function adminStartProjectAtStage(
+  projectId: string,
+  joined: JoinedBudget,
+  ownerId: string,
+  projectName: string,
+  /** What the contractor said, kept on the record with the project. */
+  describedAs?: string | null,
+): Promise<{ startStage: number; preExistingStages: number }> {
+  const { data, error } = await supabase.rpc('admin_start_project_at_stage', {
+    p_project_id:       projectId,
+    p_final_budget:     joined.total,
+    p_construction_fee: joined.construction,
+    p_design_fee:       joined.design,
+    p_permit_fee:       joined.permit,
+    p_professional_fee: joined.professional,
+    p_verification_fee: joined.verification,
+    p_contingency_fee:  joined.contingency,
+    p_start_stage:      joined.startStage,
+    p_note:             describedAs?.trim() || null,
+  });
+  if (error) throw error;
+
+  const result = (data ?? {}) as Record<string, unknown>;
+
+  // The client is told where their tracking begins and why, so the completed stages on their
+  // dashboard are never a surprise they have to ask about.
+  await supabase.from('notifications').insert({
+    user_id: ownerId,
+    type:    'budget_confirmed',
+    title:   'Your project is now being tracked',
+    body:    `Jalla has set up "${projectName}" from stage ${joined.startStage}. `
+           + `The ${joined.skipped.length} earlier stage(s) are recorded as already built, `
+           + `so no payment is due for them.`,
+    data:    { project_id: projectId, start_stage: joined.startStage },
+  });
+
+  trackEvent('project_tracking_started', {
+    project_id: projectId, by: 'admin', joined_at_stage: joined.startStage,
+  });
+
+  return {
+    startStage: Number(result.start_stage ?? joined.startStage),
+    preExistingStages: Number(result.pre_existing_stages ?? joined.skipped.length),
+  };
 }

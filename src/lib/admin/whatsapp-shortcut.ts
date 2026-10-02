@@ -80,3 +80,90 @@ export const isDeliverablePhone = isE164;
 /** Where the Inbox opens a thread. One addressing pattern, shared with the rest of admin. */
 export const inboxHref = (conversationId: string): string =>
   `/admin/inbox?channel=whatsapp&conversation=${conversationId}`;
+
+// ── Who on this project is being messaged ────────────────────────────────────────────
+//
+// The WhatsApp shortcut used to mean one thing only: the client. But a project has three
+// kinds of person an admin needs to reach — the client whose money it is, the general
+// contractor who reports progress, and the verifier who checks a finished stage — and each
+// is reached the same way, because a conversation is keyed on the PERSON (091), never on a
+// role. So the only new question is which person the admin meant.
+//
+// Kept pure and separate from the handler so the choice can be tested without a database:
+// getting it wrong means a message about somebody's build reaching the wrong person.
+
+export type RecipientRole = 'client' | 'contractor' | 'verifier';
+
+/** An accepted contractor on the project. `isPrimary` is the one who gets paid (101). */
+export interface RecipientContractor {
+  userId: string;
+  isPrimary: boolean;
+}
+
+/** An active verifier assignment (086). Several disciplines can be assigned at once. */
+export interface RecipientVerifier {
+  userId: string;
+  discipline: string;
+}
+
+export interface ProjectPeople {
+  clientId: string | null;
+  contractors: RecipientContractor[];
+  verifiers: RecipientVerifier[];
+}
+
+export type RecipientResolution =
+  | { kind: 'person'; personId: string }
+  /** Nobody of that role is on the project. */
+  | { kind: 'none'; role: RecipientRole }
+  /**
+   * More than one, and no way to tell which was meant. The admin picks; this never picks
+   * for them, because the wrong choice sends project details to the wrong professional.
+   */
+  | { kind: 'choose'; role: RecipientRole; candidates: string[] };
+
+/**
+ * Which person an admin meant.
+ *
+ * `personId` short-circuits everything: when the admin has already chosen from a list, that
+ * choice is honoured provided the person really does hold that role on this project — a
+ * request naming somebody who does not is refused rather than trusted.
+ *
+ * Without an explicit choice: the client is unambiguous; a contractor falls back to the
+ * primary, since that is already the project's designated point of contact; a verifier never
+ * falls back, because "a verifier on this project" is not a person — disciplines are
+ * different people doing different checks.
+ */
+export function resolveRecipient(
+  role: RecipientRole,
+  people: ProjectPeople,
+  personId?: string | null,
+): RecipientResolution {
+  const holders =
+    role === 'client'     ? (people.clientId ? [people.clientId] : [])
+    : role === 'contractor' ? people.contractors.map(c => c.userId)
+    : people.verifiers.map(v => v.userId);
+
+  if (holders.length === 0) return { kind: 'none', role };
+
+  if (personId) {
+    return holders.includes(personId)
+      ? { kind: 'person', personId }
+      // Not a refusal to be smoothed over: the caller asked to message somebody who is not
+      // on this project in that role.
+      : { kind: 'none', role };
+  }
+
+  if (role === 'client') return { kind: 'person', personId: holders[0] };
+
+  if (role === 'contractor') {
+    const primary = people.contractors.find(c => c.isPrimary);
+    if (primary) return { kind: 'person', personId: primary.userId };
+    if (holders.length === 1) return { kind: 'person', personId: holders[0] };
+    return { kind: 'choose', role, candidates: holders };
+  }
+
+  // Verifier. One assignment is unambiguous; several disciplines are not.
+  if (holders.length === 1) return { kind: 'person', personId: holders[0] };
+  return { kind: 'choose', role, candidates: holders };
+}

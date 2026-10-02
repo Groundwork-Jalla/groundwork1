@@ -28,7 +28,7 @@ const lc = (state: StageLifecycleState, blockers: StageBlocker[] = []): StageLif
 describe('every lifecycle state has a row, and the accents follow 05 §7', () => {
   it('covers exactly the states stageLifecycle() can return — no more, no fewer', () => {
     expect(Object.keys(LIFECYCLE_META).sort()).toEqual([...STATES].sort());
-    expect(STATES).toHaveLength(14);
+    expect(STATES).toHaveLength(15);
   });
 
   it.each([

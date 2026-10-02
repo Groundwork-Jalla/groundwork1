@@ -77,6 +77,9 @@ export default [
     route("work",                   "routes/work/index.tsx"),
     route("work/projects",          "routes/work/projects.tsx"),
     route("work/projects/:projectId","routes/work/projects.detail.tsx"),
+    // Where this contractor is paid. On the account, not on an assignment (099) — given
+    // once, used on every project.
+    route("work/payouts",           "routes/work/payouts.tsx"),
   ]),
 
   // ── /verifiers — the independent verifier's surface (06 §22) ──

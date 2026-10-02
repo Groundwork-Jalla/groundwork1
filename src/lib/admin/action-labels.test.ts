@@ -97,7 +97,7 @@ describe('entityTab', () => {
     }
     expect([...written].sort()).toEqual([
       'contractor_application', 'contractor_invite', 'conversation', 'decision',
-      'payment', 'payout_destination', 'project_stage', 'project_verifier',
+      'payment', 'payout_destination', 'project', 'project_stage', 'project_verifier',
       'site_update', 'stage_verification', 'support_ticket',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
@@ -117,6 +117,9 @@ describe('entityTab', () => {
     // before the applicant has an account, let alone a project. Its audit rows carry a
     // null project for the same reason.
     expect(entityTab('contractor_application')).toBeNull();
+    // The project itself (103, joining a build in progress): a chip linking to the page you
+    // are already looking at is noise.
+    expect(entityTab('project')).toBeNull();
     expect(entityTab(null)).toBeNull();
   });
 });

@@ -89,7 +89,7 @@ function raw(over: Partial<WorkspaceRaw> = {}): WorkspaceRaw {
     conversations: on([]),
     decisions: on([]),
     documents: on([]),
-    invites: on([{ id: 'inv1', project_id: PROJECT, invited_by: 'owner', email: 'tonny@example.com', role: 'contractor', status: 'accepted' as const, accepted_at: '2026-08-02T00:00:00Z', created_at: '2026-08-01T00:00:00Z', token: 't', contractor_user_id: 'contractor' }]),
+    invites: on([{ id: 'inv1', project_id: PROJECT, invited_by: 'owner', email: 'tonny@example.com', role: 'contractor', status: 'accepted' as const, accepted_at: '2026-08-02T00:00:00Z', created_at: '2026-08-01T00:00:00Z', token: 't', contractor_user_id: 'contractor', is_primary: true }]),
     activity: on([
       act('a1', 'verification.requested', '2026-08-28T00:00:00Z', { entityType: 'stage_verification', entityId: 'v2' }),
       act('a2', 'stage.approved',         '2026-08-12T00:00:00Z', { entityType: 'project_stage', entityId: 's1', stageId: 's1' }),
@@ -227,7 +227,7 @@ describe('team and activity resolve people once, by id', () => {
 
   it('a contractor who has not accepted is named by the invite email', () => {
     const w = assembleWorkspace(raw({ invites: { available: true, rows: [
-      { id: 'i', project_id: PROJECT, invited_by: 'owner', email: 'new@example.com', role: 'contractor', status: 'pending', accepted_at: null, created_at: '', token: 't', contractor_user_id: null },
+      { id: 'i', project_id: PROJECT, invited_by: 'owner', email: 'new@example.com', role: 'contractor', status: 'pending', accepted_at: null, created_at: '', token: 't', contractor_user_id: null, is_primary: false },
     ] } }), now);
     expect(w.team.contractors[0].name).toBe('new@example.com');
   });

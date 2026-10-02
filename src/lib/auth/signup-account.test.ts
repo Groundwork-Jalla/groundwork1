@@ -27,22 +27,36 @@ const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s
 const page      = code('src/app/routes/auth/signup.tsx');
 const migration = src('supabase/migrations/100_contractor_account_claim.sql');
 
-describe('signup metadata carries a name and nothing else', () => {
-  it('stores only full_name', () => {
+describe('signup metadata carries contact details and nothing privileged', () => {
+  // 102 added a phone number, which the product needs to reach anybody on WhatsApp. The rule
+  // this block enforces was never "one key" — it is that nothing here may confer standing.
+  // A phone number is a contact detail the account holder asserts about themselves, which
+  // `/profile` has always let them set; a role would be a privilege the browser chose.
+  it('stores full_name, and a phone number when one was given', () => {
     expect(signupMetadata('Ada Njoku')).toEqual({ full_name: 'Ada Njoku' });
+    expect(signupMetadata('Ada Njoku', '+237670000000'))
+      .toEqual({ full_name: 'Ada Njoku', phone: '+237670000000' });
+  });
+
+  it('omits the phone rather than sending an empty one', () => {
+    expect(signupMetadata('Ada Njoku', '')).toEqual({ full_name: 'Ada Njoku' });
+    expect(signupMetadata('Ada Njoku', '  ')).toEqual({ full_name: 'Ada Njoku' });
   });
 
   it('has no role-shaped key, whatever the account type', () => {
-    const keys = Object.keys(signupMetadata('Ada Njoku'));
-    for (const banned of ['role', 'account_type', 'is_admin', 'roles', 'claims']) {
+    const keys = Object.keys(signupMetadata('Ada Njoku', '+237670000000'));
+    for (const banned of ['role', 'account_type', 'is_admin', 'roles', 'claims', 'tier']) {
       expect(keys, `${banned} must never be browser-set`).not.toContain(banned);
     }
-    expect(keys).toEqual(['full_name']);
+    expect(keys.sort()).toEqual(['full_name', 'phone']);
   });
 
   it('the page sends exactly that to signUp', () => {
-    expect(page).toContain('data: signupMetadata(fullName),');
+    expect(page).toContain('data: signupMetadata(fullName, canonicalPhone),');
     expect(page).not.toContain("account_type");
+    // Normalised before it is sent. `handle_new_user` drops anything that is not E.164, so a
+    // page that passed the raw value would lose numbers silently.
+    expect(page).toMatch(/normalisePhone\(phone/);
   });
 
   it('no trigger reads signup metadata for a role any more', () => {

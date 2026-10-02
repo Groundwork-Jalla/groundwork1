@@ -22,7 +22,13 @@ export interface PayoutDestination {
   countryCode: string;
   method: PayoutMethod;
   mobileNo: string | null;
-  bankCode: string | null;
+  /**
+   * Groundwork's own stable key for the bank (`src/lib/payments/banks.ts`), NOT a provider
+   * routing code. `createPayout()` has a `bankCode` argument that goes straight to SwyChr's
+   * `create_transaction`; this is not that value and must never be passed to it. The column is
+   * `bank_key` for the same reason (101).
+   */
+  bankKey: string | null;
   accountNumber: string | null;
   accountName: string | null;
   status: DestinationStatus;
@@ -62,7 +68,7 @@ export function ineligibility(d: Pick<PayoutDestination, 'status' | 'verifiedAt'
  *
  * Presentation only. The SwyChr layer reads the row, never this.
  */
-export function maskDestination(d: Pick<PayoutDestination, 'method' | 'mobileNo' | 'accountNumber' | 'bankCode'>): string {
+export function maskDestination(d: Pick<PayoutDestination, 'method' | 'mobileNo' | 'accountNumber' | 'bankKey'>): string {
   if (d.method === 'mobile_money') {
     const n = (d.mobileNo ?? '').trim();
     if (n.length < 5) return '•••';
@@ -72,7 +78,7 @@ export function maskDestination(d: Pick<PayoutDestination, 'method' | 'mobileNo'
   }
   const a = (d.accountNumber ?? '').trim();
   const shown = a.length >= 6 ? a.slice(-4) : '';
-  const bank = (d.bankCode ?? '').trim();
+  const bank = (d.bankKey ?? '').trim();
   return shown ? `${bank ? `${bank} · ` : ''}${'•'.repeat(Math.max(4, a.length - 4))}${shown}` : '•••';
 }
 

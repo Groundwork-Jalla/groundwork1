@@ -404,6 +404,13 @@ export interface ProjectStageRow {
   planned_end: string | null;
   notes: string | null;
   created_at: string;
+  /**
+   * Built before the project joined Groundwork (103). Complete, but never approved, verified
+   * or funded by us — so it carries no certificate, no milestone and no payment.
+   */
+  pre_existing?: boolean;
+  /** When an administrator recorded it as already built. NOT when it was built. */
+  pre_existing_recorded_at?: string | null;
 }
 
 /**
@@ -483,6 +490,12 @@ export interface ContractorInviteRow {
   created_at: string;
   token: string;
   contractor_user_id: string | null;
+  /**
+   * The one contractor this project pays by default (101). At most one per project, and
+   * cleared automatically when the assignment stops being accepted — so an older row read
+   * before 101 shipped is simply `false`, never stale-true.
+   */
+  is_primary: boolean;
 }
 
 export interface ProjectAuditLogRow {

@@ -20,7 +20,7 @@ const code = sql.replace(/^\s*--.*$/gm, '');
 
 const D = (over: Partial<PayoutDestination> = {}): PayoutDestination => ({
   id: 'd1', ownerId: 'c1', countryCode: 'CM', method: 'mobile_money',
-  mobileNo: '+237670000000', bankCode: null, accountNumber: null, accountName: null,
+  mobileNo: '+237670000000', bankKey: null, accountNumber: null, accountName: null,
   status: 'unverified', isDefault: false, createdAt: '2026-09-01T00:00:00Z', verifiedAt: null, ...over,
 });
 
@@ -158,13 +158,13 @@ describe('the numbers stay out of the log and off the screen', () => {
 
   it('masking shows enough to recognise, not enough to steal', () => {
     expect(maskDestination(D({ method: 'mobile_money', mobileNo: '+237670000123' }))).toBe('+237 ••••••123');
-    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankCode: '011', accountNumber: '0123456789' }))).toBe('011 · ••••••6789');
+    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankKey: '011', accountNumber: '0123456789' }))).toBe('011 · ••••••6789');
   });
 
   it('a value too short to mask is hidden entirely', () => {
     expect(maskDestination(D({ method: 'mobile_money', mobileNo: '+123' }))).toBe('•••');
-    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankCode: '011', accountNumber: '12' }))).toBe('•••');
-    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankCode: null, accountNumber: null }))).toBe('•••');
+    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankKey: '011', accountNumber: '12' }))).toBe('•••');
+    expect(maskDestination(D({ method: 'bank', mobileNo: null, bankKey: null, accountNumber: null }))).toBe('•••');
   });
 
   it('masking is presentation — the provider layer never reads it', () => {

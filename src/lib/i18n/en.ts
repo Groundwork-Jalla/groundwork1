@@ -473,6 +473,8 @@ export const en = {
     lifecycle: {
       state: {
         locked:                   'Locked',
+        // Never "Paid" and never "Approved": Groundwork neither funded nor checked this.
+        pre_existing:             'Completed outside Groundwork',
         in_progress:              'In progress',
         evidence_submitted:       'Evidence submitted',
         verification_pending:     'Verification pending',
@@ -524,9 +526,14 @@ export const en = {
         noActivity:     'No activity recorded',
         openClient:     'Open client view',
         whatsapp:     'WhatsApp',
+        // Who on the project to message. Shown when a role is held by more than one person.
+        whatsappWho:  'Which one?',
         whatsappFail: {
           no_client:                 'This project has no client account, so there is nobody to message.',
-          no_phone:                  'WhatsApp unavailable \u2014 this client does not have a valid phone number on their account.',
+          no_contractor:             'No contractor has accepted this project yet, so there is nobody to message.',
+          no_verifier:               'No verifier is assigned to this project yet, so there is nobody to message.',
+          choose_person:             'Several people hold that role on this project. Choose who to message.',
+          no_phone:                  'WhatsApp unavailable \u2014 this person does not have a valid phone number on their account.',
           not_configured:            'WhatsApp unavailable \u2014 the CRM connection is not configured.',
           contact_failed:            'The CRM would not create a contact for this client, so no chat was opened.',
           provider_failed:           'The provider would not open a WhatsApp thread. Nothing was created.',
@@ -587,6 +594,18 @@ export const en = {
           assign:           'Assign',
           assignHint:       'The contractor must already have a Groundwork account. They are invited to this project and can accept it themselves.',
           assigned:         '{email} assigned to this project',
+          // The one contractor this project's stage releases go to (101).
+          primary:          'Paid for this project',
+          makePrimary:      'Pay this contractor',
+          primarySet:       'Stage payments for this project will go to this contractor.',
+          payout: {
+            title:     'Payment details on file',
+            none:      'This contractor has not given payment details yet.',
+            verify:    'Mark as checked',
+            verifying: 'Saving\u2026',
+            verified:  'Payment details marked as checked. Releases to this contractor can now be authorised.',
+            hint:      'Check the name and number against what the contractor confirmed before marking them. Only checked details can receive a release.',
+          },
           historyTitle:     'Assignment history',
           historySub:      'When each person joined this project',
           historyEmpty:    'Nobody has been assigned to this project yet.',
@@ -1215,6 +1234,10 @@ export const en = {
         payout_destination_retired:     'retired payout details',
         payout_destination_verified:    'verified payout details',
         contractor_account_claimed:     'claimed their contractor account',
+        // 101 — who this project pays.
+        contractor_primary_set:         'named the contractor this project pays',
+        // 103 — a build that was already under way when it joined.
+        project_joined_in_progress:     'set this project up from a later stage',
         // 091 — conversations, decisions, support links.
         conversation_created:       'opened a conversation',
         conversation_assigned:      'assigned a conversation',
@@ -1380,6 +1403,13 @@ export const en = {
       amount:           'Amount (USD)',
       beneficiary:      'Beneficiary',
       noContractor:     'No accepted contractor on this project \u2014 nobody to release to.',
+      // Why a release cannot be sent yet (101). Each is a reason code the database gives.
+      payout: {
+        no_contractor: 'No contractor is named to be paid for this project.',
+        no_details:    'This contractor has not given their payment details yet. They add them on their own Payment details page.',
+        no_default:    'This contractor has payment details on file but none is set as the one to use.',
+        unverified:    'This contractor\u2019s payment details are on file but have not been checked yet. Check them before releasing.',
+      },
       openReconciliation: 'Open reconciliation',
       reconcileBody:    'Mark this failed disbursement as under investigation. The provider\u2019s next report decides the outcome.',
       releasedBy:       'authorised by {name} \u00b7 {when}',
@@ -2103,6 +2133,59 @@ export const en = {
     failed:     'That did not submit. Check your connection and try again.',
     closed:     'This stage is not open for submissions right now.',
     photoCount: '{n} file(s)',
+  },
+  // Where a contractor is paid (099, 101). Wording rules that apply here: Groundwork
+  // records and governs, a licensed provider holds and moves the money — so nothing on
+  // this screen may say Groundwork holds it. The provider is not named to contractors.
+  contractorPayout: {
+    title:    'Payment details',
+    subtitle: 'Where Groundwork sends your stage payments. Give these once and they are used on every project you are assigned to.',
+    why:      'Collecting this up front means nobody has to ask you for account details over the phone or a message when a payment is due.',
+
+    empty:      'You have not added any payment details yet.',
+    emptyCta:   'Add payment details',
+    addTitle:   'Add payment details',
+    editHint:   'You can add more than one and choose which is used by default.',
+
+    method:      'How do you want to be paid?',
+    mobileMoney: 'Mobile money',
+    bank:        'Bank account',
+    country:     'Country',
+    mobileNo:    'Mobile money number',
+    mobileHint:  'Include the country code, for example +237 6 70 00 00 00.',
+    bankLabel:   'Bank',
+    accountNumber: 'Account number',
+    accountName:   'Name on the account',
+    accountNameHint: 'Exactly as the bank or mobile money account holds it. A mismatch is the most common reason a payment is returned.',
+    makeDefault:   'Use this for my payments',
+
+    add:    'Save payment details',
+    adding: 'Saving…',
+    added:  'Saved. Groundwork will check these before your first payment.',
+    failed: 'Those details did not save.',
+
+    // Validation, before the database has to refuse anything.
+    needMobile:  'Enter your mobile money number, including the country code.',
+    badMobile:   'That does not look like a full number. Start with + and the country code.',
+    needBank:    'Choose the bank.',
+    needAccount: 'Enter the account number.',
+    needName:    'Enter the name on the account.',
+
+    statusUnverified: 'Awaiting check',
+    statusVerified:   'Checked',
+    statusRetired:    'No longer used',
+    isDefault:        'Default',
+    unverifiedNote:   'Groundwork checks new details before the first payment is sent to them. You do not need to do anything.',
+
+    setDefault:   'Use by default',
+    retire:       'Stop using',
+    retireConfirm: 'Stop using these details? Past payments keep their record; nothing new will be sent here.',
+    retiring:     'Updating…',
+
+    // The banner a contractor sees until their details are on file.
+    promptTitle: 'Add your payment details',
+    promptBody:  'Stage payments cannot be sent until Groundwork has an account to send them to.',
+    promptCta:   'Add them now',
   },
 
   verifier: {
@@ -3784,6 +3867,11 @@ export const en = {
       subtitle:       'Join the diaspora builders who never lost track of their money.',
       subtitleInvite: 'Set a password to create your contractor account and accept this project.',
       fullName:       'Full name',
+      // WhatsApp is how Groundwork reaches people about a project, so the number is asked
+      // for up front rather than chased later.
+      phone:          'Phone number',
+      phoneHint:      'Include your country code. Groundwork uses this to reach you on WhatsApp about your projects.',
+      phoneInvalid:   'That does not look like a complete phone number. Start with + and your country code, for example +237 6 70 00 00 00.',
       email:          'Email',
       password:       'Password',
       confirmPassword:'Confirm password',
@@ -4050,6 +4138,21 @@ export const en = {
     s10Selected: "{plan} selected — you can switch any time from your settings.",
     s10CreateProject: "Create Project",
     s10CreateFailed: "Could not create your project. Please try again.",
+    // A build Groundwork joined halfway through (103). Admin-only: only the admin path can
+    // record earlier stages as already built.
+    joined: {
+      question:    'This build is already under way',
+      hint:        'Tick this when a contractor brings a client whose house is already up. The stages already built are recorded as done, with no payment and no verification.',
+      describeLabel: 'What stage is it on? In the contractor\u2019s own words',
+      describePlaceholder: 'e.g. the roof is on, starting the wiring',
+      matched:     'Read as stage {stage}: {name} \u2014 from \u201c{phrase}\u201d',
+      lowConfidence: 'not certain, please check',
+      noMatch:     'That did not match a stage. Choose it below.',
+      ambiguous:   'Several stages are mentioned ({stages}) and the wording does not say which one the build is on now. Choose the current stage below.',
+      stageLabel:  'Start tracking at',
+      stagePlaceholder: 'Choose the stage',
+      effect:      '{n} earlier stage(s) will be marked as already built \u2014 no payment, no verification, no certificate. This client will be asked for {amount}, not the full build cost of {full}.',
+    },
     confirmBudget: {
       title:         'Confirm your budget',
       subtitle:      "This becomes your project budget. Every stage milestone is calculated from it, so use your contractor's figure if you have one.",
@@ -4075,6 +4178,9 @@ export const en = {
     eyebrow:  'Account setup',
     welcome:  'Welcome,',
     body:     "Let's get your account ready. It takes 30 seconds.",
+    phone:        'Phone number',
+    phoneHint:    'Include your country code. Groundwork uses this to reach you on WhatsApp about your project.',
+    phoneInvalid: 'That does not look like a complete phone number. Start with + and your country code, for example +237 6 70 00 00 00.',
     start:    'Get started',
   },
 

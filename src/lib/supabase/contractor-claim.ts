@@ -1,4 +1,6 @@
 import { supabase } from './client';
+import { normalisePhone, isE164 } from '@/lib/phone';
+import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 
 // =========================================================
 // Claiming the contractor account an approved application earned (100).
@@ -43,7 +45,67 @@ export async function claimContractorAccount(token: string): Promise<string> {
   const { data, error } = await supabase
     .rpc('claim_contractor_account', { p_token: token });
   if (error) throw error;
-  return String(data);
+  const applicationId = String(data);
+  // Best effort, and deliberately not awaited into the failure path: the account IS claimed,
+  // and a phone number that did not carry over is a prompt later, never a failed claim.
+  void carryOverApplicationPhone(applicationId);
+  return applicationId;
+}
+
+/**
+ * Put the number from the application onto the new contractor's profile.
+ *
+ * The applicant already gave us this on a nine-section form (`contractor_applications.phone`
+ * is NOT NULL since 026). Asking for it again because it never reached `profiles.phone` is
+ * the kind of thing that makes a platform feel unfinished — and without it the admin's
+ * WhatsApp shortcut refuses `no_phone` for a contractor we have been talking to for weeks.
+ *
+ * ── Why the browser and not the RPC ──────────────────────────────────────────────────
+ * 102 copies it in SQL only when the value needs no country knowledge (already E.164, or a
+ * `00` prefix). Most applicants write theirs the way they say it — `670 00 00 00` — and
+ * placing that needs the dial code AND whether the country uses a trunk prefix, which lives
+ * in `src/lib/phone.ts`. Reimplementing that in plpgsql would be a second rule that drifts.
+ * So SQL takes the unambiguous case and this finishes the rest, where the real normaliser is.
+ *
+ * Never overwrites: a contractor who has already given a number keeps it.
+ */
+export async function carryOverApplicationPhone(applicationId: string): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return;
+
+    const { data: profile } = await supabase
+      .from('profiles').select('phone').eq('id', user.id).maybeSingle();
+    if (profile?.phone) return;
+
+    // RLS (100) lets an applicant read their own application and no other.
+    const { data: app } = await supabase
+      .from('contractor_applications')
+      .select('phone, country')
+      .eq('id', applicationId)
+      .maybeSingle();
+    if (!app?.phone) return;
+
+    const canonical = normalisePhone(String(app.phone), countryCodeOf(app.country as string | null));
+    if (!isE164(canonical)) return;
+
+    await supabase.from('profiles').update({ phone: canonical }).eq('id', user.id);
+  } catch {
+    // Silent on purpose. This runs after a successful claim; nothing it does should be able
+    // to surface as a claim failure.
+  }
+}
+
+/**
+ * The application stores a country NAME ('Cameroon'), which `normalisePhone` cannot use —
+ * it wants an ISO code. Resolved through the country list, falling back to the launch
+ * corridor rather than guessing.
+ */
+function countryCodeOf(name: string | null): string {
+  const n = (name ?? '').trim().toLowerCase();
+  if (!n) return DEFAULT_COUNTRY_CODE;
+  if (/^[a-z]{2}$/.test(n)) return n.toUpperCase();
+  return COUNTRIES.find(c => c.name.toLowerCase() === n)?.code ?? DEFAULT_COUNTRY_CODE;
 }
 
 /**

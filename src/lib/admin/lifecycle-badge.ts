@@ -36,6 +36,9 @@ export const ACCENT_CLASS: Record<Accent, { dot: string; text: string }> = {
 /** The table in 05 §7, one row per derived state. */
 export const LIFECYCLE_META: Record<StageLifecycleState, LifecycleMeta> = {
   locked:                   { labelKey: 'admin.lifecycle.state.locked',                   accent: 'grey' },
+  // GREY, not green. Green is Groundwork saying this went through our process; this stage did
+  // not, and colouring it like an approved one is the visual version of claiming we verified it.
+  pre_existing:             { labelKey: 'admin.lifecycle.state.pre_existing',             accent: 'grey' },
   in_progress:              { labelKey: 'admin.lifecycle.state.in_progress',              accent: 'neutral' },
   evidence_submitted:       { labelKey: 'admin.lifecycle.state.evidence_submitted',       accent: 'neutral' },
   verification_pending:     { labelKey: 'admin.lifecycle.state.verification_pending',     accent: 'amber' },

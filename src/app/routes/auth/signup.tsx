@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
+import { normalisePhone, isE164 } from "@/lib/phone";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH } from "@/lib/auth/signup-account";
 
@@ -24,6 +26,7 @@ export default function Signup() {
   const t              = useT();
 
   const [fullName,        setFullName]        = useState("");
+  const [phone,           setPhone]           = useState("");
   const [email,           setEmail]           = useState(inviteEmail);
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -85,6 +88,15 @@ export default function Signup() {
       return;
     }
 
+    // Normalised here, where the typed value still is. A number that cannot be placed is
+    // refused now rather than stored as provider-ready data that is not — `handle_new_user`
+    // would drop it silently and the person would believe we had it.
+    const canonicalPhone = normalisePhone(phone, DEFAULT_COUNTRY_CODE);
+    if (!isE164(canonicalPhone)) {
+      setError(t('auth.signup.phoneInvalid'));
+      return;
+    }
+
     // Persist invite token across the email-confirmation tab switch
     if (inviteToken) {
       localStorage.setItem("pendingInvite", inviteToken);
@@ -95,7 +107,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        data: signupMetadata(fullName),
+        data: signupMetadata(fullName, canonicalPhone),
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -225,6 +237,24 @@ export default function Signup() {
             onChange={(e) => setFullName(e.target.value)}
             required
           />
+        </div>
+
+        {/* How Groundwork reaches them on WhatsApp — the channel the product actually uses
+            to tell a contractor, verifier or client that something needs them. Stored
+            canonical or not at all (102). */}
+        <div className="space-y-1.5">
+          <Label htmlFor="phone">{t('auth.signup.phone')}</Label>
+          <Input
+            id="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+237 6 70 00 00 00"
+            value={phone}
+            onChange={(e) => { setPhone(e.target.value); setError(null); }}
+            required
+          />
+          <p className="text-xs text-brand-mid-grey">{t('auth.signup.phoneHint')}</p>
         </div>
 
         <div className="space-y-1.5">

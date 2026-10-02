@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { FileUp, Loader2, Check } from 'lucide-react';
@@ -8,10 +8,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { createProject } from '@/lib/supabase/projects';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
-import { startProjectTracking, adminStartProjectTracking } from '@/lib/supabase/tracking';
+import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
+import { stageFromDescription, STAGE_KEYS } from '@/lib/projects/stage-from-description';
+import { joinedBudget } from '@/lib/budget/joined-project';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
-import { useFormat, useT } from '@/lib/i18n';
+import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 
@@ -41,8 +43,41 @@ export default function Step11ConfirmBudget() {
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
+  // ── A build that was already under way (103) ──────────────────────────────────────
+  // Admin-only, because only the admin path can mark stages as already built. A partner
+  // contractor bringing a half-finished house describes it in their own words; the stage is
+  // proposed from that and the admin confirms or overrides it. Nothing is applied from the
+  // guess alone — the consequence of being wrong is a real stage marked done that nobody
+  // built, or a client billed again for a floor they paid for last year.
+  const [alreadyStarted, setAlreadyStarted] = useState(false);
+  const [described, setDescribed] = useState('');
+  const [stageOverride, setStageOverride] = useState<number | null>(null);
+
+  // The stage schedule's own names, by number. `useStageLabels` wants a stage ROW; here there
+  // is no project yet, only a position on the scale.
+  const stageLabel = (n: number) => t(`stages.${STAGE_KEYS[n - 1]}` as TKey);
+
+  const guess = useMemo(() => stageFromDescription(described), [described]);
+  const startStage = alreadyStarted ? (stageOverride ?? guess.stageNumber ?? null) : 1;
+
   const finalBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
-  const canSubmit   = finalBudget > 0 && !busy;
+
+  // What the client will actually be asked for. Recomputed from the confirmed total, so an
+  // admin who edits the budget sees the joined figure follow.
+  const joined = useMemo(() => {
+    if (!onBehalfOf || !startStage || startStage <= 1 || finalBudget <= 0) return null;
+    const fullBreakdown = decomposeBudget(finalBudget, {
+      builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
+      floors:       data.floors ?? 1,
+    });
+    return joinedBudget(fullBreakdown, startStage);
+  }, [onBehalfOf, startStage, finalBudget, data.sqm, data.floors]);
+
+  // An admin who says the build is under way must land on a stage before continuing. A
+  // description nothing matched leaves `startStage` null, and that is the case the select
+  // below exists for.
+  const stageDecided = !alreadyStarted || (startStage !== null && startStage >= 1);
+  const canSubmit   = finalBudget > 0 && !busy && stageDecided;
 
   async function handleCreate() {
     if (!user || !canSubmit) return;
@@ -72,7 +107,11 @@ export default function Step11ConfirmBudget() {
         builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
         floors:       data.floors ?? 1,
       });
-      if (onBehalfOf) {
+      if (onBehalfOf && joined) {
+        // Joining a build in progress: the earlier stages are recorded as already built and
+        // the client is billed only for what is left (103).
+        await adminStartProjectAtStage(project.id, joined, ownerId, project.name, described);
+      } else if (onBehalfOf) {
         await adminStartProjectTracking(project.id, confirmed, ownerId, project.name);
       } else {
         await startProjectTracking(project.id, confirmed);
@@ -152,6 +191,90 @@ export default function Step11ConfirmBudget() {
             <span className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.estimateLabel')}</span>
             <span className="text-sm font-semibold text-brand-near-black figure">{f.money(estimate)}</span>
           </div>
+
+          {onBehalfOf && (
+            <div className="rounded-xl border border-brand-border-grey px-4 py-3">
+              <label className="flex items-start gap-2.5">
+                <input
+                  type="checkbox" checked={alreadyStarted}
+                  onChange={e => { setAlreadyStarted(e.target.checked); setStageOverride(null); }}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-brand-near-black">
+                    {t('wizard.joined.question')}
+                  </span>
+                  <span className="block text-xs text-brand-mid-grey">{t('wizard.joined.hint')}</span>
+                </span>
+              </label>
+
+              {alreadyStarted && (
+                <div className="mt-3 space-y-2.5 border-t border-brand-border-grey pt-3">
+                  <label className="block">
+                    <span className="text-xs font-medium text-brand-near-black">{t('wizard.joined.describeLabel')}</span>
+                    <input
+                      type="text" value={described}
+                      onChange={e => { setDescribed(e.target.value); setStageOverride(null); }}
+                      placeholder={t('wizard.joined.describePlaceholder')}
+                      className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                    />
+                  </label>
+
+                  {/* What the words were read as, and on what evidence. The admin sees the
+                      reasoning so they can disagree with it. */}
+                  {guess.stageNumber && !stageOverride && (
+                    <p className="text-xs text-brand-mid-grey">
+                      {t('wizard.joined.matched', {
+                        stage: String(guess.stageNumber),
+                        name: stageLabel(guess.stageNumber),
+                        phrase: guess.matched ?? '',
+                      })}
+                      {guess.confidence === 'medium' && ` \u00b7 ${t('wizard.joined.lowConfidence')}`}
+                    </p>
+                  )}
+                  {/* Two different failures, told apart. "Several stages mentioned" is the
+                      common one and is not an error in the typing — it means the sentence does
+                      not say which is current, so the admin says. */}
+                  {described.trim() && guess.confidence === 'ambiguous' && (
+                    <p className="text-xs text-brand-mid-grey">
+                      {t('wizard.joined.ambiguous', {
+                        stages: guess.alsoMatched.map(a => `${a.stageNumber}. ${stageLabel(a.stageNumber)}`).join(', '),
+                      })}
+                    </p>
+                  )}
+                  {described.trim() && guess.confidence === 'none' && (
+                    <p className="text-xs text-state-alert">{t('wizard.joined.noMatch')}</p>
+                  )}
+
+                  <label className="block">
+                    <span className="text-xs font-medium text-brand-near-black">{t('wizard.joined.stageLabel')}</span>
+                    <select
+                      value={startStage ?? ''}
+                      onChange={e => setStageOverride(e.target.value ? Number(e.target.value) : null)}
+                      className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+                    >
+                      <option value="">{t('wizard.joined.stagePlaceholder')}</option>
+                      {/* The final stage is absent: a project cannot join at its own
+                          handover, and 103 refuses it. */}
+                      {STAGE_KEYS.slice(0, -1).map((_, i) => (
+                        <option key={i} value={i + 1}>{i + 1}. {stageLabel(i + 1)}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {joined && (
+                    <p className="rounded-lg bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey">
+                      {t('wizard.joined.effect', {
+                        n: String(joined.skipped.length),
+                        amount: f.money(joined.total),
+                        full: f.money(joined.fullTotal),
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* The figure that becomes the project budget */}
           <div className="space-y-1.5">

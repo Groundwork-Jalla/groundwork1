@@ -1,13 +1,26 @@
 import { ghlConfig, ensureConversation, upsertContact } from '../ghl/_client.js';
 import { normalisePhone } from '../ghl/_phone.js';
 import { accessToken } from '../ghl/_oauth.js';
-import { resolveWhatsAppThread, isDeliverablePhone, type WhatsAppRow } from '../../src/lib/admin/whatsapp-shortcut.js';
+import { resolveWhatsAppThread, resolveRecipient, isDeliverablePhone,
+         type WhatsAppRow, type RecipientRole, type RecipientContractor, type RecipientVerifier } from '../../src/lib/admin/whatsapp-shortcut.js';
 
 /**
- * "Message this project's client on WhatsApp" — resolve the thread, establish it if there
+ * "Message someone on this project on WhatsApp" — resolve the thread, establish it if there
  * is none, and hand back its id for the Inbox to open.
  *
- * ── One client, one chat ─────────────────────────────────────────────────────────────
+ * ── Three kinds of person, one mechanism ─────────────────────────────────────────────
+ * `recipient` is `client` (the default, and the original behaviour), `contractor` or
+ * `verifier`. Nothing below the resolution changes for any of them, because a conversation
+ * is keyed on the PERSON (091) and never on a role — so widening this was a question of
+ * deciding WHO, not of a second code path.
+ *
+ * A role held by several people is not resolved here: `contractor` falls back to the primary
+ * (101), since that is already the project's designated point of contact, but two verifiers
+ * of different disciplines are two different people doing two different checks, and picking
+ * one would send a project's details to whichever sorted first. That answers `choose_person`
+ * with the candidates and lets the admin say.
+ *
+ * ── One person, one chat ─────────────────────────────────────────────────────────────
  * The conversation belongs to the PERSON. The project is only where the admin happened
  * to click, so this endpoint never writes `conversations.project_id` — not to set it, not
  * to move it. A thread already linked to another project is opened as it is. Linking a
@@ -65,20 +78,61 @@ export async function handler(req: any, res: any) {
 
   const svc = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  // ── Who the client is. `projects.user_id` and nothing else ─────────────────────────
-  // Never a name, never a contractor or verifier on the project, never the conversation
-  // store looked at the other way round.
+  // ── Who on this project is being messaged ──────────────────────────────────────────
+  // `client` keeps the original behaviour and is the default, so every existing caller is
+  // unchanged. `contractor` and `verifier` resolve through the project's assignments — the
+  // conversation store is still keyed on the PERSON (091), so nothing downstream changes.
+  const role: RecipientRole =
+    req.body?.recipient === 'contractor' ? 'contractor'
+    : req.body?.recipient === 'verifier' ? 'verifier'
+    : 'client';
+  const askedFor = typeof req.body?.personId === 'string' ? req.body.personId : null;
+
   const { data: project, error: projErr } = await svc
     .from('projects').select('id, user_id').eq('id', projectId).maybeSingle();
   if (projErr || !project) {
     res.status(404).json({ error: 'No such project' });
     return;
   }
-  const personId = (project.user_id as string | null) ?? null;
-  if (!personId) {
-    res.status(200).json({ ok: false, reason: 'no_client' });
+
+  // Only what the chosen role needs. A client-only call does not read the assignment tables.
+  let contractors: RecipientContractor[] = [];
+  let verifiers: RecipientVerifier[] = [];
+  if (role === 'contractor') {
+    const { data } = await svc.from('contractor_invites')
+      .select('contractor_user_id, is_primary')
+      .eq('project_id', projectId).eq('status', 'accepted');
+    contractors = ((data ?? []) as Record<string, unknown>[])
+      .filter(r => r.contractor_user_id)
+      .map(r => ({ userId: String(r.contractor_user_id), isPrimary: r.is_primary === true }));
+  }
+  if (role === 'verifier') {
+    const { data } = await svc.from('project_verifiers')
+      .select('user_id, discipline')
+      .eq('project_id', projectId).eq('status', 'active');
+    verifiers = ((data ?? []) as Record<string, unknown>[])
+      .map(r => ({ userId: String(r.user_id), discipline: String(r.discipline ?? '') }));
+  }
+
+  const who = resolveRecipient(role, {
+    clientId: (project.user_id as string | null) ?? null,
+    contractors, verifiers,
+  }, askedFor);
+
+  if (who.kind === 'none') {
+    // One reason code per role, so the admin is told who is missing rather than "no client"
+    // for a project that has one.
+    res.status(200).json({ ok: false, reason: role === 'client' ? 'no_client'
+      : role === 'contractor' ? 'no_contractor' : 'no_verifier' });
     return;
   }
+  if (who.kind === 'choose') {
+    // Several people hold that role. Picking one here would send a project's details to
+    // whichever happened to sort first.
+    res.status(200).json({ ok: false, reason: 'choose_person', candidates: who.candidates, role: who.role });
+    return;
+  }
+  const personId = who.personId;
 
   const { data: profile } = await svc
     .from('profiles').select('id, email, full_name, phone, country, ghl_contact_id')

@@ -33,6 +33,16 @@ import type { Payment } from '@/lib/supabase/payments';
 
 export type StageLifecycleState =
   | 'locked'
+  /**
+   * Built before the project joined Groundwork (103). Complete, but never approved by us,
+   * never verified by us and never funded through us.
+   *
+   * It is its own state and not `completed` because every payment surface asks this derivation
+   * what a stage is: a pre-existing stage has no milestone, and `project_stages.payment_status`
+   * — 090's legacy projection — reads `paid` for anything with no milestone. Left as
+   * `completed`, a screen reading that column would say money moved. Nothing moved.
+   */
+  | 'pre_existing'
   | 'in_progress'
   | 'evidence_submitted'
   | 'verification_pending'
@@ -57,7 +67,7 @@ export interface StageLifecycle {
   blockers: StageBlocker[];
 }
 
-type StageInput   = Pick<ProjectStageRow, 'id' | 'status' | 'stage_number'> & { verification_required?: boolean | null; payment_milestone_usd?: number | null };
+type StageInput   = Pick<ProjectStageRow, 'id' | 'status' | 'stage_number'> & { verification_required?: boolean | null; payment_milestone_usd?: number | null; pre_existing?: boolean | null };
 type LedgerRow    = Pick<Payment, 'stageId' | 'direction' | 'state' | 'amount' | 'createdAt'>;
 
 /** Funds the project can still release: funded − every live out row (authorised, initiated, disbursed, reconciling). */
@@ -98,6 +108,11 @@ export function stageLifecycle(
 
   const required = stage.verification_required === true;
   const v = latest(verifications, stage.id);
+
+  // Answered before anything else. A pre-existing stage has no verification to read, no
+  // milestone to compare and no ledger row to interpret, so every branch below would be
+  // reasoning about absences.
+  if (stage.pre_existing === true) return { state: 'pre_existing', blockers };
 
   let state: StageLifecycleState;
 
@@ -183,4 +198,7 @@ export const STATE_SEVERITY: Record<StageLifecycleState, number> = {
   disbursed: 11,
   locked: 12,
   completed: 13,
+  // Nothing is owed and nothing is outstanding, so it sorts with the settled states. Last,
+  // because it is the state that needs the least attention of any.
+  pre_existing: 14,
 };

@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { HardHat, Loader2, ShieldCheck, UserRound } from 'lucide-react';
+import { HardHat, Landmark, Loader2, ShieldCheck, Star, UserRound } from 'lucide-react';
 import type { Workspace } from '@/lib/admin/workspace';
 import { assignContractor } from '@/lib/supabase/verifiers';
+import { setPrimaryContractor } from '@/lib/supabase/payout-destinations';
 import { AssignVerifierModal } from '@/components/admin/team/AssignVerifierModal';
+import { ContractorPayoutCheck } from '@/components/admin/team/ContractorPayoutCheck';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
@@ -30,6 +32,7 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
 }) {
   const t = useT();
   const { owner, contractors, verifiers } = ws.team;
+  const primary = contractors.find(c => c.is_primary) ?? null;
   const [assigning, setAssigning] = useState(false);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,6 +48,24 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
       await assignContractor(ws.project.id, address);
       setAssigning(false); setEmail('');
       onNotice(t('admin.workspace.team.assigned', { email: address }));
+      onChanged();
+    } catch (err) {
+      setError(errorMessage(err, t('common.somethingWrong')));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Name the contractor this project's stage releases go to. Oversight, not execution: the
+   * admin says who is paid, and `authorise_release` still refuses if that person has no
+   * checked account on file.
+   */
+  async function makePrimary(inviteId: string) {
+    setBusy(true); setError(null);
+    try {
+      await setPrimaryContractor(inviteId);
+      onNotice(t('admin.workspace.team.primarySet'));
       onChanged();
     } catch (err) {
       setError(errorMessage(err, t('common.somethingWrong')));
@@ -105,7 +126,7 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
           {contractors.length === 0 ? (
             <span className="text-brand-mid-grey">{t('admin.workspace.team.noContractor')}</span>
           ) : (
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {contractors.map(c => (
                 <li key={c.id} className="text-brand-near-black dark:text-white">
                   {c.name}
@@ -113,11 +134,37 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
                     {' · '}{t(`admin.workspace.team.inviteStatus.${c.status}` as TKey)}
                     {c.accepted_at && ` · ${formatRelative(c.accepted_at)}`}
                   </span>
+                  {c.is_primary ? (
+                    <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-brand-off-white px-1.5 py-0.5 text-[10px] font-semibold text-brand-mid-grey dark:bg-[#252525]">
+                      <Star className="size-2.5" aria-hidden />{t('admin.workspace.team.primary')}
+                    </span>
+                  ) : (
+                    // Only an accepted assignment whose holder has an account can be paid;
+                    // 101 refuses the rest, so the control is not offered for them.
+                    c.status === 'accepted' && c.contractor_user_id && (
+                      <button
+                        type="button" disabled={busy}
+                        onClick={() => void makePrimary(c.id)}
+                        className="ml-1.5 text-[11px] font-semibold text-brand-mid-grey underline underline-offset-2 disabled:opacity-40"
+                      >
+                        {t('admin.workspace.team.makePrimary')}
+                      </button>
+                    )
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </Row>
+
+        {/* Where the contractor this project pays actually gets the money, and the staff
+            check that makes a release possible. Only for the primary — the others are
+            assigned to work, not to be paid for this project. */}
+        {primary?.contractor_user_id && (
+          <Row icon={<Landmark className="size-3.5" />} label={t('admin.workspace.team.payout.title')}>
+            <ContractorPayoutCheck contractorUserId={primary.contractor_user_id} onNotice={onNotice} />
+          </Row>
+        )}
 
         <Row icon={<ShieldCheck className="size-3.5" />} label={t('admin.workspace.team.verifiers')}>
           {!available ? (

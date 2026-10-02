@@ -38,6 +38,14 @@ export interface StageActionContext {
   verificationsAvailable: boolean;
   /** 090 applied (the ledger could be read). */
   ledgerAvailable: boolean;
+  /**
+   * Why the primary contractor cannot be paid yet (101), or null when they can.
+   *
+   * `undefined` means not looked up — the release stays offered and `authorise_release`
+   * answers, which is this table's rule for anything it cannot see. Distinguishing that
+   * from `null` matters: a missing lookup must not read as "cleared to send".
+   */
+  payoutBlocker?: 'no_contractor' | 'no_details' | 'no_default' | 'unverified' | null;
 }
 
 export interface StageAction {
@@ -103,6 +111,10 @@ export function stageActions(view: StageView, ctx: StageActionContext): StageAct
     !(stage.status === 'complete' && milestone > 0 && !liveRelease) ? off('authorise_release')
     : !ctx.ledgerAvailable ? held('authorise_release', 'admin.ledger.unavailable')
     : ctx.contractors === 0 ? held('authorise_release', 'admin.ledger.noContractor')
+    // 101: authorising with nowhere to send it would create a row that says money is owed
+    // and cannot say where it goes. The database refuses it; saying so here means an admin
+    // reads the reason before clicking rather than after.
+    : ctx.payoutBlocker ? held('authorise_release', `admin.ledger.payout.${ctx.payoutBlocker}` as TKey)
     : onHold ? held('authorise_release', 'admin.ledger.refusal.on_hold')
     : state === 'payment_eligible' ? on('authorise_release')
     : lifecycle.blockers.includes('awaiting_funding') ? held('authorise_release', 'admin.ledger.refusal.insufficient_funds')

@@ -28,11 +28,24 @@ export function signupAccountType(params: URLSearchParams): SignupAccountType {
 /**
  * Everything stored on the new account.
  *
- * A name. Deliberately nothing else: any role-shaped key here would be a value the
- * browser chose, and no trigger, policy or view may ever read one.
+ * A name, and a phone number when one was given. Deliberately nothing else: any
+ * role-shaped key here would be a value the browser chose, and no trigger, policy or view
+ * may ever read one.
+ *
+ * ── Why a phone number is not the same risk ──────────────────────────────────────────
+ * The warning above is about PRIVILEGE. A phone number confers none: the worst a liar
+ * achieves is their own profile carrying somebody else's number, which is exactly what
+ * `/profile` has always allowed any signed-in person to do. It is a contact detail the
+ * account holder asserts about themselves, and `handle_new_user` (102) stores it only when
+ * it is already E.164 — an unusable number is dropped rather than kept as one that looks
+ * reachable.
+ *
+ * Normalisation happens at the call site, with `normalisePhone` and the country in hand.
+ * This function does not clean up its input; it passes on what it was given or omits it.
  */
-export function signupMetadata(fullName: string): { full_name: string } {
-  return { full_name: fullName };
+export function signupMetadata(fullName: string, phone?: string | null): { full_name: string; phone?: string } {
+  const p = (phone ?? '').trim();
+  return p ? { full_name: fullName, phone: p } : { full_name: fullName };
 }
 
 /**

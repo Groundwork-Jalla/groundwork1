@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, ClipboardList, Wallet, FileText, Upload, UserRound } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, ClipboardList, Wallet, FileText, Upload, UserRound, Landmark } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
@@ -9,6 +9,7 @@ const links: PortalLink[] = [
   { to: '/work#evidence', label: 'contractorDashboard.evidence', icon: Upload },
   { to: '/work#documents', label: 'contractorProject.tabDocuments', icon: FileText },
   { to: '/work#payments', label: 'contractorProject.tabPayments', icon: Wallet },
+  { to: '/work/payouts', label: 'contractorPayout.title', icon: Landmark },
   { to: '/profile', label: 'nav.viewProfile', icon: UserRound },
 ];
 

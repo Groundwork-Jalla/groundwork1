@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
-import { openClientWhatsApp } from '@/lib/supabase/project-whatsapp';
+import { ArrowLeft, ChevronDown, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
+import { openProjectWhatsApp } from '@/lib/supabase/project-whatsapp';
 import { ensureProjectConversation } from '@/lib/supabase/conversations';
 import { workspaceHref } from '@/lib/admin/workspace-params';
-import { inboxHref } from '@/lib/admin/whatsapp-shortcut';
+import { inboxHref, type RecipientRole } from '@/lib/admin/whatsapp-shortcut';
 import type { Workspace } from '@/lib/admin/workspace';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { AssignVerifierModal } from '@/components/admin/team/AssignVerifierModal';
@@ -59,6 +59,8 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
   const { stageLabel } = useStageLabels();
   const [assignVerifier, setAssignVerifier] = useState(false);
   const [waBusy, setWaBusy] = useState(false);
+  const [waMenu, setWaMenu] = useState(false);
+  const [waChoice, setWaChoice] = useState<{ role: RecipientRole; candidates: string[] } | null>(null);
   const [jallaBusy, setJallaBusy] = useState(false);
   const navigate = useNavigate();
 
@@ -95,11 +97,23 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
     }
   }
 
-  async function whatsapp() {
+  /**
+   * Message the client, the project's contractor, or one of its verifiers.
+   *
+   * A role held by several people comes back as `choose_person` with the candidates rather
+   * than a guess, and the menu turns into that list. Resolving it here rather than in the
+   * server keeps the decision with the person who knows which professional they meant.
+   */
+  async function whatsapp(role: RecipientRole, personId?: string) {
     setWaBusy(true);
     try {
-      const r = await openClientWhatsApp(p.id);
-      if (r.ok) { navigate(inboxHref(r.conversationId)); return; }
+      const r = await openProjectWhatsApp(p.id, role, personId);
+      if (r.ok) { setWaMenu(false); setWaChoice(null); navigate(inboxHref(r.conversationId)); return; }
+      if (r.reason === 'choose_person') {
+        setWaChoice({ role, candidates: r.candidates ?? [] });
+        return;
+      }
+      setWaMenu(false); setWaChoice(null);
       onNotice(t(`admin.workspace.header.whatsappFail.${r.reason}` as TKey));
     } catch {
       onNotice(t('admin.workspace.header.whatsappFail.error'));
@@ -107,6 +121,18 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
       setWaBusy(false);
     }
   }
+
+  /** Names for the candidate list, from the team the workspace already loaded. */
+  function personLabel(id: string): string {
+    const c = ws.team.contractors.find(x => x.contractor_user_id === id);
+    if (c) return c.name || c.email;
+    const v = ws.team.verifiers.find(x => x.userId === id);
+    if (v) return v.discipline ? `${v.name || v.email} · ${v.discipline}` : (v.name || v.email);
+    return t('admin.workspace.header.unknownAccount');
+  }
+
+  const waContractors = ws.team.contractors.filter(c => c.status === 'accepted' && c.contractor_user_id).length;
+  const waVerifiers   = ws.team.verifiers.filter(v => v.status === 'active').length;
   const [verifierAvailable, setVerifierAvailable] = useState(ws.available.verifiers);
 
   const p = ws.project;
@@ -187,15 +213,61 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
             {t('admin.jalla.message')}
           </button>
           {/* WhatsApp keeps its colour here as everywhere else in Groundwork. */}
-          <button
-            type="button"
-            onClick={whatsapp}
-            disabled={waBusy}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#25d366]/40 px-3 py-2 text-xs font-medium text-[#1a8d45] transition-colors hover:border-[#25d366] disabled:opacity-60 dark:text-[#25d366]"
-          >
-            {waBusy ? <Loader2 className="size-3.5 animate-spin" /> : <MessageCircle className="size-3.5" />}
-            {t('admin.workspace.header.whatsapp')}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setWaMenu(o => !o); setWaChoice(null); }}
+              disabled={waBusy}
+              aria-expanded={waMenu}
+              aria-haspopup="menu"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#25d366]/40 px-3 py-2 text-xs font-medium text-[#1a8d45] transition-colors hover:border-[#25d366] disabled:opacity-60 dark:text-[#25d366]"
+            >
+              {waBusy ? <Loader2 className="size-3.5 animate-spin" /> : <MessageCircle className="size-3.5" />}
+              {t('admin.workspace.header.whatsapp')}
+              <ChevronDown className="size-3" aria-hidden />
+            </button>
+
+            {waMenu && (
+              <div
+                role="menu"
+                className="absolute right-0 z-20 mt-1 w-60 overflow-hidden rounded-xl border border-brand-border-grey bg-white shadow-lg dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+              >
+                {waChoice ? (
+                  <>
+                    <p className="border-b border-brand-border-grey px-3 py-2 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
+                      {t('admin.workspace.header.whatsappWho')}
+                    </p>
+                    {waChoice.candidates.map(id => (
+                      <button
+                        key={id} type="button" role="menuitem" disabled={waBusy}
+                        onClick={() => void whatsapp(waChoice.role, id)}
+                        className="block w-full truncate px-3 py-2 text-left text-xs text-brand-near-black hover:bg-brand-off-white disabled:opacity-50 dark:text-white dark:hover:bg-[#252525]"
+                      >
+                        {personLabel(id)}
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {/* Disabled rather than hidden: "no verifier is assigned yet" is
+                        information, and a menu that changes shape per project is harder to
+                        learn than one that greys a row out. */}
+                    <MenuRow label={t('admin.workspace.team.client')} onClick={() => void whatsapp('client')} disabled={waBusy} />
+                    <MenuRow
+                      label={t('admin.workspace.team.contractors')}
+                      hint={waContractors === 0 ? t('admin.workspace.team.noContractor') : undefined}
+                      onClick={() => void whatsapp('contractor')} disabled={waBusy || waContractors === 0}
+                    />
+                    <MenuRow
+                      label={t('admin.workspace.team.verifiers')}
+                      hint={waVerifiers === 0 ? t('admin.workspace.team.noVerifier') : undefined}
+                      onClick={() => void whatsapp('verifier')} disabled={waBusy || waVerifiers === 0}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <a
             href={`/projects/${p.id}`}
             target="_blank"
@@ -226,5 +298,20 @@ function Fact({ label, value, title }: { label: string; value: string; title?: s
       <dt className="text-brand-muted-grey">{label}</dt>
       <dd className="font-medium text-brand-near-black dark:text-white" title={title}>{value}</dd>
     </div>
+  );
+}
+
+/** One line in the WhatsApp recipient menu. A hint explains a disabled row. */
+function MenuRow({ label, hint, onClick, disabled }: {
+  label: string; hint?: string; onClick: () => void; disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button" role="menuitem" onClick={onClick} disabled={disabled}
+      className="block w-full px-3 py-2 text-left hover:bg-brand-off-white disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#252525]"
+    >
+      <span className="block text-xs font-medium text-brand-near-black dark:text-white">{label}</span>
+      {hint && <span className="block text-[11px] text-brand-mid-grey">{hint}</span>}
+    </button>
   );
 }

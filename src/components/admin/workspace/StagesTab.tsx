@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import type { LoadedWorkspace } from '@/lib/supabase/workspace';
@@ -8,6 +8,7 @@ import { stageActions, type StageAction, type StageActionKind } from '@/lib/admi
 import { BLOCKER_LABEL } from '@/lib/admin/lifecycle-badge';
 import { requestVerification, recordVerification, type VerificationDecision } from '@/lib/supabase/verifications';
 import { adminApproveStage, adminRequestRework } from '@/lib/supabase/approvals';
+import { fetchPayoutBlocker, type PayoutBlocker } from '@/lib/supabase/payout-destinations';
 import { LedgerModal, type Contractor, type LedgerModalState, type StageRef } from '@/components/admin/ledger/LedgerModal';
 import { RecordVerificationModal } from '@/components/admin/stages/RecordVerificationModal';
 import { ReworkModal } from '@/components/admin/stages/ReworkModal';
@@ -87,11 +88,27 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
   const contractors: Contractor[] = ws.team.contractors
     .filter(c => c.status === 'accepted' && c.contractor_user_id)
     .map(c => ({ userId: c.contractor_user_id as string, email: c.email }));
+
+  // Whether the contractor this project pays has somewhere the money can go (101).
+  // `undefined` until the answer arrives, which stage-actions reads as "not looked up" and
+  // leaves the release to the database — a pending lookup must not read as cleared.
+  const [payoutBlocker, setPayoutBlocker] = useState<PayoutBlocker | undefined>(undefined);
+  const primary = ws.team.contractors.find(c => c.is_primary)?.contractor_user_id ?? null;
+  useEffect(() => {
+    let alive = true;
+    if (!primary) { setPayoutBlocker(contractors.length === 0 ? undefined : 'no_contractor'); return; }
+    fetchPayoutBlocker(primary)
+      .then(b => { if (alive) setPayoutBlocker(b); })
+      .catch(() => { if (alive) setPayoutBlocker(undefined); });
+    return () => { alive = false; };
+  }, [primary, contractors.length]);
+
   const actions = stageActions(view, {
     activeVerifiers: activeVerifiers.length,
     contractors: contractors.length,
     verificationsAvailable: ws.available.verifications,
     ledgerAvailable: ws.available.ledger,
+    payoutBlocker,
   });
   const action = (k: StageActionKind) => actions.find(a => a.kind === k) as StageAction;
 

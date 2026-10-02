@@ -138,6 +138,8 @@ export function ContractorInvite({ projectId, userId, projectName, projectTier }
       email: trimmed.toLowerCase(),
       role: 'contractor',
       status: 'pending',
+      // A new invite is never the one that gets paid; an admin names that (101).
+      is_primary: false,
       accepted_at: null,
       created_at: new Date().toISOString(),
       token: '',
