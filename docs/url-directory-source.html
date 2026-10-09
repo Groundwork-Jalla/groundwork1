@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Groundwork URL Directory</title>
+<style>
+  /* ── Tokens ──
+     Warm greys biased toward the clay accent so the neutrals read as chosen, not
+     inherited. White paper: this is printed and read next to a screen. */
+  :root {
+    --ink:       #14110f;
+    --ink-soft:  #4a443e;
+    --muted:     #7a736b;
+    --rule:      #e4ded6;
+    --rule-firm: #c9c1b6;
+    --clay:      #8c4a2f;
+    --live:      #2f6b4f;
+    --wash:      #faf8f5;
+  }
+
+  @page { size: A4; margin: 17mm 15mm 16mm; }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    margin: 0;
+    font-family: "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 9.4pt;
+    line-height: 1.52;
+    color: var(--ink);
+    background: #fff;
+  }
+
+  /* ── Masthead ── */
+  .masthead { border-bottom: 1.5pt solid var(--ink); padding-bottom: 7mm; margin-bottom: 7mm; }
+  .eyebrow {
+    font-size: 7pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--clay); margin: 0 0 2.5mm;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 23pt; line-height: 1.1; font-weight: 700;
+    margin: 0 0 3mm; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .byline { font-size: 8pt; color: var(--muted); margin: 0; }
+
+  /* ── The standing instruction, set apart because everything else depends on it ── */
+  .banner {
+    border-left: 2.5pt solid var(--clay);
+    background: var(--wash);
+    padding: 4mm 5mm;
+    margin: 0 0 6mm;
+    font-size: 9pt;
+  }
+  .banner p { margin: 0 0 2mm; }
+  .banner p:last-child { margin: 0; }
+
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 14pt; font-weight: 700; margin: 9mm 0 1.5mm;
+    padding-bottom: 1.5mm; border-bottom: .75pt solid var(--rule-firm);
+    break-after: avoid;
+  }
+  h2:first-of-type { margin-top: 0; }
+  h3 {
+    font-size: 8pt; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--clay); margin: 6mm 0 2mm; break-after: avoid;
+  }
+  p { margin: 0 0 3mm; }
+  .lede { font-size: 9.8pt; color: var(--ink-soft); }
+
+  code, .u {
+    font-family: "JetBrains Mono", "DejaVu Sans Mono", Consolas, monospace;
+    font-size: 8.3pt;
+    /* Break inside a URL only when it genuinely will not fit. `break-all` split short
+       inline paths mid-word ("/contractor-appl y") even with room on the next line. */
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  .u { color: var(--ink); }
+  /* The host repeats on every row; de-emphasising it lets the path carry the scan. */
+  .host { color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 8.7pt; }
+  caption {
+    caption-side: top; text-align: left; font-size: 8pt; color: var(--muted);
+    padding-bottom: 1.5mm;
+  }
+  th {
+    text-align: left; font-size: 7.2pt; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+    border-bottom: .75pt solid var(--rule-firm); padding: 0 3mm 1.5mm 0;
+  }
+  td { padding: 1.9mm 3mm 1.9mm 0; border-bottom: .5pt solid var(--rule); vertical-align: top; }
+  th:last-child, td:last-child { padding-right: 0; }
+  tr { break-inside: avoid; }
+  .col-url { width: 45%; }
+  .col-who { width: 24%; }
+  .door td { background: #fdf6f2; }
+  .door .u { font-weight: 700; }
+
+  /* The comparison table reads column-wise, so its header needs weight. */
+  .compare th { font-size: 8.4pt; text-transform: none; letter-spacing: 0; color: var(--ink); }
+  .compare td:first-child { color: var(--muted); width: 22%; }
+  .compare th:first-child { width: 22%; }
+
+  ol.steps { margin: 0 0 4mm; padding: 0; list-style: none; counter-reset: s; }
+  ol.steps li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 7mm 1fr;
+    column-gap: 2mm;
+    margin-bottom: 2.2mm;
+  }
+  ol.steps li::before {
+    content: counter(s);
+    grid-column: 1; grid-row: 1;
+    font-family: Georgia, serif; font-size: 10pt; font-weight: 700; color: var(--clay);
+    line-height: 1.4;
+  }
+  ol.steps li > span { grid-column: 2; grid-row: 1; }
+
+  ul.plain { margin: 0 0 4mm; padding-left: 4.5mm; }
+  ul.plain li { margin-bottom: 1.2mm; }
+
+  .tag {
+    display: inline-block; font-size: 6.8pt; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; padding: .5mm 1.6mm; border-radius: 1mm; vertical-align: 1.5px;
+  }
+  .tag-live { background: #e6f0ea; color: var(--live); }
+  .tag-none { background: #f0ece7; color: var(--muted); }
+
+  .note { font-size: 8.4pt; color: var(--muted); margin: 0 0 3mm; }
+  footer {
+    margin-top: 9mm; padding-top: 3mm; border-top: .5pt solid var(--rule);
+    font-size: 7.4pt; color: var(--muted);
+  }
+  .sec { break-inside: auto; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <p class="eyebrow">Groundwork by Jalla</p>
+  <h1>URL Directory</h1>
+  <p class="byline">Every address on the platform, who it is for, and what it does &nbsp;·&nbsp; 9 October 2026</p>
+</div>
+
+<div class="banner">
+  <p><strong>Use <code>https://www.tryjalla.com</code> — with the <code>www</code>.</strong>
+  The bare <code>tryjalla.com</code> answers a redirect to the www host, so both appear to
+  work. But every redirect is one more step that can drop a code out of a sign-up or
+  invitation link, so the www form is the one to share.</p>
+  <p>A contractor onboards at <code>/contractor-signup</code> and a verifier at
+  <code>/verifier-signup</code> — one page each. Neither uses the client sign-up page. A
+  contractor can open their page directly; a verifier needs the link we email them.</p>
+</div>
+
+<section class="sec">
+<h2>Contractors</h2>
+
+<p class="lede"><strong>Both kinds of contractor onboard at the same URL:</strong>
+<span class="u"><span class="host">https://www.tryjalla.com</span>/contractor-signup</span>.
+You can send a partner straight there — nothing to email first, no code to read out. What
+differs is only how they came to us.</p>
+
+<table class="compare">
+  <tr>
+    <th></th>
+    <th>An applicant</th>
+    <th>A partner</th>
+  </tr>
+  <tr>
+    <td>How they reach us</td>
+    <td>Fills in the form at <span class="u">/contractor-apply</span></td>
+    <td>We already know them; they bring their own clients</td>
+  </tr>
+  <tr>
+    <td>What we do</td>
+    <td>Interview, then approve at <span class="u">/admin/applications</span></td>
+    <td>Interview</td>
+  </tr>
+  <tr>
+    <td>How they get the link</td>
+    <td>Emailed automatically when you approve</td>
+    <td>You send them the URL, or they type it</td>
+  </tr>
+  <tr>
+    <td>Where they sign up</td>
+    <td><span class="u">/contractor-signup</span></td>
+    <td><span class="u">/contractor-signup</span></td>
+  </tr>
+  <tr>
+    <td>Listed in the directory clients browse</td>
+    <td>Yes — published when you approve them</td>
+    <td>No — you publish them from <span class="u">/admin/contractors</span> if you want them listed</td>
+  </tr>
+</table>
+
+<p>An approved applicant's email link carries a one-time code —
+<span class="u">/contractor-signup?t=…</span>. It greets them by name and ties the account
+to their application and the directory listing you published. They never see or type it.</p>
+
+<p>A partner opens the same page with nothing after it and fills the form in.
+<strong>Signing up this way grants no access to any project</strong> — that comes only from
+being brought onto one — and does not put them in the directory clients browse, which only
+you can publish to. So the page is safe to hand out: anyone who signs up uninvited sees an
+empty workspace and nothing else.</p>
+
+<table>
+  <caption>Every URL a contractor uses</caption>
+  <tr><th class="col-url">URL</th><th>What it is</th><th class="col-who">Who can open it</th></tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/contractor-apply</span></td>
+    <td>Apply to join. Public page carrying the application form</td><td>Anyone</td>
+  </tr>
+  <tr class="door">
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/contractor-signup</span></td>
+    <td><strong>The onboarding door.</strong> Create the account</td>
+    <td>Approved applicants, and partners</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/auth/login</span></td>
+    <td>Sign in, every time after that</td><td>Account holders</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/work</span></td>
+    <td>Their home — what needs doing now</td><td>Contractors</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/work/projects</span></td>
+    <td>Every project they are on</td><td>Contractors</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/work/projects/&lt;project-id&gt;</span></td>
+    <td>One project: stages, evidence, progress</td><td>Contractors on that project</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/work/payouts</span></td>
+    <td>Where they get paid. Given once, used on every project</td><td>Contractors</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/profile</span></td>
+    <td>Their name, phone and password</td><td>Account holders</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/invite/&lt;token&gt;</span></td>
+    <td>Accept a client's invitation to a specific project</td><td>Whoever holds the link</td>
+  </tr>
+</table>
+
+<p class="note">A contractor sees a project only after being invited to it, so a brand-new
+account correctly shows an empty list until then.</p>
+</section>
+
+<section class="sec">
+<h2>Verifiers</h2>
+
+<p class="lede">Verifiers have no public application page, by design. A verifier's sign-off
+is what releases a client's stage payment, so the role is never self-served — we interview
+the engineer first, then invite them.</p>
+
+<ol class="steps">
+  <li><span><strong>We interview them.</strong> No URL; this happens off the platform.</span></li>
+  <li><span><strong>We invite them</strong> from
+    <span class="u"><span class="host">https://www.tryjalla.com</span>/admin/verifiers</span>,
+    using the "Invite a verifier" panel at the top. Enter their name and email.</span></li>
+  <li><span><strong>They onboard</strong> at
+    <span class="u"><span class="host">https://www.tryjalla.com</span>/verifier-signup</span>
+    — the link in that invitation email. The heading and the button both say "Sign up as a
+    verifier". They set their own password; staff never choose one for them.</span></li>
+</ol>
+
+<p>Re-sending an invitation to the same address re-sends the link they already have, rather
+than creating a second live one. Opening <span class="u">/verifier-signup</span> without a
+valid invitation shows no form at all.</p>
+
+<table>
+  <caption>Every URL a verifier uses</caption>
+  <tr><th class="col-url">URL</th><th>What it is</th><th class="col-who">Who can open it</th></tr>
+  <tr class="door">
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/verifier-signup</span></td>
+    <td><strong>The onboarding door.</strong> Create the account</td>
+    <td>Invited engineers, from their email link</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/auth/login</span></td>
+    <td>Sign in, every time after that</td><td>Account holders</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/verifiers</span></td>
+    <td>Their home — the stages waiting on them</td><td>Verifiers</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/verifiers/&lt;assignment-id&gt;</span></td>
+    <td>One stage: the evidence, and their decision</td><td>The assigned verifier</td>
+  </tr>
+  <tr>
+    <td><span class="u"><span class="host">https://www.tryjalla.com</span>/profile</span></td>
+    <td>Their name, phone and password</td><td>Account holders</td>
+  </tr>
+</table>
+
+<p class="note">A verifier sees a stage only after being assigned to it, and assignment
+happens inside the project's own workspace, not from the verifier directory.</p>
+</section>
+
+<section class="sec">
+<h2>Admin and staff</h2>
+
+<p class="lede">Staff sign in at
+<span class="u"><span class="host">https://www.tryjalla.com</span>/admin/login</span>.
+<strong>There is no admin sign-up page and no Google sign-in there</strong> — both
+deliberately, since either would be a way to grant yourself staff access. An admin account
+is created by another admin.</p>
+
+<p>Everything below needs an admin role. Opening one of them while signed out sends you to
+the staff sign-in and brings you back afterwards; opening one while signed in as a client
+or contractor sends you to your own dashboard. Nobody sees a half-loaded admin page.</p>
+
+<h3>Getting in, and the overview</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr class="door"><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/login</span></td><td><strong>Staff sign-in.</strong> The only way in</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin</span></td><td>Overview: what needs attention today</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/action-center</span></td><td>The full queue behind the overview's preview</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/analytics</span></td><td>Numbers across the platform</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/audit-log</span></td><td>Who did what, and when</td></tr>
+</table>
+
+<h3>People</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/users</span></td><td>Everyone with an account</td></tr>
+  <tr class="door"><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/users/new</span></td><td><strong>Create an account for someone.</strong> Pick client, contractor or verifier. Hands you a one-time password to give them</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/clients</span></td><td>Clients specifically</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/contractors</span></td><td>The contractor directory</td></tr>
+  <tr class="door"><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/verifiers</span></td><td>The verifier directory, and <strong>where you invite a new verifier</strong></td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/team</span></td><td>Staff and their roles. Read-only on purpose</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/applications</span></td><td>Contractor applications waiting on a decision</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/applications/&lt;id&gt;</span></td><td>One application: review, approve or decline</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/waitlist</span></td><td>People who asked to be told when we launch</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/inquiries</span></td><td>Jalla Management enquiries</td></tr>
+</table>
+
+<h3>Projects and the work</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/projects</span></td><td>Every project</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/projects/new</span></td><td>Create a project, including for a managed client</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/projects/&lt;id&gt;</span></td><td>The project workspace: stages, team, money, conversations</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/reviews</span></td><td>Stage submissions awaiting a decision</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/site-updates</span></td><td>Progress posted from site</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/budgets</span></td><td>Budget and rate settings</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/drafts</span></td><td>Projects someone started and abandoned</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/requests</span></td><td>Client requests</td></tr>
+</table>
+
+<h3>Money</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/finance</span></td><td>The financial picture</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/finance/inflows</span></td><td>What clients have paid in</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/finance/disbursements</span></td><td>What has gone out to contractors</td></tr>
+</table>
+
+<h3>Messages and systems</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/inbox</span></td><td>WhatsApp and message threads with clients and contractors</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/notifications</span></td><td>What the platform has sent</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/support</span></td><td>Support tickets and deletion requests</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/crm</span></td><td>CRM sync status</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/integrations</span></td><td>Connected services</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/settings</span></td><td>Platform settings</td></tr>
+</table>
+</section>
+
+<section class="sec">
+<h2>Clients</h2>
+
+<p class="lede">Clients are the one group who sign themselves up, at
+<span class="u"><span class="host">https://www.tryjalla.com</span>/auth/signup</span>. A
+Jalla Management client does not: we create their account at
+<span class="u">/admin/users/new</span> and hand them a one-time password.</p>
+
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr class="door"><td><span class="u"><span class="host">https://www.tryjalla.com</span>/auth/signup</span></td><td><strong>Create a client account</strong></td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/auth/login</span></td><td>Sign in</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/auth/reset-password</span></td><td>Ask for a password reset link</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/onboarding</span></td><td>First-run setup, straight after signing up</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/dashboard</span></td><td>Their home</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/projects</span></td><td>Their projects</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/projects/new</span></td><td>Build a new project — the estimate wizard</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/projects/&lt;id&gt;</span></td><td>One project: stages, costs, documents, team</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/projects/&lt;id&gt;/takeoff</span></td><td>The contractor's bill of quantities for that project</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/contractors</span></td><td>Browse contractors and request quotes</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/payments</span></td><td>What they have paid and what is due</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/documents</span></td><td>Their files and certificates</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/upgrade</span></td><td>Change plan</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/resources</span></td><td>Guides on building</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/notifications</span></td><td>Their alerts</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/profile</span></td><td>Name, phone, password, dark mode</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/help</span></td><td>Contact support</td></tr>
+</table>
+</section>
+
+<section class="sec">
+<h2>Public pages and free tools</h2>
+
+<p class="lede">No sign-in, nothing to create. These are safe to share with anyone.</p>
+
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/</span></td><td>The landing page</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/pricing</span></td><td>Plans and what they cost</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/jalla-management</span></td><td>Enquire about the managed service</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/contractor-apply</span></td><td>Apply to join as a contractor</td></tr>
+  <tr class="door"><td><span class="u"><span class="host">https://www.tryjalla.com</span>/verify/&lt;certificate-id&gt;</span></td><td><strong>Check a stage certificate is genuine.</strong> Anyone with the code can verify it — a bank, a buyer, a lawyer</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/privacy</span></td><td>Privacy policy</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/terms</span></td><td>Terms of service</td></tr>
+</table>
+
+<h3>The planning tools</h3>
+<table>
+  <tr><th class="col-url">URL</th><th>What it is</th></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/tools</span></td><td>All four tools</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/tools/budget</span></td><td>Estimate what a build will cost</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/tools/stages</span></td><td>What the stages of a build are</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/tools/milestones</span></td><td>Plan milestone payments</td></tr>
+  <tr><td><span class="u"><span class="host">https://www.tryjalla.com</span>/tools/tracker</span></td><td>Track progress against a plan</td></tr>
+</table>
+</section>
+
+<section class="sec">
+<h2>Everything above is live <span class="tag tag-live">confirmed 9 Oct</span></h2>
+
+<p>Migrations 104, 105 and 106 were applied to production on 9 October 2026, and each one
+was confirmed against the live database. Every URL in this document works today, including
+<span class="u">/work/payouts</span>, <span class="u">/verifier-signup</span> and the
+partner route into <span class="u">/contractor-signup</span>.</p>
+
+<p>The checks also confirmed the access rules hold in production: the two pages that greet
+someone before they have an account can read just that one invitation, while claiming an
+account, issuing an invitation and granting a role are all refused to an anonymous caller.
+Invitation tokens are not readable or listable by anyone.</p>
+
+<h3>Sidebar items with no page behind them <span class="tag tag-none">not built</span></h3>
+<p>Four admin sidebar entries are deliberate placeholders — they appear in the navigation
+but have no screen yet. Worth knowing before anyone clicks one in a demo.</p>
+<ul class="plain">
+  <li><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/inspections</span></li>
+  <li><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/tasks</span></li>
+  <li><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/site-managers</span></li>
+  <li><span class="u"><span class="host">https://www.tryjalla.com</span>/admin/agents</span></li>
+</ul>
+
+<h3>One thing that is still manual</h3>
+<p>A verifier's credentials — their discipline, registration body and city — have no screen
+yet. Inviting them creates the account and grants the role correctly; those three fields
+stay blank in the directory until we build a form for them.</p>
+</section>
+
+<footer>
+  Groundwork by Jalla &nbsp;·&nbsp; URL Directory &nbsp;·&nbsp; 9 October 2026 &nbsp;·&nbsp;
+  Canonical host <code>https://www.tryjalla.com</code>
+</footer>
+
+</body>
+</html>
