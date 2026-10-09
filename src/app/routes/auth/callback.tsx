@@ -4,7 +4,7 @@ import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { claimContractorAccount, takeRememberedClaim, registerContractorAccount, takeRememberedContractorRegistration } from "@/lib/supabase/contractor-claim";
-import { claimVerifierAccount, takeRememberedVerifierClaim } from "@/lib/supabase/verifier-claim";
+import { claimVerifierAccount, takeRememberedVerifierClaim, registerVerifierAccount, takeRememberedVerifierRegistration } from "@/lib/supabase/verifier-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
@@ -322,6 +322,20 @@ export default function AuthCallback() {
       wanted = localStorage.getItem(PENDING_REDIRECT);
       if (wanted) localStorage.removeItem(PENDING_REDIRECT);
     } catch { /* private mode: no parked redirect, land on the role's own surface */ }
+
+    // An engineer who signed up at the bare /verifier-signup has no invitation to claim,
+    // so the role is granted here instead (108). After the claim above, which is the
+    // richer path; only one of the two markers is ever parked.
+    if (takeRememberedVerifierRegistration()) {
+      try {
+        await registerVerifierAccount();
+        navigate("/verifiers", { replace: true });
+        return;
+      } catch {
+        // They are signed in and the account exists; a role that did not land is a
+        // support question, not a reason to strand them here.
+      }
+    }
 
     navigate(postAuthPath({ isAdmin: isAdmin === true, isVerifier, isContractor, onboardingComplete, redirect: wanted }), { replace: true });
   }

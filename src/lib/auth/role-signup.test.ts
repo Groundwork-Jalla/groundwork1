@@ -30,6 +30,9 @@ const handler  = strip(read('api/_handlers/invite-verifier.ts'));
 const claimPg  = strip(read('src/app/routes/claim.tsx'));
 const sql      = read('supabase/migrations/105_verifier_invites.sql');
 const sql106   = read('supabase/migrations/106_contractor_self_registration.sql');
+const sql108   = read('supabase/migrations/108_verifier_self_registration.sql');
+const sql108Code = sql108.replace(/^\s*--.*$/gm, '').replace(/COMMENT ON [\s\S]*?;\s*$/gm, '');
+const sql086   = read('supabase/migrations/086_verifiers.sql');
 /** 106's prose argues about 'admin' on purpose, so the role scan reads statements only. */
 const sql106Code = sql106.replace(/^\s*--.*$/gm, '');
 
@@ -57,25 +60,30 @@ describe('one door each, and it says which', () => {
 });
 
 describe('the gate', () => {
-  it('shows no form to a VERIFIER without a readable invitation', () => {
-    // `preview` is null for an absent, unknown, withdrawn or malformed token. A verifier
-    // stops there; a contractor does not, because a partner has no invitation to read
-    // (106). `openWithoutInvite` is the whole difference, so it is what this pins.
-    expect(form).toMatch(/if \(!preview && !cfg\.openWithoutInvite\) \{/);
-    const gate = form.indexOf('if (!preview && !cfg.openWithoutInvite) {');
-    expect(gate).toBeGreaterThan(-1);
-    expect(form.slice(gate).includes('return (')).toBe(true);
-    // The verifier door must be the closed one, and the contractor door the open one.
-    const verifier = form.slice(form.indexOf('verifier: {'));
-    expect(verifier).toMatch(/openWithoutInvite: false/);
+  it('both doors open without an invitation, and say so in the config', () => {
+    // 105 made the verifier door invitation-only, on the argument that a verifier's
+    // signature releases a stage payment. That is true of an ASSIGNED verifier: holding
+    // the bare role reaches no project, because project_verifiers has no write policy
+    // and only assign_verifier (086, admin-only) ever writes one. So 108 opened it, the
+    // same way 106 opened the contractor's.
     const contractor = form.slice(form.indexOf('contractor: {'), form.indexOf('verifier: {'));
+    const verifier   = form.slice(form.indexOf('verifier: {'));
     expect(contractor).toMatch(/openWithoutInvite: true/);
+    expect(verifier).toMatch(/openWithoutInvite: true/);
+    // The branch still exists, so closing a door again is one word.
+    expect(form).toMatch(/if \(!preview && !cfg\.openWithoutInvite\) \{/);
   });
 
-  it('registers a partner rather than claiming, and only for the open door', () => {
-    // A partner has nothing to claim, so the role is granted in the callback instead.
+  it('registers rather than claims when there is no invitation, per role', () => {
+    // An invitation is claimed and links the applicant's own records; a bare signup
+    // grants the role and nothing else. Each door carries its own registrar, so one
+    // role can never be granted by the other's page.
     expect(form).toMatch(/if \(preview\) cfg\.remember\(token\);/);
-    expect(form).toMatch(/else if \(cfg\.openWithoutInvite\) rememberContractorRegistration\(\);/);
+    expect(form).toMatch(/else if \(cfg\.openWithoutInvite\) cfg\.rememberOpen\?\.\(\);/);
+    const contractor = form.slice(form.indexOf('contractor: {'), form.indexOf('verifier: {'));
+    const verifier   = form.slice(form.indexOf('verifier: {'));
+    expect(contractor).toMatch(/rememberOpen: rememberContractorRegistration/);
+    expect(verifier).toMatch(/rememberOpen: rememberVerifierRegistration/);
   });
 
   it('treats absent, unknown and withdrawn tokens identically', () => {
@@ -258,5 +266,56 @@ describe('106 — the partner door is open, and only that far', () => {
     // The one thing a future change could get wrong: gating a partner's ability to bring
     // their own clients on a role that is now self-granted.
     expect(sql106).toMatch(/must NOT be gated on the bare contractor role/);
+  });
+});
+
+
+describe('108 — the verifier door is open, and the assignment is what still is not', () => {
+  it('grants the verifier role and nothing else', () => {
+    expect(sql108Code).toMatch(/INSERT INTO public\.user_roles \(user_id, role\) VALUES \(v_actor, 'verifier'\)/);
+    expect(sql108Code).toMatch(/ON CONFLICT \(user_id, role\) DO NOTHING/);
+    // Signing up must not put anybody on a project, or near one.
+    expect(sql108Code).not.toMatch(/INSERT INTO public\.project_verifiers/);
+    expect(sql108Code).not.toMatch(/assign_verifier|verifier_profiles|stage_verifications/);
+  });
+
+  it('takes no role argument, so it can never be asked for admin', () => {
+    expect(sql108Code).toMatch(/FUNCTION public\.register_verifier_account\(\)/);
+    expect(sql108Code).not.toMatch(/register_verifier_account\(\s*p_/);
+    expect(sql108Code).not.toMatch(/'admin'|'contractor'|'homeowner'/);
+  });
+
+  it('refuses an anonymous caller', () => {
+    expect(sql108Code).toMatch(/not_signed_in/);
+    expect(sql108Code).toMatch(/REVOKE ALL ON FUNCTION public\.register_verifier_account\(\) FROM PUBLIC, anon;/);
+    expect(sql108Code).toMatch(/GRANT EXECUTE ON FUNCTION public\.register_verifier_account\(\) TO authenticated;/);
+  });
+
+  it('writes one audit row per new role, not one per call', () => {
+    expect(sql108Code).toMatch(/v_new := FOUND;/);
+    expect(sql108Code).toMatch(/IF v_new THEN[\s\S]*?log_activity/);
+  });
+
+  /**
+   * THE LOAD-BEARING ONE. Opening the signup is only safe because putting a named
+   * verifier on a named project stays with staff. If either of these two facts changes,
+   * a self-granted role becomes a way onto somebody's project.
+   */
+  it('assignment is still admin-only, which is what makes an open signup safe', () => {
+    const fn = sql086.slice(sql086.indexOf('FUNCTION public.assign_verifier'));
+    expect(fn.slice(0, fn.indexOf('$$;'))).toMatch(/NOT public\.is_admin\(\)[\s\S]*?RAISE EXCEPTION 'not_admin/);
+  });
+
+  it('project_verifiers still has no write policy for anybody', () => {
+    // Every policy on that table must be SELECT. An INSERT or ALL policy would let a
+    // self-registered verifier put themselves on a project without an admin.
+    const policies = [...sql086.matchAll(/CREATE POLICY[\s\S]{0,200}?ON public\.project_verifiers FOR (\w+)/g)]
+      .map(m => m[1]);
+    expect(policies.length).toBeGreaterThan(0);
+    expect([...new Set(policies)]).toEqual(['SELECT']);
+  });
+
+  it('records the rule that follows from being open', () => {
+    expect(sql108).toMatch(/never gate a capability on the bare `verifier` role/i);
   });
 });

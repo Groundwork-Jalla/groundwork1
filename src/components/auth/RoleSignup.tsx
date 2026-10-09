@@ -13,7 +13,7 @@ import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
 import { signupMetadata, CONTRACTOR_APPLY_PATH } from '@/lib/auth/signup-account';
 import { getClaimPreview, rememberClaim, rememberContractorRegistration } from '@/lib/supabase/contractor-claim';
-import { getVerifierInvitePreview, rememberVerifierClaim } from '@/lib/supabase/verifier-claim';
+import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration } from '@/lib/supabase/verifier-claim';
 import { useT, type TKey } from '@/lib/i18n';
 
 // =========================================================
@@ -65,6 +65,8 @@ interface Preview {
 interface DoorConfig {
   preview: (token: string) => Promise<Preview | null>;
   remember: (token: string) => void;
+  /** Parked when they signed up with no invitation to claim. */
+  rememberOpen: (() => void) | null;
   heading: TKey;
   intro: TKey;
   submit: TKey;
@@ -79,6 +81,7 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
   contractor: {
     preview: (token: string): Promise<Preview | null> => getClaimPreview(token),
     remember: rememberClaim,
+    rememberOpen: rememberContractorRegistration,
     heading:  'auth.roleSignup.contractorHeading',
     intro:    'auth.roleSignup.contractorIntro',
     submit:   'auth.roleSignup.contractorSubmit',
@@ -94,6 +97,7 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
     preview: (token: string): Promise<Preview | null> =>
       getVerifierInvitePreview(token).then(p => (p ? { ...p } : null)),
     remember: rememberVerifierClaim,
+    rememberOpen: rememberVerifierRegistration,
     heading:  'auth.roleSignup.verifierHeading',
     intro:    'auth.roleSignup.verifierIntro',
     submit:   'auth.roleSignup.verifierSubmit',
@@ -102,9 +106,11 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
     // dead end. They are invited after an interview, so the honest answer is to say so.
     noTokenHref: null,
     noTokenCta:  null,
-    // No open version of this page. A verifier is invited after an interview.
-    openWithoutInvite: false,
-    openIntro: null,
+    // Open too, since 108. An invitation still greets them by name when we have one; a
+    // verifier Jalla already knows can simply sign up. Either way the role shows an
+    // empty /verifiers until an admin assigns them to something.
+    openWithoutInvite: true,
+    openIntro: 'auth.roleSignup.verifierOpenIntro',
   },
 };
 
@@ -162,7 +168,7 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
     // An invitation is claimed; a partner with none is registered. Both happen in the
     // callback, so neither is something this page's success depends on.
     if (preview) cfg.remember(token);
-    else if (cfg.openWithoutInvite) rememberContractorRegistration();
+    else if (cfg.openWithoutInvite) cfg.rememberOpen?.();
 
     setSubmitting(true);
     const { data, error: signUpErr } = await supabase.auth.signUp({

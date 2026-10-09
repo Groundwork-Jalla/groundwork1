@@ -1270,6 +1270,7 @@ export const en = {
         payout_destination_verified:    'verified payout details',
         contractor_self_registered:     'signed up as a contractor',
         contractor_account_claimed:     'claimed their contractor account',
+        verifier_self_registered:       'signed up as a verifier',
         verifier_account_claimed:       'set up their verifier account',
         // 101 — who this project pays.
         contractor_primary_set:         'named the contractor this project pays',
@@ -3907,6 +3908,7 @@ export const en = {
       verifierHeading:   'Sign up as a verifier',
       verifierIntro:     'Welcome, {name}. This sets up the account you will record your stage inspections from.',
       verifierNoToken:   'Verifier accounts are set up from the link in your invitation email. Verifiers are invited by Jalla after an interview — if you have spoken with us and have not had your link, reply to that conversation and we will send it.',
+      verifierOpenIntro: 'Set up the account you will record your stage inspections from. A project will appear here once Jalla assigns you to one.',
       verifierSubmit:    'Sign up as a verifier',
       claimedTitle:      'This link has already been used',
       claimedBody:       'An account has already been set up from this invitation. Sign in with it instead — and if that was not you, tell us straight away.',

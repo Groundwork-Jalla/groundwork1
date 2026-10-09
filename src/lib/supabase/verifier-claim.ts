@@ -82,3 +82,43 @@ export async function inviteVerifier(email: string, fullName: string): Promise<v
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(String(json?.error ?? `http_${r.status}`));
 }
+
+// ── Signing up without an invitation (108) ────────────────────────────────────────────
+//
+// 105's invitation still exists and is still the right tool when Jalla reaches out first
+// — the page can greet the engineer by name. This is the other door, the same one the
+// contractor has: an engineer we already know opens /verifier-signup and signs up.
+//
+// Open by decision, and narrower than it sounds. The role shows an empty /verifiers and
+// nothing else: reaching a project needs a `project_verifiers` row, that table has no
+// write policy for anybody, and the only thing that writes one is `assign_verifier`
+// (086), which refuses anyone who is not an admin. Putting a named verifier on a named
+// project remains entirely a staff act.
+
+/** Set when somebody signed up at /verifier-signup with no invitation to claim. */
+export const PENDING_VERIFIER_REGISTER_KEY = 'pendingVerifierRegister';
+
+export function rememberVerifierRegistration(): void {
+  try { localStorage.setItem(PENDING_VERIFIER_REGISTER_KEY, '1'); } catch { /* private mode */ }
+}
+
+export function takeRememberedVerifierRegistration(): boolean {
+  try {
+    const v = localStorage.getItem(PENDING_VERIFIER_REGISTER_KEY);
+    if (v) localStorage.removeItem(PENDING_VERIFIER_REGISTER_KEY);
+    return v === '1';
+  } catch { return false; }
+}
+
+/**
+ * Grant the signed-in account the verifier role.
+ *
+ * Idempotent, and writes one audit row the first time only. The marker above decides
+ * WHETHER this runs, not whether it is permitted: the RPC is open to any signed-in user,
+ * which is what a bare URL means. A client signing up normally never reaches it because
+ * nothing parks the marker.
+ */
+export async function registerVerifierAccount(): Promise<void> {
+  const { error } = await supabase.rpc('register_verifier_account');
+  if (error) throw error;
+}
