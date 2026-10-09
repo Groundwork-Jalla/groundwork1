@@ -27,6 +27,12 @@ export default [
     route("invite/:token",       "routes/invite.tsx"),
     // An approved applicant turning their application into a contractor account (100).
     route("claim/:token",        "routes/claim.tsx"),
+    // The two role front doors. One page each, saying what they are: an approved
+    // contractor (100) and an invited verifier (105) create their account here rather
+    // than on the client signup, which greeted them with the wrong heading and a
+    // question they had already answered.
+    route("contractor-signup",   "routes/contractor-signup.tsx"),
+    route("verifier-signup",     "routes/verifier-signup.tsx"),
   ]),
 
   // Project wizard — full-screen, no sidebar (WizardShell owns the viewport)

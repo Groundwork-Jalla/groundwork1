@@ -88,7 +88,7 @@ describe('actionLabel', () => {
 
 describe('entityTab', () => {
   it('routes every entity type the database writes to a workspace tab, or to none on purpose', () => {
-    // From `log_activity(_, _, '<entity_type>', …)` across 086–091.
+    // From `log_activity(_, _, '<entity_type>', …)` across 086–105.
     const written = new Set<string>();
     for (const f of readdirSync(MIGRATIONS).filter(n => n.endsWith('.sql'))) {
       const sql = readFileSync(join(MIGRATIONS, f), 'utf8');
@@ -98,7 +98,7 @@ describe('entityTab', () => {
     expect([...written].sort()).toEqual([
       'contractor_application', 'contractor_invite', 'conversation', 'decision',
       'payment', 'payout_destination', 'project', 'project_stage', 'project_verifier',
-      'site_update', 'stage_verification', 'support_ticket',
+      'site_update', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
     expect(entityTab('stage_verification')).toBe('stages');
@@ -110,6 +110,9 @@ describe('entityTab', () => {
     expect(entityTab('project_verifier')).toBe('team');
     // Support tickets are Support's, not a workspace tab: no link, by decision.
     expect(entityTab('support_ticket')).toBeNull();
+    // A verifier's invitation, like a contractor's application, exists before the
+    // account does and belongs to no project (105).
+    expect(entityTab('verifier_invite')).toBeNull();
     // A payout destination belongs to a person and is reused across projects, so no
     // single project's workspace owns it — its audit rows carry a null project.
     expect(entityTab('payout_destination')).toBeNull();

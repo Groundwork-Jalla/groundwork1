@@ -34,8 +34,9 @@ export function buildApplicationDecisionHtml(
    * This email used to send an accepted applicant to `/auth/signup`, which produced an
    * ordinary account with no contractor standing — the promise in the copy could not be
    * kept. A token turns the same button into the thing it always claimed to be. Without
-   * one the old link stands rather than a dead end: better a plain account than a button
-   * that goes nowhere.
+   * one the button leads back to the application rather than to a signup page that
+   * cannot grant contractor standing — 100's own lesson, that an account with no standing
+   * looks like success and is not.
    */
   claimToken?: string | null,
 ): string {
@@ -50,7 +51,7 @@ export function buildApplicationDecisionHtml(
   const cta = accepted
     ? `<table cellpadding="0" cellspacing="0" style="margin:24px 0 4px;">
          <tr><td style="background:#0a0a0a;border-radius:10px;">
-           <a href="${esc(claimToken ? `${siteUrl}/claim/${claimToken}` : `${siteUrl}/auth/signup`)}"
+           <a href="${esc(claimToken ? `${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}` : `${siteUrl}/contractor-apply`)}"
               style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;">
              ${esc(t('email.decision.acceptedCta'))}
            </a>

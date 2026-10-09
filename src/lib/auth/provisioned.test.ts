@@ -58,7 +58,11 @@ describe('admin-provision-user handler', () => {
     expect(code).toMatch(/email_mfa_enabled:\s*true/);
     expect(code).toMatch(/must_change_password:\s*true/);
     expect(code).toMatch(/onboarding_complete:\s*true/);
-    expect(code).toMatch(/tier:\s*'jalla_management'/);
+    // The tier is now role-conditional: a managed client gets jalla_management, and a
+    // contractor or verifier gets none at all. Still decided here, never sent by the
+    // browser. admin-provision-handler.test.ts pins both outcomes behaviourally.
+    expect(code).toMatch(/tier:\s*wantedRole === 'client' \? 'jalla_management' : undefined/);
+    expect(code).not.toMatch(/body\.tier/);
   });
 
   it('refuses an email that already has an account rather than re-issuing a password', () => {

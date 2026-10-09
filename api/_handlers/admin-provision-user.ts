@@ -36,9 +36,34 @@ interface Body {
   phone?: unknown;
   country?: unknown;
   lang?: unknown;
+  role?: unknown;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * What this endpoint may create. `admin` is absent on purpose: staff privilege is not
+ * granted from the same form that makes a contractor.
+ *
+ * A client gets NO `user_roles` row — 032's rule, which the admin directory relies on
+ * ("the UI renders that rather than inventing a 'homeowner' row that isn't there").
+ */
+const GRANTABLE = { client: null, contractor: 'contractor', verifier: 'verifier' } as const;
+type ProvisionRole = keyof typeof GRANTABLE;
+
+/**
+ * Strict on purpose. This is the only field on the request that confers privilege, and it
+ * is sent by our own code from a fixed list — not typed by a human. So nothing is coerced:
+ * an absent role means a client (the contract the browser had before roles existed), and
+ * any other shape — a stray space, wrong case, a number, an explicit null — is refused
+ * rather than normalised. Coercing would mean a malformed request could ask for a verifier
+ * and be handed a client, which is the failure this whole path exists to prevent.
+ */
+function roleOf(v: unknown): ProvisionRole | null {
+  if (v === undefined) return 'client';
+  if (typeof v !== 'string') return null;
+  return Object.prototype.hasOwnProperty.call(GRANTABLE, v) ? (v as ProvisionRole) : null;
+}
 
 function str(v: unknown, max: number): string {
   return typeof v === 'string' ? v.trim().slice(0, max) : '';
@@ -84,6 +109,10 @@ export async function handler(req: any, res: any): Promise<void> {
   const phone    = str(body.phone, 40);
   const country  = str(body.country, 10).toUpperCase();   // validated below, never truncated into a different country
   const lang     = str(body.lang, 2) === 'fr' ? 'fr' : 'en';
+  // Rejected before the account exists, so a typo cannot quietly produce a client when an
+  // administrator asked for a verifier.
+  const wantedRole = roleOf(body.role);
+  if (wantedRole === null) { res.status(400).json({ error: 'invalid_role' }); return; }
 
   if (!EMAIL_RE.test(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
   if (fullName.length < 2)   { res.status(400).json({ error: 'name_required' }); return; }
@@ -111,8 +140,10 @@ export async function handler(req: any, res: any): Promise<void> {
       full_name: fullName,
       phone: phone || undefined,
       country: country || undefined,
-      // No welcome/tier-choice screen for a managed client; the admin already chose.
-      tier: 'jalla_management',
+      // No welcome/tier-choice screen for a managed client; the admin already chose. A
+      // contractor or verifier has no plan at all, so they are given none — a tier on an
+      // account with no projects is a number that means nothing and would be read as one.
+      tier: wantedRole === 'client' ? 'jalla_management' : undefined,
       onboarding_complete: true,
     },
   });
@@ -148,6 +179,26 @@ export async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
+  // ── The role ──
+  // Under the service role, after the caller was proved to be an admin at the top of this
+  // handler. This is the ONLY audited way to create a verifier: /admin/team is read-only by
+  // design, and nothing a visitor types at sign-up can confer a role (see signup-account.ts).
+  const grant = GRANTABLE[wantedRole];
+  if (grant) {
+    const { error: roleErr } = await admin
+      .from('user_roles')
+      .insert({ user_id: userId, role: grant });
+    if (roleErr) {
+      // An administrator asked for a verifier. Handing back an account that is silently a
+      // client is worse than failing: they would hand over credentials that cannot do the
+      // job, and only find out when the person logs in. Same rollback as a failed profile.
+      console.error('[provision] role grant failed, rolling back user:', roleErr.message);
+      await admin.auth.admin.deleteUser(userId);
+      res.status(500).json({ error: 'create_failed' });
+      return;
+    }
+  }
+
   // The record (089): a person-level activity row — no project yet, so project_id is
   // NULL and the row is visible to admins only. The service role bypasses RLS; the actor
   // is the caller this handler verified above, not anything the request body said.
@@ -160,7 +211,9 @@ export async function handler(req: any, res: any): Promise<void> {
     person_id:   userId,
     entity_type: 'profile',
     entity_id:   userId,
-    details:     { email, tier: 'jalla_management', by: 'admin' },
+    // The action keeps its name so existing audit readers and their labels still work; the
+    // role is the detail that changed.
+    details:     { email, role: wantedRole, tier: wantedRole === 'client' ? 'jalla_management' : null, by: 'admin' },
   });
   if (auditErr) console.error('[provision] audit row not written:', auditErr.message);
 

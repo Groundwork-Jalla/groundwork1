@@ -12,12 +12,16 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { useT } from "@/lib/i18n";
+import { signupHref } from "@/lib/auth/post-auth-path";
 
 export default function Login() {
   const navigate        = useNavigate();
   const [searchParams]  = useSearchParams();
   const inviteToken     = searchParams.get("invite") ?? "";
   const redirectTo      = searchParams.get("redirect");
+
+  // Carry the destination, and the invite, into sign-up.
+  const toSignup = signupHref({ redirect: redirectTo, invite: inviteToken });
   const t               = useT();
 
   const [email,      setEmail]      = useState("");
@@ -183,7 +187,7 @@ export default function Login() {
 
       <p className="text-center text-sm text-brand-mid-grey mt-8">
         {t('auth.login.noAccount')}{" "}
-        <Link to="/auth/signup" className="text-brand-near-black underline underline-offset-4">
+        <Link to={toSignup} className="text-brand-near-black underline underline-offset-4">
           {t('auth.login.signUp')}
         </Link>
       </p>

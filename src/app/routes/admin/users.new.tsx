@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, Check, Copy, FolderPlus, KeyRound, Loader2, ShieldCheck, UserPlus } from 'lucide-react';
-import { provisionClientAccount, ProvisionFailed, type ProvisionedAccount } from '@/lib/supabase/admin-provision';
+import { provisionClientAccount, ProvisionFailed, type ProvisionedAccount, type ProvisionRole } from '@/lib/supabase/admin-provision';
 import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,12 +10,18 @@ import { useT } from '@/lib/i18n';
 import type { Lang } from '@/lib/i18n/types';
 
 // =========================================================
-// /admin/users/new — create a Jalla Management client's account
+// /admin/users/new — create an account on someone's behalf
 //
-// The upstream half of /admin/projects/new. A managed client's details are collected in
-// person; an admin enters them here, the server creates the account with a temporary
-// password, and the admin hands the client two things: their username (the email) and
-// that password. On first sign-in the client is asked for a code sent to the email and
+// The upstream half of /admin/projects/new. A managed client's, contractor's or verifier's
+// details are collected in person; an admin enters them here, the server creates the
+// account with a temporary password, and the admin hands them two things: their username
+// (the email) and that password.
+//
+// The role is chosen here and nowhere else. /admin/team is read-only by design and no RPC
+// grants a role from the browser, so this form — behind the server's own admin check, with
+// an audit row naming the caller — is the only audited moment a contractor or verifier role
+// comes into existence. `admin` is deliberately not offered: staff privilege is not granted
+// from the same form that makes a contractor. On first sign-in the client is asked for a code sent to the email and
 // then made to choose a password of their own — so the one the admin knows stops
 // working the moment the client has used it.
 //
@@ -27,8 +33,20 @@ import type { Lang } from '@/lib/i18n/types';
 
 type FieldError = 'email' | 'name' | null;
 
+/**
+ * Spelled out rather than built from the role name. `t()` is typed by the dictionary's
+ * own key union, and a template literal would need a cast to type-check — a cast that
+ * would silence the one mistake worth catching here, a key that does not exist.
+ */
+const ROLE_COPY = {
+  client:     { label: 'admin.provision.roleClient',     hint: 'admin.provision.roleHintClient' },
+  contractor: { label: 'admin.provision.roleContractor', hint: 'admin.provision.roleHintContractor' },
+  verifier:   { label: 'admin.provision.roleVerifier',   hint: 'admin.provision.roleHintVerifier' },
+} as const satisfies Record<ProvisionRole, { label: string; hint: string }>;
+
 export default function AdminNewUser() {
   const t = useT();
+  const [role, setRole]         = useState<ProvisionRole>('client');
   const [fullName, setFullName] = useState('');
   const [email, setEmail]       = useState('');
   const [phone, setPhone]       = useState('');
@@ -49,6 +67,7 @@ export default function AdminNewUser() {
     setSubmitting(true);
     try {
       const account = await provisionClientAccount({
+        role,
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
@@ -69,6 +88,7 @@ export default function AdminNewUser() {
 
   function reset() {
     setCreated(null);
+    setRole('client');
     setFullName(''); setEmail(''); setPhone('');
     setCountry(DEFAULT_COUNTRY_CODE); setLang('en');
   }
@@ -80,7 +100,7 @@ export default function AdminNewUser() {
       </Link>
 
       {created ? (
-        <Handover account={created} fullName={fullName} onAnother={reset} />
+        <Handover account={created} fullName={fullName} role={role} onAnother={reset} />
       ) : (
         <>
           <header className="mt-4 mb-6">
@@ -89,6 +109,25 @@ export default function AdminNewUser() {
           </header>
 
           <form onSubmit={handleSubmit} noValidate className="max-w-xl space-y-5 rounded-2xl border border-brand-border-grey bg-white p-6">
+            <fieldset className="space-y-1.5">
+              <legend className="text-sm font-medium text-brand-near-black">{t('admin.provision.role')}</legend>
+              <div className="flex flex-wrap gap-2">
+                {(['client', 'contractor', 'verifier'] as const).map(r => (
+                  <label
+                    key={r}
+                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm ${role === r ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey text-brand-near-black'}`}
+                  >
+                    <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} className="sr-only" />
+                    {t(ROLE_COPY[r].label)}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-brand-mid-grey">
+                {t(ROLE_COPY[role].hint)}
+              </p>
+              <p className="text-xs text-brand-mid-grey">{t('admin.provision.roleLocked')}</p>
+            </fieldset>
+
             <div className="space-y-1.5">
               <Label htmlFor="fullName">{t('admin.provision.fullName')}</Label>
               <Input
@@ -166,7 +205,7 @@ export default function AdminNewUser() {
  * The one screen that shows the password. Everything the admin needs to hand over and
  * nothing that would survive leaving the page.
  */
-function Handover({ account, fullName, onAnother }: { account: ProvisionedAccount; fullName: string; onAnother: () => void }) {
+function Handover({ account, fullName, role, onAnother }: { account: ProvisionedAccount; fullName: string; role: ProvisionRole; onAnother: () => void }) {
   const t = useT();
   return (
     <div className="mt-4 max-w-xl">
@@ -197,13 +236,24 @@ function Handover({ account, fullName, onAnother }: { account: ProvisionedAccoun
         </ol>
       </section>
 
+      {/* A contractor or verifier has no project of their own to create — they are brought
+          onto someone else's. Offering the project wizard here would read as "and now make
+          them a project", which is not what either role is. */}
+      {role !== 'client' && (
+        <p className="mt-6 text-sm text-brand-mid-grey">
+          {t(role === 'contractor' ? 'admin.provision.doneContractor' : 'admin.provision.doneVerifier')}
+        </p>
+      )}
+
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <Link
-          to={`/admin/projects/new?for=${account.userId}`}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-near-black/90"
-        >
-          <FolderPlus className="size-4" /> {t('admin.provision.createProject')}
-        </Link>
+        {role === 'client' && (
+          <Link
+            to={`/admin/projects/new?for=${account.userId}`}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-near-black/90"
+          >
+            <FolderPlus className="size-4" /> {t('admin.provision.createProject')}
+          </Link>
+        )}
         <button type="button" onClick={onAnother} className="text-sm text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black">
           {t('admin.provision.another')}
         </button>

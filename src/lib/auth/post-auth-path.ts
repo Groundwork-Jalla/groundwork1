@@ -12,7 +12,17 @@
 // surface only wins when the one above it cannot do its job — /admin can reach everything
 // /verifiers and /work can, and a contractor who is also a client is here to work.
 
-function isSafeInternalPath(p: string | null | undefined): p is string {
+/**
+ * Where sign-up parks the destination while the person goes to their email.
+ *
+ * Sign-up finishes on "check your email"; the session is then established in another tab by
+ * /auth/callback, which never sees the original URL. Written only after isSafeInternalPath,
+ * and read back through postAuthPath, which checks it again — a value that sat in storage is
+ * not more trustworthy for having waited.
+ */
+export const PENDING_REDIRECT = 'pendingRedirect';
+
+export function isSafeInternalPath(p: string | null | undefined): p is string {
   // Must be a same-origin absolute path, not a protocol-relative "//evil.com".
   return !!p && p.startsWith('/') && !p.startsWith('//');
 }
@@ -37,4 +47,21 @@ export function postAuthPath(opts: {
   if (opts.isContractor) return '/work';
   if (!opts.onboardingComplete) return '/onboarding';
   return '/dashboard';
+}
+
+/**
+ * The sign-up link on the sign-in page, carrying whatever the person was trying to reach.
+ *
+ * Someone bounced from /work or /verifiers who has no account yet used to be dropped onto a
+ * bare client sign-up with no memory of their destination — which is what made the sign-up
+ * link look broken and the two surfaces look identical. An unsafe redirect is dropped here
+ * rather than passed on, so nothing downstream has to decide whether to trust it; the
+ * invite token travels for the same reason the redirect does.
+ */
+export function signupHref(opts: { redirect?: string | null; invite?: string | null }): string {
+  const q = new URLSearchParams();
+  if (isSafeInternalPath(opts.redirect)) q.set('redirect', opts.redirect);
+  if (opts.invite) q.set('invite', opts.invite);
+  const s = q.toString();
+  return s ? `/auth/signup?${s}` : '/auth/signup';
 }

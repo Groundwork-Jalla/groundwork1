@@ -12,6 +12,7 @@ import { useT } from "@/lib/i18n";
 import { normalisePhone, isE164 } from "@/lib/phone";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
+import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH } from "@/lib/auth/signup-account";
 
 export default function Signup() {
@@ -101,6 +102,12 @@ export default function Signup() {
     if (inviteToken) {
       localStorage.setItem("pendingInvite", inviteToken);
     }
+
+    // And the destination, for the same reason. Sign-up ends on "check your email", so the
+    // session is established in a DIFFERENT tab via /auth/callback — a redirect held only in
+    // this page's URL is gone by then. Same mechanism the invite already uses.
+    const wanted = searchParams.get("redirect");
+    if (isSafeInternalPath(wanted)) localStorage.setItem(PENDING_REDIRECT, wanted);
 
     setSubmitting(true);
     const { data, error } = await supabase.auth.signUp({

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Check, Loader2, Send, ShieldCheck } from 'lucide-react';
 import { listVerifierDirectory, type VerifierDirectory } from '@/lib/supabase/verifiers';
+import { inviteVerifier } from '@/lib/supabase/verifier-claim';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -20,6 +24,12 @@ import { cn } from '@/lib/utils';
 // Assignment stays where the work is: a verifier is put on a project from that project's
 // workspace, through `assign_verifier`. Duplicating that here would be two doors onto one
 // act, and they would drift.
+//
+// ── Inviting is management, so it does live here (105) ───────────────────────────────
+// Deciding that an interviewed engineer should be a verifier is this screen's question,
+// not a project's. The invitation emails them a link to /verifier-signup, where they set
+// their own password — staff never choose one for them. The token never reaches this
+// browser: it is issued and mailed server-side.
 // =========================================================
 
 export default function AdminVerifiers() {
@@ -39,6 +49,8 @@ export default function AdminVerifiers() {
         <h1 className="text-lg font-semibold text-brand-near-black dark:text-white">{t('admin.verifiers.title')}</h1>
         <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.verifiers.subtitle')}</p>
       </header>
+
+      <InviteVerifier onInvited={load} />
 
       {data === null ? (
         <p className="flex items-center gap-2 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('common.loading')}</p>
@@ -111,5 +123,73 @@ function Stat({ label, value, emphasis }: { label: string; value: string; emphas
       <dt className="text-brand-muted-grey">{label}</dt>
       <dd className={cn('font-semibold tabular-nums', emphasis ? 'text-state-held' : 'text-brand-near-black dark:text-white')}>{value}</dd>
     </div>
+  );
+}
+
+
+/**
+ * Invite an interviewed engineer.
+ *
+ * Re-inviting the same address is safe and deliberate: `issue_verifier_invite` is
+ * idempotent for an open invitation, so it re-sends the link already in their inbox
+ * rather than minting a second live one.
+ */
+function InviteVerifier({ onInvited }: { onInvited: () => void }) {
+  const t = useT();
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail]       = useState('');
+  const [busy, setBusy]         = useState(false);
+  const [sent, setSent]         = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null); setSent(null);
+    if (fullName.trim().length < 2) { setError(t('admin.verifiers.inviteErrName')); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('admin.verifiers.inviteErrEmail')); return; }
+
+    setBusy(true);
+    try {
+      await inviteVerifier(email.trim(), fullName.trim());
+      setSent(email.trim());
+      setFullName(''); setEmail('');
+      onInvited();
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      setError(code.includes('already_verifier') ? t('admin.verifiers.inviteErrAlready')
+             : code.includes('invited')          ? t('admin.verifiers.inviteErrSendOnly')
+             : t('admin.verifiers.inviteErrFailed'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('admin.verifiers.inviteTitle')}</h2>
+      <p className="mt-0.5 text-xs text-brand-mid-grey">{t('admin.verifiers.inviteBody')}</p>
+
+      <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="space-y-1.5">
+          <Label htmlFor="vName">{t('admin.verifiers.inviteName')}</Label>
+          <Input id="vName" autoComplete="off" value={fullName} onChange={e => setFullName(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="vEmail">{t('admin.verifiers.inviteEmail')}</Label>
+          <Input id="vEmail" type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+        <Button type="submit" disabled={busy} className="inline-flex items-center gap-2">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {busy ? t('admin.verifiers.inviteSending') : t('admin.verifiers.inviteCta')}
+        </Button>
+      </form>
+
+      {sent && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-state-complete">
+          <Check className="size-3.5" />{t('admin.verifiers.inviteSent', { email: sent })}
+        </p>
+      )}
+      {error && <p role="alert" className="mt-3 text-xs text-state-alert">{error}</p>}
+    </section>
   );
 }

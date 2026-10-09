@@ -10,12 +10,22 @@ import type { Lang } from '@/lib/i18n/types';
 // api/_handlers/admin-provision-user.ts for what the server does with the request.
 // =========================================================
 
+/**
+ * What an administrator may create here.
+ *
+ * `admin` is deliberately absent. Granting staff privilege from the same form that creates a
+ * contractor would make an escalation one wrong click away; it stays a direct, deliberate act.
+ */
+export type ProvisionRole = 'client' | 'contractor' | 'verifier';
+
 export interface ProvisionInput {
   email: string;
   fullName: string;
   phone?: string;
   country?: string;
   lang?: Lang;
+  /** Defaults to 'client' — the behaviour before the role picker existed. */
+  role?: ProvisionRole;
 }
 
 export interface ProvisionedAccount {

@@ -4,8 +4,9 @@ import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
 import { claimContractorAccount, takeRememberedClaim } from "@/lib/supabase/contractor-claim";
+import { claimVerifierAccount, takeRememberedVerifierClaim } from "@/lib/supabase/verifier-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
-import { postAuthPath } from "@/lib/auth/post-auth-path";
+import { postAuthPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
@@ -259,6 +260,22 @@ export default function AuthCallback() {
       }
     }
 
+    // An invited verifier finishes theirs the same way (105). Taken separately from the
+    // contractor claim, and both are attempted: someone can be an approved contractor and
+    // an invited verifier, and silently dropping one would look like an invitation that
+    // never worked. The contractor claim lands them on /work, so this only reaches
+    // /verifiers when that one was absent or spent.
+    const verifierClaim = takeRememberedVerifierClaim();
+    if (verifierClaim) {
+      try {
+        await claimVerifierAccount(verifierClaim);
+        navigate("/verifiers", { replace: true });
+        return;
+      } catch {
+        // Same fall-through, same reason.
+      }
+    }
+
     // Process any pending invite (stored in localStorage before signup)
     const token = localStorage.getItem("pendingInvite");
     if (token) {
@@ -282,7 +299,16 @@ export default function AuthCallback() {
       holdsVerifierRole(session?.user?.id),
       holdsContractorAccess(session?.user?.id),
     ]);
-    navigate(postAuthPath({ isAdmin: isAdmin === true, isVerifier, isContractor, onboardingComplete }), { replace: true });
+    // Where they were trying to go before they were asked to sign up, parked by signup.tsx
+    // because this runs in a different tab. Taken once and cleared, so a stale value cannot
+    // hijack an unrelated sign-in later; postAuthPath re-checks it is a safe internal path.
+    let wanted: string | null = null;
+    try {
+      wanted = localStorage.getItem(PENDING_REDIRECT);
+      if (wanted) localStorage.removeItem(PENDING_REDIRECT);
+    } catch { /* private mode: no parked redirect, land on the role's own surface */ }
+
+    navigate(postAuthPath({ isAdmin: isAdmin === true, isVerifier, isContractor, onboardingComplete, redirect: wanted }), { replace: true });
   }
 
   async function afterMfa() {

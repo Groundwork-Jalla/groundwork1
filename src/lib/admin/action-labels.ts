@@ -49,6 +49,8 @@ export function entityTab(entityType: string | null | undefined):
     //   `support_ticket` (091)     — a ticket is Support's, not a project's.
     //   `contractor_application` (100) — about joining Groundwork, not about a project;
     //                                it predates the applicant even having an account.
+    //   `verifier_invite` (105)    — the same, for a verifier: an invitation exists
+    //                                before the account does, and belongs to no project.
     //   `payout_destination` (099) — a destination belongs to a PERSON and is reused
     //                                across projects, so no single project owns it. Its
     //                                audit rows carry a null project for the same reason.

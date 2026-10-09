@@ -86,7 +86,11 @@ export default function ClaimContractorAccount() {
     );
   }
 
-  const signupUrl = `/auth/signup?email=${encodeURIComponent(preview.email)}`;
+  // The branded door, carrying the token. This used to be `/auth/signup?email=…`, which
+  // greeted a just-approved contractor with the client heading and an account-type
+  // question they had already answered — the reason people read it as the wrong page.
+  // The token travels so that page can name them and grant the standing this one promises.
+  const signupUrl = `/contractor-signup?t=${encodeURIComponent(token ?? '')}`;
   const loginUrl  = '/auth/login';
 
   return (

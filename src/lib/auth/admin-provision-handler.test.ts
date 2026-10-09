@@ -19,6 +19,8 @@ const state = {
   deletedUsers: [] as string[],
   auditInsertError: null as null | { message: string },
   auditRows: [] as Row[],
+  roleInsertError: null as null | { message: string },
+  roleRows: [] as Row[],
 };
 
 function fakeAdmin() {
@@ -40,8 +42,15 @@ function fakeAdmin() {
           },
         }),
         insert: async (row: Row) => {
-          if (table === 'project_audit_log') state.auditRows.push(row);
-          return { error: state.auditInsertError };
+          if (table === 'project_audit_log') {
+            state.auditRows.push(row);
+            return { error: state.auditInsertError };
+          }
+          if (table === 'user_roles') {
+            state.roleRows.push(row);
+            return { error: state.roleInsertError };
+          }
+          return { error: null };
         },
       };
       return chain;
@@ -88,6 +97,8 @@ beforeEach(() => {
   state.deletedUsers = [];
   state.auditInsertError = null;
   state.auditRows = [];
+  state.roleInsertError = null;
+  state.roleRows = [];
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -202,5 +213,80 @@ describe('when the second write fails', () => {
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ error: 'create_failed' });
     expect(state.deletedUsers).toEqual(['new-user-id']);
+  });
+});
+
+describe('the role', () => {
+  /**
+   * The role is the only thing on this form that confers privilege, so it is the only
+   * thing worth testing twice: that the asked-for role is what lands, and that no other
+   * value can reach `user_roles` at all.
+   */
+
+  it('defaults to a client when the body says nothing, and gives a client NO role row (032)', async () => {
+    const res = await call(GOOD);
+    expect(res.statusCode).toBe(200);
+    expect(state.roleRows).toEqual([]);
+    expect(state.createUserCalls[0].user_metadata).toMatchObject({ tier: 'jalla_management' });
+  });
+
+  it('grants contractor and verifier rows naming the new account, not the caller', async () => {
+    for (const role of ['contractor', 'verifier'] as const) {
+      state.roleRows = [];
+      const res = await call({ ...GOOD, role });
+      expect(res.statusCode).toBe(200);
+      expect(state.roleRows).toEqual([{ user_id: 'new-user-id', role }]);
+    }
+  });
+
+  it('gives a contractor or verifier no tier: a plan on an account with no projects would be read as one', async () => {
+    await call({ ...GOOD, role: 'contractor' });
+    expect((state.createUserCalls[0].user_metadata as Row).tier).toBeUndefined();
+  });
+
+  it('refuses admin — staff privilege is not granted from the form that makes a contractor', async () => {
+    const res = await call({ ...GOOD, role: 'admin' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'invalid_role' });
+    expect(state.createUserCalls).toEqual([]);
+    expect(state.roleRows).toEqual([]);
+  });
+
+  it('refuses an unknown or non-string role before the account exists, rather than quietly making a client', async () => {
+    // 'constructor' and '__proto__' are the interesting ones: they are truthy under `in`,
+    // so a prototype-chain check would have accepted them and inserted Object's own
+    // constructor as the role.
+    for (const role of ['homeowner', 'Contractor', 'verifier ', '', 'constructor', '__proto__', 'toString', 42, null, {}]) {
+      state.createUserCalls = [];
+      const res = await call({ ...GOOD, role });
+      // `undefined` is the only absent-means-client case; everything else is refused.
+      expect(res.body).toEqual({ error: 'invalid_role' });
+      expect(state.createUserCalls).toEqual([]);
+    }
+  });
+
+  it('rolls the account back when the role grant fails, rather than handing over a silent client', async () => {
+    state.roleInsertError = { message: 'duplicate key value violates unique constraint' };
+    const res = await call({ ...GOOD, role: 'verifier' });
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toEqual({ error: 'create_failed' });
+    expect(state.deletedUsers).toEqual(['new-user-id']);
+  });
+
+  it('names the role in the audit row, keeping the action name existing readers rely on', async () => {
+    await call({ ...GOOD, role: 'verifier' });
+    expect(state.auditRows[0]).toMatchObject({
+      action: 'client.provisioned',
+      actor_id: 'admin-1',
+      details: { email: 'client@example.com', role: 'verifier', tier: null, by: 'admin' },
+    });
+  });
+
+  it('still provisions a verifier when only the audit row fails', async () => {
+    state.auditInsertError = { message: 'column "person_id" does not exist' };
+    const res = await call({ ...GOOD, role: 'verifier' });
+    expect(res.statusCode).toBe(200);
+    expect(state.roleRows).toEqual([{ user_id: 'new-user-id', role: 'verifier' }]);
+    expect(state.deletedUsers).toEqual([]);
   });
 });

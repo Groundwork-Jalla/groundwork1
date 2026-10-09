@@ -44,6 +44,7 @@ const ENV_VAR: Record<EmailKind, string> = {
   contractor_application_received: 'EMAIL_FROM_APPLICATIONS',
   contractor_application_decision: 'EMAIL_FROM_APPLICATIONS',
   contractor_invite:               'EMAIL_FROM_INVITES',
+  verifier_invite:                 'EMAIL_FROM_INVITES',
   // The stage-approval email is the one carrying a certificate link, so this is the
   // variable to set when `certificates@` is verified.
   stage_update:                    'EMAIL_FROM_CERTIFICATES',

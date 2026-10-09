@@ -29,13 +29,19 @@ const routes    = code('src/app/routes.ts');
 const migration = src('supabase/migrations/100_contractor_account_claim.sql');
 
 describe('the acceptance email carries the claim link', () => {
-  it('points at /claim/<token> when a token exists', () => {
-    expect(email).toContain('`${siteUrl}/claim/${claimToken}`');
+  it('points at the branded contractor door, carrying the token', () => {
+    // Was /claim/<token>, which then handed off to /auth/signup — the client page, with
+    // a client heading and an account-type question the applicant had already answered.
+    // One link, one page, one button now (105's sibling change).
+    expect(email).toContain('`${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}`');
   });
 
-  it('falls back to signup rather than to a dead button', () => {
-    // A plain account is a poor outcome; a link that goes nowhere is a worse one.
-    expect(email).toContain('`${siteUrl}/auth/signup`');
+  it('falls back to the application, not to a signup that cannot grant standing', () => {
+    // Without a token no page can make them a contractor. /auth/signup would produce an
+    // ordinary account — 100's original defect, which looks like success and is not — so
+    // the button goes back to the application instead.
+    expect(email).toContain('`${siteUrl}/contractor-apply`');
+    expect(email).not.toContain('`${siteUrl}/auth/signup`');
   });
 
   it('the token is issued as the admin, not the service role', () => {

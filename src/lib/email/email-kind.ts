@@ -12,6 +12,7 @@ export type EmailKind =
   | 'contractor_application_received'
   | 'contractor_application_decision'
   | 'contractor_invite'
+  | 'verifier_invite'
   | 'stage_update'
   | 'other';
 
@@ -20,6 +21,7 @@ export const EMAIL_KIND_LABEL: Record<EmailKind, string> = {
   contractor_application_received: 'Application acknowledgement',
   contractor_application_decision: 'Application decision',
   contractor_invite:               'Project invitation',
+  verifier_invite:                 'Verifier invitation',
   stage_update:                    'Stage update',
   other:                           'Email',
 };
