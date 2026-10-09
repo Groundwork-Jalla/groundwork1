@@ -7,7 +7,7 @@
 //
 // The ledger already handles everything downstream. `record_payment_event` (090/098)
 // accepts `release_authorised → initiated`, stamps `initiated_at`, and writes
-// `provider_ref`; the five-minute poll then asks SwyChr about every row carrying a
+// `provider_ref`; the daily poll then asks SwyChr about every row carrying a
 // reference and drives it to `disbursed` or `failed`. The poll only looks at rows in
 // `initiated` or `reconciling`, so a release with no reference is invisible to it —
 // which is correct, because Groundwork has no way to ask "what transactions exist",

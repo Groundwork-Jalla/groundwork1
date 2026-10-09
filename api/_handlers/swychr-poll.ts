@@ -15,7 +15,7 @@ import {
  * has in fact landed.
  *
  * ── Two callers, one function ────────────────────────────────────────────────────────
- *   a scheduler, every five minutes, authenticated by a shared secret;
+ *   a scheduler, once a day, authenticated by a shared secret;
  *   an admin, refreshing one payment they are looking at.
  * Scheduled polling is the authority. The on-demand path is a convenience and is scoped
  * to a single payment, because a page that quietly moves money whenever somebody opens it

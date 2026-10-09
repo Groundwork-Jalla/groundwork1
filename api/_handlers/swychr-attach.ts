@@ -15,7 +15,7 @@ import {
  * ── Why this is the whole gap ────────────────────────────────────────────────────────
  * Everything downstream already runs. `record_payment_event` accepts
  * `release_authorised → initiated`, stamps `initiated_at`, and writes `provider_ref`;
- * the five-minute cron then polls every row in `initiated` and drives it to `disbursed`
+ * the daily cron then polls every row in `initiated` and drives it to `disbursed`
  * or `failed` on SwyChr's word. Before a reference exists the poll cannot see the row,
  * which is why an authorised release sits still forever without this.
  *

@@ -50,7 +50,7 @@ export function isPollable(row: PayoutRow): boolean {
  * The idempotency key for a polled observation.
  *
  * Deliberately free of any clock: keyed on the provider's own transaction reference and
- * the status it is reporting, so asking the same question every five minutes inserts one
+ * the status it is reporting, so asking the same question on each run inserts one
  * event and then nothing. A key containing the poll time would create a row per poll, and
  * `record_payment_event` would re-apply a transition it has already applied.
  *

@@ -175,8 +175,27 @@ describe('who may ask', () => {
 
   it('the cron calls a plain path that rewrites onto the one action', () => {
     const vercel = JSON.parse(src('vercel.json'));
-    expect(vercel.crons).toEqual([{ path: '/api/swychr-poll', schedule: '*/5 * * * *' }]);
+    expect(vercel.crons).toEqual([{ path: '/api/swychr-poll', schedule: '0 6 * * *' }]);
     expect(vercel.rewrites).toContainEqual({ source: '/api/swychr-poll', destination: '/api/events?action=swychr-poll' });
+  });
+
+  it('runs at most once a day, because more often does not deploy at all', () => {
+    // READ THIS BEFORE MAKING IT MORE FREQUENT.
+    //
+    // This was `*/5 * * * *` from 25 Sep. Vercel's Hobby plan refuses any cron that runs
+    // more than once a day, and it refuses it AT DEPLOY TIME — so every deployment from
+    // that commit onwards failed, and production silently served two-week-old code while
+    // the repository looked healthy. Nothing in the app reported it.
+    //
+    // A faster poll needs one of: the Pro plan, or an external scheduler hitting
+    // /api/swychr-poll with CRON_SECRET (the endpoint already accepts that and is not
+    // tied to Vercel's scheduler). Changing the number here alone breaks every deploy.
+    const { crons } = JSON.parse(src('vercel.json')) as { crons: { schedule: string }[] };
+    for (const c of crons) {
+      const [minute, hour] = c.schedule.split(' ');
+      expect(minute, `${c.schedule} repeats within an hour`).not.toMatch(/[*/,-]/);
+      expect(hour, `${c.schedule} repeats within a day`).not.toMatch(/[*/,-]/);
+    }
   });
 
   it('an admin may refresh one payment with their own session', () => {
