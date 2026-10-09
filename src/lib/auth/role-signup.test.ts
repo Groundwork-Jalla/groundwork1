@@ -29,6 +29,9 @@ const callback = strip(read('src/app/routes/auth/callback.tsx'));
 const handler  = strip(read('api/_handlers/invite-verifier.ts'));
 const claimPg  = strip(read('src/app/routes/claim.tsx'));
 const sql      = read('supabase/migrations/105_verifier_invites.sql');
+const sql106   = read('supabase/migrations/106_contractor_self_registration.sql');
+/** 106's prose argues about 'admin' on purpose, so the role scan reads statements only. */
+const sql106Code = sql106.replace(/^\s*--.*$/gm, '');
 
 describe('one door each, and it says which', () => {
   it('both routes exist', () => {
@@ -208,5 +211,52 @@ describe('105 grants the role only through the token', () => {
       const args = m[1];
       expect(args, `entity type without an id: ${args.trim()}`).not.toMatch(/'[a-z_]+',\s*NULL/);
     }
+  });
+});
+
+
+describe('106 — the partner door is open, and only that far', () => {
+  it('grants the contractor role and nothing else', () => {
+    expect(sql106).toMatch(/INSERT INTO public\.user_roles \(user_id, role\) VALUES \(v_actor, 'contractor'\)/);
+    expect(sql106).toMatch(/ON CONFLICT \(user_id, role\) DO NOTHING/);
+    // No listing, no application, no project: a self-registered partner is not a vetted
+    // directory entry, and `public.contractors` is admin-write-only (033) regardless.
+    expect(sql106).not.toMatch(/INSERT INTO public\.contractors/);
+    expect(sql106).not.toMatch(/INSERT INTO public\.contractor_applications/);
+    expect(sql106).not.toMatch(/INSERT INTO public\.projects/);
+  });
+
+  it('takes no role argument, so it can never be asked for admin', () => {
+    // A `p_role text` parameter on a function every signed-in user may execute would be
+    // a way to request 'admin'. The role is a literal and the signature is empty.
+    expect(sql106).toMatch(/FUNCTION public\.register_contractor_account\(\)/);
+    expect(sql106).not.toMatch(/register_contractor_account\(\s*p_/);
+    // No other role is named by any statement in the file.
+    expect(sql106Code).not.toMatch(/'admin'|'verifier'|'homeowner'/);
+  });
+
+  it('refuses an anonymous caller', () => {
+    expect(sql106).toMatch(/not_signed_in/);
+    expect(sql106).toMatch(/REVOKE ALL ON FUNCTION public\.register_contractor_account\(\) FROM PUBLIC, anon;/);
+    expect(sql106).toMatch(/GRANT EXECUTE ON FUNCTION public\.register_contractor_account\(\) TO authenticated;/);
+  });
+
+  it('writes one audit row per new role, not one per call', () => {
+    // ON CONFLICT swallows a repeat insert, so FOUND is what distinguishes a first call
+    // from a refresh. Without it, reloading the callback would log forever.
+    expect(sql106).toMatch(/v_new := FOUND;/);
+    expect(sql106).toMatch(/IF v_new THEN[\s\S]*?log_activity/);
+  });
+
+  it('calls log_activity with a person and no entity, which 089 requires', () => {
+    // 089 raises `no_subject` with neither project nor person, and `bad_entity` for an
+    // entity type without an id. A role grant has no row to point at.
+    expect(sql106).toMatch(/log_activity\(NULL, 'contractor\.self_registered', NULL, NULL, v_actor,/);
+  });
+
+  it('records the rule that follows from being open', () => {
+    // The one thing a future change could get wrong: gating a partner's ability to bring
+    // their own clients on a role that is now self-granted.
+    expect(sql106).toMatch(/must NOT be gated on the bare contractor role/);
   });
 });
