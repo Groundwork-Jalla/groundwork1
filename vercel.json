@@ -18,7 +18,7 @@
   "crons": [
     {
       "path": "/api/swychr-poll",
-      "schedule": "0 6 * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }

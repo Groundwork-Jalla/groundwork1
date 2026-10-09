@@ -908,7 +908,7 @@ export const fr: Mirror<EnDict> = {
       // Enregistrement de la transaction SwyChr qui a r\u00e9gl\u00e9 un d\u00e9caissement autoris\u00e9.
       attach: {
         label:       'Enregistrer la transaction SwyChr',
-        hint:        'C\u2019est SwyChr qui a d\u00e9plac\u00e9 cet argent : Groundwork a besoin de l\u2019identifiant de transaction pour en suivre l\u2019issue. Une fois enregistr\u00e9, son statut est v\u00e9rifi\u00e9 une fois par jour, et vous pouvez l\u2019actualiser vous-m\u00eame \u00e0 tout moment.',
+        hint:        'C\u2019est SwyChr qui a d\u00e9plac\u00e9 cet argent : Groundwork a besoin de l\u2019identifiant de transaction pour en suivre l\u2019issue. Une fois enregistr\u00e9, son statut est v\u00e9rifi\u00e9 toutes les cinq minutes, et vous pouvez l\u2019actualiser vous-m\u00eame \u00e0 tout moment.',
         placeholder: 'Identifiant de transaction SwyChr',
         cta:         'Enregistrer',
         err: {

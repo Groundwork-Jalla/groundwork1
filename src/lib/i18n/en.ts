@@ -906,7 +906,7 @@ export const en = {
       // records the movement; it does not make it.
       attach: {
         label:       'Record the SwyChr transaction',
-        hint:        'SwyChr moved this money, so Groundwork needs the transaction ID to follow it. Once recorded, its status is checked once a day, and you can refresh it yourself at any time.',
+        hint:        'SwyChr moved this money, so Groundwork needs the transaction ID to follow it. Once recorded, its status is checked every five minutes, and you can refresh it yourself at any time.',
         placeholder: 'SwyChr transaction ID',
         cta:         'Record',
         err: {

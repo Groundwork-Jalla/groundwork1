@@ -1,6 +1,9 @@
 {
   "name": "groundwork1",
   "private": true,
+  "groundwork": {
+    "vercelPlan": "pro"
+  },
   "type": "module",
   "scripts": {
     "build": "react-router build",

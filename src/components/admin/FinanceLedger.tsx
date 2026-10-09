@@ -46,7 +46,7 @@ const TONE: Record<string, string> = {
 // webhook and cannot be asked which transactions exist. So the link between an
 // authorised release and the transfer that settled it is a fact only a person holds.
 //
-// Once it is filed the row reaches `initiated` and the daily poll takes over,
+// Once it is filed the row reaches `initiated` and the five-minute poll takes over,
 // driving it to disbursed or failed on SwyChr's word. Nothing here decides an amount.
 function AttachReference({ line, onFiled }: { line: LedgerLine; onFiled: () => void }) {
   const t = useT();

@@ -175,26 +175,36 @@ describe('who may ask', () => {
 
   it('the cron calls a plain path that rewrites onto the one action', () => {
     const vercel = JSON.parse(src('vercel.json'));
-    expect(vercel.crons).toEqual([{ path: '/api/swychr-poll', schedule: '0 6 * * *' }]);
+    expect(vercel.crons).toEqual([{ path: '/api/swychr-poll', schedule: '*/5 * * * *' }]);
     expect(vercel.rewrites).toContainEqual({ source: '/api/swychr-poll', destination: '/api/events?action=swychr-poll' });
   });
 
-  it('runs at most once a day, because more often does not deploy at all', () => {
-    // READ THIS BEFORE MAKING IT MORE FREQUENT.
+  it('never schedules a cron the declared Vercel plan would refuse at deploy time', () => {
+    // READ THIS BEFORE CHANGING EITHER THE SCHEDULE OR THE PLAN.
     //
-    // This was `*/5 * * * *` from 25 Sep. Vercel's Hobby plan refuses any cron that runs
-    // more than once a day, and it refuses it AT DEPLOY TIME — so every deployment from
-    // that commit onwards failed, and production silently served two-week-old code while
-    // the repository looked healthy. Nothing in the app reported it.
+    // Vercel's Hobby plan refuses any cron running more than once a day, and it refuses
+    // it AT DEPLOY TIME. This was `*/5 * * * *` on Hobby from 25 Sep: every deployment
+    // failed from that commit onwards, production silently served two-week-old code, and
+    // nothing in the repository or the app reported it. Tests passed the whole time.
     //
-    // A faster poll needs one of: the Pro plan, or an external scheduler hitting
-    // /api/swychr-poll with CRON_SECRET (the endpoint already accepts that and is not
-    // tied to Vercel's scheduler). Changing the number here alone breaks every deploy.
+    // So the frequency is a BILLING decision, and `package.json` -> groundwork.vercelPlan
+    // is where that fact is written down. On 'pro' any schedule is allowed. Flip it back
+    // to 'hobby' — a downgrade, or copying this config into a new project — and this test
+    // re-arms and catches the same mistake before it reaches Vercel.
+    //
+    // A sub-daily poll without Pro needs an external scheduler calling /api/swychr-poll
+    // with CRON_SECRET; that endpoint is not tied to Vercel's scheduler.
+    const plan = (JSON.parse(src('package.json')) as { groundwork?: { vercelPlan?: string } })
+      .groundwork?.vercelPlan;
+    expect(plan, 'package.json must declare groundwork.vercelPlan').toMatch(/^(hobby|pro)$/);
+
     const { crons } = JSON.parse(src('vercel.json')) as { crons: { schedule: string }[] };
+    if (plan === 'pro') return;   // every schedule is permitted
+
     for (const c of crons) {
       const [minute, hour] = c.schedule.split(' ');
-      expect(minute, `${c.schedule} repeats within an hour`).not.toMatch(/[*/,-]/);
-      expect(hour, `${c.schedule} repeats within a day`).not.toMatch(/[*/,-]/);
+      expect(minute, `${c.schedule} repeats within an hour — Hobby refuses it`).not.toMatch(/[*/,-]/);
+      expect(hour, `${c.schedule} repeats within a day — Hobby refuses it`).not.toMatch(/[*/,-]/);
     }
   });
 
