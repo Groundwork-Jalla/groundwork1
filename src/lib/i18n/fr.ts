@@ -1244,6 +1244,7 @@ export const fr: Mirror<EnDict> = {
         payout_destination_default_set: 'a chang\u00e9 les coordonn\u00e9es de paiement par d\u00e9faut',
         payout_destination_retired:     'a retir\u00e9 des coordonn\u00e9es de paiement',
         payout_destination_verified:    'a v\u00e9rifi\u00e9 des coordonn\u00e9es de paiement',
+        contractor_self_registered:     's\'est inscrit comme entrepreneur',
         contractor_account_claimed:     'a r\u00e9clam\u00e9 son compte entrepreneur',
         verifier_account_claimed:       'a cr\u00e9\u00e9 son compte v\u00e9rificateur',
         contractor_primary_set:         'a désigné l’entrepreneur payé pour ce projet',
@@ -3806,6 +3807,7 @@ export const fr: Mirror<EnDict> = {
     roleSignup: {
       contractorHeading: 'S\'inscrire comme entrepreneur',
       contractorIntro:   'Bienvenue, {name}. Votre candidature a été approuvée — ceci crée le compte depuis lequel vous gérerez vos projets.',
+      contractorOpenIntro: 'Créez le compte depuis lequel vous gérerez vos projets. Un projet apparaîtra ici dès que vous y serez associé.',
       contractorSubmit:  'S\'inscrire comme entrepreneur',
       contractorNoToken: 'Les comptes entrepreneurs se créent depuis le lien de votre e-mail d\'approbation. Si vous n\'avez pas encore candidaté, commencez par là et nous vous écrirons dès que votre candidature aura été examinée.',
       contractorNoTokenCta: 'Candidater pour rejoindre Groundwork',

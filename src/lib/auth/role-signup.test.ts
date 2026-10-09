@@ -54,16 +54,25 @@ describe('one door each, and it says which', () => {
 });
 
 describe('the gate', () => {
-  it('shows no form at all without a readable invitation', () => {
-    // `preview` is null for an absent, unknown, withdrawn or malformed token, and the
-    // form is only reached past that check.
-    expect(form).toMatch(/if \(!preview\) \{/);
-    const gate = form.indexOf('if (!preview) {');
-    const signUp = form.indexOf('supabase.auth.signUp');
+  it('shows no form to a VERIFIER without a readable invitation', () => {
+    // `preview` is null for an absent, unknown, withdrawn or malformed token. A verifier
+    // stops there; a contractor does not, because a partner has no invitation to read
+    // (106). `openWithoutInvite` is the whole difference, so it is what this pins.
+    expect(form).toMatch(/if \(!preview && !cfg\.openWithoutInvite\) \{/);
+    const gate = form.indexOf('if (!preview && !cfg.openWithoutInvite) {');
     expect(gate).toBeGreaterThan(-1);
-    expect(signUp).toBeGreaterThan(-1);
-    // The refusal returns before the form that calls signUp is ever rendered.
     expect(form.slice(gate).includes('return (')).toBe(true);
+    // The verifier door must be the closed one, and the contractor door the open one.
+    const verifier = form.slice(form.indexOf('verifier: {'));
+    expect(verifier).toMatch(/openWithoutInvite: false/);
+    const contractor = form.slice(form.indexOf('contractor: {'), form.indexOf('verifier: {'));
+    expect(contractor).toMatch(/openWithoutInvite: true/);
+  });
+
+  it('registers a partner rather than claiming, and only for the open door', () => {
+    // A partner has nothing to claim, so the role is granted in the callback instead.
+    expect(form).toMatch(/if \(preview\) cfg\.remember\(token\);/);
+    expect(form).toMatch(/else if \(cfg\.openWithoutInvite\) rememberContractorRegistration\(\);/);
   });
 
   it('treats absent, unknown and withdrawn tokens identically', () => {
@@ -72,7 +81,7 @@ describe('the gate', () => {
   });
 
   it('offers a spent invitation sign-in instead of a second account', () => {
-    expect(form).toMatch(/preview\.claimed/);
+    expect(form).toMatch(/preview\?\.claimed/);
     expect(form).toMatch(/claimedTitle/);
   });
 

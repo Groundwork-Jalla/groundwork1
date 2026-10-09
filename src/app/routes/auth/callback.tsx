@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { acceptInvite } from "@/lib/supabase/invites";
-import { claimContractorAccount, takeRememberedClaim } from "@/lib/supabase/contractor-claim";
+import { claimContractorAccount, takeRememberedClaim, registerContractorAccount, takeRememberedContractorRegistration } from "@/lib/supabase/contractor-claim";
 import { claimVerifierAccount, takeRememberedVerifierClaim } from "@/lib/supabase/verifier-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
@@ -257,6 +257,21 @@ export default function AuthCallback() {
       } catch {
         // Used, revoked or claimed by someone else — fall through to normal routing
         // rather than stranding them on a dead page.
+      }
+    }
+
+    // A partner who signed up at the bare /contractor-signup has no invitation to claim,
+    // so the role is granted here instead (106). Checked after the claim above, which is
+    // the richer path: an applicant's claim also links their application and their
+    // published directory listing, and only one of the two markers is ever parked.
+    if (takeRememberedContractorRegistration()) {
+      try {
+        await registerContractorAccount();
+        navigate("/work", { replace: true });
+        return;
+      } catch {
+        // The account exists and they are signed in; a role that did not land is a
+        // support question, not a reason to strand them on this page.
       }
     }
 

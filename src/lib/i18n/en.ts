@@ -1245,6 +1245,7 @@ export const en = {
         payout_destination_default_set: 'changed the default payout details',
         payout_destination_retired:     'retired payout details',
         payout_destination_verified:    'verified payout details',
+        contractor_self_registered:     'signed up as a contractor',
         contractor_account_claimed:     'claimed their contractor account',
         verifier_account_claimed:       'set up their verifier account',
         // 101 — who this project pays.
@@ -3876,6 +3877,7 @@ export const en = {
     roleSignup: {
       contractorHeading: 'Sign up as a contractor',
       contractorIntro:   'Welcome, {name}. Your application has been approved — this sets up the account you will manage your projects from.',
+      contractorOpenIntro: 'Set up the account you will manage your projects from. You will see a project here once you are brought onto one.',
       contractorSubmit:  'Sign up as a contractor',
       contractorNoToken: 'Contractor accounts are set up from the link in your approval email. If you have not applied yet, start there and we will write to you once your application has been reviewed.',
       contractorNoTokenCta: 'Apply to join Groundwork',

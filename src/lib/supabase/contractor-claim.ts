@@ -139,3 +139,43 @@ export async function inviteContractorToClaim(applicationId: string): Promise<vo
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(String(json?.error ?? `http_${r.status}`));
 }
+
+// ── A partner's own registration (106) ────────────────────────────────────────────────
+//
+// The other kind of contractor. An applicant is interviewed, accepted, and claims the
+// account the acceptance earned; a partner is somebody Jalla already knows, who brings
+// their own clients. There is no application to accept, so there is no token to mail —
+// they open /contractor-signup with nothing in the query and sign up.
+//
+// Open by decision. The role grants no project (086), no listing in the client-facing
+// directory (033, admin-write-only) and no ability to create a project. See 106's header
+// for what it does open and for the rule that a partner's client-onboarding must never be
+// gated on this role.
+
+/** Set when somebody signed up at /contractor-signup with no invitation to claim. */
+export const PENDING_CONTRACTOR_REGISTER_KEY = 'pendingContractorRegister';
+
+export function rememberContractorRegistration(): void {
+  try { localStorage.setItem(PENDING_CONTRACTOR_REGISTER_KEY, '1'); } catch { /* private mode */ }
+}
+
+export function takeRememberedContractorRegistration(): boolean {
+  try {
+    const v = localStorage.getItem(PENDING_CONTRACTOR_REGISTER_KEY);
+    if (v) localStorage.removeItem(PENDING_CONTRACTOR_REGISTER_KEY);
+    return v === '1';
+  } catch { return false; }
+}
+
+/**
+ * Grant the signed-in account the contractor role.
+ *
+ * Idempotent, and writes one audit row the first time only. The marker above decides
+ * WHETHER this runs, not whether it is permitted to: the RPC is open to any signed-in
+ * user, which is what "a bare URL with no code" means. A client who signs up normally
+ * never reaches it because nothing parks the marker.
+ */
+export async function registerContractorAccount(): Promise<void> {
+  const { error } = await supabase.rpc('register_contractor_account');
+  if (error) throw error;
+}

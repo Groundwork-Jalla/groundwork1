@@ -12,9 +12,9 @@ import { normalisePhone, isE164 } from '@/lib/phone';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
 import { signupMetadata, CONTRACTOR_APPLY_PATH } from '@/lib/auth/signup-account';
-import { getClaimPreview, rememberClaim } from '@/lib/supabase/contractor-claim';
+import { getClaimPreview, rememberClaim, rememberContractorRegistration } from '@/lib/supabase/contractor-claim';
 import { getVerifierInvitePreview, rememberVerifierClaim } from '@/lib/supabase/verifier-claim';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 
 // =========================================================
 // The one front door for a contractor, and the one for a verifier.
@@ -25,15 +25,21 @@ import { useT } from '@/lib/i18n';
 // people who had just been accepted read it as the wrong page and stopped. This says
 // "Sign up as a contractor" in the heading and on the button, and nothing else.
 //
-// ── Why the token is required ────────────────────────────────────────────────────────
-// Holding the token is what proves you are the person we interviewed. Without that check
-// this page would hand out an account with no standing — the exact failure 100 was
-// written to fix, where "the directory listing existed, the person existed, and nothing
-// joined them". An account that looks like success and can do nothing is worse than a
-// refusal, so a visitor with no token is told how to get one instead.
+// ── Two kinds of contractor, one page ───────────────────────────────────────────────
+// An APPLICANT arrives with a token from their acceptance email: the page greets them by
+// name and the claim links their application and their published directory listing to the
+// new account (100). A PARTNER — somebody Jalla already knows, who brings their own
+// clients — has no application to accept and so no token to mail. They open this page
+// bare and sign up; `register_contractor_account` grants the role (106).
 //
-// The token is never something the person types or sees: it arrives in the link we
-// emailed. One click from their inbox, one page, one button.
+// So for a contractor a missing token is a different person, not a refusal. For a
+// VERIFIER it is still a refusal: their decision releases a stage payment, so that role is
+// never self-served. `openWithoutInvite` below is the whole difference.
+//
+// What a partner does NOT get by signing up: any project (086 gates that on an accepted
+// invite), a listing in the client-facing directory (033 is admin-write-only), or the
+// ability to create a project. 106's header carries the rule that follows from this —
+// a partner's client-onboarding must never be gated on the bare contractor role.
 //
 // ── Why the claim happens later ──────────────────────────────────────────────────────
 // Sign-up ends on "check your email", and the session is established in a DIFFERENT tab
@@ -49,8 +55,27 @@ interface Preview {
   claimed: boolean;
 }
 
-/** Everything that differs between the two doors, in one place. */
-const CONFIG = {
+/**
+ * Everything that differs between the two doors, in one place.
+ *
+ * Typed as one shape rather than left as a union of two: narrowing on
+ * `cfg.openWithoutInvite` otherwise reduces `cfg` to `never` inside the refusal branch,
+ * and the fields that branch reads disappear.
+ */
+interface DoorConfig {
+  preview: (token: string) => Promise<Preview | null>;
+  remember: (token: string) => void;
+  heading: TKey;
+  intro: TKey;
+  submit: TKey;
+  noToken: TKey;
+  noTokenHref: string | null;
+  noTokenCta: TKey | null;
+  openWithoutInvite: boolean;
+  openIntro: TKey | null;
+}
+
+const CONFIG: Record<SignupRole, DoorConfig> = {
   contractor: {
     preview: (token: string): Promise<Preview | null> => getClaimPreview(token),
     remember: rememberClaim,
@@ -61,6 +86,9 @@ const CONFIG = {
     /** An applicant with no token has somewhere to go: the application itself. */
     noTokenHref: CONTRACTOR_APPLY_PATH,
     noTokenCta:  'auth.roleSignup.contractorNoTokenCta',
+    /** A partner may sign up with nothing in the query (106). */
+    openWithoutInvite: true,
+    openIntro: 'auth.roleSignup.contractorOpenIntro',
   },
   verifier: {
     preview: (token: string): Promise<Preview | null> =>
@@ -74,8 +102,11 @@ const CONFIG = {
     // dead end. They are invited after an interview, so the honest answer is to say so.
     noTokenHref: null,
     noTokenCta:  null,
+    // No open version of this page. A verifier is invited after an interview.
+    openWithoutInvite: false,
+    openIntro: null,
   },
-} as const;
+};
 
 export default function RoleSignup({ role }: { role: SignupRole }) {
   const cfg = CONFIG[role];
@@ -127,7 +158,11 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
     // Parked BEFORE signUp: the confirmation lands in another tab, and /auth/callback is
     // what turns this account into a contractor or a verifier.
-    cfg.remember(token);
+    //
+    // An invitation is claimed; a partner with none is registered. Both happen in the
+    // callback, so neither is something this page's success depends on.
+    if (preview) cfg.remember(token);
+    else if (cfg.openWithoutInvite) rememberContractorRegistration();
 
     setSubmitting(true);
     const { data, error: signUpErr } = await supabase.auth.signUp({
@@ -163,9 +198,12 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
   }
 
   // ── No token, a bad one, or a withdrawn one ──
-  // Deliberately the same screen for all three: distinguishing them would turn this page
-  // into a way to test whether a token is real.
-  if (!preview) {
+  // For a verifier this is the end of the road. For a contractor it is a partner arriving
+  // at the bare URL, so the form is shown below instead.
+  //
+  // Deliberately the same screen for all three cases: distinguishing them would turn this
+  // page into a way to test whether a token is real.
+  if (!preview && !cfg.openWithoutInvite) {
     return (
       <div className="text-center">
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t(cfg.heading)}</h1>
@@ -190,7 +228,7 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
   // ── Already spent ──
   // The account exists; the thing to do is sign in, not make a second one.
-  if (preview.claimed) {
+  if (preview?.claimed) {
     return (
       <div className="text-center">
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t('auth.roleSignup.claimedTitle')}</h1>
@@ -223,7 +261,9 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
     <div>
       <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t(cfg.heading)}</h1>
       <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
-        {t(cfg.intro, { name: preview.fullName.trim().split(' ')[0] || preview.fullName })}
+        {preview
+          ? t(cfg.intro, { name: preview.fullName.trim().split(' ')[0] || preview.fullName })
+          : t(cfg.openIntro ?? cfg.intro)}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
