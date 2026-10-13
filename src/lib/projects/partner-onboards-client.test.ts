@@ -18,6 +18,8 @@ const strip2 = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/
 const strip = (s: string) => s.replace(/^\s*--.*$/gm, '').replace(/COMMENT ON [\s\S]*?;\s*$/gm, '');
 
 const sql     = read('supabase/migrations/109_contractor_onboards_client.sql');
+const sql110  = read('supabase/migrations/110_contractor_client_consent.sql');
+const code110 = strip(sql110);
 const code    = strip(sql);
 const routes  = read('src/app/routes.ts');
 const page    = strip2(read('src/app/routes/work/clients.new.tsx'));
@@ -137,9 +139,13 @@ describe('the partner can actually reach it', () => {
     expect(page).toMatch(/<ManagedWizard \/>/);
   });
 
-  it("puts the client on the free plan, not Jalla's managed tier", () => {
-    expect(page).toMatch(/tier: 'self_verify'/);
-    expect(page).not.toMatch(/tier: 'jalla_management'/);
+  it('puts the client on the managed tier', () => {
+    // A client a partner brings on IS a Jalla Management build. It also sidesteps the
+    // free plan's three-project cap, which counts the CLIENT's projects and would
+    // otherwise have failed at the END of the eleven-step wizard with a raw database
+    // message about a limit the contractor cannot see or change.
+    expect(page).toMatch(/tier: 'jalla_management'/);
+    expect(page).not.toMatch(/tier: 'self_verify'/);
   });
 });
 
@@ -190,5 +196,90 @@ describe('a client inviting a contractor to their own project still works', () =
     const body = fn.slice(0, fn.indexOf('$$;'));
     expect(body).toMatch(/ON CONFLICT \(project_id, email\) DO UPDATE/);
     expect(body).toMatch(/NOT public\.is_my_clients_project\(p_project\)/);
+  });
+});
+
+
+describe('110 — a link only grants when the client actually is one', () => {
+  /**
+   * THE HOLE 109 SHIPPED WITH. `findOrCreateUserByEmail` returns an EXISTING account
+   * silently, and the handler wrote the link regardless. A contractor who knew any
+   * address on the platform could name it and then create projects owned by that person
+   * — becoming primary contractor on them, which is the position a release pays, while
+   * the victim was told nothing.
+   */
+
+  it('both gates require a new account or an explicit acceptance', () => {
+    for (const fn of ['is_my_client', 'is_my_clients_project']) {
+      const at = code110.indexOf(`FUNCTION public.${fn}(`);
+      expect(at, `110 must redefine ${fn}`).toBeGreaterThan(-1);
+      const body = code110.slice(at, code110.indexOf('$$;', at));
+      expect(body, `${fn} must not grant on the bare link`)
+        .toMatch(/cc\.client_was_created OR cc\.accepted_at IS NOT NULL/);
+    }
+  });
+
+  it('fails closed on every row written before the fix', () => {
+    // We cannot tell after the fact which addresses were new, so the default is no.
+    expect(code110).toMatch(/client_was_created boolean NOT NULL DEFAULT false/);
+  });
+
+  it('a link cannot be promoted to "newly created" afterwards', () => {
+    expect(code110).toMatch(/cannot_promote/);
+    expect(code110).toMatch(/TG_OP = 'UPDATE' AND NEW\.client_was_created AND NOT OLD\.client_was_created/);
+  });
+
+  it('only the client named on a link may accept it', () => {
+    const at = code110.indexOf('FUNCTION public.accept_contractor_link');
+    const body = code110.slice(at, code110.indexOf('$$;', at));
+    expect(body).toMatch(/v_row\.client_id <> v_actor/);
+    expect(body).toMatch(/not_yours/);
+  });
+
+  it('the handler refuses an address that already has an account', () => {
+    expect(handler).toMatch(/if \(!created\)/);
+    expect(handler).toMatch(/client_exists/);
+    // And only ever claims the account was new when it genuinely was.
+    expect(handler).toMatch(/client_was_created: true/);
+    const refuse = handler.indexOf('client_exists');
+    const link = handler.indexOf('contractor_clients');
+    expect(link, 'the refusal must come before the link is written').toBeGreaterThan(refuse);
+  });
+
+  it('taking a project sets primary on a retry, without stealing it', () => {
+    const at = code110.indexOf('FUNCTION public.contractor_take_own_client_project');
+    const body = code110.slice(at, code110.indexOf('$$;', at));
+    // 109 set is_primary only in the INSERT, so a row the client created first stayed
+    // non-primary and the partner who built the project would not have been paid.
+    expect(body).toMatch(/is_primary\s*=\s*public\.contractor_invites\.is_primary OR NOT v_other/);
+    // 101 allows one primary per project; taking somebody else's is a staff decision.
+    expect(body).toMatch(/WHERE project_id = p_project AND is_primary/);
+  });
+});
+
+describe('the fixes that are not SQL', () => {
+  it('a failed role grant is reported, not swallowed', () => {
+    const cb = read('src/app/routes/auth/callback.tsx');
+    expect(cb).toMatch(/roleNotGranted/);
+    expect(cb).toMatch(/navigate\('\/contractor-signup', \{ replace: true \}\)/);
+    expect(cb).toMatch(/navigate\('\/verifier-signup', \{ replace: true \}\)/);
+  });
+
+  it('the partner button is hidden when the feature is not on this database', () => {
+    expect(home).toMatch(/canOnboard === true &&/);
+    expect(read('src/lib/supabase/contractor-clients.ts')).toMatch(/partnerOnboardingAvailable/);
+  });
+
+  it('the joining assessment is reachable, and only on a pre-existing stage', () => {
+    const panel = read('src/components/admin/workspace/SelectedStagePanel.tsx');
+    expect(panel).toMatch(/JoiningAssessmentPanel/);
+    expect(panel).toMatch(/view\.lifecycle\.state === 'pre_existing' &&/);
+    expect(read('src/components/admin/workspace/JoiningAssessment.tsx')).toMatch(/recordJoiningAssessment\(/);
+  });
+
+  it('the client is told their project was set up for them', () => {
+    const detail = read('src/app/routes/projects/detail.tsx');
+    expect(detail).toMatch(/project\.created_by &&/);
+    expect(detail).toMatch(/project\.overview\.setUpForYou/);
   });
 });

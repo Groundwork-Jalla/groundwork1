@@ -297,10 +297,17 @@ export default function AuthCallback() {
         await registerContractorAccount();
         leaveForRoleSurface("/work");
         return;
-      } catch {
-        // The account exists and they are signed in; a role that did not land is a
-        // support question, not a reason to strand them on this page.
-      }
+      } catch (err) {
+        // Falling through silently is what made Philip's report unreadable: the person
+        // lands in CLIENT onboarding with no role and nothing said, which looks exactly
+        // like the product signing them up as the wrong thing. Say it, and send them
+        // somewhere they can put it right — /contractor-signup offers to add the role to the
+        // account they are now signed in with.
+        console.error('[callback] contractor role was not granted:', err);
+        setError(t('auth.callback.roleNotGranted'));
+        navigate('/contractor-signup', { replace: true });
+        return;
+      } finally { /* nothing to undo: the account exists either way */ }
     }
 
     // An invited verifier finishes theirs the same way (105). Taken separately from the
@@ -363,7 +370,17 @@ export default function AuthCallback() {
         await registerVerifierAccount();
         leaveForRoleSurface("/verifiers");
         return;
-      } catch {
+      } catch (err) {
+        // Falling through silently is what made Philip's report unreadable: the person
+        // lands in CLIENT onboarding with no role and nothing said, which looks exactly
+        // like the product signing them up as the wrong thing. Say it, and send them
+        // somewhere they can put it right — /verifier-signup offers to add the role to the
+        // account they are now signed in with.
+        console.error('[callback] verifier role was not granted:', err);
+        setError(t('auth.callback.roleNotGranted'));
+        navigate('/verifier-signup', { replace: true });
+        return;
+      } finally {
         // They are signed in and the account exists; a role that did not land is a
         // support question, not a reason to strand them here.
       }

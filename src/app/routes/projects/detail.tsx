@@ -424,6 +424,16 @@ export default function ProjectDetail() {
           <>
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} />
 
+          {/* Somebody else built this project for them — an admin, or the partner
+              contractor who brought them on (109). The client was told nothing before:
+              a project simply appeared. Saying so, and saying plainly that they own it,
+              is the difference between a surprise and a service. */}
+          {activeTab === 'overview' && project.created_by && (
+            <p className="mb-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">
+              {t('project.overview.setUpForYou')}
+            </p>
+          )}
+
           {/* Tab: Overview */}
           {activeTab === 'overview' && (
             <OverviewTab

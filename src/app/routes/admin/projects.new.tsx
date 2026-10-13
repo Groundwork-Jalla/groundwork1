@@ -43,19 +43,25 @@ const STEPS: React.ComponentType[] = [
 ];
 
 export function ManagedWizard() {
-  const { step, direction, goTo } = useWizard();
+  const { step, direction, goTo, onBehalfOf } = useWizard();
 
-  // Step 10 in the shared numbering is the plan picker. Skip it in the direction of
-  // travel rather than renumbering every step's `goTo`, which BuildingPreview hard-codes.
-  // Direction matters: a plain "if 10 then 11" traps Back — leaving 11 lands on 10, which
-  // bounces straight to 11 again, and the admin can never return to the summary.
+  // Step 10 in the shared numbering is the plan picker. An admin creating a managed build
+  // has already decided the plan, so it is skipped in the direction of travel rather than
+  // renumbering every step's `goTo`, which BuildingPreview hard-codes. Direction matters:
+  // a plain "if 10 then 11" traps Back — leaving 11 lands on 10, which bounces straight
+  // to 11 again, and the admin can never return to the summary.
+  //
+  // A PARTNER has not decided: their client may be on any plan, so they see the picker.
+  const planDecided = onBehalfOf?.tier != null;
+
   useEffect(() => {
-    if (step === 10) goTo(direction === 'back' ? 9 : 11);
-  }, [step, direction, goTo]);
+    if (planDecided && step === 10) goTo(direction === 'back' ? 9 : 11);
+  }, [planDecided, step, direction, goTo]);
 
   // Render the destination during the skip frame, so nothing flashes blank.
   const Component = step <= 9 ? STEPS[step - 1]
-    : direction === 'back' && step === 10 ? Step9Summary
+    : step === 10 ? (planDecided && direction === 'back' ? Step9Summary
+                     : planDecided ? Step11ConfirmBudget : Step10PlanSelection)
     : Step11ConfirmBudget;
   return <Component />;
 }

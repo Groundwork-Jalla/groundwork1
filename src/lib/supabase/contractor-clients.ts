@@ -30,6 +30,25 @@ interface Row {
 }
 
 /**
+ * Whether the partner feature is actually available on this database.
+ *
+ * The button used to be unconditional, so before 109 was applied a contractor could press
+ * it, fill in a client, and get a generic 500 from a missing table. Nothing in the page
+ * could tell the difference between "not deployed yet" and "broken".
+ *
+ * Null while unknown, so the caller can render nothing rather than flashing a button on
+ * and off.
+ */
+export async function partnerOnboardingAvailable(): Promise<boolean> {
+  const { error } = await supabase
+    .from('contractor_clients').select('id').limit(1);
+  if (!error) return true;
+  if (error.code === '42P01' || error.code === 'PGRST205') return false;
+  // Any other error (a network blip, RLS) is not evidence the feature is missing.
+  return true;
+}
+
+/**
  * The clients this contractor brought on.
  *
  * Returns an empty list rather than throwing when 109 is not applied: a dashboard that

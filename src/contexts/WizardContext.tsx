@@ -25,11 +25,26 @@ export type WizardDirection = 'forward' | 'back';
  * (migration 082) and the tier is fixed to Management, which the tier guard trusts an
  * admin to set.
  */
+import type { ProjectTier } from '@/types/project';
+
 export interface OnBehalfOf {
   userId: string;
   /** Shown in the wizard so the person running it can see whose project this is. */
   label: string;
-  tier: 'jalla_management' | 'self_verify';
+  /**
+   * The plan this project is created on, or null to ask in the wizard's own plan step.
+   *
+   * An admin creating a managed build fixes it. A PARTNER does not: their client may be
+   * on any plan, so the picker that step 10 already is gets shown instead of skipped.
+   *
+   * Note what a fixed value can and cannot do. `clamp_project_tier_on_insert` (061/062)
+   * rewrites any paid tier back to `self_verify` for a browser request that is not an
+   * admin's, unless the OWNER's subscription already entitles them. So a partner naming
+   * a paid plan here would have been a label the database quietly contradicted — paid
+   * plans arrive through Stripe, and this only records what the client is being asked
+   * for.
+   */
+  tier: ProjectTier | null;
   /**
    * Who is running the wizard for somebody else.
    *

@@ -50,16 +50,18 @@ export default function WorkNewClient() {
       setClient({
         userId: clientId,
         label: fullName.trim(),
-        // Not jalla_management: that tier means Jalla runs the build. A partner's client
-        // is on the free plan until they choose otherwise, and the tier guard (061/062)
-        // would clamp anything else from this session anyway.
-        tier: 'self_verify',
+        // A client a partner brings on IS a Jalla Management build — Jalla stands behind
+        // the work whoever introduced them. It also sidesteps the free plan's three
+        // project cap, which counts the CLIENT's projects and would otherwise have
+        // failed at the END of the eleven step wizard with a raw database message.
+        tier: 'jalla_management',
         by: 'partner',
       });
     } catch (err) {
       const code = err instanceof InviteClientFailed ? err.code : '';
       setError(
-        code === 'self_invite'  ? t('contractorClient.errSelf')
+        code === 'client_exists' ? t('contractorClient.errExists')
+        : code === 'self_invite'  ? t('contractorClient.errSelf')
         : code === 'invalid_email' ? t('contractorClient.errEmail')
         : code === 'Not found'  ? t('contractorClient.errNotContractor')
         : t('contractorClient.errFailed'),

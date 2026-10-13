@@ -6,6 +6,7 @@ import {
   fetchAssignedProjects, fetchRework, fetchMyPayments,
   type AssignedProject, type ReworkItem, type ContractorPayment,
 } from '@/lib/supabase/contractor-work';
+import { partnerOnboardingAvailable } from '@/lib/supabase/contractor-clients';
 import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT, type TKey } from '@/lib/i18n';
@@ -42,6 +43,8 @@ export default function ContractorDashboard() {
   // null while unknown. A prompt shown because a read failed would nag somebody who has
   // already given their details, so silence is the answer to "we could not tell".
   const [needsPayout, setNeedsPayout] = useState<boolean | null>(null);
+  // Null until known, so the partner button never flashes in and out.
+  const [canOnboard, setCanOnboard] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -61,6 +64,15 @@ export default function ContractorDashboard() {
     })();
     return () => { alive = false; };
   }, [t]);
+
+  // Is the partner feature on this database at all? Its migration may not be applied.
+  useEffect(() => {
+    let alive = true;
+    partnerOnboardingAvailable()
+      .then(ok => { if (alive) setCanOnboard(ok); })
+      .catch(() => { if (alive) setCanOnboard(false); });
+    return () => { alive = false; };
+  }, []);
 
   // Separate from the work read: payment details are not work, and a failure in one must
   // not blank the other.
@@ -112,8 +124,10 @@ export default function ContractorDashboard() {
 
       {/* A partner brings their own client (109). Shown to every contractor: the role is
           the same, and an invited contractor who later brings somebody is a partner from
-          that moment — there is no second kind of account to switch to. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          that moment — there is no second kind of account to switch to. Hidden entirely
+          until the database actually has the feature, so it cannot be pressed into a 500. */}
+      {canOnboard === true && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div>
           <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorClient.promptTitle')}</p>
           <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorClient.promptBody')}</p>
@@ -125,6 +139,7 @@ export default function ContractorDashboard() {
           <UserPlus className="size-3.5" aria-hidden />{t('contractorClient.promptCta')}
         </Link>
       </div>
+      )}
 
       {needsPayout === true && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

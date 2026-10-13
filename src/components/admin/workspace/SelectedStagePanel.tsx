@@ -5,6 +5,7 @@ import { workspaceHref } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { EvidenceList } from './EvidenceList';
 import { useStageLabels } from '@/lib/stage-labels';
+import { JoiningAssessmentPanel } from './JoiningAssessment';
 import { formatDate, formatRelative } from '@/lib/format';
 import { formatUSDFull } from '@/lib/budget';
 import { useT, type TKey } from '@/lib/i18n';
@@ -66,6 +67,15 @@ export function SelectedStagePanel({ projectId, view, people, ledgerAvailable }:
           {t('admin.workspace.stage.openInStages')} <ArrowRight className="size-3.5" />
         </Link>
       </div>
+
+      {/* Work completed before this project joined Groundwork (107). Only such a stage
+          can carry one — the RPC refuses any other — so this is both where the review
+          goes and the only place it is offered. */}
+      {view.lifecycle.state === 'pre_existing' && (
+        <div className="mt-4">
+          <JoiningAssessmentPanel projectId={projectId} stageId={view.stage.id} />
+        </div>
+      )}
 
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         {/* ── Substages ─────────────────────────────────────────────────────────── */}

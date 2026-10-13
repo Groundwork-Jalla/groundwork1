@@ -95,12 +95,32 @@ export async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
+  // ── The address already belonged to somebody ──
+  //
+  // `findOrCreateUserByEmail` returns an existing account silently, and 109 originally
+  // linked it regardless. That let a contractor who knew any address on the platform
+  // name it as their client and then create projects owned by that person, who had
+  // agreed to nothing and was told nothing.
+  //
+  // For a NEW account the invitation is the consent — the only way in is the mail we
+  // sent. For one that already exists it is not, so this refuses, and the contractor is
+  // pointed at the route that already existed for exactly this: the client invites them
+  // from inside their own project.
+  //
+  // 110 enforces the same rule in the database, because this file is one deploy away
+  // from being wrong again.
+  if (!created) {
+    res.status(409).json({ error: 'client_exists' });
+    return;
+  }
+
   // The link is what lets this contractor create a project for them (109). Written under
   // the service role: `contractor_clients` grants nobody INSERT, so a contractor cannot
   // award themselves a client.
   const { error: linkErr } = await admin
     .from('contractor_clients')
-    .upsert({ contractor_id: caller.id, client_id: clientId }, { onConflict: 'contractor_id,client_id' });
+    .upsert({ contractor_id: caller.id, client_id: clientId, client_was_created: true },
+            { onConflict: 'contractor_id,client_id' });
 
   if (linkErr) {
     // Without the link the wizard's insert would be refused by RLS, so a half-done state

@@ -344,6 +344,13 @@ export interface BudgetCalcDetail {
 export interface ProjectRow {
   id: string;
   user_id: string;
+  /**
+   * Who built this project on the owner's behalf — an admin (082) or the partner
+   * contractor who brought them on (109). Null when the owner made it themselves.
+   *
+   * Stamped by the database from the session, never from the browser.
+   */
+  created_by?: string | null;
   name: string;
   country: string;
   city: string | null;

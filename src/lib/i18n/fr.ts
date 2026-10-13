@@ -1268,6 +1268,7 @@ export const fr: Mirror<EnDict> = {
         payout_destination_retired:     'a retir\u00e9 des coordonn\u00e9es de paiement',
         payout_destination_verified:    'a v\u00e9rifi\u00e9 des coordonn\u00e9es de paiement',
         contractor_took_own_client_project: 'a cr\u00e9\u00e9 ce projet pour son propre client',
+        contractor_client_link_accepted: 'a accept\u00e9 qu\u2019un entrepreneur construise pour lui',
         contractor_self_registered:     's\'est inscrit comme entrepreneur',
         contractor_account_claimed:     'a r\u00e9clam\u00e9 son compte entrepreneur',
         verifier_self_registered:       's\'est inscrit comme v\u00e9rificateur',
@@ -2170,6 +2171,7 @@ export const fr: Mirror<EnDict> = {
     errEmail:    'Cela ne ressemble pas \u00e0 une adresse e-mail.',
     errSelf:     'C\u2019est votre propre adresse. Invitez celle de votre client.',
     errNotContractor: 'Seul un entrepreneur peut int\u00e9grer un client. Si cela vous semble erron\u00e9, pr\u00e9venez Favour.',
+    errExists:   'Cette adresse poss\u00e8de d\u00e9j\u00e0 un compte Groundwork. Demandez-lui de vous inviter sur son projet depuis son propre tableau de bord \u2014 ainsi il en garde la ma\u00eetrise.',
     errFailed:   'L\u2019invitation n\u2019a pas \u00e9t\u00e9 envoy\u00e9e. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   contractorPayout: {
@@ -3976,6 +3978,7 @@ export const fr: Mirror<EnDict> = {
       googleDoneBody: 'Votre mot de passe est enregistré. Vous pouvez vous connecter avec Google ou avec votre e-mail et ce mot de passe.',
     },
     callback: {
+      roleNotGranted: 'Votre compte a bien \u00e9t\u00e9 cr\u00e9\u00e9, mais nous n\u2019avons pas pu finaliser vos acc\u00e8s. Appuyez sur le bouton ci-dessous et ils seront ajout\u00e9s \u2014 rien d\u2019autre ne change.',
       signingIn:  'Connexion en cours…',
       errorTitle: "Une erreur s'est produite",
       backToLogin:'Retour à la connexion',
@@ -4616,6 +4619,7 @@ export const fr: Mirror<EnDict> = {
 
     // ── Onglet Aperçu ───────────────────────────────────────
     overview: {
+      setUpForYou: 'Ce projet a \u00e9t\u00e9 pr\u00e9par\u00e9 pour vous. Il vous appartient : les montants, les \u00e9tapes et les documents sont \u00e0 vous de v\u00e9rifier, et rien n\u2019est d\u00e9bloqu\u00e9 sans votre accord.',
     explain: {
       bucketsIntro: "Construire une maison, c'est quatre grands postes de dépense :",
       bMaterials: "les matériaux",

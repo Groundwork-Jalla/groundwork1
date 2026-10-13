@@ -1269,6 +1269,7 @@ export const en = {
         payout_destination_retired:     'retired payout details',
         payout_destination_verified:    'verified payout details',
         contractor_took_own_client_project: 'created this project for their own client',
+        contractor_client_link_accepted: 'accepted a contractor\u2019s request to build for them',
         contractor_self_registered:     'signed up as a contractor',
         contractor_account_claimed:     'claimed their contractor account',
         verifier_self_registered:       'signed up as a verifier',
@@ -2203,6 +2204,7 @@ export const en = {
     errEmail:    'That does not look like an email address.',
     errSelf:     'That is your own address. Invite your client\u2019s.',
     errNotContractor: 'Only a contractor can bring a client on. If you think that is wrong, tell Favour.',
+    errExists:   'That email already has a Groundwork account. Ask them to invite you to their project from their own dashboard \u2014 that way they stay in control of it.',
     errFailed:   'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
   contractorPayout: {
@@ -4054,6 +4056,7 @@ export const en = {
       googleDoneBody: 'Your password is set. You can sign in with Google or with your email and this password.',
     },
     callback: {
+      roleNotGranted: 'Your account was created, but we could not finish setting up your access. Press the button below and it will be added \u2014 nothing else changes.',
       signingIn:  'Signing you in…',
       errorTitle: 'Something went wrong',
       backToLogin:'Back to login',
@@ -4712,6 +4715,7 @@ export const en = {
 
     // ── Overview tab ────────────────────────────────────────
     overview: {
+      setUpForYou: 'This project was set up for you. You own it \u2014 the figures, the stages and the documents are yours to review, and nothing is released without your say.',
     explain: {
       bucketsIntro: "Building a house involves four big buckets of cost:",
       bMaterials: "materials",
