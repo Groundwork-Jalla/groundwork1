@@ -50,11 +50,13 @@ export default function WorkNewClient() {
       setClient({
         userId: clientId,
         label: fullName.trim(),
-        // A client a partner brings on IS a Jalla Management build — Jalla stands behind
-        // the work whoever introduced them. It also sidesteps the free plan's three
-        // project cap, which counts the CLIENT's projects and would otherwise have
-        // failed at the END of the eleven step wizard with a raw database message.
-        tier: 'jalla_management',
+        // Null, not a fixed plan: a partner's client may be on any of the three, so the
+        // wizard's own plan step asks instead of being skipped.
+        //
+        // Naming one here would have been a label the database contradicts — the clamp
+        // (061/062) rewrites any paid tier from a non-admin browser request back to the
+        // free plan unless the client's subscription already entitles them.
+        tier: null,
         by: 'partner',
       });
     } catch (err) {
@@ -115,6 +117,10 @@ export default function WorkNewClient() {
             {busy ? t('contractorClient.inviting') : t('contractorClient.submit')}
           </Button>
           <span className="text-xs text-brand-mid-grey">{t('contractorClient.submitHint')}</span>
+        </div>
+
+        <div className="pt-1">
+          <p className="text-xs text-brand-mid-grey">{t('contractorClient.planNote')}</p>
         </div>
       </form>
     </div>

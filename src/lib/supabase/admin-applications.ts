@@ -833,3 +833,65 @@ export async function syncCrmFields(mode: CrmFieldsMode | boolean = 'check'): Pr
   });
   return r.json();
 }
+
+// =========================================================
+// Publishing a contractor who never filled in an application (111).
+//
+// `admin_promote_application` publishes an accepted APPLICANT. It takes an application
+// id, so a contractor created at /admin/users/new — a real account with the role and no
+// application — could never be listed at all, and the directory clients browse read empty
+// while contractors existed.
+// =========================================================
+
+export type ContractorOrigin = 'applied' | 'onboarded_by_admin' | 'self_registered';
+
+export interface UnlistedContractor {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  /** How they came to hold the role — which is what says whether anybody vetted them. */
+  origin: ContractorOrigin;
+  since: string;
+}
+
+/** Contractors with an account the directory does not yet show. Admin only, in SQL. */
+export async function listUnlistedContractors(): Promise<UnlistedContractor[]> {
+  const { data, error } = await supabase.rpc('admin_unlisted_contractors');
+  if (error) {
+    // 111 not applied yet: an empty shortlist is better than a broken page.
+    if (error.code === '42883' || error.code === 'PGRST202') return [];
+    throw error;
+  }
+  return (data ?? []).map((r: {
+    user_id: string; full_name: string | null; email: string; phone: string | null;
+    origin: ContractorOrigin; since: string;
+  }) => ({
+    userId: r.user_id,
+    fullName: r.full_name ?? r.email,
+    email: r.email,
+    phone: r.phone,
+    origin: r.origin,
+    since: r.since,
+  }));
+}
+
+/** Put one into the directory. Re-publishing the same person edits their entry. */
+export async function publishContractor(opts: {
+  userId: string;
+  trade: string;
+  location: string;
+  specialties?: string[];
+  bio?: string | null;
+  yearsExp?: number;
+}): Promise<void> {
+  const { error } = await supabase.rpc('admin_publish_contractor', {
+    p_user:        opts.userId,
+    p_trade:       opts.trade,
+    p_location:    opts.location,
+    p_specialties: opts.specialties ?? [],
+    p_bio:         opts.bio ?? null,
+    p_years_exp:   opts.yearsExp ?? 0,
+  });
+  if (error) throw error;
+}

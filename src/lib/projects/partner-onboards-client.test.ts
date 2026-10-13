@@ -139,13 +139,31 @@ describe('the partner can actually reach it', () => {
     expect(page).toMatch(/<ManagedWizard \/>/);
   });
 
-  it('puts the client on the managed tier', () => {
-    // A client a partner brings on IS a Jalla Management build. It also sidesteps the
-    // free plan's three-project cap, which counts the CLIENT's projects and would
-    // otherwise have failed at the END of the eleven-step wizard with a raw database
-    // message about a limit the contractor cannot see or change.
-    expect(page).toMatch(/tier: 'jalla_management'/);
-    expect(page).not.toMatch(/tier: 'self_verify'/);
+  it('does not decide the plan — the wizard asks', () => {
+    // A partner's client may be on any of the three. Naming one here would be a label
+    // the database contradicts: clamp_project_tier_on_insert (061/062) rewrites any paid
+    // tier from a non-admin browser request back to the free plan unless the client's
+    // own subscription already entitles them. Paid plans arrive through Stripe.
+    expect(page).toMatch(/tier: null/);
+    expect(page).not.toMatch(/tier: 'jalla_management'|tier: 'self_verify'|tier: 'jalla_verify'/);
+  });
+
+  it('shows the plan step to a partner and skips it only for a fixed plan', () => {
+    const wiz = strip2(read('src/app/routes/admin/projects.new.tsx'));
+    expect(wiz).toMatch(/const planDecided = onBehalfOf\?\.tier != null;/);
+    expect(wiz).toMatch(/if \(planDecided && step === 10\)/);
+    expect(wiz).toMatch(/Step10PlanSelection/);
+  });
+
+  it('records the plan the client picked, not a fixed one, when none was fixed', () => {
+    expect(step11).toMatch(/onBehalfOf\?\.tier \? \{ tier: onBehalfOf\.tier \} : \{\}/);
+  });
+
+  it('tells the partner who actually pays', () => {
+    const en = read('src/lib/i18n/en.ts');
+    const block = en.slice(en.indexOf('  contractorClient: {'), en.indexOf('\n  },', en.indexOf('  contractorClient: {')));
+    expect(block).toMatch(/not charged to you/);
+    expect(block).toMatch(/free plan until they do/);
   });
 });
 

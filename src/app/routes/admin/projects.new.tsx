@@ -15,6 +15,7 @@ import Step6BoysQuarters   from '@/components/wizard/steps/Step6BoysQuarters';
 import Step7RoofType       from '@/components/wizard/steps/Step7RoofType';
 import Step8Details        from '@/components/wizard/steps/Step8Details';
 import Step9Summary        from '@/components/wizard/steps/Step9Summary';
+import Step10PlanSelection  from '@/components/wizard/steps/Step10PlanSelection';
 import Step11ConfirmBudget from '@/components/wizard/steps/Step11ConfirmBudget';
 
 // =========================================================

@@ -96,7 +96,7 @@ describe('entityTab', () => {
       for (const m of sql.matchAll(/log_activity\(\s*(?:[^,()]|\([^)]*\))+,\s*(?:'[a-z_.]+'|CASE[\s\S]*?END),\s*'([a-z_]+)'/g)) written.add(m[1]);
     }
     expect([...written].sort()).toEqual([
-      'contractor_application', 'contractor_invite', 'conversation', 'decision',
+      'contractor', 'contractor_application', 'contractor_invite', 'conversation', 'decision',
       'payment', 'payout_destination', 'project', 'project_stage', 'project_verifier',
       'site_update', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
@@ -113,6 +113,8 @@ describe('entityTab', () => {
     // A verifier's invitation, like a contractor's application, exists before the
     // account does and belongs to no project (105).
     expect(entityTab('verifier_invite')).toBeNull();
+    // A directory listing is a profile clients browse, not part of any one build (111).
+    expect(entityTab('contractor')).toBeNull();
     // A payout destination belongs to a person and is reused across projects, so no
     // single project's workspace owns it — its audit rows carry a null project.
     expect(entityTab('payout_destination')).toBeNull();

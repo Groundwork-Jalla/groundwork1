@@ -53,8 +53,12 @@ export default function Step10PlanSelection() {
   // An admin creating for a client is not choosing a plan — the tier is Management by
   // definition, and the tier guard trusts an admin to set it. Fix it before they can
   // click anything else, so the summary and step 11 read the right figure.
+  //
+  // A PARTNER has no fixed tier (`onBehalfOf.tier` is null): their client may be on any
+  // plan, so this screen is shown and their choice stands.
   useEffect(() => {
-    if (onBehalfOf && data.tier !== onBehalfOf.tier) update({ tier: onBehalfOf.tier });
+    const fixed = onBehalfOf?.tier;
+    if (fixed && data.tier !== fixed) update({ tier: fixed });
   }, [onBehalfOf, data.tier, update]);
 
   /**

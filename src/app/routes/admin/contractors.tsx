@@ -10,6 +10,7 @@ import { matchesQuery } from '@/lib/admin/contractor-oversight';
 import { useRoleLabel } from './applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
+import { PublishContractor } from '@/components/admin/PublishContractor';
 
 // =========================================================
 // /admin/contractors — the published directory.
@@ -117,6 +118,10 @@ export default function AdminContractors() {
 
   return (
     <div className="p-6 sm:p-8">
+      {/* Contractors with an account the directory cannot show (111). Renders nothing
+          when there are none. */}
+      <PublishContractor />
+
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.dir.title')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('admin.dir.subtitle')}</p>

@@ -92,8 +92,13 @@ export default function Step11ConfirmBudget() {
 
       // 1. Create the project on the wizard's own estimate.
       const budget  = calculateBudget(data, constructionRate, cityRate);
+      // A fixed tier (an admin's managed build) wins; otherwise the plan they picked in
+      // step 10 — which for a partner is their client's choice. A paid tier is recorded
+      // as the ask: `clamp_project_tier_on_insert` (061/062) lands it on the free plan
+      // until the client's own subscription says otherwise, because paid plans arrive
+      // through Stripe and not through whoever filled in the wizard.
       const project = await createProject(ownerId, data, budget,
-        onBehalfOf ? { tier: onBehalfOf.tier } : {});
+        onBehalfOf?.tier ? { tier: onBehalfOf.tier } : {});
 
       // 2. Confirm the final figure. This re-derives every stage milestone from it and
       //    activates stage 1, so the project opens ready to work rather than gated.
