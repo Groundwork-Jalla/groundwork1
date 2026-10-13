@@ -10,6 +10,7 @@ import { postAuthPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
+import { signupIntentOf } from "@/lib/auth/signup-account";
 import { googleWithoutPassword, passwordPromptDismissed, syncEmailChangeToCrm } from "@/lib/auth/account-security";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
@@ -202,6 +203,24 @@ export default function AuthCallback() {
    * Reached directly when the account has no second factor, and from the MFA form once
    * the code has been accepted — so the two paths cannot drift.
    */
+  /**
+   * Leave for a surface whose shell checks a role we just granted.
+   *
+   * A full page load, NOT `navigate()`. AuthContext resolves `isContractor` /
+   * `isVerifier` once, when the session is established — which is BEFORE any of the
+   * grants below run. A client-side navigation keeps that stale answer, so `/work` and
+   * `/verifiers` both read "not allowed" and bounce to `/dashboard`:
+   *
+   *     work/_layout.tsx:  if (resolved && !allowed) navigate('/dashboard')
+   *
+   * That is why signing up as a contractor landed on the client dashboard. Reloading
+   * makes the context re-read the roles that now exist. It costs one page load, once,
+   * on the single occasion a person gains a role.
+   */
+  function leaveForRoleSurface(path: string): void {
+    window.location.href = path;
+  }
+
   async function continueAfterAuth(session: Session) {
     const params = new URLSearchParams(window.location.search);
 
@@ -252,7 +271,7 @@ export default function AuthCallback() {
     if (claim) {
       try {
         await claimContractorAccount(claim);
-        navigate("/work", { replace: true });
+        leaveForRoleSurface("/work");
         return;
       } catch {
         // Used, revoked or claimed by someone else — fall through to normal routing
@@ -264,10 +283,19 @@ export default function AuthCallback() {
     // so the role is granted here instead (106). Checked after the claim above, which is
     // the richer path: an applicant's claim also links their application and their
     // published directory listing, and only one of the two markers is ever parked.
-    if (takeRememberedContractorRegistration()) {
+    //
+    // The marker is parked in localStorage by the signup page, so it is ABSENT whenever
+    // the confirmation mail is opened in a different browser from the one that signed up
+    // — a laptop/phone split, a private window, blocked storage. Before the account also
+    // carried the door, that dropped the person into CLIENT onboarding holding no role,
+    // which read as "it signed me up as the wrong thing". `signup_intent` is the
+    // durable half; the marker stays because it is the only signal when an existing
+    // account signs up again at a role door.
+    const intent = signupIntentOf(session.user?.user_metadata?.signup_intent);
+    if (takeRememberedContractorRegistration() || intent === 'contractor') {
       try {
         await registerContractorAccount();
-        navigate("/work", { replace: true });
+        leaveForRoleSurface("/work");
         return;
       } catch {
         // The account exists and they are signed in; a role that did not land is a
@@ -284,7 +312,7 @@ export default function AuthCallback() {
     if (verifierClaim) {
       try {
         await claimVerifierAccount(verifierClaim);
-        navigate("/verifiers", { replace: true });
+        leaveForRoleSurface("/verifiers");
         return;
       } catch {
         // Same fall-through, same reason.
@@ -300,7 +328,11 @@ export default function AuthCallback() {
         // A contractor's surface is /work, not the owner's project page. They can read
         // the project either way (project_member, 086), but the client view assumes an
         // owner — which is what made an accepted invite look like it had done nothing.
-        navigate(`/work/projects/${projectId}`, { replace: true });
+        //
+        // Reloaded for the same reason as the grants above: accepting an invite is what
+        // makes `holdsContractorAccess` true, and the /work shell would otherwise still
+        // be holding the answer it computed before the invite was accepted.
+        leaveForRoleSurface(`/work/projects/${projectId}`);
         return;
       } catch {
         // Invalid/used token — fall through to normal routing
@@ -326,10 +358,10 @@ export default function AuthCallback() {
     // An engineer who signed up at the bare /verifier-signup has no invitation to claim,
     // so the role is granted here instead (108). After the claim above, which is the
     // richer path; only one of the two markers is ever parked.
-    if (takeRememberedVerifierRegistration()) {
+    if (takeRememberedVerifierRegistration() || intent === 'verifier') {
       try {
         await registerVerifierAccount();
-        navigate("/verifiers", { replace: true });
+        leaveForRoleSurface("/verifiers");
         return;
       } catch {
         // They are signed in and the account exists; a role that did not land is a

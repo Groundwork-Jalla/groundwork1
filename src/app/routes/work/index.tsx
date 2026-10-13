@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, FolderOpen, Image, Loader2, Wallet, Building2, Search, ClipboardList, MapPin, Landmark } from 'lucide-react';
+import { AlertTriangle, ArrowRight, FolderOpen, Image, Loader2, Wallet, Building2, Search, ClipboardList, MapPin, Landmark, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments,
@@ -109,6 +109,22 @@ export default function ContractorDashboard() {
         </p></div>
         <p className="hidden text-right text-xs text-brand-mid-grey xl:block">{formatDate(new Date().toISOString())}<br /><span className="mt-1 block">{t('contractorDashboard.actionHint')}</span></p>
       </header>
+
+      {/* A partner brings their own client (109). Shown to every contractor: the role is
+          the same, and an invited contractor who later brings somebody is a partner from
+          that moment — there is no second kind of account to switch to. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <div>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorClient.promptTitle')}</p>
+          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorClient.promptBody')}</p>
+        </div>
+        <Link
+          to="/work/clients/new"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+        >
+          <UserPlus className="size-3.5" aria-hidden />{t('contractorClient.promptCta')}
+        </Link>
+      </div>
 
       {needsPayout === true && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

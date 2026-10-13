@@ -90,7 +90,7 @@ export default function AdminNewProject() {
     const id = params.get('for');
     if (!id || chosen || users.length === 0) return;
     const u = users.find(x => x.id === id);
-    if (u) setChosen({ userId: u.id, label: u.fullName || u.email, tier: 'jalla_management' });
+    if (u) setChosen({ userId: u.id, label: u.fullName || u.email, tier: 'jalla_management', by: 'admin' });
   }, [params, users, chosen]);
 
   const clients = useMemo(() => {
@@ -146,7 +146,7 @@ export default function AdminNewProject() {
             <li key={u.id}>
               <button
                 type="button"
-                onClick={() => setChosen({ userId: u.id, label: u.fullName || u.email, tier: 'jalla_management' })}
+                onClick={() => setChosen({ userId: u.id, label: u.fullName || u.email, tier: 'jalla_management', by: 'admin' })}
                 className={cn(
                   'flex w-full items-start gap-3 rounded-xl border border-brand-border-grey bg-white p-4 text-left',
                   'transition-colors hover:border-brand-near-black focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black/30',

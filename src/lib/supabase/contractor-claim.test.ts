@@ -65,7 +65,10 @@ describe('the claim survives account creation', () => {
   it('the callback finishes it, so nothing is pressed twice', () => {
     expect(callback).toContain('takeRememberedClaim()');
     expect(callback).toContain('await claimContractorAccount(claim)');
-    expect(callback).toContain('navigate("/work", { replace: true })');
+    // A full load, not a client-side navigate: AuthContext resolved `isContractor` before
+    // the claim granted the role, and /work's shell would bounce the stale answer to the
+    // client dashboard. See role-signup.test.ts.
+    expect(callback).toContain('leaveForRoleSurface("/work")');
   });
 
   it('the claim is handled before the project invite', () => {

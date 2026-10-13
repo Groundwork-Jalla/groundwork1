@@ -7,6 +7,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { createProject } from '@/lib/supabase/projects';
+import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
 import { stageFromDescription, STAGE_KEYS } from '@/lib/projects/stage-from-description';
@@ -107,11 +108,20 @@ export default function Step11ConfirmBudget() {
         builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
         floors:       data.floors ?? 1,
       });
+      // A partner takes their place on the project FIRST: membership and primary standing
+      // (109). Creating it does not do that, and the budget call below is gated on being
+      // the client's partner — so doing this second would fail on a project they own.
+      if (onBehalfOf?.by === 'partner') {
+        await takeOwnClientProject(project.id);
+      }
+
       if (onBehalfOf && joined) {
         // Joining a build in progress: the earlier stages are recorded as already built and
         // the client is billed only for what is left (103).
         await adminStartProjectAtStage(project.id, joined, ownerId, project.name, described);
       } else if (onBehalfOf) {
+        // Named `admin…` for the RPC it calls; 109 widened that function to accept a
+        // partner for their own client's project, so this one call serves both.
         await adminStartProjectTracking(project.id, confirmed, ownerId, project.name);
       } else {
         await startProjectTracking(project.id, confirmed);
@@ -136,9 +146,10 @@ export default function Step11ConfirmBudget() {
 
       reset();
 
-      // An admin does not go to Stripe and does not land on the client's project page.
+      // Neither an admin nor a partner goes to Stripe, and neither lands on the client's
+      // own project page — that view assumes an owner. They go back to their own surface.
       if (onBehalfOf) {
-        navigate(`/admin/projects`);
+        navigate(onBehalfOf.by === 'partner' ? '/work/projects' : '/admin/projects');
         return;
       }
 

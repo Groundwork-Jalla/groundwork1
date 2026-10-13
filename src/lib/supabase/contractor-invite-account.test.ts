@@ -36,7 +36,9 @@ describe('an accepted invite lands on the contractor surface', () => {
   });
 
   it('so does the post-signup callback', () => {
-    expect(callback).toContain('navigate(`/work/projects/${projectId}`, { replace: true });');
+    // Reloaded, not navigated: accepting the invite is what makes holdsContractorAccess
+    // true, so /work's shell must re-read it. See role-signup.test.ts.
+    expect(callback).toContain('leaveForRoleSurface(`/work/projects/${projectId}`);');
     expect(callback).not.toContain('navigate(`/projects/${projectId}`');
   });
 });

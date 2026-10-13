@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -317,5 +317,190 @@ describe('108 — the verifier door is open, and the assignment is what still is
 
   it('records the rule that follows from being open', () => {
     expect(sql108).toMatch(/never gate a capability on the bare `verifier` role/i);
+  });
+});
+
+
+describe('the role survives the email round trip', () => {
+  /**
+   * THE BUG THIS CLOSES. The role is granted by /auth/callback, from a marker parked in
+   * localStorage by the signup page. /auth/callback runs in whatever browser opens the
+   * confirmation mail — so on a laptop/phone split, a private window, or blocked storage,
+   * the marker is simply absent. The code then fell through to postAuthPath with no role
+   * and no finished onboarding, which routes to /onboarding: the CLIENT flow. The person
+   * had a real account, was signed in, held nothing, and it looked like the product had
+   * signed them up as the wrong thing. Philip hit exactly this.
+   */
+
+  it('records the door on the ACCOUNT, not only in browser storage', () => {
+    expect(form).toMatch(/signupMetadata\(fullName\.trim\(\), canonicalPhone, role as SignupIntent\)/);
+    const lib = read('src/lib/auth/signup-account.ts');
+    expect(lib).toMatch(/signup_intent\?: SignupIntent/);
+  });
+
+  it('the callback grants on EITHER signal, so one being lost is survivable', () => {
+    expect(callback).toMatch(/takeRememberedContractorRegistration\(\) \|\| intent === 'contractor'/);
+    expect(callback).toMatch(/takeRememberedVerifierRegistration\(\) \|\| intent === 'verifier'/);
+    // Read through the narrower, never straight off user_metadata.
+    expect(callback).toMatch(/signupIntentOf\(session\.user\?\.user_metadata\?\.signup_intent\)/);
+  });
+
+  it('the intent is narrowed to the two doors whose RPC anyone may already call', () => {
+    // It must never become a general role channel. These two are safe ONLY because 106
+    // and 108 grant them to any signed-in user already, so the hint confers nothing new.
+    const lib = read('src/lib/auth/signup-account.ts');
+    expect(lib).toMatch(/SIGNUP_INTENTS: readonly SignupIntent\[\] = \['contractor', 'verifier'\]/);
+    expect(lib).toMatch(/export type SignupIntent = 'contractor' \| 'verifier'/);
+    // Scoped to the intent itself: `'homeowner'` is the account-type radio elsewhere in
+    // this file, which is copy, not a grantable role.
+    const intentDecl = lib.slice(lib.indexOf('export type SignupIntent'), lib.indexOf('signupIntentOf'));
+    expect(intentDecl).not.toMatch(/'admin'|'homeowner'/);
+  });
+
+  it('nothing reads the intent as a role — it only selects an already-open RPC', () => {
+    // The 100 rule still holds: no browser-set key may reach user_roles.
+    expect(callback).not.toMatch(/user_roles/);
+    expect(callback).toMatch(/registerContractorAccount\(\)/);
+    expect(callback).toMatch(/registerVerifierAccount\(\)/);
+  });
+
+  it('no migration grants a role from signup metadata', () => {
+    // An earlier draft of 100 did exactly this and had to be dropped. Nothing may
+    // reintroduce a trigger that reads raw_user_meta_data and writes a role.
+    const all = readdirSync(join(ROOT, 'supabase/migrations'))
+      .filter(f => f.endsWith('.sql'))
+      .map(f => read(`supabase/migrations/${f}`)).join('\n')
+      .replace(/^\s*--.*$/gm, '');
+    expect(all).not.toMatch(/raw_user_meta_data[\s\S]{0,200}?INSERT INTO public\.user_roles/);
+    expect(all).not.toMatch(/signup_intent/);
+  });
+});
+
+describe('somebody who already has an account can be put right', () => {
+  it('offers to add the role instead of making a second account', () => {
+    expect(form).toMatch(/if \(!authLoading && session\)/);
+    expect(form).toMatch(/addToThisAccount/);
+    expect(form).toMatch(/cfg\.registerNow\(\)/);
+  });
+
+  it('says so plainly, and says nothing else changes', () => {
+    const en = read('src/lib/i18n/en.ts');
+    const start = en.indexOf('    roleSignup: {');
+    const block = en.slice(start, en.indexOf('\n    },', start));
+    expect(block).toMatch(/would make a second account/);
+    expect(block).toMatch(/You keep the same email, password/);
+  });
+
+  it('tells someone who already holds the role rather than granting it twice', () => {
+    expect(form).toMatch(/alreadyHas/);
+    expect(form).toMatch(/auth\.roleSignup\.alreadyHave/);
+  });
+
+  it('reloads after granting, so the new role is actually read', () => {
+    // A client-side navigate would keep the stale AuthContext and bounce them back.
+    expect(form).toMatch(/window\.location\.href = cfg\.surface/);
+  });
+});
+
+
+describe('a freshly granted role is visible to the surface it unlocks', () => {
+  /**
+   * THE BUG PHILIP HIT. AuthContext resolves `isContractor` / `isVerifier` ONCE, when
+   * the session is established — which is before any role is granted in the callback.
+   * The role surfaces guard on that value:
+   *
+   *     work/_layout.tsx:      if (resolved && !allowed) navigate('/dashboard')
+   *     verifiers/_layout.tsx: if (resolved && !allowed) navigate('/dashboard')
+   *
+   * So a client-side `navigate("/work")` straight after granting arrives with the stale
+   * answer and is bounced to the CLIENT dashboard. Signing up as a contractor landed on
+   * the client dashboard, deterministically, with a brand-new account.
+   *
+   * A full page load makes the context re-read. One load, once, when somebody gains a
+   * role — and the only alternative is teaching AuthContext to re-check on demand, which
+   * is a bigger change with more ways to be subtly wrong.
+   */
+
+  const grants = [
+    'claimContractorAccount(claim)',
+    'registerContractorAccount()',
+    'claimVerifierAccount(verifierClaim)',
+    'registerVerifierAccount()',
+    'acceptInvite(token)',
+  ];
+
+  it.each(grants)('%s hands off with a reload, never a client-side navigate', (call) => {
+    const at = callback.indexOf(call);
+    expect(at, `${call} is not in the callback`).toBeGreaterThan(-1);
+    // The handoff is whatever comes next, before that branch returns.
+    const after = callback.slice(at, callback.indexOf('return;', at));
+    expect(after, `${call} must reload so the new standing is read`).toMatch(/leaveForRoleSurface\(/);
+    expect(after, `${call} must not client-side navigate into a role surface`).not.toMatch(/navigate\(/);
+  });
+
+  it('the helper really does a full load', () => {
+    const fn = callback.slice(callback.indexOf('function leaveForRoleSurface'));
+    expect(fn.slice(0, fn.indexOf('\n  }'))).toMatch(/window\.location\.href = path/);
+  });
+
+  it('both shells still guard on the role — which is why the reload is needed', () => {
+    // If these ever stop bouncing, the reload is belt and braces rather than load
+    // bearing; while they do bounce, removing it reintroduces the bug.
+    for (const shell of ['src/app/routes/work/_layout.tsx', 'src/app/routes/verifiers/_layout.tsx']) {
+      const code = read(shell).replace(/^\s*\/\/.*$/gm, '');
+      expect(code, shell).toMatch(/resolved && !allowed/);
+      expect(code, shell).toMatch(/navigate\('\/dashboard', \{ replace: true \}\)/);
+    }
+  });
+});
+
+
+describe('both kinds of contractor reach the same place', () => {
+  /**
+   * There are two ways to be a contractor and they are the SAME role with the SAME
+   * dashboard:
+   *
+   *   · a PARTNER signs up at /contractor-signup and holds `user_roles.contractor`;
+   *   · an INVITED contractor is brought onto one project and may hold NO role row at
+   *     all — only `contractor_invites.status = 'accepted'`.
+   *
+   * `holdsContractorAccess` is what reconciles them, and the danger is a second opinion:
+   * if the shell asked `user_roles` directly while sign-in asked this, an invited
+   * contractor would sign in to /work and be bounced straight back out.
+   */
+
+  it('standing is the role OR an accepted assignment, never only the role', () => {
+    const roles = read('src/lib/auth/roles.ts');
+    const fn = roles.slice(roles.indexOf('export async function holdsContractorAccess'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    expect(body).toMatch(/eq\('role', 'contractor'\)/);
+    expect(body).toMatch(/holdsContractorAssignment\(userId\)/);
+    expect(body).toMatch(/\|\| assignment/);
+  });
+
+  it('every decider uses that one function — no second opinion anywhere', () => {
+    for (const f of [
+      'src/contexts/AuthContext.tsx',      // what the /work shell guards on
+      'src/app/routes/auth/login.tsx',     // signing in
+      'src/app/routes/auth/callback.tsx',  // confirming an email
+      'src/app/routes/auth/new-password.tsx',
+    ]) {
+      const code = strip(read(f));
+      expect(code, `${f} must ask holdsContractorAccess`).toMatch(/holdsContractorAccess\(/);
+      // Asking user_roles for 'contractor' here would be the second opinion that leaves
+      // an invited contractor locked out of their own dashboard.
+      expect(code, `${f} must not decide contractor standing itself`)
+        .not.toMatch(/eq\('role',\s*'contractor'\)/);
+    }
+  });
+
+  it('both land on /work — one dashboard, not two', () => {
+    const roles = read('src/lib/auth/post-auth-path.ts');
+    expect(roles).toMatch(/if \(opts\.isContractor\) return '\/work';/);
+    // And ahead of the client branches, so a contractor is never sent to onboarding or
+    // the client dashboard just because they have not finished a client-only step.
+    const onWork = roles.indexOf("return '/work'");
+    expect(roles.indexOf("return '/onboarding'")).toBeGreaterThan(onWork);
+    expect(roles.indexOf("return '/dashboard'")).toBeGreaterThan(onWork);
   });
 });

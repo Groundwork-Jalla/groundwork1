@@ -27,9 +27,19 @@ export type WizardDirection = 'forward' | 'back';
  */
 export interface OnBehalfOf {
   userId: string;
-  /** Shown in the wizard so the admin can see whose project they are building. */
+  /** Shown in the wizard so the person running it can see whose project this is. */
   label: string;
-  tier: 'jalla_management';
+  tier: 'jalla_management' | 'self_verify';
+  /**
+   * Who is running the wizard for somebody else.
+   *
+   * This used to be implicit: `onBehalfOf` meant "an admin", and the final step called
+   * admin-only RPCs and returned to /admin/projects. Since 109 a partner contractor can
+   * do it too, for a client they brought on — same wizard, different caller, different
+   * place to land afterwards. Leaving it implicit would have sent a contractor to an
+   * admin page they cannot open.
+   */
+  by: 'admin' | 'partner';
 }
 
 interface WizardContextValue {

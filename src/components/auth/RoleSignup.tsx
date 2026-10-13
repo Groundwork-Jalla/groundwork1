@@ -11,10 +11,11 @@ import { isPasswordAcceptable } from '@/lib/auth/password-policy';
 import { normalisePhone, isE164 } from '@/lib/phone';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
-import { signupMetadata, CONTRACTOR_APPLY_PATH } from '@/lib/auth/signup-account';
-import { getClaimPreview, rememberClaim, rememberContractorRegistration } from '@/lib/supabase/contractor-claim';
-import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration } from '@/lib/supabase/verifier-claim';
+import { signupMetadata, CONTRACTOR_APPLY_PATH, type SignupIntent } from '@/lib/auth/signup-account';
+import { getClaimPreview, rememberClaim, rememberContractorRegistration, registerContractorAccount } from '@/lib/supabase/contractor-claim';
+import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration, registerVerifierAccount } from '@/lib/supabase/verifier-claim';
 import { useT, type TKey } from '@/lib/i18n';
+import { useAuth } from '@/contexts/AuthContext';
 
 // =========================================================
 // The one front door for a contractor, and the one for a verifier.
@@ -67,6 +68,10 @@ interface DoorConfig {
   remember: (token: string) => void;
   /** Parked when they signed up with no invitation to claim. */
   rememberOpen: (() => void) | null;
+  /** Grants the role to the signed-in account, for somebody who already has one. */
+  registerNow: (() => Promise<void>) | null;
+  /** Where that role's work lives. */
+  surface: string;
   heading: TKey;
   intro: TKey;
   submit: TKey;
@@ -82,6 +87,8 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
     preview: (token: string): Promise<Preview | null> => getClaimPreview(token),
     remember: rememberClaim,
     rememberOpen: rememberContractorRegistration,
+    registerNow: registerContractorAccount,
+    surface: '/work',
     heading:  'auth.roleSignup.contractorHeading',
     intro:    'auth.roleSignup.contractorIntro',
     submit:   'auth.roleSignup.contractorSubmit',
@@ -98,6 +105,8 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
       getVerifierInvitePreview(token).then(p => (p ? { ...p } : null)),
     remember: rememberVerifierClaim,
     rememberOpen: rememberVerifierRegistration,
+    registerNow: registerVerifierAccount,
+    surface: '/verifiers',
     heading:  'auth.roleSignup.verifierHeading',
     intro:    'auth.roleSignup.verifierIntro',
     submit:   'auth.roleSignup.verifierSubmit',
@@ -120,8 +129,34 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('t') ?? '';
 
+  const { session, isContractor, isVerifier, loading: authLoading } = useAuth();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [checking, setChecking] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  // Does the signed-in account already hold this door's role?
+  const alreadyHas = role === 'contractor' ? isContractor : isVerifier;
+
+  /**
+   * Add the role to the account somebody is already signed in with.
+   *
+   * The recovery path for the gap this page used to have: the role is granted by
+   * /auth/callback from a localStorage marker, which is absent when the confirmation
+   * mail is opened in a different browser. That left people with a real account, signed
+   * in, holding no role and looking at client onboarding — and nothing in the product
+   * could put it right. This calls the same open RPC the callback would have.
+   */
+  async function addToThisAccount() {
+    if (!cfg.registerNow) return;
+    setAdding(true); setError(null);
+    try {
+      await cfg.registerNow();
+      window.location.href = cfg.surface;   // full load, so the new role is read fresh
+    } catch {
+      setError(t('auth.roleSignup.errAddFailed'));
+      setAdding(false);
+    }
+  }
 
   const [fullName,        setFullName]        = useState('');
   const [email,           setEmail]           = useState('');
@@ -175,7 +210,11 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
       email: email.trim(),
       password,
       options: {
-        data: signupMetadata(fullName.trim(), canonicalPhone),
+        // The role is granted by /auth/callback, which runs in whatever browser opens
+        // the confirmation mail. The localStorage marker below is absent when that is a
+        // different browser, so the door is recorded on the account as well — see
+        // signupMetadata. Without it they land in client onboarding holding no role.
+        data: signupMetadata(fullName.trim(), canonicalPhone, role as SignupIntent),
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -193,6 +232,41 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
     rememberEmailRequest('signup', email.trim());
     setSubmitted(true);
+  }
+
+  // ── Already signed in ──
+  // Signing up again would make a second account, which is never what they want. Either
+  // they already have this role, or one click adds it.
+  if (!authLoading && session) {
+    return (
+      <div className="text-center">
+        <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t(cfg.heading)}</h1>
+        {alreadyHas ? (
+          <>
+            <p className="mt-3 text-sm leading-relaxed text-brand-mid-grey">{t('auth.roleSignup.alreadyHave')}</p>
+            <Link
+              to={cfg.surface}
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white"
+            >
+              {t('auth.roleSignup.goToWork')}
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 text-sm leading-relaxed text-brand-mid-grey">
+              {t('auth.roleSignup.signedInAs', { email: session.user?.email ?? '' })}
+            </p>
+            <Button onClick={addToThisAccount} disabled={adding} className="mt-6">
+              {adding
+                ? <><Loader2 className="mr-2 size-4 animate-spin" />{t('auth.signup.submitting')}</>
+                : t(cfg.submit)}
+            </Button>
+            {error && <p role="alert" className="mt-3 text-sm text-brand-near-black">{error}</p>}
+            <p className="mt-4 text-xs text-brand-mid-grey">{t('auth.roleSignup.addsToExisting')}</p>
+          </>
+        )}
+      </div>
+    );
   }
 
   if (checking) {

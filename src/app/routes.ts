@@ -86,6 +86,9 @@ export default [
     // Where this contractor is paid. On the account, not on an assignment (099) — given
     // once, used on every project.
     route("work/payouts",           "routes/work/payouts.tsx"),
+    // A partner contractor bringing their own client (109). The same wizard an admin
+    // runs — what differs is who may run it, and for whom.
+    route("work/clients/new",       "routes/work/clients.new.tsx"),
   ]),
 
   // ── /verifiers — the independent verifier's surface (06 §22) ──

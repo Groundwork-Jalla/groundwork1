@@ -43,9 +43,56 @@ export function signupAccountType(params: URLSearchParams): SignupAccountType {
  * Normalisation happens at the call site, with `normalisePhone` and the country in hand.
  * This function does not clean up its input; it passes on what it was given or omits it.
  */
-export function signupMetadata(fullName: string, phone?: string | null): { full_name: string; phone?: string } {
+export function signupMetadata(
+  fullName: string,
+  phone?: string | null,
+  /**
+   * Which door they signed up at — NOT a role, and never read as one.
+   *
+   * ── Why this is allowed when the warning above forbids a role ────────────────────────
+   * The warning is about PRIVILEGE, and it still stands: nothing may read a browser-set
+   * key and turn it into standing the person has not earned. This key does not do that.
+   *
+   * Since 106 and 108, `register_contractor_account()` and `register_verifier_account()`
+   * are callable by ANY signed-in user. So "I signed up as a contractor" confers nothing
+   * the person could not already confer on themselves by calling that RPC from the
+   * console. It is a preference, and the callback maps it through a fixed list of exactly
+   * those two open RPCs — never into `user_roles`, and never near `admin`.
+   *
+   * ── Why it has to live here rather than in localStorage ──────────────────────────────
+   * Sign-up ends on "check your email" and the session is established by /auth/callback
+   * in whatever browser opens that mail. A marker parked in localStorage is simply absent
+   * when somebody signs up on a laptop and opens the mail on their phone — and the
+   * fall-through lands them in CLIENT onboarding, holding no role, looking like the
+   * product signed them up as the wrong thing. This rides on the account, so it survives
+   * the hop.
+   */
+  intent?: SignupIntent | null,
+): { full_name: string; phone?: string; signup_intent?: SignupIntent } {
   const p = (phone ?? '').trim();
-  return p ? { full_name: fullName, phone: p } : { full_name: fullName };
+  return {
+    full_name: fullName,
+    ...(p ? { phone: p } : {}),
+    ...(intent ? { signup_intent: intent } : {}),
+  };
+}
+
+/**
+ * The doors whose role a person may grant themselves (106, 108).
+ *
+ * Deliberately NOT a general role type. Adding a value here only does anything if a
+ * matching open RPC exists, and the callback's map is what decides that — so a new entry
+ * cannot become a privilege by itself.
+ */
+export type SignupIntent = 'contractor' | 'verifier';
+
+const SIGNUP_INTENTS: readonly SignupIntent[] = ['contractor', 'verifier'] as const;
+
+/** Narrow whatever came back from `user_metadata`, which is browser-written. */
+export function signupIntentOf(v: unknown): SignupIntent | null {
+  return typeof v === 'string' && (SIGNUP_INTENTS as readonly string[]).includes(v)
+    ? (v as SignupIntent)
+    : null;
 }
 
 /**
