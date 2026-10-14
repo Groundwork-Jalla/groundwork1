@@ -997,3 +997,21 @@ export async function listAllContractors(): Promise<AnyContractor[]> {
     projects: Number(r.projects ?? 0),
   }));
 }
+
+/**
+ * Delete a contractor's account outright (113). Irreversible.
+ *
+ * Cascades their profile, roles, payout details and any project they OWN. Refused for a
+ * staff account, while money is on its way to them, and when work on other people's
+ * projects references them — `removeContractor` is the tool for that person.
+ */
+export async function deleteContractorAccount(userId: string, reason?: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_delete_contractor', {
+    p_user: userId, p_reason: reason ?? null,
+  });
+  if (error) {
+    const known = ['has_history', 'money_in_flight', 'self_removal', 'is_admin_account', 'not_admin']
+      .find(c => error.message.includes(c));
+    throw new RemoveContractorFailed(known ?? 'failed');
+  }
+}

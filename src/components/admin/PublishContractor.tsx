@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2, Store, UserMinus } from 'lucide-react';
+import { Check, Loader2, Store, Trash2, UserMinus } from 'lucide-react';
 import {
   listAllContractors, publishContractor,
-  checkContractorRemoval, removeContractor, RemoveContractorFailed,
+  checkContractorRemoval, removeContractor, deleteContractorAccount, RemoveContractorFailed,
   type AnyContractor, type ContractorRemovalCheck,
 } from '@/lib/supabase/admin-applications';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,8 @@ export function PublishContractor() {
   const [location, setLocation] = useState('');
   const [reason, setReason]     = useState('');
   const [busy, setBusy]   = useState(false);
+  /** Which button is being confirmed: end their access, or delete the account. */
+  const [mode, setMode]   = useState<'remove' | 'delete'>('remove');
   const [done, setDone]   = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,9 +76,28 @@ export function PublishContractor() {
 
   // The confirmation says what will happen in numbers before it happens: "remove this
   // contractor" means something very different for somebody on four live sites.
-  async function startRemove(r: AnyContractor) {
-    reset(); setDone(null); setRemoving(r.userId);
+  async function startRemove(r: AnyContractor, which: 'remove' | 'delete') {
+    reset(); setDone(null); setRemoving(r.userId); setMode(which);
     setCheck(await checkContractorRemoval(r.userId).catch(() => null));
+  }
+
+  // Deleting the ACCOUNT, not just their standing. Irreversible, and the database
+  // refuses it for anybody whose work is referenced by somebody else's project — so the
+  // common outcome is either "gone" or a clear reason why not.
+  async function doDelete(r: AnyContractor) {
+    setBusy(true); setError(null);
+    try {
+      await deleteContractorAccount(r.userId, reason.trim() || undefined);
+      setDone(t('admin.removeContractor.deleted', { name: r.fullName }));
+      reset(); load();
+    } catch (err) {
+      const code = err instanceof RemoveContractorFailed ? err.code : '';
+      setError(code === 'has_history'      ? t('admin.removeContractor.errHistory')
+             : code === 'money_in_flight'  ? t('admin.removeContractor.errMoney')
+             : code === 'is_admin_account' ? t('admin.removeContractor.errStaff')
+             : code === 'self_removal'     ? t('admin.removeContractor.errSelf')
+             : t('admin.removeContractor.errFailed'));
+    } finally { setBusy(false); }
   }
 
   async function doRemove(r: AnyContractor) {
@@ -129,8 +150,14 @@ export function PublishContractor() {
                       </Button>
                     )}
                     {/* Reaches everybody, listed or not — which is the whole point. */}
-                    <Button variant="outline" onClick={() => startRemove(r)} className="h-8 gap-1.5 text-xs">
+                    <Button variant="outline" onClick={() => startRemove(r, 'remove')} className="h-8 gap-1.5 text-xs">
                       <UserMinus className="size-3.5" aria-hidden />{t('admin.removeContractor.confirm')}
+                    </Button>
+                    {/* Beside it, the harder one. Separate because they are different
+                        acts: one ends access, the other ends the account. */}
+                    <Button variant="outline" onClick={() => startRemove(r, 'delete')}
+                      className="h-8 gap-1.5 text-xs text-state-alert">
+                      <Trash2 className="size-3.5" aria-hidden />{t('admin.removeContractor.deleteCta')}
                     </Button>
                   </div>
                 )}
@@ -164,7 +191,10 @@ export function PublishContractor() {
                       <li>{t('admin.removeContractor.willProjects', { n: check.activeProjects })}</li>
                       {check.primaryOn > 0 && <li>{t('admin.removeContractor.willPrimary', { n: check.primaryOn })}</li>}
                       {check.hasListing && <li>{t('admin.removeContractor.willListing')}</li>}
-                      <li>{t('admin.removeContractor.willKeep')}</li>
+                      {/* The two acts promise opposite things, so they say so. */}
+                      <li className={mode === 'delete' ? 'text-state-alert' : undefined}>
+                        {t(mode === 'delete' ? 'admin.removeContractor.willDelete' : 'admin.removeContractor.willKeep')}
+                      </li>
                     </ul>
                   )}
 
@@ -179,8 +209,10 @@ export function PublishContractor() {
                         <Input id="rcReason" value={reason} onChange={e => setReason(e.target.value)} autoComplete="off" />
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => doRemove(r)} disabled={busy} className="h-9 text-xs">
-                          {busy ? <Loader2 className="size-4 animate-spin" /> : t('admin.removeContractor.confirm')}
+                        <Button variant="outline" disabled={busy} className="h-9 text-xs"
+                          onClick={() => (mode === 'delete' ? doDelete(r) : doRemove(r))}>
+                          {busy ? <Loader2 className="size-4 animate-spin" />
+                            : t(mode === 'delete' ? 'admin.removeContractor.deleteConfirm' : 'admin.removeContractor.confirm')}
                         </Button>
                         <button type="button" onClick={reset} className="text-xs text-brand-mid-grey underline underline-offset-4">
                           {t('common.cancel')}
