@@ -56,33 +56,30 @@ export async function handler(req: any, res: any): Promise<void> {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: refusal, error: checkErr } = await asCaller
-    .rpc('admin_can_delete_contractor', { p_user: userId });
-
-  if (checkErr) {
-    console.error('[delete-contractor] precheck failed:', checkErr.message);
-    res.status(500).json({ error: 'check_failed' });
+  // Clear everything pointing at them, then remove the row. Two halves because two
+  // different owners: `postgres` owns the public tables, `supabase_auth_admin` owns
+  // `auth.users`, and neither can do the other's part. 113 learned that the hard way.
+  //
+  // The purge carries its own guards — staff, yourself, money on its way — and records
+  // the deletion while there is still something to describe.
+  const { error: purgeErr } = await asCaller.rpc('admin_purge_contractor', { p_user: userId });
+  if (purgeErr) {
+    const msg = purgeErr.message ?? '';
+    const known = ['money_in_flight', 'self_removal', 'is_admin_account', 'not_admin', 'no_user']
+      .find(c => msg.includes(c));
+    console.error('[delete-contractor] purge refused:', msg);
+    res.status(known === 'not_admin' ? 403 : 409).json({
+      error: known ?? 'delete_failed',
+      detail: known ? undefined : msg,
+    });
     return;
   }
-  if (refusal) {
-    // The database's own vocabulary, passed through so the app can word each one.
-    res.status(refusal === 'not_admin' ? 403 : 409).json({ error: refusal });
-    return;
-  }
-
-  // Written before the row stops existing. Not fatal if it fails: an account the admin
-  // asked to delete, left alive because a log row could not be written, is the worse
-  // outcome — and the deletion is about to be visible in its absence anyway.
-  const { error: logErr } = await asCaller
-    .rpc('admin_log_contractor_deleted', { p_user: userId, p_reason: reason || null });
-  if (logErr) console.error('[delete-contractor] audit row not written:', logErr.message);
 
   const { error: delErr } = await admin.auth.admin.deleteUser(userId);
   if (delErr) {
-    // A foreign key the precheck does not know about. Say so rather than claiming
-    // success — the account is still there.
-    console.error('[delete-contractor] deleteUser failed:', delErr.message);
-    res.status(409).json({ error: 'has_history', detail: delErr.message });
+    // Nothing should still reference them. If something does, say what — do not guess.
+    console.error('[delete-contractor] deleteUser failed after purge:', delErr.message);
+    res.status(409).json({ error: 'delete_failed', detail: delErr.message });
     return;
   }
 

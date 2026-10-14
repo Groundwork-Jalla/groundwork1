@@ -939,6 +939,8 @@ export async function checkContractorRemoval(userId: string): Promise<Contractor
 }
 
 export class RemoveContractorFailed extends Error {
+  /** What the database actually said, when the code alone does not explain it. */
+  detail?: string;
   constructor(public code: string) { super(code); }
 }
 
@@ -1019,5 +1021,39 @@ export async function deleteContractorAccount(userId: string, reason?: string): 
     body: JSON.stringify({ userId, reason: reason ?? null }),
   });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new RemoveContractorFailed(String(json?.error ?? `http_${r.status}`));
+  if (!r.ok) {
+    const e = new RemoveContractorFailed(String(json?.error ?? `http_${r.status}`));
+    // The database's own words, for a staff reader. Without this an unexpected refusal
+    // is indistinguishable from an expected one.
+    e.detail = typeof json?.detail === 'string' ? json.detail : undefined;
+    throw e;
+  }
+}
+
+export interface DeleteImpact {
+  siteUpdates: number; verifications: number; documents: number;
+  takeoffs: number; messages: number; invitesIssued: number;
+  ownProjects: number; moneyInFlight: number;
+}
+
+/**
+ * What deleting this account would erase — including from other people's projects.
+ *
+ * Shown before the button, because a true delete reaches builds that are not theirs: a
+ * client whose stage they verified loses that verification.
+ */
+export async function contractorDeleteImpact(userId: string): Promise<DeleteImpact | null> {
+  const { data, error } = await supabase.rpc('admin_contractor_delete_impact', { p_user: userId });
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202') return null;   // 115 not applied
+    throw error;
+  }
+  const r = Array.isArray(data) ? data[0] : data;
+  if (!r) return null;
+  return {
+    siteUpdates: Number(r.site_updates ?? 0), verifications: Number(r.verifications ?? 0),
+    documents: Number(r.documents ?? 0),      takeoffs: Number(r.takeoffs ?? 0),
+    messages: Number(r.messages ?? 0),        invitesIssued: Number(r.invites_issued ?? 0),
+    ownProjects: Number(r.own_projects ?? 0), moneyInFlight: Number(r.money_in_flight ?? 0),
+  };
 }

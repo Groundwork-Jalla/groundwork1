@@ -1103,6 +1103,8 @@ export const en = {
       willDelete:    'Deletes the account itself. This cannot be undone \u2014 their profile, payment details and any project they own go with it.',
       errHistory:    'This contractor has work on other people\u2019s projects \u2014 documents, messages, site updates or stage sign-offs. Deleting the account would erase who did that work. Remove their access instead.',
       errStaff:      'That is a staff account. It is not deleted from this page.',
+      willErase:         'Also erases work on other people\u2019s projects: {updates} site update(s), {checks} stage verification(s), {docs} file(s) and {msgs} message(s). Those projects keep going \u2014 that work simply will not be there.',
+      willEraseProjects: 'Deletes {n} project(s) they own outright, with every stage, payment and document on them.',
       reason:       'Why (optional, recorded)',
       confirm:      'Remove their access',
       blocked:      '{n} release(s) are already on their way to this contractor. Settle or fail them first \u2014 removing the person a payment is addressed to would leave it with nobody to pay.',

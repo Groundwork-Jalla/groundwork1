@@ -1105,6 +1105,8 @@ export const fr: Mirror<EnDict> = {
       willDelete:    'Supprime le compte lui-m\u00eame. Irr\u00e9versible \u2014 son profil, ses coordonn\u00e9es de paiement et tout projet dont il est propri\u00e9taire disparaissent avec lui.',
       errHistory:    'Cet entrepreneur a travaill\u00e9 sur les projets d\u2019autres personnes \u2014 documents, messages, comptes rendus ou validations d\u2019\u00e9tape. Supprimer le compte effacerait la trace de qui a fait ce travail. Retirez plut\u00f4t son acc\u00e8s.',
       errStaff:      'Il s\u2019agit d\u2019un compte du personnel. Il ne se supprime pas depuis cette page.',
+      willErase:         'Efface aussi des travaux sur les projets d\u2019autres personnes : {updates} compte(s) rendu(s), {checks} v\u00e9rification(s) d\u2019\u00e9tape, {docs} fichier(s) et {msgs} message(s). Ces projets continuent \u2014 ce travail n\u2019y figurera simplement plus.',
+      willEraseProjects: 'Supprime {n} projet(s) dont il est propri\u00e9taire, avec toutes leurs \u00e9tapes, paiements et documents.',
       reason:       'Motif (facultatif, consign\u00e9)',
       confirm:      'Retirer son acc\u00e8s',
       blocked:      '{n} d\u00e9blocage(s) sont d\u00e9j\u00e0 en route vers cet entrepreneur. R\u00e9glez-les ou marquez-les en \u00e9chec d\u2019abord : retirer la personne \u00e0 qui un paiement est adress\u00e9 le laisserait sans b\u00e9n\u00e9ficiaire.',

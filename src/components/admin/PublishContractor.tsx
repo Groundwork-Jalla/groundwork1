@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Check, Loader2, Store, Trash2, UserMinus } from 'lucide-react';
 import {
   listAllContractors, publishContractor,
-  checkContractorRemoval, removeContractor, deleteContractorAccount, RemoveContractorFailed,
+  checkContractorRemoval, removeContractor, deleteContractorAccount, contractorDeleteImpact,
+  RemoveContractorFailed, type DeleteImpact,
   type AnyContractor, type ContractorRemovalCheck,
 } from '@/lib/supabase/admin-applications';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ export function PublishContractor() {
   const [publishing, setPublishing] = useState<string | null>(null);
   const [removing, setRemoving]     = useState<string | null>(null);
   const [check, setCheck]   = useState<ContractorRemovalCheck | null>(null);
+  const [impact, setImpact] = useState<DeleteImpact | null>(null);
   const [trade, setTrade]       = useState('');
   const [location, setLocation] = useState('');
   const [reason, setReason]     = useState('');
@@ -54,7 +56,7 @@ export function PublishContractor() {
   useEffect(() => { load(); }, [load]);
 
   function reset() {
-    setPublishing(null); setRemoving(null); setCheck(null);
+    setPublishing(null); setRemoving(null); setCheck(null); setImpact(null);
     setTrade(''); setLocation(''); setReason(''); setError(null);
   }
 
@@ -79,6 +81,8 @@ export function PublishContractor() {
   async function startRemove(r: AnyContractor, which: 'remove' | 'delete') {
     reset(); setDone(null); setRemoving(r.userId); setMode(which);
     setCheck(await checkContractorRemoval(r.userId).catch(() => null));
+    // A true delete reaches other people's builds, so the cost is shown before the button.
+    if (which === 'delete') setImpact(await contractorDeleteImpact(r.userId).catch(() => null));
   }
 
   // Deleting the ACCOUNT, not just their standing. Irreversible, and the database
@@ -91,12 +95,17 @@ export function PublishContractor() {
       setDone(t('admin.removeContractor.deleted', { name: r.fullName }));
       reset(); load();
     } catch (err) {
-      const code = err instanceof RemoveContractorFailed ? err.code : '';
-      setError(code === 'has_history'      ? t('admin.removeContractor.errHistory')
-             : code === 'money_in_flight'  ? t('admin.removeContractor.errMoney')
-             : code === 'is_admin_account' ? t('admin.removeContractor.errStaff')
-             : code === 'self_removal'     ? t('admin.removeContractor.errSelf')
-             : t('admin.removeContractor.errFailed'));
+      const e = err instanceof RemoveContractorFailed ? err : null;
+      const code = e?.code ?? '';
+      setError(
+        code === 'has_history'      ? t('admin.removeContractor.errHistory')
+        : code === 'money_in_flight'  ? t('admin.removeContractor.errMoney')
+        : code === 'is_admin_account' ? t('admin.removeContractor.errStaff')
+        : code === 'self_removal'     ? t('admin.removeContractor.errSelf')
+        // An unexpected refusal shows what the database actually said. Staff are reading
+        // this, and a precise message beats a tidy one that sends them hunting.
+        : e?.detail                   ? `${t('admin.removeContractor.errFailed')} — ${e.detail}`
+        : t('admin.removeContractor.errFailed'));
     } finally { setBusy(false); }
   }
 
@@ -195,6 +204,23 @@ export function PublishContractor() {
                       <li className={mode === 'delete' ? 'text-state-alert' : undefined}>
                         {t(mode === 'delete' ? 'admin.removeContractor.willDelete' : 'admin.removeContractor.willKeep')}
                       </li>
+                      {/* What a delete takes from builds that are not theirs. Only shown
+                          when there is something, so a clean account stays a clean
+                          confirmation. */}
+                      {mode === 'delete' && impact && (impact.siteUpdates + impact.verifications
+                        + impact.documents + impact.takeoffs + impact.messages) > 0 && (
+                        <li className="text-state-alert">
+                          {t('admin.removeContractor.willErase', {
+                            updates: impact.siteUpdates, checks: impact.verifications,
+                            docs: impact.documents + impact.takeoffs, msgs: impact.messages,
+                          })}
+                        </li>
+                      )}
+                      {mode === 'delete' && impact && impact.ownProjects > 0 && (
+                        <li className="text-state-alert">
+                          {t('admin.removeContractor.willEraseProjects', { n: impact.ownProjects })}
+                        </li>
+                      )}
                     </ul>
                   )}
 

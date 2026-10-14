@@ -358,16 +358,42 @@ describe('113 — removing a contractor, listed or not', () => {
     expect(body).toMatch(/site_updates[\s\S]*?stage_verifications[\s\S]*?project_documents/);
   });
 
-  it('the delete itself goes through the service role, as rollback already does', () => {
+  it('purges in SQL, then deletes through the service role', () => {
+    // Two halves because two owners: postgres owns the public tables, supabase_auth_admin
+    // owns auth.users, and neither can do the other's part.
     const h = read('api/_handlers/admin-delete-contractor.ts');
-    expect(h).toMatch(/admin\.auth\.admin\.deleteUser\(userId\)/);
-    // Asked as the CALLER, because the precheck's is_admin() reads auth.uid().
-    expect(h).toMatch(/asCaller[\s\S]{0,80}?rpc\('admin_can_delete_contractor'/);
-    // Recorded before the row stops existing.
-    const logged = h.indexOf("admin_log_contractor_deleted");
-    const deleted = h.indexOf('deleteUser(userId)');
-    expect(logged).toBeGreaterThan(-1);
-    expect(deleted).toBeGreaterThan(logged);
+    const purge = h.indexOf("rpc('admin_purge_contractor'");
+    const del = h.indexOf('deleteUser(userId)');
+    expect(purge).toBeGreaterThan(-1);
+    expect(del).toBeGreaterThan(purge);
+    // The purge runs as the CALLER, because its is_admin() reads auth.uid().
+    expect(h).toMatch(/asCaller\.rpc\('admin_purge_contractor'/);
+  });
+
+  it('a failure after the purge is reported, never guessed at', () => {
+    // An earlier version called every deleteUser failure `has_history` — a confident
+    // sentence about a cause nobody had checked, which sent the reader to the wrong place.
+    const h = read('api/_handlers/admin-delete-contractor.ts');
+    expect(h).toMatch(/error: 'delete_failed', detail: delErr\.message/);
+    expect(h).not.toMatch(/error: 'has_history', detail/);
+  });
+
+  it('115 clears every reference that would block the delete', () => {
+    const sql115 = strip(read('supabase/migrations/115_purge_contractor.sql'));
+    // The six NOT NULL references are erased...
+    for (const tbl of ['site_updates', 'stage_verifications', 'project_documents',
+                       'project_takeoffs', 'project_messages', 'contractor_invites']) {
+      expect(sql115, `must clear ${tbl}`).toMatch(new RegExp(`DELETE FROM public\\.${tbl}`));
+    }
+    // ...and the three nullable ones keep the fact, losing only the name.
+    expect(sql115).toMatch(/UPDATE public\.project_audit_log\s+SET actor_id\s+= NULL/);
+    expect(sql115).toMatch(/UPDATE public\.project_substages\s+SET approved_by = NULL/);
+    expect(sql115).toMatch(/UPDATE public\.projects\s+SET created_by\s+= NULL/);
+  });
+
+  it('the cost is shown before the button, since it reaches other builds', () => {
+    expect(roster).toMatch(/contractorDeleteImpact\(/);
+    expect(roster).toMatch(/willErase/);
   });
 
   it('the roster offers both, and they are not the same button', () => {
