@@ -25,6 +25,7 @@ import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
 import { handler as inviteVerifier } from './_handlers/invite-verifier.js';
 import { handler as contractorInviteClient } from './_handlers/contractor-invite-client.js';
+import { handler as adminDeleteContractor } from './_handlers/admin-delete-contractor.js';
 import { handler as crmEmailSync } from './_handlers/crm-email-sync.js';
 import { attachBody } from './_lib/body.js';
 
@@ -65,7 +66,7 @@ export const config = { api: { bodyParser: false } };
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
-  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'crm-email-sync'
+  | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
@@ -90,6 +91,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'admin-provision-user': adminProvisionUser,
   'invite-verifier': inviteVerifier,
   'contractor-invite-client': contractorInviteClient,
+  'admin-delete-contractor': adminDeleteContractor,
   'crm-email-sync': crmEmailSync,
   'profile-geo': profileGeo,
   'admin-settings': adminSettings,
