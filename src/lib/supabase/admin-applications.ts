@@ -958,3 +958,42 @@ export async function removeContractor(userId: string, reason?: string): Promise
     throw new RemoveContractorFailed(known ?? 'failed');
   }
 }
+
+export interface AnyContractor {
+  userId: string;
+  fullName: string;
+  email: string;
+  /** Whether the directory clients browse has an entry for them. */
+  listed: boolean;
+  listingActive: boolean;
+  origin: ContractorOrigin | 'invited_to_project';
+  projects: number;
+}
+
+/**
+ * Every contractor on the platform, published or not.
+ *
+ * `listUnlistedContractors` is deliberately only the ones missing from the directory —
+ * it answers "who should I publish". This answers "who is a contractor at all", which is
+ * the question removal needs: a self-registered partner, an admin-onboarded contractor
+ * and somebody listed for months are all people an admin may need to take off.
+ */
+export async function listAllContractors(): Promise<AnyContractor[]> {
+  const { data, error } = await supabase.rpc('admin_all_contractors');
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202') return [];   // 113 not applied
+    throw error;
+  }
+  return (data ?? []).map((r: {
+    user_id: string; full_name: string; email: string; listed: boolean;
+    listing_active: boolean; origin: AnyContractor['origin']; projects: number;
+  }) => ({
+    userId: r.user_id,
+    fullName: r.full_name,
+    email: r.email,
+    listed: r.listed,
+    listingActive: r.listing_active,
+    origin: r.origin,
+    projects: Number(r.projects ?? 0),
+  }));
+}

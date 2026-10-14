@@ -129,4 +129,53 @@ COMMENT ON FUNCTION public.admin_remove_contractor(uuid, text) IS
   'deleting the user would cascade through every approval and audit row that names them. '
   'Refuses while a release is on its way to them.';
 
+-- ── 3. Every contractor, listed or not ───────────────────
+--
+-- 111 added `admin_unlisted_contractors`, which is deliberately only the ones missing
+-- from the directory. Removal has to reach everybody: a partner who self-registered and
+-- was never published, an admin-onboarded contractor, and somebody who has been in the
+-- directory for months are all people an admin may need to take off the platform.
+--
+-- "A contractor" here is the same definition the app uses — the role OR an accepted
+-- assignment — so a contractor who was only ever invited to one project, and never held
+-- the role, still appears and can still be removed.
+CREATE OR REPLACE FUNCTION public.admin_all_contractors()
+RETURNS TABLE (
+  user_id     uuid,
+  full_name   text,
+  email       text,
+  listed      boolean,
+  listing_active boolean,
+  origin      text,
+  projects    integer
+) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT
+    p.id,
+    COALESCE(NULLIF(btrim(p.full_name), ''), p.email),
+    p.email,
+    EXISTS (SELECT 1 FROM public.contractors c WHERE c.user_id = p.id),
+    COALESCE((SELECT c.active FROM public.contractors c WHERE c.user_id = p.id), false),
+    CASE
+      WHEN EXISTS (SELECT 1 FROM public.contractor_applications a
+                    WHERE a.user_id = p.id AND a.status = 'accepted') THEN 'applied'
+      WHEN p.provisioned_by IS NOT NULL                                THEN 'onboarded_by_admin'
+      WHEN EXISTS (SELECT 1 FROM public.user_roles r
+                    WHERE r.user_id = p.id AND r.role = 'contractor')  THEN 'self_registered'
+      ELSE 'invited_to_project'
+    END,
+    (SELECT count(*)::int FROM public.contractor_invites ci
+      WHERE ci.contractor_user_id = p.id AND ci.status = 'accepted')
+  FROM public.profiles p
+ WHERE public.is_admin()
+   AND (
+     EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role = 'contractor')
+     OR EXISTS (SELECT 1 FROM public.contractor_invites ci
+                 WHERE ci.contractor_user_id = p.id AND ci.status = 'accepted')
+   )
+ ORDER BY COALESCE(NULLIF(btrim(p.full_name), ''), p.email);
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_all_contractors() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_all_contractors() TO authenticated;
+
 COMMIT;
