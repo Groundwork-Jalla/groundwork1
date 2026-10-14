@@ -178,4 +178,82 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_all_contractors() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_all_contractors() TO authenticated;
 
+-- ── 4. Delete them outright ──────────────────────────────
+--
+-- Not "remove standing" — the account itself. Asked for deliberately, so here is exactly
+-- what it does, because it is irreversible.
+--
+-- DESTROYED with the account (ON DELETE CASCADE):
+--   · their profile, roles and payout destinations;
+--   · any project they OWN, and with it every stage, payment, document and conversation
+--     on that project. A partner's own clients own their projects, so those are safe —
+--     but a contractor who was also a client loses their builds.
+--
+-- BLOCKS the delete (the reference has no cascade, by design):
+--   · documents they uploaded, messages they sent, site updates they submitted, stage
+--     verifications they signed, take-offs they created, invitations they issued.
+--
+-- That second list is not an obstacle to work around. Those rows are the record of who
+-- did what on somebody else's build, and silently detaching them would quietly rewrite
+-- that history. So the delete is ATTEMPTED and, when the database refuses, the refusal is
+-- passed back naming what holds it — and `admin_remove_contractor` above is the right
+-- tool for that person instead.
+--
+-- In practice the split is clean: a test or junk signup that never did anything deletes,
+-- and somebody who actually built something does not.
+CREATE OR REPLACE FUNCTION public.admin_delete_contractor(p_user uuid, p_reason text DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_actor    uuid := auth.uid();
+  v_inflight integer;
+  v_email    text;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'not_admin: only an administrator deletes an account';
+  END IF;
+  IF p_user IS NULL THEN RAISE EXCEPTION 'no_user: nobody named'; END IF;
+  IF p_user = v_actor THEN
+    RAISE EXCEPTION 'self_removal: you cannot delete your own account here';
+  END IF;
+  -- An admin is never deleted from the contractor screen. Staff accounts are managed
+  -- somewhere a person has to go on purpose.
+  IF EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user AND role = 'admin') THEN
+    RAISE EXCEPTION 'is_admin_account: that is a staff account; it is not deleted from here';
+  END IF;
+
+  SELECT count(*) INTO v_inflight
+    FROM public.payments
+   WHERE beneficiary_id = p_user
+     AND direction = 'out'
+     AND state IN ('release_authorised', 'initiated', 'reconciling');
+  IF v_inflight > 0 THEN
+    RAISE EXCEPTION 'money_in_flight: % release(s) are on their way to this contractor; settle or fail them first', v_inflight;
+  END IF;
+
+  SELECT email INTO v_email FROM public.profiles WHERE id = p_user;
+
+  -- Recorded BEFORE the delete: `log_activity` stamps `actor_id` from auth.uid(), and
+  -- `person_id` would be pointing at a row that is about to stop existing.
+  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, NULL,
+    jsonb_strip_nulls(jsonb_build_object(
+      'deleted_user', p_user, 'email', v_email,
+      'reason', NULLIF(btrim(coalesce(p_reason, '')), ''), 'by', 'admin')));
+
+  -- Everything else follows from the foreign keys. A reference without a cascade raises
+  -- here, and that refusal is the honest answer: this person has history.
+  DELETE FROM auth.users WHERE id = p_user;
+EXCEPTION
+  WHEN foreign_key_violation THEN
+    RAISE EXCEPTION 'has_history: this contractor has work on other people''s projects (documents, messages, site updates or verifications). Remove their access instead of deleting the account.';
+END $$;
+
+REVOKE ALL ON FUNCTION public.admin_delete_contractor(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_delete_contractor(uuid, text) TO authenticated;
+
+COMMENT ON FUNCTION public.admin_delete_contractor(uuid, text) IS
+  'Deletes a contractor account outright (113). Irreversible: cascades their profile, '
+  'roles, payout details and any project they own. Refuses for a staff account, for '
+  'money in flight, and when work on other people''s projects references them — use '
+  'admin_remove_contractor for that person instead.';
+
 COMMIT;
