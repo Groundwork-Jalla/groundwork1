@@ -301,3 +301,64 @@ describe('the fixes that are not SQL', () => {
     expect(detail).toMatch(/project\.overview\.setUpForYou/);
   });
 });
+
+
+describe('113 — removing a contractor, listed or not', () => {
+  const sql113 = read('supabase/migrations/113_remove_contractor.sql');
+  const code113 = strip(sql113);
+  const roster  = strip2(read('src/components/admin/PublishContractor.tsx'));
+
+  it('revokes the role AND withdraws assignments — either alone does nothing', () => {
+    // holdsContractorAccess is "role OR accepted assignment", so removing just the role
+    // leaves anybody on a project still able to sign in and work.
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_remove_contractor'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/DELETE FROM public\.user_roles[\s\S]*?role = 'contractor'/);
+    expect(body).toMatch(/UPDATE public\.contractor_invites[\s\S]*?status = 'rejected', is_primary = false/);
+  });
+
+  it('refuses while a release is on its way to them', () => {
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_remove_contractor'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/'release_authorised', 'initiated', 'reconciling'/);
+    expect(body).toMatch(/money_in_flight/);
+    // disbursed and failed are final and must NOT block.
+    expect(body).not.toMatch(/'disbursed'|'failed'/);
+  });
+
+  it('never deletes the account — the history references it', () => {
+    expect(code113).not.toMatch(/DELETE FROM auth\.users|auth\.admin\.deleteUser/);
+    // The listing is taken down, not deleted, so a reinstatement keeps its reviews.
+    expect(code113).toMatch(/UPDATE public\.contractors SET active = false/);
+    expect(code113).not.toMatch(/DELETE FROM public\.contractors/);
+  });
+
+  it('is admin-only and cannot be turned on yourself', () => {
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_remove_contractor'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/NOT public\.is_admin\(\)/);
+    expect(body).toMatch(/self_removal/);
+  });
+
+  it('the roster reaches contractors who were never published', () => {
+    // The old panel listed only unlisted contractors, so somebody in the directory could
+    // not be removed from it, and 111's publish-only list could not remove at all.
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_all_contractors'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/role = 'contractor'[\s\S]*?OR EXISTS[\s\S]*?status = 'accepted'/);
+    expect(roster).toMatch(/listAllContractors\(\)/);
+  });
+
+  it('the remove button sits beside publish, on every row', () => {
+    expect(roster).toMatch(/admin\.removeContractor\.confirm/);
+    expect(roster).toMatch(/admin\.publishContractor\.choose/);
+    // Publish only when they are not already shown; remove always.
+    expect(roster).toMatch(/!r\.listingActive && \(/);
+  });
+
+  it('says what removal costs before it happens', () => {
+    expect(roster).toMatch(/checkContractorRemoval\(/);
+    expect(roster).toMatch(/willProjects/);
+    expect(roster).toMatch(/willKeep/);
+  });
+});
