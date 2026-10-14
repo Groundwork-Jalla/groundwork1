@@ -97,7 +97,7 @@ describe('entityTab', () => {
     }
     expect([...written].sort()).toEqual([
       'contractor', 'contractor_application', 'contractor_invite', 'conversation', 'decision',
-      'payment', 'payout_destination', 'project', 'project_stage', 'project_verifier',
+      'payment', 'payout_destination', 'profile', 'project', 'project_stage', 'project_verifier',
       'site_update', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
@@ -115,6 +115,8 @@ describe('entityTab', () => {
     expect(entityTab('verifier_invite')).toBeNull();
     // A directory listing is a profile clients browse, not part of any one build (111).
     expect(entityTab('contractor')).toBeNull();
+    // A person is not a project: removing their standing is about them (113).
+    expect(entityTab('profile')).toBeNull();
     // A payout destination belongs to a person and is reused across projects, so no
     // single project's workspace owns it — its audit rows carry a null project.
     expect(entityTab('payout_destination')).toBeNull();

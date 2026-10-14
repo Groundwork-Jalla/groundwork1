@@ -326,11 +326,40 @@ describe('113 — removing a contractor, listed or not', () => {
     expect(body).not.toMatch(/'disbursed'|'failed'/);
   });
 
-  it('never deletes the account — the history references it', () => {
-    expect(code113).not.toMatch(/DELETE FROM auth\.users|auth\.admin\.deleteUser/);
+  it('REMOVE never deletes the account — that is the other function', () => {
+    // Two different acts, deliberately separate: one ends access and keeps the person,
+    // the other ends the account. Removing must never quietly do the second.
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_remove_contractor'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).not.toMatch(/DELETE FROM auth\.users/);
     // The listing is taken down, not deleted, so a reinstatement keeps its reviews.
-    expect(code113).toMatch(/UPDATE public\.contractors SET active = false/);
-    expect(code113).not.toMatch(/DELETE FROM public\.contractors/);
+    expect(body).toMatch(/UPDATE public\.contractors SET active = false/);
+    expect(body).not.toMatch(/DELETE FROM public\.contractors/);
+  });
+
+  it('DELETE really deletes, and refuses the cases that would rewrite history', () => {
+    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_delete_contractor'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/DELETE FROM auth\.users WHERE id = p_user/);
+    // A reference without a cascade is work on somebody else's build. Detaching it would
+    // erase who did that work, so the refusal is the answer.
+    expect(body).toMatch(/WHEN foreign_key_violation THEN/);
+    expect(body).toMatch(/has_history/);
+    expect(body).toMatch(/is_admin_account/);
+    expect(body).toMatch(/money_in_flight/);
+    // Recorded before the row stops existing.
+    const logged = body.indexOf("'contractor.deleted'");
+    const deleted = body.indexOf('DELETE FROM auth.users');
+    expect(logged).toBeGreaterThan(-1);
+    expect(deleted).toBeGreaterThan(logged);
+  });
+
+  it('the roster offers both, and they are not the same button', () => {
+    expect(roster).toMatch(/admin\.removeContractor\.confirm/);
+    expect(roster).toMatch(/admin\.removeContractor\.deleteCta/);
+    expect(roster).toMatch(/mode === 'delete' \? doDelete\(r\) : doRemove\(r\)/);
+    // The confirmation promises opposite things, so it must say which.
+    expect(roster).toMatch(/willDelete' : 'admin\.removeContractor\.willKeep/);
   });
 
   it('is admin-only and cannot be turned on yourself', () => {

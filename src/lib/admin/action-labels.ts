@@ -53,6 +53,8 @@ export function entityTab(entityType: string | null | undefined):
     //                                before the account does, and belongs to no project.
     //   `contractor` (111)         — a directory listing is a profile clients browse,
     //                                not part of any one build.
+    //   `profile` (113)            — a person, not a project. Removing somebody's
+    //                                contractor standing is about them, everywhere.
     //   `payout_destination` (099) — a destination belongs to a PERSON and is reused
     //                                across projects, so no single project owns it. Its
     //                                audit rows carry a null project for the same reason.
