@@ -895,3 +895,66 @@ export async function publishContractor(opts: {
   });
   if (error) throw error;
 }
+
+// =========================================================
+// Removing a contractor's standing (113).
+//
+// Not the same as deleting their directory entry, which only takes them out of the list
+// clients browse — they keep the role, keep their projects and keep /work. And a partner
+// who signed themselves up often has no entry at all, so there was nothing to remove.
+//
+// The ACCOUNT is never deleted. Their stage approvals, site updates and audit rows all
+// reference it, and the record of who built a house is the point of Groundwork.
+// =========================================================
+
+export interface ContractorRemovalCheck {
+  fullName: string;
+  email: string;
+  /** Projects they are currently accepted on, and would be withdrawn from. */
+  activeProjects: number;
+  /** Of those, how many pay them as the primary contractor. */
+  primaryOn: number;
+  /** Releases already on their way. Any at all and removal is refused. */
+  moneyInFlight: number;
+  hasListing: boolean;
+}
+
+/** What removing this person would actually do, for the confirmation to say out loud. */
+export async function checkContractorRemoval(userId: string): Promise<ContractorRemovalCheck | null> {
+  const { data, error } = await supabase.rpc('admin_contractor_removal_check', { p_user: userId });
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202') return null;   // 113 not applied
+    throw error;
+  }
+  const r = Array.isArray(data) ? data[0] : data;
+  if (!r) return null;
+  return {
+    fullName:       r.full_name ?? r.email,
+    email:          r.email,
+    activeProjects: Number(r.active_projects ?? 0),
+    primaryOn:      Number(r.primary_on ?? 0),
+    moneyInFlight:  Number(r.money_in_flight ?? 0),
+    hasListing:     r.has_listing === true,
+  };
+}
+
+export class RemoveContractorFailed extends Error {
+  constructor(public code: string) { super(code); }
+}
+
+/**
+ * End their standing: role revoked, assignments withdrawn, listing taken down.
+ *
+ * Refused while a release is on its way to them — that payment would be left with no
+ * payee. Settle or fail it first.
+ */
+export async function removeContractor(userId: string, reason?: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_remove_contractor', {
+    p_user: userId, p_reason: reason ?? null,
+  });
+  if (error) {
+    const known = ['money_in_flight', 'self_removal', 'not_admin', 'no_user']
+      .find(c => error.message.includes(c));
+    throw new RemoveContractorFailed(known ?? 'failed');
+  }
+}
