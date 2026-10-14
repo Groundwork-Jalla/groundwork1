@@ -4309,7 +4309,7 @@ export const en = {
       quoteLabel:    "Upload your contractor's quote or bill of quantities",
       quoteCta:      'Choose a file — PDF, Word, Excel, CSV or an image',
       quoteHint:     'If you already have a BoQ or costing spreadsheet, attach it here. It is saved to this project\'s Documents, where you and anyone you invite can open it.',
-      errSignedOut: 'Your session has expired, so the project could not be saved. Sign in again and your answers will still be here.',
+      errSignedOut: 'You have been signed out, so nothing was saved. Sign in again in another tab, come back here and press the button once more \u2014 everything you have filled in is still on this page.',
       errRefused:   'Groundwork would not save this project to your account. Nothing has been charged. Tell Favour what you were building and it will be sorted.',
       quoteTooLarge: 'That file is larger than {mb} MB. Attach a smaller one, or add it from the project\'s Documents tab afterwards.',
       quoteBadType:  'That file type cannot be uploaded. Use a PDF, a Word document, an Excel or CSV spreadsheet, or an image.',

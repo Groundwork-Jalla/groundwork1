@@ -4217,7 +4217,7 @@ export const fr: Mirror<EnDict> = {
       quoteLabel:    'Joindre le devis ou le devis quantitatif de votre entrepreneur',
       quoteCta:      'Choisir un fichier — PDF, Word, Excel, CSV ou une image',
       quoteHint:     'Si vous avez déjà un devis quantitatif ou un tableur de coûts, joignez-le ici. Il est enregistré dans les Documents de ce projet, où vous et les personnes que vous invitez pourrez l\'ouvrir.',
-      errSignedOut: 'Votre session a expir\u00e9, le projet n\u2019a donc pas pu \u00eatre enregistr\u00e9. Reconnectez-vous, vos r\u00e9ponses seront toujours l\u00e0.',
+      errSignedOut: 'Vous avez \u00e9t\u00e9 d\u00e9connect\u00e9, rien n\u2019a donc \u00e9t\u00e9 enregistr\u00e9. Reconnectez-vous dans un autre onglet, revenez ici et appuyez \u00e0 nouveau \u2014 tout ce que vous avez saisi est toujours sur cette page.',
       errRefused:   'Groundwork n\u2019a pas pu enregistrer ce projet sur votre compte. Rien n\u2019a \u00e9t\u00e9 d\u00e9bit\u00e9. Dites \u00e0 Favour ce que vous construisiez et ce sera r\u00e9gl\u00e9.',
       quoteTooLarge: 'Ce fichier dépasse {mb} Mo. Joignez-en un plus petit, ou ajoutez-le ensuite depuis l\'onglet Documents du projet.',
       quoteBadType:  'Ce type de fichier ne peut pas être téléversé. Utilisez un PDF, un document Word, un tableur Excel ou CSV, ou une image.',

@@ -86,6 +86,25 @@ export default function Step11ConfirmBudget() {
     setError(null);
     setBusy(true);
     try {
+      // ── Make sure the session is still alive BEFORE writing anything ──
+      //
+      // The wizard guards on load, but it guards on a session OBJECT, not a valid one.
+      // Eleven steps and a budget review can outlast a one-hour token, and AuthContext
+      // goes on holding the stale one — so the page looks signed in while every policy
+      // on `projects` sees `auth.uid() = NULL` and refuses the insert. What the client
+      // got was "new row violates row-level security policy" at step eleven.
+      //
+      // `getSession()` refreshes a stale token when a refresh token is still good, which
+      // makes the common case simply work. When it cannot, we stop here — BEFORE the
+      // write — and leave every answer on screen, because the wizard keeps its data in
+      // memory and navigating away to sign in would lose all of it.
+      const { data: { session: live } } = await supabase.auth.getSession();
+      if (!live) {
+        setError(t('wizard.confirmBudget.errSignedOut'));
+        setBusy(false);
+        return;
+      }
+
       // The project belongs to the CLIENT. When an admin is running the wizard on their
       // behalf, every row below is written as the client's — their dashboard, their
       // access — and the admin is recorded as its creator by the database (082).
