@@ -33,6 +33,9 @@ export default [
     // question they had already answered.
     route("contractor-signup",   "routes/contractor-signup.tsx"),
     route("verifier-signup",     "routes/verifier-signup.tsx"),
+    // Somebody the owner invited to watch their build (112). Read-only, and readable
+    // before sign-in so the page can name the project rather than looking like a trap.
+    route("share/:token",        "routes/share.tsx"),
   ]),
 
   // Project wizard — full-screen, no sidebar (WizardShell owns the viewport)

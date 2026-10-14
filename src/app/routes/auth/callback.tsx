@@ -11,6 +11,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { signupIntentOf } from "@/lib/auth/signup-account";
+import { acceptProjectViewer, takeRememberedShare } from "@/lib/supabase/project-viewers";
 import { googleWithoutPassword, passwordPromptDismissed, syncEmailChangeToCrm } from "@/lib/auth/account-security";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
@@ -291,6 +292,21 @@ export default function AuthCallback() {
     // which read as "it signed me up as the wrong thing". `signup_intent` is the
     // durable half; the marker stays because it is the only signal when an existing
     // account signs up again at a role door.
+    // Somebody invited to watch a build (112). Before the role doors below: a family
+    // member is not signing up to work, and sending them to /work or /verifiers would be
+    // the wrong surface entirely. Theirs is the project they were shown.
+    const share = takeRememberedShare();
+    if (share) {
+      try {
+        const projectId = await acceptProjectViewer(share);
+        navigate(`/projects/${projectId}`, { replace: true });
+        return;
+      } catch {
+        // Withdrawn, spent, or accepted by somebody else. Fall through rather than
+        // stranding them — they have an account either way.
+      }
+    }
+
     const intent = signupIntentOf(session.user?.user_metadata?.signup_intent);
     if (takeRememberedContractorRegistration() || intent === 'contractor') {
       try {

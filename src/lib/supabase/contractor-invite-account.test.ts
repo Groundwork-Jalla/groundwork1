@@ -39,7 +39,11 @@ describe('an accepted invite lands on the contractor surface', () => {
     // Reloaded, not navigated: accepting the invite is what makes holdsContractorAccess
     // true, so /work's shell must re-read it. See role-signup.test.ts.
     expect(callback).toContain('leaveForRoleSurface(`/work/projects/${projectId}`);');
-    expect(callback).not.toContain('navigate(`/projects/${projectId}`');
+    // Scoped to the contractor branch. Since 112 the callback ALSO accepts a family
+    // viewer, and that person genuinely does land on the owner-side project page — the
+    // point here is only that a CONTRACTOR does not.
+    const branch = callback.slice(callback.indexOf('acceptInvite(token)'));
+    expect(branch.slice(0, branch.indexOf('return;'))).not.toContain('navigate(`/projects/${projectId}`');
   });
 });
 

@@ -24,6 +24,7 @@ import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
 import ProjectChat               from '@/components/project/ProjectChat';
 import ContractorInvite          from '@/components/project/ContractorInvite';
+import { ShareProject }          from '@/components/project/ShareProject';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import ProjectPaymentsLedger    from '@/components/project/ProjectPaymentsLedger';
@@ -286,6 +287,10 @@ export default function ProjectDetail() {
     : 0;
 
   const isContractor = user?.user_metadata?.role === 'contractor';
+  // Real ownership, from the row — not `user_metadata`, which the browser sets. Since 112
+  // a project can be OPEN to somebody who does not own it (a family viewer), so "not a
+  // contractor" no longer means "the owner".
+  const isOwner = !!user?.id && user.id === project?.user_id;
   const trackingStarted = !!project.tracking_started_at;
   const isManaged = project.tier === 'jalla_management' || (project.tier as string) === 'enterprise';
   const activeStageNum = stages.find(s => s.status === 'active' || s.status === 'pending_review')?.stage_number;
@@ -428,6 +433,14 @@ export default function ProjectDetail() {
               contractor who brought them on (109). The client was told nothing before:
               a project simply appeared. Saying so, and saying plainly that they own it,
               is the difference between a surprise and a service. */}
+          {/* Only the owner shares their own build (112). Not an admin and not a
+              contractor: who may see a person's finances is that person's decision. */}
+          {activeTab === 'overview' && isOwner && (
+            <div className="mb-4">
+              <ShareProject projectId={project.id} />
+            </div>
+          )}
+
           {activeTab === 'overview' && project.created_by && (
             <p className="mb-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">
               {t('project.overview.setUpForYou')}

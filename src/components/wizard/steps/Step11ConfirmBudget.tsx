@@ -6,6 +6,7 @@ import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { calculateBudget, decomposeBudget } from '@/lib/budget';
+import { supabase } from '@/lib/supabase/client';
 import { createProject } from '@/lib/supabase/projects';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
 import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
@@ -183,7 +184,24 @@ export default function Step11ConfirmBudget() {
 
       navigate(`/projects/${project.id}${attachmentFailed ? '?attachment=failed' : ''}`);
     } catch (err) {
-      setError(errorMessage(err, t('common.somethingWrong')));
+      // ── Why this is not just `errorMessage(err)` ──
+      //
+      // Every INSERT policy on `projects` reads `auth.uid()` — the owner's own check, the
+      // admin check and the partner check alike. When the session has quietly expired,
+      // `auth.uid()` is NULL, all three fail, and Postgres says only "new row violates
+      // row-level security policy", which was shown to the client verbatim at the end of
+      // an eleven-step wizard. It reads like the product is broken; it usually means they
+      // need to sign in again.
+      //
+      // So a permission refusal asks the session whether it is still there, and says
+      // which of the two it is.
+      const code = (err as { code?: string } | null)?.code;
+      if (code === '42501') {
+        const { data: { session } } = await supabase.auth.getSession();
+        setError(t(session ? 'wizard.confirmBudget.errRefused' : 'wizard.confirmBudget.errSignedOut'));
+      } else {
+        setError(errorMessage(err, t('common.somethingWrong')));
+      }
       setBusy(false);
     }
   }
