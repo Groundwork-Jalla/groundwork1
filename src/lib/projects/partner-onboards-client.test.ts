@@ -337,19 +337,35 @@ describe('113 — removing a contractor, listed or not', () => {
     expect(body).not.toMatch(/DELETE FROM public\.contractors/);
   });
 
-  it('DELETE really deletes, and refuses the cases that would rewrite history', () => {
-    const fn = code113.slice(code113.indexOf('FUNCTION public.admin_delete_contractor'));
+  it('DELETE never tries it in SQL — postgres cannot touch auth.users', () => {
+    // 113 ended with `DELETE FROM auth.users`, which could never have worked: the auth
+    // schema belongs to supabase_auth_admin, so a SECURITY DEFINER function owned by
+    // postgres raises insufficient_privilege every time. 114 drops it.
+    const sql114 = read('supabase/migrations/114_delete_contractor_precheck.sql');
+    expect(sql114).toMatch(/DROP FUNCTION IF EXISTS public\.admin_delete_contractor\(uuid, text\)/);
+    expect(strip(sql114)).not.toMatch(/DELETE FROM auth\.users/);
+  });
+
+  it('the decision stays in SQL, and names every refusal', () => {
+    const sql114 = strip(read('supabase/migrations/114_delete_contractor_precheck.sql'));
+    const fn = sql114.slice(sql114.indexOf('FUNCTION public.admin_can_delete_contractor'));
     const body = fn.slice(0, fn.indexOf('$$;'));
-    expect(body).toMatch(/DELETE FROM auth\.users WHERE id = p_user/);
-    // A reference without a cascade is work on somebody else's build. Detaching it would
-    // erase who did that work, so the refusal is the answer.
-    expect(body).toMatch(/WHEN foreign_key_violation THEN/);
-    expect(body).toMatch(/has_history/);
-    expect(body).toMatch(/is_admin_account/);
-    expect(body).toMatch(/money_in_flight/);
+    for (const reason of ['not_admin', 'self_removal', 'is_admin_account', 'money_in_flight', 'has_history']) {
+      expect(body, `missing refusal: ${reason}`).toContain(reason);
+    }
+    // History is the six references that carry no cascade — the record of who did what
+    // on somebody else's build.
+    expect(body).toMatch(/site_updates[\s\S]*?stage_verifications[\s\S]*?project_documents/);
+  });
+
+  it('the delete itself goes through the service role, as rollback already does', () => {
+    const h = read('api/_handlers/admin-delete-contractor.ts');
+    expect(h).toMatch(/admin\.auth\.admin\.deleteUser\(userId\)/);
+    // Asked as the CALLER, because the precheck's is_admin() reads auth.uid().
+    expect(h).toMatch(/asCaller[\s\S]{0,80}?rpc\('admin_can_delete_contractor'/);
     // Recorded before the row stops existing.
-    const logged = body.indexOf("'contractor.deleted'");
-    const deleted = body.indexOf('DELETE FROM auth.users');
+    const logged = h.indexOf("admin_log_contractor_deleted");
+    const deleted = h.indexOf('deleteUser(userId)');
     expect(logged).toBeGreaterThan(-1);
     expect(deleted).toBeGreaterThan(logged);
   });
