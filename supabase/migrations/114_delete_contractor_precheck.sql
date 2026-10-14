@@ -85,7 +85,7 @@ BEGIN
     RAISE EXCEPTION 'not_admin: only an administrator deletes an account';
   END IF;
   SELECT email INTO v_email FROM public.profiles WHERE id = p_user;
-  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, NULL,
+  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, p_user,
     jsonb_strip_nulls(jsonb_build_object(
       'deleted_user', p_user, 'email', v_email,
       'reason', NULLIF(btrim(coalesce(p_reason, '')), ''), 'by', 'admin')));

@@ -46,6 +46,11 @@
 
 BEGIN;
 
+-- 114's `admin_log_contractor_deleted` carried the same `no_subject` defect and nothing
+-- calls it any more: the purge below records the deletion itself, inside the same
+-- transaction that performs it.
+DROP FUNCTION IF EXISTS public.admin_log_contractor_deleted(uuid, text);
+
 -- ── What a delete would erase ────────────────────────────
 --
 -- For the confirmation, so nobody discovers the cost afterwards.
@@ -121,7 +126,14 @@ BEGIN
 
   -- Recorded here, while there is still something to describe. The audit row survives the
   -- delete: its own actor_id is the ADMIN, not the person going.
-  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, NULL,
+  -- `p_person` is the person going, NOT null. 089 refuses an activity with neither a
+  -- project nor a person — "no_subject" — and passing null for both aborted this whole
+  -- function before it touched anything, which is why Delete appeared to do nothing.
+  --
+  -- Naming them is safe precisely because `project_audit_log.person_id` carries no
+  -- foreign key (089's rule for people): the row outlives the account it describes,
+  -- which is the point of an audit log.
+  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, p_user,
     jsonb_build_object('deleted_user', p_user,
                        'email', (SELECT email FROM public.profiles WHERE id = p_user),
                        'by', 'admin'));

@@ -234,7 +234,7 @@ BEGIN
 
   -- Recorded BEFORE the delete: `log_activity` stamps `actor_id` from auth.uid(), and
   -- `person_id` would be pointing at a row that is about to stop existing.
-  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, NULL,
+  PERFORM public.log_activity(NULL, 'contractor.deleted', NULL, NULL, p_user,
     jsonb_strip_nulls(jsonb_build_object(
       'deleted_user', p_user, 'email', v_email,
       'reason', NULLIF(btrim(coalesce(p_reason, '')), ''), 'by', 'admin')));
