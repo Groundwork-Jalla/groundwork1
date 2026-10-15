@@ -208,7 +208,7 @@ describe('the partner can actually reach it', () => {
 
   it('skips the plan step for the fixed contractor plan', () => {
     const wiz = strip2(read('src/app/routes/admin/projects.new.tsx'));
-    expect(wiz).toMatch(/const planDecided = onBehalfOf\?\.tier != null;/);
+    expect(wiz).toMatch(/const planDecided = \(onBehalfOf\?\.by === 'admin' && onBehalfOf\.tier === 'jalla_management'\)\s*\|\|\s*\(onBehalfOf\?\.by === 'partner' && onBehalfOf\.tier === 'self_verify'\);/);
     expect(wiz).toMatch(/if \(planDecided && step === 10\)/);
     expect(wiz).toMatch(/Step10PlanSelection/);
   });

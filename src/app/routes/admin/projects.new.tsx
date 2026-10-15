@@ -52,8 +52,11 @@ export function ManagedWizard() {
   // a plain "if 10 then 11" traps Back — leaving 11 lands on 10, which bounces straight
   // to 11 again, and the admin can never return to the summary.
   //
-  // A partner's client project is fixed to Self Verify, so it skips the picker too.
-  const planDecided = onBehalfOf?.tier != null;
+  // Partner-created client projects are fixed to Self Verify, so their contractor
+  // skips the picker too. A client's own project has no `onBehalfOf` and still gets
+  // the normal plan-selection step.
+  const planDecided = (onBehalfOf?.by === 'admin' && onBehalfOf.tier === 'jalla_management')
+    || (onBehalfOf?.by === 'partner' && onBehalfOf.tier === 'self_verify');
 
   useEffect(() => {
     if (planDecided && step === 10) goTo(direction === 'back' ? 9 : 11);
