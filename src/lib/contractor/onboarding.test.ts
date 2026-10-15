@@ -30,7 +30,8 @@ const strip = (src: string) =>
  * definition the database no longer runs, and would go on passing while the real
  * function drifted anywhere at all. `fnBody` therefore takes the LAST definition.
  */
-const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql'];
+const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql',
+                    '118_onboarding_intent_and_dossier.sql'];
 const sqlCode = MIGRATIONS
   .map(f => read(`supabase/migrations/${f}`))
   .join('\n')
@@ -62,6 +63,9 @@ const reader   = strip(read('src/components/contractor/AgreementReader.tsx'));
 const layout   = strip(read('src/app/routes/work/_layout.tsx'));
 const callback = strip(read('src/app/routes/auth/callback.tsx'));
 const payoutDialog = strip(read('src/components/contractor/PayoutDialog.tsx'));
+const shell   = strip(read('src/components/shell/PortalShell.tsx'));
+const adminPg = strip(read('src/app/routes/admin/contractor-records.tsx'));
+const adminLib= strip(read('src/lib/supabase/admin-contractor-records.ts'));
 
 describe('one definition of finished', () => {
   /**
@@ -87,7 +91,7 @@ describe('one definition of finished', () => {
 
   it('the SQL derives `complete` from the same six it reports', () => {
     expect(fnBody('contractor_onboarding_status')).toMatch(
-      /'complete', v_identity AND v_professional AND v_payout\s*AND v_emergency AND v_documents AND v_agreements/);
+      /'complete', v_agreements AND v_identity AND v_professional\s*AND v_payout AND v_emergency/);
   });
 
   it('admin sees the same answer as the contractor', () => {
@@ -331,7 +335,7 @@ describe('the sequence is the same for everybody', () => {
     // Schedule B's tiers (Founding, Certified, Strategic) change what a partner is paid,
     // never what Jalla holds on file. An application is not a shortcut either.
     expect(lib).toMatch(
-      /ONBOARDING_STEPS: readonly OnboardingStep\[\] = \[\s*'agreements', 'identity', 'professional', 'payout', 'emergency', 'documents',\s*\]/);
+      /ONBOARDING_STEPS: readonly OnboardingStep\[\] = \[\s*'agreements', 'identity', 'professional', 'payout', 'emergency',\s*\] as const/);
     for (const term of ['founding', 'certified', 'strategic', 'tier']) {
       expect(sqlCode.toLowerCase(), `116 must not branch on ${term}`)
         .not.toMatch(new RegExp(`${term}[\\s\\S]{0,40}(THEN|IF )`));
@@ -339,11 +343,24 @@ describe('the sequence is the same for everybody', () => {
     expect(lib).not.toMatch(/contractor_applications/);
   });
 
-  it('an independent contractor is not asked for a company document', () => {
-    // Otherwise the checklist is impossible to finish for a sole trader.
-    expect(fnBody('contractor_onboarding_status'))
-      .toMatch(/NOT coalesce\(v_registered, false\) OR EXISTS/);
-    expect(page).toMatch(/\{status\.needsBusinessDoc && \(/);
+  it('nobody is asked for a document at all any more (118)', () => {
+    // Uploading a licence scan was a step most people cannot finish on a phone on a
+    // site, and it gated everything behind it. The table and RPC stay so a document
+    // already uploaded is still readable by staff, but it no longer counts.
+    expect(lib).toMatch(
+      /ONBOARDING_STEPS: readonly OnboardingStep\[\] = \[\s*'agreements', 'identity', 'professional', 'payout', 'emergency',\s*\] as const/);
+    expect(lib, 'documents must not be a required step').not.toMatch(
+      /ONBOARDING_STEPS[\s\S]{0,160}'documents'[\s\S]{0,20}\] as const/);
+    expect(lib).toMatch(/REPORTED_BUT_NOT_REQUIRED: readonly OnboardingStep\[\] = \['documents'\]/);
+    expect(page, 'the documents panel is gone').not.toMatch(/DocumentsPanel/);
+    expect(page).not.toMatch(/uploadDocument/);
+    // And `complete` no longer mentions it.
+    const fn = fnBody('contractor_onboarding_status');
+    expect(fn.slice(fn.indexOf("'complete',"))).not.toMatch(/v_documents/);
+  });
+
+  it('but the step is still REPORTED, so staff can see one that exists', () => {
+    expect(fnBody('contractor_onboarding_status')).toMatch(/'documents',\s*v_documents/);
   });
 
   it('deleting a contractor is still possible — 115 is not blocked', () => {
@@ -425,8 +442,21 @@ describe('every refusal the database can make is a sentence somebody can read', 
    * date-of-birth bug: one new RAISE EXCEPTION is all it takes.
    */
 
+  /**
+   * Codes raised by functions a CONTRACTOR can call.
+   *
+   * `admin_*` functions refuse with not_admin / no_user, which a contractor never
+   * sees — their copy belongs to the admin surface, not here. Demanding
+   * `contractorOnboarding.err.not_admin` would be copy written for nobody, and the
+   * kind of box-tick that makes a guard look thorough while meaning less.
+   */
+  const contractorFacing = sqlCode
+    .split(/CREATE OR REPLACE FUNCTION public\./)
+    .filter(chunk => !/^admin_/.test(chunk))
+    .join('\n');
+
   const codes = [...new Set(
-    [...sqlCode.matchAll(/RAISE EXCEPTION '([a-z_]+):/g)].map(m => m[1]),
+    [...contractorFacing.matchAll(/RAISE EXCEPTION '([a-z_]+):/g)].map(m => m[1]),
   )].sort();
 
   it('finds the refusals at all, so a pass means something', () => {
@@ -505,8 +535,8 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
     expect(callback).toMatch(/registerContractorAccount\(\)[\s\S]{0,80}leaveForRoleSurface\("\/work"\)/);
   });
 
-  it('and /work sends them to the agreement until it is signed', () => {
-    expect(layout).toMatch(/if \(!gate \|\| gate\.signed \|\| onOnboarding\) return;/);
+  it('and /work sends them to the form until BOTH holds clear', () => {
+    expect(layout).toMatch(/if \(gate\.signed && gate\.decided\) return;/);
     expect(layout).toMatch(/navigate\('\/work\/onboarding', \{ replace: true \}\)/);
   });
 
@@ -514,19 +544,24 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
     // A contractor already on a site who has signed but not finished their third
     // emergency contact must still be able to post evidence — locking them out would
     // punish the client, not the contractor.
-    expect(layout).toMatch(/setGate\(\{ signed: st\.steps\.agreements \}\)/);
-    expect(layout).not.toMatch(/st\.complete/);
+    expect(layout).toMatch(/signed: st\.steps\.agreements/);
+  });
+
+  it('the deciding hold only applies to a FINISHED form', () => {
+    // Somebody midway through has not reached the question yet. Holding them against
+    // an answer they were never asked for would gate an unseen screen.
+    expect(layout).toMatch(/decided: !st\.complete \|\| st\.clientIntent !== null/);
   });
 
   it('it fails OPEN, so a timeout never locks a working contractor out', () => {
     // Two ways to not know: 116 absent, or the read threw. Both leave the surface open.
-    expect(layout).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{ if \(alive\) setGate\(\{ signed: true \}\); return; \}/);
-    expect(layout).toMatch(/catch \{\s*if \(alive\) setGate\(\{ signed: true \}\);\s*\}/);
+    expect(layout).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{\s*if \(alive\) setGate\(\{ signed: true, decided: true \}\);/);
+    expect(layout).toMatch(/catch \{\s*if \(alive\) setGate\(\{ signed: true, decided: true \}\);\s*\}/);
   });
 
   it('no flash of the dashboard before the redirect', () => {
     expect(layout).toMatch(/\(!gate && !onOnboarding\)/);
-    expect(layout).toMatch(/\(gate !== null && !gate\.signed && !onOnboarding\)/);
+    expect(layout).toMatch(/!\(gate\.signed && gate\.decided\) && !onOnboarding/);
   });
 
   it('re-asks when they leave the form, so signing is not judged on a stale answer', () => {
@@ -732,5 +767,110 @@ describe('one merged document, not two (117)', () => {
     const pg = strip(read('src/app/routes/partner-agreement.tsx'));
     expect(pg).toMatch(/\{AGREEMENT_TITLE\}/);
     expect(pg).toMatch(/\{AGREEMENT_VERSION\}/);
+  });
+});
+
+describe('the question at the end, and the two ways out (118)', () => {
+  it('the form ends on the emergency contacts', () => {
+    const order = page.slice(page.indexOf('function panelOrder'));
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact1', 'contact2', 'contact3'\];/);
+  });
+
+  it('finishing shows the question, not an exit', () => {
+    expect(page).toMatch(/\{status\.complete\s*\?\s*\(\s*<AllDone/);
+    expect(page).toMatch(/haveClient/);
+    expect(page).toMatch(/noClient/);
+  });
+
+  it('each answer goes where it should', () => {
+    expect(page).toMatch(/intent === 'onboard_client' \? '\/work\/clients\/new' : '\/work'/);
+  });
+
+  it('and does so with a full load, so the gate is re-read', () => {
+    // The layout resolved `decided` before this answer existed. A client-side navigate
+    // would be judged against the stale value and bounce them straight back here —
+    // the same stale-gate loop that bit the agreement hold.
+    const fn = page.slice(page.indexOf('onAnswered={async intent'));
+    expect(fn.slice(0, fn.indexOf('}}'))).toMatch(/window\.location\.href =/);
+  });
+
+  it('the answer is recorded in the database, not the browser', () => {
+    // It must survive a new device. Asking again at every sign-in would read as the
+    // product having forgotten them.
+    expect(lib).toMatch(/rpc\('set_contractor_client_intent'/);
+    expect(page).not.toMatch(/localStorage|sessionStorage/);
+  });
+
+  it('until it is answered the sidebar is inert, not hidden', () => {
+    // "They should not be able to click on the sidebar." Visible, so they can see what
+    // is coming; inert, so the two buttons are the only things that do anything.
+    expect(layout).toMatch(/navLocked=\{gate !== null && !gate\.decided\}/);
+    expect(shell).toMatch(/if \(navLocked\) return <span/);
+    expect(shell).toMatch(/aria-disabled="true"/);
+  });
+
+  it('a locked link renders no Link, so there is nothing to follow', () => {
+    const map = shell.slice(shell.indexOf('{links.map('));
+    const block = map.slice(0, map.indexOf('})}'));
+    const lockedAt = block.indexOf('if (navLocked)');
+    const linkAt = block.indexOf('return <Link');
+    expect(lockedAt).toBeGreaterThan(-1);
+    expect(linkAt, 'the early return must come first').toBeGreaterThan(lockedAt);
+  });
+});
+
+describe('staff can read what was filled in (118)', () => {
+  it('the dossier returns the answers, not a progress summary', () => {
+    const fn = fnBody('admin_contractor_dossier');
+    for (const part of ['emergency_contacts', 'payout_destinations', 'agreements',
+                        'onboarding', 'profile']) {
+      expect(fn, `the dossier omits ${part}`).toMatch(new RegExp(`'${part}'`));
+    }
+  });
+
+  it('and refuses anybody who is not an administrator', () => {
+    expect(fnBody('admin_contractor_dossier'))
+      .toMatch(/IF NOT public\.is_admin\(\) THEN[\s\S]{0,120}not_admin/);
+    expect(sqlCode).toMatch(/REVOKE ALL ON FUNCTION public\.admin_contractor_dossier\(uuid\) FROM PUBLIC, anon;/);
+  });
+
+  it('account numbers come back unmasked, which is the point of it', () => {
+    // Masked everywhere else. Somebody authorising a release has to check the number
+    // against what the contractor told them, and a masked number cannot be checked.
+    expect(fnBody('admin_contractor_dossier')).toMatch(/'account_number', d\.account_number/);
+    expect(fnBody('admin_contractor_dossier')).toMatch(/'mobile_no', d\.mobile_no/);
+    expect(adminPg, 'the admin page must not re-mask what it asked for unmasked')
+      .not.toMatch(/maskDestination/);
+  });
+
+  it('the list covers every contractor, not just published ones', () => {
+    // Keying this off the directory would hide exactly the people staff need: somebody
+    // who just joined is not published yet.
+    expect(fnBody('admin_contractor_onboarding')).toMatch(/holds_contractor_access\(p\.id\)/);
+    expect(adminLib).not.toMatch(/listDirectory|contractors'\)/);
+  });
+
+  it('the page is read-only — staff do not fill the form in for them', () => {
+    expect(adminPg).not.toMatch(/save_contractor|set_contractor_client_intent|accept_agreement/);
+  });
+
+  it('a missing answer shows as "not given" rather than a blank', () => {
+    // A blank cell cannot be told apart from a rendering bug.
+    expect(adminPg).toMatch(/value \?\? <Minus/);
+    expect(adminPg).toMatch(/notGiven/);
+  });
+
+  it('it hides itself when 118 is not applied, rather than erroring', () => {
+    expect(adminLib).toMatch(/error\.code === 'PGRST202'[\s\S]{0,80}return false/);
+    expect(adminPg).toMatch(/notApplied/);
+  });
+
+  it('the return type change is dropped first, or the migration aborts', () => {
+    // Postgres refuses CREATE OR REPLACE when a function's return type changes.
+    const m118 = read('supabase/migrations/118_onboarding_intent_and_dossier.sql');
+    const drop = m118.indexOf('DROP FUNCTION IF EXISTS public.admin_contractor_onboarding()');
+    const create = m118.indexOf('CREATE OR REPLACE FUNCTION public.admin_contractor_onboarding()');
+    expect(drop).toBeGreaterThan(-1);
+    expect(create).toBeGreaterThan(drop);
   });
 });

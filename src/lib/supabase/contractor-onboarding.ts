@@ -46,8 +46,17 @@ export type OnboardingStep =
 export type ClientIntent = 'onboard_client' | 'no_client';
 
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
-  'agreements', 'identity', 'professional', 'payout', 'emergency', 'documents',
+  'agreements', 'identity', 'professional', 'payout', 'emergency',
 ] as const;
+
+/**
+ * Reported by the database but no longer required (118).
+ *
+ * Uploading a licence scan was a step most people cannot finish on a phone on a site,
+ * and it gated everything behind it. The column and the RPC remain, so a document
+ * already uploaded is still readable by staff and asking again later is one line here.
+ */
+export const REPORTED_BUT_NOT_REQUIRED: readonly OnboardingStep[] = ['documents'];
 
 /**
  * The step that gates the rest. Separate from the array so the lock has a name rather

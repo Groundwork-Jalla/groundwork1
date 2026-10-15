@@ -4,8 +4,7 @@ import {
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
   FileText, Mailbox, FilePen, Radio, Clapperboard, LifeBuoy, MessagesSquare,
   ListChecks, Camera, SearchCheck, ListTodo, UserRound, UserCog, Handshake,
-  Inbox, MessageCircle, Mail, Phone, FileQuestion, BarChart3, Plug, ShieldCheck, ScrollText,
-} from 'lucide-react';
+  Inbox, MessageCircle, Mail, Phone, FileQuestion, BarChart3, Plug, ShieldCheck, ScrollText, ClipboardList } from 'lucide-react';
 import type { TKey } from '@/lib/i18n';
 
 // =========================================================
@@ -74,6 +73,8 @@ export const ADMIN_NAV: NavItem[] = [
 
   { to: '/admin/clients',            labelKey: 'nav.clients',            icon: UserRound,      section: 'nav.sectionPeople' },
   { to: '/admin/contractors',        labelKey: 'nav.contractors',        icon: HardHat },
+  // The published directory above; what they FILLED IN here (116-118).
+  { to: '/admin/contractors/records', labelKey: 'nav.contractorRecords',  icon: ClipboardList },
   { to: '/admin/verifiers',          labelKey: 'nav.verifiers',          icon: ShieldCheck },
   { to: '/admin/site-managers',      labelKey: 'nav.siteManagers',       icon: UserCog },
   { to: '/admin/users',              labelKey: 'nav.users',              icon: Users },
