@@ -118,6 +118,26 @@ export function PayoutDialog({ onSaved, onClose }: {
           onSubmit={e => { e.preventDefault(); void submit(); }}
           className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5"
         >
+          {/* The corridor. Hidden while there is only one — a select with a single
+              option is noise — but it is what drives the bank list, the phone's dialling
+              code AND the destination's stored country_code, so all three stay in step
+              the day a second corridor opens. Without it, PhoneField would own the
+              country privately and the bank list would silently disagree with it. */}
+          {payoutCountries.length > 1 && (
+            <label className="block">
+              <span className={label}>{t('contractorPayout.country')}</span>
+              <select
+                value={country}
+                onChange={e => { setCountry(e.target.value); setBankKey(''); setProblem(null); }}
+                className={field}
+              >
+                {payoutCountries.map(c => (
+                  <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <fieldset>
             <legend className={label}>{t('contractorPayout.method')}</legend>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -144,6 +164,7 @@ export function PayoutDialog({ onSaved, onClose }: {
                   has to be on a network the provider can actually reach. The choice
                   also becomes the destination's country_code. */}
               <PhoneField
+                key={country}
                 className="mt-1"
                 value={mobileNo}
                 onChange={setMobileNo}
