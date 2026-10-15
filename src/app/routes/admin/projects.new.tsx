@@ -52,7 +52,7 @@ export function ManagedWizard() {
   // a plain "if 10 then 11" traps Back — leaving 11 lands on 10, which bounces straight
   // to 11 again, and the admin can never return to the summary.
   //
-  // A PARTNER has not decided: their client may be on any plan, so they see the picker.
+  // A partner's client project is fixed to Self Verify, so it skips the picker too.
   const planDecided = onBehalfOf?.tier != null;
 
   useEffect(() => {

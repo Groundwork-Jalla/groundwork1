@@ -15,9 +15,8 @@ export async function createProject(
   budget: BudgetBreakdown,
   opts: {
     /**
-     * Only an admin creating a project for a client may set this, and only to
-     * `jalla_management`. The tier guard (061/062) clamps any other caller back to the
-     * free plan, so passing it from a client session is not a hole — it is a no-op.
+     * A fixed plan when creating for a client: Self Verify for partner contractors,
+     * Jalla Management for admins. The tier guard (061/062) enforces paid entitlements.
      */
     tier?: ProjectTier;
   } = {},

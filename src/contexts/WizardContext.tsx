@@ -34,15 +34,9 @@ export interface OnBehalfOf {
   /**
    * The plan this project is created on, or null to ask in the wizard's own plan step.
    *
-   * An admin creating a managed build fixes it. A PARTNER does not: their client may be
-   * on any plan, so the picker that step 10 already is gets shown instead of skipped.
-   *
-   * Note what a fixed value can and cannot do. `clamp_project_tier_on_insert` (061/062)
-   * rewrites any paid tier back to `self_verify` for a browser request that is not an
-   * admin's, unless the OWNER's subscription already entitles them. So a partner naming
-   * a paid plan here would have been a label the database quietly contradicted — paid
-   * plans arrive through Stripe, and this only records what the client is being asked
-   * for.
+   * Admin-managed builds use Jalla Management. A partner creating a project for their
+   * own client uses Self Verify automatically. Both skip the plan picker, and the final
+   * step saves this fixed tier even though the skipped picker never updates data.tier.
    */
   tier: ProjectTier | null;
   /**
@@ -70,7 +64,7 @@ interface WizardContextValue {
   back: () => void;
   goTo: (n: number) => void;
   reset: () => void;
-  /** Present only when an admin is creating the project for a client. */
+  /** Present when an admin or partner contractor creates the project for a client. */
   onBehalfOf: OnBehalfOf | null;
 }
 

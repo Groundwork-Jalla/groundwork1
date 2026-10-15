@@ -21,9 +21,10 @@ Supabase's SMTP sender must be configured for invitation delivery.
 For contractor onboarding, the server reserves a new unconfirmed account without
 choosing or exposing a password, records its required password setup and contractor
 link, then calls `inviteUserByEmail`. The contractor receives only the account id and
-email. They can build the client's project immediately; the client must follow the
-invitation and save their own password before entering the app. Existing accounts are
-refused and retain the flow where the owner invites a contractor from their project.
+email. They can build the client's project immediately on Self Verify, with no plan
+selection step. The client must follow the invitation and save their own password before
+entering the app. Existing accounts are refused and retain the flow where the owner
+invites a contractor from their project.
 
 After deploying, check with a fresh client email address:
 

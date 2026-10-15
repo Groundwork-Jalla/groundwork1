@@ -2281,7 +2281,7 @@ export const en = {
     email:       'Client\u2019s email address',
     emailHint:   'Their account setup link goes here. Use an inbox your client can open; only they will choose their password.',
     submit:      'Create their account',
-    planNote:    'Whichever plan you pick is what your client will be asked for. A paid plan is not charged to you \u2014 they complete it themselves when they sign in, and the project runs on the free plan until they do.',
+    planNote:    'Your client\u2019s project is automatically created on Self Verify. You can build it immediately while they set their password.',
     submitHint:  'We email your client a secure setup link, then you build their estimate.',
     inviting:    'Creating\u2026',
     errName:     'Enter your client\u2019s full name.',

@@ -93,7 +93,7 @@ export async function handler(req: any, res: any): Promise<void> {
     user_metadata: {
       full_name: fullName,
       client_invited_by_contractor: true,
-      // Their plan is chosen in the wizard that follows, not assumed here.
+      // The project starts on Self Verify; its tier belongs to the project record.
       onboarding_complete: true,
     },
   });

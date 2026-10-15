@@ -54,8 +54,8 @@ export default function Step10PlanSelection() {
   // definition, and the tier guard trusts an admin to set it. Fix it before they can
   // click anything else, so the summary and step 11 read the right figure.
   //
-  // A PARTNER has no fixed tier (`onBehalfOf.tier` is null): their client may be on any
-  // plan, so this screen is shown and their choice stands.
+  // Contractor-created client projects have a fixed Self Verify tier and skip this
+  // step. A caller without a fixed tier can choose from the plans below.
   useEffect(() => {
     const fixed = onBehalfOf?.tier;
     if (fixed && data.tier !== fixed) update({ tier: fixed });
@@ -119,9 +119,8 @@ export default function Step10PlanSelection() {
             const d        = tiers[id];
             const featured = id === FEATURED;
             const selected = data.tier === id;
-            // On behalf of a client, only Management is offered — the others are shown
-            // for context and cannot be picked.
-            const locked   = !!onBehalfOf && id !== onBehalfOf.tier;
+            // Only a fixed plan restricts selection.
+            const locked   = onBehalfOf?.tier != null && id !== onBehalfOf.tier;
 
             return (
               <motion.button

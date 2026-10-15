@@ -201,31 +201,28 @@ describe('the partner can actually reach it', () => {
     expect(page).toMatch(/<ManagedWizard \/>/);
   });
 
-  it('does not decide the plan — the wizard asks', () => {
-    // A partner's client may be on any of the three. Naming one here would be a label
-    // the database contradicts: clamp_project_tier_on_insert (061/062) rewrites any paid
-    // tier from a non-admin browser request back to the free plan unless the client's
-    // own subscription already entitles them. Paid plans arrive through Stripe.
-    expect(page).toMatch(/tier: null/);
-    expect(page).not.toMatch(/tier: 'jalla_management'|tier: 'self_verify'|tier: 'jalla_verify'/);
+  it('automatically creates the client project on Self Verify', () => {
+    expect(page).toMatch(/tier: 'self_verify'/);
+    expect(page).not.toMatch(/tier: null|tier: 'jalla_management'|tier: 'jalla_verify'/);
   });
 
-  it('shows the plan step to a partner and skips it only for a fixed plan', () => {
+  it('skips the plan step for the fixed contractor plan', () => {
     const wiz = strip2(read('src/app/routes/admin/projects.new.tsx'));
     expect(wiz).toMatch(/const planDecided = onBehalfOf\?\.tier != null;/);
     expect(wiz).toMatch(/if \(planDecided && step === 10\)/);
     expect(wiz).toMatch(/Step10PlanSelection/);
   });
 
-  it('records the plan the client picked, not a fixed one, when none was fixed', () => {
+  it('saves the fixed plan and keeps the client as owner', () => {
     expect(step11).toMatch(/onBehalfOf\?\.tier \? \{ tier: onBehalfOf\.tier \} : \{\}/);
+    expect(step11).toMatch(/const ownerId = onBehalfOf\?\.userId \?\? user\.id/);
   });
 
-  it('tells the partner who actually pays', () => {
+  it('explains automatic Self Verify and immediate project creation', () => {
     const en = read('src/lib/i18n/en.ts');
     const block = en.slice(en.indexOf('  contractorClient: {'), en.indexOf('\n  },', en.indexOf('  contractorClient: {')));
-    expect(block).toMatch(/not charged to you/);
-    expect(block).toMatch(/free plan until they do/);
+    expect(block).toMatch(/automatically created on Self Verify/);
+    expect(block).toMatch(/build it immediately while they set their password/);
   });
 });
 

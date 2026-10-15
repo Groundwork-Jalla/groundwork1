@@ -20,9 +20,8 @@ import { useT } from '@/lib/i18n';
 // 1. Create the client's account. The SERVER sends an invitation directly to the client,
 //    who must choose their own password before accessing the account. The contractor
 //    receives the client's id for the project wizard and never receives a credential.
-// 2. Build the project. This is the SAME eleven-step wizard an admin runs, rendered
-//    through the same `ManagedWizard`, so the two cannot drift into different estimates
-//    for the same building.
+// 2. Build the project through the same `ManagedWizard` an admin runs. Contractor-created
+//    client projects use Self Verify automatically, so the plan picker is skipped.
 //
 // ── Why the account comes first ──────────────────────────────────────────────────────
 // The project needs an owner, and 109's policies only permit a project whose owner is a
@@ -74,13 +73,9 @@ export default function WorkNewClient() {
       setClient({
         userId: clientId,
         label: fullName.trim(),
-        // Null, not a fixed plan: a partner's client may be on any of the three, so the
-        // wizard's own plan step asks instead of being skipped.
-        //
-        // Naming one here would have been a label the database contradicts — the clamp
-        // (061/062) rewrites any paid tier from a non-admin browser request back to the
-        // free plan unless the client's subscription already entitles them.
-        tier: null,
+        // Contractor-created client projects are Self Verify. The fixed tier lets the
+        // shared wizard skip plan selection and continue straight to the budget.
+        tier: 'self_verify',
         by: 'partner',
       });
     } catch (err) {

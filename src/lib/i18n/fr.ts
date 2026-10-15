@@ -2248,7 +2248,7 @@ export const fr: Mirror<EnDict> = {
     email:       'Adresse e-mail du client',
     emailHint:   'Le lien de configuration de son compte sera envoy\u00e9 ici. Utilisez une bo\u00eete que votre client peut ouvrir ; lui seul choisira son mot de passe.',
     submit:      'Cr\u00e9er son compte',
-    planNote:    'Le forfait que vous choisissez est celui qui sera propos\u00e9 \u00e0 votre client. Un forfait payant ne vous est pas factur\u00e9 : il le r\u00e8gle lui-m\u00eame \u00e0 sa connexion, et le projet fonctionne sur le forfait gratuit jusque-l\u00e0.',
+    planNote:    'Le projet de votre client est automatiquement cr\u00e9\u00e9 sur Self Verify. Vous pouvez le monter imm\u00e9diatement pendant qu\u2019il d\u00e9finit son mot de passe.',
     submitHint:  'Nous envoyons un lien de configuration s\u00e9curis\u00e9 \u00e0 votre client, puis vous montez son estim\u00e9.',
     inviting:    'Cr\u00e9ation\u2026',
     errName:     'Saisissez le nom complet de votre client.',
