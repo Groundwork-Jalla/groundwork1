@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AgreementReader } from '@/components/contractor/AgreementReader';
+import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
 import { normalisePhone, isE164 } from '@/lib/phone';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
@@ -124,7 +125,15 @@ export default function ContractorOnboarding() {
                 {at === 'you'       && <YouPanel onSaved={advance} />}
                 {at === 'licence'   && <LicencePanel onSaved={advance} />}
                 {at === 'business'  && <BusinessPanel onSaved={advance} />}
-                {at === 'payout'    && <PayoutPanel done={status.steps.payout} onSkip={() => advance(status)} />}
+                {at === 'payout'    && (
+                  <PayoutPanel
+                    done={status.steps.payout}
+                    onSkip={() => advance(status)}
+                    // The destination lands in payout_destinations (099), so the step's
+                    // answer has to be re-read rather than assumed.
+                    onAdded={async () => advance(await fetchOnboardingStatus())}
+                  />
+                )}
                 {at.startsWith('contact') && (
                   <ContactPanel
                     n={Number(at.slice(-1)) as 1 | 2 | 3}
@@ -538,26 +547,42 @@ function BusinessPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) 
 
 // ── Panel 5: payout, which lives elsewhere ───────────────
 
-function PayoutPanel({ done, onSkip }: { done: boolean; onSkip: () => void }) {
+/**
+ * Payment details, taken HERE rather than at /work/payouts.
+ *
+ * The link-out was a real defect: it walked somebody out of a form they had not
+ * finished and dropped them in the dashboard, which reads as "you are done" when they
+ * are not. The dialog uses the same RPC as the payouts page, so a destination created
+ * during onboarding is the same thing as one created later.
+ */
+function PayoutPanel({ done, onAdded, onSkip }: {
+  done: boolean; onAdded: () => Promise<void>; onSkip: () => void;
+}) {
   const t = useT();
+  const [open, setOpen] = useState(false);
   return (
     <div>
-      <Link
-        to="/work/payouts"
-        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
-      >
-        {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
-        <ArrowRight className="size-3.5" aria-hidden />
-      </Link>
-      {/* Leaving it for later is allowed: it is the one step that cannot be finished on
-          this screen, and blocking the rest behind a trip to another page is how a form
-          gets abandoned. The checklist still shows it outstanding. */}
-      <button
-        type="button" onClick={onSkip}
-        className="ml-4 text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white"
-      >
-        {t('contractorOnboarding.payoutLater')}
-      </button>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="button" onClick={() => setOpen(true)}>
+          {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
+        </Button>
+        {/* Still skippable — somebody without their account number to hand should not be
+            stuck, and the checklist keeps showing it outstanding. It no longer costs
+            them the form. */}
+        <button
+          type="button" onClick={onSkip}
+          className="text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white"
+        >
+          {t('contractorOnboarding.payoutLater')}
+        </button>
+      </div>
+
+      {open && (
+        <PayoutDialog
+          onClose={() => setOpen(false)}
+          onSaved={async () => { setOpen(false); await onAdded(); }}
+        />
+      )}
     </div>
   );
 }

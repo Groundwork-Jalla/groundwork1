@@ -2306,6 +2306,8 @@ export const en = {
     back:          'Back',
     panelOf:       'Step {n} of {total}',
     payoutLater:   'I\u2019ll do this later',
+    payoutDialogBody: 'Used for every project you are assigned to. You can add more later.',
+    savePayout:       'Save payment details',
 
     lockedTitle: 'Sign the agreement first',
     lockedBody:  'The rest of this form asks for your licence, bank details and next of kin. The agreement explains what Jalla does with all of it, so it comes first.',
@@ -2410,7 +2412,7 @@ export const en = {
     agreementsBody: 'Read it, then type your full name to sign. Your signature is recorded against the version you signed.',
     doc: {
       terms_of_service:  'Terms of Service',
-      partner_agreement: 'Professional Partner Referral and Network Services Agreement',
+      partner_agreement: 'Groundwork Partner Agreement and Terms of Service',
     },
     readIt:      'Read the document',
     confirmRead: 'I have read this document.',

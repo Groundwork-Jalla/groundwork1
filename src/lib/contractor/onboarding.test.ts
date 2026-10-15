@@ -37,12 +37,21 @@ const sqlCode = MIGRATIONS
   .replace(/^\s*--.*$/gm, '')
   .replace(/COMMENT ON[\s\S]*?;/g, '');
 
-/** The body of the function as it ends up — the last CREATE OR REPLACE of that name. */
+/**
+ * The body of the function as it ends up — the last CREATE OR REPLACE of that name.
+ *
+ * Anchored on CREATE specifically. Searching for `FUNCTION public.<name>` alone finds
+ * the trailing `GRANT EXECUTE ON FUNCTION ...` line instead, and every assertion then
+ * runs against a one-line slice containing no body at all — which fails loudly here,
+ * but would pass silently for any test written as `not.toMatch`.
+ */
 function fnBody(name: string): string {
-  const at = sqlCode.lastIndexOf(`FUNCTION public.${name}`);
-  expect(at, `no function called ${name} in ${MIGRATIONS.join(' + ')}`).toBeGreaterThan(-1);
+  const needle = `CREATE OR REPLACE FUNCTION public.${name}`;
+  const at = sqlCode.lastIndexOf(needle);
+  expect(at, `no CREATE for ${name} in ${MIGRATIONS.join(' + ')}`).toBeGreaterThan(-1);
   const end = sqlCode.indexOf('$$;', at);
-  return sqlCode.slice(at, end === -1 ? undefined : end);
+  expect(end, `${name} has no $$; terminator`).toBeGreaterThan(at);
+  return sqlCode.slice(at, end);
 }
 const lib      = strip(read('src/lib/supabase/contractor-onboarding.ts'));
 const page     = strip(read('src/app/routes/work/onboarding.tsx'));
@@ -52,6 +61,7 @@ const routes   = read('src/app/routes.ts');
 const reader   = strip(read('src/components/contractor/AgreementReader.tsx'));
 const layout   = strip(read('src/app/routes/work/_layout.tsx'));
 const callback = strip(read('src/app/routes/auth/callback.tsx'));
+const payoutDialog = strip(read('src/components/contractor/PayoutDialog.tsx'));
 
 describe('one definition of finished', () => {
   /**
@@ -293,9 +303,26 @@ describe('bank details are not collected twice', () => {
       .toMatch(/FROM public\.payout_destinations[\s\S]{0,120}status <> 'retired'/);
   });
 
-  it('and the step sends them to the page that owns it', () => {
+  it('and the step collects it in place, without leaving the form', () => {
+    // It used to link to /work/payouts. That walked somebody out of a form they had not
+    // finished and dropped them in the dashboard, which reads as "you are done" when
+    // they are not — and most did not come back.
     const step = page.slice(page.indexOf('function PayoutPanel'));
-    expect(step.slice(0, step.indexOf('\n}'))).toMatch(/to="\/work\/payouts"/);
+    const body = step.slice(0, step.indexOf('\n}\n'));
+    expect(body).toMatch(/<PayoutDialog/);
+    expect(body, 'the payout step must not navigate away mid-form').not.toMatch(/to="\/work\/payouts"/);
+  });
+
+  it('the dialog creates a destination the same way the payouts page does', () => {
+    // One way a destination is made, so one definition of a valid one.
+    expect(payoutDialog).toMatch(/addPayoutDestination\(\{/);
+    expect(payoutDialog).not.toMatch(/supabase\.(from|rpc)\(/);
+  });
+
+  it('and the step re-reads its answer afterwards rather than assuming', () => {
+    // The row lands in payout_destinations (099), not in anything 116 owns, so the
+    // status function is the only thing that can say the step is now done.
+    expect(page).toMatch(/onAdded=\{async \(\) => advance\(await fetchOnboardingStatus\(\)\)\}/);
   });
 });
 
@@ -558,5 +585,89 @@ describe('the agreement gates the rest of the form', () => {
     const order = page.slice(page.indexOf('function panelOrder'));
     expect(order.slice(0, order.indexOf('\n}')))
       .toMatch(/if \(s\.businessStatus === 'registered'\) base\.push\('business'\)/);
+  });
+});
+
+describe('one merged document, not two (117)', () => {
+  const agreement = read('src/lib/legal/partner-agreement.ts');
+
+  it('only the partner agreement is current, so only it can be signed', () => {
+    const fn = fnBody('current_agreement_version');
+    expect(fn).toMatch(/WHEN 'partner_agreement' THEN/);
+    expect(fn, 'the terms of service must no longer have a current version')
+      .not.toMatch(/WHEN 'terms_of_service'/);
+    // accept_agreement refuses a document with no version, so that is the whole gate.
+    expect(fnBody('accept_agreement')).toMatch(/IF v_version IS NULL THEN[\s\S]{0,120}unknown_document/);
+  });
+
+  it('completion needs that one signature, named rather than counted', () => {
+    const fn = fnBody('contractor_onboarding_status');
+    expect(fn).toMatch(/a\.document = 'partner_agreement'/);
+    // `count(*) = 2` was 116's shape. A count would let a second agreement added later
+    // silently satisfy this one.
+    expect(fn).not.toMatch(/count\(\*\)[\s\S]{0,160}agreement_acceptances/);
+  });
+
+  it('the UI offers exactly that one', () => {
+    expect(lib).toMatch(/SIGNABLE_AGREEMENTS: readonly AgreementDocument\[\] = \['partner_agreement'\]/);
+    expect(page).toMatch(/\{SIGNABLE_AGREEMENTS\.map\(d => \{/);
+  });
+
+  it('no signature already taken is destroyed', () => {
+    // agreement_acceptances is an append-only record of what somebody agreed to on a
+    // date. Rewriting that to tidy a schema is the one thing it must never do.
+    const m117 = read('supabase/migrations/117_one_agreement.sql');
+    expect(m117).not.toMatch(/DELETE FROM public\.agreement_acceptances/);
+    expect(m117).not.toMatch(/DROP TABLE|TRUNCATE/);
+    // And the CHECK still admits the old value, so those rows stay legal.
+    expect(sqlCode).toMatch(/document text NOT NULL CHECK \(document IN \('terms_of_service', 'partner_agreement'\)\)/);
+  });
+
+  it('the merged text carries what only the terms used to say', () => {
+    // The merge is three clauses inside Section 6 — account eligibility, right to
+    // upload, and the statement that this is now the single instrument. Placed there
+    // so nothing in Ruth's numbering shifts.
+    expect(agreement).toMatch(/6\.7 Account Eligibility and Responsibility/);
+    expect(agreement).toMatch(/at least eighteen years old/);
+    expect(agreement).toMatch(/6\.8 Right to Upload/);
+    expect(agreement).toMatch(/6\.9 Single Agreement for Platform Use/);
+    expect(agreement).toMatch(/not additionally required to accept the client-facing Terms of Service/);
+  });
+
+  it('and still carries the professional standards', () => {
+    // "Standards inclusive" — Schedule A is what a contractor is held to on site.
+    expect(agreement).toMatch(/Schedule A Professional Service and Network Standards/);
+    expect(agreement).toMatch(/Evidence integrity/);
+    expect(agreement).toMatch(/Verification independence/);
+    expect(agreement).toMatch(/Schedule C Data Processing and Security Requirements/);
+  });
+
+  it('nothing in Ruth\u2019s numbering moved', () => {
+    // The merge inserts after 6.6 precisely so that 7.1 onwards are untouched. If a
+    // clause number ever shifts, every citation in the product and in a dispute is wrong.
+    for (const clause of ['6.6 Audit Logs', '7.1 Standard of Performance',
+                          '19.2 Liability Cap', '24.1 Entire Agreement and Priority']) {
+      expect(agreement, `${clause} moved or vanished`).toContain(clause);
+    }
+  });
+
+  it('the name matches what the document now is', () => {
+    expect(agreement).toMatch(/AGREEMENT_TITLE = 'Groundwork Partner Agreement and Terms of Service'/);
+    for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
+      expect(read(f)).toMatch(/partner_agreement: 'Groundwork Partner Agreement and Terms of Service'/);
+    }
+  });
+
+  it('the version was bumped, because the text changed', () => {
+    // Somebody who signed 2026-10-15 signed a document without 6.7-6.9. Versioning
+    // exists so they are asked again.
+    expect(agreement).toMatch(/AGREEMENT_VERSION = '2026-10-16'/);
+    expect(fnBody('current_agreement_version')).toMatch(/'2026-10-16'/);
+  });
+
+  it('the page shows the generated title and version, not a hardcoded pair', () => {
+    const pg = strip(read('src/app/routes/partner-agreement.tsx'));
+    expect(pg).toMatch(/\{AGREEMENT_TITLE\}/);
+    expect(pg).toMatch(/\{AGREEMENT_VERSION\}/);
   });
 });

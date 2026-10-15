@@ -1,10 +1,35 @@
 // Generated from docs/contractor/PROFESSIONAL PARTNER REFERRAL AND NETWORK SERVICES
-// AGREEMENT.docx — the document Ruth supplied. Do not reword: this is the text a
-// contractor signs at /work/onboarding, and the signature records the version in
-// `current_agreement_version` (116). If the document changes, regenerate this file AND
-// bump that version, so everybody is asked to sign the new one.
+// AGREEMENT.docx — the document Ruth supplied — with the client-facing Terms of Service
+// MERGED IN as §6.7–6.9.
+//
+// ── Why there is only one document ──────────────────────────────────────────────────
+// A contractor used to be asked to sign two things: this and the Terms of Service. The
+// Terms of Service are the CLIENT's contract, and everything in them that bears on a
+// contractor was already here in more detail — acceptable use and credentials (§6.2),
+// evidence integrity (§6.3), availability (§6.4), content ownership and licence
+// (§12.2–12.3), off-platform payments (§14.3), amendments (§24.2), liability (§19),
+// termination (§20), governing law (§22) and notices (§23). Professional standards are
+// Schedule A.
+//
+// What the Terms said and this did not was the plain account rule: eighteen or over,
+// accurate information, responsible for what happens through your account, and upload
+// only what you have the right to upload. Those are §6.7 and §6.8, placed inside
+// Section 6 so that nothing in Ruth's text renumbers. §6.9 states that this is now the
+// single instrument.
+//
+// ── Changing it ─────────────────────────────────────────────────────────────────────
+// Do not reword: this is the text a contractor signs at /work/onboarding, and the
+// signature records the version from `current_agreement_version` (117). If the document
+// changes, regenerate this file AND bump that version, so everybody is asked to sign
+// the new one.
 
 export type AgreementLine = ['h2' | 'clause' | 'p', string];
+
+/** Shown as the document's name wherever it is read or signed. */
+export const AGREEMENT_TITLE = 'Groundwork Partner Agreement and Terms of Service';
+
+/** Must match `current_agreement_version('partner_agreement')` in the database. */
+export const AGREEMENT_VERSION = '2026-10-16';
 
 export const PARTNER_AGREEMENT: AgreementLine[] = [
   ['p', 'This Professional Partner Referral and Network Services Agreement (the “Agreement”) is entered into as of the date of the last signature below (the “Effective Date”) by and between Jalla Technologies Inc., a Maryland corporation, registration number D27642156, with a correspondence address at 120 Waterfront St, Suite 420 #2075, National Harbor, Maryland 20745, United States (“Jalla”), and , a with an address at (“Partner”). Jalla and Partner may each be a “Party” and together the “Parties.”'],
@@ -56,6 +81,9 @@ export const PARTNER_AGREEMENT: AgreementLine[] = [
   ['clause', '6.4 Availability and Changes. Groundwork is evolving. Jalla may modify features, workflows, permissions, and integrations and may suspend access for maintenance, security, legal, safety, integrity, or operational reasons. No particular feature is guaranteed unless stated in a signed Order Form.'],
   ['clause', '6.5 Payment Features. Any funding, wallet, milestone-payment, foreign-exchange, payout, or money-movement feature is outside this Agreement unless Jalla activates it for the project under separate written payment terms. Partner shall not receive, hold, route, direct, or control client funds in Jalla’s name or imply that Jalla holds funds unless expressly authorized.'],
   ['clause', '6.6 Audit Logs. Partner acknowledges that Jalla may maintain access, activity, evidence, communication, and change logs for security, quality, dispute, and compliance purposes, subject to Applicable Law.'],
+  ['clause', '6.7 Account Eligibility and Responsibility. Partner and each of its personnel must be at least eighteen years old and must provide accurate account information. Partner is responsible for everything done through its accounts, including by its personnel, and shall notify Jalla without undue delay if it believes an account has been used without permission.'],
+  ['clause', '6.8 Right to Upload. Partner shall upload only material it has the right to upload, and that is not unlawful and does not infringe the rights of any other person. Ownership of Partner’s own material is unaffected and is governed by Section 12.'],
+  ['clause', '6.9 Single Agreement for Platform Use. This Agreement, together with its Schedules, is the whole of what governs Partner’s use of Groundwork. Partner is not additionally required to accept the client-facing Terms of Service; where those terms and this Agreement would differ for Partner, this Agreement applies.'],
   ['h2', '7 Professional Network Standards'],
   ['clause', '7.1 Standard of Performance. Partner shall perform with the degree of skill, care, diligence, integrity, safety, and professionalism reasonably expected of a properly licensed and experienced professional in the relevant discipline and location, and in accordance with Schedule A and each Project Order.'],
   ['clause', '7.2 Licenses and Permits. Partner shall maintain all registrations, licenses, permits, professional memberships, approvals, and responsible-person designations required for its Services. Jalla’s vetting or listing is not a substitute for legal qualification and does not transfer professional responsibility to Jalla.'],

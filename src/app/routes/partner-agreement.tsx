@@ -1,8 +1,8 @@
 import { useForceLight } from '@/hooks/useForceLight';
-import { PARTNER_AGREEMENT } from '@/lib/legal/partner-agreement';
+import { AGREEMENT_TITLE, AGREEMENT_VERSION, PARTNER_AGREEMENT } from '@/lib/legal/partner-agreement';
 
 /**
- * The Professional Partner Referral and Network Services Agreement.
+ * The Groundwork Partner Agreement and Terms of Service — the single document.
  *
  * Linked from /work/onboarding, where a contractor signs it. A signature on a document
  * somebody could not read is not a signature, so this page exists before that step does.
@@ -25,9 +25,9 @@ export default function PartnerAgreementPage() {
           Groundwork by Jalla
         </p>
         <h1 className="mt-2 font-sans text-3xl font-black leading-tight text-brand-near-black sm:text-4xl">
-          Professional Partner Referral and Network Services Agreement
+          {AGREEMENT_TITLE}
         </h1>
-        <p className="mt-3 text-xs tabular-nums text-brand-mid-grey">Version · 2026-10-15</p>
+        <p className="mt-3 text-xs tabular-nums text-brand-mid-grey">Version · {AGREEMENT_VERSION}</p>
 
         <div className="my-10 h-px bg-brand-border-grey" />
 

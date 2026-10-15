@@ -1,5 +1,5 @@
 -- =========================================================
--- 117  One agreement, not two
+-- 117  One agreement, not two — "Groundwork Partner Agreement and Terms of Service"
 --
 -- WHY
 --
@@ -35,8 +35,11 @@
 -- to on a date, and rewriting history to tidy a schema is the one thing it must never
 -- do. It simply stops counting toward completion.
 --
--- The partner agreement's own version is NOT bumped. Its text has not changed, and
--- bumping would re-ask every contractor to sign the identical document.
+-- The version IS bumped, to 2026-10-16. The merged document is not the one 116 pointed
+-- at: §6.7-6.9 are new text, folding in the account rules that only the Terms of Service
+-- carried. Anybody who signed 2026-10-15 signed something else, so they are asked again
+-- — which is exactly what versioning is for. The status function compares against the
+-- current version, so this happens by itself.
 --
 -- Run in: Supabase Dashboard > SQL Editor (after 116)
 -- =========================================================
@@ -50,7 +53,7 @@ BEGIN;
 CREATE OR REPLACE FUNCTION public.current_agreement_version(p_document text)
 RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
   SELECT CASE p_document
-           WHEN 'partner_agreement' THEN '2026-10-15'
+           WHEN 'partner_agreement' THEN '2026-10-16'
          END;
 $$;
 
@@ -147,7 +150,7 @@ GRANT EXECUTE ON FUNCTION public.contractor_onboarding_status(uuid) TO authentic
 COMMIT;
 
 -- ── Verify ───────────────────────────────────────────────
--- Expect: partner_agreement → 2026-10-15, terms_of_service → NULL.
+-- Expect: partner_agreement → 2026-10-16, terms_of_service → NULL.
 --
 --   SELECT public.current_agreement_version('partner_agreement') AS partner,
 --          public.current_agreement_version('terms_of_service')  AS tos;

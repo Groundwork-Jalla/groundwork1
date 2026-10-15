@@ -2273,6 +2273,8 @@ export const fr: Mirror<EnDict> = {
     back:          'Retour',
     panelOf:       '\u00c9tape {n} sur {total}',
     payoutLater:   'Je le ferai plus tard',
+    payoutDialogBody: 'Utilis\u00e9 pour tous les projets qui vous sont attribu\u00e9s. Vous pourrez en ajouter d\u2019autres plus tard.',
+    savePayout:       'Enregistrer les informations de paiement',
 
     lockedTitle: 'Signez d\u2019abord l\u2019accord',
     lockedBody:  'La suite de ce formulaire demande votre licence, vos coordonn\u00e9es bancaires et vos proches \u00e0 pr\u00e9venir. L\u2019accord explique ce que Jalla en fait \u2014 il vient donc en premier.',
@@ -2377,7 +2379,7 @@ export const fr: Mirror<EnDict> = {
     agreementsBody: 'Lisez-le, puis saisissez votre nom complet pour signer. Votre signature est enregistr\u00e9e pour la version sign\u00e9e.',
     doc: {
       terms_of_service:  'Conditions d\u2019utilisation',
-      partner_agreement: 'Professional Partner Referral and Network Services Agreement',
+      partner_agreement: 'Groundwork Partner Agreement and Terms of Service',
     },
     readIt:      'Lire le document',
     confirmRead: 'J\u2019ai lu ce document.',
