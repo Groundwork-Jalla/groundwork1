@@ -30,8 +30,16 @@ import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contr
 // dashboard banner instead.
 // =========================================================
 
-/** null = still looking, or the feature is not on this database. */
-type Gate = { signed: boolean } | null;
+/**
+ * null = still looking, or the feature is not on this database.
+ *
+ * Two separate holds, and they are not the same thing:
+ *   · `signed`   — the agreement. Nothing under /work opens until it is signed.
+ *   · `decided`  — the client question at the end of the form. Once the form is
+ *                  complete they must answer it before going anywhere, so the nav is
+ *                  rendered inert and every other path returns them to it.
+ */
+type Gate = { signed: boolean; decided: boolean } | null;
 
 export default function WorkLayout() {
   const { session, loading, isContractor, rolesChecked, user, signOut } = useAuth();
@@ -69,18 +77,31 @@ export default function WorkLayout() {
     setGate(null);
     (async () => {
       try {
-        if (!(await onboardingAvailable())) { if (alive) setGate({ signed: true }); return; }
+        if (!(await onboardingAvailable())) {
+          if (alive) setGate({ signed: true, decided: true });
+          return;
+        }
         const st = await fetchOnboardingStatus();
-        if (alive) setGate({ signed: st.steps.agreements });
+        if (alive) {
+          setGate({
+            signed: st.steps.agreements,
+            // Only a FINISHED form owes an answer. Somebody midway through has not
+            // reached the question yet, and holding them against it would be a gate
+            // on a screen they have never seen.
+            decided: !st.complete || st.clientIntent !== null,
+          });
+        }
       } catch {
-        if (alive) setGate({ signed: true });
+        if (alive) setGate({ signed: true, decided: true });
       }
     })();
     return () => { alive = false; };
   }, [loading, session, resolved, allowed, onOnboarding]);
 
+  // Unsigned, or finished-but-undecided: either way the only place to be is the form.
   useEffect(() => {
-    if (!gate || gate.signed || onOnboarding) return;
+    if (!gate || onOnboarding) return;
+    if (gate.signed && gate.decided) return;
     navigate('/work/onboarding', { replace: true });
   }, [gate, onOnboarding, navigate]);
 
@@ -88,7 +109,7 @@ export default function WorkLayout() {
   // a flash of the dashboard before being moved on.
   const waiting = loading || !session || !resolved || !allowed
     || (!gate && !onOnboarding)
-    || (gate !== null && !gate.signed && !onOnboarding);
+    || (gate !== null && !(gate.signed && gate.decided) && !onOnboarding);
 
   if (waiting) {
     return (
@@ -102,7 +123,13 @@ export default function WorkLayout() {
     ?? user?.email?.split('@')[0]
     ?? '';
   return (
-    <WorkShell displayName={displayName} onLogout={() => { void signOut().then(() => navigate('/', { replace: true })); }}>
+    <WorkShell
+      displayName={displayName}
+      // On the question at the end of the form, the sidebar is visible and inert:
+      // the two buttons on that screen are the only things that do anything.
+      navLocked={gate !== null && !gate.decided}
+      onLogout={() => { void signOut().then(() => navigate('/', { replace: true })); }}
+    >
       <Outlet />
     </WorkShell>
   );

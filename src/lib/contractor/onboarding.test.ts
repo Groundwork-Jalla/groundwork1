@@ -589,7 +589,9 @@ describe('the agreement gates the rest of the form', () => {
 });
 
 describe('one merged document, not two (117)', () => {
-  const agreement = read('src/lib/legal/partner-agreement.ts');
+  // Stripped: the file's own header explains what was removed and quotes it, so an
+  // unstripped read matches the very strings these tests assert are gone.
+  const agreement = strip(read('src/lib/legal/partner-agreement.ts'));
 
   it('only the partner agreement is current, so only it can be signed', () => {
     const fn = fnBody('current_agreement_version');
@@ -649,6 +651,50 @@ describe('one merged document, not two (117)', () => {
                           '19.2 Liability Cap', '24.1 Entire Agreement and Priority']) {
       expect(agreement, `${clause} moved or vanished`).toContain(clause);
     }
+  });
+
+  it('carries no wet-signature block', () => {
+    /**
+     * The .docx has signature pages — "By: ___ Name: ___ Title: ___ Date: ___" for both
+     * parties, and a counter-signature under Schedule B. Acceptance in Groundwork IS
+     * the signature, so ruled blanks on screen only invite somebody to think they must
+     * print and post it. They are stripped when the file is generated, and this is what
+     * stops them returning the next time it is regenerated from the .docx.
+     */
+    expect(agreement).not.toMatch(/\['h2', 'Signatures'\]/);
+    expect(agreement).not.toMatch(/\['p', 'By:'\]/);
+    expect(agreement).not.toMatch(/\['p', 'Date:'\]/);
+    expect(agreement).not.toMatch(/\['p', 'Address:'\]/);
+    expect(agreement).not.toMatch(/Name: Philip N\. Tete/);
+    expect(agreement).not.toMatch(/Accepted and agreed for this Schedule B only/);
+  });
+
+  it('and nothing that referred to one still refers to one', () => {
+    // These two sentences only parsed with a signature page behind them.
+    expect(agreement).not.toMatch(/date of the last signature below/);
+    expect(agreement).toMatch(/date Partner accepts it in Groundwork/);
+    // The template's unfilled blanks: "and , a with an address at (Partner)".
+    expect(agreement).not.toMatch(/and , a with an address at/);
+    expect(agreement).toMatch(/accepting this Agreement through their Groundwork account/);
+  });
+
+  it('but still says an electronic signature counts, because that is what is used', () => {
+    expect(agreement).toMatch(/24\.9 Counterparts and Electronic Signatures/);
+    expect(agreement).toMatch(/by electronic signature/);
+  });
+
+  it('the schedules survived the removal intact', () => {
+    // The strip walks to the next h2, so an off-by-one would eat a whole schedule.
+    for (const h of ['Schedule A Professional Service and Network Standards',
+                     'Schedule B Founding Partner Commercial Terms Order Form',
+                     'Schedule C Data Processing and Security Requirements']) {
+      expect(agreement, `${h} was eaten by the signature strip`).toContain(h);
+    }
+    // And Schedule B keeps its last real term rather than ending mid-table.
+    expect(agreement).toMatch(/Chargebacks and refunds/);
+    expect(agreement).toMatch(/Subject to Section 8\.4\./);
+    // §24 is the last numbered section and still complete.
+    expect(agreement).toMatch(/24\.11 Interpretation/);
   });
 
   it('the name matches what the document now is', () => {

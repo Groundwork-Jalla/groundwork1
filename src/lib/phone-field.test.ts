@@ -146,3 +146,18 @@ describe('a payout number is not an emergency contact', () => {
     expect(dialog).toMatch(/countryCode: country/);
   });
 });
+
+describe('the copy stops asking for something the dropdown now supplies', () => {
+  it('no phone hint on a PhoneField screen still says "include your country code"', () => {
+    // The instruction was correct when every input was a bare text box. Beside a
+    // country dropdown it is contradictory, and it is the kind of stale sentence that
+    // survives a refactor because nothing links it to the control it describes.
+    for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
+      const all = read(f);
+      for (const m of all.matchAll(/phoneHint:\s*'([^']*)'/g)) {
+        expect(m[1], `${f}: "${m[1].slice(0, 60)}…"`)
+          .not.toMatch(/include your country code|indiquez votre indicatif/i);
+      }
+    }
+  });
+});

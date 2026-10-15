@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowLeft, ArrowRight, Check, FileText, Landmark, Loader2, Lock,
-  Phone, ShieldCheck, Upload, UserRound,
+  Phone, ShieldCheck, UserPlus, UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,8 @@ import { useT, type TKey } from '@/lib/i18n';
 import { isE164 } from '@/lib/phone';
 import {
   SIGNABLE_AGREEMENTS, acceptAgreement, fetchOnboardingRecord, fetchOnboardingStatus,
-  saveBusiness, saveEmergencyContacts, saveIdentity, uploadDocument,
-  type AgreementDocument, type EmergencyContact, type OnboardingStatus,
+  saveBusiness, saveEmergencyContacts, saveIdentity, setClientIntent,
+  type AgreementDocument, type ClientIntent, type EmergencyContact, type OnboardingStatus,
 } from '@/lib/supabase/contractor-onboarding';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +47,7 @@ import { cn } from '@/lib/utils';
 /** A panel is at most three inputs. Several panels can serve one database step. */
 type PanelId =
   | 'agreements' | 'you' | 'licence' | 'business' | 'payout'
-  | 'contact1' | 'contact2' | 'contact3' | 'documents';
+  | 'contact1' | 'contact2' | 'contact3';
 
 export default function ContractorOnboarding() {
   const t = useT();
@@ -110,8 +110,20 @@ export default function ContractorOnboarding() {
     <div className="mx-auto max-w-2xl p-6 sm:p-8">
       <Progress order={order} index={index} status={status} />
 
-      {status.complete && at === order[order.length - 1] && panelDone(at, status)
-        ? <AllDone />
+      {status.complete
+        ? (
+          <AllDone
+            onAnswered={async intent => {
+              const next = await setClientIntent(intent);
+              setStatus(next);
+              // A full load, not a client-side navigate: the /work layout resolved the
+              // gate before this answer existed, and would otherwise bounce them
+              // straight back here. The same reason the role handoffs reload.
+              window.location.href =
+                intent === 'onboard_client' ? '/work/clients/new' : '/work';
+            }}
+          />
+        )
         : (
           <>
             {at === 'agreements' && <AgreementsPanel status={status} onSaved={advance} />}
@@ -142,7 +154,6 @@ export default function ContractorOnboarding() {
                     onNext={() => setAt(order[index + 1] ?? at)}
                   />
                 )}
-                {at === 'documents' && <DocumentsPanel status={status} onSaved={advance} />}
               </Panel>
             )}
           </>
@@ -169,7 +180,9 @@ export default function ContractorOnboarding() {
 function panelOrder(s: OnboardingStatus): PanelId[] {
   const base: PanelId[] = ['agreements', 'you', 'licence'];
   if (s.businessStatus === 'registered') base.push('business');
-  return [...base, 'payout', 'contact1', 'contact2', 'contact3', 'documents'];
+  // The emergency contacts are LAST on purpose: finishing the third is what ends the
+  // form and brings up the client question.
+  return [...base, 'payout', 'contact1', 'contact2', 'contact3'];
 }
 
 function panelDone(p: PanelId, s: OnboardingStatus): boolean {
@@ -182,7 +195,6 @@ function panelDone(p: PanelId, s: OnboardingStatus): boolean {
     case 'contact1':
     case 'contact2':
     case 'contact3':   return s.steps.emergency;
-    case 'documents':  return s.steps.documents;
   }
 }
 
@@ -193,7 +205,7 @@ function firstOpenPanel(s: OnboardingStatus): PanelId {
 
 const PANEL_ICON: Record<PanelId, typeof UserRound> = {
   agreements: ShieldCheck, you: UserRound, licence: FileText, business: FileText,
-  payout: Landmark, contact1: Phone, contact2: Phone, contact3: Phone, documents: Upload,
+  payout: Landmark, contact1: Phone, contact2: Phone, contact3: Phone,
 };
 
 // ── Chrome ───────────────────────────────────────────────
@@ -266,21 +278,59 @@ function LockedNotice({ onBack }: { onBack: () => void }) {
   );
 }
 
-function AllDone() {
+/**
+ * The end of the form, and the one question that decides what happens next.
+ *
+ * A contractor here is one of two people: a partner who brought their own client, or
+ * somebody waiting to be assigned to a build. The product used to guess and send
+ * everybody to the dashboard. Now it asks, once, and the answer is recorded — which
+ * also tells staff who the partners are without anybody having to ask.
+ *
+ * Until one of the two is pressed, the sidebar is inert (see work/_layout.tsx). These
+ * really are the only two things on the screen that do anything.
+ */
+function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent) => Promise<void> }) {
   const t = useT();
+  const [busy, setBusy] = useState<ClientIntent | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const answer = async (intent: ClientIntent) => {
+    setBusy(intent); setErr(null);
+    try { await onAnswered(intent); }
+    catch { setErr(t('contractorOnboarding.err.generic')); setBusy(null); }
+  };
+
   return (
-    <section className="rounded-2xl border border-state-success/30 bg-white p-7 text-center dark:border-state-success/30 dark:bg-[#1e1e1e]">
+    <section className="rounded-2xl border border-state-success/30 bg-white p-7 text-center dark:bg-[#1e1e1e]">
       <span className="mx-auto mb-3 inline-flex size-11 items-center justify-center rounded-full bg-state-success text-white">
         <Check className="size-6" aria-hidden />
       </span>
-      <h1 className="text-xl font-bold text-brand-near-black dark:text-white">{t('contractorOnboarding.doneTitle')}</h1>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm text-brand-mid-grey">{t('contractorOnboarding.doneBody')}</p>
-      <Link
-        to="/work"
-        className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
-      >
-        {t('contractorOnboarding.doneCta')}<ArrowRight className="size-3.5" aria-hidden />
-      </Link>
+      <h1 className="text-xl font-bold text-brand-near-black dark:text-white">
+        {t('contractorOnboarding.doneTitle')}
+      </h1>
+      <p className="mx-auto mt-1.5 max-w-md text-sm text-brand-mid-grey">
+        {t('contractorOnboarding.doneBody')}
+      </p>
+
+      <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
+        <Button
+          type="button" disabled={busy !== null}
+          onClick={() => void answer('onboard_client')}
+        >
+          {busy === 'onboard_client'
+            ? <><Loader2 className="mr-1.5 size-3.5 animate-spin" />{t('contractorOnboarding.saving')}</>
+            : <><UserPlus className="mr-1.5 size-3.5" aria-hidden />{t('contractorOnboarding.haveClient')}</>}
+        </Button>
+        <button
+          type="button" disabled={busy !== null}
+          onClick={() => void answer('no_client')}
+          className="rounded-lg px-4 py-2.5 text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black disabled:opacity-50 dark:hover:text-white"
+        >
+          {busy === 'no_client' ? t('contractorOnboarding.saving') : t('contractorOnboarding.noClient')}
+        </button>
+      </div>
+
+      {err && <p role="alert" className="mt-3 text-xs text-state-alert">{err}</p>}
     </section>
   );
 }
@@ -643,73 +693,5 @@ function ContactPanel({ n, contacts, setContacts, onSaved, onNext }: {
       <Err>{local ?? err}</Err>
       <Next busy={busy} label={n === 3 ? t('contractorOnboarding.saveAllThree') : undefined} />
     </form>
-  );
-}
-
-// ── Panel 9: documents ───────────────────────────────────
-
-function DocumentsPanel({ status, onSaved }: {
-  status: OnboardingStatus; onSaved: (s: OnboardingStatus) => void;
-}) {
-  const t = useT();
-  const { busy, err, run } = useSave(onSaved);
-  const [have, setHave] = useState<Record<string, string>>({});
-
-  const refresh = useCallback(() => {
-    void fetchOnboardingRecord()
-      .then(r => setHave(Object.fromEntries(r.documents.map(d => [d.kind, d.filename]))))
-      .catch(() => {});
-  }, []);
-  useEffect(refresh, [refresh]);
-
-  const pick = (kind: 'professional_license' | 'business_registration') =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      e.target.value = '';   // so re-picking the same file fires onChange again
-      if (file) void run(() => uploadDocument(kind, file)).then(refresh);
-    };
-
-  return (
-    <div className="space-y-4">
-      <DocSlot
-        label={t('contractorOnboarding.docLicense')} hint={t('contractorOnboarding.docLicenseHint')}
-        filename={have.professional_license} busy={busy} onPick={pick('professional_license')}
-      />
-      {/* Only a registered business owes this — 116 decides, this reads its answer. */}
-      {status.needsBusinessDoc && (
-        <DocSlot
-          label={t('contractorOnboarding.docBusiness')} hint={t('contractorOnboarding.docBusinessHint')}
-          filename={have.business_registration} busy={busy} onPick={pick('business_registration')}
-        />
-      )}
-      <p className="flex items-start gap-1.5 text-xs text-brand-mid-grey">
-        <Lock className="mt-0.5 size-3 shrink-0" aria-hidden />{t('contractorOnboarding.docsPrivate')}
-      </p>
-      <Err>{err}</Err>
-    </div>
-  );
-}
-
-function DocSlot({ label, hint, filename, busy, onPick }: {
-  label: string; hint: string; filename?: string; busy: boolean;
-  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  const t = useT();
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey p-4 dark:border-[#444]">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-brand-near-black dark:text-white">{label}</p>
-        <p className="mt-0.5 truncate text-xs text-brand-mid-grey">
-          {filename
-            ? <span className="inline-flex items-center gap-1 text-state-success"><Check className="size-3" />{filename}</span>
-            : hint}
-        </p>
-      </div>
-      <label className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#444] dark:text-white">
-        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" aria-hidden />}
-        {filename ? t('contractorOnboarding.replace') : t('contractorOnboarding.upload')}
-        <input type="file" className="sr-only" accept=".pdf,.png,.jpg,.jpeg" disabled={busy} onChange={onPick} />
-      </label>
-    </div>
   );
 }

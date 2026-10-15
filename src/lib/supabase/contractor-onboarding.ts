@@ -36,6 +36,15 @@ import { supabase } from './client';
 export type OnboardingStep =
   'agreements' | 'identity' | 'professional' | 'payout' | 'emergency' | 'documents';
 
+/**
+ * What they answered at the end: do you have a client to bring on?
+ *
+ * `null` means not asked yet, and that is what makes the question appear exactly once.
+ * A contractor here is either a partner with their own client or somebody waiting to be
+ * assigned; the product used to guess, and now it asks.
+ */
+export type ClientIntent = 'onboard_client' | 'no_client';
+
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   'agreements', 'identity', 'professional', 'payout', 'emergency', 'documents',
 ] as const;
@@ -55,6 +64,8 @@ export type OnboardingStatus = {
   /** A registered business owes a registration document; an independent contractor does not. */
   needsBusinessDoc: boolean;
   emergencyCount: number;
+  /** null until they answer the question at the end of the form. */
+  clientIntent: ClientIntent | null;
   complete: boolean;
 };
 
@@ -67,17 +78,22 @@ const EMPTY_STEPS: Record<OnboardingStep, boolean> = {
   emergency: false, documents: false, agreements: false,
 };
 
+/** Both the required steps and the ones merely reported, for reading a status. */
+const ALL_STEPS = Object.keys(EMPTY_STEPS) as OnboardingStep[];
+
 function toStatus(raw: unknown): OnboardingStatus {
   const r = (raw ?? {}) as Record<string, unknown>;
   const s = (r.steps ?? {}) as Record<string, unknown>;
   const steps = { ...EMPTY_STEPS };
-  for (const k of ONBOARDING_STEPS) steps[k] = s[k] === true;
+  for (const k of ALL_STEPS) steps[k] = s[k] === true;
   const business = r.business_status;
   return {
     steps,
     businessStatus: business === 'registered' || business === 'independent' ? business : null,
     needsBusinessDoc: r.needs_business_doc === true,
     emergencyCount: typeof r.emergency_count === 'number' ? r.emergency_count : 0,
+    clientIntent: r.client_intent === 'onboard_client' || r.client_intent === 'no_client'
+      ? r.client_intent : null,
     // Trusted from SQL rather than recomputed from `steps`: one definition, and if the
     // two ever disagreed the database is the one that governs.
     complete: r.complete === true,
@@ -259,4 +275,19 @@ export async function fetchOnboardingRecord(): Promise<{
     })),
     documents: (docs.data ?? []) as { kind: ContractorDocumentKind; filename: string }[],
   };
+}
+
+/**
+ * Answer the question at the end of the form.
+ *
+ * Recorded in the database rather than the browser because it must survive a new
+ * device — being asked again at every sign-in would read as the product forgetting
+ * them. It also tells staff which contractors are partners, without anybody asking.
+ */
+export async function setClientIntent(intent: ClientIntent): Promise<OnboardingStatus> {
+  const { data, error } = await supabase.rpc('set_contractor_client_intent', {
+    p_intent: intent,
+  });
+  if (error) throw error;
+  return toStatus(data);
 }

@@ -2294,6 +2294,31 @@ export const en = {
     errExists:   'That email already has a Groundwork account. Ask them to invite you to their project from their own dashboard \u2014 that way they stay in control of it.',
     errFailed:   'The account was not created. Try again, and if it keeps failing, tell Favour.',
   },
+  adminContractorRecords: {
+    title:    'Contractor records',
+    subtitle: 'What each contractor filled in when they joined \u2014 their licence, where they live, who to call in an emergency, and the account their payments go to. Read-only: their own submission is the record.',
+    loadFailed:    'The records could not be loaded. Refresh the page, and if it keeps failing, tell Favour.',
+    dossierFailed: 'That record could not be opened.',
+    notApplied:    'This needs migration 118. Until it is run there is nothing to show here.',
+    search:        'Search by name, email or phone',
+    empty:         'No contractor has an account yet.',
+    noMatch:       'No contractor matches that.',
+    partner:       'Has a client',
+    statTotal:     'Contractors',
+    statComplete:  'Finished onboarding',
+    statPartners:  'Bringing their own client',
+    secPersonal:   'Personal',
+    secBusiness:   'Licence and business',
+    secEmergency:  'Emergency contacts',
+    secPayout:     'Paid into',
+    secAgreement:  'Signed',
+    secIntent:     'Client',
+    intentLabel:      'Has a client to onboard',
+    intentHasClient:  'Yes',
+    intentNoClient:   'No \u2014 waiting to be assigned',
+    none:          'None given',
+    notGiven:      'Not given',
+  },
   contractorOnboarding: {
     navLabel: 'Account setup',
     readerEyebrow: 'Read and sign',
@@ -2314,8 +2339,10 @@ export const en = {
     lockedCta:   'Go to the agreement',
 
     doneTitle: 'You\u2019re all set',
-    doneBody:  'Your account is complete. You can come back to this page any time to update a renewed licence or change your details.',
+    doneBody:  'Your details are in. One last thing \u2014 are you bringing a client of your own onto Groundwork, or waiting to be assigned to a build? You can change this later.',
     doneCta:   'Go to my work',
+    haveClient: 'I have a client to onboard',
+    noClient:   'I don\u2019t have a client to onboard',
 
     panel: {
       agreements: {
@@ -4206,7 +4233,7 @@ export const en = {
       // WhatsApp is how Groundwork reaches people about a project, so the number is asked
       // for up front rather than chased later.
       phone:          'Phone number',
-      phoneHint:      'Include your country code. Groundwork uses this to reach you on WhatsApp about your projects.',
+      phoneHint:      'Pick your country, then type the number as you would dial it at home. Groundwork uses this to reach you on WhatsApp about your projects.',
       phoneInvalid:   'That does not look like a complete phone number. Start with + and your country code, for example +237 6 70 00 00 00.',
       email:          'Email',
       password:       'Password',
@@ -4518,7 +4545,7 @@ export const en = {
     welcome:  'Welcome,',
     body:     "Let's get your account ready. It takes 30 seconds.",
     phone:        'Phone number',
-    phoneHint:    'Include your country code. Groundwork uses this to reach you on WhatsApp about your project.',
+    phoneHint:    'Pick your country, then type the number as you would dial it at home. Groundwork uses this to reach you on WhatsApp about your project.',
     phoneInvalid: 'That does not look like a complete phone number. Start with + and your country code, for example +237 6 70 00 00 00.',
     start:    'Get started',
   },

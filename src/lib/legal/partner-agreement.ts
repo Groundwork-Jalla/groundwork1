@@ -31,8 +31,26 @@ export const AGREEMENT_TITLE = 'Groundwork Partner Agreement and Terms of Servic
 /** Must match `current_agreement_version('partner_agreement')` in the database. */
 export const AGREEMENT_VERSION = '2026-10-16';
 
+// ── Signature blocks removed ────────────────────────────────────────────────────────
+// The .docx carries wet-signature pages — "By: ___  Name: ___  Title: ___  Date: ___"
+// for both parties, plus a counter-signature block under Schedule B. They are dropped
+// here. Acceptance in Groundwork IS the signature: the contractor types their name and
+// presses I accept, and `agreement_acceptances` records who signed, which version, and
+// when. Blank ruled lines on screen invite somebody to think they must print and post
+// it, and offer nowhere to do so.
+//
+// Two sentences only parsed with those pages behind them, so they went with them. The
+// Effective Date is now the date Partner accepts in Groundwork rather than "the date of
+// the last signature below", and the parties clause identifies Partner by their account
+// instead of leaving the template's blanks ("and , a with an address at"). §24.9
+// already permits electronic signature, which is exactly what this is.
+//
+// The version is NOT bumped. What was removed was empty form fields and what changed
+// was how the same two parties are named — no obligation moved. The §6.7-6.9 merge DID
+// change obligations, which is why that one bumped it.
+
 export const PARTNER_AGREEMENT: AgreementLine[] = [
-  ['p', 'This Professional Partner Referral and Network Services Agreement (the “Agreement”) is entered into as of the date of the last signature below (the “Effective Date”) by and between Jalla Technologies Inc., a Maryland corporation, registration number D27642156, with a correspondence address at 120 Waterfront St, Suite 420 #2075, National Harbor, Maryland 20745, United States (“Jalla”), and , a with an address at (“Partner”). Jalla and Partner may each be a “Party” and together the “Parties.”'],
+  ['p', 'This Professional Partner Referral and Network Services Agreement (the “Agreement”) is entered into as of the date Partner accepts it in Groundwork (the “Effective Date”) by and between Jalla Technologies Inc., a Maryland corporation, registration number D27642156, with a correspondence address at 120 Waterfront St, Suite 420 #2075, National Harbor, Maryland 20745, United States (“Jalla”), and the person or entity accepting this Agreement through their Groundwork account, whose name, address and business details are those recorded in that account (“Partner”). Jalla and Partner may each be a “Party” and together the “Parties.”'],
   ['h2', 'Background'],
   ['clause', 'A. Jalla operates Groundwork by Jalla, a technology-enabled operating and verification platform designed to help clients, including members of the African diaspora, coordinate, document, monitor, verify, and manage construction projects remotely.'],
   ['clause', 'B. Partner provides one or more professional services in construction, engineering, architecture, quantity surveying, project management, contracting, surveying, real estate, legal, land, or related fields and may have relationships with clients who could benefit from Groundwork.'],
@@ -193,22 +211,6 @@ export const PARTNER_AGREEMENT: AgreementLine[] = [
   ['clause', '24.9 Counterparts and Electronic Signatures. This Agreement may be signed in counterparts and by electronic signature, each treated as an original and together one instrument, to the extent permitted by Applicable Law.'],
   ['clause', '24.10 Language. The controlling language is English. Any translation is for convenience unless a signed country addendum expressly states otherwise.'],
   ['clause', '24.11 Interpretation. Headings are for convenience. “Including” means “including without limitation.” Drafting shall not be construed against either Party. References to writing include authenticated electronic records. Time periods use calendar days unless stated as business days.'],
-  ['h2', 'Signatures'],
-  ['p', 'The authorized representatives below agree to be bound by this Agreement as of the Effective Date.'],
-  ['p', 'Jalla Technologies Inc.'],
-  ['p', 'Partner'],
-  ['p', 'By:'],
-  ['p', 'By:'],
-  ['p', 'Name: Philip N. Tete'],
-  ['p', 'Name:'],
-  ['p', 'Title: Chief Executive Officer'],
-  ['p', 'Title:'],
-  ['p', 'Date:'],
-  ['p', 'Date:'],
-  ['p', 'Email: philip@tryjalla.com'],
-  ['p', 'Email:'],
-  ['p', 'Address: 120 Waterfront St, Suite 420 #2075, National Harbor, MD 20745'],
-  ['p', 'Address:'],
   ['h2', 'Schedule A Professional Service and Network Standards'],
   ['p', 'Area'],
   ['p', 'Minimum Standard'],
@@ -274,13 +276,6 @@ export const PARTNER_AGREEMENT: AgreementLine[] = [
   ['p', 'Jalla Management, consulting, payment, FX, transaction, financing, inspection, or other revenue unless a signed addendum expressly includes it.'],
   ['p', 'Chargebacks and refunds'],
   ['p', 'Subject to Section 8.4.'],
-  ['p', 'Accepted and agreed for this Schedule B only:'],
-  ['p', 'Jalla Technologies Inc.'],
-  ['p', 'Partner'],
-  ['p', 'By:'],
-  ['p', 'By:'],
-  ['p', 'Date:'],
-  ['p', 'Date:'],
   ['h2', 'Schedule C Data Processing and Security Requirements'],
   ['clause', 'D.1 Roles. For data processed through Groundwork, Jalla determines the platform purposes and means subject to the Client Agreement. Partner acts only within its authorized role and may also have independent legal duties for its Professional Services. The Parties shall document any controller, processor, or equivalent roles required by Applicable Law.'],
   ['clause', 'D.2 Authorized Data. Partner may access only the client, contact, identity, project, property, financial-document, communication, evidence, and professional data necessary for the approved project and role.'],

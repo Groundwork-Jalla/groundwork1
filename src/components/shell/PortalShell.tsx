@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 
 export interface PortalLink { to: string; label: TKey; icon: LucideIcon; matchPrefix?: boolean }
 
-export function PortalShell({ children, displayName, onLogout, home, links, roleKey, searchKey, scopeKey, helpTo }: {
+export function PortalShell({ children, displayName, onLogout, home, links, roleKey, searchKey, scopeKey, helpTo, navLocked }: {
   children: ReactNode;
   displayName: string;
   onLogout: () => void;
@@ -19,6 +19,15 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
   searchKey: TKey;
   scopeKey: TKey;
   helpTo?: string;
+  /**
+   * Render the navigation but refuse to follow it.
+   *
+   * For the one screen a contractor must answer before going anywhere — the client
+   * question at the end of onboarding. The links stay visible, so somebody can see
+   * what they are about to get, and are inert so there is exactly one way forward.
+   * Hiding the sidebar entirely would read as a broken page rather than a decision.
+   */
+  navLocked?: boolean;
 }) {
   const t = useT();
   const location = useLocation();
@@ -57,6 +66,10 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
         <nav aria-label={t('nav.mainNavigation')} className="space-y-2">
           {links.map(({ to, label, icon: Icon, matchPrefix }) => {
             const active = to === home ? location.pathname === home && !location.hash : matchPrefix ? location.pathname.startsWith(to) : `${location.pathname}${location.hash}` === to;
+            const cls = cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium', active ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]');
+            // Inert, not hidden: still legible, but it goes nowhere until the screen
+            // behind it has been answered.
+            if (navLocked) return <span key={to} aria-disabled="true" className={cn(cls, 'cursor-not-allowed opacity-40 hover:bg-transparent dark:hover:bg-transparent')}><Icon className="size-5" />{t(label)}</span>;
             return <Link key={to} to={to} onClick={() => setOpen(false)} aria-current={active ? 'page' : undefined} className={cn('flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium', active ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'text-brand-mid-grey hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]')}><Icon className="size-5" />{t(label)}</Link>;
           })}
         </nav>

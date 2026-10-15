@@ -17,10 +17,10 @@ const links: PortalLink[] = [
   { to: '/profile', label: 'nav.viewProfile', icon: UserRound },
 ];
 
-export function WorkShell({ children, displayName, onLogout }: {
-  children: ReactNode; displayName: string; onLogout: () => void;
+export function WorkShell({ children, displayName, onLogout, navLocked }: {
+  children: ReactNode; displayName: string; onLogout: () => void; navLocked?: boolean;
 }) {
-  return <PortalShell home="/work" links={links} displayName={displayName} onLogout={onLogout}
+  return <PortalShell home="/work" links={links} displayName={displayName} onLogout={onLogout} navLocked={navLocked}
     roleKey="contractor.surface.title" searchKey="contractorDashboard.search"
     scopeKey="contractor.dashboard.subtitle" helpTo="/help">{children}</PortalShell>;
 }

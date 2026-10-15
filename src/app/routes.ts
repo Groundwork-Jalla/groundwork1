@@ -132,6 +132,11 @@ export default [
     route("admin/users/new",     "routes/admin/users.new.tsx"),
     route("admin/clients",       "routes/admin/clients.tsx"),
     route("admin/contractors",   "routes/admin/contractors.tsx"),
+    // What each contractor FILLED IN (116-118) — emergency contacts, payout account,
+    // licence, signature. Separate from the directory above, which is only the
+    // published list clients browse; most records here belong to contractors who are
+    // not published, which is exactly who staff need to look at.
+    route("admin/contractors/records", "routes/admin/contractor-records.tsx"),
     route("admin/verifiers",     "routes/admin/verifiers.tsx"),
     // Path is fixed: api/ghl/contractor.ts writes /admin/applications/:id into
     // every CRM record as `application_url`.
