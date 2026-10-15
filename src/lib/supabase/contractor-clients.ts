@@ -112,14 +112,16 @@ export async function fetchPendingClients(): Promise<PendingContractorClient[]> 
  * Refused for an address that already has an account: the client must invite the
  * contractor to their own project instead.
  */
-export async function inviteMyClient(fullName: string, email: string): Promise<{ clientId: string }> {
+export async function inviteMyClient(
+  fullName: string, email: string, phone: string,
+): Promise<{ clientId: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new InviteClientFailed('not_signed_in');
 
   const r = await fetch('/api/events?action=contractor-invite-client', {
     method: 'POST',
     headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fullName, email }),
+    body: JSON.stringify({ fullName, email, phone }),
   });
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new InviteClientFailed(String(json?.error ?? `http_${r.status}`));

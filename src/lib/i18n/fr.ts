@@ -2234,6 +2234,9 @@ export const fr: Mirror<EnDict> = {
     photoCount: '{n} fichier(s)',
   },
   contractorClient: {
+    phone:       'Num\u00e9ro de t\u00e9l\u00e9phone du client',
+    phoneHint:   'Par o\u00f9 Groundwork le joint sur WhatsApp. Choisissez son pays, puis le num\u00e9ro tel qu\u2019il se compose sur place.',
+    errPhone:    'Saisissez un num\u00e9ro o\u00f9 nous pouvons le joindre, avec son pays.',
     promptTitle: 'Vous amenez votre propre client ?',
     promptBody:  'Cr\u00e9ez son compte et montez son estim\u00e9 vous-m\u00eame. Vous en restez l\u2019entrepreneur.',
     promptCta:   'Int\u00e9grer un client',

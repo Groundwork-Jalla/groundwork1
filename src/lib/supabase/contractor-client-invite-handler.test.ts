@@ -152,7 +152,10 @@ async function call(body: Row = GOOD, method = 'POST') {
   return response;
 }
 
-const GOOD = { email: ' Client@Example.com ', fullName: ' Ada Client ' };
+// A phone is now required: `profiles.phone` is the only thing WhatsApp delivery
+// resolves a destination from, and a contractor-invited client used to get none —
+// so they could never be reached on the channel most of them actually read.
+const GOOD = { email: ' Client@Example.com ', fullName: ' Ada Client ', phone: '+237670000001' };
 
 beforeEach(() => {
   state.caller = { id: 'contractor-1', email: 'contractor@example.com' };
@@ -216,6 +219,11 @@ describe('contractor and account ownership gates', () => {
 
   it('refuses invalid input without creating an account or sending email', async () => {
     expect((await call({ ...GOOD, email: 'not-an-email' })).body).toEqual({ error: 'invalid_email' });
+    // Checked on the server, not merely normalised in the browser. `normalisePhone`
+    // hands back whatever it was given when it cannot place a number, so "the field
+    // had something in it" is not the same as "this reaches a handset".
+    expect((await call({ ...GOOD, phone: '670000001' })).body).toEqual({ error: 'invalid_phone' });
+    expect((await call({ ...GOOD, phone: '' })).body).toEqual({ error: 'invalid_phone' });
     expect((await call({ ...GOOD, fullName: ' ' })).body).toEqual({ error: 'name_required' });
     expect(state.createUserCalls).toEqual([]);
     expect(state.invitations).toEqual([]);

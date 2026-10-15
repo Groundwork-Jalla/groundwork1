@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
+import { isE164 } from '../../src/lib/phone.js';
 import { siteUrl } from '../../src/lib/site-url.js';
 
 /**
@@ -115,8 +116,21 @@ export async function handler(req: any, res: any): Promise<void> {
 
   const email    = str(req.body?.email, 254).toLowerCase();
   const fullName = str(req.body?.fullName, 120);
+  /**
+   * The client's phone, in E.164, normalised in the browser by PhoneField.
+   *
+   * Required, and this is why: `profiles.phone` is the only thing WhatsApp delivery
+   * resolves a destination from. Without it `project-whatsapp` refuses with `no_phone`
+   * and the client can never be reached on the channel most of them actually read —
+   * they would get the Groundwork email and nothing else. Every other way of creating
+   * an account asks for a number; this one was the gap.
+   *
+   * Checked here rather than trusted: the browser normalises, the server decides.
+   */
+  const phone = str(req.body?.phone, 20);
   if (!isValidEmail(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
   if (fullName.length < 2)  { res.status(400).json({ error: 'name_required' }); return; }
+  if (!isE164(phone))       { res.status(400).json({ error: 'invalid_phone' }); return; }
 
   // Inviting yourself would make you your own client and the CHECK in 109 refuses the
   // link anyway; saying so is friendlier than a constraint violation.
@@ -157,6 +171,7 @@ export async function handler(req: any, res: any): Promise<void> {
   const { error: profErr } = await admin
     .from('profiles')
     .update({
+      phone,
       email_mfa_enabled:    true,
       must_change_password: true,
       provisioned_by:       caller.id,

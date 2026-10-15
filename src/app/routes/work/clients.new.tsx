@@ -16,6 +16,8 @@ import { clearWizardDraft } from '@/lib/projects/wizard-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/PhoneField';
+import { isE164 } from '@/lib/phone';
 import { useT } from '@/lib/i18n';
 
 // =========================================================
@@ -54,6 +56,10 @@ export default function WorkNewClient() {
   const inviteOperation = useRef(0);
   const [fullName, setFullName] = useState('');
   const [email, setEmail]       = useState('');
+  // E.164, from PhoneField. Required: profiles.phone is the only thing WhatsApp
+  // delivery resolves a destination from, and without it this client could never be
+  // reached on the channel most of them actually read.
+  const [phone, setPhone]       = useState('');
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [client, setClient]     = useState<OnBehalfOf | null>(null);
@@ -176,6 +182,7 @@ export default function WorkNewClient() {
     setResumingClient(false);
     setFullName('');
     setEmail('');
+    setPhone('');
   }
 
   async function invite(e: React.FormEvent) {
@@ -184,6 +191,7 @@ export default function WorkNewClient() {
     setError(null);
     if (fullName.trim().length < 2) { setError(t('contractorClient.errName')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('contractorClient.errEmail')); return; }
+    if (!isE164(phone)) { setError(t('contractorClient.errPhone')); return; }
 
     const owner = contractorId;
     const operation = ++inviteOperation.current;
@@ -192,7 +200,7 @@ export default function WorkNewClient() {
     const isCurrent = () => mounted.current && activeActor.current === owner && inviteOperation.current === operation;
     setBusy(true);
     try {
-      const { clientId } = await inviteMyClient(name, address);
+      const { clientId } = await inviteMyClient(name, address, phone);
       // Save before showing Next, so leaving immediately never strands the new account.
       saveClientOnboardingDraft(owner, {
         clientId, fullName: name, email: address, phase: 'confirmation',
@@ -365,6 +373,15 @@ export default function WorkNewClient() {
           <Label htmlFor="clientEmail">{t('contractorClient.email')}</Label>
           <Input id="clientEmail" type="email" autoComplete="off" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} />
           <p className="text-xs text-brand-mid-grey">{t('contractorClient.emailHint')}</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="clientPhone">{t('contractorClient.phone')}</Label>
+          {/* The country is picked, not assumed: a diaspora client building at home
+              often holds a foreign number, and silently prefixing +237 would store
+              one that reaches nobody. */}
+          <PhoneField id="clientPhone" required disabled={busy} value={phone} onChange={setPhone} />
+          <p className="text-xs text-brand-mid-grey">{t('contractorClient.phoneHint')}</p>
         </div>
 
         {error && (

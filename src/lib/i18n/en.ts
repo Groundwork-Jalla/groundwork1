@@ -2267,6 +2267,9 @@ export const en = {
   // records and governs, a licensed provider holds and moves the money — so nothing on
   // this screen may say Groundwork holds it. The provider is not named to contractors.
   contractorClient: {
+    phone:       'Client\u2019s phone number',
+    phoneHint:   'How Groundwork reaches them on WhatsApp. Pick their country, then the number as they would dial it at home.',
+    errPhone:    'Enter a phone number we can reach them on, including the country.',
     promptTitle: 'Bringing a client of your own?',
     promptBody:  'Set up their account and build their estimate yourself. You stay the contractor on it.',
     promptCta:   'Onboard a client',
