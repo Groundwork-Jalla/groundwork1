@@ -294,6 +294,7 @@ describe('what a client joining mid-build is asked to pay', () => {
 
 describe('the database side of joining mid-build', () => {
   const SQL = read('supabase/migrations/103_join_project_in_progress.sql');
+  const contractorSQL = read('supabase/migrations/121_contractor_join_client_project.sql');
 
   it('marks skipped stages as never having been ours, not merely complete', () => {
     expect(SQL).toMatch(/pre_existing\s+boolean NOT NULL DEFAULT false/);
@@ -340,9 +341,12 @@ describe('the database side of joining mid-build', () => {
     expect(SQL).toMatch(/nothing_left/);
   });
 
-  it('is admin-only', () => {
-    const fn = SQL.match(/FUNCTION public\.admin_start_project_at_stage[\s\S]*?END \$\$;/)?.[0] ?? '';
-    expect(fn).toMatch(/IF NOT public\.is_admin\(\) THEN RAISE EXCEPTION 'not_admin/);
+  it('allows admins and only the contractor of the project owner through the setup RPC', () => {
+    const fn = contractorSQL.match(/FUNCTION public\.admin_start_project_at_stage[\s\S]*?END \$\$;/)?.[0] ?? '';
+    expect(fn).toMatch(/public\.is_admin\(\) OR public\.is_my_clients_project\(p_project_id\)/);
+    expect(fn).toMatch(/public\.apply_budget_milestones/);
+    expect(fn).toMatch(/app\.join_in_progress/);
+    expect(fn).toMatch(/pre_existing\s+= true/);
   });
 });
 
