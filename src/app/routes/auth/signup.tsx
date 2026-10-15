@@ -10,6 +10,7 @@ import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
 import { normalisePhone, isE164 } from "@/lib/phone";
+import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
@@ -251,15 +252,11 @@ export default function Signup() {
             canonical or not at all (102). */}
         <div className="space-y-1.5">
           <Label htmlFor="phone">{t('auth.signup.phone')}</Label>
-          <Input
+          <PhoneField
             id="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="+237 6 70 00 00 00"
-            value={phone}
-            onChange={(e) => { setPhone(e.target.value); setError(null); }}
             required
+            value={phone}
+            onChange={(v) => { setPhone(v); setError(null); }}
           />
           <p className="text-xs text-brand-mid-grey">{t('auth.signup.phoneHint')}</p>
         </div>

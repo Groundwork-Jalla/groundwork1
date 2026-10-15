@@ -2399,6 +2399,7 @@ export const en = {
     contactName:         'Full name',
     contactRelationship: 'Relationship to you',
     contactPhone:        'Phone number',
+    phoneHint:           'Pick their country, then type the number as they would dial it locally.',
 
     documentsBody:    'A printed or digital copy is fine, as long as the number or stamp is readable. PDF, PNG or JPG.',
     docLicense:       'Professional or academic licence',

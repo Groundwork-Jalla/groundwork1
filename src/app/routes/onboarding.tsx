@@ -6,6 +6,7 @@ import { trackEvent } from '@/lib/analytics';
 import { useT } from '@/lib/i18n';
 import { loadClientContact, saveClientPhone, syncPhoneToCrm } from '@/lib/supabase/client-contact';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { ArrowRight, Loader2 } from 'lucide-react';
 
 // ── Welcome screen ─────────────────────────────────────────
@@ -59,15 +60,14 @@ function WelcomeStep({
           <label htmlFor="onboarding-phone" className="text-sm font-medium text-brand-near-black">
             {t('onboarding.phone')}
           </label>
-          <input
+          {/* Defaults to the build country when there is one — somebody building in
+              Ghana is more likely to be reachable on a Ghanaian number than a Cameroonian
+              one — and they can still say otherwise. */}
+          <PhoneField
             id="onboarding-phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="+237 6 70 00 00 00"
             value={phone}
-            onChange={e => onPhone(e.target.value)}
-            className="w-full rounded-xl border border-brand-border-grey bg-white px-3.5 py-2.5 text-sm text-brand-near-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black"
+            onChange={onPhone}
+            defaultCountry={country ?? DEFAULT_COUNTRY_CODE}
           />
           <p className="text-xs text-brand-mid-grey">{t('onboarding.phoneHint')}</p>
           {problem && <p role="alert" className="text-xs text-state-alert">{problem}</p>}

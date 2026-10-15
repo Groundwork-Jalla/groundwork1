@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { isPasswordAcceptable } from '@/lib/auth/password-policy';
 import { normalisePhone, isE164 } from '@/lib/phone';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
 import { signupMetadata, CONTRACTOR_APPLY_PATH, type SignupIntent } from '@/lib/auth/signup-account';
@@ -364,8 +365,10 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="phone">{t('auth.signup.phone')}</Label>
-          <Input id="phone" type="tel" autoComplete="tel" value={phone}
-            onChange={e => setPhone(e.target.value)} />
+          {/* The country is picked, not assumed. A partner running their firm from Paris
+              used to have their number silently prefixed +237 — a number reaching
+              nobody, on the account we then use to contact them. */}
+          <PhoneField id="phone" value={phone} onChange={setPhone} />
           <p className="text-xs text-brand-mid-grey">{t('auth.signup.phoneHint')}</p>
         </div>
 

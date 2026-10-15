@@ -2366,6 +2366,7 @@ export const fr: Mirror<EnDict> = {
     contactName:         'Nom complet',
     contactRelationship: 'Lien avec vous',
     contactPhone:        'Num\u00e9ro de t\u00e9l\u00e9phone',
+    phoneHint:           'Choisissez son pays, puis saisissez le num\u00e9ro comme il se compose sur place.',
 
     documentsBody:    'Une copie imprim\u00e9e ou num\u00e9rique convient, tant que le num\u00e9ro ou le cachet est lisible. PDF, PNG ou JPG.',
     docLicense:       'Licence professionnelle ou dipl\u00f4me',

@@ -7,11 +7,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { AgreementReader } from '@/components/contractor/AgreementReader';
 import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
-import { normalisePhone, isE164 } from '@/lib/phone';
-import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+import { isE164 } from '@/lib/phone';
 import {
   SIGNABLE_AGREEMENTS, acceptAgreement, fetchOnboardingRecord, fetchOnboardingStatus,
   saveBusiness, saveEmergencyContacts, saveIdentity, uploadDocument,
@@ -606,12 +606,13 @@ function ContactPanel({ n, contacts, setContacts, onSaved, onNext }: {
     setContacts(rs => rs.map((r, k) => (k === i ? { ...r, ...patch } : r)));
 
   const submit = () => {
-    // Normalise to E.164 here, so "+237" is not something a contractor has to know to
-    // type. The column CHECK would refuse a local number outright.
-    const phone = normalisePhone(c.phone, DEFAULT_COUNTRY_CODE) ?? c.phone;
+    // PhoneField already emits E.164 for the country they picked. It is still checked
+    // here, because normalisePhone passes a number through unchanged when it cannot
+    // place it — "it returned something" is not "this is dialable", and the column
+    // CHECK would refuse it outright.
+    const phone = c.phone.trim();
     if (!isE164(phone)) { setLocal(t('contractorOnboarding.err.badPhone', { n: String(n) })); return; }
     setLocal(null);
-    set({ phone });
 
     // The first two are held locally — 116 takes all three at once, and a partial set
     // must never look finished. The third sends them.
@@ -633,7 +634,10 @@ function ContactPanel({ n, contacts, setContacts, onSaved, onNext }: {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor={`cp${n}`}>{t('contractorOnboarding.contactPhone')}</Label>
-          <Input id={`cp${n}`} type="tel" required value={c.phone} onChange={e => set({ phone: e.target.value })} />
+          {/* The full dialling list, not the build-country list: a contractor's next of
+              kin is often not in the country they build in. */}
+          <PhoneField id={`cp${n}`} required value={c.phone} onChange={phone => set({ phone })} />
+          <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.phoneHint')}</p>
         </div>
       </div>
       <Err>{local ?? err}</Err>
