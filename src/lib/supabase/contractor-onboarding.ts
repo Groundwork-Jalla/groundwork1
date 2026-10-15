@@ -179,7 +179,22 @@ export async function uploadDocument(
   return toStatus(data);
 }
 
+/**
+ * The DB still accepts both, because `agreement_acceptances` is append-only and any
+ * Terms of Service signature taken before 117 stays on file.
+ */
 export type AgreementDocument = 'terms_of_service' | 'partner_agreement';
+
+/**
+ * The one document a contractor signs (117).
+ *
+ * The Terms of Service are the CLIENT's contract. Everything a contractor must agree to
+ * — platform access and acceptable use (§6), data (§11 + Schedule C), IP (§12),
+ * warranties (§16), liability (§19), governing law (§22) — is in the partner agreement,
+ * written for them. `current_agreement_version` returns NULL for anything else, so this
+ * is not merely the one we show: it is the only one that can be signed.
+ */
+export const SIGNABLE_AGREEMENTS: readonly AgreementDocument[] = ['partner_agreement'];
 
 /**
  * Sign an agreement.

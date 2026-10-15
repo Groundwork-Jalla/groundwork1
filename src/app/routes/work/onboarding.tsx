@@ -12,7 +12,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { normalisePhone, isE164 } from '@/lib/phone';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import {
-  acceptAgreement, fetchOnboardingRecord, fetchOnboardingStatus,
+  SIGNABLE_AGREEMENTS, acceptAgreement, fetchOnboardingRecord, fetchOnboardingStatus,
   saveBusiness, saveEmergencyContacts, saveIdentity, uploadDocument,
   type AgreementDocument, type EmergencyContact, type OnboardingStatus,
 } from '@/lib/supabase/contractor-onboarding';
@@ -314,8 +314,6 @@ function Next({ busy, label }: { busy: boolean; label?: string }) {
 
 // ── Panel 1: the agreements ──────────────────────────────
 
-const DOCS: AgreementDocument[] = ['terms_of_service', 'partner_agreement'];
-
 function AgreementsPanel({ status, onSaved }: {
   status: OnboardingStatus; onSaved: (s: OnboardingStatus) => void;
 }) {
@@ -341,7 +339,7 @@ function AgreementsPanel({ status, onSaved }: {
       </div>
 
       <ul className="space-y-3">
-        {DOCS.map(d => {
+        {SIGNABLE_AGREEMENTS.map(d => {
           const done = bothDone || justSigned.has(d);
           return (
             <li key={d}>

@@ -2285,7 +2285,7 @@ export const fr: Mirror<EnDict> = {
     panel: {
       agreements: {
         title: 'D\u2019abord, l\u2019accord',
-        body:  'Deux documents. Ouvrez chacun, lisez-le et signez en bas. Rien d\u2019autre ne vous est demand\u00e9 avant cela.',
+        body:  'Un seul document, et il couvre tout \u2014 votre utilisation de Groundwork, votre r\u00e9mun\u00e9ration, le traitement de vos donn\u00e9es. Ouvrez-le, lisez-le et signez en bas. Rien d\u2019autre ne vous est demand\u00e9 avant cela.',
       },
       you: {
         title: 'Parlez-nous de vous',
@@ -2374,7 +2374,7 @@ export const fr: Mirror<EnDict> = {
     upload:           'T\u00e9l\u00e9verser',
     replace:          'Remplacer',
 
-    agreementsBody: 'Lisez chaque document, puis saisissez votre nom complet pour le signer. Votre signature est enregistr\u00e9e pour la version sign\u00e9e.',
+    agreementsBody: 'Lisez-le, puis saisissez votre nom complet pour signer. Votre signature est enregistr\u00e9e pour la version sign\u00e9e.',
     doc: {
       terms_of_service:  'Conditions d\u2019utilisation',
       partner_agreement: 'Professional Partner Referral and Network Services Agreement',

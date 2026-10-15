@@ -2318,7 +2318,7 @@ export const en = {
     panel: {
       agreements: {
         title: 'First, the agreement',
-        body:  'Two documents. Open each one, read it, and sign at the bottom. Nothing else is asked of you until this is done.',
+        body:  'One document, and it covers everything \u2014 how you use Groundwork, how you are paid, how your data is handled. Open it, read it, and sign at the bottom. Nothing else is asked of you until this is done.',
       },
       you: {
         title: 'Tell us about you',
@@ -2407,7 +2407,7 @@ export const en = {
     upload:           'Upload',
     replace:          'Replace',
 
-    agreementsBody: 'Read each one, then type your full name to sign it. Your signature is recorded against the version you signed.',
+    agreementsBody: 'Read it, then type your full name to sign. Your signature is recorded against the version you signed.',
     doc: {
       terms_of_service:  'Terms of Service',
       partner_agreement: 'Professional Partner Referral and Network Services Agreement',

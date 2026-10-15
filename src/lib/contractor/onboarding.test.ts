@@ -21,8 +21,29 @@ const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 const strip = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-const sql      = read('supabase/migrations/116_contractor_onboarding.sql');
-const sqlCode  = sql.replace(/^\s*--.*$/gm, '').replace(/COMMENT ON[\s\S]*?;/g, '');
+/**
+ * Every migration that touches this feature, in order, with comments stripped.
+ *
+ * Concatenated rather than read one at a time because a later migration REPLACES a
+ * function a earlier one defined — 117 redefines `contractor_onboarding_status` and
+ * `current_agreement_version`. A test that sliced 116 alone would keep asserting a
+ * definition the database no longer runs, and would go on passing while the real
+ * function drifted anywhere at all. `fnBody` therefore takes the LAST definition.
+ */
+const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql'];
+const sqlCode = MIGRATIONS
+  .map(f => read(`supabase/migrations/${f}`))
+  .join('\n')
+  .replace(/^\s*--.*$/gm, '')
+  .replace(/COMMENT ON[\s\S]*?;/g, '');
+
+/** The body of the function as it ends up — the last CREATE OR REPLACE of that name. */
+function fnBody(name: string): string {
+  const at = sqlCode.lastIndexOf(`FUNCTION public.${name}`);
+  expect(at, `no function called ${name} in ${MIGRATIONS.join(' + ')}`).toBeGreaterThan(-1);
+  const end = sqlCode.indexOf('$$;', at);
+  return sqlCode.slice(at, end === -1 ? undefined : end);
+}
 const lib      = strip(read('src/lib/supabase/contractor-onboarding.ts'));
 const page     = strip(read('src/app/routes/work/onboarding.tsx'));
 const dash     = strip(read('src/app/routes/work/index.tsx'));
@@ -55,15 +76,12 @@ describe('one definition of finished', () => {
   });
 
   it('the SQL derives `complete` from the same six it reports', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.contractor_onboarding_status'));
-    const body = fn.slice(0, fn.indexOf('$$;'));
-    expect(body).toMatch(
+    expect(fnBody('contractor_onboarding_status')).toMatch(
       /'complete', v_identity AND v_professional AND v_payout\s*AND v_emergency AND v_documents AND v_agreements/);
   });
 
   it('admin sees the same answer as the contractor', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.admin_contractor_onboarding'));
-    expect(fn.slice(0, fn.indexOf('$$;'))).toMatch(/public\.contractor_onboarding_status\(p\.id\)/);
+    expect(fnBody('admin_contractor_onboarding')).toMatch(/public\.contractor_onboarding_status\(p\.id\)/);
   });
 });
 
@@ -76,15 +94,13 @@ describe('the agreement cannot be forged', () => {
   });
 
   it('the function reads the current version itself', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.accept_agreement'));
-    expect(fn.slice(0, fn.indexOf('$$;')))
+    expect(fnBody('accept_agreement'))
       .toMatch(/v_version text := public\.current_agreement_version\(p_document\)/);
   });
 
   it('a version bump re-opens the step rather than carrying the old signature forward', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.contractor_onboarding_status'));
-    expect(fn.slice(0, fn.indexOf('$$;')))
-      .toMatch(/a\.version = public\.current_agreement_version\(a\.document\)/);
+    expect(fnBody('contractor_onboarding_status'))
+      .toMatch(/a\.version = public\.current_agreement_version\('partner_agreement'\)/);
   });
 
   it('signatures are append-only and outlive the account', () => {
@@ -182,9 +198,7 @@ describe('writes go through the database, not around it', () => {
     for (const fn of ['save_contractor_identity', 'save_contractor_business',
                       'save_contractor_emergency_contacts', 'record_contractor_document',
                       'accept_agreement']) {
-      const at = sqlCode.indexOf(`FUNCTION public.${fn}`);
-      expect(at, `${fn} is missing`).toBeGreaterThan(-1);
-      const body = sqlCode.slice(at, sqlCode.indexOf('$$;', at));
+      const body = fnBody(fn);
       expect(body, `${fn} must gate on assert_own_onboarding`)
         .toMatch(/public\.assert_own_onboarding\(\)/);
     }
@@ -193,16 +207,14 @@ describe('writes go through the database, not around it', () => {
   it('the gate is the same definition of "contractor" the browser uses', () => {
     // Both arms: the role OR an accepted assignment. Only the role would lock out a
     // contractor invited onto one project.
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.holds_contractor_access'));
-    const body = fn.slice(0, fn.indexOf('$$;'));
+    const body = fnBody('holds_contractor_access');
     expect(body).toMatch(/user_roles[\s\S]*?role = 'contractor'/);
     expect(body).toMatch(/contractor_invites[\s\S]*?status = 'accepted'/);
     expect(body).toMatch(/\bOR\b/);
   });
 
   it('nobody reads somebody else’s progress', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.contractor_onboarding_status'));
-    expect(fn.slice(0, fn.indexOf('$$;')))
+    expect(fnBody('contractor_onboarding_status'))
       .toMatch(/v_user <> auth\.uid\(\) AND NOT public\.is_admin\(\)[\s\S]{0,120}not_allowed/);
   });
 });
@@ -245,8 +257,7 @@ describe('a document lands in its own folder, and is checked twice', () => {
 
   it('and the function refuses a path outside it', () => {
     // Belt and braces: a row pointing at a file we cannot read is worse than a refusal.
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.record_contractor_document'));
-    expect(fn.slice(0, fn.indexOf('$$;')))
+    expect(fnBody('record_contractor_document'))
       .toMatch(/p_path NOT LIKE \('onboarding\/' \|\| v_user::text \|\| '\/%'\)[\s\S]{0,120}bad_path/);
   });
 
@@ -278,9 +289,8 @@ describe('bank details are not collected twice', () => {
   });
 
   it('the payout step is satisfied by a live row in 099', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.contractor_onboarding_status'));
-    const body = fn.slice(0, fn.indexOf('$$;'));
-    expect(body).toMatch(/FROM public\.payout_destinations[\s\S]{0,120}status <> 'retired'/);
+    expect(fnBody('contractor_onboarding_status'))
+      .toMatch(/FROM public\.payout_destinations[\s\S]{0,120}status <> 'retired'/);
   });
 
   it('and the step sends them to the page that owns it', () => {
@@ -304,8 +314,7 @@ describe('the sequence is the same for everybody', () => {
 
   it('an independent contractor is not asked for a company document', () => {
     // Otherwise the checklist is impossible to finish for a sole trader.
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.contractor_onboarding_status'));
-    expect(fn.slice(0, fn.indexOf('$$;')))
+    expect(fnBody('contractor_onboarding_status'))
       .toMatch(/NOT coalesce\(v_registered, false\) OR EXISTS/);
     expect(page).toMatch(/\{status\.needsBusinessDoc && \(/);
   });
@@ -365,8 +374,7 @@ describe('the two bugs found in review stay fixed', () => {
   });
 
   it('and the tidy-up it guards is still there, so the guard still matters', () => {
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.save_contractor_business'));
-    const body = fn.slice(0, fn.indexOf('$$;'));
+    const body = fnBody('save_contractor_business');
     expect(body).toMatch(/IF p_business_status = 'independent' THEN\s*v_name := NULL; v_reg := NULL;/);
     expect(body).toMatch(/DELETE FROM public\.contractor_documents[\s\S]{0,120}business_registration/);
   });
@@ -375,8 +383,7 @@ describe('the two bugs found in review stay fixed', () => {
     // The CHECK constraint's message is Postgres's own and does not begin with a code,
     // so `useSave` fell through to the generic "that did not save" and the contractor
     // was left re-typing a date with no idea what was wrong with it.
-    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.save_contractor_identity'));
-    const body = fn.slice(0, fn.indexOf('$$;'));
+    const body = fnBody('save_contractor_identity');
     expect(body).toMatch(/dob_too_young/);
     expect(body).toMatch(/dob_implausible/);
     // And the picker will not offer one in the first place.
