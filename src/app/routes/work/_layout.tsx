@@ -56,9 +56,17 @@ export default function WorkLayout() {
   // fail closed: a read that errors, or a database without 116, leaves the surface open.
   // Locking a working contractor out because a request timed out would be worse than
   // letting an unsigned one through.
+  //
+  // `onOnboarding` is in the dependency list on purpose. Without it the answer is
+  // fetched once and never again — so a contractor who signed the agreement, finished
+  // the form and pressed "Go to my work" would be judged against the stale `false` and
+  // bounced straight back into the form, forever. Re-asking as they leave the page is
+  // what closes that loop, and clearing the answer first means the stale one is never
+  // the basis of a redirect while the new one is in flight.
   useEffect(() => {
     if (loading || !session || !resolved || !allowed) return;
     let alive = true;
+    setGate(null);
     (async () => {
       try {
         if (!(await onboardingAvailable())) { if (alive) setGate({ signed: true }); return; }
@@ -69,7 +77,7 @@ export default function WorkLayout() {
       }
     })();
     return () => { alive = false; };
-  }, [loading, session, resolved, allowed]);
+  }, [loading, session, resolved, allowed, onOnboarding]);
 
   useEffect(() => {
     if (!gate || gate.signed || onOnboarding) return;

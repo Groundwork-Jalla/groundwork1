@@ -495,6 +495,21 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
     expect(layout).toMatch(/\(gate !== null && !gate\.signed && !onOnboarding\)/);
   });
 
+  it('re-asks when they leave the form, so signing is not judged on a stale answer', () => {
+    // THE LOOP THIS CLOSES. The gate was fetched once on mount. A contractor who signed,
+    // finished and pressed "Go to my work" was then measured against the stale `false`
+    // and sent straight back — with no way out, because every /work path redirects.
+    expect(layout).toMatch(/\}, \[loading, session, resolved, allowed, onOnboarding\]\);/);
+    // And the stale answer is cleared before the new one lands, or it would drive a
+    // redirect while the re-check is still in flight.
+    const fx = layout.slice(layout.indexOf('if (loading || !session || !resolved || !allowed) return;'));
+    const body = fx.slice(0, fx.indexOf('}, [loading'));
+    const clear = body.indexOf('setGate(null)');
+    const fetchAt = body.indexOf('onboardingAvailable()');
+    expect(clear).toBeGreaterThan(-1);
+    expect(fetchAt).toBeGreaterThan(clear);
+  });
+
   it('the onboarding page itself is never redirected away from', () => {
     // Otherwise an unsigned contractor bounces between /work and /work/onboarding.
     expect(layout).toMatch(/location\.pathname\.startsWith\('\/work\/onboarding'\)/);
