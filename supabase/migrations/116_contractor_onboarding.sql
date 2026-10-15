@@ -601,16 +601,46 @@ GRANT EXECUTE ON FUNCTION public.accept_agreement(text, text) TO authenticated;
 -- Storage: a contractor's own folder in contractor-docs
 -- ─────────────────────────────────────────────────────────
 --
--- The bucket already exists (026, private). Its policies cover the public application
--- form — anon insert, admin read. Onboarding needs a third shape: a signed-in contractor
--- writing and reading `onboarding/<their uuid>/...` and nothing else.
+-- The bucket already exists (026, private). Onboarding needs a shape its policies did not
+-- have: a signed-in contractor writing and reading `onboarding/<their uuid>/...`.
+--
+-- ── Why 028's policy has to be narrowed, not just added to ───────────────────────────
+-- RLS policies are PERMISSIVE and OR'd together. 028's `contractor_docs_upload` grants
+-- INSERT to `anon, authenticated` on the whole bucket with no path test:
+--
+--     WITH CHECK (bucket_id = 'contractor-docs')
+--
+-- Adding a narrower policy beside it confines nothing — the broad one still passes. So a
+-- tight onboarding policy next to 028's would have been decoration, and the comment
+-- claiming it "confines a contractor to their own folder" would have been false.
+--
+-- 028's policy exists for the PUBLIC application form, where an anonymous applicant
+-- uploads credentials before they have an account. Those paths are `<submission-uuid>/…`
+-- and never begin with `onboarding/`, so excluding that one prefix leaves the application
+-- flow working exactly as before while making the onboarding namespace reachable only
+-- through the policy below.
+--
+-- What this was and was not. A writer into somebody else's folder could not read the file
+-- back (read is admin or own-folder), could not overwrite one (no UPDATE policy, and
+-- uploads are upsert:false), and could not make it count as that contractor's document
+-- (`record_contractor_document` checks the path against auth.uid()). So it was junk in a
+-- private bucket rather than a disclosure — but personal identity documents live here
+-- now, and "nobody can read it" is not a reason to let anyone write it.
 --
 -- Wrapped, because on a hosted project `storage.objects` is owned by `supabase_storage_admin`
--- and a migration run as `postgres` may not be permitted to add a policy to it. If this
--- is skipped, add the two policies by hand in Storage > contractor-docs > Policies; the
+-- and a migration run as `postgres` may not be permitted to alter a policy on it. If this
+-- is skipped, make the three changes by hand in Storage > contractor-docs > Policies; the
 -- notice below says so rather than letting the whole migration fail.
 DO $$
 BEGIN
+  -- 1. Keep the applicant's door open, but not onto the onboarding prefix.
+  DROP POLICY IF EXISTS "contractor_docs_upload" ON storage.objects;
+  CREATE POLICY "contractor_docs_upload"
+    ON storage.objects FOR INSERT
+    TO anon, authenticated
+    WITH CHECK (bucket_id = 'contractor-docs' AND name NOT LIKE 'onboarding/%');
+
+  -- 2. The only way into `onboarding/` is as yourself.
   DROP POLICY IF EXISTS contractor_onboarding_docs_write ON storage.objects;
   CREATE POLICY contractor_onboarding_docs_write ON storage.objects
     FOR INSERT TO authenticated
@@ -619,6 +649,7 @@ BEGIN
       AND name LIKE ('onboarding/' || auth.uid()::text || '/%')
     );
 
+  -- 3. And read it back — their own folder only, or staff.
   DROP POLICY IF EXISTS contractor_onboarding_docs_read ON storage.objects;
   CREATE POLICY contractor_onboarding_docs_read ON storage.objects
     FOR SELECT TO authenticated

@@ -2262,6 +2262,7 @@ export const fr: Mirror<EnDict> = {
     errFailed:   'Le compte n\u2019a pas \u00e9t\u00e9 cr\u00e9\u00e9. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   contractorOnboarding: {
+    navLabel: 'Configuration du compte',
     title:    'Terminez la configuration de votre compte',
     subtitle: 'Chaque entrepreneur sur Groundwork remplit ces six \u00e9tapes. Elles sont les m\u00eames que vous ayez postul\u00e9, cr\u00e9\u00e9 votre compte directement ou \u00e9t\u00e9 invit\u00e9 sur un projet \u2014 et elles ne se font qu\u2019une fois.',
     loadFailed: 'Votre configuration n\u2019a pas pu \u00eatre charg\u00e9e. Actualisez la page, et si cela persiste, pr\u00e9venez Favour.',

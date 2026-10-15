@@ -2295,6 +2295,7 @@ export const en = {
     errFailed:   'The account was not created. Try again, and if it keeps failing, tell Favour.',
   },
   contractorOnboarding: {
+    navLabel: 'Account setup',
     title:    'Finish setting up your account',
     subtitle: 'Every contractor on Groundwork completes these six steps. They are the same whether you applied, signed up directly, or were invited onto a project \u2014 and they only have to be done once.',
     loadFailed: 'Your setup could not be loaded. Refresh the page, and if it keeps failing, tell Favour.',

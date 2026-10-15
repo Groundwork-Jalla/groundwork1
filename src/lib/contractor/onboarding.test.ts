@@ -193,6 +193,36 @@ describe('a document lands in its own folder, and is checked twice', () => {
       /bucket_id = 'contractor-docs'\s*AND name LIKE \('onboarding\/' \|\| auth\.uid\(\)::text \|\| '\/%'\)/);
   });
 
+  it('and 028\u2019s whole-bucket policy is NARROWED, not merely added to', () => {
+    /**
+     * THE ONE THAT NEARLY SHIPPED. RLS policies are PERMISSIVE and OR'd together. 028
+     * grants INSERT to `anon, authenticated` with `WITH CHECK (bucket_id =
+     * 'contractor-docs')` and no path test, so a tight onboarding policy sitting beside
+     * it confines NOTHING — the broad one still passes and any signed-in user can write
+     * into any contractor's folder.
+     *
+     * Verified against real Postgres as a non-superuser: the write succeeded before this
+     * line existed and is refused after. A superuser bypasses RLS, so testing it as one
+     * would have shown a pass either way.
+     */
+    expect(sqlCode, '116 must re-create 028\u2019s upload policy with the onboarding prefix excluded')
+      .toMatch(/CREATE POLICY "contractor_docs_upload"[\s\S]{0,200}?name NOT LIKE 'onboarding\/%'/);
+    // Ordering: the broad policy must be replaced in the same block that adds the narrow
+    // one, or a deploy that stops halfway leaves the gap open.
+    const broad = sqlCode.indexOf('contractor_docs_upload');
+    const narrow = sqlCode.indexOf('contractor_onboarding_docs_write');
+    expect(broad).toBeGreaterThan(-1);
+    expect(narrow).toBeGreaterThan(broad);
+  });
+
+  it('the applicant\u2019s own upload path is untouched by that narrowing', () => {
+    // 026's applicants are anonymous and upload to `<submission-uuid>/…`, which never
+    // begins with `onboarding/`. If that path construction ever changes, this breaks.
+    const apply = strip(read('src/lib/supabase/contractor-applications.ts'));
+    expect(apply).toMatch(/const path = `\$\{submissionId\}\/\$\{Date\.now\(\)\}_\$\{safeName\}`/);
+    expect(apply).not.toMatch(/onboarding\//);
+  });
+
   it('and the function refuses a path outside it', () => {
     // Belt and braces: a row pointing at a file we cannot read is worse than a refusal.
     const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.record_contractor_document'));
@@ -294,5 +324,116 @@ describe('the copy says what is true, in both languages', () => {
         expect(copy, `${f} uses custody language: ${bad}`).not.toContain(bad);
       }
     }
+  });
+});
+
+describe('the two bugs found in review stay fixed', () => {
+  /**
+   * Both were invisible to a passing type-check and to every source-scanning test that
+   * existed when they were written. They are pinned here by name.
+   */
+
+  it('the business step reopens on the answer that was saved', () => {
+    // THE DESTRUCTIVE ONE. `fetchOnboardingRecord` did not return business_status, so a
+    // registered business revisiting the step saw an unselected radio. Choosing the
+    // other option runs `save_contractor_business` with 'independent', which NULLs the
+    // company name and number AND deletes the uploaded registration document. A blank
+    // radio must never be able to cause that.
+    expect(lib).toMatch(/businessStatus: 'registered' \| 'independent' \| null;/);
+    expect(lib).toMatch(/\.select\('date_of_birth, residential_address, license_number, business_status,/);
+    expect(page).toMatch(/setKind\(r\.businessStatus \?\? ''\)/);
+  });
+
+  it('and the tidy-up it guards is still there, so the guard still matters', () => {
+    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.save_contractor_business'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/IF p_business_status = 'independent' THEN\s*v_name := NULL; v_reg := NULL;/);
+    expect(body).toMatch(/DELETE FROM public\.contractor_documents[\s\S]{0,120}business_registration/);
+  });
+
+  it('a bad date of birth is refused by name, not by a raw constraint message', () => {
+    // The CHECK constraint's message is Postgres's own and does not begin with a code,
+    // so `useSave` fell through to the generic "that did not save" and the contractor
+    // was left re-typing a date with no idea what was wrong with it.
+    const fn = sqlCode.slice(sqlCode.indexOf('FUNCTION public.save_contractor_identity'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/dob_too_young/);
+    expect(body).toMatch(/dob_implausible/);
+    // And the picker will not offer one in the first place.
+    expect(page).toMatch(/max=\{new Date\(Date\.now\(\) - 18 \* 365\.25 \* 864e5\)/);
+  });
+});
+
+describe('every refusal the database can make is a sentence somebody can read', () => {
+  /**
+   * `useSave` turns a leading `code:` into `contractorOnboarding.err.<code>`. A code
+   * without copy renders the raw dot-path on screen. This is the systematic form of the
+   * date-of-birth bug: one new RAISE EXCEPTION is all it takes.
+   */
+
+  const codes = [...new Set(
+    [...sqlCode.matchAll(/RAISE EXCEPTION '([a-z_]+):/g)].map(m => m[1]),
+  )].sort();
+
+  it('finds the refusals at all, so a pass means something', () => {
+    expect(codes.length).toBeGreaterThan(10);
+  });
+
+  it.each(codes)('%s has copy in English and French', (code) => {
+    for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
+      const all = read(f);
+      const block = all.slice(all.indexOf('  contractorOnboarding: {'));
+      const copy = block.slice(0, block.indexOf('\n  },'));
+      const err = copy.slice(copy.indexOf('    err: {'));
+      expect(err, `${f} lacks contractorOnboarding.err.${code}`)
+        .toMatch(new RegExp(`\\b${code}:`));
+    }
+  });
+
+  it('the mapper really does build that key', () => {
+    expect(page).toMatch(/contractorOnboarding\.err\.\$\{code\}/);
+    expect(page).toMatch(/\/\^\(\[a-z_\]\+\):\/\.exec\(msg\)/);
+  });
+});
+
+describe('every rpc call names arguments the function actually has', () => {
+  /**
+   * PostgREST resolves a function by its ARGUMENT NAMES. A rename on either side gives
+   * PGRST202 — "function not found" — which looks identical to a migration that was
+   * never applied, and `onboardingAvailable` would then quietly decide the whole feature
+   * is absent and hide it. That failure mode is silent in production and invisible to a
+   * type-check, so it is pinned here.
+   */
+
+  /** `p_name type DEFAULT ...` → the set of parameter names, per function. */
+  const signatures = new Map<string, Set<string>>();
+  for (const m of sqlCode.matchAll(
+    /CREATE OR REPLACE FUNCTION public\.(\w+)\s*\(([\s\S]*?)\)\s*\n?\s*RETURNS/g)) {
+    const args = new Set<string>();
+    for (const a of m[2].matchAll(/\b(p_\w+)\s+[a-z]/g)) args.add(a[1]);
+    signatures.set(m[1], args);
+  }
+
+  const calls = [...lib.matchAll(/rpc\('(\w+)',\s*\{([\s\S]*?)\}\)/g)].map(m => ({
+    fn: m[1],
+    args: [...m[2].matchAll(/(p_\w+):/g)].map(a => a[1]),
+  }));
+
+  it('finds both sides, so a pass means something', () => {
+    expect(signatures.size).toBeGreaterThan(5);
+    expect(calls.length).toBeGreaterThan(4);
+  });
+
+  it.each(calls.map(c => [c.fn, c] as const))('%s', (_fn, call) => {
+    const sig = signatures.get(call.fn);
+    expect(sig, `116 defines no function called ${call.fn}`).toBeTruthy();
+    for (const a of call.args) {
+      expect(sig!.has(a), `${call.fn} has no argument ${a} — PostgREST would answer PGRST202`)
+        .toBe(true);
+    }
+  });
+
+  it('a missing function is treated as "feature absent", which is why the above matters', () => {
+    expect(lib).toMatch(/error\.code === 'PGRST202'[\s\S]{0,80}return false/);
   });
 });

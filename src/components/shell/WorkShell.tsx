@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, ClipboardList, Wallet, FileText, Upload, UserRound, Landmark } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, ClipboardList, Wallet, FileText, Upload, UserRound, Landmark, ShieldCheck } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
@@ -10,6 +10,10 @@ const links: PortalLink[] = [
   { to: '/work#documents', label: 'contractorProject.tabDocuments', icon: FileText },
   { to: '/work#payments', label: 'contractorProject.tabPayments', icon: Wallet },
   { to: '/work/payouts', label: 'contractorPayout.title', icon: Landmark },
+  // Reachable after the dashboard banner has gone. §3.3 of the partner agreement puts
+  // a standing duty on contractors to keep licensing and insurance current, so the
+  // page they do that on cannot only exist while they are still unfinished.
+  { to: '/work/onboarding', label: 'contractorOnboarding.navLabel', icon: ShieldCheck },
   { to: '/profile', label: 'nav.viewProfile', icon: UserRound },
 ];
 
