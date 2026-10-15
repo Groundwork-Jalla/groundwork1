@@ -8,6 +8,8 @@ import {
 } from '@/lib/supabase/contractor-work';
 import { partnerOnboardingAvailable } from '@/lib/supabase/contractor-clients';
 import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
+import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
+         type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT, type TKey } from '@/lib/i18n';
 import { WorkOverview } from '@/components/contractor/WorkOverview';
@@ -45,6 +47,10 @@ export default function ContractorDashboard() {
   const [needsPayout, setNeedsPayout] = useState<boolean | null>(null);
   // Null until known, so the partner button never flashes in and out.
   const [canOnboard, setCanOnboard] = useState<boolean | null>(null);
+  // The contractor's onboarding progress (116). Null while unknown or while the
+  // migration is not applied — in both cases the banner stays away rather than
+  // nagging somebody about steps this database cannot yet record.
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -71,6 +77,20 @@ export default function ContractorDashboard() {
     partnerOnboardingAvailable()
       .then(ok => { if (alive) setCanOnboard(ok); })
       .catch(() => { if (alive) setCanOnboard(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // Onboarding progress (116). Read separately from everything else: a contractor who
+  // has not finished should still see their work, and a failure here must not blank it.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (!(await onboardingAvailable())) return;   // 116 not applied — stay silent
+        const st = await fetchOnboardingStatus();
+        if (alive) setOnboarding(st);
+      } catch { /* a refusal is not evidence they are unfinished */ }
+    })();
     return () => { alive = false; };
   }, []);
 
@@ -126,7 +146,11 @@ export default function ContractorDashboard() {
           the same, and an invited contractor who later brings somebody is a partner from
           that moment — there is no second kind of account to switch to. Hidden entirely
           until the database actually has the feature, so it cannot be pressed into a 500. */}
-      {canOnboard === true && (
+      {/* Gated on a finished onboarding (§3.2: Jalla may withhold activation until the
+          required forms are complete). Bringing your own client is the partner
+          capability, so it is the one that waits. `onboarding === null` means 116 is not
+          applied or the read failed — not a reason to take away a working feature. */}
+      {canOnboard === true && (onboarding === null || onboarding.complete) && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div>
           <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorClient.promptTitle')}</p>
@@ -141,7 +165,51 @@ export default function ContractorDashboard() {
       </div>
       )}
 
-      {needsPayout === true && (
+      {/* ── Finish setting up (116) ────────────────────────────────────────────────
+          One banner for the whole sequence, including payout. The separate "add your
+          payment details" prompt used to live here; it is now step 3 of six, and two
+          banners counting the same thing would be two things to dismiss.
+
+          Shown only when we KNOW they are unfinished. Null means either the read failed
+          or 116 is not applied, and nagging on a guess is worse than staying quiet. */}
+      {onboarding && !onboarding.complete && (
+        <div className="rounded-xl border border-state-alert/30 bg-brand-off-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+                <AlertTriangle className="size-4 shrink-0" aria-hidden />
+                {t('contractorOnboarding.bannerTitle')}
+              </p>
+              <p className="mt-0.5 text-xs text-brand-mid-grey">
+                {t('contractorOnboarding.bannerBody', {
+                  left: String(ONBOARDING_STEPS.filter(k => !onboarding.steps[k]).length),
+                })}
+              </p>
+            </div>
+            <Link
+              to="/work/onboarding"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+            >
+              {t('contractorOnboarding.bannerCta')}<ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
+          {/* Six pips, so the distance left is visible without opening the page. */}
+          <div className="mt-3 flex gap-1.5" aria-hidden>
+            {ONBOARDING_STEPS.map(k => (
+              <span
+                key={k}
+                className={cn('h-1 flex-1 rounded-full',
+                  onboarding.steps[k] ? 'bg-state-success' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* The standalone payout prompt remains ONLY for a database without 116, where the
+          banner above cannot render. Once 116 is applied this never shows: payout is a
+          step in the sequence and `onboarding` is non-null. */}
+      {onboarding === null && needsPayout === true && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           <div>
             <p className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">

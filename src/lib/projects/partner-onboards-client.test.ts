@@ -62,27 +62,95 @@ describe('the right is scoped to clients they actually brought', () => {
   });
 });
 
-describe('the contractor never holds a credential for the client', () => {
-  it('invites rather than provisions, and returns no password', () => {
-    expect(handler).toMatch(/findOrCreateUserByEmail\(/);
-    // admin-provision-user.ts returns a password on purpose. This must not.
-    expect(handler).not.toMatch(/generateTemporaryPassword|password/);
-    const ok = handler.slice(handler.indexOf('res.status(200).json('));
-    expect(ok).not.toMatch(/password/);
+describe('the temporary password is bounded, not just handed over', () => {
+  /**
+   * The contractor IS shown a one-time password now — the same as /admin/users/new,
+   * because a partner onboards a client sitting next to them. That means they briefly
+   * hold a working credential for somebody else's account, and these are the two things
+   * that keep the window to one handover.
+   */
+
+  it('arms both first-sign-in gates before the client ever touches the account', () => {
+    // must_change_password is cleared only by a database trigger when the hash actually
+    // changes (083), so the contractor's copy dies the moment the client signs in. Email
+    // MFA means the password alone was never enough anyway.
+    expect(handler).toMatch(/must_change_password:\s*true/);
+    expect(handler).toMatch(/email_mfa_enabled:\s*true/);
+    // Set BEFORE the password is handed back, not after.
+    const armed = handler.indexOf('must_change_password');
+    const handed = handler.indexOf('res.status(200).json(');
+    expect(armed).toBeGreaterThan(-1);
+    expect(handed).toBeGreaterThan(armed);
+  });
+
+  it('rolls the account back if those gates cannot be set', () => {
+    // An account that exists but is not marked would let the temporary password stand
+    // indefinitely — the one thing that makes handing it over acceptable.
+    expect(handler).toMatch(/profErr[\s\S]{0,300}?deleteUser\(clientId\)/);
+  });
+
+  it('refuses an address that already has an account', () => {
+    // A fresh password for somebody else's existing account is a takeover with a nice UI.
+    expect(handler).toMatch(/ilike\('email', email\)/);
+    expect(handler).toMatch(/client_exists/);
+    const refuse = handler.indexOf('client_exists');
+    const create = handler.indexOf('auth.admin.createUser');
+    expect(create).toBeGreaterThan(refuse);
   });
 
   it('checks contractor standing before it ever reaches the service role', () => {
     const gate = handler.indexOf("eq('role', 'contractor')");
-    const invite = handler.indexOf('findOrCreateUserByEmail(');
+    const create = handler.indexOf('auth.admin.createUser');
     expect(gate).toBeGreaterThan(-1);
-    expect(invite).toBeGreaterThan(gate);
-    // Role OR accepted assignment — the same definition holdsContractorAccess uses, so
-    // an invited contractor is a contractor here too.
+    expect(create).toBeGreaterThan(gate);
+    // Role OR accepted assignment — the same definition holdsContractorAccess uses.
     expect(handler).toMatch(/contractor_invites[\s\S]*?eq\('status', 'accepted'\)/);
   });
 
   it('answers a non-contractor the same way as a wrong path', () => {
     expect(handler).toMatch(/res\.status\(404\)\.json\(\{ error: 'Not found' \}\)/);
+  });
+
+  it('returns the password once and never stores it', () => {
+    // One response body, and nothing on the browser side keeps it.
+    expect(handler).toMatch(/res\.status\(200\)\.json\(\{ clientId, email, password \}\)/);
+    const lib = read('src/lib/supabase/contractor-clients.ts');
+    expect(lib).not.toMatch(/localStorage|sessionStorage/);
+    expect(page).not.toMatch(/localStorage|sessionStorage/);
+  });
+
+  it('hands the credentials over BEFORE the wizard, and clears them to continue', () => {
+    // The password is on screen exactly once; moving on to the wizard drops it.
+    expect(page).toMatch(/if \(client && password\)/);
+    expect(page).toMatch(/setPassword\(null\)/);
+    const handover = page.indexOf('if (client && password)');
+    const wizard = page.indexOf('<WizardProvider');
+    expect(handover).toBeGreaterThan(-1);
+    expect(wizard).toBeGreaterThan(handover);
+  });
+
+  it('neither language still promises an email, in any string', () => {
+    // French drifted exactly here: its subtitle promised the client would receive an
+    // email to choose a password "que vous ne voyez jamais" — the direct opposite of
+    // this flow, in the one language most of these contractors actually read.
+    for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
+      const all = read(f);
+      const block = all.slice(all.indexOf('  contractorClient: {'));
+      const copy = block.slice(0, block.indexOf('\n  },'));
+      expect(copy, `${f}: says an invitation is sent`).not.toMatch(/invitation (was|n\u2019a)/i);
+      expect(copy, `${f}: says the contractor never sees the password`)
+        .not.toMatch(/ne voyez jamais|you never see/i);
+      expect(copy, `${f}: still sends a link or an email to set a password`)
+        .not.toMatch(/re\u00e7oit un e-mail pour choisir|email to choose (a|their own) password/i);
+    }
+  });
+
+  it('tells the contractor the password expires at first sign-in', () => {
+    const en = read('src/lib/i18n/en.ts');
+    const block = en.slice(en.indexOf('  contractorClient: {'));
+    const copy = block.slice(0, block.indexOf('\n  },'));
+    expect(copy).toMatch(/shown once and is not stored/);
+    expect(copy).toMatch(/stops working at that moment/);
   });
 });
 
@@ -255,9 +323,11 @@ describe('110 — a link only grants when the client actually is one', () => {
   });
 
   it('the handler refuses an address that already has an account', () => {
-    expect(handler).toMatch(/if \(!created\)/);
+    // The refusal is now the profiles lookup before createUser, not a post-hoc check on
+    // what find-or-create returned — but the rule and its reason are unchanged.
+    expect(handler).toMatch(/ilike\('email', email\)/);
     expect(handler).toMatch(/client_exists/);
-    // And only ever claims the account was new when it genuinely was.
+    // The link may only ever claim the account was new when this handler made it.
     expect(handler).toMatch(/client_was_created: true/);
     const refuse = handler.indexOf('client_exists');
     const link = handler.indexOf('contractor_clients');

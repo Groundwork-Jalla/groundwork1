@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, Loader2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Check, Copy, KeyRound, Loader2, LockKeyhole, UserPlus } from 'lucide-react';
 import { WizardProvider, type OnBehalfOf } from '@/contexts/WizardContext';
 import { ManagedWizard } from '@/app/routes/admin/projects.new';
 import { inviteMyClient, InviteClientFailed } from '@/lib/supabase/contractor-clients';
+import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,18 +17,26 @@ import { useT } from '@/lib/i18n';
 // by an admin, so the distinction existed in conversation and nowhere in the product.
 //
 // ── Two halves, and only the first is new ────────────────────────────────────────────
-// 1. Invite the client. The SERVER does this, and it invites rather than provisions —
-//    the account and the only way into it are created together, and the client chooses
-//    their own password. A contractor never holds a credential for somebody else.
+// 1. Create the client's account. The SERVER does this and returns a one-time password
+//    for the contractor to hand over, the same as /admin/users/new — a partner onboards
+//    a client sitting next to them, and waiting on an email is the friction this
+//    removes. The contractor does briefly hold a working credential; `must_change_password`
+//    and email MFA bound that to the first sign-in. See the handler for the full argument.
 // 2. Build the project. This is the SAME eleven-step wizard an admin runs, rendered
 //    through the same `ManagedWizard`, so the two cannot drift into different estimates
 //    for the same building.
 //
-// ── Why the invitation comes first ───────────────────────────────────────────────────
+// ── Why the account comes first ──────────────────────────────────────────────────────
 // The project needs an owner, and 109's policies only permit a project whose owner is a
 // client this contractor actually brought on. So the link has to exist before the wizard
-// writes anything — which also means a half-finished wizard leaves an invited client and
-// no project, rather than a project nobody owns.
+// writes anything — which also means a half-finished wizard leaves a real client account
+// and no project, rather than a project nobody owns.
+//
+// ── The gate (116) ───────────────────────────────────────────────────────────────────
+// A contractor who has not finished onboarding cannot bring a client. §3.2 of the partner
+// agreement: Jalla may withhold activation until the required forms are complete. The
+// dashboard hides the button, and this page refuses as well — a hidden button is not a
+// gate when the URL is typeable.
 // =========================================================
 
 export default function WorkNewClient() {
@@ -37,6 +46,23 @@ export default function WorkNewClient() {
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [client, setClient]     = useState<OnBehalfOf | null>(null);
+  // Held only until they move on to the wizard. Never stored, never in the URL.
+  const [password, setPassword] = useState<string | null>(null);
+  // null = not yet known, or 116 is not applied. Only a definite `false` refuses, so a
+  // failed read never locks a partner out of a feature they have.
+  const [mayOnboard, setMayOnboard] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        if (!(await onboardingAvailable())) { if (alive) setMayOnboard(true); return; }
+        const st = await fetchOnboardingStatus();
+        if (alive) setMayOnboard(st.complete);
+      } catch { if (alive) setMayOnboard(true); }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +72,8 @@ export default function WorkNewClient() {
 
     setBusy(true);
     try {
-      const { clientId } = await inviteMyClient(fullName.trim(), email.trim());
+      const { clientId, password: temp } = await inviteMyClient(fullName.trim(), email.trim());
+      setPassword(temp);
       setClient({
         userId: clientId,
         label: fullName.trim(),
@@ -73,7 +100,67 @@ export default function WorkNewClient() {
     }
   }
 
-  // Once the client exists, this is the admin's wizard, unchanged.
+  // ── Hand the credentials over before building anything ──
+  //
+  // The password is shown on this screen exactly once. Leave the page and it is gone;
+  // the recovery path for a lost one is "Forgot password?", which works because the
+  // address is already confirmed.
+  // The gate. Before anything else on this page, including the form.
+  if (mayOnboard === false) {
+    return (
+      <div className="p-6 sm:p-8">
+        <Link to="/work" className="inline-flex items-center gap-1 text-sm text-brand-mid-grey hover:text-brand-near-black">
+          <ArrowLeft className="size-3.5" /> {t('contractorClient.back')}
+        </Link>
+        <div className="mt-6 max-w-xl rounded-2xl border border-brand-border-grey bg-white p-6 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <div className="mb-3 inline-flex size-10 items-center justify-center rounded-full bg-brand-off-white dark:bg-[#141414]">
+            <LockKeyhole className="size-5 text-brand-near-black dark:text-white" aria-hidden />
+          </div>
+          <h1 className="text-xl font-bold text-brand-near-black dark:text-white">
+            {t('contractorOnboarding.gateTitle')}
+          </h1>
+          <p className="mt-1.5 text-sm text-brand-mid-grey">{t('contractorOnboarding.gateBody')}</p>
+          <Link
+            to="/work/onboarding"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+          >
+            {t('contractorOnboarding.gateCta')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (client && password) {
+    return (
+      <div className="p-6 sm:p-8">
+        <header className="mb-6 max-w-xl">
+          <div className="mb-3 inline-flex size-10 items-center justify-center rounded-full bg-brand-off-white dark:bg-[#1e1e1e]">
+            <KeyRound className="size-5 text-brand-near-black dark:text-white" aria-hidden />
+          </div>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
+            {t('contractorClient.handoverTitle', { name: client.label })}
+          </h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorClient.handoverBody')}</p>
+        </header>
+
+        <div className="max-w-xl rounded-2xl border border-brand-border-grey bg-white p-6 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <Credential label={t('contractorClient.username')} value={email.trim()} />
+          <Credential label={t('contractorClient.tempPassword')} value={password} mono />
+          <p className="mt-4 rounded-xl bg-brand-off-white px-3 py-2.5 text-xs leading-relaxed text-brand-near-black dark:bg-[#111] dark:text-white">
+            {t('contractorClient.onceWarning')}
+          </p>
+        </div>
+
+        <Button onClick={() => setPassword(null)} className="mt-6">
+          {t('contractorClient.continueToWizard')}
+        </Button>
+      </div>
+    );
+  }
+
+  // Once the client exists and the password has been handed over, this is the admin's
+  // wizard, unchanged.
   if (client) {
     return (
       <WizardProvider onBehalfOf={client}>
@@ -123,6 +210,42 @@ export default function WorkNewClient() {
           <p className="text-xs text-brand-mid-grey">{t('contractorClient.planNote')}</p>
         </div>
       </form>
+    </div>
+  );
+}
+
+
+/**
+ * One credential, copyable. Same shape as the admin handover screen, because it is the
+ * same act — a person reading two things out to somebody sitting next to them.
+ */
+function Credential({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* Clipboard refused (insecure context, permissions). The value is on screen. */
+    }
+  }
+
+  return (
+    <div className="border-b border-brand-border-grey py-3 first:pt-0 last:border-b-0 last:pb-0 dark:border-[#2c2c2c]">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">{label}</p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <code className={`select-all break-all text-brand-near-black dark:text-white ${mono ? 'font-mono text-lg tracking-wide' : 'font-sans text-sm'}`}>
+          {value}
+        </code>
+        <button type="button" onClick={copy}
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-brand-border-grey px-2 py-1 text-xs text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:hover:text-white">
+          {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+          {copied ? t('contractorClient.copied') : t('contractorClient.copy')}
+        </button>
+      </div>
     </div>
   );
 }

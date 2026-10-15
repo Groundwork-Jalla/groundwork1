@@ -74,13 +74,17 @@ export class InviteClientFailed extends Error {
 }
 
 /**
- * Invite a client and record them as this contractor's.
+ * Create the client's account and record them as this contractor's.
  *
- * Returns the new (or existing) client's user id, which the wizard then builds a project
- * for. Safe to call for somebody who already has an account: they are linked, not
- * re-credentialled, and no second invitation is sent.
+ * Returns their id and a one-time password to hand over, the same as /admin/users/new.
+ * The client cannot get past their first sign-in without replacing it (083) and needs a
+ * code sent to their inbox as well (email MFA), so the contractor's copy is good for one
+ * handover and no longer.
+ *
+ * Refused for an address that already has an account: a fresh password for somebody
+ * else's account would be a takeover.
  */
-export async function inviteMyClient(fullName: string, email: string): Promise<{ clientId: string; invited: boolean }> {
+export async function inviteMyClient(fullName: string, email: string): Promise<{ clientId: string; password: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new InviteClientFailed('not_signed_in');
 
@@ -91,7 +95,9 @@ export async function inviteMyClient(fullName: string, email: string): Promise<{
   });
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new InviteClientFailed(String(json?.error ?? `http_${r.status}`));
-  return { clientId: String(json.clientId), invited: json.invited === true };
+  // The password is returned exactly once and is never stored — not in state beyond the
+  // handover screen, not in storage, not in the URL.
+  return { clientId: String(json.clientId), password: String(json.password ?? '') };
 }
 
 /**

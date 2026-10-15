@@ -14,6 +14,9 @@ export default [
     // Required by Google OAuth verification and Stripe before going live.
     route("privacy",           "routes/privacy.tsx"),
     route("terms",             "routes/terms.tsx"),
+    // The instrument a contractor signs at /work/onboarding (116). Public, because
+    // a signature on a document somebody could not read is not a signature.
+    route("partner-agreement", "routes/partner-agreement.tsx"),
   ]),
 
   // Auth routes (public) — shared architectural layout
@@ -89,6 +92,9 @@ export default [
     // Where this contractor is paid. On the account, not on an assignment (099) — given
     // once, used on every project.
     route("work/payouts",           "routes/work/payouts.tsx"),
+    // The one onboarding sequence every contractor completes (116) — the same for an
+    // approved applicant, an open signup and a contractor invited onto one project.
+    route("work/onboarding",        "routes/work/onboarding.tsx"),
     // A partner contractor bringing their own client (109). The same wizard an admin
     // runs — what differs is who may run it, and for whom.
     route("work/clients/new",       "routes/work/clients.new.tsx"),
