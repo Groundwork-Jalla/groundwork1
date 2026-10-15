@@ -2263,6 +2263,64 @@ export const fr: Mirror<EnDict> = {
   },
   contractorOnboarding: {
     navLabel: 'Configuration du compte',
+    readerEyebrow: 'Lire et signer',
+    readerClose:   'Fermer',
+    scrollToEnd:   'Faites d\u00e9filer jusqu\u2019\u00e0 la fin du document pour l\u2019accepter.',
+    iAccept:       'J\u2019accepte',
+    readAndSign:   'Lire et signer',
+    signedAlready: 'Sign\u00e9',
+    next:          'Continuer',
+    back:          'Retour',
+    panelOf:       '\u00c9tape {n} sur {total}',
+    payoutLater:   'Je le ferai plus tard',
+
+    lockedTitle: 'Signez d\u2019abord l\u2019accord',
+    lockedBody:  'La suite de ce formulaire demande votre licence, vos coordonn\u00e9es bancaires et vos proches \u00e0 pr\u00e9venir. L\u2019accord explique ce que Jalla en fait \u2014 il vient donc en premier.',
+    lockedCta:   'Aller \u00e0 l\u2019accord',
+
+    doneTitle: 'Tout est en ordre',
+    doneBody:  'Votre compte est complet. Vous pouvez revenir sur cette page \u00e0 tout moment pour mettre \u00e0 jour une licence renouvel\u00e9e ou modifier vos informations.',
+    doneCta:   'Aller \u00e0 mon espace',
+
+    panel: {
+      agreements: {
+        title: 'D\u2019abord, l\u2019accord',
+        body:  'Deux documents. Ouvrez chacun, lisez-le et signez en bas. Rien d\u2019autre ne vous est demand\u00e9 avant cela.',
+      },
+      you: {
+        title: 'Parlez-nous de vous',
+        body:  'Deux informations, pour que Jalla puisse vous identifier et vous retrouver en cas de besoin.',
+      },
+      licence: {
+        title: 'Votre licence',
+        body:  'Votre num\u00e9ro de licence professionnelle, et si vous exercez en entreprise enregistr\u00e9e.',
+      },
+      business: {
+        title: 'Votre entreprise',
+        body:  'Vous avez indiqu\u00e9 exercer en entreprise enregistr\u00e9e : il nous faut ses informations.',
+      },
+      payout: {
+        title: 'Comment vous \u00eates pay\u00e9',
+        body:  'Un compte bancaire ou un num\u00e9ro mobile money, utilis\u00e9 pour tous les projets qui vous sont attribu\u00e9s. Cette \u00e9tape a sa propre page.',
+      },
+      contact1: {
+        title: 'Contact d\u2019urgence 1',
+        body:  'Trois personnes joignables en cas d\u2019incident sur le chantier. Nous ne les contacterons que pour cela.',
+      },
+      contact2: {
+        title: 'Contact d\u2019urgence 2',
+        body:  'Le deuxi\u00e8me sur trois.',
+      },
+      contact3: {
+        title: 'Contact d\u2019urgence 3',
+        body:  'Le dernier \u2014 les trois seront alors enregistr\u00e9s ensemble.',
+      },
+      documents: {
+        title: 'Vos documents',
+        body:  'Une copie imprim\u00e9e ou num\u00e9rique convient, tant que le num\u00e9ro ou le cachet est lisible. PDF, PNG ou JPG.',
+      },
+    },
+
     title:    'Terminez la configuration de votre compte',
     subtitle: 'Chaque entrepreneur sur Groundwork remplit ces six \u00e9tapes. Elles sont les m\u00eames que vous ayez postul\u00e9, cr\u00e9\u00e9 votre compte directement ou \u00e9t\u00e9 invit\u00e9 sur un projet \u2014 et elles ne se font qu\u2019une fois.',
     loadFailed: 'Votre configuration n\u2019a pas pu \u00eatre charg\u00e9e. Actualisez la page, et si cela persiste, pr\u00e9venez Favour.',

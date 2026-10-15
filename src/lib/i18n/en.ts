@@ -2296,6 +2296,64 @@ export const en = {
   },
   contractorOnboarding: {
     navLabel: 'Account setup',
+    readerEyebrow: 'Read and sign',
+    readerClose:   'Close',
+    scrollToEnd:   'Scroll to the end of the document to accept it.',
+    iAccept:       'I accept',
+    readAndSign:   'Read and sign',
+    signedAlready: 'Signed',
+    next:          'Continue',
+    back:          'Back',
+    panelOf:       'Step {n} of {total}',
+    payoutLater:   'I\u2019ll do this later',
+
+    lockedTitle: 'Sign the agreement first',
+    lockedBody:  'The rest of this form asks for your licence, bank details and next of kin. The agreement explains what Jalla does with all of it, so it comes first.',
+    lockedCta:   'Go to the agreement',
+
+    doneTitle: 'You\u2019re all set',
+    doneBody:  'Your account is complete. You can come back to this page any time to update a renewed licence or change your details.',
+    doneCta:   'Go to my work',
+
+    panel: {
+      agreements: {
+        title: 'First, the agreement',
+        body:  'Two documents. Open each one, read it, and sign at the bottom. Nothing else is asked of you until this is done.',
+      },
+      you: {
+        title: 'Tell us about you',
+        body:  'Two things, so Jalla can identify you and find you if it ever needs to.',
+      },
+      licence: {
+        title: 'Your licence',
+        body:  'Your professional licence number, and whether you trade as a registered business.',
+      },
+      business: {
+        title: 'Your business',
+        body:  'You said you trade as a registered business, so we need its details.',
+      },
+      payout: {
+        title: 'How you get paid',
+        body:  'A bank account or mobile money number, used for every project you are assigned to. This one lives on its own page.',
+      },
+      contact1: {
+        title: 'Emergency contact 1',
+        body:  'Three people we can reach if something happens on site. We will only ever contact them for that.',
+      },
+      contact2: {
+        title: 'Emergency contact 2',
+        body:  'The second of three.',
+      },
+      contact3: {
+        title: 'Emergency contact 3',
+        body:  'Last one \u2014 then all three are saved together.',
+      },
+      documents: {
+        title: 'Your documents',
+        body:  'A printed or digital copy is fine, as long as the number or stamp is readable. PDF, PNG or JPG.',
+      },
+    },
+
     title:    'Finish setting up your account',
     subtitle: 'Every contractor on Groundwork completes these six steps. They are the same whether you applied, signed up directly, or were invited onto a project \u2014 and they only have to be done once.',
     loadFailed: 'Your setup could not be loaded. Refresh the page, and if it keeps failing, tell Favour.',

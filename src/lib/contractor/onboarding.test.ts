@@ -28,6 +28,9 @@ const page     = strip(read('src/app/routes/work/onboarding.tsx'));
 const dash     = strip(read('src/app/routes/work/index.tsx'));
 const clients  = strip(read('src/app/routes/work/clients.new.tsx'));
 const routes   = read('src/app/routes.ts');
+const reader   = strip(read('src/components/contractor/AgreementReader.tsx'));
+const layout   = strip(read('src/app/routes/work/_layout.tsx'));
+const callback = strip(read('src/app/routes/auth/callback.tsx'));
 
 describe('one definition of finished', () => {
   /**
@@ -95,20 +98,37 @@ describe('the agreement cannot be forged', () => {
     expect(sqlCode).not.toMatch(/GRANT (UPDATE|DELETE)[^;]*agreement_acceptances/);
   });
 
-  it('it can be read before it is signed', () => {
-    // Signing a document nobody could open is not a signature.
+  it('the whole document is on screen, in the same page as the signature', () => {
+    // It used to open in a new tab. That is the wrong shape for something you sign: the
+    // text was on one page and the signature box on another, so the honest answer to
+    // "have you read this?" was "I clicked a link that went somewhere else".
+    expect(reader).toMatch(/PARTNER_AGREEMENT/);
+    expect(reader).toMatch(/TERMS\[lang\] \?\? TERMS\.en/);
+    expect(reader).toMatch(/role="dialog" aria-modal="true"/);
+    // No hand-off anywhere in the signing flow.
+    expect(reader).not.toMatch(/target="_blank"|window\.open/);
+    expect(page).not.toMatch(/target="_blank"/);
+    // The standalone page stays for anyone who wants a plain link to it.
     expect(routes).toMatch(/route\("partner-agreement",\s*"routes\/partner-agreement\.tsx"\)/);
-    expect(page).toMatch(/href: '\/partner-agreement'/);
-    expect(page).toMatch(/href: '\/terms'/);
-    // And the sign button waits on the confirmation.
-    expect(page).toMatch(/disabled=\{busy \|\| !\(read\[a\.key\] \?\? false\)\}/);
+  });
+
+  it('accepting waits on reaching the end of the text', () => {
+    // Not a legal requirement — the difference between a signature and a reflex.
+    expect(reader).toMatch(/const atEnd = el\.scrollTop \+ el\.clientHeight >= el\.scrollHeight - 24/);
+    expect(reader).toMatch(/disabled=\{!readToEnd \|\| busy\}/);
+    // A document too short to scroll must still be acceptable, or it is a dead end that
+    // looks like a broken page.
+    expect(reader).toMatch(/const fits = el\.scrollHeight <= el\.clientHeight \+ 4/);
+    expect(reader).toMatch(/if \(fits \|\| atEnd\) setReadToEnd\(true\)/);
   });
 
   it('the signature is typed, never prefilled from the profile', () => {
     // §24.9 permits an electronic signature; what makes it one is that they typed it.
-    const block = page.slice(page.indexOf('function AgreementsForm'));
-    expect(block).toMatch(/value=\{signed\[a\.key\] \?\? ''\}/);
-    expect(block).not.toMatch(/full_name|user\?\.|profile/);
+    expect(reader).toMatch(/value=\{name\} onChange=\{e => setName\(e\.target\.value\)\}/);
+    expect(reader).not.toMatch(/full_name|useAuth|profile/);
+    // And it is not accepted as a signature until they have confirmed and typed enough
+    // to be a name.
+    expect(reader).toMatch(/disabled=\{!confirmed \|\| busy \|\| name\.trim\(\)\.length < 2\}/);
   });
 });
 
@@ -264,7 +284,7 @@ describe('bank details are not collected twice', () => {
   });
 
   it('and the step sends them to the page that owns it', () => {
-    const step = page.slice(page.indexOf('function PayoutStep'));
+    const step = page.slice(page.indexOf('function PayoutPanel'));
     expect(step.slice(0, step.indexOf('\n}'))).toMatch(/to="\/work\/payouts"/);
   });
 });
@@ -274,7 +294,7 @@ describe('the sequence is the same for everybody', () => {
     // Schedule B's tiers (Founding, Certified, Strategic) change what a partner is paid,
     // never what Jalla holds on file. An application is not a shortcut either.
     expect(lib).toMatch(
-      /ONBOARDING_STEPS = \[\s*'identity', 'professional', 'payout', 'emergency', 'documents', 'agreements',\s*\] as const/);
+      /ONBOARDING_STEPS: readonly OnboardingStep\[\] = \[\s*'agreements', 'identity', 'professional', 'payout', 'emergency', 'documents',\s*\]/);
     for (const term of ['founding', 'certified', 'strategic', 'tier']) {
       expect(sqlCode.toLowerCase(), `116 must not branch on ${term}`)
         .not.toMatch(new RegExp(`${term}[\\s\\S]{0,40}(THEN|IF )`));
@@ -435,5 +455,86 @@ describe('every rpc call names arguments the function actually has', () => {
 
   it('a missing function is treated as "feature absent", which is why the above matters', () => {
     expect(lib).toMatch(/error\.code === 'PGRST202'[\s\S]{0,80}return false/);
+  });
+});
+
+describe('signing up ends in the agreement, not on the dashboard', () => {
+  /**
+   * /contractor-signup grants the role and the callback sends the new contractor to
+   * /work. The gate lives in the /work LAYOUT so that signup, a later sign-in and a
+   * typed URL all behave the same — one gate, not one per landing site.
+   */
+
+  it('the callback still lands a new contractor on /work', () => {
+    // If this ever changes, the layout gate is bypassed and the agreement stops being
+    // the first thing they meet.
+    expect(callback).toMatch(/registerContractorAccount\(\)[\s\S]{0,80}leaveForRoleSurface\("\/work"\)/);
+  });
+
+  it('and /work sends them to the agreement until it is signed', () => {
+    expect(layout).toMatch(/if \(!gate \|\| gate\.signed \|\| onOnboarding\) return;/);
+    expect(layout).toMatch(/navigate\('\/work\/onboarding', \{ replace: true \}\)/);
+  });
+
+  it('it gates on the agreement alone, not the whole sequence', () => {
+    // A contractor already on a site who has signed but not finished their third
+    // emergency contact must still be able to post evidence — locking them out would
+    // punish the client, not the contractor.
+    expect(layout).toMatch(/setGate\(\{ signed: st\.steps\.agreements \}\)/);
+    expect(layout).not.toMatch(/st\.complete/);
+  });
+
+  it('it fails OPEN, so a timeout never locks a working contractor out', () => {
+    // Two ways to not know: 116 absent, or the read threw. Both leave the surface open.
+    expect(layout).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{ if \(alive\) setGate\(\{ signed: true \}\); return; \}/);
+    expect(layout).toMatch(/catch \{\s*if \(alive\) setGate\(\{ signed: true \}\);\s*\}/);
+  });
+
+  it('no flash of the dashboard before the redirect', () => {
+    expect(layout).toMatch(/\(!gate && !onOnboarding\)/);
+    expect(layout).toMatch(/\(gate !== null && !gate\.signed && !onOnboarding\)/);
+  });
+
+  it('the onboarding page itself is never redirected away from', () => {
+    // Otherwise an unsigned contractor bounces between /work and /work/onboarding.
+    expect(layout).toMatch(/location\.pathname\.startsWith\('\/work\/onboarding'\)/);
+  });
+});
+
+describe('the agreement gates the rest of the form', () => {
+  it('the five remaining panels are locked until it is signed', () => {
+    expect(page).toMatch(/\{at !== 'agreements' && !signed && <LockedNotice/);
+    expect(page).toMatch(/\{at !== 'agreements' && signed && \(/);
+  });
+
+  it('agreements is the first panel, and named rather than indexed', () => {
+    const order = page.slice(page.indexOf('function panelOrder'));
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/\['agreements', 'you', 'licence'\]/);
+    expect(lib).toMatch(/GATING_STEP: OnboardingStep = 'agreements'/);
+  });
+
+  it('no panel carries more than three inputs', () => {
+    // The whole point of splitting them up. Counting Input/textarea/file per panel
+    // function; the radio pair is one question, so the licence panel reads as two.
+    for (const fn of ['YouPanel', 'LicencePanel', 'BusinessPanel', 'ContactPanel']) {
+      const at = page.indexOf(`function ${fn}`);
+      expect(at, `${fn} is missing`).toBeGreaterThan(-1);
+      const body = page.slice(at, page.indexOf('\n}\n', at));
+      const inputs = (body.match(/<Input\b/g) ?? []).length + (body.match(/<textarea\b/g) ?? []).length;
+      expect(inputs, `${fn} shows ${inputs} inputs; panels are capped at three`).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('the three contacts are held together and saved in one call', () => {
+    // 116 requires exactly three. Saving them one panel at a time would let a partial
+    // set sit there looking finished.
+    expect(page).toMatch(/if \(n < 3\) \{ onNext\(\); return; \}/);
+    expect(page).toMatch(/void run\(\(\) => saveEmergencyContacts\(all\)\)/);
+  });
+
+  it('the company panel only exists for a registered business', () => {
+    const order = page.slice(page.indexOf('function panelOrder'));
+    expect(order.slice(0, order.indexOf('\n}')))
+      .toMatch(/if \(s\.businessStatus === 'registered'\) base\.push\('business'\)/);
   });
 });
