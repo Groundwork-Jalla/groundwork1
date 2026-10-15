@@ -20,12 +20,33 @@ import { supabase } from './client';
 // numbers a second time.
 // =========================================================
 
-/** The six steps, in the order the UI walks them. */
-export const ONBOARDING_STEPS = [
-  'identity', 'professional', 'payout', 'emergency', 'documents', 'agreements',
+/**
+ * The six steps, in the order the UI walks them.
+ *
+ * The agreement is FIRST, and the five that follow are locked until it is signed. That
+ * is the order the relationship actually has: §3.2 lets Jalla withhold activation until
+ * the forms are complete, but the forms ask for a date of birth, a home address, bank
+ * details and three next of kin — and the document explaining what Jalla may do with all
+ * of that is the agreement itself. Collecting it first and explaining afterwards is
+ * backwards.
+ *
+ * Nothing in SQL depends on this order; `contractor_onboarding_status` returns an object.
+ * Reordering here reorders the checklist and the "first unfinished" jump, nothing else.
+ */
+export type OnboardingStep =
+  'agreements' | 'identity' | 'professional' | 'payout' | 'emergency' | 'documents';
+
+export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
+  'agreements', 'identity', 'professional', 'payout', 'emergency', 'documents',
 ] as const;
 
-export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
+/**
+ * The step that gates the rest. Separate from the array so the lock has a name rather
+ * than being "index 0", which a future reorder would silently change the meaning of.
+ */
+export const GATING_STEP: OnboardingStep = 'agreements';
+
+
 
 export type OnboardingStatus = {
   steps: Record<OnboardingStep, boolean>;
