@@ -16,7 +16,12 @@
 --      they do not carry to site; the point of telling them on Groundwork too is that
 --      the project is where the answer belongs.
 --
---   3. ONLY `outbound`. A contractor's reply told the client nothing, and the client's
+--   3. A THREAD WITH NO PROJECT told nobody at all. `project-whatsapp` deliberately
+--      never links a WhatsApp chat to a project — the chat belongs to the person — so
+--      every message staff sent that way notified nobody. Reported straight from
+--      testing: "I sent a message to the contractor and the client, none received it."
+--
+--   4. ONLY `outbound`. A contractor's reply told the client nothing, and the client's
 --      question told the contractor nothing. A thread where only one direction notifies
 --      is a thread people stop using.
 --
@@ -118,7 +123,69 @@ BEGIN
     IF NEW.conversation_id IS NULL THEN RETURN NEW; END IF;
 
     SELECT * INTO v_conv FROM public.conversations WHERE id = NEW.conversation_id;
-    IF NOT FOUND OR v_conv.project_id IS NULL THEN RETURN NEW; END IF;
+    IF NOT FOUND THEN RETURN NEW; END IF;
+
+    -- ── A thread with no project still has a person ─────────────────────────────────
+    -- `project-whatsapp` deliberately never sets `conversations.project_id`: a WhatsApp
+    -- chat belongs to the PERSON, and the project is only where the admin happened to
+    -- click. That is defensible, and returning early on it was not — it meant staff
+    -- could WhatsApp a client or a contractor and nobody was told anything, which is
+    -- precisely what was reported from testing.
+    --
+    -- So: no project, no participants to fan out to, but there is still exactly one
+    -- person this thread is with. Tell them.
+    IF v_conv.project_id IS NULL THEN
+      IF v_conv.person_id IS NULL OR v_conv.person_id = NEW.sender_id THEN RETURN NEW; END IF;
+
+      SELECT COALESCE(NULLIF(full_name, ''), email), email
+        INTO v_name, v_email FROM public.profiles WHERE id = v_conv.person_id;
+
+      BEGIN
+        INSERT INTO public.notifications (user_id, type, title, body, data)
+        VALUES (v_conv.person_id, 'message_received', 'New message from Groundwork',
+                left(COALESCE(NEW.content, ''), 140),
+                jsonb_build_object('conversation_id', NEW.conversation_id,
+                                   'message_id', NEW.id));
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'message % : bell failed for %: %', NEW.id, v_conv.person_id, SQLERRM;
+      END;
+
+      SELECT value INTO resend_key FROM public.app_config WHERE key = 'resend_api_key';
+      IF v_email IS NULL OR v_email = '' OR resend_key IS NULL OR resend_key = '' THEN
+        RETURN NEW;
+      END IF;
+
+      BEGIN
+        body_html :=
+          '<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">'
+          || '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;border-radius:12px;">'
+          || '<tr><td style="background:#0a0a0a;padding:20px 28px;">'
+          || '<p style="margin:0;font-size:16px;font-weight:700;color:#fff;">Groundwork by Jalla</p></td></tr>'
+          || '<tr><td style="padding:24px 28px;">'
+          || '<p style="margin:0;font-size:14px;line-height:1.7;color:#0a0a0a;">'
+          || 'Hello ' || public.html_escape(COALESCE(v_name, 'there')) || ',</p>'
+          || '<p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:#0a0a0a;">'
+          || 'You have a new message waiting for you on Groundwork.</p>'
+          || '<p style="margin:22px 0 0;"><a href="https://www.tryjalla.com/messages"'
+          || ' style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;'
+          || 'padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Read it in Groundwork</a></p>'
+          || '</td></tr></table></body></html>';
+        PERFORM net.http_post(
+          url     := 'https://api.resend.com/emails',
+          headers := jsonb_build_object('Content-Type','application/json',
+                                        'Authorization','Bearer ' || resend_key),
+          body    := jsonb_build_object(
+                       'from',    'Groundwork by Jalla <noreply@mail.tryjalla.com>',
+                       'to',      jsonb_build_array(v_email),
+                       'subject', 'New message from Groundwork',
+                       'html',    body_html),
+          timeout_milliseconds := 5000);
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'message % : email failed for %: %', NEW.id, v_conv.person_id, SQLERRM;
+      END;
+
+      RETURN NEW;
+    END IF;
 
     -- No channel gate. A WhatsApp thread notifies on Groundwork too: the message
     -- reached a phone, and the project is still where the answer belongs.

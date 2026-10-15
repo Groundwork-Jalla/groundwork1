@@ -7,6 +7,8 @@ import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
 import { mustChangePassword } from "@/lib/auth/provisioned";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { isE164 } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +55,15 @@ export default function NewPassword() {
   // The policy needs to know who this is, so it can refuse a password made of their own
   // name or address. The recovery session already carries both.
   const [identity, setIdentity] = useState<{ email?: string | null; fullName?: string | null }>({});
+  /**
+   * The client's own number, shown to them on the invited path only.
+   *
+   * Their contractor supplied one when creating the account, which is what makes
+   * WhatsApp work from the first message. This is the client's chance to correct it —
+   * it is their phone, and the contractor may have typed it from memory. Prefilled,
+   * so leaving it alone keeps what is already on file.
+   */
+  const [phone, setPhone] = useState('');
 
   // Resolved while they type, so the confirmation screen's button goes somewhere the
   // instant it is pressed rather than pausing on an RPC after the work is already done.
@@ -77,6 +88,11 @@ export default function NewPassword() {
         email:    session?.user?.email ?? null,
         fullName: (session?.user?.user_metadata?.full_name as string | undefined) ?? null,
       });
+      if (session?.user?.id) {
+        const { data: prof } = await supabase
+          .from('profiles').select('phone').eq('id', session.user.id).maybeSingle();
+        if (!cancelled && prof?.phone) setPhone(prof.phone as string);
+      }
       setOnboardingComplete(!!session?.user?.user_metadata?.onboarding_complete);
       setReady(true);
       if (session) {
@@ -108,6 +124,17 @@ export default function NewPassword() {
     setSubmitting(true);
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) { setSubmitting(false); setError(updateError.message); return; }
+
+    // Their corrected number, if they changed it. Best-effort on purpose: a failure
+    // here must not cost them the password they just set, which is the whole reason
+    // they are on this page. The number the contractor gave stays on file either way.
+    if (invitedClient && isE164(phone)) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        await supabase.from('profiles').update({ phone }).eq('id', user.id).then(
+          r => { if (r.error) console.error('[new-password] phone not saved:', r.error.message); });
+      }
+    }
 
     // Record that a password now exists. Supabase's own signal (an `email` identity)
     // is not reliably added when an OAuth account sets one, and hasPassword() reads both.
@@ -239,6 +266,17 @@ export default function NewPassword() {
               id="email" type="email" autoComplete="username"
               value={identity.email ?? ''} readOnly
             />
+          </div>
+        )}
+
+        {/* Only on the invited path. Their contractor gave us a number so WhatsApp
+            works from the first message; this is the client's chance to correct it,
+            since it is their phone and the contractor may have typed it from memory. */}
+        {mode === 'invite' && (
+          <div className="space-y-1.5">
+            <Label htmlFor="client-phone">{t('auth.newPassword.phone')}</Label>
+            <PhoneField id="client-phone" value={phone} onChange={setPhone} />
+            <p className="text-xs text-brand-mid-grey">{t('auth.newPassword.phoneHint')}</p>
           </div>
         )}
         <div className="space-y-1.5">

@@ -135,6 +135,21 @@ class RouteDriver implements DriverState {
     this.render();
   }
   /**
+   * Fill the client's phone.
+   *
+   * PhoneField is a component, and this renderer records components as elements
+   * rather than calling them — so `change()` cannot reach the input inside it. The
+   * callback is read off the element's props, the same way `wizard()` reads
+   * persistenceKey.
+   */
+  setPhone(value: string) {
+    const field = this.find(element => element.props.id === 'clientPhone'
+      && typeof element.props.onChange === 'function');
+    (field.props.onChange as (v: string) => void)(value);
+    this.render();
+  }
+
+  /**
    * Answer the architecture-plan question that now precedes the wizard.
    *
    * Reads the callback off the element, the same way `wizard()` reads persistenceKey:
@@ -205,10 +220,11 @@ describe('contractor client onboarding route resume', () => {
     const first = await mount();
     first.change('clientName', clientA.fullName);
     first.change('clientEmail', clientA.email);
+    first.setPhone('+237670000001');
     await first.submit();
     first.render();
     expect(text(first.tree)).toContain('contractorClient.continueToWizard');
-    expect(h.invite).toHaveBeenCalledExactlyOnceWith(clientA.fullName, clientA.email);
+    expect(h.invite).toHaveBeenCalledExactlyOnceWith(clientA.fullName, clientA.email, '+237670000001');
     expect(readClientOnboardingDraft(h.actor)?.phase).toBe('confirmation');
 
     first.unmount();
@@ -313,6 +329,7 @@ describe('contractor client onboarding route resume', () => {
     const route = await mount();
     route.change('clientName', clientA.fullName);
     route.change('clientEmail', clientA.email);
+    route.setPhone('+237670000001');
     const pending = route.submit();
     h.actor = 'contractor-b';
     route.render();

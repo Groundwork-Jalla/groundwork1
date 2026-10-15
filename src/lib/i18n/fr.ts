@@ -4257,6 +4257,8 @@ export const fr: Mirror<EnDict> = {
       cancel:     'Annuler et se déconnecter',
     },
     newPassword: {
+      phone:     'Votre num\u00e9ro de t\u00e9l\u00e9phone',
+      phoneHint: 'Par o\u00f9 Groundwork vous joint sur WhatsApp au sujet de votre chantier. Votre entrepreneur nous l\u2019a communiqu\u00e9 \u2014 corrigez-le si besoin.',
       title:        'Définir un nouveau mot de passe',
       subtitle:     "Choisissez un mot de passe que vous n'avez pas déjà utilisé ici.",
       password:     'Nouveau mot de passe',
@@ -4829,6 +4831,13 @@ export const fr: Mirror<EnDict> = {
       },
     },
     chat: {
+      channels: 'Où l’on peut vous joindre',
+      channel: {
+        jalla:    'Groundwork',
+        whatsapp: 'WhatsApp',
+        email:    'E-mail',
+        call:     'Appel',
+      },
       messagePlaceholder: 'Message…',
       emptyTitle: 'Aucun message',
       emptyBody:  'Démarrez une conversation à propos de votre projet.',

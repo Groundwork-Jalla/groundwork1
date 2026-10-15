@@ -4332,6 +4332,8 @@ export const en = {
       cancel:     'Cancel and sign out',
     },
     newPassword: {
+      phone:     'Your phone number',
+      phoneHint: 'How Groundwork reaches you on WhatsApp about your build. Your contractor gave us this \u2014 change it if it is not right.',
       title:        'Set a new password',
       subtitle:     'Choose a password you have not used here before.',
       password:     'New password',
@@ -4924,6 +4926,13 @@ export const en = {
       },
     },
     chat: {
+      channels: 'Where you can be reached',
+      channel: {
+        jalla:    'Groundwork',
+        whatsapp: 'WhatsApp',
+        email:    'Email',
+        call:     'Call',
+      },
       messagePlaceholder: 'Message…',
       emptyTitle: 'No messages yet',
       emptyBody:  'Start a conversation about your project.',

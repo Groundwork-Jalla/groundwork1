@@ -93,6 +93,36 @@ export async function listConversations(filter: { projectId?: string; status?: C
   return { rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(rowToConversation), available: true };
 }
 
+/**
+ * Every thread this person is a party to, whatever its channel and whether or not it
+ * is linked to a project.
+ *
+ * ── Why this exists ─────────────────────────────────────────────────────────────────
+ * `project-whatsapp` deliberately never sets `conversations.project_id`: a WhatsApp
+ * chat belongs to the PERSON, and the project is only where the admin happened to
+ * click. The consequence, found in testing, is that a member screen filtering by
+ * project could not see a WhatsApp message at all — staff wrote to a client and a
+ * contractor, and neither of them had anywhere to read it.
+ *
+ * So the member's Messages view asks for both: the project's own thread, and the
+ * threads that are theirs. RLS already permits exactly this (`person_read_conversations`,
+ * 091 — `person_id = auth.uid()`), so nothing here widens what anybody may read.
+ */
+export async function listMyConversations(): Promise<{ rows: Conversation[]; available: boolean }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { rows: [], available: true };
+
+  const { data, error } = await supabase
+    .from('conversations').select(CONV_COLUMNS)
+    .eq('person_id', user.id)
+    .order('last_message_at', { ascending: false, nullsFirst: false });
+  if (error) {
+    if (isMissingTable(error)) return { rows: [], available: false };
+    throw error;
+  }
+  return { rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(rowToConversation), available: true };
+}
+
 /** The project's platform thread, created if it has none. Member or staff. */
 export async function ensureProjectConversation(projectId: string): Promise<string> {
   const { data, error } = await supabase.rpc('ensure_project_conversation', { p_project: projectId });
