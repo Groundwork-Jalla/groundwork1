@@ -10,6 +10,7 @@ import { postAuthPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
+import { INVITED_PASSWORD_PATH, passwordSetupPathForLink } from "@/lib/auth/password-setup-link";
 import { signupIntentOf } from "@/lib/auth/signup-account";
 import { acceptProjectViewer, takeRememberedShare } from "@/lib/supabase/project-viewers";
 import { googleWithoutPassword, passwordPromptDismissed, syncEmailChangeToCrm } from "@/lib/auth/account-security";
@@ -88,6 +89,9 @@ export default function AuthCallback() {
   // a spent reset and a spent signup are indistinguishable — which is how a password
   // reset came to offer "confirm your email" and land on the signup page.
   const [pending] = useState(() => readEmailRequest());
+  // Retain invite/recovery intent while Supabase consumes the URL and while MFA runs.
+  const [passwordSetupPath] = useState(() => typeof window === 'undefined' ? null
+    : passwordSetupPathForLink(window.location.search, window.location.hash, pending?.flow));
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
   // Google sign-in lands here rather than on /auth/login, so without this the OAuth
   // button would be a way straight past a second factor the account has enabled.
@@ -150,7 +154,11 @@ export default function AuthCallback() {
         const { data, error: otpError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash, type,
         });
-        if (otpError) { setError(otpError.message); return; }
+        if (otpError) {
+          setError(otpError.message);
+          setExpired(otpError.code === 'otp_expired');
+          return;
+        }
         session = data.session;
       } else if (hasCode) {
         session = await waitForSession();
@@ -195,7 +203,7 @@ export default function AuthCallback() {
       await continueAfterAuth(session);
     }
 
-    run();
+    void run().catch(() => setError(t('errors.generic')));
   }, [navigate, t]);
 
   /**
@@ -231,21 +239,12 @@ export default function AuthCallback() {
     if (params.get('type') === 'email_change' || params.get('flow') === 'email_change') {
       void syncEmailChangeToCrm();
     }
-    const isRecovery =
-      params.get("type") === 'recovery'
-      || params.get("flow") === 'recovery'
-      || readEmailRequest()?.flow === 'recovery';
-
-    // A recovery link proves control of the mailbox, not knowledge of the password —
-    // so it must end at "set a new one", never at the dashboard. Routing it like a
-    // normal sign-in is what made "Forgot password?" silently a no-op.
-    //
-    // Cleared here rather than in new-password.tsx: the remembered request is one of the
-    // signals above, so leaving it set would send this browser's NEXT sign-up
-    // confirmation to the password form too.
-    if (isRecovery) {
+    // Invited clients have no shared password: they must choose their own before app
+    // access. Recovery links likewise end at the password form after MFA. Clear the
+    // remembered request so it cannot affect the browser's next confirmation link.
+    if (passwordSetupPath) {
       forgetEmailRequest();
-      navigate("/auth/new-password", { replace: true });
+      navigate(passwordSetupPath, { replace: true });
       return;
     }
 
@@ -409,7 +408,7 @@ export default function AuthCallback() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate('/auth/login', { replace: true }); return; }
     setMfaFactor('none');
-    await continueAfterAuth(session);
+    await continueAfterAuth(session).catch(() => setError(t('errors.generic')));
   }
 
   if (mfaFactor !== 'none') {
@@ -428,13 +427,13 @@ export default function AuthCallback() {
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">
           {t('auth.callback.errorTitle')}
         </h1>
-        <p className="text-sm text-brand-mid-grey mt-2">{error}</p>
+        <p className="text-sm text-brand-mid-grey mt-2">{expired ? t('auth.callback.expired') : error}</p>
         <div className="mt-6 flex flex-col items-center gap-3">
           {/* A spent link used to leave only "Back to login", which is a dead end: they
               cannot log in until the link's job is done. Resend for real where we know
               the address, and send them to the right form where we do not — never to
               signup for someone who was resetting a password. */}
-          {pending && resend !== 'sent' && (
+          {pending && passwordSetupPath !== INVITED_PASSWORD_PATH && resend !== 'sent' && (
             <button
               type="button"
               disabled={resend === 'sending'}
@@ -454,6 +453,14 @@ export default function AuthCallback() {
           )}
           {resend === 'failed' && (
             <p className="text-sm text-state-alert">{t('auth.callback.resendFailed')}</p>
+          )}
+          {(passwordSetupPath || (expired && !pending)) && (
+            <Link
+              to="/auth/reset-password"
+              className="text-sm font-medium text-brand-near-black underline underline-offset-4"
+            >
+              {t('auth.newPassword.requestNew')}
+            </Link>
           )}
           <Link
             to="/auth/login"

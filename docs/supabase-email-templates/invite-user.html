@@ -1,0 +1,58 @@
+<!--
+  Supabase → Authentication → Email Templates → Invite user
+  Subject: Set up your Groundwork account
+  Paste this whole file into the Body field (Source view).
+
+  type=invite sends the recipient to password setup. The token_hash link works on the
+  client's device without the PKCE verifier from the contractor's browser. Keep the
+  token out of contractor-facing responses, project fields and application logs.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow:hidden;">
+      <tr>
+        <td style="background:#1a1a1a;padding:24px 32px;">
+          <p style="margin:0;font-size:18px;font-weight:700;color:#fff;">Groundwork</p>
+          <p style="margin:2px 0 0;font-size:10px;color:#ccc;">by Jalla</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:32px;">
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:800;color:#0a0a0a;">
+            Choose your own password
+          </h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#555;line-height:1.6;">
+            {{ if .Data.client_invited_by_contractor }}
+            Your contractor has created your Groundwork account so they can set up your
+            project. Your project will belong to this account.
+            {{ else }}
+            An account has been created for you on Groundwork.
+            {{ end }}
+          </p>
+          <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
+            Use the button below to set and confirm a password before accessing your
+            account. Your email address will already be filled in. Only you choose your
+            password; it is never shared with your contractor.
+          </p>
+          <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            <tr><td style="background:#1a1a1a;border-radius:8px;">
+              <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=invite"
+                 style="display:inline-block;padding:13px 28px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;">
+                Set your password &rarr;
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:12px;color:#888;line-height:1.6;">
+            This link can be used once and expires. If you were not expecting an account,
+            you can ignore this email.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 32px;border-top:1px solid #f0f0f0;">
+          <p style="margin:0;font-size:11px;color:#999;">Groundwork by Jalla</p>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>

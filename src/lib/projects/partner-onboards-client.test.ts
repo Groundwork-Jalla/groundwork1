@@ -62,35 +62,24 @@ describe('the right is scoped to clients they actually brought', () => {
   });
 });
 
-describe('the temporary password is bounded, not just handed over', () => {
-  /**
-   * The contractor IS shown a one-time password now — the same as /admin/users/new,
-   * because a partner onboards a client sitting next to them. That means they briefly
-   * hold a working credential for somebody else's account, and these are the two things
-   * that keep the window to one handover.
-   */
-
-  it('arms both first-sign-in gates before the client ever touches the account', () => {
-    // must_change_password is cleared only by a database trigger when the hash actually
-    // changes (083), so the contractor's copy dies the moment the client signs in. Email
-    // MFA means the password alone was never enough anyway.
+describe('the client alone sets their password from an email link', () => {
+  it('arms both first-sign-in gates before sending the invitation', () => {
+    // The invitation proves ownership of the inbox, while the database password gate
+    // still refuses account access until the client chooses their own password.
     expect(handler).toMatch(/must_change_password:\s*true/);
     expect(handler).toMatch(/email_mfa_enabled:\s*true/);
-    // Set BEFORE the password is handed back, not after.
     const armed = handler.indexOf('must_change_password');
-    const handed = handler.indexOf('res.status(200).json(');
+    const invited = handler.indexOf('auth.admin.inviteUserByEmail(');
     expect(armed).toBeGreaterThan(-1);
-    expect(handed).toBeGreaterThan(armed);
+    expect(invited).toBeGreaterThan(armed);
   });
 
   it('rolls the account back if those gates cannot be set', () => {
-    // An account that exists but is not marked would let the temporary password stand
-    // indefinitely — the one thing that makes handing it over acceptable.
     expect(handler).toMatch(/profErr[\s\S]{0,300}?deleteUser\(clientId\)/);
   });
 
   it('refuses an address that already has an account', () => {
-    // A fresh password for somebody else's existing account is a takeover with a nice UI.
+    // Knowing an existing user's address must not grant authority over their projects.
     expect(handler).toMatch(/ilike\('email', email\)/);
     expect(handler).toMatch(/client_exists/);
     const refuse = handler.indexOf('client_exists');
@@ -111,46 +100,51 @@ describe('the temporary password is bounded, not just handed over', () => {
     expect(handler).toMatch(/res\.status\(404\)\.json\(\{ error: 'Not found' \}\)/);
   });
 
-  it('returns the password once and never stores it', () => {
-    // One response body, and nothing on the browser side keeps it.
-    expect(handler).toMatch(/res\.status\(200\)\.json\(\{ clientId, email, password \}\)/);
+  it('returns account identity only, without creating or storing a contractor-known password', () => {
+    expect(handler).toMatch(/res\.status\(200\)\.json\(\{ clientId, email \}\)/);
+    expect(handler).not.toMatch(/generateTemporaryPassword|\bpassword\s*[,=:]/);
     const lib = read('src/lib/supabase/contractor-clients.ts');
     expect(lib).not.toMatch(/localStorage|sessionStorage/);
+    expect(lib).not.toMatch(/\bpassword\s*:/);
     expect(page).not.toMatch(/localStorage|sessionStorage/);
+    expect(page).not.toMatch(/setPassword|type="password"|\.password\b/);
   });
 
-  it('hands the credentials over BEFORE the wizard, and clears them to continue', () => {
-    // The password is on screen exactly once; moving on to the wizard drops it.
-    expect(page).toMatch(/if \(client && password\)/);
-    expect(page).toMatch(/setPassword\(null\)/);
-    const handover = page.indexOf('if (client && password)');
+  it('confirms the invitation BEFORE continuing to the existing project wizard', () => {
+    expect(page).toMatch(/if \(client && showConfirmation\)/);
+    expect(page).toMatch(/setShowConfirmation\(false\)/);
+    expect(page).toMatch(/contractorClient\.emailSentTo/);
+    const confirmation = page.indexOf('if (client && showConfirmation)');
     const wizard = page.indexOf('<WizardProvider');
-    expect(handover).toBeGreaterThan(-1);
-    expect(wizard).toBeGreaterThan(handover);
+    expect(confirmation).toBeGreaterThan(-1);
+    expect(wizard).toBeGreaterThan(confirmation);
   });
 
-  it('neither language still promises an email, in any string', () => {
-    // French drifted exactly here: its subtitle promised the client would receive an
-    // email to choose a password "que vous ne voyez jamais" — the direct opposite of
-    // this flow, in the one language most of these contractors actually read.
+  it('both languages explain the invitation and keep the password private to the client', () => {
     for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
       const all = read(f);
       const block = all.slice(all.indexOf('  contractorClient: {'));
       const copy = block.slice(0, block.indexOf('\n  },'));
-      expect(copy, `${f}: says an invitation is sent`).not.toMatch(/invitation (was|n\u2019a)/i);
-      expect(copy, `${f}: says the contractor never sees the password`)
-        .not.toMatch(/ne voyez jamais|you never see/i);
-      expect(copy, `${f}: still sends a link or an email to set a password`)
-        .not.toMatch(/re\u00e7oit un e-mail pour choisir|email to choose (a|their own) password/i);
+      expect(copy, `${f}: missing setup email explanation`).toMatch(/invitationBody:/);
+      expect(copy, `${f}: missing privacy explanation`).toMatch(/passwordPrivacy:/);
+      expect(copy, `${f}: still offers a temporary password`).not.toMatch(/temporary password|mot de passe temporaire/i);
     }
   });
 
-  it('tells the contractor the password expires at first sign-in', () => {
+  it('tells the contractor the client must choose a password before account access', () => {
     const en = read('src/lib/i18n/en.ts');
     const block = en.slice(en.indexOf('  contractorClient: {'));
     const copy = block.slice(0, block.indexOf('\n  },'));
-    expect(copy).toMatch(/shown once and is not stored/);
-    expect(copy).toMatch(/stops working at that moment/);
+    expect(copy).toMatch(/secure link/);
+    expect(copy).toMatch(/create their own password before they can access their account/);
+    expect(copy).toMatch(/Only your client chooses and knows their password/);
+  });
+
+  it('the invite email opens password setup on the client device using a token hash', () => {
+    const template = read('docs/supabase-email-templates/invite-user.html');
+    expect(template).toContain('/auth/callback?token_hash={{ .TokenHash }}&amp;type=invite');
+    expect(template).toMatch(/Set your password/);
+    expect(template).not.toContain('{{ .Token }}');
   });
 });
 

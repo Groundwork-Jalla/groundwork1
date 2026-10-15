@@ -1,39 +1,26 @@
-import { randomInt } from 'node:crypto';
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
-import { generateTemporaryPassword } from '../../src/lib/auth/temp-password.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
+import { siteUrl } from '../../src/lib/site-url.js';
 
 /**
  * A partner contractor brings their own client onto Groundwork (109).
  *
- * ── A temporary password, the same as /admin/users/new ──────────────────────────────
- * The contractor is shown a one-time password to hand over, because that is how a client
- * is onboarded in person: the partner is sitting with them, and waiting on an email they
- * may not be able to open is the friction this is meant to remove.
+ * The account must exist before the project can have an owner. That does not entitle
+ * the contractor to a credential for it: only the client's inbox receives the invitation,
+ * and the client chooses their own password before entering the app.
  *
- * It does mean the contractor briefly holds a working credential for somebody else's
- * account. Two things bound that window, and both are load-bearing:
+ * Reserve a NEW, unconfirmed account without choosing a password, arm the first-sign-in
+ * gates and record the contractor link, then send the email. Sending last means even a
+ * client who opens it immediately cannot enter before the password gate is in place.
  *
- *   · `must_change_password` is set here and cleared only by a database trigger when the
- *     password hash actually changes (083). The client cannot get past it, and the
- *     moment they do the contractor's copy stops working.
- *   · `email_mfa_enabled` is set before the client has ever touched the account, so the
- *     first sign-in also needs a code sent to their inbox. Holding the password alone
- *     is not enough to sign in as them.
+ * `createUser` refuses duplicates, including a racing registration. Starting with
+ * `inviteUserByEmail` or `generateLink` instead could reuse an existing unconfirmed
+ * account and wrongly claim that this contractor created it (110).
  *
- * The password is drawn here, returned in exactly one response, and never stored.
- *
- * ── Why the server and not an RPC ────────────────────────────────────────────────────
- * Creating an auth user needs the service role, which a browser must never hold. The
- * contractor check runs AS THE CALLER first, so the service role is only ever reached by
- * somebody the database already agrees is a contractor.
- *
- * ── Already has an account ───────────────────────────────────────────────────────────
- * Refused, with `client_exists`. Drawing a fresh password for an address that already has
- * an account would hand the contractor a working credential for somebody else's — an
- * account takeover with a nice UI. A client who is already on Groundwork brings a
- * contractor on the way that always existed: they invite them from inside their project.
- * 110 enforces the same rule in the database.
+ * Existing accounts are refused with `client_exists`: their owner invites a contractor
+ * from inside their own project. No password, session or invitation token is returned
+ * to the caller. The guarded `must_change_password` flag clears only when the password
+ * hash actually changes (083); login, callback and the app shell all enforce it.
  */
 
 function str(v: unknown, max: number): string {
@@ -89,28 +76,23 @@ export async function handler(req: any, res: any): Promise<void> {
     res.status(400).json({ error: 'self_invite' }); return;
   }
 
-  // ── An address that already has an account is refused ──
-  //
-  // Handing a contractor a fresh password for somebody else's existing account would be
-  // an account takeover with a nice UI. A client who is already on Groundwork brings a
-  // contractor on the way that already existed: they invite them from inside their own
-  // project.
-  //
-  // 110 enforces the same rule in the database, because this file is one deploy away
-  // from being wrong again.
-  const { data: existing } = await admin
+  // Do not attach somebody else's existing account to this contractor (110).
+  const { data: existing, error: lookupErr } = await admin
     .from('profiles').select('id').ilike('email', email).maybeSingle();
+  if (lookupErr) {
+    console.error('[invite-client] account lookup failed:', lookupErr.message);
+    res.status(500).json({ error: 'create_failed' }); return;
+  }
   if (existing?.id) { res.status(409).json({ error: 'client_exists' }); return; }
-
-  const password = generateTemporaryPassword(max => randomInt(0, max), { email, fullName });
 
   const { data: made, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
-    // The inbox is proven by the email second factor at first sign-in, not by a link.
-    email_confirm: true,
+    // No chosen or shared password; Supabase keeps any internal credential private.
+    // Only following the invitation proves ownership of this address.
+    email_confirm: false,
     user_metadata: {
       full_name: fullName,
+      client_invited_by_contractor: true,
       // Their plan is chosen in the wizard that follows, not assumed here.
       onboarding_complete: true,
     },
@@ -123,8 +105,7 @@ export async function handler(req: any, res: any): Promise<void> {
   }
   const clientId = made.user.id;
 
-  // Both first-sign-in gates armed before the client has ever touched the account. These
-  // columns are guarded (083) and only land under the service role.
+  // These guarded columns (083) must be in place BEFORE the invitation is sent.
   const { error: profErr } = await admin
     .from('profiles')
     .update({
@@ -135,9 +116,6 @@ export async function handler(req: any, res: any): Promise<void> {
     })
     .eq('id', clientId);
   if (profErr) {
-    // An account that exists but is not marked would let the temporary password stand
-    // indefinitely — the one thing that makes handing it over acceptable. Remove it
-    // rather than hand back a half-made account.
     console.error('[invite-client] profile update failed, rolling back:', profErr.message);
     await admin.auth.admin.deleteUser(clientId);
     res.status(500).json({ error: 'create_failed' });
@@ -153,15 +131,27 @@ export async function handler(req: any, res: any): Promise<void> {
             { onConflict: 'contractor_id,client_id' });
 
   if (linkErr) {
-    // Without the link the wizard's insert is refused by RLS (109), so a half-done state
-    // here is worse than a clear failure. Nobody has signed in to this account yet — the
-    // password has not left the server — so removing it strands no owner.
+    // Without the link the wizard's insert is refused by RLS (109). No invitation has
+    // been sent yet, so the incomplete account can be removed safely.
     console.error('[invite-client] could not record the client link:', linkErr.message);
     await admin.auth.admin.deleteUser(clientId);
     res.status(500).json({ error: 'link_failed' });
     return;
   }
 
-  // The password appears in exactly one place: this response body.
-  res.status(200).json({ clientId, email, password });
+  // Supabase sends the single-use link directly to the client. This accepts the reserved,
+  // unconfirmed account; it does not replace a password or issue one to the contractor.
+  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl()}/auth/callback?flow=client-invite`,
+  });
+  if (inviteErr || invited?.user?.id !== clientId) {
+    console.error('[invite-client] invitation failed:', inviteErr?.message ?? 'unexpected user');
+    // There is no project yet. Removing the new account also removes its link, allowing
+    // a fresh attempt instead of stranding an account whose owner received no email.
+    await admin.auth.admin.deleteUser(clientId);
+    res.status(500).json({ error: 'invite_failed' });
+    return;
+  }
+
+  res.status(200).json({ clientId, email });
 }

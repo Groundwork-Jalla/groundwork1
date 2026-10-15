@@ -53,9 +53,16 @@ export default function Login() {
     // A provisioned account signs in with a password an admin knows. Nothing else —
     // not an invite, not the dashboard — happens until that password is replaced.
     const { data: { session: current } } = await supabase.auth.getSession();
-    if (current && await mustChangePassword(current.user.id)) {
-      navigate(FORCED_PASSWORD_PATH, { replace: true });
-      return;
+    if (current) {
+      try {
+        if (await mustChangePassword(current.user.id)) {
+          navigate(FORCED_PASSWORD_PATH, { replace: true });
+          return;
+        }
+      } catch {
+        setError(t('errors.generic'));
+        return;
+      }
     }
 
     // Process any pending invite (from URL param or localStorage)

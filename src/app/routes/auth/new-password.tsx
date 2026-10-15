@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { PASSWORD_SET_MARKER, dismissPasswordPrompt } from "@/lib/auth/account-security";
+import { mustChangePassword } from "@/lib/auth/provisioned";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,8 @@ export default function NewPassword() {
   // `?reason=google`: a Google account adding its first password. Not a reset — nothing
   // is being replaced — and not compulsory: "Not now" goes on into the app.
   const addingPassword = searchParams.get('reason') === 'google';
-  const mode = firstSignIn ? 'first' : addingPassword ? 'google' : 'reset';
+  const [invitedClient, setInvitedClient] = useState(searchParams.get('reason') === 'client-invite');
+  const mode = invitedClient ? 'invite' : firstSignIn ? 'first' : addingPassword ? 'google' : 'reset';
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [ready, setReady] = useState(false);
@@ -64,6 +66,13 @@ export default function NewPassword() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (cancelled) return;
       setNoSession(!session);
+      // The durable marker keeps the first-password wording when a shell gate, a fresh
+      // recovery link, or a browser with no invitation URL brings the client here.
+      if (session?.user?.user_metadata?.client_invited_by_contractor === true
+        && (firstSignIn || await mustChangePassword(session.user.id).catch(() => false))) {
+        if (cancelled) return;
+        setInvitedClient(true);
+      }
       setIdentity({
         email:    session?.user?.email ?? null,
         fullName: (session?.user?.user_metadata?.full_name as string | undefined) ?? null,
@@ -81,7 +90,7 @@ export default function NewPassword() {
       }
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [firstSignIn]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,8 +127,8 @@ export default function NewPassword() {
     // is non-fatal — the password IS changed by this point, and blocking on the cleanup
     // would leave them staring at an error for something that succeeded.
     try {
-      await supabase.auth.signOut({ scope: 'others' });
-      setOthersSignedOut(true);
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'others' });
+      setOthersSignedOut(!signOutError);
     } catch {
       /* Best-effort. The new password already holds — we just do not claim otherwise. */
     }
@@ -167,16 +176,17 @@ export default function NewPassword() {
           <ShieldCheck className="size-5 text-brand-near-black" />
         </div>
         <h1 className="font-sans text-2xl font-bold text-brand-near-black">
-          {t('auth.newPassword.doneTitle')}
+          {t(mode === 'invite' ? 'auth.newPassword.inviteDoneTitle' : 'auth.newPassword.doneTitle')}
         </h1>
         <p className="mt-2 text-sm text-brand-mid-grey">
-          {t(mode === 'first' ? 'auth.newPassword.firstDoneBody'
+          {t(mode === 'invite' ? 'auth.newPassword.inviteDoneBody'
+            : mode === 'first' ? 'auth.newPassword.firstDoneBody'
             : mode === 'google' ? 'auth.newPassword.googleDoneBody'
             : 'auth.newPassword.doneBody')}
         </p>
 
         {/* Only claimed when it actually happened — see the catch in handleSubmit. */}
-        {othersSignedOut && (
+        {othersSignedOut && mode !== 'invite' && (
           <p className="mx-auto mt-4 max-w-sm rounded-md bg-brand-light-grey px-3 py-2 text-xs leading-relaxed text-brand-near-black">
             {t('auth.newPassword.doneSessions')}
           </p>
@@ -209,17 +219,28 @@ export default function NewPassword() {
   return (
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-        {t(mode === 'first' ? 'auth.newPassword.firstTitle'
+        {t(mode === 'invite' ? 'auth.newPassword.inviteTitle'
+          : mode === 'first' ? 'auth.newPassword.firstTitle'
           : mode === 'google' ? 'auth.newPassword.googleTitle'
           : 'auth.newPassword.title')}
       </h1>
       <p className="text-sm text-brand-mid-grey mt-2">
-        {t(mode === 'first' ? 'auth.newPassword.firstSubtitle'
+        {t(mode === 'invite' ? 'auth.newPassword.inviteSubtitle'
+          : mode === 'first' ? 'auth.newPassword.firstSubtitle'
           : mode === 'google' ? 'auth.newPassword.googleSubtitle'
           : 'auth.newPassword.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
+        {mode === 'invite' && (
+          <div className="space-y-1.5">
+            <Label htmlFor="email">{t('auth.newPassword.email')}</Label>
+            <Input
+              id="email" type="email" autoComplete="username"
+              value={identity.email ?? ''} readOnly
+            />
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('auth.newPassword.password')}</Label>
           <Input
@@ -249,6 +270,7 @@ export default function NewPassword() {
 
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? t('auth.newPassword.submitting')
+            : mode === 'invite' ? t('auth.newPassword.inviteSubmit')
             : mode === 'google' ? t('auth.newPassword.googleSubmit')
             : t('auth.newPassword.submit')}
         </Button>

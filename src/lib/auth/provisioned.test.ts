@@ -98,6 +98,7 @@ describe('the forced password change cannot be walked around', () => {
     'src/app/routes/auth/login.tsx',      // password sign-in
     'src/app/routes/auth/callback.tsx',   // magic link / OAuth / invite
     'src/app/routes/_layout.tsx',         // typing /dashboard into the bar
+    'src/app/routes/projects/new.tsx',    // full-screen wizard outside the client shell
   ];
 
   it.each(ENTRY_POINTS)('%s checks must_change_password and sends to the password form', path => {
