@@ -7,6 +7,10 @@ const migration = readFileSync(
   join(ROOT, 'supabase/migrations/119_contractor_project_setup_reads.sql'),
   'utf8',
 );
+const insertReturningFix = readFileSync(
+  join(ROOT, 'supabase/migrations/120_contractor_project_insert_returning.sql'),
+  'utf8',
+);
 const projects = readFileSync(join(ROOT, 'src/lib/supabase/projects.ts'), 'utf8');
 
 describe('contractor-created client project setup reads', () => {
@@ -25,5 +29,12 @@ describe('contractor-created client project setup reads', () => {
     );
     expect(projects).toMatch(/\.from\('projects'\)[\s\S]*?\.insert\([\s\S]*?\.select\(\)\s*\.single/);
     expect(projects).toMatch(/\.from\('project_stages'\)[\s\S]*?\.insert\([\s\S]*?\.select\(\)/);
+  });
+
+  it('checks the inserted project row directly instead of re-querying it in its SELECT policy', () => {
+    expect(insertReturningFix).toMatch(/created_by = auth\.uid\(\)/);
+    expect(insertReturningFix).toMatch(/tracking_started_at IS NULL/);
+    expect(insertReturningFix).toMatch(/public\.is_my_client\(user_id\)/);
+    expect(insertReturningFix).not.toMatch(/public\.is_my_clients_project/);
   });
 });
