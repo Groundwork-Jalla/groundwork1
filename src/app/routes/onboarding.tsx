@@ -27,6 +27,7 @@ function WelcomeStep({
   needPhone,
   phone,
   onPhone,
+  country,
   problem,
   onStart,
 }: {
@@ -35,6 +36,8 @@ function WelcomeStep({
   needPhone: boolean;
   phone: string;
   onPhone: (v: string) => void;
+  /** The project's build country, when one is known. Seeds the phone field's default. */
+  country: string | null;
   problem: string | null;
   onStart: () => void;
 }) {
@@ -167,6 +170,7 @@ export default function OnboardingPage() {
       needPhone={needPhone}
       phone={phone}
       onPhone={v => { setPhone(v); setProblem(null); }}
+      country={country}
       problem={problem}
       onStart={handleStart}
     />

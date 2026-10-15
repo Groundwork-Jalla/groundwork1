@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { addPayoutDestination } from '@/lib/supabase/payout-destinations';
-import { banksFor } from '@/lib/payments/banks';
+import { banksFor, PAYOUT_COUNTRY_CODES } from '@/lib/payments/banks';
 import type { PayoutMethod } from '@/lib/payments/payout-destination';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
-import { normalisePhone, isE164 } from '@/lib/phone';
+import { DIAL_COUNTRIES, isE164 } from '@/lib/phone';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -38,7 +39,13 @@ export function PayoutDialog({ onSaved, onClose }: {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
-  const country = DEFAULT_COUNTRY_CODE;
+  // Only corridors we can actually pay into. Today that is Cameroon alone; the list is
+  // derived from the bank table so opening a corridor is one edit there.
+  const payoutCountries = DIAL_COUNTRIES.filter(c => PAYOUT_COUNTRY_CODES.includes(c.code));
+  const [country, setCountry] = useState(
+    () => (PAYOUT_COUNTRY_CODES.includes(DEFAULT_COUNTRY_CODE)
+      ? DEFAULT_COUNTRY_CODE
+      : (PAYOUT_COUNTRY_CODES[0] ?? DEFAULT_COUNTRY_CODE)));
   const banks = banksFor(country);
 
   useEffect(() => {
@@ -50,10 +57,10 @@ export function PayoutDialog({ onSaved, onClose }: {
   }, [onClose, busy]);
 
   /** The same rules the payouts page applies, so a destination cannot differ by origin. */
-  function validate(normalisedMobile: string): string | null {
+  function validate(): string | null {
     if (method === 'mobile_money') {
       if (!mobileNo.trim()) return t('contractorPayout.needMobile');
-      if (!isE164(normalisedMobile)) return t('contractorPayout.badMobile');
+      if (!isE164(mobileNo)) return t('contractorPayout.badMobile');
     } else {
       if (!bankKey) return t('contractorPayout.needBank');
       if (!accountNumber.trim()) return t('contractorPayout.needAccount');
@@ -64,17 +71,16 @@ export function PayoutDialog({ onSaved, onClose }: {
 
   async function submit() {
     if (!user?.id) { setProblem(t('contractorOnboarding.err.not_signed_in')); return; }
-    // Normalised before validating, so "+237" is not something a contractor has to know
-    // to type. 099's CHECK refuses anything that is not E.164 outright.
-    const mobile = normalisePhone(mobileNo, country) ?? mobileNo.replace(/\s/g, '');
-    const bad = validate(mobile);
+    // PhoneField already emits E.164 for the country they chose; 099's CHECK refuses
+    // anything else outright, so it is verified rather than re-derived here.
+    const bad = validate();
     if (bad) { setProblem(bad); return; }
 
     setBusy(true); setProblem(null);
     try {
       await addPayoutDestination({
         ownerId: user.id, countryCode: country, method,
-        mobileNo: mobile,
+        mobileNo,
         bankKey, accountNumber: accountNumber.trim(), accountName: accountName.trim(),
         // The first destination is the default: there is nothing to choose between.
         makeDefault: true,
@@ -132,13 +138,19 @@ export function PayoutDialog({ onSaved, onClose }: {
           </fieldset>
 
           {method === 'mobile_money' ? (
-            <label className="block">
+            <div>
               <span className={label}>{t('contractorPayout.mobileNo')}</span>
-              <input
-                type="tel" value={mobileNo} onChange={e => setMobileNo(e.target.value)}
-                className={field} placeholder="+237 6 70 00 00 00"
+              {/* Narrowed to payout corridors, unlike an emergency contact: this number
+                  has to be on a network the provider can actually reach. The choice
+                  also becomes the destination's country_code. */}
+              <PhoneField
+                className="mt-1"
+                value={mobileNo}
+                onChange={setMobileNo}
+                countries={payoutCountries}
+                defaultCountry={country}
               />
-            </label>
+            </div>
           ) : (
             <>
               <label className="block">

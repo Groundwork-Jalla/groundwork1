@@ -51,3 +51,15 @@ export const banksFor = (countryCode: string): BankOption[] =>
 
 export const bankName = (slug: string | null | undefined): string =>
   BANKS.find(b => b.slug === slug)?.name ?? (slug ?? '');
+
+/**
+ * Countries Groundwork can actually pay into.
+ *
+ * Derived from the banks above, so adding a corridor is one edit and cannot be half
+ * done. This is NOT the list a phone field offers in general: an emergency contact may
+ * be anywhere, but a payout number has to be on a network the provider reaches.
+ * Offering Kenya here would promise a payment we cannot make and discover at release.
+ */
+export const PAYOUT_COUNTRY_CODES: string[] =
+  [...new Set(BANKS.map(b => b.countryCode))];
+
