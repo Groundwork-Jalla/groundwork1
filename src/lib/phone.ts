@@ -127,3 +127,104 @@ export function isE164(value: string | null | undefined): boolean {
   const digits = v.length - 1;
   return digits >= MIN_DIGITS && digits <= MAX_DIGITS;
 }
+
+// =========================================================
+// Dialling countries — the list a phone field offers.
+//
+// NOT `COUNTRIES` from countries.ts. That is the list of places you can BUILD, and it is
+// Africa-only for exactly that reason. A phone number is about where a handset is: a
+// contractor's next of kin may be in London, and a partner may be running their firm
+// from Paris. Offering only build countries would make those numbers unenterable.
+//
+// Derived from DIAL_CODES above so the two cannot drift — `dialCountries()` fails loudly
+// if a code here has no entry, and a test asserts the reverse.
+// =========================================================
+
+export interface DialCountry {
+  code: string;   // ISO-3166 alpha-2
+  name: string;
+  flag: string;
+  dial: string;   // without the +
+}
+
+/** Name and flag per ISO code. Every key of DIAL_CODES must appear here. */
+const DIAL_NAMES: Record<string, { name: string; flag: string }> = {
+  CM: { name: 'Cameroon',        flag: '\u{1F1E8}\u{1F1F2}' },
+  NG: { name: 'Nigeria',         flag: '\u{1F1F3}\u{1F1EC}' },
+  GH: { name: 'Ghana',           flag: '\u{1F1EC}\u{1F1ED}' },
+  SN: { name: 'Senegal',         flag: '\u{1F1F8}\u{1F1F3}' },
+  CI: { name: "C\u00f4te d\u2019Ivoire",  flag: '\u{1F1E8}\u{1F1EE}' },
+  BJ: { name: 'Benin',           flag: '\u{1F1E7}\u{1F1EF}' },
+  TG: { name: 'Togo',            flag: '\u{1F1F9}\u{1F1EC}' },
+  KE: { name: 'Kenya',           flag: '\u{1F1F0}\u{1F1EA}' },
+  UG: { name: 'Uganda',          flag: '\u{1F1FA}\u{1F1EC}' },
+  TZ: { name: 'Tanzania',        flag: '\u{1F1F9}\u{1F1FF}' },
+  RW: { name: 'Rwanda',          flag: '\u{1F1F7}\u{1F1FC}' },
+  ET: { name: 'Ethiopia',        flag: '\u{1F1EA}\u{1F1F9}' },
+  ZA: { name: 'South Africa',    flag: '\u{1F1FF}\u{1F1E6}' },
+  ZM: { name: 'Zambia',          flag: '\u{1F1FF}\u{1F1F2}' },
+  ZW: { name: 'Zimbabwe',        flag: '\u{1F1FF}\u{1F1FC}' },
+  MZ: { name: 'Mozambique',      flag: '\u{1F1F2}\u{1F1FF}' },
+  BW: { name: 'Botswana',        flag: '\u{1F1E7}\u{1F1FC}' },
+  CD: { name: 'DR Congo',        flag: '\u{1F1E8}\u{1F1E9}' },
+  CG: { name: 'Congo',           flag: '\u{1F1E8}\u{1F1EC}' },
+  GA: { name: 'Gabon',           flag: '\u{1F1EC}\u{1F1E6}' },
+  MA: { name: 'Morocco',         flag: '\u{1F1F2}\u{1F1E6}' },
+  EG: { name: 'Egypt',           flag: '\u{1F1EA}\u{1F1EC}' },
+  TN: { name: 'Tunisia',         flag: '\u{1F1F9}\u{1F1F3}' },
+  AO: { name: 'Angola',          flag: '\u{1F1E6}\u{1F1F4}' },
+  FR: { name: 'France',          flag: '\u{1F1EB}\u{1F1F7}' },
+  GB: { name: 'United Kingdom',  flag: '\u{1F1EC}\u{1F1E7}' },
+  US: { name: 'United States',   flag: '\u{1F1FA}\u{1F1F8}' },
+  CA: { name: 'Canada',          flag: '\u{1F1E8}\u{1F1E6}' },
+  BE: { name: 'Belgium',         flag: '\u{1F1E7}\u{1F1EA}' },
+  DE: { name: 'Germany',         flag: '\u{1F1E9}\u{1F1EA}' },
+  IT: { name: 'Italy',           flag: '\u{1F1EE}\u{1F1F9}' },
+  ES: { name: 'Spain',           flag: '\u{1F1EA}\u{1F1F8}' },
+  NL: { name: 'Netherlands',     flag: '\u{1F1F3}\u{1F1F1}' },
+  CH: { name: 'Switzerland',     flag: '\u{1F1E8}\u{1F1ED}' },
+};
+
+/**
+ * Every country a number may be entered for, Cameroon first and the rest alphabetical.
+ *
+ * Cameroon leads because it is the market and the default; after that, alphabetical beats
+ * any ranking we would have to justify.
+ */
+export const DIAL_COUNTRIES: DialCountry[] = Object.entries(DIAL_CODES)
+  .map(([code, dial]) => {
+    const meta = DIAL_NAMES[code];
+    if (!meta) throw new Error(`phone.ts: DIAL_CODES has ${code} but DIAL_NAMES does not`);
+    return { code, dial, name: meta.name, flag: meta.flag };
+  })
+  .sort((a, b) =>
+    a.code === 'CM' ? -1 : b.code === 'CM' ? 1 : a.name.localeCompare(b.name));
+
+export const dialCountry = (code: string): DialCountry | undefined =>
+  DIAL_COUNTRIES.find(c => c.code === code);
+
+/**
+ * Which country an E.164 number belongs to, by longest matching dialling code.
+ *
+ * Longest-first matters: +237 must not be read as +23. Where several countries share a
+ * code (+1 is both US and CA) the first is returned, which is harmless — both normalise
+ * back to the identical E.164 string.
+ */
+export function countryOfE164(value: string | null | undefined): string | undefined {
+  const v = (value ?? '').trim();
+  if (!v.startsWith('+')) return undefined;
+  const digits = v.slice(1);
+  let best: DialCountry | undefined;
+  for (const c of DIAL_COUNTRIES) {
+    if (digits.startsWith(c.dial) && (!best || c.dial.length > best.dial.length)) best = c;
+  }
+  return best?.code;
+}
+
+/** The number without its dialling code, for showing in a national-format input. */
+export function nationalPart(value: string | null | undefined, country: string): string {
+  const v = (value ?? '').trim();
+  const dial = dialCountry(country)?.dial;
+  if (!v.startsWith('+') || !dial) return v.replace(/^\+/, '');
+  return v.slice(1).startsWith(dial) ? v.slice(1 + dial.length) : v.slice(1);
+}

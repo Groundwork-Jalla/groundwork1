@@ -658,11 +658,28 @@ describe('one merged document, not two (117)', () => {
     }
   });
 
-  it('the version was bumped, because the text changed', () => {
-    // Somebody who signed 2026-10-15 signed a document without 6.7-6.9. Versioning
-    // exists so they are asked again.
-    expect(agreement).toMatch(/AGREEMENT_VERSION = '2026-10-16'/);
-    expect(fnBody('current_agreement_version')).toMatch(/'2026-10-16'/);
+  it('the version the page SHOWS is the version the database RECORDS', () => {
+    /**
+     * A cross-check, not two assertions that happen to agree today.
+     *
+     * If the document is revised and only one side is bumped, the failure is silent and
+     * nasty: a contractor reads a page headed one version while their signature is
+     * filed against another. Nothing at runtime compares these — the page renders a TS
+     * constant, the signature records whatever SQL says — so this is the only thing
+     * that would catch it.
+     */
+    const shown = /AGREEMENT_VERSION = '([^']+)'/.exec(agreement)?.[1];
+    const recorded = /WHEN 'partner_agreement' THEN '([^']+)'/
+      .exec(fnBody('current_agreement_version'))?.[1];
+
+    expect(shown, 'partner-agreement.ts has no AGREEMENT_VERSION').toBeTruthy();
+    expect(recorded, '117 names no version for partner_agreement').toBeTruthy();
+    expect(shown,
+      `the page shows ${shown} but the database records ${recorded} — bump both or neither`,
+    ).toBe(recorded);
+
+    // And it did move off 116's version, because §6.7-6.9 are new text.
+    expect(shown).not.toBe('2026-10-15');
   });
 
   it('the page shows the generated title and version, not a hardcoded pair', () => {
