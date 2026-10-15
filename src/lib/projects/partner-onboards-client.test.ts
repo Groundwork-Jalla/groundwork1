@@ -321,7 +321,9 @@ describe('110 — a link only grants when the client actually is one', () => {
     // The link may only ever claim the account was new when this handler made it.
     expect(handler).toMatch(/client_was_created: true/);
     const refuse = handler.indexOf('client_exists');
-    const link = handler.indexOf('contractor_clients');
+    // GET reads the same table to recover an unfinished client; only the POST upsert
+    // grants a new link, so the duplicate refusal must precede that write.
+    const link = handler.search(/\.from\('contractor_clients'\)\s*\.upsert\(/);
     expect(link, 'the refusal must come before the link is written').toBeGreaterThan(refuse);
   });
 

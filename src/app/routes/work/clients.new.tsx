@@ -1,10 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, Loader2, LockKeyhole, MailCheck, UserPlus } from 'lucide-react';
 import { WizardProvider, type OnBehalfOf } from '@/contexts/WizardContext';
+import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
+import { planDocuments, planSeed, wizardAlreadyStarted } from '@/lib/projects/plan-answer';
 import { ManagedWizard } from '@/app/routes/admin/projects.new';
-import { inviteMyClient, InviteClientFailed } from '@/lib/supabase/contractor-clients';
+import { fetchPendingClients, inviteMyClient, InviteClientFailed, type PendingContractorClient } from '@/lib/supabase/contractor-clients';
 import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  readClientOnboardingDraft, saveClientOnboardingDraft, clearClientOnboardingDraft,
+  clientProjectDraftKey,
+} from '@/lib/contractor/client-onboarding-draft';
+import { clearWizardDraft } from '@/lib/projects/wizard-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,15 +46,33 @@ import { useT } from '@/lib/i18n';
 
 export default function WorkNewClient() {
   const t = useT();
+  const { user } = useAuth();
+  const contractorId = user?.id;
+  const activeActor = useRef(contractorId);
+  activeActor.current = contractorId;
+  const mounted = useRef(true);
+  const inviteOperation = useRef(0);
   const [fullName, setFullName] = useState('');
   const [email, setEmail]       = useState('');
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [client, setClient]     = useState<OnBehalfOf | null>(null);
+  // null until the architecture-plan question is answered for THIS client.
+  const [planAnswer, setPlanAnswer] = useState<PlanAnswer | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [resumingClient, setResumingClient] = useState(false);
+  const [pendingClients, setPendingClients] = useState<PendingContractorClient[]>([]);
+  const [readyFor, setReadyFor] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   // null = not yet known, or 116 is not applied. Only a definite `false` refuses, so a
   // failed read never locks a partner out of a feature they have.
   const [mayOnboard, setMayOnboard] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -60,25 +86,133 @@ export default function WorkNewClient() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (!contractorId) return;
+    let alive = true;
+    setReadyFor(null);
+    setLoadFailed(false);
+    setBusy(false);
+    setError(null);
+    fetchPendingClients().then(clients => {
+      if (!alive) return;
+      setPendingClients(clients);
+      const saved = readClientOnboardingDraft(contractorId);
+      // A browser draft is a convenience, never permission to create for an account.
+      // Only restore a client the server still confirms belongs to this contractor.
+      const linked = saved?.clientId
+        ? clients.find(row => row.clientId === saved.clientId)
+        : !saved && clients.length === 1 ? clients[0] : undefined;
+      if (linked) {
+        const phase = saved?.phase === 'wizard' ? 'wizard' : 'confirmation';
+        setFullName(linked.fullName);
+        setEmail(linked.email);
+        setClient({ userId: linked.clientId, label: linked.fullName, tier: 'self_verify', by: 'partner' });
+        // Already past the question: a restored 'wizard' phase means they answered it
+        // when this client was set up. Asking again would be the product forgetting,
+        // and a different answer would contradict the draft underneath.
+        if (phase === 'wizard') setPlanAnswer({ hasPlan: false });
+        setShowConfirmation(phase === 'confirmation');
+        setResumingClient(true);
+        saveClientOnboardingDraft(contractorId, {
+          clientId: linked.clientId, fullName: linked.fullName, email: linked.email, phase,
+        });
+      } else {
+        if (saved?.clientId) {
+          clearClientOnboardingDraft(contractorId);
+          clearWizardDraft(clientProjectDraftKey(contractorId, saved.clientId));
+        }
+        setClient(null);
+        setShowConfirmation(false);
+        setResumingClient(false);
+        setFullName(saved?.phase === 'details' ? saved.fullName : '');
+        setEmail(saved?.phase === 'details' ? saved.email : '');
+      }
+      setReadyFor(contractorId);
+    }).catch(() => {
+      if (alive) setLoadFailed(true);
+    });
+    return () => { alive = false; };
+  }, [contractorId, loadAttempt]);
+
+  useEffect(() => {
+    if (!contractorId || readyFor !== contractorId || client) return;
+    saveClientOnboardingDraft(contractorId, { clientId: null, fullName, email, phase: 'details' });
+  }, [contractorId, readyFor, client, fullName, email]);
+
+  function resumeClient(row: PendingContractorClient) {
+    if (!contractorId || busy) return;
+    saveClientOnboardingDraft(contractorId, {
+      clientId: row.clientId, fullName: row.fullName, email: row.email, phase: 'wizard',
+    });
+    setFullName(row.fullName);
+    setEmail(row.email);
+    setClient({ userId: row.clientId, label: row.fullName, tier: 'self_verify', by: 'partner' });
+    // A client picked from the pending list has an account already; the question is
+    // put to them on the way into the wizard, not here.
+    setPlanAnswer(null);
+    setShowConfirmation(false);
+    setResumingClient(true);
+  }
+
+  function continueToProject() {
+    if (!contractorId || !client) return;
+    saveClientOnboardingDraft(contractorId, {
+      clientId: client.userId, fullName: client.label, email: email.trim(), phase: 'wizard',
+    });
+    setShowConfirmation(false);
+    setResumingClient(false);
+  }
+
+  function startAnotherClient() {
+    if (!contractorId) return;
+    // Keep each client's project answers; selecting them from the list restores them.
+    saveClientOnboardingDraft(contractorId, { clientId: null, fullName: '', email: '', phase: 'details' });
+    setClient(null);
+    // The architecture-plan question belongs to a client, not to the contractor. A
+    // different client gets asked again; carrying the last answer over would file the
+    // wrong person's drawings against them.
+    setPlanAnswer(null);
+    setShowConfirmation(false);
+    setResumingClient(false);
+    setFullName('');
+    setEmail('');
+  }
+
   async function invite(e: React.FormEvent) {
     e.preventDefault();
+    if (!contractorId || readyFor !== contractorId) return;
     setError(null);
     if (fullName.trim().length < 2) { setError(t('contractorClient.errName')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('contractorClient.errEmail')); return; }
 
+    const owner = contractorId;
+    const operation = ++inviteOperation.current;
+    const name = fullName.trim();
+    const address = email.trim();
+    const isCurrent = () => mounted.current && activeActor.current === owner && inviteOperation.current === operation;
     setBusy(true);
     try {
-      const { clientId } = await inviteMyClient(fullName.trim(), email.trim());
+      const { clientId } = await inviteMyClient(name, address);
+      // Save before showing Next, so leaving immediately never strands the new account.
+      saveClientOnboardingDraft(owner, {
+        clientId, fullName: name, email: address, phase: 'confirmation',
+      });
+      if (!isCurrent()) return;
+      setFullName(name);
+      setEmail(address);
+      setPendingClients(rows => [{ clientId, fullName: name, email: address, invitedAt: new Date().toISOString() }, ...rows]);
       setShowConfirmation(true);
+      setResumingClient(false);
       setClient({
         userId: clientId,
-        label: fullName.trim(),
+        label: name,
         // Contractor-created client projects are Self Verify. The fixed tier lets the
         // shared wizard skip plan selection and continue straight to the budget.
         tier: 'self_verify',
         by: 'partner',
       });
     } catch (err) {
+      if (!isCurrent()) return;
       const code = err instanceof InviteClientFailed ? err.code : '';
       setError(
         code === 'client_exists' ? t('contractorClient.errExists')
@@ -88,7 +222,7 @@ export default function WorkNewClient() {
         : t('contractorClient.errFailed'),
       );
     } finally {
-      setBusy(false);
+      if (isCurrent()) setBusy(false);
     }
   }
 
@@ -118,6 +252,21 @@ export default function WorkNewClient() {
     );
   }
 
+  if (loadFailed) {
+    return (
+      <div className="max-w-xl space-y-4 p-6 sm:p-8">
+        <p role="alert" className="text-sm text-brand-mid-grey">{t('contractorClient.resumeFailed')}</p>
+        <Button onClick={() => { setLoadFailed(false); setLoadAttempt(value => value + 1); }}>
+          {t('common.retry')}
+        </Button>
+      </div>
+    );
+  }
+
+  if (!contractorId || readyFor !== contractorId) {
+    return <p className="flex items-center gap-2 p-6 text-sm text-brand-mid-grey"><Loader2 className="size-4 animate-spin" />{t('common.loading')}</p>;
+  }
+
   if (client && showConfirmation) {
     return (
       <div className="p-6 sm:p-8">
@@ -128,28 +277,53 @@ export default function WorkNewClient() {
           <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
             {t('contractorClient.accountCreatedTitle', { name: client.label })}
           </h1>
-          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorClient.invitationBody')}</p>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t(resumingClient ? 'contractorClient.resumeAccountBody' : 'contractorClient.invitationBody')}</p>
         </header>
 
         <div className="max-w-xl rounded-2xl border border-brand-border-grey bg-white p-6 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t('contractorClient.emailSentTo')}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t(resumingClient ? 'contractorClient.email' : 'contractorClient.emailSentTo')}</p>
           <p className="mt-1 break-all text-sm text-brand-near-black dark:text-white">{email.trim()}</p>
           <p className="mt-4 rounded-xl bg-brand-off-white px-3 py-2.5 text-xs leading-relaxed text-brand-near-black dark:bg-[#111] dark:text-white">
             {t('contractorClient.passwordPrivacy')}
           </p>
         </div>
 
-        <Button onClick={() => setShowConfirmation(false)} className="mt-6">
+        <Button onClick={continueToProject} className="mt-6">
           {t('contractorClient.continueToWizard')}
         </Button>
+        <button type="button" onClick={startAnotherClient} className="ml-4 text-sm text-brand-mid-grey underline underline-offset-4">
+          {t('contractorClient.anotherClient')}
+        </button>
       </div>
+    );
+  }
+
+  // The architecture-plan question comes before the wizard, and the answer decides
+  // which flow they belong in. Asked once per client: `planAnswer` is held here, not in
+  // the draft, so switching client starts the question again.
+  if (client && planAnswer === null
+      && !wizardAlreadyStarted(clientProjectDraftKey(contractorId ?? '', client.userId))) {
+    return (
+      <ArchitecturePlanGate
+        onAnswered={setPlanAnswer}
+        onCancel={startAnotherClient}
+        backLabel={t('contractorClient.anotherClient')}
+      />
     );
   }
 
   // Once the client exists and the invitation is sent, this is the admin's wizard.
   if (client) {
     return (
-      <WizardProvider onBehalfOf={client}>
+      <WizardProvider
+        key={`${contractorId}:${client.userId}`}
+        onBehalfOf={client}
+        persistenceKey={clientProjectDraftKey(contractorId, client.userId)}
+        onReset={() => clearClientOnboardingDraft(contractorId)}
+        onChangeClient={startAnotherClient}
+        seed={planSeed(planAnswer)}
+        pendingDocuments={planDocuments(planAnswer)}
+      >
         <ManagedWizard />
       </WizardProvider>
     );
@@ -166,15 +340,30 @@ export default function WorkNewClient() {
         <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">{t('contractorClient.subtitle')}</p>
       </header>
 
+      {pendingClients.length > 0 && (
+        <section className="mb-6 max-w-xl rounded-2xl border border-brand-border-grey bg-white p-6 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-base font-semibold text-brand-near-black dark:text-white">{t('contractorClient.resumeTitle')}</h2>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorClient.resumeBody')}</p>
+          <ul className="mt-4 space-y-3">
+            {pendingClients.map(row => (
+              <li key={row.clientId} className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-border-grey pt-3 dark:border-[#2c2c2c]">
+                <div><p className="text-sm font-medium text-brand-near-black dark:text-white">{row.fullName}</p><p className="break-all text-xs text-brand-mid-grey">{row.email}</p></div>
+                <Button type="button" disabled={busy} onClick={() => resumeClient(row)}>{t('contractorClient.resumeCta')}</Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <form onSubmit={invite} noValidate className="max-w-xl space-y-5 rounded-2xl border border-brand-border-grey bg-white p-6 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div className="space-y-1.5">
           <Label htmlFor="clientName">{t('contractorClient.name')}</Label>
-          <Input id="clientName" autoComplete="off" value={fullName} onChange={e => setFullName(e.target.value)} />
+          <Input id="clientName" autoComplete="off" disabled={busy} value={fullName} onChange={e => setFullName(e.target.value)} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="clientEmail">{t('contractorClient.email')}</Label>
-          <Input id="clientEmail" type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} />
+          <Input id="clientEmail" type="email" autoComplete="off" disabled={busy} value={email} onChange={e => setEmail(e.target.value)} />
           <p className="text-xs text-brand-mid-grey">{t('contractorClient.emailHint')}</p>
         </div>
 

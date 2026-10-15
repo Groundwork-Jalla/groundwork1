@@ -167,13 +167,17 @@ function FloorProgress({
 
 export default function Step5Rooms() {
   const { t, tPlural } = useLanguage();
-  const { data, update, next, back } = useWizard();
+  const { data, update, next, back, persistProgress } = useWizard();
   const [floors, setFloors] = useState<FloorRoom[]>(() =>
     initFloors(data.floors, data.floorRooms),
   );
-  const [activeFloor, setActiveFloor] = useState(0);
+  // Scoped contractor drafts return to the floor being filled, including an empty
+  // upper floor just reached. Other wizard flows keep their ground-floor entry.
+  const startingFloor = persistProgress && Number.isInteger(data.previewActiveFloor)
+    ? Math.max(0, Math.min(data.previewActiveFloor, data.floors - 1)) : 0;
+  const [activeFloor, setActiveFloor] = useState(startingFloor);
   const [reached, setReached] = useState(() =>
-    lastFilled(initFloors(data.floors, data.floorRooms)),
+    Math.max(startingFloor, lastFilled(initFloors(data.floors, data.floorRooms))),
   );
 
   const floorLongLabel = (i: number) =>

@@ -3,12 +3,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WIZARD_DEFAULT_DATA, type WizardFormData } from '@/types/project';
 import type { OnBehalfOf } from '@/contexts/WizardContext';
+import type { WizardConfirmationDraft } from './wizard-draft';
 
 const h = vi.hoisted(() => ({
   step: 10,
   direction: 'forward',
   data: {} as WizardFormData,
   onBehalfOf: null as OnBehalfOf | null,
+  confirmationDraft: null as WizardConfirmationDraft | null,
   submit: null as (() => Promise<void>) | null,
   createProject: vi.fn(),
   takeProject: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock('@/contexts/WizardContext', () => ({
     step: h.step, direction: h.direction, goTo: vi.fn(),
     data: h.data, onBehalfOf: h.onBehalfOf, reset: vi.fn(),
     constructionRate: null, cityRate: null,
+    ...(h.confirmationDraft ? { confirmationDraft: h.confirmationDraft } : {}),
   }),
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'contractor-id' } }) }));
@@ -80,6 +83,7 @@ describe('contractor client project wizard', () => {
     h.data = { ...WIZARD_DEFAULT_DATA, projectName: 'Client home' };
     h.onBehalfOf = { userId: 'client-id', label: 'Client', tier: 'self_verify', by: 'partner' };
     h.submit = null;
+    h.confirmationDraft = null;
     h.createProject.mockResolvedValue({ id: 'project-id', name: 'Client home' });
   });
 
@@ -101,6 +105,18 @@ describe('contractor client project wizard', () => {
     const html = renderToStaticMarkup(createElement(ManagedWizard));
     expect(html).toContain('wizard.confirmBudget.title');
     expect(html).not.toContain('plan-picker');
+  });
+
+  it('restores the confirmed budget and joining answers and requests the missing attachment', () => {
+    h.confirmationDraft = {
+      raw: '45000', alreadyStarted: true, described: 'Roof is complete', stageOverride: 6, hadAttachment: true,
+    };
+    const html = renderToStaticMarkup(createElement(ManagedWizard));
+    expect(html).toContain('value="45,000"');
+    expect(html).toContain('value="Roof is complete"');
+    expect(html).toMatch(/type="checkbox"[^>]*checked=""/);
+    expect(html).toContain('value="6" selected=""');
+    expect(html).toContain('wizard.confirmBudget.reattachFile');
   });
 
   it.each(['', 'jalla_verify', 'jalla_management'] as const)(

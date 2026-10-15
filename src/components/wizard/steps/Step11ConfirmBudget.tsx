@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { FileUp, Loader2, Check } from 'lucide-react';
@@ -32,18 +32,33 @@ import { errorMessage } from '@/lib/errors';
  * projects are created still awaiting tracking and show a banner instead.
  */
 export default function Step11ConfirmBudget() {
-  const { data, constructionRate, cityRate, reset, onBehalfOf } = useWizard();
+  const { data, constructionRate, cityRate, reset, onBehalfOf,
+    confirmationDraft, updateConfirmationDraft, pendingDocuments } = useWizard();
   const { user }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
   const f         = useFormat();
   const fileRef   = useRef<HTMLInputElement>(null);
 
+  /**
+   * What the budget starts at.
+   *
+   * On the architecture-plan path the bill of quantities IS the budget — there was
+   * nothing to estimate, so the estimator's figure would be a guess sitting where a
+   * real number belongs. `bqTotalUsd` is only ever set from a reading we were
+   * confident in, and it is still shown here to be confirmed or corrected before
+   * anything is created, because it becomes the payment at every stage.
+   *
+   * A saved draft wins over both: it is what this person last typed.
+   */
   const estimate  = calculateBudget(data, constructionRate, cityRate).total;
-  const [raw, setRaw]       = useState(String(Math.round(estimate)));
+  const pricedFromBq = data.hasArchitecturePlan === true && data.bqTotalUsd != null;
+  const opening   = data.bqTotalUsd ?? estimate;
+  const [raw, setRaw]       = useState(confirmationDraft?.raw ?? String(Math.round(opening)));
   const [file, setFile]     = useState<File | null>(null);
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
+  const [needsReattachment] = useState(confirmationDraft?.hadAttachment === true);
 
   // ── A build that was already under way (103) ──────────────────────────────────────
   // Admin-only, because only the admin path can mark stages as already built. A partner
@@ -51,9 +66,16 @@ export default function Step11ConfirmBudget() {
   // proposed from that and the admin confirms or overrides it. Nothing is applied from the
   // guess alone — the consequence of being wrong is a real stage marked done that nobody
   // built, or a client billed again for a floor they paid for last year.
-  const [alreadyStarted, setAlreadyStarted] = useState(false);
-  const [described, setDescribed] = useState('');
-  const [stageOverride, setStageOverride] = useState<number | null>(null);
+  const [alreadyStarted, setAlreadyStarted] = useState(confirmationDraft?.alreadyStarted ?? false);
+  const [described, setDescribed] = useState(confirmationDraft?.described ?? '');
+  const [stageOverride, setStageOverride] = useState<number | null>(confirmationDraft?.stageOverride ?? null);
+
+  useEffect(() => {
+    updateConfirmationDraft?.({
+      raw, alreadyStarted, described, stageOverride,
+      hadAttachment: !!file || needsReattachment,
+    });
+  }, [raw, alreadyStarted, described, stageOverride, file, needsReattachment, updateConfirmationDraft]);
 
   // The stage schedule's own names, by number. `useStageLabels` wants a stage ROW; here there
   // is no project yet, only a position on the scale.
@@ -96,8 +118,8 @@ export default function Step11ConfirmBudget() {
       //
       // `getSession()` refreshes a stale token when a refresh token is still good, which
       // makes the common case simply work. When it cannot, we stop here — BEFORE the
-      // write — and leave every answer on screen, because the wizard keeps its data in
-      // memory and navigating away to sign in would lose all of it.
+      // write — and leave every answer on screen. Client/admin wizards keep answers in
+      // memory, and browser storage may be unavailable even for a saved contractor draft.
       const { data: { session: live } } = await supabase.auth.getSession();
       if (!live) {
         setError(t('wizard.confirmBudget.errSignedOut'));
@@ -158,10 +180,18 @@ export default function Step11ConfirmBudget() {
       //    A failure used to be swallowed entirely, with a comment claiming the
       //    Documents tab would show it — nothing did. The person deliberately attached
       //    this file, so they are told, on the project page they land on.
+      //    The floor plan and bill of quantities from the architecture-plan question
+      //    go up here too, for the same reason and with the same tolerance: there was
+      //    no project to attach them to until now, and losing the project because a
+      //    file failed would be the worse outcome. The person is told either way.
       let attachmentFailed = false;
-      if (file) {
+      const toUpload: { file: File; category: 'other' | 'boq' }[] = [
+        ...(pendingDocuments ?? []),
+        ...(file ? [{ file, category: 'boq' as const }] : []),
+      ];
+      for (const item of toUpload) {
         try {
-          await uploadDocument(project.id, ownerId, file, undefined, 'boq');
+          await uploadDocument(project.id, ownerId, item.file, undefined, item.category);
         } catch {
           attachmentFailed = true;
         }
@@ -237,10 +267,18 @@ export default function Step11ConfirmBudget() {
         </p>
 
         <div className="mt-7 space-y-4">
-          {/* Groundwork's own estimate, read-only */}
+          {/* Where the opening figure came from.
+              On the architecture-plan path that is the bill of quantities, not
+              Groundwork's estimate — the estimating questions were never asked, so
+              labelling the BQ figure "our estimate" would be false, and showing the
+              estimator's near-empty total beside it would be noise. */}
           <div className="rounded-xl bg-brand-off-white px-4 py-3 flex items-center justify-between">
-            <span className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.estimateLabel')}</span>
-            <span className="text-sm font-semibold text-brand-near-black figure">{f.money(estimate)}</span>
+            <span className="text-xs text-brand-mid-grey">
+              {t(pricedFromBq ? 'wizard.confirmBudget.fromBqLabel' : 'wizard.confirmBudget.estimateLabel')}
+            </span>
+            <span className="text-sm font-semibold text-brand-near-black figure">
+              {f.money(pricedFromBq ? (data.bqTotalUsd ?? 0) : estimate)}
+            </span>
           </div>
 
           {onBehalfOf && (
@@ -346,7 +384,9 @@ export default function Step11ConfirmBudget() {
               />
             </div>
             <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.finalHint')}</p>
-            {Math.abs(diffPct) >= 1 && (
+            {/* Only meaningful against a real estimate. On the BQ path there is none,
+                and "4000% above our estimate" would be alarming nonsense. */}
+            {!pricedFromBq && Math.abs(diffPct) >= 1 && (
               <p className="text-xs text-brand-mid-grey">
                 {t('wizard.confirmBudget.difference', {
                   amount: f.money(Math.abs(diff)),
@@ -359,11 +399,20 @@ export default function Step11ConfirmBudget() {
             )}
           </div>
 
-          {/* Optional supporting quote */}
+          {/* Optional supporting quote.
+              Hidden when they already answered NO to "does your project have an
+              architecture plan?" — somebody who told us they have no drawings and no
+              bill of quantities does not want to be asked for one again at the end.
+              `null` means the question was never put (an older draft, or an entry
+              point that does not ask), so the box stays. */}
+          {data.hasArchitecturePlan !== false && (
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-brand-near-black">
               {t('wizard.confirmBudget.quoteLabel')} <span className="font-normal text-brand-mid-grey">{t('common.optional')}</span>
             </span>
+            {needsReattachment && !file && (
+              <p role="status" className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.reattachFile')}</p>
+            )}
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -408,6 +457,7 @@ export default function Step11ConfirmBudget() {
               {t('wizard.confirmBudget.quoteHint')}
             </p>
           </div>
+          )}
 
           {error && <p className="text-xs text-state-alert" role="alert">{error}</p>}
 

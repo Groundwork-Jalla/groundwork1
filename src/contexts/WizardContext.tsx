@@ -4,11 +4,13 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import type { WizardFormData, ConstructionRate, CityRate } from '@/types/project';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
 import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-rates';
+import { clearWizardDraft, readWizardDraft, writeWizardDraft, type WizardConfirmationDraft } from '@/lib/projects/wizard-draft';
 
 // =========================================================
 // Types
@@ -66,6 +68,14 @@ interface WizardContextValue {
   reset: () => void;
   /** Present when an admin or partner contractor creates the project for a client. */
   onBehalfOf: OnBehalfOf | null;
+  /** Available only when this provider opts into saving a scoped contractor draft. */
+  confirmationDraft?: WizardConfirmationDraft | null;
+  updateConfirmationDraft?: (patch: Partial<WizardConfirmationDraft>) => void;
+  persistProgress?: boolean;
+  /** Leave this client's wizard while preserving its draft for later. */
+  onChangeClient?: () => void;
+  /** Floor plan and bill of quantities collected before the wizard started. */
+  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
 }
 
 // =========================================================
@@ -80,15 +90,61 @@ export const TOTAL_STEPS = 11;
 // Provider
 // =========================================================
 export function WizardProvider({
-  children, onBehalfOf = null,
-}: { children: ReactNode; onBehalfOf?: OnBehalfOf | null }) {
-  const [step, setStep]           = useState(1);
-  const [direction, setDirection] = useState<WizardDirection>('forward');
-  const [data, setData]           = useState<WizardFormData>(WIZARD_DEFAULT_DATA);
+  children, onBehalfOf = null, persistenceKey, onReset, onChangeClient, seed, pendingDocuments,
+}: {
+  children: ReactNode; onBehalfOf?: OnBehalfOf | null;
+  persistenceKey?: string; onReset?: () => void;
+  onChangeClient?: () => void;
+  /**
+   * Answers collected BEFORE the wizard started — today, the architecture-plan
+   * question. Applied over a restored draft, because the question is asked afresh
+   * each time this flow is entered and its answer is the newer one.
+   */
+  seed?: Partial<WizardFormData>;
+  /**
+   * Files gathered before the wizard started — the floor plan and the bill of
+   * quantities from the architecture-plan question.
+   *
+   * They travel as `File` objects rather than through `seed`, because a File cannot
+   * be serialised into the saved draft, and they are uploaded only once a project id
+   * exists to attach them to.
+   */
+  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+}) {
+  // A different actor/client key must get a fresh state instance, even if the route
+  // keeps the provider mounted while switching the client being worked on.
+  return <WizardStateProvider key={persistenceKey ?? 'memory'} {...{ onBehalfOf, persistenceKey, onReset, onChangeClient, seed, pendingDocuments }}>
+    {children}
+  </WizardStateProvider>;
+}
+
+function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, onChangeClient, seed, pendingDocuments }: {
+  children: ReactNode; onBehalfOf: OnBehalfOf | null;
+  persistenceKey?: string; onReset?: () => void;
+  onChangeClient?: () => void;
+  seed?: Partial<WizardFormData>;
+  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+}) {
+  const [saved] = useState(() => readWizardDraft(persistenceKey));
+  const [step, setStep]           = useState(saved?.step ?? 1);
+  const [direction, setDirection] = useState<WizardDirection>(saved?.direction ?? 'forward');
+  // Seed last: it is this run's answer to a question asked a moment ago, so it wins
+  // over whatever a restored draft remembers.
+  const [data, setData]           = useState<WizardFormData>(
+    { ...(saved?.data ?? WIZARD_DEFAULT_DATA), ...(seed ?? {}) });
+  const [confirmationDraft, setConfirmationDraft] = useState<WizardConfirmationDraft | null>(saved?.confirmation ?? null);
+  const draftCleared = useRef(false);
 
   const [constructionRate, setConstructionRate] = useState<ConstructionRate | null>(null);
   const [cityRate, setCityRate]                 = useState<CityRate | null>(null);
   const [rateLoading, setRateLoading]           = useState(false);
+
+  useEffect(() => {
+    if (draftCleared.current) return;
+    writeWizardDraft(persistenceKey, { version: 1, step, direction, data,
+      ...(confirmationDraft ? { confirmation: confirmationDraft } : {}),
+    });
+  }, [persistenceKey, step, direction, data, confirmationDraft]);
 
   // Fetch rate once whenever the selected country changes
   useEffect(() => {
@@ -122,30 +178,48 @@ export function WizardProvider({
   }, [data.country, data.city]);
 
   const update = useCallback((patch: Partial<WizardFormData>) => {
+    draftCleared.current = false;
     setData(prev => ({ ...prev, ...patch }));
   }, []);
 
   const next = useCallback(() => {
+    draftCleared.current = false;
     setDirection('forward');
     setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
   }, []);
 
   const back = useCallback(() => {
+    draftCleared.current = false;
     setDirection('back');
     setStep(prev => Math.max(prev - 1, 1));
   }, []);
 
   const goTo = useCallback((n: number) => {
+    draftCleared.current = false;
     setDirection(n > step ? 'forward' : 'back');
     setStep(Math.max(1, Math.min(n, TOTAL_STEPS)));
   }, [step]);
 
   const reset = useCallback(() => {
+    // Clear before resetting state; the resulting effect must not save a blank draft
+    // after successful project creation or while the route is unmounting.
+    draftCleared.current = true;
+    clearWizardDraft(persistenceKey);
+    setConfirmationDraft(null);
     setStep(1);
     setDirection('forward');
     setData(WIZARD_DEFAULT_DATA);
     setConstructionRate(null);
     setCityRate(null);
+    onReset?.();
+  }, [persistenceKey, onReset]);
+
+  const updateConfirmationDraft = useCallback((patch: Partial<WizardConfirmationDraft>) => {
+    draftCleared.current = false;
+    setConfirmationDraft(previous => ({
+      raw: '', alreadyStarted: false, described: '', stageOverride: null, hadAttachment: false,
+      ...previous, ...patch,
+    }));
   }, []);
 
   return (
@@ -155,6 +229,9 @@ export function WizardProvider({
         constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
         onBehalfOf,
+        onChangeClient,
+        pendingDocuments,
+        ...(persistenceKey ? { confirmationDraft, updateConfirmationDraft, persistProgress: true } : {}),
       }}
     >
       {children}

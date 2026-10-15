@@ -99,6 +99,31 @@ export interface WizardFormData {
   // Step 9 — Tier selection ('' means not yet chosen)
   tier: ProjectTier | '';
 
+  /**
+   * Asked BEFORE the wizard: does this build already have an architecture plan?
+   *
+   * `null` until answered. It decides two things:
+   *
+   *   · YES — there are real drawings and a bill of quantities, so there is nothing to
+   *     estimate. The build is priced from the BQ and the estimating steps are skipped.
+   *   · NO  — nothing exists yet, so the wizard estimates the build, and the final step
+   *     does NOT ask for a bill of quantities. They have already said they have none;
+   *     asking again is asking twice.
+   *
+   * Same question and same wording whether a client is setting up their own project or
+   * a partner contractor is doing it for them.
+   */
+  hasArchitecturePlan: boolean | null;
+
+  /**
+   * The construction figure taken from the uploaded bill of quantities, in USD.
+   *
+   * Only ever set on the YES path, and only after a person has confirmed it on screen.
+   * A figure read out of a spreadsheet and used without being looked at would become
+   * the stage payment schedule, which is real money.
+   */
+  bqTotalUsd: number | null;
+
   // UI-only: which floor tab is active in Step 5 (for building preview sync)
   previewActiveFloor: number;
 }
@@ -123,6 +148,8 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   finishLevel: 'standard',
   targetStartDate: '',
   tier: '',
+  hasArchitecturePlan: null,
+  bqTotalUsd: null,
   previewActiveFloor: 0,
 };
 

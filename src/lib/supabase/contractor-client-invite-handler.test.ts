@@ -21,6 +21,13 @@ const state = {
   profileUpdateError: null as Failure,
   linkError: null as Failure,
   inviteError: null as Failure,
+  pendingLinksError: null as Failure,
+  pendingProfilesError: null as Failure,
+  pendingProjectsError: null as Failure,
+  pendingLinks: [] as Row[],
+  pendingProfiles: [] as Row[],
+  pendingProjects: [] as Row[],
+  pendingQueries: [] as { table: string; columns: string; filters: Row }[],
   invitedUserId: 'new-client-id' as string | null,
   events: [] as string[],
   gateQueries: [] as { table: string; filters: Row }[],
@@ -36,10 +43,29 @@ function fakeAdmin() {
   return {
     from(table: string) {
       const filters: Row = {};
+      let columns = '';
       const chain: any = {
-        select: () => chain,
+        select: (selected: string) => { columns = selected; return chain; },
         eq: (column: string, value: unknown) => { filters[column] = value; return chain; },
         ilike: (column: string, value: unknown) => { filters[column] = value; return chain; },
+        in: (column: string, values: unknown[]) => { filters[column] = values; return chain; },
+        or: (value: string) => { filters.or = value; return chain; },
+        order: (column: string, options: Row) => { filters.order = { column, ...options }; return chain; },
+        then: (resolve: (result: { data: Row[] | null; error: Failure }) => unknown) => {
+          state.pendingQueries.push({ table, columns, filters });
+          if (table === 'contractor_clients') {
+            const data = state.pendingLinks.filter(link =>
+              link.contractor_id === filters.contractor_id
+                && (link.client_was_created === true || link.accepted_at != null))
+              .sort((a, b) => String(b.invited_at).localeCompare(String(a.invited_at)));
+            return Promise.resolve({ data, error: state.pendingLinksError }).then(resolve);
+          }
+          const ids = filters[table === 'profiles' ? 'id' : 'user_id'] as string[];
+          const rows = table === 'profiles' ? state.pendingProfiles : state.pendingProjects;
+          const data = rows.filter(row => ids.includes(String(row[table === 'profiles' ? 'id' : 'user_id'])));
+          const error = table === 'profiles' ? state.pendingProfilesError : state.pendingProjectsError;
+          return Promise.resolve({ data, error }).then(resolve);
+        },
         limit: async () => {
           state.gateQueries.push({ table, filters });
           if (table === 'user_roles') {
@@ -117,6 +143,8 @@ async function call(body: Row = GOOD, method = 'POST') {
   const response: any = {
     statusCode: 0,
     body: null as unknown,
+    headers: {} as Record<string, string>,
+    setHeader(name: string, value: string) { this.headers[name] = value; return this; },
     status(code: number) { this.statusCode = code; return this; },
     json(value: unknown) { this.body = value; return this; },
   };
@@ -138,6 +166,13 @@ beforeEach(() => {
   state.profileUpdateError = null;
   state.linkError = null;
   state.inviteError = null;
+  state.pendingLinksError = null;
+  state.pendingProfilesError = null;
+  state.pendingProjectsError = null;
+  state.pendingLinks = [];
+  state.pendingProfiles = [];
+  state.pendingProjects = [];
+  state.pendingQueries = [];
   state.invitedUserId = 'new-client-id';
   state.events = [];
   state.gateQueries = [];
@@ -152,7 +187,7 @@ beforeEach(() => {
 
 describe('contractor and account ownership gates', () => {
   it('refuses other methods and missing sessions before doing any work', async () => {
-    expect((await call(GOOD, 'GET')).statusCode).toBe(405);
+    expect((await call(GOOD, 'PUT')).statusCode).toBe(405);
     state.caller = null;
     expect((await call()).statusCode).toBe(401);
     expect(state.events).toEqual([]);
@@ -331,5 +366,108 @@ describe('partial failures never send an unready invitation', () => {
       // Only the account this request created may be rolled back.
       expect(state.deletedUsers).toEqual(['new-client-id']);
     }
+  });
+});
+
+describe('recovering clients whose project was not created', () => {
+  function link(clientId: string, fields: Row = {}) {
+    return {
+      client_id: clientId,
+      contractor_id: 'contractor-1',
+      client_was_created: true,
+      accepted_at: null,
+      invited_at: '2026-10-20T01:00:00Z',
+      ...fields,
+    };
+  }
+
+  it('checks the authenticated contractor before reading client details', async () => {
+    state.caller = null;
+    const signedOut = await call({}, 'GET');
+    expect(signedOut.statusCode).toBe(401);
+    expect(signedOut.headers['Cache-Control']).toBe('no-store');
+    state.caller = { id: 'contractor-1', email: 'contractor@example.com' };
+    state.isContractor = false;
+    expect((await call({}, 'GET')).statusCode).toBe(404);
+    expect(state.pendingQueries).toEqual([]);
+    expect(state.createUserCalls).toEqual([]);
+    expect(state.invitations).toEqual([]);
+  });
+
+  it('allows the existing accepted-assignment gate without a role row', async () => {
+    state.isContractor = false;
+    state.hasAcceptedAssignment = true;
+    const response = await call({}, 'GET');
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual({ clients: [] });
+    expect(state.gateQueries[1]).toEqual({
+      table: 'contractor_invites',
+      filters: { contractor_user_id: 'contractor-1', status: 'accepted' },
+    });
+  });
+
+  it('recovers only the caller’s authorized projectless clients, newest first', async () => {
+    state.pendingLinks = [
+      link('older-client', { invited_at: '2026-10-19T01:00:00Z' }),
+      link('unsafe-client', { client_was_created: false }),
+      link('other-contractor-client', { contractor_id: 'contractor-2' }),
+      link('newer-client', { invited_at: '2026-10-21T01:00:00Z' }),
+      link('accepted-client', { client_was_created: false, accepted_at: '2026-10-20T02:00:00Z' }),
+      link('completed-client'),
+    ];
+    state.pendingProfiles = state.pendingLinks.map(row => ({
+      id: row.client_id,
+      full_name: row.client_id === 'older-client' ? null : `Name ${row.client_id}`,
+      email: `${row.client_id}@example.com`,
+      password: 'private-password',
+      access_token: 'private-token',
+    }));
+    state.pendingProjects = [{ user_id: 'completed-client', created_by: 'the-client' }];
+
+    // Caller-supplied ownership is never used to broaden the service-role query.
+    const response = await call({ contractorId: 'contractor-2' }, 'GET');
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['Cache-Control']).toBe('no-store');
+    expect(response.body).toEqual({ clients: [
+      { clientId: 'newer-client', fullName: 'Name newer-client', email: 'newer-client@example.com', invitedAt: '2026-10-21T01:00:00Z' },
+      { clientId: 'accepted-client', fullName: 'Name accepted-client', email: 'accepted-client@example.com', invitedAt: '2026-10-20T01:00:00Z' },
+      { clientId: 'older-client', fullName: 'older-client@example.com', email: 'older-client@example.com', invitedAt: '2026-10-19T01:00:00Z' },
+    ] });
+    expect(state.pendingQueries).toEqual([
+      {
+        table: 'contractor_clients', columns: 'client_id, invited_at',
+        filters: {
+          contractor_id: 'contractor-1',
+          or: 'client_was_created.eq.true,accepted_at.not.is.null',
+          order: { column: 'invited_at', ascending: false },
+        },
+      },
+      { table: 'profiles', columns: 'id, full_name, email', filters: { id: ['newer-client', 'accepted-client', 'completed-client', 'older-client'] } },
+      { table: 'projects', columns: 'user_id', filters: { user_id: ['newer-client', 'accepted-client', 'completed-client', 'older-client'] } },
+    ]);
+    expect(JSON.stringify(response.body)).not.toMatch(/password|token|unsafe|other-contractor|completed/);
+    expect(state.createUserCalls).toEqual([]);
+    expect(state.links).toEqual([]);
+    expect(state.invitations).toEqual([]);
+  });
+
+  it('does not query profiles or projects when no authorized links exist', async () => {
+    const response = await call({}, 'GET');
+    expect(response.body).toEqual({ clients: [] });
+    expect(state.pendingQueries.map(query => query.table)).toEqual(['contractor_clients']);
+  });
+
+  it.each(['links', 'profiles', 'projects'])('fails closed when the %s read fails', async stage => {
+    state.pendingLinks = [link('client-1')];
+    const error = { message: 'Database read unavailable' };
+    if (stage === 'links') state.pendingLinksError = error;
+    if (stage === 'profiles') state.pendingProfilesError = error;
+    if (stage === 'projects') state.pendingProjectsError = error;
+    const response = await call({}, 'GET');
+    expect(response.statusCode).toBe(500);
+    expect(response.body).toEqual({ error: 'pending_clients_failed' });
+    expect(response.headers['Cache-Control']).toBe('no-store');
+    expect(state.deletedUsers).toEqual([]);
+    expect(state.invitations).toEqual([]);
   });
 });

@@ -22,7 +22,7 @@ import { StageTracker }          from '@/components/project/StageTracker';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
-import ProjectChat               from '@/components/project/ProjectChat';
+import { ProjectConversations }  from '@/components/project/ProjectConversations';
 import ContractorInvite          from '@/components/project/ContractorInvite';
 import { ShareProject }          from '@/components/project/ShareProject';
 import OverviewTab               from '@/components/project/OverviewTab';
@@ -540,10 +540,9 @@ export default function ProjectDetail() {
           {/* Tab: Messages */}
           {activeTab === 'messages' && user && (
             <div>
-              <ProjectChat
+              <ProjectConversations
                 projectId={project.id}
-                currentUserId={user.id}
-                currentUserName={displayName}
+                projectName={project.name}
               />
               <RelatedGuides tab="messages" />
             </div>

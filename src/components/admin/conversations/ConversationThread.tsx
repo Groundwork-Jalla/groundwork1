@@ -15,7 +15,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 // =========================================================
-// One conversation thread — the messages, the composer, assign and resolve.
+// One conversation thread — admin controls in staff view; a Jalla composer in member view.
 //
 // Lifted out of the workspace tab (05 §9) unchanged so the Inbox (06 §18) and the
 // project workspace show the SAME thread rather than two that drift. What the two
@@ -33,11 +33,14 @@ const STATUS_DOT: Record<Conversation['status'], string> = {
   open: 'bg-state-active', waiting_on_us: 'bg-state-held', waiting_on_them: 'bg-brand-muted-grey', resolved: 'bg-state-complete',
 };
 
-export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title }: {
+export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId }: {
   conversation: Conversation;
   staff: { id: string; label: string }[] | null;
   staffName: (id: string | null) => string;
   onChanged: () => void;
+  /** Project members can send on Jalla but cannot assign, resolve or write staff notes. */
+  memberView?: boolean;
+  currentUserId?: string;
   /** Present only where a decision has a project to belong to (the workspace tab). */
   decision?: { projectId: string; ownerId: string | null; stages: Workspace['stages'] } | null;
   /** 091 messages carry project_id only for project threads; an Inbox thread has none. */
@@ -90,10 +93,10 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
     const content = draft.trim();
     if (!content) return;
     act(direction === 'outbound' ? 'send' : 'note', async () => {
-      const messageId = await sendConversationMessage(conversation.id, content, direction);
+      const messageId = await sendConversationMessage(conversation.id, content, memberView ? undefined : direction);
       // Delivery is the server's business: anything that leaves Groundwork is asked for
       // here, and the provider — GHL today — is chosen there, from the channel.
-      if (direction === 'outbound' && conversation.channel !== 'jalla') {
+      if (!memberView && direction === 'outbound' && conversation.channel !== 'jalla') {
         const d = await deliverMessage(messageId);
         // `not_deliverable` is not a failure: that channel simply is not carried.
         if (!d.ok && d.reason !== 'not_deliverable') {
@@ -120,7 +123,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
             {conversation.resolvedAt && ` · ${t('admin.workspace.conversations.resolvedAt', { when: formatRelative(conversation.resolvedAt) })}`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        {!memberView && <div className="flex flex-wrap items-center gap-2">
           {/* Assign: staff only; "nobody to assign" when the list is empty. */}
           <select value={assignee} onChange={e => setAssignee(e.target.value)} aria-label={t('admin.workspace.conversations.assign')}
             disabled={!staff || staff.length === 0 || busy !== null}
@@ -145,7 +148,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
               {t('admin.decision.record')}
             </button>
           )}
-        </div>
+        </div>}
       </header>
 
       {/* ── Messages, in thread order, as stored ─────────────────────────────────── */}
@@ -169,18 +172,28 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
               </button>
             );
           }
-          const outbound = m.direction === 'outbound';
+          const outbound = memberView ? m.senderId === currentUserId : m.direction === 'outbound';
+          const bubbleClass = cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-left text-sm',
+            outbound ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#252525] dark:text-white',
+            mine && 'ring-2 ring-offset-1 ring-brand-mid-grey');
           return (
             <div key={m.id} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
-              <button type="button" onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
-                className={cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-left text-sm',
-                  outbound ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#252525] dark:text-white',
-                  mine && 'ring-2 ring-offset-1 ring-brand-mid-grey')}>
-                <span className="whitespace-pre-wrap">{m.content}</span>
-                <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
-                  {m.senderName} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`admin.workspace.conversations.channel.${m.channel}` as TKey)}`}{m.status === 'failed' && ` · ${t('admin.workspace.conversations.failed')}`}
-                </span>
-              </button>
+              {memberView ? (
+                <div className={bubbleClass}>
+                  <span className="whitespace-pre-wrap">{m.content}</span>
+                  <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
+                    {m.senderName} · {formatRelative(m.createdAt)}
+                  </span>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
+                  className={bubbleClass}>
+                  <span className="whitespace-pre-wrap">{m.content}</span>
+                  <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
+                    {m.senderName} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`admin.workspace.conversations.channel.${m.channel}` as TKey)}`}{m.status === 'failed' && ` · ${t('admin.workspace.conversations.failed')}`}
+                  </span>
+                </button>
+              )}
             </div>
           );
         })}
@@ -195,11 +208,11 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
             {busy === 'send' && <Loader2 className="size-3.5 animate-spin" />}{t('admin.workspace.conversations.send')}
           </button>
-          <button type="button" disabled={busy !== null || !draft.trim()} onClick={() => send('internal')}
+          {!memberView && <button type="button" disabled={busy !== null || !draft.trim()} onClick={() => send('internal')}
             className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-semibold text-brand-near-black disabled:opacity-40 dark:border-[#2c2c2c] dark:text-white">
             {busy === 'note' && <Loader2 className="size-3.5 animate-spin" />}<StickyNote className="size-3.5" />{t('admin.workspace.conversations.internalNote')}
-          </button>
-          <span className="text-[11px] text-brand-mid-grey">{t('admin.workspace.conversations.internalHint')}</span>
+          </button>}
+          {!memberView && <span className="text-[11px] text-brand-mid-grey">{t('admin.workspace.conversations.internalHint')}</span>}
           {error && <p role="alert" className="w-full text-xs text-state-alert">{error}</p>}
           {delivery && <p role="alert" className="w-full text-xs text-state-alert">{delivery}</p>}
         </div>

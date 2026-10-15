@@ -28,10 +28,11 @@ function str(v: unknown, max: number): string {
 }
 
 export async function handler(req: any, res: any): Promise<void> {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  if (req.method === 'GET') res.setHeader('Cache-Control', 'no-store');
 
   const caller = await requireUser(req);
   if (!caller) { res.status(401).json({ error: 'Sign in required' }); return; }
@@ -44,11 +45,6 @@ export async function handler(req: any, res: any): Promise<void> {
     res.status(500).json({ error: 'Server is not configured' });
     return;
   }
-
-  const email    = str(req.body?.email, 254).toLowerCase();
-  const fullName = str(req.body?.fullName, 120);
-  if (!isValidEmail(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
-  if (fullName.length < 2)  { res.status(400).json({ error: 'name_required' }); return; }
 
   // ── The gate ──
   // Contractor standing is the role OR an accepted assignment — the same definition
@@ -69,6 +65,58 @@ export async function handler(req: any, res: any): Promise<void> {
     res.status(404).json({ error: 'Not found' });
     return;
   }
+
+  if (req.method === 'GET') {
+    // An account can outlive an unfinished wizard. Recover only clients this caller is
+    // already allowed to build for (110), including accounts created on another device.
+    // Profile reads use the server because contractors cannot read other users' profiles.
+    const { data: linked, error: linksErr } = await admin
+      .from('contractor_clients')
+      .select('client_id, invited_at')
+      .eq('contractor_id', caller.id)
+      .or('client_was_created.eq.true,accepted_at.not.is.null')
+      .order('invited_at', { ascending: false });
+    if (linksErr) {
+      console.error('[invite-client] pending client lookup failed:', linksErr.message);
+      res.status(500).json({ error: 'pending_clients_failed' }); return;
+    }
+    if (!linked?.length) { res.status(200).json({ clients: [] }); return; }
+
+    const clientIds = linked.map((link: { client_id: string }) => link.client_id);
+    const [profiles, projects] = await Promise.all([
+      admin.from('profiles').select('id, full_name, email').in('id', clientIds),
+      // Check every project owned by these clients, including one the client created.
+      // Existing projects belong on the work dashboard, not in a fresh creation wizard.
+      admin.from('projects').select('user_id').in('user_id', clientIds),
+    ]);
+    if (profiles.error || projects.error) {
+      console.error('[invite-client] pending client details failed:',
+        profiles.error?.message ?? projects.error?.message);
+      res.status(500).json({ error: 'pending_clients_failed' }); return;
+    }
+
+    const owners = new Set((projects.data ?? []).map((project: { user_id: string }) => project.user_id));
+    const identities = new Map((profiles.data ?? []).map((profile: {
+      id: string; full_name: string | null; email: string | null;
+    }) => [profile.id, profile] as const));
+    const clients = linked.flatMap((link: { client_id: string; invited_at: string }) => {
+      const profile = identities.get(link.client_id);
+      if (owners.has(link.client_id) || !profile?.email) return [];
+      return [{
+        clientId: link.client_id,
+        fullName: profile.full_name?.trim() || profile.email,
+        email: profile.email,
+        invitedAt: link.invited_at,
+      }];
+    });
+    res.status(200).json({ clients });
+    return;
+  }
+
+  const email    = str(req.body?.email, 254).toLowerCase();
+  const fullName = str(req.body?.fullName, 120);
+  if (!isValidEmail(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
+  if (fullName.length < 2)  { res.status(400).json({ error: 'name_required' }); return; }
 
   // Inviting yourself would make you your own client and the CHECK in 109 refuses the
   // link anyway; saying so is friendlier than a constraint violation.

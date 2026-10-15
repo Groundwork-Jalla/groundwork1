@@ -47,18 +47,19 @@ describe('the session is checked before anything is written', () => {
     expect(branch).toMatch(/return;/);
   });
 
-  it('does not navigate away — the answers only exist on this page', () => {
-    // The wizard keeps its data in memory. Sending somebody to /auth/login to fix this
-    // would throw away all eleven steps, which is worse than the error they started with.
+  it('does not navigate away while the session is being repaired', () => {
+    // Ordinary client/admin flows remain in memory, and a blocked browser can refuse
+    // storage even for the contractor flow. Keep answers on screen in every case.
     const at = step11.indexOf('if (!live)');
     expect(step11.slice(at, at + 220)).not.toMatch(/navigate\(/);
   });
 });
 
-describe('the wizard really does keep its answers in memory', () => {
-  it('nothing persists them, which is why the fix must not navigate', () => {
-    // If this ever changes, the copy below can promise more and the branch above can
-    // afford to redirect. Until then, both depend on this being true.
+describe('wizard persistence is opt-in', () => {
+  it('accepts a scoped key while leaving ordinary providers in memory', () => {
+    expect(ctx).toMatch(/persistenceKey\?: string/);
+    expect(ctx).toMatch(/readWizardDraft\(persistenceKey\)/);
+    expect(ctx).toMatch(/writeWizardDraft\(persistenceKey,/);
     expect(ctx).not.toMatch(/localStorage|sessionStorage|indexedDB/);
   });
 });

@@ -73,6 +73,35 @@ export class InviteClientFailed extends Error {
   constructor(public code: string) { super(code); }
 }
 
+export interface PendingContractorClient {
+  clientId: string;
+  fullName: string;
+  email: string;
+  invitedAt: string;
+}
+
+/** Accounts this contractor can resume, with no project already owned by the client. */
+export async function fetchPendingClients(): Promise<PendingContractorClient[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new InviteClientFailed('not_signed_in');
+
+  const response = await fetch('/api/events?action=contractor-invite-client', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    cache: 'no-store',
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) throw new InviteClientFailed(String(json?.error ?? `http_${response.status}`));
+  if (!Array.isArray(json?.clients) || !json.clients.every((client: PendingContractorClient) =>
+    client && typeof client.clientId === 'string' && client.clientId.length > 0
+      && typeof client.fullName === 'string' && typeof client.email === 'string'
+      && typeof client.invitedAt === 'string')) {
+    throw new InviteClientFailed('pending_clients_failed');
+  }
+  return json.clients.map(({ clientId, fullName, email, invitedAt }: PendingContractorClient) =>
+    ({ clientId, fullName, email, invitedAt }));
+}
+
 /**
  * Create the client's account and record them as this contractor's.
  *

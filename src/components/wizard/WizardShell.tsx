@@ -68,7 +68,7 @@ export default function WizardShell({
   wide = false,
 }: WizardShellProps) {
   const measure = wide ? 'max-w-3xl' : 'max-w-lg';
-  const { step, totalSteps, direction, next, back, onBehalfOf } = useWizard();
+  const { step, totalSteps, direction, next, back, onBehalfOf, onChangeClient } = useWizard();
   const t = useT();
   const isFirst = step === 1;
 
@@ -106,7 +106,7 @@ export default function WizardShell({
               </button>
             ) : (
               <Link
-                to="/dashboard"
+                to={onBehalfOf?.by === 'partner' ? '/work' : onBehalfOf?.by === 'admin' ? '/admin/projects' : '/dashboard'}
                 className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
               >
                 ← {t('common.cancel')}
@@ -119,10 +119,15 @@ export default function WizardShell({
             across every step so an admin never loses sight of which client they are
             setting up — the one mistake here that is genuinely hard to undo. */}
         {onBehalfOf && (
-          <div className="shrink-0 border-b border-amber-300 bg-amber-50 px-6 sm:px-10 py-2.5 text-xs text-amber-900">
+          <div className="flex shrink-0 flex-wrap items-center gap-x-1 gap-y-2 border-b border-amber-300 bg-amber-50 px-6 sm:px-10 py-2.5 text-xs text-amber-900">
             <span className="font-semibold">{t('wizard.onBehalf.creatingFor')}</span>{' '}
             <span className="font-mono">{onBehalfOf.label}</span>
-            <span className="text-amber-700"> · {t('wizard.onBehalf.tier')}</span>
+            {onChangeClient && (
+              <button type="button" onClick={onChangeClient} disabled={isSubmitting}
+                className="ml-auto text-xs underline underline-offset-4 disabled:opacity-50">
+                {t('contractorClient.anotherClient')}
+              </button>
+            )}
           </div>
         )}
 

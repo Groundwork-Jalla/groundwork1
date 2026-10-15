@@ -12,6 +12,7 @@ import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/acce
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { ProjectConversations } from '@/components/project/ProjectConversations';
 
 // =========================================================
 // One assigned project, from the contractor's side.
@@ -26,12 +27,13 @@ import { cn } from '@/lib/utils';
 // governs what happens next.
 // =========================================================
 
-type Tab = 'work' | 'documents' | 'payments';
+type Tab = 'work' | 'documents' | 'payments' | 'messages';
 
 const TABS: { id: Tab; key: TKey }[] = [
   { id: 'work',      key: 'contractorProject.tabWork' },
   { id: 'documents', key: 'contractorProject.tabDocuments' },
   { id: 'payments',  key: 'contractorProject.tabPayments' },
+  { id: 'messages',  key: 'contractorProject.tabMessages' },
 ];
 
 export default function ContractorProjectDetail() {
@@ -253,6 +255,10 @@ export default function ContractorProjectDetail() {
             </ul>
           )}
         </section>
+      )}
+
+      {tab === 'messages' && (
+        <ProjectConversations projectId={project.id} projectName={project.name} />
       )}
     </div>
   );

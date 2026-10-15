@@ -26,10 +26,18 @@ selection step. The client must follow the invitation and save their own passwor
 entering the app. Existing accounts are refused and retain the flow where the owner
 invites a contractor from their project.
 
+Contractors returning to client onboarding can resume an account they already created
+without sending another invitation. Project answers, the current step and edited budget
+are saved for that contractor and client in the same browser tab until creation succeeds.
+Quote files must be selected again after returning. Completed projects are excluded from
+the unfinished-client list.
+
 After deploying, check with a fresh client email address:
 
 1. Create the account as a contractor. Confirm the screen shows that an invitation was
    sent, then create a project and verify it belongs to the client.
+   Before finishing, leave and return after account creation and again midway through
+   the wizard. Confirm the Next screen or last project step returns without a new invite.
 2. Open the invitation on another device. Confirm the email is filled in and read-only,
    and a password and confirmation are required.
 3. Before saving a password, try opening `/dashboard` and `/projects/new` directly. Both

@@ -8,6 +8,7 @@ import { errorMessage } from '@/lib/errors';
 import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
+import { ProjectConversations } from '@/components/project/ProjectConversations';
 
 const DECISIONS = ['verified', 'rejected', 'needs_more_evidence'] as const;
 type Decision = typeof DECISIONS[number];
@@ -94,6 +95,10 @@ export function VerificationWorkspace({ verificationId: id, onRecorded, history 
       </Panel> : <RecordFinding key={work.id} verificationId={work.id} initialVisit={work.visitedAt} onRecorded={refresh} />}
       {history}
     </div>
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold">{t('project.tabs.messages')}</h2>
+      <ProjectConversations projectId={work.projectId} projectName={work.projectName} />
+    </section>
   </div>;
 }
 
