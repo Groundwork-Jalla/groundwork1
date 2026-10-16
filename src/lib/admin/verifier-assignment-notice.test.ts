@@ -53,21 +53,26 @@ describe('the link goes somewhere that exists', () => {
     expect(m130).toMatch(/https:\/\/www\.tryjalla\.com\/verifiers"/);
   });
 
-  it('NOT /verifiers/projects/<id>, which is not a route', () => {
-    /**
-     * 123 and 125 build `/verifiers/projects/<id>?tab=messages` for message
-     * notifications, and the verifier surface only has `/verifiers` and `/verifiers/:id`
-     * — where `:id` is a verification, not a project. That dead link is a separate bug;
-     * this must not add a second one.
-     */
+  it('the work list, not a project page', () => {
+    // An assignment notice is "you have work", so it lands where the work is listed.
+    // A per-project link would be right for a MESSAGE and wrong for this.
     const body = m130.slice(m130.indexOf('body_html :='));
     expect(body).not.toMatch(/verifiers\/projects/);
   });
 
-  it('and the routes really are what this assumes', () => {
+  it('and every verifier link in the product now resolves to a real route', () => {
+    /**
+     * This used to assert `/verifiers/projects` did NOT exist, which is how the dead
+     * link was discovered: 123 and 125 built `/verifiers/projects/<id>?tab=messages`
+     * for message notifications against a surface that had only `/verifiers` and
+     * `/verifiers/:id`. The route exists now, so the invariant is the one that
+     * mattered all along — no link points at nothing.
+     */
     const routes = read('src/app/routes.ts');
     expect(routes).toMatch(/route\("verifiers",\s+"routes\/verifiers\/index\.tsx"\)/);
-    expect(routes).not.toMatch(/verifiers\/projects/);
+    expect(routes).toMatch(/route\("verifiers\/projects\/:projectId"/);
+    expect(read('supabase/migrations/125_message_link_opens_messages.sql'))
+      .toMatch(/verifiers\/projects\/' \|\| p_project::text \|\| '\?tab=messages/);
   });
 });
 

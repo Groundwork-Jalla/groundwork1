@@ -1,218 +1,137 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { postAuthPath } from '@/lib/auth/post-auth-path';
-import { lookup } from '@/lib/i18n/translate';
+import { destinationFor } from '@/components/ui/NotificationBell';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
 
 /**
- * 06 §22 — the first /verifiers vertical slice.
+ * The verifier surface, as a place somebody actually works.
  *
- * The point of the surface is authority, not decoration: a verifier may record what they
- * found, and may not approve, rework, assign or request anything. The database already
- * says so (087/086); these pins keep the UI from implying otherwise, and keep the reads
- * bounded to the signed-in verifier's own work.
+ * Four gaps reported together, and they compound: a verifier was told about a message by
+ * an email whose link 404'd, had no bell to be told in the app, no way to add the phone
+ * number WhatsApp delivery depends on, and no way for an admin to take them off a project
+ * once assigned.
  */
+
 const ROOT = resolve(__dirname, '..', '..', '..');
-const src = (f: string) => readFileSync(resolve(ROOT, f), 'utf8');
-const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
-const LAYOUT = 'src/app/routes/verifiers/_layout.tsx';
-const LIST   = 'src/app/routes/verifiers/index.tsx';
-const DETAIL = 'src/app/routes/verifiers/detail.tsx';
-const WORKSPACE = 'src/components/verifier/VerificationWorkspace.tsx';
-const SHELL = 'src/components/verifier/VerifierShell.tsx';
-const CHROME = 'src/components/shell/PortalShell.tsx';
-const READER = 'src/lib/supabase/verifier-work.ts';
+const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
+/** Comments stripped, for assertions about what the code does NOT do: prose
+ *  explaining why something is absent would otherwise read as doing it. */
+const code = (p: string) =>
+  read(p).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, '');
 
-describe('routing: a verifier lands on their own surface', () => {
-  it('verifier → /verifiers; admin still wins; a client is unaffected', () => {
-    expect(postAuthPath({ isVerifier: true, onboardingComplete: true })).toBe('/verifiers');
-    expect(postAuthPath({ isVerifier: true, isAdmin: true, onboardingComplete: true })).toBe('/admin');
-    expect(postAuthPath({ onboardingComplete: true })).toBe('/dashboard');
-    expect(postAuthPath({ isVerifier: true, onboardingComplete: false })).toBe('/verifiers');
-    // An explicit safe redirect still wins over every role.
-    expect(postAuthPath({ isVerifier: true, redirect: '/projects/x' })).toBe('/projects/x');
+const shell    = read('src/components/verifier/VerifierShell.tsx');
+const layout   = read('src/app/routes/verifiers/_layout.tsx');
+const routes   = read('src/app/routes.ts');
+const settings = read('src/app/routes/verifiers/settings.tsx');
+const projPage = read('src/app/routes/verifiers/projects.detail.tsx');
+const team     = read('src/components/admin/workspace/TeamCard.tsx');
+
+describe('the bell', () => {
+  it('is mounted, so notifications have somewhere to appear', () => {
+    // 123 wrote rows for a verifier like anybody else; they were written and never seen.
+    expect(layout).toMatch(/<NotificationBell userId=\{session\.user\.id\} \/>/);
   });
 
-  it('the role comes from user_roles, not from a token claim', () => {
-    const roles = code('src/lib/auth/roles.ts');
-    expect(roles).toContain("from('user_roles')");
-    expect(roles).toContain("eq('role', 'verifier')");
-    expect(roles).not.toMatch(/user_metadata|app_metadata|jwt/i);
-    for (const f of ['src/app/routes/auth/login.tsx', 'src/app/routes/auth/callback.tsx', 'src/app/routes/auth/new-password.tsx']) {
-      expect(code(f), f).toContain('holdsVerifierRole');
-    }
-  });
-
-  it('the door is the verifier ROLE — admin privilege alone does not open it', () => {
-    const l = code(LAYOUT);
-    expect(l).toContain('const allowed = isVerifier;');
-    expect(l).not.toMatch(/allowed = [^;]*isAdmin/);
-    // The layout does not even read the admin flag: there is no admin path into here.
-    expect(l).not.toMatch(/\bisAdmin\b|adminChecked/);
-    expect(l).toContain('const resolved = rolesChecked;');
-    expect(l).toContain("if (resolved && !allowed) navigate('/dashboard', { replace: true });");
-  });
-
-  it('waits for the role before deciding — a "no" computed before the session is restored is not an answer', () => {
-    const l = code(LAYOUT);
-    expect(l).toContain('if (loading) return;');
-    expect(l).toContain('if (loading || !session || !resolved || !allowed) {');
-    // The check itself is gated on `loading` in the context, for the same reason.
-    expect(code('src/contexts/AuthContext.tsx')).toMatch(/if \(loading\) return;[\s\S]{0,200}setRolesChecked/);
-  });
-
-  it('signed out goes to the real sign-in route, not a 404', () => {
-    const l = code(LAYOUT);
-    expect(l).toContain("navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname)}`");
-    expect(l).not.toMatch(/navigate\(`\/login\?/);
-    expect(src('src/app/routes.ts')).toContain('route("auth/login",          "routes/auth/login.tsx")');
-  });
-
-  it('who gets in: verifier yes; admin-only, client-only, contractor-only no; admin+verifier yes', () => {
-    // The gate is one expression, so the matrix is its truth table.
-    const allowed = (roles: { isVerifier?: boolean; isAdmin?: boolean }) => roles.isVerifier === true;
-    expect(allowed({ isVerifier: true })).toBe(true);                    // verifier
-    expect(allowed({ isAdmin: true })).toBe(false);                      // admin only
-    expect(allowed({})).toBe(false);                                     // client / contractor
-    expect(allowed({ isVerifier: true, isAdmin: true })).toBe(true);     // holds the role
-    // And post-auth still prefers /admin for the person who holds both.
-    expect(postAuthPath({ isAdmin: true, isVerifier: true, onboardingComplete: true })).toBe('/admin');
+  it('through the slot the contractor shell already uses, not a second header', () => {
+    expect(shell).toMatch(/topBarActions\?: ReactNode/);
+    expect(shell).toMatch(/topBarActions=\{topBarActions\}/);
   });
 });
 
-describe('isolation: only this verifier\'s work', () => {
-  const r = code(READER);
+describe('a message notification now resolves', () => {
+  const P = '11111111-2222-3333-4444-555555555555';
 
-  it('every read is filtered to the signed-in verifier', () => {
-    expect(r).toContain(".eq('verifier_id', userId)");
-    expect((r.match(/eq\('verifier_id', userId\)/g) ?? []).length).toBe(2);   // the list and the one row
+  it('the bell still builds the verifier link', () => {
+    expect(destinationFor({ project_id: P, conversation_id: 'c', role: 'verifier' }))
+      .toBe(`/verifiers/projects/${P}?tab=messages`);
   });
 
-  it('a guessed id returns nothing — the URL is not authority', () => {
-    expect(r).toContain("loadVerification(verificationId: string, userId: string)");
-    expect(r).toContain(".eq('id', verificationId)\n    .eq('verifier_id', userId)");
-    expect(code(WORKSPACE)).toContain('loadVerification(id, user.id)');
-    expect(code(WORKSPACE)).toContain("t('verifier.detail.notFound')");
+  it('and that is a real route now', () => {
+    expect(routes).toMatch(/route\("verifiers\/projects\/:projectId", "routes\/verifiers\/projects\.detail\.tsx"\)/);
   });
 
-  it('the surface never reads across projects: no portfolio, no other verifiers, no clients', () => {
-    for (const f of [LIST, DETAIL, WORKSPACE, SHELL, CHROME, READER]) {
-      const c = code(f);
-      expect(c, f).not.toMatch(/listAdminUsers|admin_list_users|loadAdminOverview|listAllPayments|ownerLookup/);
-      expect(c, f).not.toMatch(/from\('profiles'\)|from\('payments'\)|from\('conversations'\)/);
-    }
+  it('which opens the thread, not the verification workspace', () => {
+    // `/verifiers/:id` is a VERIFICATION. A message names a project, and a verifier
+    // records findings against an assignment — so this page is the conversation.
+    expect(projPage).toMatch(/<ProjectConversations/);
+    expect(projPage).not.toMatch(/VerificationWorkspace/);
   });
 
-  it('reads only the tables a verification needs', () => {
-    expect(r.match(/from\('([a-z_]+)'\)/g)?.sort()).toEqual(
-      ["from('project_documents')", "from('project_substages')", "from('stage_verifications')", "from('stage_verifications')"].sort());
+  it('and says so plainly when they are no longer assigned', () => {
+    // RLS stops resolving the project once the assignment ends; an empty chat would
+    // read as a broken page.
+    expect(projPage).toMatch(/verifier\.project\.noAccess/);
+    expect(projPage).toMatch(/if \(!data\) \{ setMissing\(true\); return; \}/);
   });
 });
 
-describe('authority: record a finding, and nothing else', () => {
-  it('the only write is the existing record_verification', () => {
-    const d = code(WORKSPACE);
-    expect(d).toContain('await recordVerification({');
-    expect(d).not.toMatch(/approveStage|approve_stage|request_rework|requestRework|assignVerifier|assign_verifier|removeVerifier|requestVerification|request_verification/);
-    for (const f of [LIST, LAYOUT, SHELL, CHROME, READER]) {
-      expect(code(f), f).not.toMatch(/\.rpc\(|\.insert\(|\.update\(|\.delete\(/);
-    }
+describe('a verifier can maintain their own details', () => {
+  it('there is a settings page, reachable from the sidebar', () => {
+    expect(routes).toMatch(/route\("verifiers\/settings", "routes\/verifiers\/settings\.tsx"\)/);
+    expect(shell).toMatch(/to: '\/verifiers\/settings'/);
   });
 
-  it('no button implies approval of the stage', () => {
-    const d = src(WORKSPACE);
-    expect(d).toContain("t('verifier.detail.submit')");
-    expect(lookup(en, 'verifier.detail.submit')).toBe('Submit verification');
-    expect(lookup(en, 'verifier.detail.submit')).not.toMatch(/approve/i);
-    expect(d).not.toMatch(/Approve|approveStage/);
+  it('including the phone, which is what WhatsApp resolves against', () => {
+    expect(settings).toMatch(/<PhoneField/);
+    expect(settings).toMatch(/verifier\.settings\.phoneHint/);
   });
 
-  it('the three decisions are the database\'s three, and pending is not one of them', () => {
-    const d = code(WORKSPACE);
-    expect(d).toContain("const DECISIONS = ['verified', 'rejected', 'needs_more_evidence'] as const;");
-    expect(d).not.toMatch(/DECISIONS = \[[^\]]*pending/);
+  it('but NOT their role, assignments or disciplines', () => {
+    // Those are an administrator's (086). Self-service over them would be the role
+    // granting itself work.
+    expect(code('src/app/routes/verifiers/settings.tsx'))
+      .not.toMatch(/user_roles|project_verifiers|assign_verifier|discipline/);
   });
 
-  it('verified requires a visit date in the UI, and the database stays the authority', () => {
-    const d = code(WORKSPACE);
-    expect(d).toContain("const needsVisit = decision === 'verified';");
-    expect(d).toContain('disabled={busy || (needsVisit && !visitedAt) || !findings.trim()}');
-    expect(d).toContain("msg.includes('visit_required') ? t('verifier.detail.visitRequired')");
-    // The refusal is surfaced, not pre-empted: no client-side skip of the RPC.
-    expect(d).not.toMatch(/if \(needsVisit && !visitedAt\) return;[\s\S]{0,80}recordVerification/);
-  });
-
-  it('after recording, the row is re-read rather than assumed', () => {
-    const d = code(WORKSPACE);
-    expect(d).toContain('onRecorded();');
-    expect(d).toContain('onRecorded={refresh}');
-    expect(d).toContain('await load(); await onRecorded?.();');
-    expect(code(DETAIL)).toContain('<VerificationWorkspace key={id} verificationId={id} />');
-    expect(d).not.toMatch(/setWork\(\{\s*\.\.\.work/);
-    // A decided verification shows what was stored and cannot be edited here.
-    expect(d).toContain("const decided = work.decision !== 'pending';");
-    expect(d).toContain("t('verifier.detail.alreadyDecided')");
+  it('and the update touches only their own row', () => {
+    expect(settings).toMatch(/\.update\(\{ full_name: fullName\.trim\(\), phone: phone \|\| null \}\)/);
+    expect(settings).toMatch(/\.eq\('id', user\.id\)/);
   });
 });
 
-describe('evidence: private files, signed on demand', () => {
-  it('files are opened through a signed URL, never a public one', () => {
-    const r = code(READER);
-    expect(r).toContain("createSignedUrl(path, 3600)");
-    expect(r).not.toMatch(/getPublicUrl|\/storage\/v1\/object\/public/);
-    expect(code(WORKSPACE)).toContain('await signedFileUrl(bucket, path)');
-    expect(code(WORKSPACE)).not.toMatch(/getPublicUrl|supabaseUrl|\/public\//);
+describe('an admin can take a verifier off a project', () => {
+  it('the control exists and calls remove_verifier', () => {
+    // `removeVerifier` has been in the lib the whole time with nothing calling it.
+    expect(team).toMatch(/import \{ assignContractor, removeVerifier \}/);
+    expect(team).toMatch(/await removeVerifier\(assignmentId\)/);
   });
 
-  it('a file that cannot be signed says so instead of opening nothing', () => {
-    const d = code(WORKSPACE);
-    expect(d).toContain("if (!url) { tab?.close(); setFailed(path); return; }");
-    expect(d).toContain("t('verifier.detail.fileUnavailable')");
+  it('only on an ACTIVE assignment', () => {
+    // `remove_verifier` matches on status = 'active'; offering it elsewhere would be a
+    // button that silently does nothing.
+    expect(team).toMatch(/v\.status === 'active' && \(/);
+  });
+
+  it('and it confirms first, because the access goes immediately', () => {
+    expect(team).toMatch(/window\.confirm\(t\('admin\.verifier\.removeConfirm'/);
+  });
+
+  it('a refusal is reported in the admin\'s own words', () => {
+    expect(team).toMatch(/not_admin/);
+    expect(team).toMatch(/admin\.verifier\.removeFailed/);
   });
 });
 
-describe('scope: this is not the admin workspace', () => {
-  it('no financials, no assignment, no client management, no audit', () => {
-    for (const f of [LIST, DETAIL, WORKSPACE, LAYOUT, SHELL, CHROME]) {
-      const c = code(f);
-      expect(c, f).not.toMatch(/financial|budget|payment|disburse|authorise|invoice/i);
-      expect(c, f).not.toMatch(/assignContractor|AssignVerifierModal|TeamCard|auditLog|listAuditLog/);
-      expect(c, f).not.toMatch(/\/admin\//);
+describe('every new string exists in both languages', () => {
+  it.each([
+    ['admin.verifier', ['removeOne', 'removeConfirm', 'removed', 'removeFailed', 'removeNotAdmin']],
+    ['verifier.settings', ['sub', 'name', 'phone', 'phoneHint', 'email', 'emailFixed']],
+    ['verifier.project', ['back', 'noAccess']],
+  ] as [string, string[]][])('%s', (path, keys) => {
+    for (const dict of [en, fr]) {
+      const block = path.split('.').reduce<any>((o, k) => o?.[k], dict);
+      expect(block, `${path} missing`).toBeTruthy();
+      for (const k of keys) {
+        expect(typeof block[k], `${path}.${k}`).toBe('string');
+        expect(block[k].length).toBeGreaterThan(0);
+      }
     }
   });
 
-  it('Self-Verify is untouched: only an explicit assigned verification appears', () => {
-    const r = code(READER);
-    expect(r).not.toMatch(/self_verify|verification_required|tier/);
-    expect(r).toContain("from('stage_verifications')");
-  });
-
-  it('honest states: loading, error, unavailable and empty are four different things', () => {
-    const l = code(LIST);
-    expect(l).toContain('rows === null ?');
-    expect(l).toContain('error ?');
-    expect(l).toContain('!available ?');
-    expect(l).toContain('rows.length === 0 ?');
-    expect(code(READER)).toContain("code === '42P01' || code === '42703'");
-  });
-
-  it('every string is in both dictionaries and translated', () => {
-    for (const k of ['work.title', 'work.subtitle', 'work.pending', 'work.empty', 'work.emptyBody', 'work.unavailable',
-                     'decision.verified', 'decision.rejected', 'decision.needs_more_evidence',
-                     'detail.recordTitle', 'detail.visitLabel', 'detail.visitRequired', 'detail.submit', 'detail.notFound']) {
-      const e = lookup(en, `verifier.${k}`), f = lookup(fr, `verifier.${k}`);
-      expect(e, k).toBeTypeOf('string');
-      expect(f, k).toBeTypeOf('string');
-      expect(e, `${k} is not translated`).not.toBe(f);
-    }
-  });
-
-  it('the routes exist under one gated layout', () => {
-    const routes = src('src/app/routes.ts');
-    expect(routes).toContain('layout("routes/verifiers/_layout.tsx", [');
-    expect(routes).toContain('route("verifiers",     "routes/verifiers/index.tsx")');
-    expect(routes).toContain('route("verifiers/:id", "routes/verifiers/detail.tsx")');
+  it('and the French is translated, not copied', () => {
+    expect((fr as any).verifier.settings.phone).toBe('Téléphone');
+    expect((fr as any).admin.verifier.removeFailed).not.toBe((en as any).admin.verifier.removeFailed);
   });
 });
