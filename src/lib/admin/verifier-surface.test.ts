@@ -228,3 +228,63 @@ describe('the contractor can reach, and make, a document', () => {
     expect(work).toMatch(/if \(added\.length\) setDocuments\(prev => \[\.\.\.added, \.\.\.prev\]\)/);
   });
 });
+
+describe('a verifier can see the build they are assigned to', () => {
+  const dash  = read('src/app/routes/verifiers/index.tsx');
+  const lib   = read('src/lib/supabase/verifier-work.ts');
+  const modal = read('src/components/admin/team/AssignVerifierModal.tsx');
+
+  it('the dashboard lists assignments, not only submitted work', () => {
+    /**
+     * Reported: "the verifier does not know what project they are assigned to."
+     * The dashboard was built entirely on `stage_verifications` — work a contractor has
+     * SUBMITTED. Production has two active assignments and zero of those rows, so every
+     * assigned verifier saw an empty screen.
+     */
+    expect(lib).toMatch(/export async function listMyAssignedProjects/);
+    expect(dash).toMatch(/listMyAssignedProjects\(user\.id\)/);
+  });
+
+  it('and each one links into the project, where the evidence is', () => {
+    expect(dash).toMatch(/to=\{`\/verifiers\/projects\/\$\{p\.projectId\}`\}/);
+  });
+
+  it('only ACTIVE assignments, so a removed verifier loses the build', () => {
+    const fn = lib.slice(lib.indexOf('export async function listMyAssignedProjects'));
+    expect(fn.slice(0, fn.indexOf('\n}'))).toMatch(/\.eq\('status', 'active'\)/);
+  });
+
+  it('the pending count is one query, not one per project', () => {
+    // A verifier on ten builds should not cost ten round trips on a phone.
+    const fn = lib.slice(lib.indexOf('export async function listMyAssignedProjects'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    expect(body).toMatch(/\.in\('project_id', ids\)/);
+  });
+});
+
+describe('assigning a verifier where verification cannot happen says so', () => {
+  const modal = read('src/components/admin/team/AssignVerifierModal.tsx');
+
+  it('self_verify and starter are called out before the assignment is made', () => {
+    /**
+     * `verification_required` is derived from the tier (086):
+     * `(p.tier NOT IN ('self_verify', 'starter'))`. On those tiers it is false for every
+     * stage, so `request_verification` refuses with `not_required` and no verification
+     * can ever exist. Production: 21 of 24 projects are self_verify, and the one with
+     * verifiers assigned has verification_required = false on all ten stages.
+     */
+    expect(modal).toMatch(/project\.tier === 'self_verify' \|\| project\.tier === 'starter'/);
+    expect(modal).toMatch(/admin\.verifier\.tierNoVerification/);
+  });
+
+  it('and the derivation it describes is still what 086 does', () => {
+    expect(read('supabase/migrations/086_verifiers.sql'))
+      .toMatch(/tier NOT IN \('self_verify', 'starter'\)/);
+  });
+
+  it('the assignment is still allowed — it is a warning, not a block', () => {
+    // The verifier still gets the project, its stages and its evidence. Refusing would
+    // remove a use the admin plainly wanted.
+    expect(modal).not.toMatch(/disabled=\{[^}]*self_verify/);
+  });
+});

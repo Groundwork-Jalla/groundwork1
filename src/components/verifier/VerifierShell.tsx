@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, ClipboardList, CalendarDays, Files, History, Settings } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, CalendarDays, Files, History, Layers, Settings } from 'lucide-react';
 import { PortalShell, type PortalLink } from '@/components/shell/PortalShell';
 
 const links: PortalLink[] = [
   { to: '/verifiers', label: 'nav.dashboard', icon: LayoutDashboard },
+  // The builds they are on. First, because it is the thing that exists before any
+  // stage has been submitted — and for a newly assigned verifier it is the only
+  // thing there is.
+  { to: '/verifiers#projects', label: 'verifier.dashboard.myProjects', icon: Layers },
   { to: '/verifiers#assignments', label: 'verifier.dashboard.assignments', icon: ClipboardList },
   { to: '/verifiers#visits', label: 'verifier.dashboard.visits', icon: CalendarDays },
   { to: '/verifiers#review', label: 'verifier.dashboard.workspace', icon: Files },

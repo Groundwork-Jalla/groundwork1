@@ -10,7 +10,7 @@ import { useT } from '@/lib/i18n';
 // contractor on this project, and a blank discipline, each with its own prefix, and this
 // maps the prefix to a sentence.
 export function AssignVerifierModal({ project, onClose, onAssigned, onUnavailable }: {
-  project: { id: string; name: string };
+  project: { id: string; name: string; tier?: string | null };
   onClose: () => void;
   /** Called with the notice to show; the caller closes the dialog. */
   onAssigned: (notice: string) => void;
@@ -69,6 +69,18 @@ export function AssignVerifierModal({ project, onClose, onAssigned, onUnavailabl
         <p className="mt-1 text-xs text-brand-mid-grey">
           {t('admin.verifier.bodyPre')}{' '}
           <span className="font-medium text-brand-near-black">{project.name}</span>{' '}
+          {/* Said before the assignment, not discovered after it.
+              `verification_required` is derived from the tier (086): on self_verify and
+              starter it is false for every stage, so `request_verification` refuses with
+              `not_required` and no verification can ever exist. The assignment still
+              saves and is still useful — the verifier gets the project, its stages and
+              its evidence — but they will never be asked to sign anything off, and an
+              admin who is not told that will reasonably think it is broken. */}
+          {(project.tier === 'self_verify' || project.tier === 'starter') && (
+            <span className="mt-2 block rounded-lg border border-state-warning/40 bg-state-warning/5 px-3 py-2 text-xs text-brand-near-black dark:text-white">
+              {t('admin.verifier.tierNoVerification')}
+            </span>
+          )}
           {t('admin.verifier.bodyPost')}
         </p>
 

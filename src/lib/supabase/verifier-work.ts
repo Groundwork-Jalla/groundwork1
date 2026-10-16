@@ -256,3 +256,65 @@ export async function loadProjectForVerifier(
     }),
   };
 }
+
+/**
+ * The projects this verifier is assigned to.
+ *
+ * ── Why this is separate from `listMyVerifications` ─────────────────────────────────
+ * That one lists VERIFICATIONS — individual stages a contractor has submitted for
+ * checking. The dashboard was built on it alone, and the consequence was reported
+ * directly: a verifier assigned to a build sees an empty screen and does not know they
+ * are on it. In production there are two active assignments and zero `stage_verifications`
+ * rows, so every assigned verifier currently sees nothing at all.
+ *
+ * An assignment is the standing fact — "you are the structural verifier on this build".
+ * A verification is one piece of work arising from it. The dashboard needs both, and
+ * the assignment is what arrives first: it exists from the moment an admin assigns
+ * somebody, which is before any stage has been submitted.
+ */
+export interface AssignedProject {
+  projectId: string;
+  projectName: string;
+  city: string | null;
+  country: string | null;
+  discipline: string;
+  /** Stages submitted for this verifier to check. Zero is the normal starting state. */
+  pending: number;
+}
+
+export async function listMyAssignedProjects(userId: string): Promise<AssignedProject[]> {
+  const { data, error } = await supabase
+    .from('project_verifiers')
+    .select('project_id, discipline, projects(name, city, country)')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+  // Never fatal: an empty list is a correct screen, a crashed one is not.
+  if (error) return [];
+
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  if (rows.length === 0) return [];
+
+  // How much is actually waiting, in one query rather than one per project.
+  const ids = rows.map(r => s(r.project_id));
+  const { data: pend } = await supabase
+    .from('stage_verifications')
+    .select('project_id').eq('verifier_id', userId).eq('decision', 'pending').in('project_id', ids);
+
+  const count = new Map<string, number>();
+  for (const v of ((pend ?? []) as Record<string, unknown>[])) {
+    const k = s(v.project_id);
+    count.set(k, (count.get(k) ?? 0) + 1);
+  }
+
+  return rows.map(r => {
+    const p = (r.projects ?? {}) as Record<string, unknown>;
+    return {
+      projectId:   s(r.project_id),
+      projectName: s(p.name) || 'Project',
+      city:        sn(p.city),
+      country:     sn(p.country),
+      discipline:  s(r.discipline),
+      pending:     count.get(s(r.project_id)) ?? 0,
+    };
+  });
+}

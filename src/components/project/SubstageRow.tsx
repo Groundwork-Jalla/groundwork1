@@ -3,6 +3,7 @@ import { Check, Lock, Clock, Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { signedUrlIn } from '@/lib/supabase/documents';
 import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -49,21 +50,55 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
 
 // ── Evidence thumbnails (inline, compact) ─────────────────
 
+/**
+ * The evidence on a substage, openable.
+ *
+ * These were `<span>`s — the client could see that seven photographs existed and could
+ * not look at one of them, which is most of the point of evidence. Reported directly:
+ * "the evidence here in each stage and substage should also be clickable for the client
+ * to see."
+ *
+ * The `evidence` bucket is private and has no public path, so each file is signed on
+ * demand and the link lasts an hour. Signed on click rather than on render: a stage with
+ * twenty photographs would otherwise mint twenty capabilities nobody opens.
+ */
 function EvidencePills({ urls }: { urls: string[] }) {
   const t = useT();
+  const [opening, setOpening] = useState<string | null>(null);
   if (urls.length === 0) return null;
+
+  async function open(path: string) {
+    setOpening(path);
+    try {
+      const url = await signedUrlIn('evidence', path);
+      // A refusal is RLS saying this reader is not on the project. Silence would read as
+      // a broken button, so the tab is only opened when there is something to show.
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setOpening(null);
+    }
+  }
+
   return (
     <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
       {urls.map((url, i) => {
         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        const label = isImage ? t('project.stages.photoN', { n: i + 1 })
+                              : t('project.stages.fileN', { n: i + 1 });
         return (
-          <span
-            key={i}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2 py-0.5 text-[10px] text-brand-mid-grey"
+          <button
+            key={url}
+            type="button"
+            disabled={opening !== null}
+            onClick={() => { void open(url); }}
+            title={t('project.stages.openEvidence', { name: label })}
+            className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2 py-0.5 text-[10px] text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black disabled:opacity-50 dark:bg-[#2c2c2c] dark:border-[#444] dark:hover:text-white"
           >
-            <Camera className="size-2.5 shrink-0" />
-            {isImage ? t('project.stages.photoN', { n: i + 1 }) : t('project.stages.fileN', { n: i + 1 })}
-          </span>
+            {opening === url
+              ? <Loader2 className="size-2.5 shrink-0 animate-spin" />
+              : <Camera className="size-2.5 shrink-0" />}
+            {label}
+          </button>
         );
       })}
     </div>

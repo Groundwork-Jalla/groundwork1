@@ -1398,6 +1398,7 @@ export const fr: Mirror<EnDict> = {
     verifier: {
       // Taking somebody off (086 remove_verifier). Only ever an admin's act.
       removeOne: 'Retirer {name} de ce chantier',
+      tierNoVerification: 'Ce chantier est sur une formule en auto-vérification : aucune étape ne demande de vérification indépendante. Le vérificateur verra le chantier, ses étapes et les preuves, mais ne sera jamais invité à valider une étape.',
       removeConfirm: 'Retirer {name} de ce chantier ? Il perdra immédiatement l’accès aux messages et aux preuves.',
       removed: '{name} ne vérifie plus ce chantier.',
       removeFailed: 'Ce vérificateur n’a pas pu être retiré. Réessayez.',
@@ -2595,6 +2596,7 @@ export const fr: Mirror<EnDict> = {
     dashboard: {
       "title": "Tableau de bord vérificateur",
       "assignments": "Vérifications attribuées",
+      "myProjects": "Vos chantiers",
       "pending": "Vérifications en attente",
       "visitedToday": "Visites aujourd’hui",
       "needsFindings": "Constats à saisir",
@@ -4846,6 +4848,12 @@ export const fr: Mirror<EnDict> = {
   },
 
   project: {
+    evidence: {
+      title: 'Preuves par étape',
+      none: 'Aucune preuve n’a encore été soumise sur ce chantier.',
+      unplaced: 'Non rattaché à une étape',
+      stageN: 'Étape {n}',
+    },
     pay: {
       title:            'Paiements',
       subtitle:         'Le financement du projet et les paiements effectu\u00e9s pour les travaux r\u00e9alis\u00e9s. Groundwork enregistre et encadre ces paiements\u00a0; il ne d\u00e9tient pas vos fonds.',
@@ -5007,6 +5015,7 @@ export const fr: Mirror<EnDict> = {
       badgeLocked:   'Verrouillée',
       awaitingReview:'En attente de révision',
       photoN:  'Photo {n}',
+      openEvidence: 'Ouvrir {name}',
       updateFailed: 'Mise à jour impossible. Veuillez réessayer.',
       fileN:   'Fichier {n}',
       verified:      'Vérifiée',

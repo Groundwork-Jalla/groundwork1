@@ -229,7 +229,7 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
 
       {assignVerifier && (
         <AssignVerifierModal
-          project={{ id: ws.project.id, name: ws.project.name }}
+          project={{ id: ws.project.id, name: ws.project.name, tier: ws.project.tier }}
           onClose={() => setAssignVerifier(false)}
           onAssigned={notice => { setAssignVerifier(false); onNotice(notice); onChanged(); }}
           onUnavailable={() => { setVerifierAvailable(false); setAssignVerifier(false); }}

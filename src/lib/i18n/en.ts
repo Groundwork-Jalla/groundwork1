@@ -1402,6 +1402,7 @@ export const en = {
     verifier: {
       // Taking somebody off (086 remove_verifier). Only ever an admin's act.
       removeOne: 'Remove {name} from this project',
+      tierNoVerification: 'This project is on a self-verifying plan, so no stage asks for independent verification. They will see the project, its stages and the evidence, but will never be asked to sign a stage off.',
       removeConfirm: 'Remove {name} from this project? They lose access to its messages and evidence straight away.',
       removed: '{name} is no longer verifying this project.',
       removeFailed: 'That verifier could not be removed. Try again.',
@@ -2630,6 +2631,7 @@ export const en = {
     dashboard: {
       "title": "Verifier Dashboard",
       "assignments": "Assigned verifications",
+      "myProjects": "Your projects",
       "pending": "Pending verifications",
       "visitedToday": "Visited today",
       "needsFindings": "Needs findings",
@@ -4941,6 +4943,12 @@ export const en = {
   },
 
   project: {
+    evidence: {
+      title: 'Stage evidence',
+      none: 'No evidence has been submitted on this project yet.',
+      unplaced: 'Not linked to a stage',
+      stageN: 'Stage {n}',
+    },
     pay: {
       title:            'Payments',
       subtitle:         'Project funding and payments made for completed work. Groundwork records and governs these payments; it does not hold your funds.',
@@ -5106,6 +5114,7 @@ export const en = {
       badgeLocked:   'Locked',
       awaitingReview:'Awaiting review',
       photoN:  'Photo {n}',
+      openEvidence: 'Open {name}',
       updateFailed: 'Could not update. Please try again.',
       fileN:   'File {n}',
       verified:      'Verified',

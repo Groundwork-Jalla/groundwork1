@@ -22,6 +22,7 @@ import { StageTracker }          from '@/components/project/StageTracker';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
+import { StageEvidenceList }     from '@/components/project/StageEvidenceList';
 import { ProjectConversations }  from '@/components/project/ProjectConversations';
 import ContractorInvite          from '@/components/project/ContractorInvite';
 import { ShareProject }          from '@/components/project/ShareProject';
@@ -565,6 +566,18 @@ export default function ProjectDetail() {
                 userId={user?.id ?? ''}
                 tier={project.tier}
               />
+
+              {/* Beside the documents, never merged into them: a document is something
+                  somebody filed, evidence is what was photographed at a stage and
+                  carries a verification meaning. The client could previously only reach
+                  evidence through the Stages tab. */}
+              <section className="mt-6">
+                <h3 className="mb-2 text-sm font-semibold text-brand-near-black dark:text-white">
+                  {t('project.evidence.title')}
+                </h3>
+                <StageEvidenceList projectId={project.id} />
+              </section>
+
               <RelatedGuides tab="documents" />
             </div>
           )}

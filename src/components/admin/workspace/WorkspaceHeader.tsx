@@ -282,7 +282,7 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
 
       {assignVerifier && (
         <AssignVerifierModal
-          project={{ id: p.id, name: p.name }}
+          project={{ id: p.id, name: p.name, tier: p.tier }}
           onClose={() => setAssignVerifier(false)}
           onAssigned={notice => { setAssignVerifier(false); onNotice(notice); }}
           onUnavailable={() => { setVerifierAvailable(false); setAssignVerifier(false); }}

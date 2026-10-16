@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { ArrowRight, CalendarDays, CheckCircle2, ClipboardList, FilePenLine, Loader2, Search, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, ClipboardList, FilePenLine, Layers, Loader2, Search, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { listMyVerifications, type VerifierWorkItem } from '@/lib/supabase/verifier-work';
+import { listMyVerifications, listMyAssignedProjects,
+         type VerifierWorkItem, type AssignedProject } from '@/lib/supabase/verifier-work';
 import { matchesWorkFilter, searchWork, verifierSummary, type WorkFilter } from '@/lib/verifier/dashboard';
 import { VerificationWorkspace, Panel } from '@/components/verifier/VerificationWorkspace';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,6 +27,8 @@ export default function VerifierWork() {
   const location = useLocation();
   const { stageLabel } = useStageLabels();
   const [rows, setRows] = useState<VerifierWorkItem[] | null>(null);
+  /** The builds they are ON, which exist before any stage is submitted. */
+  const [mine, setMine] = useState<AssignedProject[]>([]);
   const [available, setAvailable] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const request = useRef(0);
@@ -35,9 +38,12 @@ export default function VerifierWork() {
     if (!user) return;
     const version = ++request.current;
     try {
-      const r = await listMyVerifications(user.id);
+      const [r, assigned] = await Promise.all([
+        listMyVerifications(user.id),
+        listMyAssignedProjects(user.id),
+      ]);
       if (version !== request.current) return;
-      setRows(r.rows); setAvailable(r.available); setError(null);
+      setRows(r.rows); setMine(assigned); setAvailable(r.available); setError(null);
     } catch (err) {
       if (version !== request.current) return;
       setRows([]); setError(err);
@@ -88,6 +94,43 @@ export default function VerifierWork() {
           <span className="mt-2 flex items-center justify-between text-3xl font-semibold tabular-nums">{summary[key]}<ArrowRight className="size-4 text-brand-mid-grey" /></span>
         </button>)}
       </div>
+      {/* The builds they are assigned to.
+          Reported: "the verifier does not know what project they are assigned to."
+          The dashboard was built entirely on `stage_verifications`, which is work a
+          contractor has SUBMITTED — and there are none yet in production, so every
+          assigned verifier saw an empty screen. An assignment exists from the moment an
+          admin makes it; this is where it shows up, and it is the way in to the stages
+          and the evidence. */}
+      {mine.length > 0 && (
+        <section id="projects" className="scroll-mt-24">
+          <Panel title={t('verifier.dashboard.myProjects')} icon={<Layers className="size-4" />}>
+            <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+              {mine.map(p => (
+                <li key={p.projectId}>
+                  <Link to={`/verifiers/projects/${p.projectId}`}
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-brand-near-black dark:text-white">
+                        {p.projectName}
+                      </span>
+                      <span className="block text-[11px] text-brand-mid-grey">
+                        {[p.discipline, [p.city, p.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    {p.pending > 0 && (
+                      <span className="shrink-0 rounded-full bg-state-active px-2 py-0.5 text-[10px] font-bold text-white dark:text-brand-near-black tabular-nums">
+                        {p.pending}
+                      </span>
+                    )}
+                    <ArrowRight className="size-4 shrink-0 text-brand-mid-grey" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </section>
+      )}
+
       {rows.length === 0 ? <section id="assignments" className="scroll-mt-24 rounded-2xl border border-brand-border-grey bg-[#ffffff] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"><EmptyState icon={<ShieldCheck className="size-8" />} title={t('verifier.work.empty')} description={t('verifier.work.emptyBody')} /></section> : <section id="assignments" className="scroll-mt-24">
         <div className="grid min-w-0 gap-5 xl:grid-cols-[3fr_2fr]">
           <Panel title={t('verifier.dashboard.assignments')} icon={<ClipboardList className="size-4" />}>
