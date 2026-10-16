@@ -4944,6 +4944,9 @@ export const en = {
 
   project: {
     evidence: {
+      previous: 'Previous',
+      next: 'Next',
+      cannotOpen: 'That file could not be opened. You may no longer have access to this project.',
       title: 'Stage evidence',
       none: 'No evidence has been submitted on this project yet.',
       unplaced: 'Not linked to a stage',

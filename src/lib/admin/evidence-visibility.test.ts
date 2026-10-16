@@ -24,26 +24,66 @@ const lib    = read('src/lib/supabase/documents.ts');
 const client = read('src/app/routes/projects/detail.tsx');
 const work   = read('src/app/routes/work/projects.detail.tsx');
 
-describe('an evidence chip opens the file', () => {
-  it('it is a button, not a span', () => {
-    // It was a <span>: you could see that evidence existed and not look at it.
-    expect(row).toMatch(/<button\s+key=\{url\}/);
-    expect(row).not.toMatch(/<span\s+key=\{i\}/);
+describe('evidence opens INSIDE Groundwork, never as a download', () => {
+  const box = read('src/components/project/EvidenceLightbox.tsx');
+
+  it('the chip opens a viewer, not a new tab', () => {
+    /**
+     * A signed URL in a tab hands the browser a bare file: Chrome renders a PDF in its
+     * own viewer with a download button, an image is one right-click from the desktop,
+     * and the URL sits in the address bar where it can be copied and forwarded for the
+     * hour it lives.
+     */
+    expect(row).toMatch(/<EvidenceLightbox items=\{items\}/);
+    expect(row).not.toMatch(/window\.open/);
   });
 
-  it('through a signed URL, because the bucket is private', () => {
-    expect(row).toMatch(/signedUrlIn\('evidence', path\)/);
+  it('and nothing in the evidence path opens a tab any more', () => {
+    expect(list).not.toMatch(/window\.open/);
   });
 
-  it('signed on click, not for every file on the page', () => {
-    // A stage with twenty photographs would otherwise mint twenty hour-long
-    // capabilities nobody opens.
-    expect(row).toMatch(/onClick=\{\(\) => \{ void open\(url\); \}\}/);
-    expect(row).not.toMatch(/useEffect[\s\S]{0,200}signedUrlIn/);
+  it('the easy ways out are closed', () => {
+    // Friction, not protection — see the limits test below.
+    expect(box).toMatch(/onContextMenu=\{e => e\.preventDefault\(\)\}/);
+    expect(box).toMatch(/onDragStart=\{e => e\.preventDefault\(\)\}/);
+    expect(box).toMatch(/controlsList="nodownload/);
+    expect(box).toMatch(/toolbar=0/);
   });
 
-  it('and a refusal does not open an empty tab', () => {
-    expect(row).toMatch(/if \(url\) window\.open/);
+  it('and it is honest in the code about what it cannot do', () => {
+    // A screenshot is handled by the OS before any JavaScript runs. Claiming otherwise
+    // would have somebody promise a client their photographs cannot leave.
+    expect(box).toMatch(/CANNOT stop a screenshot/);
+  });
+});
+
+describe('the viewer behaves like the photo viewers people already use', () => {
+  const box = read('src/components/project/EvidenceLightbox.tsx');
+
+  it('arrows, and a swipe on a phone', () => {
+    expect(box).toMatch(/onTouchStart/);
+    expect(box).toMatch(/Math\.abs\(dx\) > 50/);
+    expect(box).toMatch(/ArrowRight/);
+    expect(box).toMatch(/ArrowLeft/);
+  });
+
+  it('Escape closes it, and the page behind does not scroll', () => {
+    expect(box).toMatch(/e\.key === 'Escape'/);
+    expect(box).toMatch(/document\.body\.style\.overflow = 'hidden'/);
+  });
+
+  it('it wraps rather than dead-ending at the last photograph', () => {
+    expect(box).toMatch(/\(index \+ delta \+ items\.length\) % items\.length/);
+  });
+
+  it('video is played, not downloaded', () => {
+    expect(box).toMatch(/const VIDEO = /);
+    expect(box).toMatch(/<video/);
+  });
+
+  it('and one URL is signed at a time, for the file being looked at', () => {
+    // Twenty photographs would otherwise mint twenty hour-long capabilities nobody opens.
+    expect(box).toMatch(/signedUrlIn\(item\.bucket \?\? 'evidence', item\.path\)/);
   });
 });
 

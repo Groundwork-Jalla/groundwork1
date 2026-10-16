@@ -4849,6 +4849,9 @@ export const fr: Mirror<EnDict> = {
 
   project: {
     evidence: {
+      previous: 'Précédent',
+      next: 'Suivant',
+      cannotOpen: 'Ce fichier n’a pas pu être ouvert. Vous n’avez peut-être plus accès à ce chantier.',
       title: 'Preuves par étape',
       none: 'Aucune preuve n’a encore été soumise sur ce chantier.',
       unplaced: 'Non rattaché à une étape',

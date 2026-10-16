@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
-import { listProjectFiles, signedUrlIn, type ProjectFile } from '@/lib/supabase/documents';
+import { listProjectFiles, type ProjectFile } from '@/lib/supabase/documents';
+import { EvidenceLightbox } from '@/components/project/EvidenceLightbox';
 import { useFormat, useT } from '@/lib/i18n';
 
 /**
@@ -26,7 +27,9 @@ export function StageEvidenceList({ projectId }: { projectId: string }) {
   const t = useT();
   const fmt = useFormat();
   const [files, setFiles] = useState<ProjectFile[] | null>(null);
-  const [opening, setOpening] = useState<string | null>(null);
+  /** Index into the FLAT list, so the arrows carry on across stage headings
+   *  rather than stopping at the end of each group. */
+  const [at, setAt] = useState<number | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -56,16 +59,14 @@ export function StageEvidenceList({ projectId }: { projectId: string }) {
   }
   const stages = [...byStage.keys()].sort((a, b) => (a ?? 99) - (b ?? 99));
 
-  async function open(f: ProjectFile) {
-    setOpening(f.key);
-    try {
-      const url = await signedUrlIn('evidence', f.path);
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-    } finally { setOpening(null); }
-  }
-
   return (
     <div className="space-y-4">
+      {at !== null && (
+        <EvidenceLightbox
+          items={files.map(f => ({ path: f.path, label: f.name, bucket: f.bucket }))}
+          index={at} onIndex={setAt} onClose={() => setAt(null)}
+        />
+      )}
       {stages.map(n => (
         <div key={String(n)}>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">
@@ -76,13 +77,10 @@ export function StageEvidenceList({ projectId }: { projectId: string }) {
               <li key={f.key}>
                 <button
                   type="button"
-                  disabled={opening !== null}
-                  onClick={() => { void open(f); }}
-                  className="flex w-full items-center gap-3 py-2 text-left hover:bg-brand-off-white disabled:opacity-50 dark:hover:bg-[#2c2c2c]"
+                  onClick={() => setAt(files.indexOf(f))}
+                  className="flex w-full items-center gap-3 py-2 text-left hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]"
                 >
-                  {opening === f.key
-                    ? <Loader2 className="size-4 shrink-0 animate-spin text-brand-mid-grey" />
-                    : <Camera className="size-4 shrink-0 text-brand-mid-grey" />}
+                  <Camera className="size-4 shrink-0 text-brand-mid-grey" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-brand-near-black dark:text-white">{f.name}</span>
                     {f.substageName && (
