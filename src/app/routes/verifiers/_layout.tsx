@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { VerifierShell } from '@/components/verifier/VerifierShell';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 
 // =========================================================
 // /verifiers — the independent verifier's surface (06 §22).
@@ -53,7 +54,9 @@ export default function VerifiersLayout() {
   const displayName = (session.user.user_metadata?.full_name as string | undefined)
     ?? session.user.email?.split('@')[0] ?? '';
   return (
-    <VerifierShell displayName={displayName} onLogout={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}>
+    <VerifierShell displayName={displayName}
+      topBarActions={<NotificationBell userId={session.user.id} />}
+      onLogout={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}>
       <Outlet />
     </VerifierShell>
   );

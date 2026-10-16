@@ -109,6 +109,11 @@ export default [
   layout("routes/verifiers/_layout.tsx", [
     route("verifiers",     "routes/verifiers/index.tsx"),
     route("verifiers/:id", "routes/verifiers/detail.tsx"),
+    // `:id` above is a VERIFICATION. A message notification names a PROJECT, and
+    // 123/125 have been building /verifiers/projects/<id> for one — a dead link
+    // until this route existed.
+    route("verifiers/projects/:projectId", "routes/verifiers/projects.detail.tsx"),
+    route("verifiers/settings", "routes/verifiers/settings.tsx"),
   ]),
 
   layout("routes/admin/_admin-layout.tsx", [
