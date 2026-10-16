@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkShell } from '@/components/shell/WorkShell';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
 
 // =========================================================
@@ -128,6 +129,11 @@ export default function WorkLayout() {
       // On the question at the end of the form, the sidebar is visible and inert:
       // the two buttons on that screen are the only things that do anything.
       navLocked={gate !== null && !gate.decided}
+      // A contractor had no bell at all: a message notification was written and had
+      // nowhere to appear. Suppressed while the client question is unanswered, since
+      // nothing on that screen is meant to be clickable but its two buttons.
+      topBarActions={gate?.decided === false ? undefined
+        : <NotificationBell userId={user?.id ?? ''} />}
       onLogout={() => { void signOut().then(() => navigate('/', { replace: true })); }}
     >
       <Outlet />

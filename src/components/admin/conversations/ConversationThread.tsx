@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, StickyNote } from 'lucide-react';
+import { Loader2, Paperclip, StickyNote, X } from 'lucide-react';
 import type { Workspace } from '@/lib/admin/workspace';
 import {
   assignConversation, deliverMessage, listConversationMessages, resolveConversation, sendConversationMessage,
@@ -12,6 +12,12 @@ import { DomainNote } from '@/components/admin/workspace/DomainNote';
 import { formatDateTime, formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
+import {
+  ATTACHMENT_ACCEPT, MAX_ATTACHMENT_MB, attachmentProblem, toAttachments,
+  uploadChatAttachment, type ChatAttachment,
+} from '@/lib/supabase/chat-attachments';
+import { MessageAttachments } from '@/components/conversations/MessageAttachments';
+import { VoiceRecorder } from '@/components/conversations/VoiceRecorder';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -89,11 +95,50 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
   // OUTBOUND message on a WhatsApp thread it is then carried to the phone; a delivery
   // failure is said plainly and the message stays in the thread marked failed. An
   // internal note is never carried anywhere.
+  /**
+   * Files picked but not yet sent. Uploaded as they are chosen rather than on send,
+   * so a 6 MB photo is already in the bucket by the time the sentence is finished —
+   * and so a file that the bucket refuses is reported while it can still be changed.
+   */
+  const [pending, setPending] = useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function attach(file: File, kind: 'file' | 'voice' = 'file') {
+    const problem = attachmentProblem(file);
+    if (problem) {
+      setDelivery(t(problem === 'size' ? 'chat.attachment.tooLarge' : 'chat.attachment.badType',
+        { mb: String(MAX_ATTACHMENT_MB) }));
+      return;
+    }
+    setUploading(true);
+    setDelivery(null);
+    try {
+      // Awaited first: a state updater is not an async function, and putting the
+      // upload inside one is a promise stored as an attachment.
+      const uploaded = await uploadChatAttachment(conversation.id, file, kind);
+      setPending(list => [...list, uploaded]);
+    } catch {
+      setDelivery(t('chat.attachment.uploadFailed'));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const send = (direction: 'outbound' | 'internal') => {
     const content = draft.trim();
-    if (!content) return;
+    // A photograph on its own is a message. Requiring words beside it would make
+    // somebody type "see photo" every time.
+    if (!content && pending.length === 0) return;
     act(direction === 'outbound' ? 'send' : 'note', async () => {
-      const messageId = await sendConversationMessage(conversation.id, content, memberView ? undefined : direction);
+      const messageId = await sendConversationMessage(
+        conversation.id,
+        // `send_message` refuses an empty body, so an attachment-only message carries
+        // a short stand-in rather than being rejected at the database.
+        content || t('chat.attachment.sentAttachment'),
+        memberView ? undefined : direction,
+        pending.length ? pending : undefined,
+      );
       // Delivery is the server's business: anything that leaves Groundwork is asked for
       // here, and the provider — GHL today — is chosen there, from the channel.
       if (!memberView && direction === 'outbound' && conversation.channel !== 'jalla') {
@@ -103,7 +148,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           setDelivery(d.detail ? `${t('admin.inbox.notDelivered')} — ${d.detail}` : t('admin.inbox.notDelivered'));
         } else setDelivery(null);
       }
-    }).then(ok => { if (ok) setDraft(''); });
+    }).then(ok => { if (ok) { setDraft(''); setPending([]); } });
   };
 
   const resolved = conversation.status === 'resolved';
@@ -181,6 +226,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
               {memberView ? (
                 <div className={bubbleClass}>
                   <span className="whitespace-pre-wrap">{m.content}</span>
+                  <MessageAttachments attachments={toAttachments(m.attachments)} />
                   <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
                     {m.senderName} · {formatRelative(m.createdAt)}
                   </span>
@@ -189,6 +235,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
                 <button type="button" onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
                   className={bubbleClass}>
                   <span className="whitespace-pre-wrap">{m.content}</span>
+                  <MessageAttachments attachments={toAttachments(m.attachments)} />
                   <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
                     {m.senderName} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`admin.workspace.conversations.channel.${m.channel}` as TKey)}`}{m.status === 'failed' && ` · ${t('admin.workspace.conversations.failed')}`}
                   </span>
@@ -203,12 +250,55 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
       <div className="border-t border-brand-border-grey px-5 py-3 dark:border-[#2c2c2c]">
         <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={2} placeholder={t('admin.workspace.conversations.placeholder')} aria-label={t('admin.workspace.conversations.placeholder')}
           className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white" />
+        {/* What is already uploaded and will go with the next message. Removable
+            until it is sent — picking the wrong photo is the commonest mistake here. */}
+        {pending.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {pending.map(a => (
+              <li key={a.path}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-2 py-1 text-[11px] dark:border-[#2c2c2c]">
+                <Paperclip className="size-3 shrink-0 text-brand-mid-grey" aria-hidden />
+                <span className="max-w-40 truncate">{a.name}</span>
+                <button
+                  type="button" onClick={() => setPending(list => list.filter(x => x.path !== a.path))}
+                  aria-label={t('chat.attachment.remove')}
+                  className="rounded p-0.5 text-brand-mid-grey hover:text-state-alert"
+                >
+                  <X className="size-3" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button type="button" disabled={busy !== null || !draft.trim()} onClick={() => send('outbound')}
+          {/* A build is discussed in photographs: a question about a crack is a
+              picture, not a paragraph. */}
+          <input
+            ref={fileRef} type="file" multiple className="sr-only" accept={ATTACHMENT_ACCEPT}
+            onChange={e => {
+              const files = Array.from(e.target.files ?? []);
+              e.target.value = '';
+              // Sequential, so one refusal is reported against the file that caused it.
+              void files.reduce<Promise<void>>((run, f) => run.then(() => attach(f)), Promise.resolve());
+            }}
+          />
+          <button
+            type="button" onClick={() => fileRef.current?.click()} disabled={busy !== null || uploading}
+            aria-label={t('chat.attachment.attach')} title={t('chat.attachment.attach')}
+            className="rounded-lg p-2 text-brand-mid-grey hover:bg-brand-off-white disabled:opacity-40 dark:hover:bg-[#2c2c2c]"
+          >
+            {uploading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Paperclip className="size-4" aria-hidden />}
+          </button>
+
+          {/* On site, typing is the slow way to say something. */}
+          <VoiceRecorder disabled={busy !== null || uploading} onRecorded={clip => void attach(clip, 'voice')} />
+
+          <button type="button" disabled={busy !== null || uploading || (!draft.trim() && pending.length === 0)} onClick={() => send('outbound')}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
             {busy === 'send' && <Loader2 className="size-3.5 animate-spin" />}{t('admin.workspace.conversations.send')}
           </button>
-          {!memberView && <button type="button" disabled={busy !== null || !draft.trim()} onClick={() => send('internal')}
+          {!memberView && <button type="button" disabled={busy !== null || uploading || (!draft.trim() && pending.length === 0)} onClick={() => send('internal')}
             className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-semibold text-brand-near-black disabled:opacity-40 dark:border-[#2c2c2c] dark:text-white">
             {busy === 'note' && <Loader2 className="size-3.5 animate-spin" />}<StickyNote className="size-3.5" />{t('admin.workspace.conversations.internalNote')}
           </button>}

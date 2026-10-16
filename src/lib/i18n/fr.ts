@@ -2319,6 +2319,26 @@ export const fr: Mirror<EnDict> = {
     continue: 'Continuer',
     back:     'Retour',
   },
+  chat: {
+    attachment: {
+      tooLarge:        'Ce fichier d\u00e9passe {mb} Mo. Envoyez-en un plus petit.',
+      badType:         'Ce type de fichier ne peut pas \u00eatre envoy\u00e9 ici. Les images, PDF, documents et notes vocales le peuvent.',
+      uploadFailed:    'Ce fichier n\u2019a pas pu \u00eatre joint. R\u00e9essayez.',
+      unavailable:     '{name} \u2014 cette pi\u00e8ce jointe n\u2019a pas pu \u00eatre ouverte.',
+      noAudio:         'Votre navigateur ne peut pas lire cet enregistrement.',
+      sentAttachment:  'A envoy\u00e9 une pi\u00e8ce jointe',
+      attach:          'Joindre un fichier',
+      remove:          'Retirer',
+    },
+    voice: {
+      record:        'Enregistrer une note vocale',
+      stop:          'Envoyer l\u2019enregistrement',
+      discard:       'Supprimer l\u2019enregistrement',
+      unsupported:   'Ce navigateur ne peut pas enregistrer de son.',
+      noPermission:  'Groundwork a besoin de l\u2019autorisation d\u2019utiliser votre micro.',
+    },
+  },
+
   contractorOnboarding: {
     navLabel: 'Configuration du compte',
     readerEyebrow: 'Lire et signer',

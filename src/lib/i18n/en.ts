@@ -2352,6 +2352,26 @@ export const en = {
     continue: 'Continue',
     back:     'Back',
   },
+  chat: {
+    attachment: {
+      tooLarge:        'That file is larger than {mb} MB. Send a smaller one.',
+      badType:         'That kind of file cannot be sent here. Images, PDFs, documents and voice notes can.',
+      uploadFailed:    'That file could not be attached. Try again.',
+      unavailable:     '{name} \u2014 this attachment could not be opened.',
+      noAudio:         'Your browser cannot play this recording.',
+      sentAttachment:  'Sent an attachment',
+      attach:          'Attach a file',
+      remove:          'Remove',
+    },
+    voice: {
+      record:        'Record a voice note',
+      stop:          'Send the recording',
+      discard:       'Discard the recording',
+      unsupported:   'This browser cannot record audio.',
+      noPermission:  'Groundwork needs permission to use your microphone.',
+    },
+  },
+
   contractorOnboarding: {
     navLabel: 'Account setup',
     readerEyebrow: 'Read and sign',

@@ -58,7 +58,10 @@ describe('project scope — this is not the Inbox', () => {
 describe('acts are the 091 RPCs, and every success re-reads', () => {
   it('Send and Internal note are the same RPC with two explicit directions', () => {
     const c = code(THREAD);
-    expect(c).toContain('sendConversationMessage(conversation.id, content, direction)');
+    // One RPC, two named directions, still. It now also carries any attachments and
+    // passes `undefined` for a member — who may only ever write inbound (122).
+    expect(c).toMatch(/sendConversationMessage\(\s*conversation\.id,/);
+    expect(c).toMatch(/memberView \? undefined : direction,/);
     expect(c).toContain("send('outbound')");
     expect(c).toContain("send('internal')");
     expect(c).not.toMatch(/sendMessage\(/);   // the pre-091 path
@@ -83,7 +86,9 @@ describe('acts are the 091 RPCs, and every success re-reads', () => {
   it('a refusal is shown as phrased and the draft survives it', () => {
     const c = code(THREAD);
     expect(c).toContain("msg.includes('empty_message')");
-    expect(c).toContain(".then(ok => { if (ok) setDraft(''); })");
+    // The draft survives a refusal, and so do the files already uploaded for it —
+    // clearing those would make somebody pick the same photographs again.
+    expect(c).toContain(".then(ok => { if (ok) { setDraft(''); setPending([]); } })");
   });
 
   it('starting a thread is the existing ensure_project_conversation, offered only from the empty state', () => {

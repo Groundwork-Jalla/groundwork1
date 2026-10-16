@@ -37,7 +37,19 @@ export function destinationFor(data: Record<string, unknown> | null | undefined)
   if (s('ticket_id'))    return '/admin/support';
   if (s('inquiry_id'))   return '/admin/inquiries';
   const project = s('project_id');
-  if (project)           return `/projects/${project}`;
+  if (project) {
+    // Role-aware, because /projects/<id> assumes an owner. A contractor or verifier
+    // sent there is bounced, which reads as the product being broken rather than as a
+    // message waiting. 123 stamps the recipient's role on the notification for this.
+    const role = s('role');
+    if (role === 'contractor') return `/work/projects/${project}`;
+    if (role === 'verifier')   return `/verifiers/projects/${project}`;
+    return `/projects/${project}`;
+  }
+  // A thread with no project — a WhatsApp or email chat, which belongs to the person
+  // rather than to a build. 123 notifies on these too; without this they were a bell
+  // that went nowhere when pressed.
+  if (s('conversation_id')) return '/messages';
   return null;
 }
 

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 
 export interface PortalLink { to: string; label: TKey; icon: LucideIcon; matchPrefix?: boolean }
 
-export function PortalShell({ children, displayName, onLogout, home, links, roleKey, searchKey, scopeKey, helpTo, navLocked }: {
+export function PortalShell({ children, displayName, onLogout, home, links, roleKey, searchKey, scopeKey, helpTo, navLocked, topBarActions }: {
   children: ReactNode;
   displayName: string;
   onLogout: () => void;
@@ -28,6 +28,14 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
    * Hiding the sidebar entirely would read as a broken page rather than a decision.
    */
   navLocked?: boolean;
+  /**
+   * Shown in the top bar — the notification bell, for the shells that have one.
+   *
+   * The contractor and verifier surfaces had none at all, so a message notification
+   * was written to the database and never appeared anywhere they could see it. The
+   * client shell has had one since 009; this is the same bell, not a second one.
+   */
+  topBarActions?: ReactNode;
 }) {
   const t = useT();
   const location = useLocation();
@@ -58,6 +66,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
             <p className="max-w-48 truncate text-sm font-semibold">{displayName}</p>
             <p className="text-xs text-brand-mid-grey">{t(roleKey)}</p>
           </div>
+          {topBarActions}
           <button type="button" onClick={onLogout} aria-label={t('common.logOut')} className="rounded-lg p-2 hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]"><LogOut className="size-4" /></button>
         </div>
       </header>
