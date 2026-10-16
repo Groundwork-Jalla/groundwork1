@@ -3493,6 +3493,7 @@ export const fr: Mirror<EnDict> = {
     contractors:    'Entrepreneurs',
     contractorRecords:  'Dossiers entrepreneurs',
     payments:       'Paiements',
+    messages:       'Messages',
     notifications:  'Notifications',
     settings:       'Paramètres',
     help:           'Aide',
@@ -4803,6 +4804,12 @@ export const fr: Mirror<EnDict> = {
       f4: 'Supervision des approvisionnements',
       f5: 'Rapports sur mesure',
     },
+  },
+
+  messages: {
+    sub:        'Échangez avec votre entrepreneur et l’équipe Jalla.',
+    emptyTitle: 'Aucune conversation',
+    emptyBody:  'Une conversation s’ouvre dès que vous avez un chantier en cours.',
   },
 
   project: {

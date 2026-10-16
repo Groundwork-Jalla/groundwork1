@@ -314,7 +314,11 @@ function QuickActions({ project, unread, documentCount, contractorCount }: {
         : t('dashboard.quick.evidenceNone'),
     },
     {
-      to: '/notifications',
+      // Straight into the conversation. This said "Messages" and went to
+      // /notifications — a list of things that had happened, not the thread. With a
+      // build open it opens THAT build's messages, because that is the conversation
+      // the person on the dashboard means.
+      to: project ? `/projects/${project.id}?tab=messages` : '/messages',
       icon: MessageSquare,
       labelKey: 'dashboard.quick.messages' as TKey,
       sub: unread > 0

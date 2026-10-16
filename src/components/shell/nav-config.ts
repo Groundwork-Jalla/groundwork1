@@ -45,6 +45,7 @@ export const CLIENT_NAV: NavItem[] = [
   { to: '/payments',      labelKey: 'nav.payments',                                icon: CreditCard },
   { to: '/contractors',   labelKey: 'nav.contractors',                             icon: HardHat },
   { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
+  { to: '/messages',      labelKey: 'nav.messages',                                icon: MessagesSquare },
   { to: '/notifications', labelKey: 'nav.notifications',                           icon: Bell },
   { to: '/resources',     labelKey: 'nav.resources',                               icon: BookOpen },
   { to: '/profile',       labelKey: 'nav.settings',                                icon: Settings, exact: true },

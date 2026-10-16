@@ -3536,6 +3536,7 @@ export const en = {
     contractors:    'Contractors',
     contractorRecords:  'Contractor records',
     payments:       'Payments',
+    messages:       'Messages',
     notifications:  'Notifications',
     settings:       'Settings',
     help:           'Help',
@@ -4898,6 +4899,12 @@ export const en = {
       f4: 'Procurement oversight',
       f5: 'Custom reporting',
     },
+  },
+
+  messages: {
+    sub:        'Talk to your contractor and the Jalla team.',
+    emptyTitle: 'No conversations yet',
+    emptyBody:  'A conversation opens once you have a project under way.',
   },
 
   project: {
