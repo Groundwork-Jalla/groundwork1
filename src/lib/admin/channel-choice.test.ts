@@ -78,22 +78,26 @@ describe('the fan-out stops caring which channel', () => {
 
 describe('the client sees the two ways to send, and picks one', () => {
   it('both tabs are offered on the project thread', () => {
-    expect(project).toMatch(/\(\['jalla', 'whatsapp'\] as const\)\.map/);
+    expect(project).toMatch(/const CHANNELS = \['jalla', 'whatsapp'\] as const;/);
+    expect(project).toMatch(/\{CHANNELS\.map\(c => \(/);
   });
 
-  it('shown even before either has been used', () => {
+  it('shown unconditionally, before either has been used', () => {
     // It is how you decide where the message goes, not a list of what already exists —
-    // which is exactly why the client saw nothing before.
-    expect(project).toMatch(/\{conversation\.projectId && \(/);
+    // which is exactly why the client saw no WhatsApp at all. No guard: both buttons
+    // are always there, the same two the contractor sees.
+    const bar = project.slice(project.indexOf("role=\"tablist\""));
+    expect(bar.slice(0, bar.indexOf('</div>'))).toMatch(/CHANNELS\.map/);
   });
 
   it('and WhatsApp carries its own glyph', () => {
     expect(project).toMatch(/<ChannelIcon channel=\{c\} \/>/);
+    expect(project).toMatch(/channel === 'whatsapp'\s*\n?\s*\? <WhatsAppIcon/);
   });
 
   it('the choice reaches the composer and the list', () => {
-    expect(project).toMatch(/sendChannel=\{conversation\.projectId \? channel : undefined\}/);
-    expect(project).toMatch(/showOnlyChannel=\{conversation\.projectId \? channel : undefined\}/);
+    expect(project).toMatch(/sendChannel=\{channel\}/);
+    expect(project).toMatch(/showOnlyChannel=\{channel\}/);
   });
 
   it('and it is one conversation shown two ways, not two inboxes', () => {

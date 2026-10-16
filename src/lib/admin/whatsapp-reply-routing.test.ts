@@ -131,9 +131,10 @@ describe('the reader can tell it came from a phone', () => {
 
   it('and the channel picker carries WhatsApp\'s own glyph', () => {
     const project = read('src/components/project/ProjectConversations.tsx');
-    expect(project).toMatch(/channel === 'whatsapp'\) return <WhatsAppIcon/);
-    // The others stay monochrome, so the green means something.
-    expect(project).toMatch(/<Mail className/);
-    expect(project).toMatch(/<Phone className/);
+    expect(project).toMatch(/channel === 'whatsapp'\s*\n?\s*\? <WhatsAppIcon/);
+    // Groundwork stays monochrome beside it, so the green means "this reaches a phone".
+    // Mail and Phone went with the thread switcher: this view is the project's own
+    // conversation on one of two channels, not a list of every way to reach somebody.
+    expect(project).toMatch(/<MessageSquare className/);
   });
 });

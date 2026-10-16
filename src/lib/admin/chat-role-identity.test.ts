@@ -54,8 +54,11 @@ describe('the roles come from the one place that defines them', () => {
     expect(project).toMatch(/useEffect\(\(\) => \{ void listProjectRoles\(projectId\)/);
   });
 
-  it('only the project thread is labelled', () => {
-    expect(project).toMatch(/roleOf=\{conversation\.projectId \? /);
+  it('the thread it shows is the project\'s own, so a role always means something', () => {
+    // The component no longer lists the person's project-less threads, so there is no
+    // longer a case where a role label would be meaningless noise.
+    expect(project).toMatch(/roleOf=\{id => \(id \? roles\[id\] \?\? null : null\)\}/);
+    expect(project).toMatch(/result\.rows\.find\(r => r\.channel === 'jalla'\)/);
   });
 });
 

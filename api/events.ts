@@ -21,7 +21,6 @@ import { handler as conversationDeliver } from './_handlers/conversation-deliver
 import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as messageFanout } from './_handlers/message-fanout.js';
-import { handler as myWhatsApp } from './_handlers/my-whatsapp.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
@@ -70,7 +69,7 @@ type Action =
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach'
-  | 'message-fanout' | 'my-whatsapp';
+  | 'message-fanout';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -92,9 +91,6 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   // Called by the database (126), not the browser: it proves itself with the shared
   // secret rather than a user token.
   'message-fanout': messageFanout,
-  // The caller's OWN thread. No person parameter, so it cannot be aimed at
-  // anybody else — which is why it needs no admin check.
-  'my-whatsapp': myWhatsApp,
   'certificate-purge': certPurge,
   'mfa-email': mfaEmail,
   'admin-provision-user': adminProvisionUser,
