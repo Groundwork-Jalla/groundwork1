@@ -308,6 +308,14 @@ export const en = {
     errFailed:    'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
   admin: {
+    verifier: {
+      removeOne: 'Remove {name} from this project',
+      removeConfirm: 'Remove {name} from this project? They lose access to its messages and evidence straight away.',
+      removed: '{name} is no longer verifying this project.',
+      removeFailed: 'That verifier could not be removed. Try again.',
+      removeNotAdmin: 'Only an administrator can remove a verifier.',
+    },
+
     placeholder: {
       body:     'This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.',
       existing: 'Until then, see {where}',
@@ -2592,6 +2600,20 @@ export const en = {
   },
 
   verifier: {
+    project: {
+      back: 'Back to my work',
+      noAccess: 'You are not currently assigned to this project.',
+    },
+
+    settings: {
+      sub: 'Your details. Assignments are set by the Jalla team.',
+      name: 'Full name',
+      phone: 'Phone',
+      phoneHint: 'Used to reach you on WhatsApp about the projects you verify.',
+      email: 'Email',
+      emailFixed: 'This is the address your invitation was sent to and cannot be changed here.',
+    },
+
     // The verifier portal (/verifiers) is its own surface, not part of /admin.
     // These strings belong to that surface, so they live here and not under admin.
     dashboard: {

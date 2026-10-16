@@ -317,6 +317,14 @@ export const fr: Mirror<EnDict> = {
     errFailed:    'L\u2019invitation n\u2019a pas \u00e9t\u00e9 envoy\u00e9e. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   admin: {
+    verifier: {
+      removeOne: 'Retirer {name} de ce chantier',
+      removeConfirm: 'Retirer {name} de ce chantier ? Il perdra immédiatement l’accès aux messages et aux preuves.',
+      removed: '{name} ne vérifie plus ce chantier.',
+      removeFailed: 'Ce vérificateur n’a pas pu être retiré. Réessayez.',
+      removeNotAdmin: 'Seul un administrateur peut retirer un vérificateur.',
+    },
+
     placeholder: {
       body:     'Cette section fait partie de l\u2019administration Groundwork mais sa page n\u2019est pas encore construite. Rien ici n\u2019est invent\u00e9\u00a0: \u00e0 sa livraison, tout proviendra de vos donn\u00e9es Supabase et GoHighLevel.',
       existing: 'En attendant, voir {where}',
@@ -2557,6 +2565,20 @@ export const fr: Mirror<EnDict> = {
   },
 
   verifier: {
+    project: {
+      back: 'Retour à mes travaux',
+      noAccess: 'Vous n’êtes pas actuellement affecté à ce chantier.',
+    },
+
+    settings: {
+      sub: 'Vos informations. Les affectations sont définies par l’équipe Jalla.',
+      name: 'Nom complet',
+      phone: 'Téléphone',
+      phoneHint: 'Sert à vous joindre sur WhatsApp au sujet des chantiers que vous vérifiez.',
+      email: 'E-mail',
+      emailFixed: 'Adresse à laquelle votre invitation a été envoyée ; non modifiable ici.',
+    },
+
     // The verifier portal (/verifiers) is its own surface, not part of /admin.
     // These strings belong to that surface, so they live here and not under admin.
     dashboard: {

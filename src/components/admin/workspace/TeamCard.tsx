@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { HardHat, Landmark, Loader2, ShieldCheck, Star, UserRound } from 'lucide-react';
+import { HardHat, Landmark, Loader2, ShieldCheck, Star, UserRound, X } from 'lucide-react';
 import type { Workspace } from '@/lib/admin/workspace';
-import { assignContractor } from '@/lib/supabase/verifiers';
+import { assignContractor, removeVerifier } from '@/lib/supabase/verifiers';
 import { setPrimaryContractor } from '@/lib/supabase/payout-destinations';
 import { AssignVerifierModal } from '@/components/admin/team/AssignVerifierModal';
 import { ContractorPayoutCheck } from '@/components/admin/team/ContractorPayoutCheck';
@@ -38,6 +38,32 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [assignVerifier, setAssignVerifier] = useState(false);
+  /** The assignment being taken off, while the RPC runs. */
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  /**
+   * Take a verifier off this project.
+   *
+   * Confirmed first, because it is not reversible from the client's side of the story:
+   * the assignment stops being `active`, which is what makes somebody a project member
+   * (086), so they immediately lose the thread, the evidence and any stage they were
+   * part-way through checking.
+   */
+  async function takeOff(assignmentId: string, name: string) {
+    if (!window.confirm(t('admin.verifier.removeConfirm', { name }))) return;
+    setRemoving(assignmentId);
+    try {
+      await removeVerifier(assignmentId);
+      onNotice(t('admin.verifier.removed', { name }));
+      onChanged();
+    } catch (err) {
+      onNotice(err instanceof Error && err.message.includes('not_admin')
+        ? t('admin.verifier.removeNotAdmin')
+        : t('admin.verifier.removeFailed'));
+    } finally {
+      setRemoving(null);
+    }
+  }
   const [verifierAvailable, setVerifierAvailable] = useState(available);
 
   async function assign() {
@@ -174,9 +200,26 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
           ) : (
             <ul className="space-y-0.5">
               {verifiers.map(v => (
-                <li key={v.id} className="text-brand-near-black dark:text-white">
-                  {v.name}
-                  <span className="text-brand-mid-grey">{v.discipline && ` · ${v.discipline}`}{v.status && ` · ${v.status}`}</span>
+                <li key={v.id} className="flex items-center gap-2 text-brand-near-black dark:text-white">
+                  <span className="min-w-0 flex-1 truncate">
+                    {v.name}
+                    <span className="text-brand-mid-grey">{v.discipline && ` · ${v.discipline}`}{v.status && ` · ${v.status}`}</span>
+                  </span>
+                  {/* Only an ACTIVE assignment can be taken off. `remove_verifier` (086)
+                      matches on status = 'active', so offering it on a removed row would
+                      be a button that silently does nothing. */}
+                  {v.status === 'active' && (
+                    <button
+                      type="button"
+                      disabled={removing !== null}
+                      onClick={() => { void takeOff(v.id, v.name); }}
+                      className="shrink-0 rounded-md px-1.5 py-1 text-brand-mid-grey hover:bg-brand-off-white hover:text-state-alert disabled:opacity-40 dark:hover:bg-[#2c2c2c]"
+                      aria-label={t('admin.verifier.removeOne', { name: v.name })}
+                      title={t('admin.verifier.removeOne', { name: v.name })}
+                    >
+                      {removing === v.id ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
