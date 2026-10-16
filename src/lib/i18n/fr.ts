@@ -167,6 +167,8 @@ export const fr: Mirror<EnDict> = {
   },
   errors: {
     generic: 'Une erreur est survenue. Veuillez actualiser la page.',
+    workMayBeSaved: 'Si vous veniez d’envoyer quelque chose, c’est peut-être déjà enregistré — rechargez pour vérifier avant de recommencer.',
+    reload: 'Recharger la page',
   },
   bq: {
     '101': 'Installation de chantier, palissade et ouvrages provisoires',
@@ -1317,6 +1319,8 @@ export const fr: Mirror<EnDict> = {
       action: {
         stage_submitted_for_review: 'a soumis une étape à validation',
         stage_approved:             'a validé une étape',
+        stage_opened: 'a ouvert une étape',
+        stage_awaiting_payment: 'a mis une étape en attente de paiement',
         stage_approved_by_admin:    'a validé une étape',
         rework_requested:           'a demandé des corrections',
         admin_assigned_contractor:  'a affecté un entrepreneur',

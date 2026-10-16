@@ -43,9 +43,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
     // warns on every route. The mutation is the point (it prevents a flash of the
     // wrong theme and gives screen readers the right language immediately), so the
     // warning is suppressed here rather than the behaviour being changed.
-    <html lang="en" suppressHydrationWarning>
+    /**
+     * `translate="no"` is load-bearing, not a preference.
+     *
+     * Chrome's page translation rewrites text nodes in place. React then tries to insert
+     * or remove a sibling of a node the translator has already replaced, and throws
+     * `NotFoundError: Failed to execute 'insertBefore' on 'Node'` — which takes down the
+     * whole tree into the error boundary. Reported as "Something went wrong. Please
+     * refresh the page." on /work/projects with every frame of the stack inside React
+     * itself and none in our code, which is the signature of this.
+     *
+     * Groundwork translates itself: the EN/FR switch is the supported way, and the
+     * `lang` set below drives it. Browser translation on top of that is redundant and
+     * costs the page.
+     */
+    <html lang="en" translate="no" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        {/* The older signal, which some Chrome versions honour where the attribute
+            alone is ignored. Both, because one of them silently not applying is how
+            this reached production in the first place. */}
+        <meta name="google" content="notranslate" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Groundwork by Jalla</title>
         <Meta />
@@ -67,7 +85,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </>
         )}
       </head>
-      <body>
+      {/* Belt and braces: the subtree React actually reconciles. */}
+      <body translate="no">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:rounded-md focus:bg-brand-near-black focus:px-4 focus:py-2 focus:text-sm focus:text-white focus:shadow-lg"
@@ -90,7 +109,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
  */
 function ErrorFallback() {
   const t = useT();
-  return <p className="p-8 text-sm text-brand-mid-grey">{t('errors.generic')}</p>;
+  /**
+   * A way out, not just a sentence.
+   *
+   * This was a bare line of grey text, which is what a contractor saw after pressing
+   * Submit work — with no indication that the submission had in fact succeeded and
+   * nothing to press. Reported twice as "it takes me to an empty page".
+   *
+   * The reload is not cosmetic: the commonest cause here is a DOM mutated from outside
+   * React (a browser translating the page), and React cannot recover from that in place
+   * — only a fresh document can. So the honest instruction is also the working one.
+   */
+  return (
+    <div className="p-8 space-y-3" role="alert">
+      <p className="text-sm text-brand-near-black dark:text-white">{t('errors.generic')}</p>
+      <p className="text-xs text-brand-mid-grey">{t('errors.workMayBeSaved')}</p>
+      <button
+        type="button"
+        onClick={() => { window.location.reload(); }}
+        className="rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
+      >
+        {t('errors.reload')}
+      </button>
+    </div>
+  );
 }
 
 function AppInner() {

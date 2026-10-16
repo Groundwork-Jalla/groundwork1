@@ -98,6 +98,25 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => { setFormatLocale(lang); }, [lang]);
 
   /**
+   * `<html lang>` follows what is actually on screen — always, not only on a toggle.
+   *
+   * `persistChoice` set it when somebody pressed EN/FR, so a first load was left with
+   * whatever the pre-paint script in root.tsx guessed from `navigator.languages`. In
+   * Cameroon that guess is often `fr` while the provider resolves to English, and a page
+   * marked French full of English text is an invitation Chrome accepts: it auto-
+   * translated fr→en, rewrote the text nodes under React, and the next render died with
+   * `insertBefore ... not a child of this node`. Reported as "Something went wrong.
+   * Please refresh the page." after pressing Submit work.
+   *
+   * `translate="no"` in root.tsx refuses the translation outright; this removes the
+   * reason it was offered. Both, because the attribute is a request and this is the truth.
+   */
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = LANG_META[lang].htmlLang;
+  }, [lang]);
+
+  /**
    * Record an explicit choice everywhere it needs to be known:
    *   localStorage — so this browser remembers on the next visit
    *   <html lang>  — so screen readers and the browser pick the right pronunciation

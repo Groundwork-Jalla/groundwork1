@@ -156,6 +156,8 @@ export const en = {
   },
   errors: {
     generic: 'Something went wrong. Please refresh the page.',
+    workMayBeSaved: 'If you had just submitted something, it may already have been saved — reload to check before doing it again.',
+    reload: 'Reload the page',
   },
   bq: {
     '101': 'Site setup, hoarding and temporary works',
@@ -1317,6 +1319,8 @@ export const en = {
       action: {
         stage_submitted_for_review: 'submitted a stage for review',
         stage_approved:             'approved a stage',
+        stage_opened: 'opened a stage for work',
+        stage_awaiting_payment: 'held a stage until it is paid for',
         stage_approved_by_admin:    'approved a stage',
         rework_requested:           'requested rework',
         admin_assigned_contractor:  'assigned a contractor',
