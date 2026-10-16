@@ -34,8 +34,12 @@ describe('evidence opens INSIDE Groundwork, never as a download', () => {
      * and the URL sits in the address bar where it can be copied and forwarded for the
      * hour it lives.
      */
-    expect(row).toMatch(/<EvidenceLightbox items=\{items\}/);
+    // The chip is a tile now and the viewer lives with it, in EvidenceThumbs.
+    const thumbs = read('src/components/project/EvidenceThumbs.tsx');
+    expect(row).toMatch(/<EvidenceThumbs paths=\{urls\} \/>/);
+    expect(thumbs).toMatch(/<EvidenceLightbox items=\{items\}/);
     expect(row).not.toMatch(/window\.open/);
+    expect(thumbs).not.toMatch(/window\.open/);
   });
 
   it('and nothing in the evidence path opens a tab any more', () => {
@@ -124,7 +128,7 @@ describe('the loader reads both sources without conflating them', () => {
   it('the signed-URL helper takes the bucket, because evidence is not in documents', () => {
     // `getSignedDocumentUrl` hardcodes 'documents', which is right for the vault and
     // wrong for evidence.
-    expect(lib).toMatch(/export async function signedUrlIn\(\s*bucket: 'documents' \| 'evidence', path: string,?\s*\)/);
+    expect(lib).toMatch(/export async function signedUrlIn\(\s*bucket: 'documents' \| 'evidence', path: string,/);
   });
 
   it('an evidence key is the path, not the index', () => {
@@ -135,5 +139,37 @@ describe('the loader reads both sources without conflating them', () => {
 
   it('and the three queries are not one per stage', () => {
     expect(lib).toMatch(/Promise\.all\(\[/);
+  });
+});
+
+describe('evidence reads as tiles, not as a list of labels', () => {
+  const thumbs = read('src/components/project/EvidenceThumbs.tsx');
+
+  it('no "Photo 1 / File 2" pills', () => {
+    // They carried no information: nobody is looking for photo 4, they are looking for
+    // the one with the rebar in it.
+    expect(read('src/components/project/SubstageRow.tsx')).not.toMatch(/project\.stages\.photoN/);
+    expect(thumbs).not.toMatch(/photoN|fileN/);
+  });
+
+  it('a real thumbnail, at a size you can see', () => {
+    expect(thumbs).toMatch(/size-16/);
+    expect(thumbs).toMatch(/object-cover/);
+  });
+
+  it('the label is the file\'s own name, not an index', () => {
+    expect(thumbs).toMatch(/\(p\.split\('\/'\)\.pop\(\) \?\? p\)\.replace\(\/\^\\d\+_\/, ''\)/);
+  });
+
+  it('a resized image is requested, with a fallback when transforms are off', () => {
+    // A grid of full-size photographs is several megabytes over a site connection.
+    expect(thumbs).toMatch(/\{ width: 160, height: 160 \}/);
+    expect(thumbs).toMatch(/onError=/);
+    expect(thumbs).toMatch(/el\.dataset\.full/);
+  });
+
+  it('and video and documents get a tile too, rather than a blank square', () => {
+    expect(thumbs).toMatch(/<Play /);
+    expect(thumbs).toMatch(/<FileText /);
   });
 });

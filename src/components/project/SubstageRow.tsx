@@ -3,7 +3,7 @@ import { Check, Lock, Clock, Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
-import { EvidenceLightbox } from '@/components/project/EvidenceLightbox';
+import { EvidenceThumbs } from '@/components/project/EvidenceThumbs';
 import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -62,42 +62,15 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
  * demand and the link lasts an hour. Signed on click rather than on render: a stage with
  * twenty photographs would otherwise mint twenty capabilities nobody opens.
  */
+/**
+ * The evidence on a substage.
+ *
+ * Was a row of "Photo 1 · File 2 · Photo 3" pills, which carried no information:
+ * nobody is looking for photo 4, they are looking for the one with the rebar in it.
+ * Tiles answer that without a click.
+ */
 function EvidencePills({ urls }: { urls: string[] }) {
-  const t = useT();
-  const [at, setAt] = useState<number | null>(null);
-  if (urls.length === 0) return null;
-
-  // One viewer for the whole substage, so the arrows and a swipe move between the
-  // photographs of THIS piece of work — which is the set somebody is actually looking
-  // through. Opening file 3 starts there rather than at the beginning.
-  const items = urls.map((url, i) => ({
-    path: url,
-    label: /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
-      ? t('project.stages.photoN', { n: i + 1 })
-      : t('project.stages.fileN', { n: i + 1 }),
-  }));
-
-  return (
-    <>
-      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-        {items.map((item, i) => (
-          <button
-            key={item.path}
-            type="button"
-            onClick={() => setAt(i)}
-            title={t('project.stages.openEvidence', { name: item.label })}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2 py-0.5 text-[10px] text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black dark:bg-[#2c2c2c] dark:border-[#444] dark:hover:text-white"
-          >
-            <Camera className="size-2.5 shrink-0" />
-            {item.label}
-          </button>
-        ))}
-      </div>
-      {at !== null && (
-        <EvidenceLightbox items={items} index={at} onIndex={setAt} onClose={() => setAt(null)} />
-      )}
-    </>
-  );
+  return <EvidenceThumbs paths={urls} />;
 }
 
 // ── Substage row ──────────────────────────────────────────
