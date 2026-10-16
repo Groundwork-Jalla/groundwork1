@@ -52,18 +52,26 @@ describe('a message notification now resolves', () => {
     expect(routes).toMatch(/route\("verifiers\/projects\/:projectId", "routes\/verifiers\/projects\.detail\.tsx"\)/);
   });
 
-  it('which opens the thread, not the verification workspace', () => {
-    // `/verifiers/:id` is a VERIFICATION. A message names a project, and a verifier
-    // records findings against an assignment — so this page is the conversation.
+  it('which opens the build: its stages, the evidence, and the thread', () => {
+    // `/verifiers/:id` is a VERIFICATION and answers a narrower question. Somebody
+    // arriving from an assignment email needs the state of the build first.
+    expect(projPage).toMatch(/loadProjectForVerifier/);
     expect(projPage).toMatch(/<ProjectConversations/);
-    expect(projPage).not.toMatch(/VerificationWorkspace/);
+    expect(projPage).toMatch(/signedFileUrl\('evidence', path\)/);
+  });
+
+  it('but records no finding — that stays in the verification workspace', () => {
+    // The decision belongs beside the evidence for that one stage, not next to nine
+    // others.
+    expect(projPage).not.toMatch(/recordVerification/);
+    expect(projPage).toMatch(/to=\{`\/verifiers\/\$\{stage\.verificationId\}`\}/);
   });
 
   it('and says so plainly when they are no longer assigned', () => {
     // RLS stops resolving the project once the assignment ends; an empty chat would
     // read as a broken page.
     expect(projPage).toMatch(/verifier\.project\.noAccess/);
-    expect(projPage).toMatch(/if \(!data\) \{ setMissing\(true\); return; \}/);
+    expect(projPage).toMatch(/if \(!p\) \{ setState\('denied'\); return; \}/);
   });
 });
 
@@ -133,5 +141,56 @@ describe('every new string exists in both languages', () => {
   it('and the French is translated, not copied', () => {
     expect((fr as any).verifier.settings.phone).toBe('Téléphone');
     expect((fr as any).admin.verifier.removeFailed).not.toBe((en as any).admin.verifier.removeFailed);
+  });
+});
+
+describe('members can actually upload (131)', () => {
+  const m131 = read('supabase/migrations/131_members_upload_documents.sql');
+  const sql  = m131.replace(/--.*$/gm, '');
+
+  it('the document row is no longer owner-only', () => {
+    // `owner_insert_documents` (086) was WITH CHECK (project_id IN (SELECT id FROM
+    // projects WHERE user_id = auth.uid())) — the owner and nobody else, which is why a
+    // contractor's upload failed silently.
+    expect(sql).toMatch(/DROP POLICY IF EXISTS "owner_insert_documents"/);
+    expect(sql).toMatch(/CREATE POLICY "member_insert_documents"[\s\S]{0,200}public\.project_member\(project_id\)/);
+  });
+
+  it('and the uploader cannot be forged', () => {
+    // The old policy got this free: only the owner could insert, so only the owner's id
+    // could be there. Widening the WHO means saying it.
+    expect(sql).toMatch(/AND uploaded_by = auth\.uid\(\)/);
+  });
+
+  it('deletion stays with the owner', () => {
+    // A contractor who leaves should not take the record of the build with them.
+    expect(sql).not.toMatch(/FOR DELETE/);
+  });
+
+  it('the documents BUCKET is widened too, or the row is written and the file is not', () => {
+    expect(sql).toMatch(/CREATE POLICY "member_documents_upload"[\s\S]{0,260}bucket_id = 'documents'/);
+  });
+
+  it('and so is evidence, because verifiers upload theirs', () => {
+    // `contractor_evidence_upload` (012) covers an accepted contractor and nobody else,
+    // so a verifier photographing what they found had nowhere to put it.
+    expect(sql).toMatch(/CREATE POLICY "member_evidence_upload"[\s\S]{0,260}bucket_id = 'evidence'/);
+  });
+
+  it('project_member covers all three roles, which is what makes one policy enough', () => {
+    const m086 = read('supabase/migrations/086_verifiers.sql');
+    const fn = m086.slice(m086.indexOf('FUNCTION public.project_member(p_project uuid)'));
+    const body = fn.slice(0, fn.indexOf('$$;'));
+    expect(body).toMatch(/p\.user_id = auth\.uid\(\)/);
+    expect(body).toMatch(/ci\.status = 'accepted'/);
+    expect(body).toMatch(/pv\.status = 'active'/);
+  });
+
+  it('a storage block that cannot be applied says so instead of aborting the file', () => {
+    // storage.objects is not always owned by the role running a migration from the SQL
+    // editor. `invalid_schema_name` is caught too, which 092 omits.
+    expect((sql.match(/EXCEPTION WHEN insufficient_privilege OR undefined_table OR invalid_schema_name/g) ?? []).length).toBe(2);
+    expect(m131).toMatch(/SKIPPED policy member_documents_upload/);
+    expect(m131).toMatch(/SKIPPED policy member_evidence_upload/);
   });
 });

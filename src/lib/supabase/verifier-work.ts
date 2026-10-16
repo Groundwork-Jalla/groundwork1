@@ -156,3 +156,103 @@ export async function signedFileUrl(bucket: 'evidence' | 'documents', path: stri
   if (error) return null;
   return data?.signedUrl ?? null;
 }
+
+// =========================================================
+// A whole project, as the verifier assigned to it needs to see it.
+//
+// `loadVerification` answers "judge this one stage", which is right once you are already
+// on a piece of work. It is the wrong shape for arriving from an assignment email: you
+// have just been told you are verifying a BUILD, and the first question is what state it
+// is in and what the contractor has put up against each stage.
+//
+// RLS does the gating, not this: a verifier is a `project_member` only while actively
+// assigned (086), so an ended assignment stops resolving rather than lingering.
+// =========================================================
+
+export interface VerifierStage {
+  id: string;
+  stageNumber: number;
+  name: string;
+  stageKey: string | null;
+  status: string;
+  substages: { id: string; name: string; status: string; evidence: string[] }[];
+  /** Their own verification of this stage, when one has been requested. */
+  verificationId: string | null;
+  decision: VerificationDecision | null;
+}
+
+export interface VerifierProject {
+  projectId: string;
+  projectName: string;
+  city: string | null;
+  country: string | null;
+  stages: VerifierStage[];
+}
+
+/** Null when the project is not readable — which means the assignment is not active. */
+export async function loadProjectForVerifier(
+  projectId: string, userId: string,
+): Promise<VerifierProject | null> {
+  const { data: project, error: pErr } = await supabase
+    .from('projects').select('id, name, city, country').eq('id', projectId).maybeSingle();
+  if (pErr) { if (unavailable(pErr)) return null; throw pErr; }
+  if (!project) return null;
+
+  const [stages, verifications] = await Promise.all([
+    supabase.from('project_stages')
+      .select('id, stage_number, name, stage_key, status')
+      .eq('project_id', projectId).order('stage_number'),
+    // Only theirs. Another discipline's verification of the same stage is not this
+    // verifier's to open, and showing it would imply it was.
+    supabase.from('stage_verifications')
+      .select('id, stage_id, decision').eq('project_id', projectId).eq('verifier_id', userId),
+  ]);
+  if (stages.error) throw stages.error;
+
+  const stageRows = (stages.data ?? []) as Record<string, unknown>[];
+  const ids = stageRows.map(x => s(x.id));
+
+  // One query for every substage rather than one per stage: ten stages is ten round
+  // trips on a page somebody opens from an email, on a phone, on site.
+  const subs = ids.length === 0
+    ? { data: [] as Record<string, unknown>[], error: null }
+    : await supabase.from('project_substages')
+        .select('id, stage_id, name, status, evidence_urls').in('stage_id', ids).order('created_at');
+  if (subs.error) throw subs.error;
+
+  const byStage = new Map<string, { id: string; name: string; status: string; evidence: string[] }[]>();
+  for (const x of (subs.data ?? []) as Record<string, unknown>[]) {
+    const list = byStage.get(s(x.stage_id)) ?? [];
+    list.push({
+      id: s(x.id), name: s(x.name), status: s(x.status),
+      evidence: Array.isArray(x.evidence_urls) ? (x.evidence_urls as unknown[]).map(String) : [],
+    });
+    byStage.set(s(x.stage_id), list);
+  }
+
+  const mine = new Map<string, { id: string; decision: VerificationDecision }>();
+  for (const v of ((verifications.data ?? []) as Record<string, unknown>[])) {
+    mine.set(s(v.stage_id), { id: s(v.id), decision: (v.decision as VerificationDecision) ?? 'pending' });
+  }
+
+  const p = project as Record<string, unknown>;
+  return {
+    projectId:   s(p.id),
+    projectName: s(p.name),
+    city:        sn(p.city),
+    country:     sn(p.country),
+    stages: stageRows.map(x => {
+      const v = mine.get(s(x.id));
+      return {
+        id:          s(x.id),
+        stageNumber: typeof x.stage_number === 'number' ? x.stage_number : 0,
+        name:        s(x.name),
+        stageKey:    sn(x.stage_key),
+        status:      s(x.status),
+        substages:   byStage.get(s(x.id)) ?? [],
+        verificationId: v?.id ?? null,
+        decision:       v?.decision ?? null,
+      };
+    }),
+  };
+}

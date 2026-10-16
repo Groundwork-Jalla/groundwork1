@@ -2568,6 +2568,12 @@ export const fr: Mirror<EnDict> = {
     project: {
       back: 'Retour à mes travaux',
       noAccess: 'Vous n’êtes pas actuellement affecté à ce chantier.',
+      stages: 'Étapes et preuves',
+      noStages: 'Ce chantier n’a pas encore d’étapes.',
+      evidenceCount: '{count} preuve(s)',
+      verify: 'Vérifier',
+      review: 'Revoir',
+      openEvidence: 'Ouvrir la preuve {n}',
     },
 
     settings: {

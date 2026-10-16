@@ -20,10 +20,16 @@
 -- new assignment and must not mail anybody again.
 --
 -- ── Where the link points ───────────────────────────────────────────────────────────
--- `/verifiers`, their work list. NOT `/verifiers/projects/<id>`, which 123 and 125 build
--- for message notifications and which DOES NOT EXIST as a route — the verifier surface is
--- `/verifiers` and `/verifiers/:id`, and `:id` is a verification id, not a project id. That
--- dead link is worth fixing on its own; this migration does not add a second one.
+-- Into the PROJECT: `/verifiers/projects/<id>`, which lists the stages and the evidence
+-- the contractor has put up against each one. That is what somebody who has just been
+-- told they are verifying a build needs first — not a work list they then have to search.
+--
+-- An earlier draft of this migration pointed at `/verifiers` instead, because that route
+-- did not exist. It does now, and it is also where 123 and 125 send a verifier's message
+-- notification, so all three links land in the same place.
+--
+-- NOT `/verifiers/<id>`: that is a VERIFICATION, and at the moment of assignment there
+-- may not be one yet. A stage is verified from this page once the contractor submits.
 --
 -- ── Nothing here may cost the assignment ────────────────────────────────────────────
 -- An AFTER trigger that raises still aborts the statement, so the bell and the mail are
@@ -91,11 +97,12 @@ BEGIN
       || 'You have been assigned as the ' || public.html_escape(NEW.discipline)
       || ' verifier on <strong>' || public.html_escape(v_project) || '</strong>.</p>'
       || '<p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:#0a0a0a;">'
-      || 'Your work list shows each stage waiting on your check, with the evidence the '
-      || 'contractor submitted.</p>'
-      || '<p style="margin:22px 0 0;"><a href="https://www.tryjalla.com/verifiers"'
+      || 'You can see each stage and the evidence the contractor has submitted against '
+      || 'it, and record your findings from there.</p>'
+      || '<p style="margin:22px 0 0;"><a href="https://www.tryjalla.com/verifiers/projects/'
+      || NEW.project_id::text || '"'
       || ' style="display:inline-block;background:#0a0a0a;color:#fff;text-decoration:none;'
-      || 'padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Open your work list</a></p>'
+      || 'padding:11px 20px;border-radius:9px;font-size:13px;font-weight:600;">Open the project</a></p>'
       || '</td></tr></table></body></html>';
     PERFORM net.http_post(
       url     := 'https://api.resend.com/emails',

@@ -49,15 +49,20 @@ describe('nothing here may cost the assignment', () => {
 });
 
 describe('the link goes somewhere that exists', () => {
-  it('the verifier work list', () => {
-    expect(m130).toMatch(/https:\/\/www\.tryjalla\.com\/verifiers"/);
+
+  it('into the project, carrying its id', () => {
+    // An earlier draft pointed at `/verifiers` because the project route did not
+    // exist. It does now, and somebody just told they are verifying a build needs the
+    // build — its stages and the evidence against each — not a list to search.
+    const body = m130.slice(m130.indexOf('body_html :='));
+    expect(body).toMatch(/tryjalla\.com\/verifiers\/projects\/'\s*\n?\s*\|\| NEW\.project_id::text/);
   });
 
-  it('the work list, not a project page', () => {
-    // An assignment notice is "you have work", so it lands where the work is listed.
-    // A per-project link would be right for a MESSAGE and wrong for this.
+  it('and NOT /verifiers/<id>, which is a verification', () => {
+    // At the moment of assignment there may be no verification yet; that link would
+    // resolve to nothing for the very person being invited to start.
     const body = m130.slice(m130.indexOf('body_html :='));
-    expect(body).not.toMatch(/verifiers\/projects/);
+    expect(body).not.toMatch(/verifiers\/'\s*\|\| NEW\.id/);
   });
 
   it('and every verifier link in the product now resolves to a real route', () => {

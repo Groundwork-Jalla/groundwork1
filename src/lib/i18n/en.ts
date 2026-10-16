@@ -2603,6 +2603,12 @@ export const en = {
     project: {
       back: 'Back to my work',
       noAccess: 'You are not currently assigned to this project.',
+      stages: 'Stages and evidence',
+      noStages: 'This project has no stages yet.',
+      evidenceCount: '{count} evidence file(s)',
+      verify: 'Verify',
+      review: 'Review',
+      openEvidence: 'Open evidence {n}',
     },
 
     settings: {
