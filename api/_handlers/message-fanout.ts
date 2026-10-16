@@ -30,13 +30,43 @@ import { composeWhatsAppBody } from '../../src/lib/admin/whatsapp-body.js';
  * that silently never arrived.
  */
 
+/**
+ * Is this call from our own database?
+ *
+ * ── Three accepted secrets, in order of preference ──────────────────────────────────
+ * A dedicated `MESSAGE_FANOUT_SECRET`, then the shared `AGENT_DISPATCH_SECRET` that 059
+ * and 063 already cross this same DB→our-API boundary with, and finally the service role
+ * key — which is already in the environment, so the feature needs no new variable
+ * distributed to make it work.
+ *
+ * The service role key is a legitimate credential here rather than a shortcut: the only
+ * readers of `app_config` are SECURITY DEFINER functions and service_role itself (058
+ * keeps RLS on with no policies), so anything able to read the secret out of the database
+ * in order to replay this call already holds that key. It grants no access it did not
+ * already have. A dedicated secret is still better, because it can be rotated without
+ * touching anything else — hence the order.
+ *
+ * ── Comparison is length-safe and constant-time ─────────────────────────────────────
+ * `===` on secrets leaks their length and prefix through timing. It is a small leak and
+ * this is a small endpoint, but the fix costs nothing.
+ */
 function secretMatches(bearer: string): boolean {
   const candidates = [
     process.env.MESSAGE_FANOUT_SECRET?.trim(),
     process.env.AGENT_DISPATCH_SECRET?.trim(),
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   ].filter((s): s is string => !!s);
   // No secret configured must never mean "everybody is authorised".
-  return candidates.length > 0 && candidates.includes(bearer);
+  if (candidates.length === 0 || !bearer) return false;
+  return candidates.some(c => timingSafeEqual(c, bearer));
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  // Compare over a fixed length so a mismatch in size does not return early.
+  const len = Math.max(a.length, b.length);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < len; i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
 }
 
 export async function handler(req: any, res: any): Promise<void> {

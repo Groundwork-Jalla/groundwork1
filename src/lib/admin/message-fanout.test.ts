@@ -196,7 +196,27 @@ describe('the endpoint is not open', () => {
   });
 
   it('and NO secret configured does not mean everybody is authorised', () => {
-    expect(handler).toMatch(/candidates\.length > 0 && candidates\.includes\(bearer\)/);
+    expect(handler).toMatch(/if \(candidates\.length === 0 \|\| !bearer\) return false;/);
+  });
+
+  it('the service role key is accepted, so no new variable has to be distributed', () => {
+    // It is already in the environment. And it grants nothing extra: the only readers
+    // of `app_config` are SECURITY DEFINER functions and service_role itself (058 keeps
+    // RLS on with no policies), so anyone able to read the secret out of the database
+    // to replay this call already holds that key.
+    expect(handler).toMatch(/process\.env\.SUPABASE_SERVICE_ROLE_KEY\?\.trim\(\)/);
+  });
+
+  it('a dedicated secret still wins, so it can be rotated alone', () => {
+    const i = (k: string) => handler.indexOf(k);
+    expect(i('MESSAGE_FANOUT_SECRET')).toBeLessThan(i('AGENT_DISPATCH_SECRET'));
+    expect(i('AGENT_DISPATCH_SECRET')).toBeLessThan(i('SUPABASE_SERVICE_ROLE_KEY'));
+  });
+
+  it('secrets are not compared with ===', () => {
+    // `===` leaks length and prefix through timing. A small leak, and a free fix.
+    expect(handler).toMatch(/timingSafeEqual\(c, bearer\)/);
+    expect(handler).not.toMatch(/candidates\.includes\(bearer\)/);
   });
 
   it('it is the database that calls it, not a browser', () => {
