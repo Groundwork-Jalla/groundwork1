@@ -74,8 +74,16 @@ interface WizardContextValue {
   persistProgress?: boolean;
   /** Leave this client's wizard while preserving its draft for later. */
   onChangeClient?: () => void;
-  /** Floor plan and bill of quantities collected before the wizard started. */
+  /** Floor plan and bill of quantities, awaiting a project to attach them to. */
   pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+  /**
+   * Set when the architecture-plan question is answered mid-wizard.
+   *
+   * Held here rather than in `data` because a `File` is not serialisable: writing one
+   * into the saved draft stores `{}` and the file is silently lost. They live for as
+   * long as this tab's wizard does, which is exactly until the project exists.
+   */
+  setPendingDocuments?: (docs: { file: File; category: 'other' | 'boq' }[]) => void;
 }
 
 // =========================================================
@@ -126,6 +134,8 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
 }) {
   const [saved] = useState(() => readWizardDraft(persistenceKey));
+  const [docs, setDocs] = useState<{ file: File; category: 'other' | 'boq' }[]>(
+    () => pendingDocuments ?? []);
   const [step, setStep]           = useState(saved?.step ?? 1);
   const [direction, setDirection] = useState<WizardDirection>(saved?.direction ?? 'forward');
   // Seed last: it is this run's answer to a question asked a moment ago, so it wins
@@ -230,7 +240,8 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
         update, next, back, goTo, reset,
         onBehalfOf,
         onChangeClient,
-        pendingDocuments,
+        pendingDocuments: docs,
+        setPendingDocuments: setDocs,
         ...(persistenceKey ? { confirmationDraft, updateConfirmationDraft, persistProgress: true } : {}),
       }}
     >

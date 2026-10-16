@@ -5,8 +5,7 @@ import { mustChangePassword, FORCED_PASSWORD_PATH } from '@/lib/auth/provisioned
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
 import { WizardProvider, useWizard } from '@/contexts/WizardContext';
-import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
-import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
+import { PlanQuestionStep } from '@/components/wizard/PlanQuestionStep';
 import Step1Country        from '@/components/wizard/steps/Step1Country';
 import Step2ProjectType    from '@/components/wizard/steps/Step2ProjectType';
 import Step3BuildingType   from '@/components/wizard/steps/Step3BuildingType';
@@ -39,7 +38,10 @@ function WizardRouter() {
   const { step } = useWizard();
   const StepComponent = STEPS[step - 1];
   if (!StepComponent) return null;
-  return <StepComponent />;
+  // The architecture-plan question sits between step 1 and step 2: after they have
+  // said where they are building, before the eight questions its answer may make
+  // unnecessary.
+  return <PlanQuestionStep><StepComponent /></PlanQuestionStep>;
 }
 
 // ── Route ─────────────────────────────────────────────────
@@ -49,9 +51,6 @@ export default function NewProjectPage() {
   const t = useT();
   const { session, loading } = useAuth();
   const [passwordCheck, setPasswordCheck] = useState<{ userId: string; cleared: boolean } | null>(null);
-  // The architecture-plan question, asked before the wizard. Same question and the
-  // same wording a partner contractor sees when setting a project up for a client.
-  const [planAnswer, setPlanAnswer] = useState<PlanAnswer | null>(null);
   const [checkAttempt, setCheckAttempt] = useState(0);
   const userId = session?.user.id;
 
@@ -95,15 +94,8 @@ export default function NewProjectPage() {
     );
   }
 
-  // Always asked here. Unlike the contractor's flow this route persists no draft
-  // (`WizardProvider` gets no persistenceKey), so arriving at it is always a fresh
-  // start and there is never an earlier answer to respect.
-  if (planAnswer === null) {
-    return <ArchitecturePlanGate onAnswered={setPlanAnswer} onCancel={() => navigate('/dashboard')} />;
-  }
-
   return (
-    <WizardProvider seed={planSeed(planAnswer)} pendingDocuments={planDocuments(planAnswer)}>
+    <WizardProvider>
       <WizardRouter />
     </WizardProvider>
   );

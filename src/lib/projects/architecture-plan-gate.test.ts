@@ -19,6 +19,8 @@ const strip = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const gate       = strip(read('src/components/wizard/ArchitecturePlanGate.tsx'));
+const stepWrap   = strip(read('src/components/wizard/PlanQuestionStep.tsx'));
+const admin      = strip(read('src/app/routes/admin/projects.new.tsx'));
 const contractor = strip(read('src/app/routes/work/clients.new.tsx'));
 const client     = strip(read('src/app/routes/projects/new.tsx'));
 const confirm    = strip(read('src/components/wizard/steps/Step11ConfirmBudget.tsx'));
@@ -87,23 +89,37 @@ describe('the documents', () => {
 });
 
 describe('the question itself', () => {
-  it('is the same question in both places', () => {
+  it('is one question, asked by one component, wherever you start from', () => {
     // "It's the same design that you see now that will also appear on the client's
-    // floor." One component, two mount points — so the wording cannot drift.
-    expect(contractor).toMatch(/<ArchitecturePlanGate/);
-    expect(client).toMatch(/<ArchitecturePlanGate/);
+    // floor." Both routers wrap their step in the same interceptor, so the wording
+    // and the moment cannot drift apart.
+    expect(stepWrap).toMatch(/<ArchitecturePlanGate/);
+    expect(client).toMatch(/<PlanQuestionStep>/);
+    expect(admin).toMatch(/<PlanQuestionStep>/);
     for (const f of ['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
       expect(read(f)).toMatch(/planGate: \{/);
     }
   });
 
-  it('asks it before the wizard, never after', () => {
-    for (const [name, src] of [['contractor', contractor], ['client', client]] as const) {
-      const gateAt   = src.indexOf('<ArchitecturePlanGate');
-      const wizardAt = src.indexOf('<WizardProvider');
-      expect(gateAt, `${name}: no gate`).toBeGreaterThan(-1);
-      expect(wizardAt, `${name}: the gate must come first`).toBeGreaterThan(gateAt);
-    }
+  it('asks it straight AFTER the country step, not before the wizard', () => {
+    // Asked in front of the whole thing it is a question with no context — nobody has
+    // said what they are building or where. After step 1 they are oriented, and the
+    // answer decides whether the next eight questions are worth asking at all.
+    expect(stepWrap).toMatch(/if \(step < 2 \|\| data\.hasArchitecturePlan !== null\) return <>\{children\}<\/>;/);
+    // And it is not a numbered step: the eleven are hard-coded in the progress bar and
+    // the building preview, so inserting one would renumber all of them.
+    expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 11/);
+  });
+
+  it('the answer is written into the wizard, so Back and forward does not re-ask', () => {
+    expect(stepWrap).toMatch(/update\(planSeed\(answer\)\)/);
+  });
+
+  it('the files go into wizard state, because a File cannot be drafted', () => {
+    // sessionStorage silently stores `{}` for a File. Keeping them in the provider is
+    // what stops a chosen plan vanishing on the next render.
+    expect(stepWrap).toMatch(/setPendingDocuments\?\.\(planDocuments\(answer\)\)/);
+    expect(read('src/contexts/WizardContext.tsx')).toMatch(/setPendingDocuments: setDocs/);
   });
 
   it('uses the plain term, not the technical one', () => {
@@ -130,18 +146,35 @@ describe('the question itself', () => {
   });
 });
 
-describe('the NO path stops asking for a bill of quantities', () => {
-  it('the final step hides the attachment box on a definite NO', () => {
-    expect(confirm).toMatch(/\{data\.hasArchitecturePlan !== false && \(/);
+describe('nobody is asked for a bill of quantities twice', () => {
+  it('the final step hides the attachment box once the question has been answered', () => {
+    // Either answer means we already know: NO, they have none; YES, they uploaded it
+    // when they said so. Only an unanswered question leaves the box up.
+    expect(confirm).toMatch(/\{data\.hasArchitecturePlan === null && \(/);
   });
 
-  it('and keeps it when the question was never put', () => {
-    // `!== false` rather than `=== true`, scoped to the attachment box itself: a
-    // draft from before this question existed carries null, and that person was never
-    // asked — hiding it from them would be hiding it on a guess.
-    const box = confirm.slice(confirm.indexOf('data.hasArchitecturePlan !== false'));
-    expect(box.slice(0, 80)).not.toMatch(/=== true/);
-    expect(confirm).toMatch(/\{data\.hasArchitecturePlan !== false && \(/);
+  it('but keeps it when the question was never put', () => {
+    // A draft from before this question existed carries null, and that person was
+    // never asked — hiding it from them would be hiding it on a guess.
+    expect(confirm).toMatch(/hasArchitecturePlan === null/);
+  });
+
+  it('the stage is CHOSEN from our stages, never typed', () => {
+    // It used to be a sentence a matcher read a stage out of. That asks somebody to
+    // describe a thing we already have the list of and then second-guesses them — and
+    // the answer decides which stages are billed as already built.
+    expect(confirm).toMatch(/const startStage = alreadyStarted \? stageOverride : 1;/);
+    expect(confirm).not.toMatch(/stageFromDescription\(/);
+    expect(confirm).not.toMatch(/setDescribed\(/);
+    expect(confirm).toMatch(/STAGE_KEYS\.slice\(0, -1\)\.map/);
+  });
+
+  it('and a client can say their build is already under way', () => {
+    // Gated on `onBehalfOf`, the only people who could say so were staff and
+    // contractors — while a client with a half-built house is the commonest case.
+    const at = confirm.indexOf("t('wizard.joined.question')");
+    expect(at).toBeGreaterThan(-1);
+    expect(confirm.slice(Math.max(0, at - 900), at)).not.toMatch(/\{onBehalfOf && \(/);
   });
 
   it('the BQ figure replaces the estimate only when there genuinely is one', () => {
@@ -161,12 +194,13 @@ describe('the NO path stops asking for a bill of quantities', () => {
 });
 
 describe('resuming', () => {
-  it('a wizard already in progress is not interrupted', () => {
-    expect(contractor).toMatch(/wizardAlreadyStarted\(/);
+  it('a restored draft carries its own answer, so nobody is asked twice', () => {
+    // The answer lives in the wizard's data and the draft round-trips it. There is no
+    // separate per-route flag to keep in step any more.
+    expect(read('src/lib/projects/wizard-draft.ts')).toMatch(/hasArchitecturePlan: typeof value\.hasArchitecturePlan === 'boolean'/);
   });
 
-  it('switching client asks again, because the answer belongs to a client', () => {
-    const reset = contractor.slice(contractor.indexOf('function startAnotherClient'));
-    expect(reset.slice(0, reset.indexOf('\n  }'))).toMatch(/setPlanAnswer\(null\)/);
+  it('and a draft saved before the question existed is tolerated, not discarded', () => {
+    expect(read('src/lib/projects/wizard-draft.ts')).toMatch(/\? value\.hasArchitecturePlan : null/);
   });
 });

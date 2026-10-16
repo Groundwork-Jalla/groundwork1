@@ -62,6 +62,13 @@ vi.mock('framer-motion', () => ({
     },
   },
 }));
+// The architecture-plan question now sits between step 1 and step 2. This file is
+// about which STEP the wizard routes to — the question has its own tests — so it is
+// passed through. Without this the gate renders here and hits `motion.div`, which the
+// framer-motion mock above does not define.
+vi.mock('@/components/wizard/PlanQuestionStep', () => ({
+  PlanQuestionStep: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock('@/components/wizard/steps/Step1Country', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step2ProjectType', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step3BuildingType', () => ({ default: () => null }));
@@ -113,9 +120,12 @@ describe('contractor client project wizard', () => {
     };
     const html = renderToStaticMarkup(createElement(ManagedWizard));
     expect(html).toContain('value="45,000"');
-    expect(html).toContain('value="Roof is complete"');
     expect(html).toMatch(/type="checkbox"[^>]*checked=""/);
+    // The STAGE is what is restored now. The free-text description is gone: the stage
+    // is chosen from our own list rather than typed and read back out of a sentence,
+    // because that answer decides which stages count as already built.
     expect(html).toContain('value="6" selected=""');
+    expect(html).not.toContain('value="Roof is complete"');
     expect(html).toContain('wizard.confirmBudget.reattachFile');
   });
 

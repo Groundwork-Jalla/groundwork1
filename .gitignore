@@ -25,3 +25,8 @@ frames_*/
 
 # Rendered email previews — build output of src/lib/email/render-previews.test.ts
 .email-previews/
+
+# Tesseract downloads language data beside the process when OCR runs outside the
+# browser (a probe, a test). It is tens of megabytes and must never be committed.
+*.traineddata
+*.traineddata.gz

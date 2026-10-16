@@ -128,8 +128,10 @@ describe('delivery: the UI does not know who carries a message', () => {
     expect(h).toContain("if (message.direction !== 'outbound') {");
     expect(h).toContain("reason: 'not_outbound'");
     expect(h.indexOf("reason: 'not_outbound'")).toBeLessThan(h.indexOf('sendWhatsAppMessage('));
-    // And the composer only asks for delivery on the outbound branch.
-    expect(th).toContain("if (direction === 'outbound' && conversation.channel !== 'jalla') {");
+    // And the composer only asks for delivery on the outbound branch — now also never
+    // for a project member. A client or contractor writes `inbound` (122); asking the
+    // provider to carry an inbound message would send the client their own words.
+    expect(th).toContain("if (!memberView && direction === 'outbound' && conversation.channel !== 'jalla') {");
   });
 
   it('WhatsApp is sent as WhatsApp — not as a conversation-provider Custom message', () => {

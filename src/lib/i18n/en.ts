@@ -2302,6 +2302,11 @@ export const en = {
     errFailed:   'The account was not created. Try again, and if it keeps failing, tell Favour.',
   },
   adminContractorRecords: {
+    docFailed:     'That document could not be opened. Try again.',
+    doc: {
+      professional_license:  'Professional licence',
+      business_registration: 'Business registration',
+    },
     title:    'Contractor records',
     subtitle: 'What each contractor filled in when they joined \u2014 their licence, where they live, who to call in an emergency, and the account their payments go to. Read-only: their own submission is the record.',
     loadFailed:    'The records could not be loaded. Refresh the page, and if it keeps failing, tell Favour.',
@@ -2339,12 +2344,16 @@ export const en = {
     floorPlan:     'Floor plan',
     floorPlanHint: 'A PDF or an image of the drawing.',
     bq:            'Bill of quantities',
-    bqHint:        'The priced document. A spreadsheet exported as CSV can be read automatically.',
+    bqHint:        'The priced document \u2014 Excel, CSV or PDF. We read the total from it and show you what we found.',
 
     readTotal:     'We read this total from the document',
+    scannedTotal:  'We read this from your scan \u2014 please check it',
+    checkScanned:  'This came from reading a picture, so a digit can be misread. Check it against your document \u2014 it becomes the payment at every stage of the build, and you can correct it before anything is created.',
+    reading:       'Reading your document\u2026 a scan can take a moment.',
     guessedTotal:  'This looks like the total \u2014 please check it',
     confirmLater:  'You will be shown this figure again before anything is created, and you can correct it. It becomes the payment schedule across the build\u2019s stages.',
-    couldNotRead:  'We could not read a total from this file, which is normal for a PDF or a native spreadsheet. You will be asked to type the figure in a moment.',
+    couldNotRead:  'We could not read this file \u2014 a scanned or photographed document has no text to read. You will be asked to type the total in a moment.',
+    noTotalFound:  'We read this file but could not find a total in it. You will be asked to type the figure in a moment.',
 
     choose:   'Choose file',
     replace:  'Replace',

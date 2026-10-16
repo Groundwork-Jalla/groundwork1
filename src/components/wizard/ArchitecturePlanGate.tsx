@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Paperclip, Ruler, X } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
-import { readBqTotal, looksReadable, type BqReading } from '@/lib/budget/read-bq-total';
+import { extractBqTotal, canExtract } from '@/lib/budget/extract-bq';
+import type { BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -40,6 +41,10 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [bq, setBq] = useState<File | null>(null);
   const [reading, setReading] = useState<BqReading | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [unreadable, setUnreadable] = useState(false);
+  // Read from a picture rather than from the file. Said plainly wherever the figure
+  // appears: OCR confuses 8 with 3 and 1 with 7, and this number becomes ten payments.
+  const [fromOcr, setFromOcr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -51,12 +56,20 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
    */
   async function inspect(file: File) {
     setReading(null);
-    if (!looksReadable(file.name)) return;
+    setUnreadable(false);
+    setFromOcr(false);
+    if (!canExtract(file.name)) { setUnreadable(true); return; }
     setScanning(true);
     try {
-      setReading(readBqTotal(await file.text()));
+      const out = await extractBqTotal(file);
+      setReading(out.reading);
+      setFromOcr(out.ocr);
+      // Told apart on purpose: a file we could not read at all (a scanned PDF) is a
+      // different thing to say than a file we read but found no total in.
+      setUnreadable(!out.readable);
     } catch {
-      setReading(null);   // unreadable is a fine answer: they type the figure instead
+      setReading(null);
+      setUnreadable(true);
     } finally {
       setScanning(false);
     }
@@ -137,7 +150,9 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       {reading && (
         <div className="mt-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3">
           <p className="text-xs font-semibold text-brand-near-black">
-            {t(reading.confidence === 'grand' ? 'planGate.readTotal' : 'planGate.guessedTotal')}
+            {t(fromOcr ? 'planGate.scannedTotal'
+              : reading.confidence === 'grand' ? 'planGate.readTotal'
+              : 'planGate.guessedTotal')}
           </p>
           <p className="mt-1 font-mono text-lg font-bold tabular-nums text-brand-near-black">
             {reading.total.toLocaleString()}
@@ -146,13 +161,18 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
             {reading.label}
           </p>
           <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
-            {t('planGate.confirmLater')}
+            {t(fromOcr ? 'planGate.checkScanned' : 'planGate.confirmLater')}
           </p>
         </div>
       )}
+      {scanning && (
+        <p role="status" className="mt-4 flex items-center gap-2 text-xs text-brand-mid-grey">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.reading')}
+        </p>
+      )}
       {bq && !reading && !scanning && (
         <p className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
-          {t('planGate.couldNotRead')}
+          {t(unreadable ? 'planGate.couldNotRead' : 'planGate.noTotalFound')}
         </p>
       )}
 

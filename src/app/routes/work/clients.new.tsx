@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowLeft, Loader2, LockKeyhole, MailCheck, UserPlus } from 'lucide-react';
 import { WizardProvider, type OnBehalfOf } from '@/contexts/WizardContext';
-import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
-import { planDocuments, planSeed, wizardAlreadyStarted } from '@/lib/projects/plan-answer';
 import { ManagedWizard } from '@/app/routes/admin/projects.new';
 import { fetchPendingClients, inviteMyClient, InviteClientFailed, type PendingContractorClient } from '@/lib/supabase/contractor-clients';
 import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
@@ -63,8 +61,6 @@ export default function WorkNewClient() {
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [client, setClient]     = useState<OnBehalfOf | null>(null);
-  // null until the architecture-plan question is answered for THIS client.
-  const [planAnswer, setPlanAnswer] = useState<PlanAnswer | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [resumingClient, setResumingClient] = useState(false);
   const [pendingClients, setPendingClients] = useState<PendingContractorClient[]>([]);
@@ -113,10 +109,6 @@ export default function WorkNewClient() {
         setFullName(linked.fullName);
         setEmail(linked.email);
         setClient({ userId: linked.clientId, label: linked.fullName, tier: 'self_verify', by: 'partner' });
-        // Already past the question: a restored 'wizard' phase means they answered it
-        // when this client was set up. Asking again would be the product forgetting,
-        // and a different answer would contradict the draft underneath.
-        if (phase === 'wizard') setPlanAnswer({ hasPlan: false });
         setShowConfirmation(phase === 'confirmation');
         setResumingClient(true);
         saveClientOnboardingDraft(contractorId, {
@@ -153,9 +145,6 @@ export default function WorkNewClient() {
     setFullName(row.fullName);
     setEmail(row.email);
     setClient({ userId: row.clientId, label: row.fullName, tier: 'self_verify', by: 'partner' });
-    // A client picked from the pending list has an account already; the question is
-    // put to them on the way into the wizard, not here.
-    setPlanAnswer(null);
     setShowConfirmation(false);
     setResumingClient(true);
   }
@@ -174,10 +163,6 @@ export default function WorkNewClient() {
     // Keep each client's project answers; selecting them from the list restores them.
     saveClientOnboardingDraft(contractorId, { clientId: null, fullName: '', email: '', phase: 'details' });
     setClient(null);
-    // The architecture-plan question belongs to a client, not to the contractor. A
-    // different client gets asked again; carrying the last answer over would file the
-    // wrong person's drawings against them.
-    setPlanAnswer(null);
     setShowConfirmation(false);
     setResumingClient(false);
     setFullName('');
@@ -306,20 +291,6 @@ export default function WorkNewClient() {
     );
   }
 
-  // The architecture-plan question comes before the wizard, and the answer decides
-  // which flow they belong in. Asked once per client: `planAnswer` is held here, not in
-  // the draft, so switching client starts the question again.
-  if (client && planAnswer === null
-      && !wizardAlreadyStarted(clientProjectDraftKey(contractorId ?? '', client.userId))) {
-    return (
-      <ArchitecturePlanGate
-        onAnswered={setPlanAnswer}
-        onCancel={startAnotherClient}
-        backLabel={t('contractorClient.anotherClient')}
-      />
-    );
-  }
-
   // Once the client exists and the invitation is sent, this is the admin's wizard.
   if (client) {
     return (
@@ -329,8 +300,6 @@ export default function WorkNewClient() {
         persistenceKey={clientProjectDraftKey(contractorId, client.userId)}
         onReset={() => clearClientOnboardingDraft(contractorId)}
         onChangeClient={startAnotherClient}
-        seed={planSeed(planAnswer)}
-        pendingDocuments={planDocuments(planAnswer)}
       >
         <ManagedWizard />
       </WizardProvider>

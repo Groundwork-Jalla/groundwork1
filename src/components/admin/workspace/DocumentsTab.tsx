@@ -26,7 +26,20 @@ import { cn } from '@/lib/utils';
 // Grouping is by the row's own `category`; a document tied to a stage links to it.
 // =========================================================
 
-const ORDER: ProjectDocumentRow['category'][] = ['contract', 'permit', 'report', 'invoice', 'receipt', 'site_photo', 'other'];
+/**
+ * The categories shown, in the order they appear.
+ *
+ * A document whose category is NOT in this list is rendered nowhere — the groups are
+ * built by walking this array, not the rows. That is how every bill of quantities
+ * became invisible to staff: 096 added `boq` to the table's CHECK and to the wizard's
+ * upload, and this line was never touched, so the one document a project is priced on
+ * could be uploaded and then not exist as far as the admin was concerned.
+ *
+ * `boq` leads, because when there is one it is the most consequential paper on the
+ * project — the figure every stage payment is derived from.
+ */
+const ORDER: ProjectDocumentRow['category'][] =
+  ['boq', 'contract', 'permit', 'report', 'invoice', 'receipt', 'site_photo', 'other'];
 
 export function DocumentsTab({ loaded }: { loaded: LoadedWorkspace }) {
   const t = useT();

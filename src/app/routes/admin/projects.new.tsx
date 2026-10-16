@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { PlanQuestionStep } from '@/components/wizard/PlanQuestionStep';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { ArrowLeft, Loader2, Search, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,7 +68,9 @@ export function ManagedWizard() {
     : step === 10 ? (planDecided && direction === 'back' ? Step9Summary
                      : planDecided ? Step11ConfirmBudget : Step10PlanSelection)
     : Step11ConfirmBudget;
-  return <Component />;
+  // Same question, same moment, for a contractor or an admin setting a project up for
+  // somebody else. One component, so the two cannot drift apart.
+  return <PlanQuestionStep><Component /></PlanQuestionStep>;
 }
 
 export default function AdminNewProject() {

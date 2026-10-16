@@ -2269,6 +2269,11 @@ export const fr: Mirror<EnDict> = {
     errFailed:   'Le compte n\u2019a pas \u00e9t\u00e9 cr\u00e9\u00e9. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   adminContractorRecords: {
+    docFailed:     'Ce document n\u2019a pas pu \u00eatre ouvert. R\u00e9essayez.',
+    doc: {
+      professional_license:  'Licence professionnelle',
+      business_registration: 'Enregistrement de l\u2019entreprise',
+    },
     title:    'Dossiers des entrepreneurs',
     subtitle: 'Ce que chaque entrepreneur a renseign\u00e9 \u00e0 son arriv\u00e9e \u2014 sa licence, son lieu de r\u00e9sidence, qui appeler en cas d\u2019urgence et le compte sur lequel il est pay\u00e9. Lecture seule : sa propre saisie fait foi.',
     loadFailed:    'Les dossiers n\u2019ont pas pu \u00eatre charg\u00e9s. Actualisez la page, et si cela persiste, pr\u00e9venez Favour.',
@@ -2306,12 +2311,16 @@ export const fr: Mirror<EnDict> = {
     floorPlan:     'Plan de masse',
     floorPlanHint: 'Un PDF ou une image du plan.',
     bq:            'Devis quantitatif',
-    bqHint:        'Le document chiffr\u00e9. Un tableur export\u00e9 en CSV peut \u00eatre lu automatiquement.',
+    bqHint:        'Le document chiffr\u00e9 \u2014 Excel, CSV ou PDF. Nous en lisons le total et vous montrons ce que nous avons trouv\u00e9.',
 
     readTotal:     'Nous avons lu ce total dans le document',
+    scannedTotal:  'Lu depuis votre scan \u2014 merci de v\u00e9rifier',
+    checkScanned:  'Ce montant provient de la lecture d\u2019une image : un chiffre peut \u00eatre mal lu. V\u00e9rifiez-le sur votre document \u2014 il d\u00e9termine le paiement de chaque \u00e9tape, et vous pouvez le corriger avant toute cr\u00e9ation.',
+    reading:       'Lecture de votre document\u2026 un scan peut prendre un moment.',
     guessedTotal:  'Ceci ressemble au total \u2014 merci de v\u00e9rifier',
     confirmLater:  'Ce montant vous sera pr\u00e9sent\u00e9 \u00e0 nouveau avant toute cr\u00e9ation, et vous pourrez le corriger. Il d\u00e9termine l\u2019\u00e9ch\u00e9ancier de paiement des \u00e9tapes du chantier.',
-    couldNotRead:  'Nous n\u2019avons pas pu lire de total dans ce fichier, ce qui est normal pour un PDF ou un tableur natif. Il vous sera demand\u00e9 de saisir le montant dans un instant.',
+    couldNotRead:  'Nous n\u2019avons pas pu lire ce fichier \u2014 un document scann\u00e9 ou photographi\u00e9 ne contient aucun texte \u00e0 lire. Il vous sera demand\u00e9 de saisir le total dans un instant.',
+    noTotalFound:  'Nous avons lu ce fichier mais n\u2019y avons trouv\u00e9 aucun total. Il vous sera demand\u00e9 de saisir le montant dans un instant.',
 
     choose:   'Choisir un fichier',
     replace:  'Remplacer',

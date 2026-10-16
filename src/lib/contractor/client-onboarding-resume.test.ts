@@ -149,18 +149,6 @@ class RouteDriver implements DriverState {
     this.render();
   }
 
-  /**
-   * Answer the architecture-plan question that now precedes the wizard.
-   *
-   * Reads the callback off the element, the same way `wizard()` reads persistenceKey:
-   * this renderer records components as elements and never calls them, so a mocked
-   * gate's capture would never run.
-   */
-  answerPlan(answer: unknown) {
-    const gate = this.find(element => typeof element.props.onAnswered === 'function');
-    (gate.props.onAnswered as (a: unknown) => void)(answer);
-    this.render();
-  }
   click(label: string) {
     const button = this.find(element => typeof element.props.onClick === 'function' && text(element) === label);
     (button.props.onClick as () => void)();
@@ -235,9 +223,6 @@ describe('contractor client onboarding route resume', () => {
     expect(text(returned.tree)).toContain(clientA.email);
     expect(h.invite).toHaveBeenCalledTimes(1);
     returned.click('contractorClient.continueToWizard');
-    // The architecture-plan question now stands between the account and the wizard.
-    // Answering NO is the path these resume tests are about.
-    returned.answerPlan({ hasPlan: false });
     expect(returned.wizard().props.persistenceKey).toBe(clientProjectDraftKey(h.actor, clientA.clientId));
     expect(returned.wizard().props.onBehalfOf).toMatchObject({ userId: clientA.clientId, tier: 'self_verify', by: 'partner' });
     expect(readClientOnboardingDraft(h.actor)?.phase).toBe('wizard');
@@ -276,9 +261,6 @@ describe('contractor client onboarding route resume', () => {
     expect(returned.find(element => element.props.id === 'clientName').props.value).toBe('');
     expect(readClientOnboardingDraft(h.actor)).toMatchObject({ clientId: null, phase: 'details' });
     returned.click('contractorClient.resumeCta');
-    // Picking a client from the pending list has not answered the architecture-plan
-    // question for them — that is put on the way into the wizard.
-    returned.answerPlan({ hasPlan: false });
     expect(returned.wizard().props.onBehalfOf).toMatchObject({ userId: clientB.clientId });
     expect(h.invite).not.toHaveBeenCalled();
     returned.unmount();

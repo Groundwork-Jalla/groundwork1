@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Check, ChevronRight, Loader2, Minus, Phone, Search, ShieldCheck, UserPlus, UserRound,
+  Check, ChevronRight, FileText, Loader2, Minus, Phone, Search, ShieldCheck, UserPlus, UserRound,
 } from 'lucide-react';
 import {
   contractorRecordsAvailable, fetchContractorDossier, fetchContractorRecords,
@@ -8,6 +8,7 @@ import {
 } from '@/lib/supabase/admin-contractor-records';
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/supabase/contractor-onboarding';
 import { bankName } from '@/lib/payments/banks';
+import { signCredentialUrl } from '@/lib/supabase/admin-applications';
 import { formatDate } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -259,9 +260,10 @@ function Dossier({ userId }: { userId: string }) {
             : null}
         />
         {/* Reported but no longer asked for (118). Shown only when one exists, so it
-            does not read as an outstanding requirement. */}
-        {d.documents.length > 0 && d.documents.map((x, i) => (
-          <Row key={i} label={x.kind} value={x.filename} />
+            does not read as an outstanding requirement — and openable, because a
+            filename staff cannot click is a document they cannot review. */}
+        {d.documents.map((x, i) => (
+          <DocLink key={i} kind={x.kind} filename={x.filename} path={x.path} />
         ))}
       </Section>
     </div>
@@ -289,6 +291,51 @@ function Row({ label, value }: { label: string; value: string | null | undefined
       <dt className="min-w-0 shrink text-brand-mid-grey">{label || t('adminContractorRecords.none')}</dt>
       <dd className="min-w-0 shrink-0 text-right font-medium text-brand-near-black dark:text-white">
         {value ?? <Minus className="inline size-3.5 text-brand-mid-grey" aria-label={t('adminContractorRecords.notGiven')} />}
+      </dd>
+    </div>
+  );
+}
+
+/**
+ * A contractor's uploaded document, as a link staff can actually open.
+ *
+ * `contractor-docs` is private and the stored value is a PATH, so a link has to be
+ * signed on demand. Signed on CLICK rather than on render: a dossier with several
+ * documents would otherwise mint a URL for every one of them whether or not anybody
+ * looks, and each is a live link to somebody's identity papers for the next hour.
+ */
+function DocLink({ kind, filename, path }: { kind: string; filename: string; path: string }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function open() {
+    setBusy(true); setFailed(false);
+    try {
+      const url = await signCredentialUrl(path);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      else setFailed(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <dt className="min-w-0 shrink text-brand-mid-grey">
+        {t(`adminContractorRecords.doc.${kind}` as TKey)}
+      </dt>
+      <dd className="min-w-0 shrink-0 text-right">
+        <button
+          type="button" onClick={() => void open()} disabled={busy}
+          className="inline-flex max-w-52 items-center gap-1.5 font-medium text-brand-near-black underline underline-offset-4 disabled:opacity-50 dark:text-white"
+        >
+          {busy ? <Loader2 className="size-3 animate-spin" aria-hidden /> : <FileText className="size-3" aria-hidden />}
+          <span className="truncate">{filename}</span>
+        </button>
+        {failed && <p role="alert" className="text-[11px] text-state-alert">{t('adminContractorRecords.docFailed')}</p>}
       </dd>
     </div>
   );
