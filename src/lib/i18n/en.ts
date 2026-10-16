@@ -2238,6 +2238,7 @@ export const en = {
     notYours:          'This project is not assigned to you.',
     tabWork:           'Work',
     tabDocuments:      'Documents',
+    uploadDocument: 'Add a document (max {mb} MB)',
     tabPayments:       'Payments',
     tabMessages:       'Messages',
     pipeline:          'Construction pipeline',

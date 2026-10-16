@@ -2208,6 +2208,7 @@ export const fr: Mirror<EnDict> = {
     notYours:          "Ce projet ne vous est pas assigné.",
     tabWork:           'Travaux',
     tabDocuments:      'Documents',
+    uploadDocument: 'Ajouter un document (max {mb} Mo)',
     tabPayments:       'Paiements',
     tabMessages:       'Messages',
     pipeline:          'Déroulé du chantier',

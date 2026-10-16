@@ -9,8 +9,10 @@ import {
 import type { ProjectSubstageRow, ProjectDocumentRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
+import { uploadDocument } from '@/lib/supabase/documents';
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 
@@ -44,12 +46,15 @@ const TABS: { id: Tab; key: TKey }[] = [
 
 export default function ContractorProjectDetail() {
   const t = useT();
+  const { user } = useAuth();
   const { projectId } = useParams<{ projectId: string }>();
   const { stageLabel, substageLabel } = useStageLabels();
 
   const [assigned, setAssigned] = useState<AssignedProject | null | 'denied'>(null);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [documents, setDocuments] = useState<ProjectDocumentRow[]>([]);
+  const [docBusy, setDocBusy]   = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -226,6 +231,49 @@ export default function ContractorProjectDetail() {
           <h2 className="mb-3 text-sm font-semibold text-brand-near-black dark:text-white">
             {t('contractorProject.tabDocuments')}
           </h2>
+
+          {/* The tab listed documents and offered no way to add one, while the sidebar
+              had a Documents link that went nowhere — so "upload a document" had no
+              door at all. 131 is the other half: the contractor was refused by RLS at
+              both the row and the bucket, so a button here would have failed silently. */}
+          <label className="mb-4 block">
+            <span className="mb-1 block text-xs font-medium text-brand-mid-grey">
+              {t('contractorProject.uploadDocument', { mb: MAX_FILE_MB })}
+            </span>
+            <input
+              type="file" multiple accept={FILE_ACCEPT_ATTR} disabled={docBusy || !user}
+              onChange={e => {
+                const picked = Array.from(e.target.files ?? []);
+                e.target.value = '';
+                if (picked.length === 0 || !user) return;
+                const bad = picked.find(f => fileProblem(f));
+                if (bad) {
+                  setDocError(t(fileProblem(bad) === 'size'
+                    ? 'project.documents.tooLarge' : 'project.documents.badType', { mb: MAX_FILE_MB }));
+                  return;
+                }
+                setDocError(null); setDocBusy(true);
+                // Sequential, not Promise.all: each upload inserts a row, and a partial
+                // failure should leave the ones that worked rather than racing them.
+                void (async () => {
+                  const added: ProjectDocumentRow[] = [];
+                  try {
+                    for (const f of picked) added.push(await uploadDocument(project.id, user.id, f));
+                    setDocuments(prev => [...added, ...prev]);
+                  } catch (err) {
+                    if (added.length) setDocuments(prev => [...added, ...prev]);
+                    setDocError(errorMessage(err, t('chat.attachment.uploadFailed')));
+                  } finally { setDocBusy(false); }
+                })();
+              }}
+              className="block w-full text-sm text-brand-mid-grey file:mr-3 file:rounded-lg file:border file:border-brand-border-grey file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-brand-near-black dark:file:bg-[#141414] dark:file:text-white"
+            />
+          </label>
+          {docBusy && <p role="status" className="mb-3 flex items-center gap-2 text-xs text-brand-mid-grey">
+            <Loader2 className="size-3.5 animate-spin" />{t('common.uploading')}
+          </p>}
+          {docError && <p role="alert" className="mb-3 text-xs text-state-alert">{docError}</p>}
+
           {documents.length === 0 ? (
             <p className="text-sm text-brand-mid-grey">{t('contractorProject.noDocuments')}</p>
           ) : (

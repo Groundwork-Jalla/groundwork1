@@ -1,14 +1,18 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, ClipboardList, Wallet, FileText, Upload, UserRound, Landmark, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, ClipboardList, UserRound, Landmark, ShieldCheck } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
   { to: '/work', label: 'contractor.nav.dashboard', icon: LayoutDashboard },
   { to: '/work/projects', label: 'contractor.nav.projects', icon: FolderOpen, matchPrefix: true },
   { to: '/work#action', label: 'contractor.needsAction.title', icon: ClipboardList },
-  { to: '/work#evidence', label: 'contractorDashboard.evidence', icon: Upload },
-  { to: '/work#documents', label: 'contractorProject.tabDocuments', icon: FileText },
-  { to: '/work#payments', label: 'contractorProject.tabPayments', icon: Wallet },
+  // `#evidence`, `#documents` and `#payments` used to sit here, pointing at anchors on
+  // the dashboard that do not exist: the browser found nothing to scroll to and left you
+  // on a page that was not what you clicked — reported as "it takes me to an empty page".
+  //
+  // They are gone rather than repointed. All three are PER PROJECT and are tabs on a
+  // project, so three sidebar entries leading to the same project list would be the same
+  // confusion with a different shape. Projects, above, is the way in.
   { to: '/work/payouts', label: 'contractorPayout.title', icon: Landmark },
   // Reachable after the dashboard banner has gone. §3.3 of the partner agreement puts
   // a standing duty on contractors to keep licensing and insurance current, so the

@@ -194,3 +194,37 @@ describe('members can actually upload (131)', () => {
     expect(m131).toMatch(/SKIPPED policy member_evidence_upload/);
   });
 });
+
+describe('the contractor can reach, and make, a document', () => {
+  const work  = read('src/app/routes/work/projects.detail.tsx');
+  const shell = read('src/components/shell/WorkShell.tsx');
+  const dash  = read('src/app/routes/work/index.tsx');
+
+  it('no sidebar link points at an anchor the dashboard does not have', () => {
+    /**
+     * `#evidence`, `#documents` and `#payments` pointed at sections that do not exist,
+     * so the browser had nothing to scroll to and left the contractor on a page that
+     * was not what they clicked — reported as "it takes me to an empty page".
+     */
+    const anchors = [...shell.matchAll(/to: '\/work#([a-z]+)'/g)].map(m => m[1]);
+    expect(anchors.length).toBeGreaterThan(0);
+    for (const a of anchors) expect(dash, `#${a} has no section`).toMatch(new RegExp(`id="${a}"`));
+  });
+
+  it('and the Documents tab can actually add one', () => {
+    expect(work).toMatch(/uploadDocument\(project\.id, user\.id, f\)/);
+    expect(work).toMatch(/contractorProject\.uploadDocument/);
+  });
+
+  it('a rejected file says which rule it broke', () => {
+    expect(work).toMatch(/project\.documents\.tooLarge/);
+    expect(work).toMatch(/project\.documents\.badType/);
+  });
+
+  it('and a partial failure keeps the files that did upload', () => {
+    // Sequential, not Promise.all: losing three good uploads to one bad one would be
+    // the worst version of this.
+    expect(work).toMatch(/for \(const f of picked\) added\.push\(await uploadDocument/);
+    expect(work).toMatch(/if \(added\.length\) setDocuments\(prev => \[\.\.\.added, \.\.\.prev\]\)/);
+  });
+});
