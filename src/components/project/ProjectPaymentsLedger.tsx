@@ -13,6 +13,10 @@ import { formatUSD } from '@/lib/budget';
 import { formatDate } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { errorMessage } from '@/lib/errors';
+import { uploadDocument } from '@/lib/supabase/documents';
+import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
+import { useAuth } from '@/contexts/AuthContext';
 
 // =========================================================
 // The project owner's Payments tab, read from the ledger (090).
@@ -72,6 +76,11 @@ export default function ProjectPaymentsLedger({ project, stages }: {
   const [open, setOpen] = useState<string | null>(null);
   const [reported, setReported] = useState(false);
   const [reporting, setReporting] = useState(false);
+  /** The receipt, and who is filing it — a document needs an author. */
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const r = await listProjectPayments(project.id).catch(() => ({ rows: [], available: false }));
@@ -93,19 +102,47 @@ export default function ProjectPaymentsLedger({ project, stages }: {
     }, [ordered, stageLabel, t],
   );
 
+  /**
+   * Report a payment, with the receipt.
+   *
+   * ── Why the receipt belongs here ────────────────────────────────────────────────
+   * There is no payment gateway. The client pays in cash, Groundwork never sees the
+   * transfer, and an administrator marking the stage paid (132) is working purely from
+   * having been told. The receipt is the only evidence that exists — and that decision
+   * opens a stage of work, so "somebody said so" is thin on its own.
+   *
+   * Filed as an ordinary project document with category `receipt` (017), which means it
+   * appears in the Documents view for the client, the contractor and the admin instead
+   * of hiding in the payments table.
+   *
+   * ── Optional on purpose ─────────────────────────────────────────────────────────
+   * Somebody who paid at a bank counter may have nothing to photograph yet, and
+   * refusing the report would leave the stage shut with no way to say they had paid.
+   * The admin is told either way, including when no receipt came.
+   */
   async function report() {
     if (!next || next.kind !== 'due') return;
     setReporting(true);
+    setReceiptError(null);
     try {
+      let documentId: string | null = null;
+      if (receipt && userId) {
+        // Uploaded first: the notification must not claim a receipt that failed to land.
+        documentId = (await uploadDocument(project.id, userId, receipt, undefined, 'receipt')).id;
+      }
       // Tells Groundwork. Touches no financial state — staff confirm receipt, and only
-      // `confirm_funding()` moves the row to funded.
+      // `confirm_funding()` / `mark_stage_paid()` move the row to funded.
       await notifyAdmins(
         'funding_reported',
         'Client reports a payment',
-        `${project.name}: the client reports paying stage ${next.stage.stage_number}`,
-        { project_id: project.id, stage_id: next.stage.id, amount_usd: next.amount },
+        `${project.name}: the client reports paying stage ${next.stage.stage_number}`
+          + (documentId ? ' — receipt attached.' : ' — no receipt attached.'),
+        { project_id: project.id, stage_id: next.stage.id, amount_usd: next.amount,
+          receipt_document_id: documentId },
       );
       setReported(true);
+    } catch (err) {
+      setReceiptError(errorMessage(err, t('common.somethingWrong')));
     } finally {
       setReporting(false);
     }
@@ -162,13 +199,45 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                 <CheckCircle2 className="size-4 shrink-0" />{t('project.pay.reportedThanks')}
               </p>
             ) : (
-              <button
-                type="button" onClick={report} disabled={reporting}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {reporting && <Loader2 className="size-4 animate-spin" />}
-                {t('project.pay.reportAction')}
-              </button>
+              <>
+                <label className="mt-4 block">
+                  <span className="mb-1 block text-[11px] font-medium text-brand-mid-grey">
+                    {t('project.pay.receiptLabel')}
+                  </span>
+                  <input
+                    type="file" accept={FILE_ACCEPT_ATTR} disabled={reporting}
+                    onChange={e => {
+                      const f = e.target.files?.[0] ?? null;
+                      e.target.value = '';
+                      if (!f) return;
+                      const bad = fileProblem(f);
+                      if (bad) {
+                        setReceiptError(t(bad === 'size'
+                          ? 'project.documents.tooLarge' : 'project.documents.badType',
+                          { mb: MAX_FILE_MB }));
+                        return;
+                      }
+                      setReceiptError(null); setReceipt(f);
+                    }}
+                    className="block w-full text-xs text-brand-mid-grey file:mr-3 file:rounded-lg file:border file:border-brand-border-grey file:bg-white file:px-3 file:py-1.5 file:text-xs file:text-brand-near-black dark:file:bg-[#141414] dark:file:text-white"
+                  />
+                  {receipt && (
+                    <span className="mt-1 flex items-center justify-between gap-2 text-[11px] text-brand-mid-grey">
+                      <span className="truncate">{receipt.name}</span>
+                      <button type="button" onClick={() => setReceipt(null)}
+                        className="shrink-0 underline underline-offset-2">{t('common.remove')}</button>
+                    </span>
+                  )}
+                </label>
+                {receiptError && <p role="alert" className="mt-1 text-[11px] text-state-alert">{receiptError}</p>}
+                <button
+                  type="button" onClick={report} disabled={reporting}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {reporting && <Loader2 className="size-4 animate-spin" />}
+                  {t('project.pay.reportAction')}
+                </button>
+              </>
             )}
           </>
         )}

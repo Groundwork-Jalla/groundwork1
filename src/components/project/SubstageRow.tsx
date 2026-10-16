@@ -232,9 +232,15 @@ export function SubstageRow({
                 ) : (
                   <Check className="size-3" strokeWidth={3} />
                 )}
-                {tier === 'starter'
-                  ? t('project.stages.markComplete')
-                  : t('project.stages.markReady')}
+                {/* What the button does depends on who checks the work.
+                    On `jalla_verify` / `jalla_management` an independent verifier looks
+                    at it, so "ready for review" is literally true. On `self_verify`
+                    nobody else reviews it — the client is signing off their own
+                    evidence — and calling that "ready for review" implies a reviewer who
+                    does not exist. `starter` keeps its plainer wording. */}
+                {tier === 'starter'      ? t('project.stages.markComplete')
+                 : tier === 'self_verify' ? t('project.stages.approveEvidence')
+                 : t('project.stages.markReady')}
               </button>
             </motion.div>
           )}

@@ -9,6 +9,7 @@ import { platformFee, stripeProcessing } from '@/lib/payments/config';
 import { useT } from '@/lib/i18n';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
+import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
 
 export default function MilestonePaymentModal({
   open, stage, tier, rate, projectName, contractorLabel, onConfirm, onClose,
@@ -19,12 +20,14 @@ export default function MilestonePaymentModal({
   rate: ConstructionRate | null;
   projectName: string;
   contractorLabel: string;
-  onConfirm: () => Promise<void>;
+  onConfirm: (receipt?: File | null) => Promise<void>;
   onClose: () => void;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
   const [submitting, setSubmitting] = useState(false);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [feesOpen, setFeesOpen]     = useState(false);
 
   // Every hook above this line — `stage` is null until a stage is picked, and an
@@ -40,7 +43,7 @@ export default function MilestonePaymentModal({
   async function handleConfirm() {
     setSubmitting(true);
     try {
-      await onConfirm();
+      await onConfirm(receipt);
       onClose();
     } finally {
       setSubmitting(false);
@@ -181,6 +184,42 @@ export default function MilestonePaymentModal({
                   <span className="text-[11px] text-brand-mid-grey">{t('project.payments.change')}</span>
                 </div>
               </div>
+
+              {/* The receipt.
+                  There is no payment gateway: the client pays in cash and Groundwork
+                  never sees the transfer, so this photograph is the only evidence an
+                  administrator will have when they decide to open the stage. Optional,
+                  because somebody who paid at a bank counter may have nothing to
+                  photograph yet and should still be able to say they paid. */}
+              <label className="mb-3 block">
+                <span className="mb-1 block text-[11px] font-medium text-brand-mid-grey">
+                  {t('project.payments.receiptLabel')}
+                </span>
+                <input
+                  type="file" accept={FILE_ACCEPT_ATTR} disabled={submitting}
+                  onChange={e => {
+                    const f = e.target.files?.[0] ?? null;
+                    e.target.value = '';
+                    if (!f) return;
+                    if (fileProblem(f)) {
+                      setReceiptError(t(fileProblem(f) === 'size'
+                        ? 'project.documents.tooLarge' : 'project.documents.badType',
+                        { mb: MAX_FILE_MB }));
+                      return;
+                    }
+                    setReceiptError(null); setReceipt(f);
+                  }}
+                  className="block w-full text-xs text-brand-mid-grey file:mr-3 file:rounded-lg file:border file:border-brand-border-grey file:bg-white file:px-3 file:py-1.5 file:text-xs file:text-brand-near-black dark:file:bg-[#141414] dark:file:text-white"
+                />
+                {receipt && (
+                  <span className="mt-1 flex items-center justify-between gap-2 text-[11px] text-brand-mid-grey">
+                    <span className="truncate">{receipt.name}</span>
+                    <button type="button" onClick={() => setReceipt(null)}
+                      className="shrink-0 underline underline-offset-2">{t('common.remove')}</button>
+                  </span>
+                )}
+                {receiptError && <span className="mt-1 block text-[11px] text-state-alert">{receiptError}</span>}
+              </label>
 
               <button
                 type="button"
