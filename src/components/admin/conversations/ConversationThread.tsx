@@ -7,6 +7,7 @@ import {
   type Conversation, type ConversationMessage,
 } from '@/lib/supabase/conversations';
 import { subscribeToMessages } from '@/lib/supabase/messages';
+import { displaySenderName } from '@/lib/admin/chat-identity';
 import { RecordDecisionModal } from '@/components/admin/conversations/RecordDecisionModal';
 import { DomainNote } from '@/components/admin/workspace/DomainNote';
 import { formatDateTime, formatRelative } from '@/lib/format';
@@ -39,13 +40,22 @@ const STATUS_DOT: Record<Conversation['status'], string> = {
   open: 'bg-state-active', waiting_on_us: 'bg-state-held', waiting_on_them: 'bg-brand-muted-grey', resolved: 'bg-state-complete',
 };
 
-export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId }: {
+export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId, roleOf }: {
   conversation: Conversation;
   staff: { id: string; label: string }[] | null;
   staffName: (id: string | null) => string;
   onChanged: () => void;
   /** Project members can send on Jalla but cannot assign, resolve or write staff notes. */
   memberView?: boolean;
+  /**
+   * What a sender IS on this project — client, contractor, verifier, Jalla.
+   *
+   * A project thread is a group chat and the bubble showed a bare name, which does not
+   * say whether what follows is progress being reported, a stage being signed off, or
+   * Jalla asking for a decision. Optional: a thread with nobody to label (a one-to-one
+   * WhatsApp chat) reads better without a redundant tag on every line.
+   */
+  roleOf?: (senderId: string | null) => string | null;
   currentUserId?: string;
   /** Present only where a decision has a project to belong to (the workspace tab). */
   decision?: { projectId: string; ownerId: string | null; stages: Workspace['stages'] } | null;
@@ -64,6 +74,40 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
   const [source, setSource] = useState<ConversationMessage | null>(null);
   const [recording, setRecording] = useState(false);
   const [delivery, setDelivery] = useState<string | null>(null);
+
+  /**
+   * The sender's role, translated — or nothing at all.
+   *
+   * Nothing is the right answer in three cases, and each would otherwise be noise: no
+   * `roleOf` was supplied, the thread has no project to hold roles, or the sender is not
+   * a participant. That last one is Jalla, which `project_participants` has no row for,
+   * so it is named here rather than left blank — "somebody unlabelled" is exactly the
+   * ambiguity the label exists to remove.
+   */
+  const senderRole = (senderId: string | null): string | null => {
+    if (!roleOf) return null;
+    const key = roleOf(senderId) ?? 'staff';
+    return t(`project.chat.role.${key}` as TKey);
+  };
+
+  /**
+   * The name to show — never an email address.
+   *
+   * 127 stops `send_message` writing one, but `sender_name` has other writers (the GHL
+   * inbound mirror, the email delivery path) and older rows still carry addresses. An
+   * unnamed author falls back to what they ARE: the desk, or a member of the project.
+   */
+  const senderLabel = (m: { senderId: string | null; senderName: string }): string => {
+    const staff = !roleOf || (roleOf(m.senderId) ?? 'staff') === 'staff';
+    return displaySenderName(m.senderName,
+      t(staff ? 'project.chat.name.admin' : 'project.chat.name.member'));
+  };
+
+  /** The role, unless it would only repeat the name we just showed. */
+  const roleSuffix = (m: { senderId: string | null; senderName: string }): string => {
+    const role = senderRole(m.senderId);
+    return role && role !== senderLabel(m) ? ` \u00b7 ${role}` : '';
+  };
 
   const load = useCallback(async () => {
     try {
@@ -212,7 +256,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
             return (
               <button type="button" key={m.id} onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
                 className={cn('w-full rounded-lg border border-dashed border-brand-border-grey bg-brand-off-white px-3 py-2 text-left text-xs dark:border-[#2c2c2c] dark:bg-[#1a1a1a]', mine && 'ring-1 ring-brand-near-black dark:ring-white')}>
-                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey"><StickyNote className="size-3" />{t('admin.workspace.conversations.internal')} · {m.senderName} · {formatRelative(m.createdAt)}</span>
+                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey"><StickyNote className="size-3" />{t('admin.workspace.conversations.internal')} · {senderLabel(m)} · {formatRelative(m.createdAt)}</span>
                 <span className="mt-1 block whitespace-pre-wrap text-brand-near-black dark:text-white">{m.content}</span>
               </button>
             );
@@ -228,7 +272,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
                   <span className="whitespace-pre-wrap">{m.content}</span>
                   <MessageAttachments attachments={toAttachments(m.attachments)} />
                   <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
-                    {m.senderName} · {formatRelative(m.createdAt)}
+                    {senderLabel(m)}{roleSuffix(m)} · {formatRelative(m.createdAt)}
                   </span>
                 </div>
               ) : (
@@ -237,7 +281,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
                   <span className="whitespace-pre-wrap">{m.content}</span>
                   <MessageAttachments attachments={toAttachments(m.attachments)} />
                   <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
-                    {m.senderName} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`admin.workspace.conversations.channel.${m.channel}` as TKey)}`}{m.status === 'failed' && ` · ${t('admin.workspace.conversations.failed')}`}
+                    {senderLabel(m)}{roleSuffix(m)} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`admin.workspace.conversations.channel.${m.channel}` as TKey)}`}{m.status === 'failed' && ` · ${t('admin.workspace.conversations.failed')}`}
                   </span>
                 </button>
               )}

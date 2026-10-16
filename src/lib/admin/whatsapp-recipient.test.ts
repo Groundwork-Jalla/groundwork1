@@ -95,7 +95,11 @@ describe('who on the project is being messaged', () => {
 });
 
 describe('the server keeps the decision', () => {
+  // Two files since 126 extracted the thread rule to share it with the message
+  // fan-out; `code(H)` below reads both, because the invariant is server-side, not
+  // file-side.
   const H = 'api/_handlers/project-whatsapp.ts';
+  const T = 'api/_lib/whatsapp-thread.ts';
 
   it('resolves the recipient through the shared function, not its own logic', () => {
     const src = code(H);
@@ -119,14 +123,14 @@ describe('the server keeps the decision', () => {
   });
 
   it('still refuses to create a thread it cannot deliver to', () => {
-    const src = code(H);
+    const src = code(H) + code(T);
     expect(src).toMatch(/reason: 'no_phone'/);
     expect(src).toMatch(/isDeliverablePhone/);
   });
 
   it('still never moves a thread between projects', () => {
     // A conversation belongs to the person and spans their projects; 091's rule, unchanged.
-    expect(code(H)).not.toMatch(/conversations[\s\S]{0,200}project_id:/);
+    expect(code(H) + code(T)).not.toMatch(/conversations[\s\S]{0,200}project_id:/);
   });
 
   it('has wording for every refusal the handler can return, in both languages', () => {

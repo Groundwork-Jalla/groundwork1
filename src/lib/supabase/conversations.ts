@@ -386,3 +386,29 @@ export async function listConversationMessages(conversationId: string):
     })),
   };
 }
+
+/**
+ * Who on this project is what.
+ *
+ * ── Why a bubble needs more than a name ─────────────────────────────────────────────
+ * A project thread is a group chat: the client, the general contractor and a verifier of
+ * each discipline all write into it, and the bubble showed `sender_name` alone. "Vanessa
+ * Gwanvoma" does not tell a client whether what follows is progress being reported, a
+ * stage being signed off, or Jalla asking for a decision — and acting on the wrong one of
+ * those is a real cost on a building site.
+ *
+ * `project_participants` (123) is the authority, so this is the same set that gets the
+ * bell and the email. Anyone not in it wrote as staff: Jalla has no participant row, and
+ * inventing one to carry a label would put staff inside the project's membership.
+ */
+export async function listProjectRoles(projectId: string): Promise<Record<string, string>> {
+  const { data, error } = await supabase.rpc('project_participants', { p_project: projectId });
+  // Never fatal. A thread that renders without role labels is the thread we had before;
+  // a thread that refuses to render because a label is missing is a regression.
+  if (error) return {};
+  const out: Record<string, string> = {};
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    if (typeof r.user_id === 'string' && typeof r.role === 'string') out[r.user_id] = r.role;
+  }
+  return out;
+}

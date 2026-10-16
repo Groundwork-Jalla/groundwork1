@@ -1,8 +1,6 @@
-import { ghlConfig, ensureConversation, upsertContact } from '../ghl/_client.js';
-import { normalisePhone } from '../ghl/_phone.js';
-import { accessToken } from '../ghl/_oauth.js';
-import { resolveWhatsAppThread, resolveRecipient, isDeliverablePhone,
-         type WhatsAppRow, type RecipientRole, type RecipientContractor, type RecipientVerifier } from '../../src/lib/admin/whatsapp-shortcut.js';
+import { resolveOrEstablishWhatsApp } from '../_lib/whatsapp-thread.js';
+import { resolveRecipient,
+         type RecipientRole, type RecipientContractor, type RecipientVerifier } from '../../src/lib/admin/whatsapp-shortcut.js';
 
 /**
  * "Message someone on this project on WhatsApp" — resolve the thread, establish it if there
@@ -134,107 +132,15 @@ export async function handler(req: any, res: any) {
   }
   const personId = who.personId;
 
-  const { data: profile } = await svc
-    .from('profiles').select('id, email, full_name, phone, country, ghl_contact_id')
-    .eq('id', personId).maybeSingle();
-
-  // ── Is there already a chat with this person? ──────────────────────────────────────
-  const { data: convRows, error: convErr } = await svc
-    .from('conversations')
-    .select('id, person_id, project_id, channel, ghl_conversation_id, ghl_contact_id, last_message_at, created_at')
-    .eq('person_id', personId).eq('channel', 'whatsapp');
-  if (convErr) {
-    res.status(200).json({ ok: false, reason: 'conversations_unavailable' });
+  // The thread itself — resolved, or established through the provider. Shared with the
+  // message fan-out, which reaches several people in one request: "one person, one chat"
+  // is a rule, and two implementations of it drift into two chats for one person.
+  const thread = await resolveOrEstablishWhatsApp(svc, personId);
+  if (!thread.ok) {
+    res.status(200).json({ ok: false, reason: thread.reason,
+      ...(thread.conversationIds ? { conversationIds: thread.conversationIds } : {}),
+      ...(thread.detail ? { detail: thread.detail } : {}) });
     return;
   }
-
-  const rows: WhatsAppRow[] = ((convRows ?? []) as Record<string, unknown>[]).map(r => ({
-    id: String(r.id),
-    personId: (r.person_id as string | null) ?? null,
-    projectId: (r.project_id as string | null) ?? null,
-    channel: String(r.channel ?? ''),
-    ghlConversationId: (r.ghl_conversation_id as string | null) ?? null,
-    ghlContactId: (r.ghl_contact_id as string | null) ?? null,
-    lastMessageAt: (r.last_message_at as string | null) ?? null,
-    createdAt: String(r.created_at ?? ''),
-  }));
-
-  const resolved = resolveWhatsAppThread(rows, personId);
-  if (resolved.kind === 'found') {
-    // Opened exactly as it is. project_id is not read, not compared and not written.
-    res.status(200).json({ ok: true, conversationId: resolved.conversationId, created: false });
-    return;
-  }
-  if (resolved.kind === 'ambiguous') {
-    // Two provider threads for one person is a data problem, not something to resolve by
-    // picking one — and certainly not by adding a third.
-    res.status(200).json({ ok: false, reason: 'ambiguous', conversationIds: resolved.conversationIds });
-    return;
-  }
-
-  // ── Nothing yet: establish the one chat, through the provider ──────────────────────
-  const phone = normalisePhone((profile?.phone as string | null) ?? null, (profile?.country as string | null) ?? null);
-  const hasContact = !!(profile?.ghl_contact_id);
-  if (!hasContact && !isDeliverablePhone(phone)) {
-    // Without a contact we must create one, and a contact needs a number WhatsApp can
-    // reach. `normalisePhone` hands back whatever it was given when it cannot place it,
-    // so "it returned something" is not the same as "this is a phone number".
-    res.status(200).json({ ok: false, reason: 'no_phone' });
-    return;
-  }
-
-  const cfg = await ghlConfig();
-  if (!cfg) {
-    res.status(200).json({ ok: false, reason: 'not_configured' });
-    return;
-  }
-
-  let contactId = (profile?.ghl_contact_id as string | null) ?? null;
-  if (!contactId) {
-    const made = await upsertContact(cfg, {
-      email: (profile?.email as string | null) ?? undefined,
-      name: (profile?.full_name as string | null) ?? undefined,
-      phone: phone ?? undefined,
-      country: (profile?.country as string | null) ?? undefined,
-      source: 'groundwork_project_whatsapp',
-    } as never);
-    if (!made.ok || !made.data?.contactId) {
-      console.error('[project-whatsapp] the CRM would not resolve a contact', made.ok ? 'no id' : made.error);
-      res.status(200).json({ ok: false, reason: 'contact_failed', detail: made.ok ? 'no_contact_id' : made.error });
-      return;
-    }
-    contactId = made.data.contactId;
-    // Learn it, so the next call — and every other part of the product — skips this.
-    await svc.from('profiles').update({ ghl_contact_id: contactId }).eq('id', personId).is('ghl_contact_id', null);
-  }
-
-  const bearer = (await accessToken()) ?? undefined;
-  const ghlConversationId = await ensureConversation(cfg, contactId, bearer);
-  if (!ghlConversationId) {
-    // No local row. A conversation that cannot carry a message is worse than none: it
-    // looks like a working chat and silently drops what is typed into it.
-    res.status(200).json({ ok: false, reason: 'provider_failed' });
-    return;
-  }
-
-  // Another row may already hold this provider thread — a race, or a row whose person
-  // differs. The unique index is the authority: on conflict, read back the row that owns
-  // it and use that. Nothing is ever overwritten to win a collision.
-  const { data: inserted, error: insErr } = await svc.from('conversations')
-    .insert({ person_id: personId, channel: 'whatsapp', ghl_contact_id: contactId, ghl_conversation_id: ghlConversationId })
-    .select('id').single();
-
-  if (insErr) {
-    const { data: owner } = await svc.from('conversations')
-      .select('id').eq('ghl_conversation_id', ghlConversationId).maybeSingle();
-    if (owner?.id) {
-      res.status(200).json({ ok: true, conversationId: String(owner.id), created: false });
-      return;
-    }
-    console.error('[project-whatsapp] could not record the conversation:', insErr.message);
-    res.status(200).json({ ok: false, reason: 'record_failed' });
-    return;
-  }
-
-  res.status(200).json({ ok: true, conversationId: String(inserted.id), created: true });
+  res.status(200).json({ ok: true, conversationId: thread.conversationId, created: thread.created });
 }

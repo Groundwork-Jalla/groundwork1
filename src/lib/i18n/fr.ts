@@ -4867,6 +4867,18 @@ export const fr: Mirror<EnDict> = {
         email:    'E-mail',
         call:     'Appel',
       },
+      role: {
+        owner:      'Client',
+        contractor: 'Entrepreneur',
+        verifier:   'Vérificateur',
+        staff:      'Jalla',
+      },
+      // The name shown when somebody has no full_name on file. Matches what 127
+      // writes, so a historical row and a new one read the same.
+      name: {
+        admin:  'Admin',
+        member: 'Membre',
+      },
       messagePlaceholder: 'Message…',
       emptyTitle: 'Aucun message',
       emptyBody:  'Démarrez une conversation à propos de votre projet.',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Check, FileText, Loader2, Lock, Upload } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
@@ -29,6 +29,12 @@ import { ProjectConversations } from '@/components/project/ProjectConversations'
 
 type Tab = 'work' | 'documents' | 'payments' | 'messages';
 
+/** Validated: a stale or arbitrary `?tab=` opens the work tab, never a blank one. */
+const ALL_TABS: Tab[] = ['work', 'documents', 'payments', 'messages'];
+function tabFromUrl(value: string | null): Tab {
+  return ALL_TABS.includes(value as Tab) ? (value as Tab) : 'work';
+}
+
 const TABS: { id: Tab; key: TKey }[] = [
   { id: 'work',      key: 'contractorProject.tabWork' },
   { id: 'documents', key: 'contractorProject.tabDocuments' },
@@ -46,7 +52,25 @@ export default function ContractorProjectDetail() {
   const [documents, setDocuments] = useState<ProjectDocumentRow[]>([]);
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
-  const [tab, setTab] = useState<Tab>('work');
+  const [searchParams, setSearchParams] = useSearchParams();
+  /**
+   * The open tab, taken from `?tab=` when there is one.
+   *
+   * It used to start on 'work' and ignore the URL entirely, so a contractor clicking
+   * "Read it in Groundwork" in a message email, or the bell, landed on the work tab
+   * and had to find Messages themselves. The link named the tab; nothing read it.
+   *
+   * Written back as it changes, so the address matches the screen.
+   */
+  const [tab, setTabState] = useState<Tab>(() => tabFromUrl(searchParams.get('tab')));
+  const setTab = useCallback((next: Tab) => {
+    setTabState(next);
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      if (next === 'work') p.delete('tab'); else p.set('tab', next);
+      return p;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const load = useCallback(async () => {
     if (!projectId) return;

@@ -15,7 +15,12 @@ const ROOT = resolve(__dirname, '..', '..', '..');
 const src = (f: string) => readFileSync(resolve(ROOT, f), 'utf8');
 const code = (f: string) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
 
-const server = code('api/_handlers/project-whatsapp.ts');
+// The server side of the shortcut, which is TWO files since the thread rule was
+// extracted for the message fan-out to share (126). Read together on purpose: these
+// assertions are about the rule being enforced before a thread is created, not about
+// which file holds it — and a copy of that rule in a second file is the actual danger.
+const server = code('api/_handlers/project-whatsapp.ts')
+             + code('api/_lib/whatsapp-thread.ts');
 const client = code('src/lib/supabase/project-whatsapp.ts');
 const header = code('src/components/admin/workspace/WorkspaceHeader.tsx');
 const deliver = code('api/_handlers/conversation-deliver.ts');

@@ -53,6 +53,19 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
 
 type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
 
+/**
+ * `?tab=` to a Tab, or the default.
+ *
+ * Validated against the known set: an arbitrary or stale value in somebody's URL
+ * resolves to the overview rather than selecting a tab that renders nothing.
+ */
+const ALL_TABS: Tab[] =
+  ['overview', 'stages', 'costing', 'timeline', 'payments', 'documents', 'messages'];
+
+function tabFromUrl(value: string | null): Tab {
+  return ALL_TABS.includes(value as Tab) ? (value as Tab) : 'overview';
+}
+
 const OWNER_TABS: { id: Tab; labelKey: TKey }[] = [
   { id: 'overview',   labelKey: 'project.tabs.overview'  },
   { id: 'stages',     labelKey: 'project.tabs.stages'    },
@@ -128,7 +141,7 @@ export default function ProjectDetail() {
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
   const { user } = useAuth();
   const t        = useT();
@@ -138,7 +151,26 @@ export default function ProjectDetail() {
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  /**
+   * The open tab, taken from `?tab=` when there is one.
+   *
+   * It used to be plain state starting on 'overview', which meant every link that
+   * named a tab — a notification bell, the "Read it in Groundwork" button in a message
+   * email — landed on the project overview instead. The link said `?tab=messages` and
+   * nothing read it.
+   *
+   * Kept in the URL as it changes, so the address bar matches the screen and a link
+   * somebody copies opens where they are looking.
+   */
+  const [activeTab, setActiveTabState] = useState<Tab>(() => tabFromUrl(searchParams.get('tab')));
+  const setActiveTab = useCallback((tab: Tab) => {
+    setActiveTabState(tab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'overview') next.delete('tab'); else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   // Set by "Record payment" on a blocked stage: switch to Payments and open that stage's
   // modal. The button does not carry its own modal — one confirm path for money.
   const [payStageId, setPayStageId] = useState<string | null>(null);

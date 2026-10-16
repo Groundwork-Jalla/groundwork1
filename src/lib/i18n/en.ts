@@ -4962,6 +4962,20 @@ export const en = {
         email:    'Email',
         call:     'Call',
       },
+      // A project thread is a group chat: client, contractor and verifiers all write into
+      // it. A bare name does not say which of them is speaking.
+      role: {
+        owner:      'Client',
+        contractor: 'Contractor',
+        verifier:   'Verifier',
+        staff:      'Jalla',
+      },
+      // The name shown when somebody has no full_name on file. Matches what 127
+      // writes, so a historical row and a new one read the same.
+      name: {
+        admin:  'Admin',
+        member: 'Member',
+      },
       messagePlaceholder: 'Message…',
       emptyTitle: 'No messages yet',
       emptyBody:  'Start a conversation about your project.',

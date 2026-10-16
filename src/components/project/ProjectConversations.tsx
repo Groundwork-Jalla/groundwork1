@@ -4,7 +4,8 @@ import { ConversationThread } from '@/components/admin/conversations/Conversatio
 import { errorMessage } from '@/lib/errors';
 import { useT } from '@/lib/i18n';
 import {
-  ensureProjectConversation, listConversations, listMyConversations, type Conversation,
+  ensureProjectConversation, listConversations, listMyConversations, listProjectRoles,
+  type Conversation,
 } from '@/lib/supabase/conversations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,8 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState(true);
+  /** Who is what on this build, so a bubble can say so. Empty until it loads. */
+  const [roles, setRoles] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,6 +85,10 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
   }, [projectId, t]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Separately from the threads: a failure here costs the labels, and must not cost
+  // the conversation.
+  useEffect(() => { void listProjectRoles(projectId).then(setRoles); }, [projectId]);
 
   if (loading) {
     return <p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-mid-grey">
@@ -136,6 +143,9 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
       title={projectName}
       memberView
       currentUserId={user.id}
+      // Only on the project's own thread. A one-to-one WhatsApp chat has two people in
+      // it and tagging every line with a role there is noise, not clarity.
+      roleOf={conversation.projectId ? (id => (id ? roles[id] ?? null : null)) : undefined}
     />
     </div>
   );

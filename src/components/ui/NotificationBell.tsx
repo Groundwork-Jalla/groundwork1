@@ -38,13 +38,18 @@ export function destinationFor(data: Record<string, unknown> | null | undefined)
   if (s('inquiry_id'))   return '/admin/inquiries';
   const project = s('project_id');
   if (project) {
-    // Role-aware, because /projects/<id> assumes an owner. A contractor or verifier
+    // Role-aware, because /projects/<id> assumes an owner: a contractor or verifier
     // sent there is bounced, which reads as the product being broken rather than as a
     // message waiting. 123 stamps the recipient's role on the notification for this.
+    //
+    // And a MESSAGE notification opens the messages tab. Landing on the project
+    // overview was the reported bug: somebody is told they have a message, presses
+    // the thing that says so, and arrives at a page that does not show it.
     const role = s('role');
-    if (role === 'contractor') return `/work/projects/${project}`;
-    if (role === 'verifier')   return `/verifiers/projects/${project}`;
-    return `/projects/${project}`;
+    const tab  = s('conversation_id') ? '?tab=messages' : '';
+    if (role === 'contractor') return `/work/projects/${project}${tab}`;
+    if (role === 'verifier')   return `/verifiers/projects/${project}${tab}`;
+    return `/projects/${project}${tab}`;
   }
   // A thread with no project — a WhatsApp or email chat, which belongs to the person
   // rather than to a build. 123 notifies on these too; without this they were a bell
@@ -73,15 +78,16 @@ function NotifItem({
       type="button"
       onClick={handleClick}
       className={cn(
-        'w-full text-left px-4 py-3 flex gap-3 items-start hover:bg-brand-off-white transition-colors',
-        !notif.read_at && 'bg-brand-off-white/60 hover:bg-brand-off-white',
+        'w-full text-left px-4 py-3 flex gap-3 items-start transition-colors',
+        'hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]',
+        !notif.read_at && 'bg-brand-off-white/60 dark:bg-[#252525]',
       )}
     >
       {!notif.read_at && (
         <span className="mt-1.5 shrink-0 size-2 rounded-full bg-state-active" />
       )}
       <div className={cn('flex-1 min-w-0', notif.read_at && 'pl-5')}>
-        <p className="text-xs font-semibold text-brand-near-black leading-snug">{notif.title}</p>
+        <p className="text-xs font-semibold text-brand-near-black dark:text-white leading-snug">{notif.title}</p>
         <p className="text-xs text-brand-mid-grey mt-0.5 leading-relaxed line-clamp-2">{notif.body}</p>
         <p className="text-[10px] text-brand-mid-grey mt-1">{timeAgo(notif.created_at)}</p>
       </div>
@@ -154,11 +160,15 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         type="button"
         onClick={() => setOpen(p => !p)}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
-        className="relative flex size-8 items-center justify-center rounded-full hover:bg-brand-off-white transition-colors"
+        className="relative flex size-8 items-center justify-center rounded-full hover:bg-brand-off-white dark:hover:bg-[#2c2c2c] transition-colors"
       >
         <Bell className="size-4.5 text-brand-mid-grey" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-state-active text-[9px] font-bold text-white tabular-nums">
+          /* `--color-state-active` is "the colour of text" and FLIPS with the theme:
+             #0a0a0a in light, #f0f0f0 in dark. Against a fixed `text-white` that made
+             the count white-on-near-white — an unread badge with an invisible number,
+             which is what was reported. The ink flips with its background. */
+          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-state-active text-[9px] font-bold text-white dark:text-brand-near-black tabular-nums">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -171,16 +181,16 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-10 z-50 w-80 rounded-2xl border border-brand-border-grey bg-white shadow-lg overflow-hidden"
+            className="absolute right-0 top-10 z-50 w-80 rounded-2xl border border-brand-border-grey bg-white shadow-lg overflow-hidden dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border-grey">
-              <span className="text-xs font-semibold text-brand-near-black">{t('nav.notifications')}</span>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border-grey dark:border-[#2c2c2c]">
+              <span className="text-xs font-semibold text-brand-near-black dark:text-white">{t('nav.notifications')}</span>
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="text-[10px] text-brand-mid-grey hover:text-brand-near-black transition-colors"
+                  className="text-[10px] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
                 >
                   Mark all read
                 </button>
@@ -188,7 +198,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             </div>
 
             {/* List */}
-            <div className="max-h-80 overflow-y-auto divide-y divide-brand-border-grey">
+            <div className="max-h-80 overflow-y-auto divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
               {!loaded ? (
                 <div className="px-4 py-6 text-xs text-brand-mid-grey text-center">{t('common.loading')}</div>
               ) : notifs.length === 0 ? (
