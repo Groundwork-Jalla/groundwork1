@@ -308,13 +308,6 @@ export const en = {
     errFailed:    'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
   admin: {
-    verifier: {
-      removeOne: 'Remove {name} from this project',
-      removeConfirm: 'Remove {name} from this project? They lose access to its messages and evidence straight away.',
-      removed: '{name} is no longer verifying this project.',
-      removeFailed: 'That verifier could not be removed. Try again.',
-      removeNotAdmin: 'Only an administrator can remove a verifier.',
-    },
 
     placeholder: {
       body:     'This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.',
@@ -1403,6 +1396,13 @@ export const en = {
 
     // Verifier assignment (migration 086). The role value has existed since 001.
     verifier: {
+      // Taking somebody off (086 remove_verifier). Only ever an admin's act.
+      removeOne: 'Remove {name} from this project',
+      removeConfirm: 'Remove {name} from this project? They lose access to its messages and evidence straight away.',
+      removed: '{name} is no longer verifying this project.',
+      removeFailed: 'That verifier could not be removed. Try again.',
+      removeNotAdmin: 'Only an administrator can remove a verifier.',
+
       assign:            'Assign verifier',
       title:             'Assign an independent verifier',
       bodyPre:           'Gives them sight of',

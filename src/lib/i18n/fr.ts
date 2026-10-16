@@ -317,13 +317,6 @@ export const fr: Mirror<EnDict> = {
     errFailed:    'L\u2019invitation n\u2019a pas \u00e9t\u00e9 envoy\u00e9e. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   admin: {
-    verifier: {
-      removeOne: 'Retirer {name} de ce chantier',
-      removeConfirm: 'Retirer {name} de ce chantier ? Il perdra immédiatement l’accès aux messages et aux preuves.',
-      removed: '{name} ne vérifie plus ce chantier.',
-      removeFailed: 'Ce vérificateur n’a pas pu être retiré. Réessayez.',
-      removeNotAdmin: 'Seul un administrateur peut retirer un vérificateur.',
-    },
 
     placeholder: {
       body:     'Cette section fait partie de l\u2019administration Groundwork mais sa page n\u2019est pas encore construite. Rien ici n\u2019est invent\u00e9\u00a0: \u00e0 sa livraison, tout proviendra de vos donn\u00e9es Supabase et GoHighLevel.',
@@ -1399,6 +1392,13 @@ export const fr: Mirror<EnDict> = {
     assignedNotice:     '{detail} affecté. Apparaît désormais dans l\'onglet Équipe du client.',
 
     verifier: {
+      // Taking somebody off (086 remove_verifier). Only ever an admin's act.
+      removeOne: 'Retirer {name} de ce chantier',
+      removeConfirm: 'Retirer {name} de ce chantier ? Il perdra immédiatement l’accès aux messages et aux preuves.',
+      removed: '{name} ne vérifie plus ce chantier.',
+      removeFailed: 'Ce vérificateur n’a pas pu être retiré. Réessayez.',
+      removeNotAdmin: 'Seul un administrateur peut retirer un vérificateur.',
+
       assign:            'Affecter un vérificateur',
       title:             'Affecter un vérificateur indépendant',
       bodyPre:           'Lui donne accès à',
