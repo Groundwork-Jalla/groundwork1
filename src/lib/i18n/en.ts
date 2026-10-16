@@ -4944,6 +4944,7 @@ export const en = {
 
   project: {
     evidence: {
+      video: 'Video',
       previous: 'Previous',
       next: 'Next',
       cannotOpen: 'That file could not be opened. You may no longer have access to this project.',

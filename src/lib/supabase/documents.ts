@@ -109,8 +109,18 @@ export async function deleteDocument(doc: ProjectDocumentRow): Promise<void> {
  */
 export async function signedUrlIn(
   bucket: 'documents' | 'evidence', path: string,
+  /**
+   * Ask the storage layer to resize before sending. A thumbnail grid would otherwise
+   * pull the full photographs — several megabytes each, over a phone connection on a
+   * building site. Supabase only honours this where the image-transform add-on is
+   * enabled, so the caller must be able to fall back to the original.
+   */
+  thumb?: { width: number; height: number },
 ): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(
+    path, 3600,
+    thumb ? { transform: { width: thumb.width, height: thumb.height, resize: 'cover' } } : undefined,
+  );
   if (error || !data?.signedUrl) return null;
   return data.signedUrl;
 }

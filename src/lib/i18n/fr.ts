@@ -4849,6 +4849,7 @@ export const fr: Mirror<EnDict> = {
 
   project: {
     evidence: {
+      video: 'Vidéo',
       previous: 'Précédent',
       next: 'Suivant',
       cannotOpen: 'Ce fichier n’a pas pu être ouvert. Vous n’avez peut-être plus accès à ce chantier.',
