@@ -6,6 +6,7 @@ import type { StageView } from '@/lib/admin/workspace';
 import { errorMessage } from '@/lib/errors';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT, type TKey } from '@/lib/i18n';
+import { displaySenderName } from '@/lib/admin/chat-identity';
 
 // =========================================================
 // Record a decision (091 `record_decision`), deliberately small.
@@ -83,7 +84,7 @@ export function RecordDecisionModal({ projectId, ownerId, stages, conversationId
         <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
           {message && (
             <blockquote className="rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1a1a1a]">
-              <span className="font-medium text-brand-near-black dark:text-white">{message.senderName}</span>: {message.content.slice(0, 240)}
+              <span className="font-medium text-brand-near-black dark:text-white">{displaySenderName(message.senderName, t('project.chat.name.member'))}</span>: {message.content.slice(0, 240)}
             </blockquote>
           )}
           <div>

@@ -272,7 +272,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
                   <span className="whitespace-pre-wrap">{m.content}</span>
                   <MessageAttachments attachments={toAttachments(m.attachments)} />
                   <span className={cn('mt-1 block text-[10px]', outbound ? 'text-white/60 dark:text-brand-near-black/60' : 'text-brand-mid-grey')} title={formatDateTime(m.createdAt)}>
-                    {senderLabel(m)}{roleSuffix(m)} · {formatRelative(m.createdAt)}
+                    {senderLabel(m)}{roleSuffix(m)} · {formatRelative(m.createdAt)}{m.channel !== 'jalla' && ` · ${t(`project.chat.channel.${m.channel}` as TKey)}`}
                   </span>
                 </div>
               ) : (

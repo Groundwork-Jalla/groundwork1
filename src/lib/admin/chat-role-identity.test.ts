@@ -25,14 +25,16 @@ describe('the role is shown next to the name', () => {
   it('in the member bubble and the staff bubble alike', () => {
     // Two render sites: the member's bubble and the staff one. Both, or a client sees
     // the role and the person answering them does not.
-    const shown = thread.match(/senderRole\(m\.senderId\) && /g) ?? [];
+    const shown = thread.match(/\{roleSuffix\(m\)\}/g) ?? [];
     expect(shown.length).toBe(2);
   });
 
   it('and is absent rather than blank when there is no role to show', () => {
     // A one-to-one WhatsApp chat has two people in it; tagging every line there is noise.
     expect(thread).toMatch(/if \(!roleOf\) return null;/);
-    expect(thread).toMatch(/senderRole\(m\.senderId\) && /);
+    // 127 folded this into `roleSuffix`, which also drops the role when it would only
+    // repeat the name already shown.
+    expect(thread).toMatch(/return role && role !== senderLabel\(m\) \? /);
   });
 
   it('anyone who is not a participant is named as Jalla, not left unlabelled', () => {

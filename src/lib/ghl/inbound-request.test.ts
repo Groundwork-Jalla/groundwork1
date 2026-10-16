@@ -150,7 +150,13 @@ describe('the handler and the migration', () => {
     expect(h).toContain("inserted.error?.code === 'PGRST204'");
     const beforeGate = h.slice(0, at("GHL_INBOUND_ACT.value === 'on'"));
     expect(beforeGate).not.toMatch(/project_messages|ensure_inbound_conversation|from\('conversations'\)/);
-    expect((h.match(/from\('project_messages'\)/g) ?? []).length).toBe(1);   // still the one 6.2 upsert
+    // EVERY message write is in the acting path, never before the gate. This used to
+    // assert there was exactly one; 128 adds a second (the WhatsApp reply mirrored onto
+    // its project thread), so the count is no longer the invariant — "nothing writes a
+    // message until the gate says act" is, and it is what this now checks.
+    const writes = [...h.matchAll(/from\('project_messages'\)/g)].map(m => m.index ?? -1);
+    expect(writes.length).toBeGreaterThan(0);
+    for (const i of writes) expect(i).toBeGreaterThan(at("GHL_INBOUND_ACT.value === 'on'"));
   });
 
   it('the migration is 094, additive, and does not depend on 093', () => {

@@ -191,6 +191,24 @@ export async function handler(req: any, res: any) {
     }
     const duplicate = !filed.data || filed.data.length === 0;
 
+    // ── The reply reaches the build it is about (128) ───────────────────────────────
+    //
+    // Filed above, the message sits on the PERSON's WhatsApp thread, which carries no
+    // project (091) — so the contractor who wrote the original never saw the answer. That
+    // made 126 a broadcast rather than a conversation.
+    //
+    // Only on a first filing: `duplicate` means a replay, and mirroring again would put
+    // the same reply on the thread twice.
+    if (!duplicate && m.channel === 'whatsapp') {
+      try {
+        await mirrorReplyToProject(db, personId, m);
+      } catch (err) {
+        // Never costs the filing. The reply is already recorded and already reachable in
+        // the Inbox; a mirror that failed is a message in the wrong place, not a lost one.
+        console.error('[ghl-inbound] could not mirror reply to project', err);
+      }
+    }
+
     // Only now — the message exists (inserted or already there) — is the event handled.
     const stamped = await db.from('ghl_inbound_events').update({ handled_at: new Date().toISOString() }).eq('id', eventRow.id);
     if (stamped.error) console.error('[ghl-inbound] filed but could not stamp event', eventRow.id, stamped.error.message);
@@ -200,4 +218,54 @@ export async function handler(req: any, res: any) {
     console.error('[ghl-inbound] failed:', err);
     res.status(500).json({ error: 'Could not record event' });
   }
+}
+
+/**
+ * Put a WhatsApp reply on the project thread, when it is clear which project that is.
+ *
+ * ── It must never mirror our own voice back ─────────────────────────────────────────
+ * The first guard, and the one that matters: 126 sends outbound WhatsApp through the same
+ * provider, and a provider that echoes its own sends to this webhook would have us file a
+ * message we wrote as if the client had said it — then fan it out again. The ledger knows
+ * every provider id we have ever sent, so an id we recognise is our own echo and stops
+ * here.
+ *
+ * ── Why `channel: 'whatsapp'` on the mirror ─────────────────────────────────────────
+ * It is true — the reader should see the reply came from a phone — and it closes the loop
+ * structurally, because 126's trigger fires only on `jalla`. The contractor is still told:
+ * 123 notifies every participant of a project-linked message on any channel.
+ */
+async function mirrorReplyToProject(
+  db: any,
+  personId: string,
+  m: { ghlMessageId: string; senderName: string; body: string; sentAt: string | null; attachments: unknown[] },
+): Promise<void> {
+  const ours = await db.from('message_deliveries')
+    .select('id').eq('provider_message_id', m.ghlMessageId).limit(1);
+  if (ours.data && ours.data.length > 0) return;
+
+  const { data: projectId } = await db.rpc('project_for_whatsapp_reply', { p_person: personId });
+  // NULL means nobody can know which build this is about — none, or several. It stays in
+  // the Inbox for a human to place, which is where it has always gone.
+  if (!projectId) return;
+
+  const { data: conversationId } = await db.rpc('ensure_project_conversation', { p_project: projectId });
+  if (!conversationId) return;
+
+  await db.from('project_messages').insert({
+    project_id:      projectId,
+    conversation_id: conversationId,
+    // The author, so 126 excludes them from its own fan-out and the bubble is attributed
+    // to the person rather than to nobody.
+    sender_id:       personId,
+    sender_name:     m.senderName,
+    content:         m.body,
+    origin:          'ghl',
+    direction:       'inbound',
+    channel:         'whatsapp',
+    attachments:     m.attachments.length ? m.attachments : null,
+    // Deliberately NOT ghl_message_id: 085's unique index already holds it for the row
+    // filed on the person's own thread, and a second row claiming it would collide.
+    ...(m.sentAt ? { created_at: m.sentAt } : {}),
+  });
 }

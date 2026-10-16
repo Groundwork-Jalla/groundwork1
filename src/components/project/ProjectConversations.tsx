@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Phone } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import { ConversationThread } from '@/components/admin/conversations/ConversationThread';
 import { errorMessage } from '@/lib/errors';
 import { useT } from '@/lib/i18n';
@@ -9,6 +10,21 @@ import {
 } from '@/lib/supabase/conversations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+
+/**
+ * Which channel a thread is, at a glance.
+ *
+ * WhatsApp keeps its own green glyph here for the same reason it does in the admin top
+ * bar: it is a brand people recognise instantly, and rendering it as one more grey
+ * message bubble is what made the tab unreadable as "this one reaches my phone". The
+ * other three stay monochrome, so the green means something.
+ */
+function ChannelIcon({ channel }: { channel: string }) {
+  if (channel === 'whatsapp') return <WhatsAppIcon className="size-3.5 shrink-0" />;
+  if (channel === 'email')    return <Mail className="size-3.5 shrink-0" />;
+  if (channel === 'call')     return <Phone className="size-3.5 shrink-0" />;
+  return <MessageSquare className="size-3.5 shrink-0" />;
+}
 
 /**
  * Every thread this person can read about this build.
@@ -121,12 +137,13 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
               aria-selected={c.id === conversation.id}
               onClick={() => setActiveId(c.id)}
               className={cn(
-                'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
                 c.id === conversation.id
                   ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
                   : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]',
               )}
             >
+              <ChannelIcon channel={c.channel} />
               {t(`project.chat.channel.${c.channel}` as never)}
             </button>
           ))}
