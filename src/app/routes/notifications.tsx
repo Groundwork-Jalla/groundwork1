@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Bell, CheckCheck, Building2, Upload, MessageSquare, BadgeCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { destinationFor } from '@/components/ui/NotificationBell';
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -17,9 +19,20 @@ interface Notification {
   type: string;
   title: string;
   body: string;
-  read: boolean;
+  /**
+   * When it was read — NOT a boolean.
+   *
+   * This page carried `read: boolean` and the column has been `read_at TIMESTAMPTZ`
+   * since 009. Nothing failed loudly: `select('*')` returned rows with no `read` field,
+   * so `!n.read` was true for every row and EVERYTHING showed as unread forever, while
+   * `update({ read: true })` addressed a column that does not exist and was discarded.
+   * The bell and the dashboard always used `read_at`; only this page disagreed.
+   */
+  read_at: string | null;
   created_at: string;
   project_id: string | null;
+  /** Where it points. `select('*')` always fetched this; nothing ever read it. */
+  data: Record<string, unknown> | null;
 }
 
 type FilterTab = 'all' | 'unread' | 'projects' | 'payments' | 'system';
@@ -35,7 +48,7 @@ const PROJECT_TYPES = new Set([
 function filterNotifications(list: Notification[], filter: FilterTab): Notification[] {
   switch (filter) {
     case 'unread':
-      return list.filter(n => !n.read);
+      return list.filter(n => !n.read_at);
     case 'projects':
       return list.filter(n => PROJECT_TYPES.has(n.type));
     case 'payments':
@@ -73,13 +86,14 @@ const FILTER_TABS: { labelKey: TKey; value: FilterTab }[] = [
  */
 function splitByAttention(list: Notification[]): { fresh: Notification[]; earlier: Notification[] } {
   return {
-    fresh:   list.filter(n => !n.read),
-    earlier: list.filter(n => n.read),
+    fresh:   list.filter(n => !n.read_at),
+    earlier: list.filter(n => n.read_at),
   };
 }
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const t = useT();
   const { tPlural } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -129,18 +143,38 @@ export default function NotificationsPage() {
     if (!user) return;
     await supabase
       .from('notifications')
-      .update({ read: true })
+      .update({ read_at: new Date().toISOString() })
       .eq('user_id', user.id)
-      .eq('read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      .is('read_at', null);
+    setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
   }
 
   async function markOneRead(n: Notification) {
-    if (n.read) return;
-    await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+    if (n.read_at) return;
+    const now = new Date().toISOString();
+    await supabase.from('notifications').update({ read_at: now }).eq('id', n.id);
     setNotifications(prev =>
-      prev.map(item => (item.id === n.id ? { ...item, read: true } : item)),
+      prev.map(item => (item.id === n.id ? { ...item, read_at: now } : item)),
     );
+  }
+
+  /**
+   * Open what the notification is about.
+   *
+   * This page only ever marked a row read — it never navigated, so "New message about
+   * clinton" was a dead click, and an ALREADY-READ row was deader still because
+   * `markOneRead` returns early. The bell dropdown had been fixed and this page had not,
+   * which is the whole of the bug: there are two places a notification is clicked and
+   * only one of them went anywhere.
+   *
+   * `destinationFor` is the bell's, deliberately shared — two answers to "where does this
+   * notification go" is how they drifted apart in the first place.
+   */
+  function openNotification(n: Notification) {
+    void markOneRead(n);
+    // Older rows pre-date `data` carrying the project; the column has always held it.
+    const to = destinationFor(n.data ?? (n.project_id ? { project_id: n.project_id } : null));
+    if (to) navigate(to);
   }
 
   async function loadOlder() {
@@ -158,16 +192,17 @@ export default function NotificationsPage() {
     setLoadingMore(false);
   }
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.read_at).length;
   const filtered = filterNotifications(notifications, filter);
   const { fresh, earlier } = splitByAttention(filtered);
 
   const renderRow = (n: Notification) => (
-    <div
+    <button
       key={n.id}
-      onClick={() => markOneRead(n)}
-      className={`flex items-start gap-3 px-5 py-4 transition-colors cursor-pointer ${
-        !n.read
+      type="button"
+      onClick={() => openNotification(n)}
+      className={`w-full text-left flex items-start gap-3 px-5 py-4 transition-colors cursor-pointer ${
+        !n.read_at
           ? 'bg-brand-off-white/60 dark:bg-[#1f1f1f]'
           : 'hover:bg-brand-off-white/30 dark:hover:bg-brand-rich-black'
       }`}
@@ -180,7 +215,7 @@ export default function NotificationsPage() {
           <p className="text-sm font-semibold text-brand-near-black dark:text-white truncate">
             {n.title}
           </p>
-          {!n.read && (
+          {!n.read_at && (
             <span className="size-2 rounded-full bg-brand-near-black dark:bg-white shrink-0" />
           )}
         </div>
@@ -189,7 +224,7 @@ export default function NotificationsPage() {
           {timeAgo(n.created_at)}
         </p>
       </div>
-    </div>
+    </button>
   );
 
   return (
