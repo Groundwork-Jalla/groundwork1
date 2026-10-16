@@ -9,6 +9,7 @@ import {
   type Conversation,
 } from '@/lib/supabase/conversations';
 import { cn } from '@/lib/utils';
+import { ensureMyWhatsApp } from '@/lib/supabase/my-whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -42,6 +43,7 @@ function ChannelIcon({ channel }: { channel: string }) {
 export function ProjectConversations({ projectId, projectName }: { projectId: string; projectName: string }) {
   const t = useT();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [threads, setThreads] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const conversation = threads.find(c => c.id === activeId) ?? threads[0] ?? null;
@@ -69,7 +71,16 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
 
       // Plus whatever is theirs — the WhatsApp or email thread staff opened with them,
       // which carries no project and would otherwise be invisible here.
-      const mine = await listMyConversations();
+      let mine = await listMyConversations();
+
+      // A contractor saw a WhatsApp tab here and the client saw only Groundwork. Nothing
+      // had ever created the client's thread: it took an admin pressing the WhatsApp
+      // button, a message arriving from their phone, or 126's fan-out. Seeing the channel
+      // that reaches your own phone should not wait on any of those, so if the person has
+      // a number on file and no thread, establish it and list again.
+      if (!mine.rows.some(r => r.channel === 'whatsapp') && userId) {
+        if (await ensureMyWhatsApp(userId)) mine = await listMyConversations();
+      }
       const seen = new Set(result.rows.map(r => r.id));
       const all = [...result.rows, ...mine.rows.filter(r => !seen.has(r.id))];
 
@@ -87,7 +98,7 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
     } finally {
       setLoading(false);
     }
-  }, [projectId, t]);
+  }, [projectId, t, userId]);
 
   const refreshConversation = useCallback(async () => {
     try {
