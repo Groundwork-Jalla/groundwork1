@@ -46,6 +46,16 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
   const userId = user?.id ?? null;
   const [threads, setThreads] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  /**
+   * Which way the project's conversation is being carried.
+   *
+   * Not two inboxes. The project thread is ONE conversation, and this is the choice of
+   * how the next message travels: read in Groundwork, or delivered to the other
+   * participants' phones over WhatsApp (126). Every message stays on the project's
+   * record either way, which is what makes "on their phone AND on Groundwork" true
+   * rather than two half-conversations to reconcile.
+   */
+  const [channel, setChannel] = useState<'jalla' | 'whatsapp'>('jalla');
   const conversation = threads.find(c => c.id === activeId) ?? threads[0] ?? null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +149,32 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
 
   return (
     <div className="space-y-3">
-      {/* Only when there is a choice to make. One thread needs no chooser. */}
+      {/* The project's conversation, and the two ways it can be carried. Shown whenever
+          this is the project thread — the choice exists even before either has been used,
+          because it is how you decide where the message goes, not a list of what exists. */}
+      {conversation.projectId && (
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('project.chat.channels')}>
+          {(['jalla', 'whatsapp'] as const).map(c => (
+            <button
+              key={c} type="button" role="tab"
+              aria-selected={channel === c}
+              onClick={() => setChannel(c)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
+                channel === c
+                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                  : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]',
+              )}
+            >
+              <ChannelIcon channel={c} />
+              {t(`project.chat.channel.${c}` as never)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Threads that are not this project's — a WhatsApp or email chat staff opened with
+          this person, which carries no project and would otherwise be invisible here. */}
       {threads.length > 1 && (
         <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('project.chat.channels')}>
           {threads.map(c => (
@@ -174,6 +209,8 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
       // Only on the project's own thread. A one-to-one WhatsApp chat has two people in
       // it and tagging every line with a role there is noise, not clarity.
       roleOf={conversation.projectId ? (id => (id ? roles[id] ?? null : null)) : undefined}
+      sendChannel={conversation.projectId ? channel : undefined}
+      showOnlyChannel={conversation.projectId ? channel : undefined}
     />
     </div>
   );

@@ -40,7 +40,7 @@ const STATUS_DOT: Record<Conversation['status'], string> = {
   open: 'bg-state-active', waiting_on_us: 'bg-state-held', waiting_on_them: 'bg-brand-muted-grey', resolved: 'bg-state-complete',
 };
 
-export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId, roleOf }: {
+export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId, roleOf, sendChannel, showOnlyChannel }: {
   conversation: Conversation;
   staff: { id: string; label: string }[] | null;
   staffName: (id: string | null) => string;
@@ -56,6 +56,17 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
    * WhatsApp chat) reads better without a redundant tag on every line.
    */
   roleOf?: (senderId: string | null) => string | null;
+  /**
+   * Which channel the composer sends on (129).
+   *
+   * On a project thread this is the tab the reader picked: Groundwork, or WhatsApp —
+   * and WhatsApp means 126 carries it to the other participants' phones. Omitted
+   * means the conversation's own channel, which is what every caller did before the
+   * choice existed.
+   */
+  sendChannel?: 'jalla' | 'whatsapp';
+  /** Show only this channel's messages. One thread, two ways of carrying it. */
+  showOnlyChannel?: 'jalla' | 'whatsapp';
   currentUserId?: string;
   /** Present only where a decision has a project to belong to (the workspace tab). */
   decision?: { projectId: string; ownerId: string | null; stages: Workspace['stages'] } | null;
@@ -182,6 +193,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
         content || t('chat.attachment.sentAttachment'),
         memberView ? undefined : direction,
         pending.length ? pending : undefined,
+        sendChannel,
       );
       // Delivery is the server's business: anything that leaves Groundwork is asked for
       // here, and the provider — GHL today — is chosen there, from the channel.
@@ -250,7 +262,13 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           <DomainNote state="unavailable" />
         ) : messages.length === 0 ? (
           <p className="py-6 text-center text-xs text-brand-mid-grey">{t('admin.workspace.conversations.noMessages')}</p>
-        ) : messages.map(m => {
+        ) : (showOnlyChannel
+          // One conversation carried two ways: the tab decides which half is on screen.
+          // An internal note belongs to neither channel, so it stays visible to staff
+          // whichever tab they are on rather than disappearing into one of them.
+          ? messages.filter(m => m.direction === 'internal' || (m.channel ?? 'jalla') === showOnlyChannel)
+          : messages
+        ).map(m => {
           const mine = source?.id === m.id;
           if (m.direction === 'internal') {
             return (

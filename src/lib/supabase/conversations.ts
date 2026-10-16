@@ -137,9 +137,16 @@ export async function ensureProjectConversation(projectId: string): Promise<stri
  */
 export async function sendConversationMessage(
   conversationId: string, content: string, direction?: 'outbound' | 'internal', attachments?: unknown[],
+  /**
+   * Which channel to send on (129). Omitted means the conversation's own, which is what
+   * every caller did before the choice existed. Naming `whatsapp` on a project thread is
+   * what makes 126 carry the message to the other participants' phones.
+   */
+  channel?: Channel,
 ): Promise<string> {
   const { data, error } = await supabase.rpc('send_message', {
-    p_conversation: conversationId, p_content: content, p_direction: direction ?? null, p_attachments: attachments ?? null,
+    p_conversation: conversationId, p_content: content, p_direction: direction ?? null,
+    p_attachments: attachments ?? null, p_channel: channel ?? null,
   });
   if (error) throw error;
   return data as string;

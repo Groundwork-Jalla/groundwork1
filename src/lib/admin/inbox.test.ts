@@ -113,8 +113,14 @@ describe('delivery: the UI does not know who carries a message', () => {
 
   it('the composer asks for delivery by channel — it never names a provider', () => {
     expect(th).toContain('await deliverMessage(messageId)');
-    expect(th).not.toMatch(/ghl|GHL|whatsapp'/i);
+    // A PROVIDER, never. GoHighLevel is an implementation detail of the transport and
+    // the UI must not know it exists.
+    expect(th).not.toMatch(/\bghl\b/i);
+    // A CHANNEL, freely — the line below names one, and since 129 the sender picks it,
+    // so the composer has to carry 'whatsapp' as a value. The old form of this
+    // assertion banned that word outright, which only held while nobody could choose.
     expect(th).toContain("conversation.channel !== 'jalla'");
+    expect(th).toMatch(/sendChannel\?: 'jalla' \| 'whatsapp'/);
     expect(lib).toContain("fetch('/api/events?action=conversation-deliver'");
     expect(lib).not.toMatch(/deliverWhatsApp|action=conversation-whatsapp/);
   });
