@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import {
-  Award, Image, FileText, Download, ExternalLink,
-  Building2, ChevronRight, AlertCircle,
-} from 'lucide-react';
+import { AlertCircle, Award, Building2, ChevronRight, Download, ExternalLink, FileText, Image, Search } from 'lucide-react';
 import { useAuth }       from '@/contexts/AuthContext';
 import { supabase }      from '@/lib/supabase/client';
 import { fetchProjects } from '@/lib/supabase/projects';
 import type { ProjectRow } from '@/types/project';
 import { useT, type TKey } from '@/lib/i18n';
+import { EvidenceLightbox } from '@/components/project/EvidenceLightbox';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -23,14 +21,6 @@ interface Certificate {
   issued_to: string;
 }
 
-interface EvidenceStage {
-  stageId: string;
-  stageName: string;
-  stageNumber: number;
-  projectId: string;
-  projectName: string;
-  fileCount: number;
-}
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -106,37 +96,6 @@ function CertCard({ cert }: { cert: Certificate }) {
   );
 }
 
-// ── Evidence row ───────────────────────────────────────────
-
-function EvidenceRow({ item }: { item: EvidenceStage }) {
-  const t = useT();
-  return (
-    <Link
-      to={`/projects/${item.projectId}`}
-      className="flex items-center gap-4 px-5 py-3.5 hover:bg-brand-off-white transition-colors group"
-    >
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-off-white group-hover:bg-white transition-colors">
-        <Image className="size-4 text-brand-mid-grey" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-brand-near-black truncate">
-          Stage {item.stageNumber}: {item.stageName}
-        </p>
-        <p className="text-xs text-brand-mid-grey truncate">{item.projectName}</p>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-off-white border border-brand-border-grey px-2.5 py-0.5 text-[10px] font-semibold text-brand-mid-grey">
-          <FileText className="size-2.5" />
-          {item.fileCount} {item.fileCount === 1 ? 'file' : 'files'}
-        </span>
-        <ChevronRight className="size-4 text-brand-border-grey group-hover:text-brand-near-black group-hover:translate-x-0.5 transition-all" />
-      </div>
-    </Link>
-  );
-}
-
-// ── Skeleton ───────────────────────────────────────────────
-
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-3">
@@ -147,17 +106,79 @@ function Skeleton() {
   );
 }
 
+interface DocRow {
+  id: string;
+  project_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  category: string | null;
+  created_at: string;
+}
+
+/**
+ * One document, openable in place.
+ *
+ * Opened in the viewer rather than a new tab, for the same reason evidence is: a tab
+ * hands the browser a bare file with a download button attached, and puts the signed
+ * URL in the address bar where it can be copied and forwarded.
+ */
+function DocRowItem({ doc, projectName }: { doc: DocRow; projectName: string }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]"
+      >
+        <FileText className="size-4 shrink-0 text-brand-mid-grey" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-brand-near-black dark:text-white">{doc.file_name}</span>
+          <span className="block truncate text-[11px] text-brand-mid-grey">
+            {[projectName, doc.category].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+        <span className="shrink-0 text-[11px] tabular-nums text-brand-mid-grey">
+          {doc.file_size ? `${Math.round(doc.file_size / 1024)} KB` : ''}
+        </span>
+      </button>
+      {open && (
+        <EvidenceLightbox
+          items={[{ path: doc.file_path, label: doc.file_name, bucket: 'documents' }]}
+          index={0} onIndex={() => {}} onClose={() => setOpen(false)}
+        />
+      )}
+    </li>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────
 
-type Tab = 'certificates' | 'evidence';
+/**
+ * Documents, and certificates. NOT evidence.
+ *
+ * This page used to carry an Evidence tab listing every site photograph grouped by
+ * project and stage — which is the stage tracker, rebuilt in a second place. Two views
+ * of the same thing drift, and a person looking for a permit had to scroll past forty
+ * photographs of a slab to find it.
+ *
+ * Evidence lives with the stage it belongs to, where it means something. This is for
+ * documents: contracts, permits, receipts, bills of quantities.
+ */
+type Tab = 'documents' | 'certificates';
 
 export default function DocumentsPage() {
   const { user } = useAuth();
   const t = useT();
 
-  const [tab,          setTab]          = useState<Tab>('certificates');
+  const [tab,          setTab]          = useState<Tab>('documents');
+  const [docs,         setDocs]         = useState<DocRow[]>([]);
+  /** Narrowing, because a document is found by name or by build. */
+  const [query,        setQuery]        = useState('');
+  const [projectId,    setProjectId]    = useState<string>('');
   const [certs,        setCerts]        = useState<Certificate[]>([]);
-  const [evidence,     setEvidence]     = useState<EvidenceStage[]>([]);
   const [projects,     setProjects]     = useState<ProjectRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [certsErr,     setCertsErr]     = useState(false);
@@ -187,71 +208,37 @@ export default function DocumentsPage() {
           else setCerts((data ?? []) as Certificate[]);
         });
 
-      // ── Evidence via project_stages → project_substages ─
+      // ── Documents ──────────────────────────────────────
       supabase
-        .from('project_stages')
-        .select('id, stage_number, project_id')
+        .from('project_documents')
+        .select('id, project_id, file_name, file_path, file_size, category, created_at')
         .in('project_id', projectIds)
-        .then(({ data: stages }) => {
-          if (!stages?.length) {
-            setEvidence([]);
-            setLoading(false);
-            return;
-          }
-
-          const stageIds = stages.map(s => s.id);
-          const stageMap = Object.fromEntries(stages.map(s => [s.id, s]));
-
-          supabase
-            .from('project_substages')
-            .select('stage_id, evidence_urls')
-            .in('stage_id', stageIds)
-            .then(({ data: subs }) => {
-              const STAGE_NAMES = [
-                'Land Secured', 'Design Completed', 'Site Preparation', 'Foundation',
-                'Structure & Walls', 'Roofing', 'Electrical & Plumbing', 'Finishing',
-                'Exterior Work', 'Final Handover',
-              ];
-
-              // Aggregate file counts per stage
-              const stageCounts: Record<string, number> = {};
-              for (const sub of subs ?? []) {
-                if (!sub.evidence_urls?.length) continue;
-                stageCounts[sub.stage_id] = (stageCounts[sub.stage_id] ?? 0) + sub.evidence_urls.length;
-              }
-
-              const items: EvidenceStage[] = Object.entries(stageCounts)
-                .map(([stageId, count]) => {
-                  const stage   = stageMap[stageId];
-                  const project = stage ? projectMap[stage.project_id] : null;
-                  if (!stage || !project) return null;
-                  return {
-                    stageId,
-                    stageName:   STAGE_NAMES[stage.stage_number - 1] ?? `Stage ${stage.stage_number}`,
-                    stageNumber: stage.stage_number,
-                    projectId:   project.id,
-                    projectName: project.name,
-                    fileCount:   count,
-                  } satisfies EvidenceStage;
-                })
-                .filter((x): x is EvidenceStage => x !== null)
-                .sort((a, b) => a.projectName.localeCompare(b.projectName) || a.stageNumber - b.stageNumber);
-
-              setEvidence(items);
-              setLoading(false);
-            });
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          setDocs((data ?? []) as DocRow[]);
+          setLoading(false);
         });
-    }).catch(() => setLoading(false));
+    });
   }, [user]);
 
-  // Group evidence by project
-  const evidenceByProject = evidence.reduce<Record<string, EvidenceStage[]>>((acc, item) => {
-    if (!acc[item.projectId]) acc[item.projectId] = [];
-    acc[item.projectId].push(item);
-    return acc;
-  }, {});
+  const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? '';
 
-  const totalEvFiles = evidence.reduce((s, i) => s + i.fileCount, 0);
+  /**
+   * What the filters leave.
+   *
+   * Name and project, which are the two ways people actually look: "the Kribi permit"
+   * and "everything on Franka Home". Matched case-insensitively against the file name
+   * and the project it belongs to, so typing a project name works from the box as well
+   * as from the dropdown.
+   */
+  const shown = docs.filter(d => {
+    if (projectId && d.project_id !== projectId) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return d.file_name.toLowerCase().includes(q)
+        || projectName(d.project_id).toLowerCase().includes(q)
+        || String(d.category ?? '').toLowerCase().includes(q);
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
@@ -269,8 +256,8 @@ export default function DocumentsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-brand-off-white rounded-xl p-1 w-fit">
         {([
+          { key: 'documents',    labelKey: 'documents.tabDocuments' as TKey,    count: docs.length   },
           { key: 'certificates', labelKey: 'documents.tabCertificates' as TKey, count: certs.length },
-          { key: 'evidence',     labelKey: 'documents.tabEvidence' as TKey,     count: totalEvFiles  },
         ] as const).map(tab_ => (
           <button
             key={tab_.key}
@@ -337,73 +324,65 @@ export default function DocumentsPage() {
         </>
       )}
 
-      {/* ── Evidence tab ──────────────────────────────────── */}
-      {tab === 'evidence' && (
+      {/* ── Documents tab ─────────────────────────────────── */}
+      {tab === 'documents' && (
         <>
+          {/* Search and the project filter, in one row above the list. Documents pile up
+              across builds and the question is always "which one" — scrolling is not an
+              answer once there are forty. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
+              <input
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={t('documents.searchPlaceholder')}
+                aria-label={t('documents.searchPlaceholder')}
+                className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+              />
+            </div>
+            {projects.length > 1 && (
+              <select
+                value={projectId}
+                onChange={e => setProjectId(e.target.value)}
+                aria-label={t('documents.filterProject')}
+                className="rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+              >
+                <option value="">{t('documents.allProjects')}</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+          </div>
+
           {loading ? (
             <Skeleton />
-          ) : evidence.length === 0 ? (
+          ) : shown.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-brand-border-grey py-16 text-center">
               <div className="flex size-14 items-center justify-center rounded-full bg-brand-off-white">
-                <Image className="size-7 text-brand-border-grey" />
+                <FileText className="size-7 text-brand-border-grey" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-brand-near-black mb-1">{t('documents.noEvidence')}</p>
-                <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-                  Evidence photos and documents uploaded by your contractor appear here,
-                  grouped by project and stage.
+                {/* "Nothing matches" and "nothing here" are different answers, and
+                    showing the wrong one sends somebody looking for a bug. */}
+                <p className="mb-1 text-sm font-semibold text-brand-near-black">
+                  {docs.length === 0 ? t('documents.noDocuments') : t('documents.noMatches')}
+                </p>
+                <p className="mx-auto max-w-xs text-xs leading-relaxed text-brand-mid-grey">
+                  {docs.length === 0 ? t('documents.noDocumentsBody') : t('documents.noMatchesBody')}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Summary banner */}
-              <div className="flex items-center gap-3 rounded-xl bg-brand-near-black px-5 py-3.5">
-                <Image className="size-4 text-white/60 shrink-0" />
-                <p className="text-sm font-semibold text-white flex-1">
-                  {totalEvFiles} evidence {totalEvFiles === 1 ? 'file' : 'files'} across {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-                </p>
-                <span className="text-xs text-white/50">{t('documents.clickRowHint')}</span>
-              </div>
-
-              {/* Grouped by project */}
-              {Object.entries(evidenceByProject).map(([projectId, items]) => {
-                const project = projects.find(p => p.id === projectId);
-                const totalFiles = items.reduce((s, i) => s + i.fileCount, 0);
-                return (
-                  <div key={projectId} className="bg-white rounded-2xl border border-brand-border-grey overflow-hidden">
-                    {/* Project header */}
-                    <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/40">
-                      <div className="flex items-center gap-2.5">
-                        <Building2 className="size-4 text-brand-mid-grey shrink-0" />
-                        <p className="text-sm font-semibold text-brand-near-black">
-                          {project?.name ?? 'Unknown Project'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-brand-mid-grey tabular-nums">
-                          {totalFiles} {totalFiles === 1 ? 'file' : 'files'} · {items.length} {items.length === 1 ? 'stage' : 'stages'}
-                        </span>
-                        <Link
-                          to={`/projects/${projectId}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-brand-mid-grey hover:text-brand-near-black transition-colors"
-                        >
-                          Open <ExternalLink className="size-3" />
-                        </Link>
-                      </div>
-                    </div>
-
-                    {/* Stage rows */}
-                    <div className="divide-y divide-brand-off-white">
-                      {items.map(item => <EvidenceRow key={item.stageId} item={item} />)}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              <ul className="divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
+                {shown.map(d => <DocRowItem key={d.id} doc={d} projectName={projectName(d.project_id)} />)}
+              </ul>
             </div>
           )}
         </>
       )}
+
     </div>
   );
 }

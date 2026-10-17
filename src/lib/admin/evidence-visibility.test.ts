@@ -19,7 +19,6 @@ const ROOT = resolve(__dirname, '..', '..', '..');
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 
 const row    = read('src/components/project/SubstageRow.tsx');
-const list   = read('src/components/project/StageEvidenceList.tsx');
 const lib    = read('src/lib/supabase/documents.ts');
 const client = read('src/app/routes/projects/detail.tsx');
 const work   = read('src/app/routes/work/projects.detail.tsx');
@@ -43,7 +42,10 @@ describe('evidence opens INSIDE Groundwork, never as a download', () => {
   });
 
   it('and nothing in the evidence path opens a tab any more', () => {
-    expect(list).not.toMatch(/window\.open/);
+    // The thumbnails and the viewer are the whole path now; StageEvidenceList is gone.
+    const thumbs = read('src/components/project/EvidenceThumbs.tsx');
+    expect(thumbs).not.toMatch(/window\.open/);
+    expect(read('src/components/project/EvidenceLightbox.tsx')).not.toMatch(/window\.open/);
   });
 
   it('the easy ways out are closed', () => {
@@ -91,30 +93,53 @@ describe('the viewer behaves like the photo viewers people already use', () => {
   });
 });
 
-describe('evidence appears in the Documents view too', () => {
-  it('for the client', () => {
-    expect(client).toMatch(/<StageEvidenceList projectId=\{project\.id\} \/>/);
+describe('the Documents view is documents only', () => {
+  const docsPage = read('src/app/routes/documents.tsx');
+
+  it('evidence is not rebuilt in the project Documents tab', () => {
+    /**
+     * It was, briefly, and that was the redundancy: a second copy of the stage tracker
+     * sitting under Documents. Evidence belongs with the stage it is about, where it
+     * means something; a person looking for a permit should not scroll past forty
+     * photographs of a slab.
+     */
+    expect(client).not.toMatch(/StageEvidenceList/);
+    expect(work).not.toMatch(/StageEvidenceList/);
   });
 
-  it('and for the contractor who uploaded it', () => {
-    expect(work).toMatch(/<StageEvidenceList projectId=\{project\.id\} \/>/);
+  it('and the central page has no Evidence tab', () => {
+    expect(docsPage).toMatch(/type Tab = 'documents' \| 'certificates';/);
+    expect(docsPage).not.toMatch(/tab === 'evidence'/);
   });
 
-  it('as its own section, NOT merged into the document categories', () => {
-    // Documents and evidence are different kinds of thing: one is filed, the other is
-    // what was photographed at a stage and carries a verification meaning.
-    expect(client).toMatch(/project\.evidence\.title/);
-    expect(list).toMatch(/f\.bucket === 'evidence'/);
+  it('it lists real documents instead', () => {
+    expect(docsPage).toMatch(/from\('project_documents'\)/);
+  });
+});
+
+describe('documents can be found without scrolling', () => {
+  const docsPage = read('src/app/routes/documents.tsx');
+
+  it('search matches the name, the project and the category', () => {
+    // "The Kribi permit" and "everything on Franka Home" are the two real questions.
+    expect(docsPage).toMatch(/d\.file_name\.toLowerCase\(\)\.includes\(q\)/);
+    expect(docsPage).toMatch(/projectName\(d\.project_id\)\.toLowerCase\(\)\.includes\(q\)/);
+    expect(docsPage).toMatch(/String\(d\.category \?\? ''\)\.toLowerCase\(\)\.includes\(q\)/);
   });
 
-  it('grouped by stage, which is the question people actually ask', () => {
-    expect(list).toMatch(/byStage/);
-    expect(list).toMatch(/project\.evidence\.stageN/);
+  it('and there is a project filter once there is more than one build', () => {
+    expect(docsPage).toMatch(/projects\.length > 1 && \(/);
+    expect(docsPage).toMatch(/documents\.allProjects/);
   });
 
-  it('and says so when there is none, rather than vanishing', () => {
-    // An absent heading and "none yet" look identical otherwise.
-    expect(list).toMatch(/project\.evidence\.none/);
+  it('"nothing matches" and "nothing here" are different messages', () => {
+    // Showing the wrong one sends somebody looking for a bug that is not there.
+    expect(docsPage).toMatch(/docs\.length === 0 \? t\('documents\.noDocuments'\) : t\('documents\.noMatches'\)/);
+  });
+
+  it('and a document opens in the viewer, not as a download', () => {
+    expect(docsPage).toMatch(/<EvidenceLightbox/);
+    expect(docsPage).not.toMatch(/window\.open/);
   });
 });
 

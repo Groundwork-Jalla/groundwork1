@@ -15,7 +15,6 @@ import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
-import { StageEvidenceList } from '@/components/project/StageEvidenceList';
 
 // =========================================================
 // One assigned project, from the contractor's side.
@@ -293,15 +292,6 @@ export default function ContractorProjectDetail() {
             </ul>
           )}
 
-          {/* The contractor's own submissions, which they could not find here either —
-              evidence goes to a different table and bucket from documents. Separate
-              section, because the two are different kinds of thing. */}
-          <div className="mt-6 border-t border-brand-border-grey pt-5 dark:border-[#2c2c2c]">
-            <h3 className="mb-2 text-sm font-semibold text-brand-near-black dark:text-white">
-              {t('project.evidence.title')}
-            </h3>
-            <StageEvidenceList projectId={project.id} />
-          </div>
         </section>
       )}
 
