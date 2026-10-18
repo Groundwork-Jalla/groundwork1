@@ -196,3 +196,29 @@ export async function listPaymentEvents(paymentIds: string[]): Promise<{ rows: P
     })),
   };
 }
+
+/**
+ * An administrator records that a stage has been paid for, and it opens.
+ *
+ * Groundwork has no payment gateway: the client pays in cash, we never see the transfer,
+ * and this is the bookkeeping that says it happened. 132 confirms every tranche still
+ * expected on the stage, sets `payment_status = 'paid'`, and opens the stage if it was
+ * locked — one act, because an admin who marks a stage paid means "let the work start",
+ * not "update a column".
+ *
+ * Returns what actually changed, so the caller can say whether the stage opened rather
+ * than claiming it did.
+ */
+export async function markStagePaid(
+  stageId: string, note?: string,
+): Promise<{ tranchesConfirmed: number; opened: boolean }> {
+  const { data, error } = await supabase.rpc('mark_stage_paid', {
+    p_stage: stageId, p_note: note ?? null,
+  });
+  if (error) throw error;
+  const r = (data ?? {}) as Record<string, unknown>;
+  return {
+    tranchesConfirmed: typeof r.tranches_confirmed === 'number' ? r.tranches_confirmed : 0,
+    opened: r.opened === true,
+  };
+}

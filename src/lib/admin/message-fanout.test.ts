@@ -113,12 +113,16 @@ describe('an internal note never leaves Groundwork', () => {
 });
 
 describe('it cannot loop, for two independent reasons', () => {
-  it('only the project\'s own Groundwork thread is carried', () => {
+  it('a message with no project is not carried', () => {
     // What the fan-out SENDS lands on a `whatsapp` conversation, which belongs to a person
     // and carries no project (091) — outside this trigger's reach. So a provider echo
     // cannot re-enter the fan-out.
-    expect(m126).toMatch(/NEW\.project_id IS NULL OR COALESCE\(NEW\.channel, 'jalla'\) <> 'jalla'/);
-    expect(handler).toMatch(/!message\.project_id \|\| \(message\.channel \?\? 'jalla'\) !== 'jalla'/);
+    // 126 closed the loop by channel scope; 129 replaced that with the ledger's unique
+    // index plus 128's echo check, because the WhatsApp button has to produce a
+    // `whatsapp` message that IS carried. What both still require is a project.
+    const m129 = read('supabase/migrations/129_choose_the_channel.sql');
+    expect(m129).toMatch(/IF NEW\.project_id IS NULL THEN RETURN NEW; END IF;/);
+    expect(handler).toMatch(/if \(!message\.project_id\) \{/);
   });
 
   it('and the ledger is unique per message, person and channel', () => {

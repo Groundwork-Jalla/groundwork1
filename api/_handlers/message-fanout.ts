@@ -111,7 +111,20 @@ export async function handler(req: any, res: any): Promise<void> {
     res.status(200).json({ ok: false, reason: 'internal_never_leaves' });
     return;
   }
-  if (!message.project_id || (message.channel ?? 'jalla') !== 'jalla') {
+  /**
+   * A project is required; the channel is not.
+   *
+   * This used to also demand `channel === 'jalla'`, which was right when 126 only fired
+   * on the project's Groundwork thread. 129 widened the trigger to any channel so that
+   * pressing the WhatsApp button actually sends over WhatsApp — and this guard was left
+   * behind, so every message from that button was refused here with
+   * `not_a_project_thread` while the trigger happily called. The SQL and this file
+   * disagreed, and the quieter of the two won.
+   *
+   * What still must hold: a message with no project has no other participants to carry
+   * it to, and an internal note never leaves Groundwork (checked above).
+   */
+  if (!message.project_id) {
     res.status(200).json({ ok: false, reason: 'not_a_project_thread' });
     return;
   }

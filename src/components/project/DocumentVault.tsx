@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Trash2, FolderOpen, Upload, ChevronDown } from 'lucide-react';
+import { ChevronDown, Download, FolderOpen, Search, Trash2, Upload } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useFormat, useT } from '@/lib/i18n';
@@ -354,6 +354,15 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
 
   // Category state
   const [filterCategory, setFilterCategory] = useState<DocumentCategory | 'all'>('all');
+  /**
+   * Narrowing by name, beside the category chips.
+   *
+   * The chips alone answer "show me the permits"; they do not answer "where is the Kribi
+   * soil report", which is the question once a project has thirty files. Matched against
+   * the file name and the category, so typing "receipt" works from the box as well as
+   * from the chip.
+   */
+  const [query, setQuery] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null); // awaiting category pick
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -468,9 +477,13 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
   }, [pendingDelete]);
 
   // ---- derived: filtered + grouped docs ----
-  const filteredDocs = filterCategory === 'all'
+  const q = query.trim().toLowerCase();
+  const matches = (d: ProjectDocumentRow) =>
+    !q || d.file_name.toLowerCase().includes(q) || String(d.category ?? '').toLowerCase().includes(q);
+  const byCategory = filterCategory === 'all'
     ? docs
     : docs.filter(d => (d.category ?? 'other') === filterCategory);
+  const filteredDocs = byCategory.filter(matches);
 
   const grouped = groupByCategory(filteredDocs);
   const categoriesWithDocs = CATEGORY_ORDER.filter(c => grouped.has(c));
@@ -535,8 +548,20 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
         </Button>
       </div>
 
-      {/* Category filter chips */}
-      {docs.length > 0 && (
+      {/* Find a document: by name, or by category */}
+      {docs.length > 0 && (<>
+        <div className="relative mb-3">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" />
+          <input
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={t('project.documents.searchPlaceholder')}
+            aria-label={t('project.documents.searchPlaceholder')}
+            className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+          />
+        </div>
+
         <div className="flex gap-1.5 flex-wrap mb-4">
           <button
             type="button"
@@ -566,7 +591,12 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
             </button>
           ))}
         </div>
-      )}
+        {/* "Nothing matches" and "nothing here" are different answers; showing the
+            wrong one sends somebody looking for a document that was never uploaded. */}
+        {filteredDocs.length === 0 && (
+          <p className="mb-4 text-xs text-brand-mid-grey">{t('project.documents.noMatches')}</p>
+        )}
+      </>)}
 
       {/* Error banners */}
       <AnimatePresence mode="popLayout">

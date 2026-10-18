@@ -24,10 +24,12 @@ import type { StageView } from './workspace';
 // =========================================================
 
 export type StageActionKind =
-  | 'request_verification' | 'record_verification' | 'approve' | 'rework' | 'confirm_funding' | 'authorise_release';
+  | 'request_verification' | 'record_verification' | 'approve' | 'rework'
+  | 'mark_paid' | 'confirm_funding' | 'authorise_release';
 
 export const STAGE_ACTIONS: readonly StageActionKind[] =
-  ['request_verification', 'record_verification', 'approve', 'rework', 'confirm_funding', 'authorise_release'];
+  ['request_verification', 'record_verification', 'approve', 'rework',
+   'mark_paid', 'confirm_funding', 'authorise_release'];
 
 export interface StageActionContext {
   /** Verifiers currently assigned to the project (086, status active). */
@@ -93,6 +95,23 @@ export function stageActions(view: StageView, ctx: StageActionContext): StageAct
   // ── Rework: any stage under review can be sent back. 089's request_rework() re-checks.
   const rework: StageAction = pendingReview ? on('rework') : off('rework');
 
+  // ── Mark paid: a LOCKED stage that is waiting to be paid for before work can start.
+  //
+  // Distinct from `confirm_funding`, which settles one tranche on a stage already
+  // approved and in progress. This is the other end: Groundwork has no payment gateway,
+  // the client pays in cash, and an administrator saying so is what opens the stage
+  // (132 `mark_stage_paid`). Without it the stage stays shut for ever — 162 of them do
+  // right now.
+  //
+  // Offered only where it would change something: a locked stage with money still
+  // expected on it. A locked stage with nothing owed opens on its own when the previous
+  // one completes, so a button there would be a no-op dressed as an action.
+  const markPaid: StageAction =
+    stage.status !== 'locked' ? off('mark_paid')
+    : !ctx.ledgerAvailable ? held('mark_paid', 'admin.ledger.unavailable')
+    : tranche?.state === 'expected' ? on('mark_paid')
+    : off('mark_paid');
+
   // ── Confirm received: approved and waiting on money, with an expected tranche to confirm.
   const awaitingFunding = state === 'approved' && lifecycle.blockers.includes('awaiting_funding');
   const confirm: StageAction =
@@ -121,5 +140,5 @@ export function stageActions(view: StageView, ctx: StageActionContext): StageAct
     : state === 'approved' && required && v?.decision !== 'verified' ? held('authorise_release', 'admin.ledger.refusal.not_verified')
     : on('authorise_release');
 
-  return [request, record, approve, rework, confirm, authorise];
+  return [request, record, approve, rework, markPaid, confirm, authorise];
 }

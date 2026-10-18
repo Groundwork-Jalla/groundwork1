@@ -24,6 +24,7 @@ import { formatUSDFull } from '@/lib/budget';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { markStagePaid } from '@/lib/supabase/payments';
 
 // =========================================================
 // Stages tab — the operational control surface (05 §6, §7).
@@ -73,6 +74,7 @@ const ACTION_LABEL: Record<StageActionKind, TKey> = {
   record_verification:  'admin.verification.recordDecision',
   approve:              'admin.workspace.stages.approve',
   rework:               'admin.requestChanges',
+  mark_paid:            'admin.ledger.markPaid',
   confirm_funding:      'admin.ledger.confirmFunding',
   authorise_release:    'admin.ledger.authorise',
 };
@@ -120,6 +122,9 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
   const [showRecord, setShowRecord]   = useState(false);
   const [showApprove, setShowApprove] = useState(false);
   const [showRework, setShowRework]   = useState(false);
+  const [showMarkPaid, setShowMarkPaid] = useState(false);
+  /** Receipts the client has filed on this project (017 category). */
+  const receiptCount = ws.documents.filter(d => d.category === 'receipt').length;
   const [ledger, setLedger]           = useState<LedgerModalState>(null);
 
   /** Run one existing act; on success re-read the model. A refusal is shown as phrased. */
@@ -162,6 +167,9 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
       case 'record_verification':  setShowRecord(true); break;
       case 'approve':              setShowApprove(true); break;
       case 'rework':               setShowRework(true); break;
+      // Confirmed first: it settles every outstanding tranche on the stage and lets
+      // the work start, which is not something to do on a stray click.
+      case 'mark_paid':            setShowMarkPaid(true); break;
       case 'confirm_funding':      if (view.tranche) setLedger({ kind: 'confirm', payment: view.tranche }); break;
       case 'authorise_release':    setLedger({ kind: 'authorise', stage: stageRef }); break;
     }
@@ -384,6 +392,29 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
         loading={busy === 'approve'}
         onConfirm={() => { if (user) run('approve', () => adminApproveStage(ws.project.id, view.stage.id, view.stage.stage_number, user.id)).then(() => setShowApprove(false)); }}
         onCancel={() => setShowApprove(false)}
+      />
+      {/* Marking a stage paid settles every tranche still expected on it and opens the
+          stage for work — the money is real and the consequence is immediate, so it is
+          confirmed rather than done on a click. */}
+      <ConfirmModal
+        open={showMarkPaid}
+        title={t('admin.ledger.markPaidTitle')}
+        description={
+          t('admin.ledger.markPaidBody', { n: view.stage.stage_number, project: ws.project.name })
+          // Whether the client sent proof, said at the moment of deciding rather than
+          // left in another tab. Groundwork never sees the transfer, so a receipt is the
+          // only evidence there is — and "none on file" is the answer that should give
+          // an admin pause.
+          + ' ' + (receiptCount > 0
+              ? t('admin.ledger.markPaidReceipts', { count: receiptCount })
+              : t('admin.ledger.markPaidNoReceipt'))
+        }
+        confirmLabel={t('admin.ledger.markPaid')}
+        loading={busy === 'mark_paid'}
+        onConfirm={() => {
+          void run('mark_paid', () => markStagePaid(view.stage.id)).then(() => setShowMarkPaid(false));
+        }}
+        onCancel={() => setShowMarkPaid(false)}
       />
       <ReworkModal
         open={showRework}

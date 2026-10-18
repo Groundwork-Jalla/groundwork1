@@ -1526,6 +1526,11 @@ export const fr: Mirror<EnDict> = {
         provider:         'confirm\u00e9 par le prestataire \u00b7 {when}',
       },
       confirmFunding:   'Confirmer la r\u00e9ception',
+      markPaid: 'Marquer payée',
+      markPaidTitle: 'Marquer cette étape comme payée ?',
+      markPaidBody: 'Enregistre que le client a payé l’étape {n} de {project}. Tout montant encore attendu sur cette étape est confirmé reçu, et l’étape s’ouvre pour que les travaux commencent. Groundwork ne déplace pas d’argent — ceci enregistre que le paiement a eu lieu.',
+      markPaidReceipts: '{count} reçu(s) de paiement sont enregistrés pour ce chantier — vérifiez l’onglet Documents avant de confirmer.',
+      markPaidNoReceipt: 'Aucun reçu de paiement n’a été enregistré pour ce chantier.',
       confirmTitle:     'Confirmer la r\u00e9ception des fonds',
       confirmBody:      'Vous enregistrez la r\u00e9ception de {amount} pour l\u2019\u00e9tape {n} de {project}. Il s\u2019agit d\u2019une confirmation par le personnel, en votre nom, jusqu\u2019\u00e0 la connexion du prestataire.',
       note:             'R\u00e9f\u00e9rence ou note (facultatif)',
@@ -5329,6 +5334,8 @@ export const fr: Mirror<EnDict> = {
 
     // ── Onglet Documents ────────────────────────────────────
     documents: {
+      searchPlaceholder: 'Rechercher dans les documents du chantier…',
+      noMatches: 'Aucun document ne correspond.',
       noneOfCategory: "Aucun document « {category} »",
       catPlan:      'Plans et dessins',
       catPermit:    'Permis et autorisations',
