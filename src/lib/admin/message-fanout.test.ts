@@ -135,8 +135,9 @@ describe('a message is never sent twice, and never sent unaccounted for', () => 
     // This is what makes the unique index an idempotency guard rather than a report: a
     // second caller finds the row taken while the first is still in flight.
     const claim = handler.indexOf("from('message_deliveries').insert");
-    // The CALL, not the import at the top of the file.
-    const send  = handler.indexOf('await sendWhatsAppMessage(');
+    // The CALL, not the import at the top of the file. `sendWhatsApp` picks the
+    // transport itself — Meta where configured, GoHighLevel otherwise.
+    const send  = handler.indexOf('await sendWhatsApp(');
     expect(claim).toBeGreaterThan(-1);
     expect(send).toBeGreaterThan(claim);
     expect(handler).toMatch(/status: 'pending'/);

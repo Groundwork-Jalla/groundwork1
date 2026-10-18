@@ -1,7 +1,7 @@
-import { ghlConfig, sendWhatsAppMessage, updateContactPhone } from '../ghl/_client.js';
+import { ghlConfig, updateContactPhone } from '../ghl/_client.js';
 import { normalisePhone } from '../ghl/_phone.js';
 import { isDeliverablePhone } from '../../src/lib/admin/whatsapp-shortcut.js';
-import { accessToken } from '../ghl/_oauth.js';
+import { sendWhatsApp } from '../_lib/whatsapp-send.js';
 import { resolveOrEstablishWhatsApp } from '../_lib/whatsapp-thread.js';
 import { siteLink } from '../../src/lib/site-url.js';
 import { composeWhatsAppBody } from '../../src/lib/admin/whatsapp-body.js';
@@ -11,7 +11,7 @@ import { composeWhatsAppBody } from '../../src/lib/admin/whatsapp-body.js';
  *
  * ── The gap this closes ──────────────────────────────────────────────────────────────
  * Reported from testing: a client has a real WhatsApp number, their contractor writes to
- * them in Groundwork, and the phone stays silent. `sendWhatsAppMessage` was reachable
+ * them in Groundwork, and the phone stays silent. The one send call was reachable
  * only from the admin Inbox, on a `whatsapp` thread, for an `outbound` message — and a
  * contractor and a client on the project's own thread are none of those three.
  *
@@ -145,8 +145,6 @@ export async function handler(req: any, res: any): Promise<void> {
   const role = senderRole ? String(senderRole.role ?? 'staff') : 'staff';
 
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
-  const cfg = await ghlConfig();
-  const bearerToken = cfg ? ((await accessToken()) ?? undefined) : undefined;
 
   const results: { recipient: string; status: string; reason?: string }[] = [];
 
@@ -174,19 +172,15 @@ export async function handler(req: any, res: any): Promise<void> {
       results.push({ recipient: person.userId, status, ...(reason ? { reason } : {}) });
     };
 
-    if (!cfg) { await finish('skipped', 'not_configured'); continue; }
-
     const thread = await resolveOrEstablishWhatsApp(svc, person.userId);
-    if (!thread.ok) {
-      // `no_phone` is the ordinary case, not a fault: plenty of people have not given us
-      // one. It is recorded so "why did they not get it?" has an answer.
-      await finish('skipped', thread.reason);
-      continue;
-    }
-    if (!thread.contactId) { await finish('skipped', 'no_contact'); continue; }
+    // `no_phone` is the ordinary case, not a fault: plenty of people have not given us
+    // one. It is recorded so "why did they not get it?" has an answer.
+    if (!thread.ok) { await finish('skipped', thread.reason); continue; }
 
     const { data: profile } = await svc.from('profiles')
-      .select('preferred_lang').eq('id', person.userId).maybeSingle();
+      .select('preferred_lang, phone, country').eq('id', person.userId).maybeSingle();
+    const phone = normalisePhone((profile?.phone as string | null) ?? null,
+                                 (profile?.country as string | null) ?? null);
 
     const body = composeWhatsAppBody({
       senderName: String(message.sender_name ?? ''),
@@ -201,48 +195,39 @@ export async function handler(req: any, res: any): Promise<void> {
       link: siteLink(`projects/${message.project_id}?tab=messages`),
     });
 
-    let sent = await sendWhatsAppMessage(cfg,
-      { contactId: thread.contactId, conversationId: thread.ghlConversationId, body }, bearerToken);
+    // The transport decides itself: Meta where it is configured (it sends to the NUMBER),
+    // GoHighLevel otherwise (it sends to a contact record).
+    let sent = await sendWhatsApp(svc, {
+      phone: isDeliverablePhone(phone) ? phone : null,
+      contactId: thread.contactId,
+      conversationId: thread.ghlConversationId,
+    }, body);
 
     /**
-     * The provider has no number for this contact — but we do.
+     * GoHighLevel has no number for this contact — but we do.
      *
-     * `resolveOrEstablishWhatsApp` only creates a contact when there is none; a contact
-     * made earlier by some other path (signup, a CRM sync) can exist with no phone on
-     * it, and every WhatsApp send to that person then fails with
-     * CONVERSATIONS_MSG_NO_PHONE while `profiles.phone` sits there holding the number.
-     * Found exactly that way: Groundwork had +237… and the contact had nothing.
-     *
-     * So: push the number we hold onto the contact and try once more. Only on this
-     * failure, so the ordinary send stays one call, and only once, so a contact the
-     * provider keeps refusing does not loop.
+     * Only reachable on the GHL path; Meta never needs a contact. A contact made earlier
+     * by signup or a CRM sync can exist with no phone, and every send to that person then
+     * fails with CONVERSATIONS_MSG_NO_PHONE while `profiles.phone` holds the number.
+     * Repaired BY ID, on the contact actually being sent to — an upsert matches on email
+     * and would fix some other record while this one kept failing.
      */
-    if (!sent.ok && /NO_PHONE|Missing phone/i.test(String(sent.error ?? ''))) {
-      const { data: prof } = await svc.from('profiles')
-        .select('phone, country').eq('id', person.userId).maybeSingle();
-      const phone = normalisePhone((prof?.phone as string | null) ?? null,
-                                   (prof?.country as string | null) ?? null);
-      if (isDeliverablePhone(phone)) {
-        // BY ID, on the contact we are actually sending to. An upsert matches on EMAIL
-        // and would repair — or create — some other record while the send kept failing
-        // against this one. `updateContactEmail` in the same module warns about exactly
-        // that, and a first attempt at this fix made the mistake anyway.
-        const fixed = await updateContactPhone(cfg, thread.contactId, phone as string);
-        if (fixed.ok) {
-          sent = await sendWhatsAppMessage(cfg,
-            { contactId: thread.contactId, conversationId: thread.ghlConversationId, body }, bearerToken);
-        } else {
-          console.error('[message-fanout] could not set the phone on', thread.contactId, fixed.error);
-        }
+    if (!sent.ok && sent.provider === 'ghl'
+        && /NO_PHONE|Missing phone/i.test(sent.error) && isDeliverablePhone(phone) && thread.contactId) {
+      const cfg = await ghlConfig();
+      if (cfg && (await updateContactPhone(cfg, thread.contactId, phone as string)).ok) {
+        sent = await sendWhatsApp(svc, {
+          phone: null, contactId: thread.contactId, conversationId: thread.ghlConversationId,
+        }, body);
       }
     }
 
     if (!sent.ok) {
-      console.error('[message-fanout] provider refused:', sent.error);
-      await finish('failed', String(sent.error ?? 'provider_failed'));
+      console.error('[message-fanout]', sent.provider, 'refused:', sent.error);
+      await finish('failed', `${sent.provider}: ${sent.error}`.slice(0, 400));
       continue;
     }
-    await finish('sent', undefined, sent.data?.messageId);
+    await finish('sent', sent.provider, sent.providerMessageId ?? undefined);
   }
 
   res.status(200).json({ ok: true, messageId, carried: results });
