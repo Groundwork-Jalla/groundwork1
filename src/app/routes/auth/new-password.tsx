@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
+import { PasswordField } from '@/components/ui/PasswordField';
 
 /**
  * Set a new password, reached from a reset email.
@@ -281,8 +282,8 @@ export default function NewPassword() {
         )}
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('auth.newPassword.password')}</Label>
-          <Input
-            id="password" type="password" autoComplete="new-password"
+          <PasswordField
+            id="password" autoComplete="new-password"
             value={password} onChange={(e) => setPassword(e.target.value)} required
           />
           <PasswordStrength password={password} context={identity} />
@@ -290,8 +291,8 @@ export default function NewPassword() {
 
         <div className="space-y-1.5">
           <Label htmlFor="confirm">{t('auth.newPassword.confirm')}</Label>
-          <Input
-            id="confirm" type="password" autoComplete="new-password"
+          <PasswordField
+            id="confirm" autoComplete="new-password"
             value={confirm} onChange={(e) => setConfirm(e.target.value)} required
           />
         </div>

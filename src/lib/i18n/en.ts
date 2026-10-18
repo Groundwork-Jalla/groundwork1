@@ -58,6 +58,10 @@ export const en = {
     downloadPdf: 'Download PDF',
     pdfGenerating: 'PDF generating…',
     noCertificates: 'No certificates yet',
+    certsEarnBody: 'Certificates are issued automatically when a stage is approved and completed. Progress through your build to earn them.',
+    certsSelfVerifyTitle: 'Your plan verifies its own stages',
+    certsSelfVerifyBody: 'An approval certificate records a check by an independent verifier. On a self-verifying plan you approve your own stages, so none is issued. Jalla Verify adds an independent engineer and the certificate that comes with it.',
+    certsUpgradeCta: 'See Jalla Verify',
     noEvidence: 'No evidence uploaded yet',
     startBuild: 'Start a build',
     clickRowHint: 'Click a row to view files in context',
@@ -4265,6 +4269,8 @@ export const en = {
 
   // ── Auth ──────────────────────────────────────────────────
   auth: {
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     // Floor-plan illustration on the auth screens. Rendered as SVG <text>, so a
     // francophone visitor otherwise sees an English blueprint behind the login form.
     plan: {

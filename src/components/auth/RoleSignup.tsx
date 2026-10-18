@@ -5,6 +5,7 @@ import { Loader2, Mail } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordField } from '@/components/ui/PasswordField';
 import { Label } from '@/components/ui/label';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { isPasswordAcceptable } from '@/lib/auth/password-policy';
@@ -374,14 +375,14 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('auth.signup.password')}</Label>
-          <Input id="password" type="password" autoComplete="new-password" value={password}
+          <PasswordField id="password" autoComplete="new-password" value={password}
             onChange={e => setPassword(e.target.value)} />
           <PasswordStrength password={password} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">{t('auth.signup.confirmPassword')}</Label>
-          <Input id="confirmPassword" type="password" autoComplete="new-password" value={confirmPassword}
+          <PasswordField id="confirmPassword" autoComplete="new-password" value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)} />
         </div>
 

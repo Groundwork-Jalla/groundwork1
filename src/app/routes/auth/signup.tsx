@@ -15,6 +15,7 @@ import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH } from "@/lib/auth/signup-account";
+import { PasswordField } from '@/components/ui/PasswordField';
 
 export default function Signup() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -288,9 +289,8 @@ export default function Signup() {
 
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('auth.signup.password')}</Label>
-          <Input
+          <PasswordField
             id="password"
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -301,9 +301,8 @@ export default function Signup() {
 
         <div className="space-y-1.5">
           <Label htmlFor="confirmPassword">{t('auth.signup.confirmPassword')}</Label>
-          <Input
+          <PasswordField
             id="confirmPassword"
-            type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

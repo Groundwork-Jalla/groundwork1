@@ -13,6 +13,7 @@ import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { useT } from "@/lib/i18n";
 import { signupHref } from "@/lib/auth/post-auth-path";
+import { PasswordField } from '@/components/ui/PasswordField';
 
 export default function Login() {
   const navigate        = useNavigate();
@@ -157,9 +158,8 @@ export default function Login() {
               {t('auth.login.forgot')}
             </Link>
           </div>
-          <Input
+          <PasswordField
             id="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

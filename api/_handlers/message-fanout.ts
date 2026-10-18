@@ -1,4 +1,6 @@
-import { ghlConfig, sendWhatsAppMessage } from '../ghl/_client.js';
+import { ghlConfig, sendWhatsAppMessage, upsertContact } from '../ghl/_client.js';
+import { normalisePhone } from '../ghl/_phone.js';
+import { isDeliverablePhone } from '../../src/lib/admin/whatsapp-shortcut.js';
 import { accessToken } from '../ghl/_oauth.js';
 import { resolveOrEstablishWhatsApp } from '../_lib/whatsapp-thread.js';
 import { siteLink } from '../../src/lib/site-url.js';
@@ -199,8 +201,41 @@ export async function handler(req: any, res: any): Promise<void> {
       link: siteLink(`projects/${message.project_id}?tab=messages`),
     });
 
-    const sent = await sendWhatsAppMessage(cfg,
+    let sent = await sendWhatsAppMessage(cfg,
       { contactId: thread.contactId, conversationId: thread.ghlConversationId, body }, bearerToken);
+
+    /**
+     * The provider has no number for this contact — but we do.
+     *
+     * `resolveOrEstablishWhatsApp` only creates a contact when there is none; a contact
+     * made earlier by some other path (signup, a CRM sync) can exist with no phone on
+     * it, and every WhatsApp send to that person then fails with
+     * CONVERSATIONS_MSG_NO_PHONE while `profiles.phone` sits there holding the number.
+     * Found exactly that way: Groundwork had +237… and the contact had nothing.
+     *
+     * So: push the number we hold onto the contact and try once more. Only on this
+     * failure, so the ordinary send stays one call, and only once, so a contact the
+     * provider keeps refusing does not loop.
+     */
+    if (!sent.ok && /NO_PHONE|Missing phone/i.test(String(sent.error ?? ''))) {
+      const { data: prof } = await svc.from('profiles')
+        .select('email, full_name, phone, country').eq('id', person.userId).maybeSingle();
+      const phone = normalisePhone((prof?.phone as string | null) ?? null,
+                                   (prof?.country as string | null) ?? null);
+      if (isDeliverablePhone(phone)) {
+        const fixed = await upsertContact(cfg, {
+          email: (prof?.email as string | null) ?? undefined,
+          name: (prof?.full_name as string | null) ?? undefined,
+          phone: phone ?? undefined,
+          country: (prof?.country as string | null) ?? undefined,
+          source: 'groundwork_message_fanout',
+        } as never);
+        if (fixed.ok) {
+          sent = await sendWhatsAppMessage(cfg,
+            { contactId: thread.contactId, conversationId: thread.ghlConversationId, body }, bearerToken);
+        }
+      }
+    }
 
     if (!sent.ok) {
       console.error('[message-fanout] provider refused:', sent.error);

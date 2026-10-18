@@ -224,6 +224,19 @@ export default function DocumentsPage() {
   const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? '';
 
   /**
+   * Nobody on a self-verifying plan will ever see a certificate here.
+   *
+   * An approval certificate records an INDEPENDENT check. On self_verify and starter the
+   * client approves their own stages, so there is nothing independent to certify and no
+   * certificate is issued — which, with the old empty state, read as "yours haven't
+   * arrived yet". It is a plan boundary, not a delay, and saying so is also where Jalla
+   * Verify is worth mentioning.
+   */
+  // `starter` is self-verifying too in SQL (086), but it is not in the app's
+  // `ProjectTier` union, so there is nothing here that could hold it.
+  const allSelfVerify = projects.length > 0 && projects.every(p => p.tier === 'self_verify');
+
+  /**
    * What the filters leave.
    *
    * Name and project, which are the two ways people actually look: "the Kribi permit"
@@ -301,12 +314,21 @@ export default function DocumentsPage() {
                 <Award className="size-7 text-brand-border-grey" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-brand-near-black mb-1">{t('documents.noCertificates')}</p>
+                <p className="text-sm font-semibold text-brand-near-black mb-1">
+                  {t(allSelfVerify ? 'documents.certsSelfVerifyTitle' : 'documents.noCertificates')}
+                </p>
                 <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-                  Certificates are issued automatically when a stage is approved and completed.
-                  Progress through your build to earn them.
+                  {t(allSelfVerify ? 'documents.certsSelfVerifyBody' : 'documents.certsEarnBody')}
                 </p>
               </div>
+              {allSelfVerify && (
+                <Link
+                  to="/upgrade"
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+                >
+                  {t('documents.certsUpgradeCta')}
+                </Link>
+              )}
               {projects.length === 0 && (
                 <Link
                   to="/projects/new"

@@ -72,6 +72,10 @@ export const fr: Mirror<EnDict> = {
     downloadPdf: 'Télécharger le PDF',
     pdfGenerating: 'Génération du PDF…',
     noCertificates: 'Aucun certificat pour le moment',
+    certsEarnBody: 'Les certificats sont délivrés automatiquement lorsqu’une étape est approuvée et terminée. Avancez dans votre chantier pour les obtenir.',
+    certsSelfVerifyTitle: 'Votre formule vérifie ses propres étapes',
+    certsSelfVerifyBody: 'Un certificat d’approbation atteste d’un contrôle par un vérificateur indépendant. En auto-vérification, vous approuvez vos propres étapes : aucun certificat n’est délivré. Jalla Verify ajoute un ingénieur indépendant et le certificat correspondant.',
+    certsUpgradeCta: 'Découvrir Jalla Verify',
     noEvidence: 'Aucune preuve déposée',
     startBuild: 'Démarrer un chantier',
     clickRowHint: 'Cliquez sur une ligne pour voir les fichiers en contexte',
@@ -4199,6 +4203,8 @@ export const fr: Mirror<EnDict> = {
 
   // ── Authentification ──────────────────────────────────────
   auth: {
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
     // Étiquettes du plan illustratif des écrans de connexion (SVG <text>).
     plan: {
       bedroom: 'CHAMBRE',
