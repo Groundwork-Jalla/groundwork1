@@ -99,7 +99,10 @@ describe('the fan-out and its trigger agree on what is carried', () => {
     // Found live: Groundwork held +237… and the CRM contact had nothing, so every send
     // failed with CONVERSATIONS_MSG_NO_PHONE.
     expect(handler).toMatch(/NO_PHONE\|Missing phone/);
-    expect(handler).toMatch(/upsertContact\(cfg, \{/);
-    expect(handler).toMatch(/source: 'groundwork_message_fanout'/);
+    // BY ID. An upsert matches on email and would repair a different record while the
+    // send kept failing against this one — the module's own updateContactEmail warns
+    // about precisely that.
+    expect(handler).toMatch(/updateContactPhone\(cfg, thread\.contactId, phone as string\)/);
+    expect(handler).not.toMatch(/upsertContact/);
   });
 });

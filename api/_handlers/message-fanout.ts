@@ -1,4 +1,4 @@
-import { ghlConfig, sendWhatsAppMessage, upsertContact } from '../ghl/_client.js';
+import { ghlConfig, sendWhatsAppMessage, updateContactPhone } from '../ghl/_client.js';
 import { normalisePhone } from '../ghl/_phone.js';
 import { isDeliverablePhone } from '../../src/lib/admin/whatsapp-shortcut.js';
 import { accessToken } from '../ghl/_oauth.js';
@@ -219,20 +219,20 @@ export async function handler(req: any, res: any): Promise<void> {
      */
     if (!sent.ok && /NO_PHONE|Missing phone/i.test(String(sent.error ?? ''))) {
       const { data: prof } = await svc.from('profiles')
-        .select('email, full_name, phone, country').eq('id', person.userId).maybeSingle();
+        .select('phone, country').eq('id', person.userId).maybeSingle();
       const phone = normalisePhone((prof?.phone as string | null) ?? null,
                                    (prof?.country as string | null) ?? null);
       if (isDeliverablePhone(phone)) {
-        const fixed = await upsertContact(cfg, {
-          email: (prof?.email as string | null) ?? undefined,
-          name: (prof?.full_name as string | null) ?? undefined,
-          phone: phone ?? undefined,
-          country: (prof?.country as string | null) ?? undefined,
-          source: 'groundwork_message_fanout',
-        } as never);
+        // BY ID, on the contact we are actually sending to. An upsert matches on EMAIL
+        // and would repair — or create — some other record while the send kept failing
+        // against this one. `updateContactEmail` in the same module warns about exactly
+        // that, and a first attempt at this fix made the mistake anyway.
+        const fixed = await updateContactPhone(cfg, thread.contactId, phone as string);
         if (fixed.ok) {
           sent = await sendWhatsAppMessage(cfg,
             { contactId: thread.contactId, conversationId: thread.ghlConversationId, body }, bearerToken);
+        } else {
+          console.error('[message-fanout] could not set the phone on', thread.contactId, fixed.error);
         }
       }
     }
