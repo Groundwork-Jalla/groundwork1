@@ -202,7 +202,7 @@ export default function Step10PlanSelection() {
                   one choice. `aria-hidden` because the card's own `aria-pressed` already
                   states selection; this is purely the visual affordance that was missing.
                   Without it the cards read as a static pricing table and nothing invites
-                  the click — which is exactly what /pricing looks like, and that page has
+                  the click — which is what a static plan table looks like, and that has
                   a CTA at the foot of every card. This matches it.
 
                   The feature list above carries `flex-1`, so this sits at the foot of the

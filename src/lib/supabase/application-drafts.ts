@@ -159,34 +159,29 @@ export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Pro
 
 async function writeDraft(id: string, snap: DraftSnapshot): Promise<void> {
   /**
-   * The public form sends exactly the columns it always sent.
+   * Through a function, not a table upsert (143).
    *
-   * `source` and `user_id` arrive with 138. Adding them to every write would mean that
-   * between deploying this code and running that migration, PostgREST answered 42703 to
-   * each save and the live capture of abandoned PUBLIC applications stopped — a working
-   * feature broken by a change meant to extend it. The column defaults to 'public'
-   * anyway, so saying so adds nothing.
+   * `.upsert()` is INSERT ... ON CONFLICT DO UPDATE, which has to READ the conflicting
+   * row — and this table has no SELECT policy by design, because the rows hold names,
+   * phone numbers and emails that only staff may read. So the write policies and the
+   * read rule were each right and together made the one operation this function performs
+   * impossible: every save came back 42501, silently, for both the public form and the
+   * partner application.
    *
-   * A partner draft names them because it has to: it is the whole point, and that path
-   * is new, so it simply does nothing until the migration lands.
+   * The id is still the credential, exactly as it is for reading a draft back through
+   * `get_contractor_draft` (052).
    */
-  const partnerColumns = snap.source === 'in_app'
-    ? { source: 'in_app', user_id: snap.userId ?? null }
-    : {};
-
-  const { error } = await supabase
-    .from('contractor_application_drafts')
-    .upsert({
-      ...partnerColumns,
-      id,
-      full_name:    snap.fullName?.trim() || null,
-      email:        snap.email?.trim().toLowerCase() || null,
-      phone:        snap.phone?.trim() || null,
-      role:         snap.role || null,
-      payload:      snap.payload,
-      progress_pct: Math.max(0, Math.min(100, Math.round(snap.progressPct))),
-      updated_at:   new Date().toISOString(),
-    }, { onConflict: 'id' });
+  const { error } = await supabase.rpc('save_contractor_draft', {
+    p_id:           id,
+    p_full_name:    snap.fullName ?? null,
+    p_email:        snap.email ?? null,
+    p_phone:        snap.phone ?? null,
+    p_role:         snap.role ?? null,
+    p_payload:      snap.payload,
+    p_progress_pct: Math.max(0, Math.min(100, Math.round(snap.progressPct))),
+    p_source:       snap.source ?? 'public',
+    p_user_id:      snap.userId ?? null,
+  });
 
   if (error) throw error;
 }

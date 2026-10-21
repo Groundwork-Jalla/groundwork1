@@ -20,6 +20,9 @@ export interface PartnerPrefill {
   phone: string;
   country: string;
   businessName: string | null;
+  /** What they do, from onboarding (142). The application no longer asks. */
+  specialty: string | null;
+  specialtyOther: string | null;
 }
 
 /** Everything we already know, so the form can show it rather than ask for it. */
@@ -27,7 +30,8 @@ export async function loadPartnerPrefill(userId: string): Promise<PartnerPrefill
   const [{ data: profile }, { data: onboarding }] = await Promise.all([
     supabase.from('profiles').select('full_name, email, phone, country').eq('id', userId).maybeSingle(),
     // 116. Absent for somebody who has not onboarded — not an error, just nothing to add.
-    supabase.from('contractor_onboarding').select('business_name').eq('user_id', userId).maybeSingle(),
+    supabase.from('contractor_onboarding')
+      .select('business_name, specialty, specialty_other').eq('user_id', userId).maybeSingle(),
   ]);
   if (!profile) return null;
   const p = profile as Record<string, unknown>;
@@ -37,6 +41,10 @@ export async function loadPartnerPrefill(userId: string): Promise<PartnerPrefill
     phone: String(p.phone ?? ''),
     country: String(p.country ?? ''),
     businessName: (onboarding as Record<string, unknown> | null)?.business_name as string ?? null,
+    // Collected at onboarding (142), so the application shows it back rather than
+    // asking a second time.
+    specialty: (onboarding as Record<string, unknown> | null)?.specialty as string ?? null,
+    specialtyOther: (onboarding as Record<string, unknown> | null)?.specialty_other as string ?? null,
   };
 }
 
@@ -79,7 +87,7 @@ export async function myApplicationSummary(
 ): Promise<{ state: ApplicationState; decisionReady: boolean }> {
   const { data, error } = await supabase
     .from('contractor_applications')
-    .select('status, has_current_project, will_introduce').eq('user_id', userId)
+    .select('status, has_current_project, will_introduce, years_experience').eq('user_id', userId)
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error || !data) return { state: 'none', decisionReady: false };
 
@@ -91,6 +99,7 @@ export async function myApplicationSummary(
     decisionReady: isDecisionReady({
       hasCurrentProject: r.has_current_project === true,
       willIntroduce:     r.will_introduce === true,
+      yearsExperience:   typeof r.years_experience === 'string' ? r.years_experience : undefined,
     }),
   };
 }
@@ -169,9 +178,28 @@ export async function submitPartnerApplication(
  * did. These two answers are what that decision actually turns on — a live diaspora
  * project, and a willingness to bring it. Pure, so the rule is in one place and testable.
  */
-export function isDecisionReady(a: Pick<PartnerAnswers, 'hasCurrentProject' | 'willIntroduce'>): boolean {
-  return a.hasCurrentProject && a.willIntroduce;
+export function isDecisionReady(
+  a: Pick<PartnerAnswers, 'hasCurrentProject' | 'willIntroduce'> & { yearsExperience?: string },
+): boolean {
+  // Three conditions, all of them Philip's: a live diaspora project, a willingness to
+  // introduce it, and five years on the tools. His calendar is the constraint — 18 calls
+  // produced 4 qualified professionals — so somebody who cannot meet these is not
+  // offered a slot at all rather than being given one and turned away on it.
+  //
+  // `yearsExperience` is optional so the older two-answer callers keep working; when it
+  // is absent the experience condition is simply not applied.
+  const experienced = a.yearsExperience === undefined || QUALIFYING_YEARS.includes(a.yearsExperience);
+  return a.hasCurrentProject === true && a.willIntroduce === true && experienced;
 }
+
+/**
+ * The experience bands that clear five years.
+ *
+ * '3-5' does NOT qualify: somebody in that band may have three. "At least five years"
+ * is read strictly, because the whole purpose of the gate is that a call is worth
+ * Philip's hour.
+ */
+export const QUALIFYING_YEARS: readonly string[] = ['5-10', '10+'];
 
 /**
  * Record the partner decision taken at the end of onboarding.

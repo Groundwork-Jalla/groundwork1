@@ -48,6 +48,28 @@ export function credentialTrack(role: ContractorRole): CredentialTrack {
   }
 }
 
+/**
+ * Does this specialty need a professional licence number?
+ *
+ * Derived from `credentialTrack` rather than listed again: the regulated professions are
+ * exactly the technical ones and the lawyer. A mason, carpenter, electrician, plumber,
+ * roofer or finisher is not licensed in Cameroon, and a general contractor or a typed-in
+ * "other" may be anything — so none of them is asked.
+ *
+ * This matters more than it looks. The licence used to be demanded of everybody, and an
+ * applicant wrote in to say he is a mason and bricklayer with no licence and no company
+ * and could not register at all. The box had meanwhile collected "No", keyboard noise and
+ * one company registration number from people who pushed through. Asking only the people
+ * who actually hold one is what makes the answer worth having.
+ *
+ * The SQL twin is `public.specialty_needs_licence` (142). If one changes the other must,
+ * or the form and the database disagree about who may finish onboarding.
+ */
+export function requiresLicence(role: ContractorRole): boolean {
+  const track = credentialTrack(role);
+  return track === 'technical' || track === 'lawyer';
+}
+
 export interface ProjectEntry {
   name: string;
   location: string;

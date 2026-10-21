@@ -79,10 +79,22 @@ describe('a half-filled set of contacts survives walking away', () => {
       .not.toContain('should-never-be-stored');
   });
 
-  it('refuses a stored shape that is not three contacts', () => {
-    // The panels index this array by position, so a shorter one would read undefined.
+  it('restores a single contact, which is what onboarding now asks for', () => {
+    // 142 reduced the ask from three to one.
     const key = `groundwork:emergency-contacts:v1:user-1`;
     storage.setItem(key, JSON.stringify({ version: 1, contacts: [partial()[0]] }));
+    expect(readEmergencyContactDraft('user-1')).toEqual([partial()[0]]);
+  });
+
+  it('and still restores a three-contact draft written before that change', () => {
+    // Dropping those would be the very loss this file exists to prevent.
+    saveEmergencyContactDraft('user-1', partial());
+    expect(readEmergencyContactDraft('user-1')).toHaveLength(3);
+  });
+
+  it('but refuses a shape that is not contacts at all', () => {
+    storage.setItem('groundwork:emergency-contacts:v1:user-1',
+      JSON.stringify({ version: 1, contacts: 'nonsense' }));
     expect(readEmergencyContactDraft('user-1')).toBeNull();
   });
 
@@ -102,15 +114,16 @@ describe('the database stays the record', () => {
   it('saved contacts win over a draft', () => {
     // A draft is only a copy of unsaved typing. If the three are on file, they are the
     // truth and a stale local copy must not overwrite them on screen.
-    expect(page).toMatch(/if \(r\.contacts\.length === 3\) \{ setContacts\(r\.contacts\); return; \}/);
+    expect(page).toMatch(/if \(r\.contacts\.length >= 1\) \{ setContacts\(r\.contacts\.slice\(0, 1\)\); return; \}/);
   });
 
   it('and the draft is cleared the moment they persist', () => {
     expect(page).toMatch(/if \(next\.steps\.emergency && user\?\.id\) clearEmergencyContactDraft\(user\.id\)/);
   });
 
-  it('nothing partial is written to the database', () => {
-    // 116's rule: exactly three, in one call. The draft exists so that rule can stay.
-    expect(page).toMatch(/if \(n < 3\) \{ onNext\(\); return; \}/);
+  it('the contact is saved as soon as it is given', () => {
+    // 142: one contact, sent on its own. There is no longer a partial set to protect
+    // against, because there is only one.
+    expect(page).toMatch(/saveEmergencyContacts\(\[\{ \.\.\.c, phone \}\]\)/);
   });
 });

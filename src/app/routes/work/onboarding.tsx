@@ -13,8 +13,11 @@ import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
 import { isE164 } from '@/lib/phone';
 import {
+  CONTRACTOR_ROLES, requiresLicence, type ContractorRole,
+} from '@/lib/contractor/application-types';
+import {
   SIGNABLE_AGREEMENTS, acceptAgreement, fetchOnboardingRecord, fetchOnboardingStatus,
-  saveBusiness, saveEmergencyContacts, saveIdentity, setClientIntent,
+  saveSpecialty, saveEmergencyContacts, saveIdentity, setClientIntent,
   type AgreementDocument, type ClientIntent, type EmergencyContact, type OnboardingStatus,
 } from '@/lib/supabase/contractor-onboarding';
 import { cn } from '@/lib/utils';
@@ -50,9 +53,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // =========================================================
 
 /** A panel is at most three inputs. Several panels can serve one database step. */
-type PanelId =
-  | 'agreements' | 'you' | 'licence' | 'business' | 'payout'
-  | 'contact1' | 'contact2' | 'contact3';
+type PanelId = 'agreements' | 'you' | 'specialty' | 'payout' | 'contact';
 
 export default function ContractorOnboarding() {
   const t = useT();
@@ -65,8 +66,6 @@ export default function ContractorOnboarding() {
   // screens and saved in one call, because 116 requires exactly three and a partial set
   // must never sit there looking finished.
   const [contacts, setContacts] = useState<EmergencyContact[]>([
-    { fullName: '', relationship: '', phone: '' },
-    { fullName: '', relationship: '', phone: '' },
     { fullName: '', relationship: '', phone: '' },
   ]);
 
@@ -82,7 +81,7 @@ export default function ContractorOnboarding() {
       .then(r => {
         // Saved contacts win: they are the record. A draft only fills in for somebody
         // who typed one or two and left before the single save could happen.
-        if (r.contacts.length === 3) { setContacts(r.contacts); return; }
+        if (r.contacts.length >= 1) { setContacts(r.contacts.slice(0, 1)); return; }
         const draft = user?.id ? readEmergencyContactDraft(user.id) : null;
         if (draft) setContacts(draft);
       })
@@ -143,10 +142,13 @@ export default function ContractorOnboarding() {
               // A full load, not a client-side navigate: the /work layout resolved the
               // gate before this answer existed, and would otherwise bounce them
               // straight back here. The same reason the role handoffs reload.
-              // The partner answer decides where they land; the client answer still
-              // decides everything else.
-              window.location.href = partner ? '/work/partner'
-                : intent === 'onboard_client' ? '/work/clients/new' : '/work';
+              // Having a client is a CONDITION of the partner application, so somebody
+              // who says they have none is not sent to it — they used to be, which meant
+              // filling in a form they could not qualify on. They get the dashboard and
+              // can apply later, from the sidebar, when a project comes up.
+              window.location.href = !partner || intent === 'no_client'
+                ? '/work'
+                : '/work/partner';
             }}
           />
         )
@@ -161,23 +163,19 @@ export default function ContractorOnboarding() {
             {at !== 'agreements' && signed && (
               <Panel id={at}>
                 {at === 'you'       && <YouPanel onSaved={advance} />}
-                {at === 'licence'   && <LicencePanel onSaved={advance} />}
-                {at === 'business'  && <BusinessPanel onSaved={advance} />}
+                {at === 'specialty' && <SpecialtyPanel onSaved={advance} />}
                 {at === 'payout'    && (
                   <PayoutPanel
                     done={status.steps.payout}
-                    onSkip={() => advance(status)}
                     // The destination lands in payout_destinations (099), so the step's
                     // answer has to be re-read rather than assumed.
                     onAdded={async () => advance(await fetchOnboardingStatus())}
                   />
                 )}
-                {at.startsWith('contact') && (
+                {at === 'contact'   && (
                   <ContactPanel
-                    n={Number(at.slice(-1)) as 1 | 2 | 3}
                     contacts={contacts} setContacts={setContacts}
                     onSaved={advance}
-                    onNext={() => setAt(order[index + 1] ?? at)}
                   />
                 )}
               </Panel>
@@ -203,24 +201,24 @@ export default function ContractorOnboarding() {
 // ── Which panels exist, and when one is finished ─────────
 
 /** A registered business owes two extra fields and a document; a sole trader does not. */
-function panelOrder(s: OnboardingStatus): PanelId[] {
-  const base: PanelId[] = ['agreements', 'you', 'licence'];
-  if (s.businessStatus === 'registered') base.push('business');
-  // The emergency contacts are LAST on purpose: finishing the third is what ends the
-  // form and brings up the client question.
-  return [...base, 'payout', 'contact1', 'contact2', 'contact3'];
+function panelOrder(_s: OnboardingStatus): PanelId[] {
+  // Five steps, fixed (142). "How do you trade" is gone — the partner application still
+  // asks whether they operate as an individual or a company, which is where it matters —
+  // and the three emergency contacts are one, because speed onto the platform is what
+  // this sequence is for.
+  //
+  // The contact is LAST on purpose: finishing it ends the form and brings up the
+  // partner question.
+  return ['agreements', 'you', 'specialty', 'payout', 'contact'];
 }
 
 function panelDone(p: PanelId, s: OnboardingStatus): boolean {
   switch (p) {
     case 'agreements': return s.steps.agreements;
     case 'you':        return s.steps.identity;
-    case 'licence':
-    case 'business':   return s.steps.professional;
+    case 'specialty':  return s.steps.professional;
     case 'payout':     return s.steps.payout;
-    case 'contact1':
-    case 'contact2':
-    case 'contact3':   return s.steps.emergency;
+    case 'contact':    return s.steps.emergency;
   }
 }
 
@@ -230,8 +228,8 @@ function firstOpenPanel(s: OnboardingStatus): PanelId {
 }
 
 const PANEL_ICON: Record<PanelId, typeof UserRound> = {
-  agreements: ShieldCheck, you: UserRound, licence: FileText, business: FileText,
-  payout: Landmark, contact1: Phone, contact2: Phone, contact3: Phone,
+  agreements: ShieldCheck, you: UserRound, specialty: FileText,
+  payout: Landmark, contact: Phone,
 };
 
 // ── Chrome ───────────────────────────────────────────────
@@ -558,103 +556,77 @@ function YouPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
   );
 }
 
-// ── Panel 3: licence, and how they trade ─────────────────
+// ── Panel 3: what they do ────────────────────────────────
 
-function LicencePanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
+function SpecialtyPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
   const t = useT();
   const { busy, err, run } = useSave(onSaved);
+  const [specialty, setSpecialty] = useState<ContractorRole | ''>('');
+  const [other, setOther] = useState('');
   const [license, setLicense] = useState('');
-  const [kind, setKind] = useState<'registered' | 'independent' | ''>('');
-  const [known, setKnown] = useState<{ name: string; reg: string }>({ name: '', reg: '' });
 
   useEffect(() => {
     void fetchOnboardingRecord().then(r => {
+      if (r.specialty) setSpecialty(r.specialty as ContractorRole);
+      setOther(r.specialtyOther ?? '');
       setLicense(r.licenseNumber ?? '');
-      // Reopening on the saved answer. Left blank, re-saving the other option clears the
-      // company details and deletes the registration document.
-      setKind(r.businessStatus ?? '');
-      setKnown({ name: r.businessName ?? '', reg: r.businessRegNumber ?? '' });
     }).catch(() => {});
   }, []);
+
+  const needsLicence = specialty ? requiresLicence(specialty) : false;
+  const ready = !!specialty
+    && (specialty !== 'other' || other.trim() !== '')
+    && (!needsLicence || license.trim() !== '');
 
   return (
     <form onSubmit={e => {
       e.preventDefault();
-      if (!kind) return;
-      // A registered business keeps whatever it already had; the next panel collects it
-      // if it is missing. An independent answer clears it, which is 116's own tidy-up.
-      void run(() => saveBusiness({
-        licenseNumber: license, businessStatus: kind,
-        businessName: known.name, businessRegNumber: known.reg,
+      if (!ready) return;
+      void run(() => saveSpecialty({
+        specialty,
+        specialtyOther: specialty === 'other' ? other.trim() : null,
+        // Kept when they have one even where it is not required: somebody who holds a
+        // licence has told us something true.
+        licenseNumber: license.trim() || null,
       }));
     }}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="lic">{t('contractorOnboarding.licenseNumber')}</Label>
-          <Input id="lic" required value={license} onChange={e => setLicense(e.target.value)} />
-        </div>
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-brand-near-black dark:text-white">
-            {t('contractorOnboarding.businessStatus')}
-          </legend>
-          <div className="space-y-2">
-            {(['registered', 'independent'] as const).map(v => (
-              <label key={v} className={cn(
-                'flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 text-sm transition-colors',
-                kind === v ? 'border-brand-near-black dark:border-white' : 'border-brand-border-grey dark:border-[#444]',
-              )}>
-                <input type="radio" name="bstatus" value={v} checked={kind === v} onChange={() => setKind(v)} className="mt-0.5" required />
-                <span>
-                  <span className="block font-medium text-brand-near-black dark:text-white">{t(`contractorOnboarding.${v}` as TKey)}</span>
-                  <span className="mt-0.5 block text-xs text-brand-mid-grey">{t(`contractorOnboarding.${v}Hint` as TKey)}</span>
-                </span>
-              </label>
+          <Label htmlFor="specialty">{t('contractorOnboarding.specialtyLabel')}</Label>
+          <select
+            id="specialty" required value={specialty}
+            onChange={e => setSpecialty(e.target.value as ContractorRole | '')}
+            className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white"
+          >
+            <option value="">{t('contractorOnboarding.specialtyPlaceholder')}</option>
+            {CONTRACTOR_ROLES.map(r => (
+              <option key={r} value={r}>{t(`contractorApply.form.roles.${r}` as TKey)}</option>
             ))}
+          </select>
+        </div>
+
+        {/* Only when the list did not have it. */}
+        {specialty === 'other' && (
+          <div className="space-y-1.5">
+            <Label htmlFor="specOther">{t('contractorOnboarding.specialtyOther')}</Label>
+            <Input id="specOther" required value={other} onChange={e => setOther(e.target.value)} />
+            <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.specialtyOtherHint')}</p>
           </div>
-        </fieldset>
+        )}
+
+        {/* Asked of the five regulated professions and nobody else (142). A mason,
+            carpenter, electrician, plumber, roofer or finisher never sees this field —
+            demanding it of them is what stopped an applicant registering at all. */}
+        {needsLicence && (
+          <div className="space-y-1.5">
+            <Label htmlFor="lic">{t('contractorOnboarding.licenseNumber')}</Label>
+            <Input id="lic" required value={license} onChange={e => setLicense(e.target.value)} />
+            <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.licenseHint')}</p>
+          </div>
+        )}
       </div>
       <Err>{err}</Err>
-      <Next busy={busy || !kind} />
-    </form>
-  );
-}
-
-// ── Panel 4: the company, only if there is one ───────────
-
-function BusinessPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
-  const t = useT();
-  const { busy, err, run } = useSave(onSaved);
-  const [license, setLicense] = useState('');
-  const [name, setName] = useState('');
-  const [reg, setReg] = useState('');
-
-  useEffect(() => {
-    void fetchOnboardingRecord().then(r => {
-      setLicense(r.licenseNumber ?? '');
-      setName(r.businessName ?? ''); setReg(r.businessRegNumber ?? '');
-    }).catch(() => {});
-  }, []);
-
-  return (
-    <form onSubmit={e => {
-      e.preventDefault();
-      void run(() => saveBusiness({
-        licenseNumber: license, businessStatus: 'registered',
-        businessName: name, businessRegNumber: reg,
-      }));
-    }}>
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="bname">{t('contractorOnboarding.businessName')}</Label>
-          <Input id="bname" required value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="breg">{t('contractorOnboarding.businessReg')}</Label>
-          <Input id="breg" required value={reg} onChange={e => setReg(e.target.value)} />
-        </div>
-      </div>
-      <Err>{err}</Err>
-      <Next busy={busy} />
+      <Next busy={busy || !ready} />
     </form>
   );
 }
@@ -669,27 +641,20 @@ function BusinessPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) 
  * are not. The dialog uses the same RPC as the payouts page, so a destination created
  * during onboarding is the same thing as one created later.
  */
-function PayoutPanel({ done, onAdded, onSkip }: {
-  done: boolean; onAdded: () => Promise<void>; onSkip: () => void;
+function PayoutPanel({ done, onAdded }: {
+  done: boolean; onAdded: () => Promise<void>;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-4">
-        <Button type="button" onClick={() => setOpen(true)}>
-          {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
-        </Button>
-        {/* Still skippable — somebody without their account number to hand should not be
-            stuck, and the checklist keeps showing it outstanding. It no longer costs
-            them the form. */}
-        <button
-          type="button" onClick={onSkip}
-          className="text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white"
-        >
-          {t('contractorOnboarding.payoutLater')}
-        </button>
-      </div>
+      {/* No "I'll do this later" any more (142). It was also broken: choosing it left the
+          step outstanding and the sequence then would not let you past the contact
+          screen, so the escape hatch trapped people instead of freeing them. Payment
+          details are needed before any project can pay out, so they are asked for here. */}
+      <Button type="button" onClick={() => setOpen(true)}>
+        {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
+      </Button>
 
       {open && (
         <PayoutDialog
@@ -703,59 +668,54 @@ function PayoutPanel({ done, onAdded, onSkip }: {
 
 // ── Panels 6–8: one emergency contact each ───────────────
 
-function ContactPanel({ n, contacts, setContacts, onSaved, onNext }: {
-  n: 1 | 2 | 3;
+function ContactPanel({ contacts, setContacts, onSaved }: {
   contacts: EmergencyContact[];
   setContacts: React.Dispatch<React.SetStateAction<EmergencyContact[]>>;
   onSaved: (s: OnboardingStatus) => void;
-  onNext: () => void;
 }) {
   const t = useT();
   const { busy, err, run } = useSave(onSaved);
   const [local, setLocal] = useState<string | null>(null);
-  const i = n - 1;
-  const c = contacts[i];
+  const c = contacts[0];
 
   const set = (patch: Partial<EmergencyContact>) =>
-    setContacts(rs => rs.map((r, k) => (k === i ? { ...r, ...patch } : r)));
+    setContacts(rs => rs.map((r, k) => (k === 0 ? { ...r, ...patch } : r)));
 
   const submit = () => {
     // PhoneField already emits E.164 for the country they picked. It is still checked
     // here, because normalisePhone passes a number through unchanged when it cannot
-    // place it — "it returned something" is not "this is dialable", and the column
-    // CHECK would refuse it outright.
+    // place it — "it returned something" is not "this is dialable".
     const phone = c.phone.trim();
-    if (!isE164(phone)) { setLocal(t('contractorOnboarding.err.badPhone', { n: String(n) })); return; }
+    if (!isE164(phone)) { setLocal(t('contractorOnboarding.err.badPhone', { n: '1' })); return; }
     setLocal(null);
-
-    // The first two are held locally — 116 takes all three at once, and a partial set
-    // must never look finished. The third sends them.
-    if (n < 3) { onNext(); return; }
-    const all = contacts.map((r, k) => (k === i ? { ...r, phone } : r));
-    void run(() => saveEmergencyContacts(all));
+    // One contact, saved on its own (142). Three used to be collected across three
+    // screens and sent together, so walking away after the first lost that typing.
+    void run(() => saveEmergencyContacts([{ ...c, phone }]));
   };
 
   return (
     <form onSubmit={e => { e.preventDefault(); submit(); }}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor={`cn${n}`}>{t('contractorOnboarding.contactName')}</Label>
-          <Input id={`cn${n}`} required value={c.fullName} onChange={e => set({ fullName: e.target.value })} />
+          <Label htmlFor="cn1">{t('contractorOnboarding.contactName')}</Label>
+          <Input id="cn1" required value={c.fullName} onChange={e => set({ fullName: e.target.value })} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`cr${n}`}>{t('contractorOnboarding.contactRelationship')}</Label>
-          <Input id={`cr${n}`} required value={c.relationship} onChange={e => set({ relationship: e.target.value })} />
+          <Label htmlFor="cr1">{t('contractorOnboarding.contactRelationship')}</Label>
+          <Input id="cr1" required value={c.relationship} onChange={e => set({ relationship: e.target.value })} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`cp${n}`}>{t('contractorOnboarding.contactPhone')}</Label>
+          <Label htmlFor="cp1">{t('contractorOnboarding.contactPhone')}</Label>
           {/* The full dialling list, not the build-country list: a contractor's next of
               kin is often not in the country they build in. */}
-          <PhoneField id={`cp${n}`} required value={c.phone} onChange={phone => set({ phone })} />
+          <PhoneField id="cp1" required value={c.phone} onChange={phone => set({ phone })} />
           <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.phoneHint')}</p>
         </div>
+        <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.contactMoreLater')}</p>
       </div>
       <Err>{local ?? err}</Err>
-      <Next busy={busy} label={n === 3 ? t('contractorOnboarding.saveAllThree') : undefined} />
+      <Next busy={busy} />
     </form>
   );
 }
+

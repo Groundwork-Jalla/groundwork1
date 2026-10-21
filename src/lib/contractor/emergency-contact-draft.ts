@@ -3,10 +3,10 @@ import type { EmergencyContact } from '@/lib/supabase/contractor-onboarding';
 // =========================================================
 // Emergency contacts typed but not yet saved.
 //
-// 116 requires exactly three contacts and saves them in ONE call, so that a partial set
-// never sits in the database looking finished. The cost is that a contractor who fills
-// in the first contact, or the first two, and then walks away loses that typing: the
-// panels resume correctly, but the form underneath them is blank again.
+// 116 saved the contacts in ONE call so that a partial set never sat in the database
+// looking finished, and 142 reduced the ask from three to one. Either way a contractor
+// who types a contact and walks away before saving loses it: the panels resume
+// correctly, but the form underneath them is blank again.
 //
 // This keeps those answers on their own device until the save goes through. The database
 // invariant is untouched — nothing partial is ever written to it.
@@ -44,9 +44,14 @@ function parseContact(value: unknown): EmergencyContact | null {
   return { fullName, relationship, phone };
 }
 
-/** Exactly three, or nothing: the panels index into this array by position. */
+/**
+ * One to three contacts, or nothing.
+ *
+ * Onboarding collects one since 142, but a draft written before that holds three — and
+ * dropping those on the floor would be the very loss this file exists to prevent.
+ */
 function parseDraft(value: unknown): EmergencyContact[] | null {
-  if (!Array.isArray(value) || value.length !== 3) return null;
+  if (!Array.isArray(value) || value.length < 1 || value.length > 3) return null;
   const rows = value.map(parseContact);
   if (rows.some(r => r === null)) return null;
   // All three blank is not a draft worth restoring.

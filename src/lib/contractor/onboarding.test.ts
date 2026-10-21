@@ -32,6 +32,17 @@ const strip = (src: string) =>
  */
 const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql',
                     '118_onboarding_intent_and_dossier.sql'];
+
+/**
+ * Every migration that defines an onboarding RPC, for the argument-name check only.
+ *
+ * Kept separate from `sqlCode`: the assertions about function BODIES below are about
+ * what 116–118 established, and folding the later definitions into the same string
+ * makes `fnBody` return whichever version came last. Only the signature map wants the
+ * newest definition of each function.
+ */
+const RPC_MIGRATIONS = [...MIGRATIONS, '141_licence_is_not_everyone.sql',
+                        '142_specialty_replaces_trade.sql'];
 const sqlCode = MIGRATIONS
   .map(f => read(`supabase/migrations/${f}`))
   .join('\n')
@@ -406,15 +417,14 @@ describe('the two bugs found in review stay fixed', () => {
    * existed when they were written. They are pinned here by name.
    */
 
-  it('the business step reopens on the answer that was saved', () => {
-    // THE DESTRUCTIVE ONE. `fetchOnboardingRecord` did not return business_status, so a
-    // registered business revisiting the step saw an unselected radio. Choosing the
-    // other option runs `save_contractor_business` with 'independent', which NULLs the
-    // company name and number AND deletes the uploaded registration document. A blank
-    // radio must never be able to cause that.
-    expect(lib).toMatch(/businessStatus: 'registered' \| 'independent' \| null;/);
-    expect(lib).toMatch(/\.select\('date_of_birth, residential_address, license_number, business_status,/);
-    expect(page).toMatch(/setKind\(r\.businessStatus \?\? ''\)/);
+  it('the specialty step reopens on the answer that was saved', () => {
+    // Inherits the destructive case it replaced (142). The old business radio reopened
+    // blank because the record read did not return it, and re-saving the other option
+    // NULLed the company details and deleted the uploaded registration document. The
+    // same rule applies here: whatever this step saved, it must show back.
+    expect(lib).toMatch(/specialty: string \| null;/);
+    expect(lib).toMatch(/\.select\('date_of_birth, residential_address, license_number, specialty, specialty_other,/);
+    expect(page).toMatch(/if \(r\.specialty\) setSpecialty\(r\.specialty as ContractorRole\)/);
   });
 
   it('and the tidy-up it guards is still there, so the guard still matters', () => {
@@ -491,7 +501,11 @@ describe('every rpc call names arguments the function actually has', () => {
 
   /** `p_name type DEFAULT ...` → the set of parameter names, per function. */
   const signatures = new Map<string, Set<string>>();
-  for (const m of sqlCode.matchAll(
+  const rpcSql = RPC_MIGRATIONS
+    .map(f => read(`supabase/migrations/${f}`))
+    .join('\n')
+    .replace(/^\s*--.*$/gm, '');
+  for (const m of rpcSql.matchAll(
     /CREATE OR REPLACE FUNCTION public\.(\w+)\s*\(([\s\S]*?)\)\s*\n?\s*RETURNS/g)) {
     const args = new Set<string>();
     for (const a of m[2].matchAll(/\b(p_\w+)\s+[a-z]/g)) args.add(a[1]);
@@ -593,14 +607,14 @@ describe('the agreement gates the rest of the form', () => {
 
   it('agreements is the first panel, and named rather than indexed', () => {
     const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/\['agreements', 'you', 'licence'\]/);
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/\['agreements', 'you', 'specialty', 'payout', 'contact'\]/);
     expect(lib).toMatch(/GATING_STEP: OnboardingStep = 'agreements'/);
   });
 
   it('no panel carries more than three inputs', () => {
     // The whole point of splitting them up. Counting Input/textarea/file per panel
-    // function; the radio pair is one question, so the licence panel reads as two.
-    for (const fn of ['YouPanel', 'LicencePanel', 'BusinessPanel', 'ContactPanel']) {
+    // function; the specialty panel's two conditional fields never both show at once.
+    for (const fn of ['YouPanel', 'SpecialtyPanel', 'ContactPanel']) {
       const at = page.indexOf(`function ${fn}`);
       expect(at, `${fn} is missing`).toBeGreaterThan(-1);
       const body = page.slice(at, page.indexOf('\n}\n', at));
@@ -609,17 +623,19 @@ describe('the agreement gates the rest of the form', () => {
     }
   });
 
-  it('the three contacts are held together and saved in one call', () => {
-    // 116 requires exactly three. Saving them one panel at a time would let a partial
-    // set sit there looking finished.
-    expect(page).toMatch(/if \(n < 3\) \{ onNext\(\); return; \}/);
-    expect(page).toMatch(/void run\(\(\) => saveEmergencyContacts\(all\)\)/);
+  it('one emergency contact is asked for, and saved as soon as it is given', () => {
+    // 142 reduced the ask from three to one: speed onto the platform is what this
+    // sequence is for, and more can be added from the profile later. With a single
+    // contact there is no partial set left to protect against.
+    expect(page).toMatch(/void run\(\(\) => saveEmergencyContacts\(\[\{ \.\.\.c, phone \}\]\)\)/);
+    expect(page).not.toMatch(/if \(n < 3\)/);
   });
 
-  it('the company panel only exists for a registered business', () => {
-    const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}')))
-      .toMatch(/if \(s\.businessStatus === 'registered'\) base\.push\('business'\)/);
+  it('onboarding no longer asks how they trade', () => {
+    // 142 removed it. The partner application still asks whether they operate as an
+    // individual or a company, which is where that answer is actually used.
+    expect(page).not.toMatch(/BusinessPanel/);
+    expect(page).not.toMatch(/saveBusiness/);
   });
 });
 
@@ -773,7 +789,7 @@ describe('one merged document, not two (117)', () => {
 describe('the question at the end, and the two ways out (118)', () => {
   it('the form ends on the emergency contacts', () => {
     const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact1', 'contact2', 'contact3'\];/);
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact'\];/);
   });
 
   it('finishing shows the question, not an exit', () => {
@@ -783,7 +799,11 @@ describe('the question at the end, and the two ways out (118)', () => {
   });
 
   it('each answer goes where it should', () => {
-    expect(page).toMatch(/intent === 'onboard_client' \? '\/work\/clients\/new' : '\/work'/);
+    // Philip's correction: having a client is a CONDITION of the partner application,
+    // so "I don't have one" goes to the dashboard rather than to a form they cannot
+    // qualify on. Only somebody who wants to partner AND has a client reaches it.
+    expect(page).toMatch(/window\.location\.href = !partner \|\| intent === 'no_client'/);
+    expect(page).toMatch(/\? '\/work'\s*\n\s*: '\/work\/partner';/);
   });
 
   it('and does so with a full load, so the gate is re-read', () => {

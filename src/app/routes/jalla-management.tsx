@@ -172,11 +172,11 @@ export default function JallaManagementPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
       <Link
-        to={projectId ? `/projects/${projectId}` : '/pricing'}
+        to={projectId ? `/projects/${projectId}` : '/'}
         className="mb-8 inline-flex items-center gap-1 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black"
       >
         <ChevronLeft className="size-3.5" />
-        {projectId ? t('jallaManagement.backToProject') : t('jallaManagement.backToPricing')}
+        {projectId ? t('jallaManagement.backToProject') : t('jallaManagement.backHome')}
       </Link>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>

@@ -19,7 +19,11 @@ const strip = (s: string) => s.replace(/--.*$/gm, '');
 
 const m138  = read('supabase/migrations/138_partner_drafts_are_marked.sql');
 const m139  = read('supabase/migrations/139_drafts_are_writable_again.sql');
+const m143  = read('supabase/migrations/143_drafts_save_through_a_function.sql');
 const lib   = read('src/lib/supabase/application-drafts.ts');
+/** The module without its prose: the comments explain the bug and name the very call
+ *  the code must no longer make. */
+const libCode = lib.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const form  = read('src/app/routes/work/partner.tsx');
 const admin = read('src/app/routes/admin/drafts.tsx');
 
@@ -91,16 +95,31 @@ describe('finishing takes them off the list', () => {
   });
 });
 
-describe('deploying before the migration breaks nothing', () => {
-  it('a public draft is written with exactly the columns it always had', () => {
-    // 138 adds source and user_id. Sending them on every write would make each public
-    // save fail with 42703 until the migration ran — breaking a working feature in the
-    // window between deploy and migration. The column defaults to 'public' regardless.
-    expect(lib).toMatch(/snap\.source === 'in_app'\s*\?\s*\{ source: 'in_app', user_id: snap\.userId \?\? null \}\s*:\s*\{\}/);
+describe('the write goes through a function, not the table', () => {
+  it('because an upsert must read the row it conflicts with', () => {
+    // 143. `.upsert()` is INSERT ... ON CONFLICT DO UPDATE, and the table has no SELECT
+    // policy by design — the rows hold names, phone numbers and emails. The two rules
+    // were each right and together made every save fail with 42501, silently.
+    expect(libCode).toMatch(/rpc\('save_contractor_draft'/);
+    expect(libCode).not.toMatch(/\.upsert\(/);
   });
 
-  it('and the partner path, which is new, names them', () => {
-    expect(lib).toMatch(/\.\.\.partnerColumns/);
+  it('and the source travels with it', () => {
+    expect(lib).toMatch(/p_source:\s*snap\.source \?\? 'public'/);
+    expect(lib).toMatch(/p_user_id:\s*snap\.userId \?\? null/);
+  });
+
+  it('an in-app draft may only be written by its owner', () => {
+    // The function runs with definer rights, so without this check any caller could
+    // attach a draft to any account.
+    expect(strip(m143)).toMatch(/not_your_draft/);
+    expect(strip(m143)).toMatch(/p_user_id IS DISTINCT FROM auth\.uid\(\)/);
+  });
+
+  it('and reading them stays staff-only', () => {
+    // The alternative fix — a SELECT policy for anon — would have published every
+    // applicant's name, phone number and email.
+    expect(strip(m143)).not.toMatch(/FOR SELECT/);
   });
 });
 
@@ -187,12 +206,11 @@ describe('a draft can actually be saved', () => {
     expect(sql).not.toMatch(/FOR SELECT[\s\S]{0,60}TO anon/);
   });
 
-  it('the save is an upsert, so the UPDATE policy is load-bearing', () => {
-    // INSERT ... ON CONFLICT DO UPDATE needs both policies. A plain insert passes on the
-    // INSERT policy alone, which is how 139 was first mis-verified as applied while every
-    // real save was still being refused.
-    expect(lib).toMatch(/\.upsert\(/);
-    expect(lib).toMatch(/onConflict: 'id'/);
+  it('139 restored the write policies, which are still needed', () => {
+    // 139 was applied and was necessary — a plain INSERT and a PATCH both work because
+    // of it. It was not sufficient: the client upserts, and 143 is what makes that
+    // possible without opening the rows up to being read.
+    expect(strip(m139)).toMatch(/CREATE POLICY "anyone_can_draft"/);
     expect(strip(m139)).toMatch(/CREATE POLICY "anyone_can_update_draft"/);
   });
 

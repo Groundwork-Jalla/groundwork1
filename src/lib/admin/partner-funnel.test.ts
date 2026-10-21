@@ -116,7 +116,9 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
      */
     const onboarding = read('src/app/routes/work/onboarding.tsx');
     expect(onboarding).toMatch(/contractorOnboarding\.partnerQ/);
-    expect(onboarding).toMatch(/window\.location\.href = partner \? '\/work\/partner'/);
+    // Having a client is a condition of applying, so somebody without one now goes to
+    // the dashboard — they used to be sent to a form they could not qualify on.
+    expect(onboarding).toMatch(/window\.location\.href = !partner \|\| intent === 'no_client'/);
   });
 
   it('but the client-intent answer is still what unlocks the sidebar', () => {

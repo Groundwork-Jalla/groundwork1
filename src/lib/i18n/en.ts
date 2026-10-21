@@ -2466,29 +2466,17 @@ export const en = {
         title: 'Tell us about you',
         body:  'Two things, so Jalla can identify you and find you if it ever needs to.',
       },
-      licence: {
-        title: 'Your licence',
-        body:  'Your professional licence number, and whether you trade as a registered business.',
-      },
-      business: {
-        title: 'Your business',
-        body:  'You said you trade as a registered business, so we need its details.',
+      specialty: {
+        title: 'What do you do?',
+        body:  'Pick the work you do. If your trade is not on the list, choose Other and tell us.',
       },
       payout: {
         title: 'How you get paid',
         body:  'A bank account or mobile money number, used for every project you are assigned to. This one lives on its own page.',
       },
-      contact1: {
-        title: 'Emergency contact 1',
-        body:  'Three people we can reach if something happens on site. We will only ever contact them for that.',
-      },
-      contact2: {
-        title: 'Emergency contact 2',
-        body:  'The second of three.',
-      },
-      contact3: {
-        title: 'Emergency contact 3',
-        body:  'Last one \u2014 then all three are saved together.',
+      contact: {
+        title: 'Emergency contact',
+        body:  'One person we can reach if something happens on site. We will only ever contact them for that \u2014 you can add more from your profile later.',
       },
       documents: {
         title: 'Your documents',
@@ -2506,7 +2494,7 @@ export const en = {
     stepDone:      'Done',
     saving:        'Saving\u2026',
     save:          'Save',
-    saveAllThree:  'Save all three',
+    contactMoreLater: 'You can add more emergency contacts from your profile whenever you like.',
 
     step: {
       identity:     { title: 'Your details',          hint: 'Date of birth and where you live' },
@@ -2521,7 +2509,12 @@ export const en = {
     address:     'Residential address',
     addressHint: 'Include directions to the location if the address alone would not find it.',
 
+    specialtyLabel:      'Your specialty',
+    specialtyPlaceholder: 'Choose your trade or profession',
+    specialtyOther:      'Tell us what you do',
+    specialtyOtherHint:  'For example: scaffolder, tiler, glazier.',
     licenseNumber:  'Professional licence number',
+    licenseHint:    'Your profession is licensed, so we need the number on your licence.',
     businessStatus: 'How do you trade?',
     registered:     'Registered business',
     registeredHint: 'You have a registered firm with a business registration number.',
@@ -2751,6 +2744,7 @@ export const en = {
     },
   },
   common: {
+    next: 'Next',
     back:           'Back',
     backToHome:     'Back to Home',
     cancel:         'Cancel',
@@ -3592,7 +3586,7 @@ export const en = {
     frameFallback: 'Trouble loading a step? Open it directly:',
     doneTitle:     "You're all set.",
     doneBody:      'We will read your answers before we meet, so the audit can start with your build rather than with the basics.',
-    backToPricing: 'Back to pricing',
+    backHome: 'Back to Groundwork',
     backToProject: 'Back to your project',
     projectCreated: 'Your project is created. Before a Jalla admin can put a budget and a team behind it, we need the audit and your answers — both steps below.',
     doneCtaProject: 'Open your project',
@@ -4990,7 +4984,7 @@ export const en = {
     inviteCta: 'Apply',
     navLabel: 'Partner network',
     title: 'Apply to the partner network',
-    sub: 'A short application. We already hold most of what we need from your onboarding.',
+    sub: 'A few questions. Your contact details and specialty come from your onboarding \u2014 you do not need to type them again.',
     onFile: 'On file from your account — nothing to re-enter.',
     languages: 'Which language should we speak with you in?',
     languagesHint: 'This decides who at Jalla takes your call, so please pick the one you are most comfortable in.',
@@ -5010,8 +5004,8 @@ export const en = {
     whyJoin: 'Why do you want to join the partner network?',
     differentiator: 'What sets your work apart?',
     submit: 'Send application',
-    statusPendingTitle: 'Your application is with us',
-    statusPendingBody: 'We review applications within one business day. If it fits, we will write to arrange a short call.',
+    statusPendingTitle: 'We have your application',
+    statusPendingBody: 'Book your certified partner onboarding call below \u2014 pick the time that suits you.',
     statusAcceptedTitle: 'You are in the partner network',
     statusAcceptedBody: 'Welcome. Your next step is introducing your client — your Jalla contact will arrange it with you.',
     lang: {

@@ -68,6 +68,12 @@ export const GATING_STEP: OnboardingStep = 'agreements';
 
 export type OnboardingStatus = {
   steps: Record<OnboardingStep, boolean>;
+  /** What they do (142). One of CONTRACTOR_ROLES, or 'other'. */
+  specialty: string | null;
+  /** What they typed when the list did not have it. */
+  specialtyOther: string | null;
+  /** Whether their profession is one of the regulated five. */
+  needsLicence: boolean;
   /** 'registered' | 'independent' | null while unanswered. */
   businessStatus: 'registered' | 'independent' | null;
   /** A registered business owes a registration document; an independent contractor does not. */
@@ -98,6 +104,9 @@ function toStatus(raw: unknown): OnboardingStatus {
   const business = r.business_status;
   return {
     steps,
+    specialty: typeof r.specialty === 'string' ? r.specialty : null,
+    specialtyOther: typeof r.specialty_other === 'string' ? r.specialty_other : null,
+    needsLicence: r.needs_licence === true,
     businessStatus: business === 'registered' || business === 'independent' ? business : null,
     needsBusinessDoc: r.needs_business_doc === true,
     emergencyCount: typeof r.emergency_count === 'number' ? r.emergency_count : 0,
@@ -140,17 +149,26 @@ export async function saveIdentity(dateOfBirth: string, address: string): Promis
   return toStatus(data);
 }
 
-export async function saveBusiness(input: {
-  licenseNumber: string;
-  businessStatus: 'registered' | 'independent';
-  businessName?: string;
-  businessRegNumber?: string;
-}): Promise<OnboardingStatus> {
-  const { data, error } = await supabase.rpc('save_contractor_business', {
-    p_license_number: input.licenseNumber,
-    p_business_status: input.businessStatus,
-    p_business_name: input.businessName ?? null,
-    p_business_reg_number: input.businessRegNumber ?? null,
+export interface SpecialtyAnswer {
+  specialty: string;
+  /** Only when they chose "other" — what they typed. */
+  specialtyOther: string | null;
+  /** Kept when offered, even where the profession does not require one. */
+  licenseNumber: string | null;
+}
+
+/**
+ * What they do, and a licence only where the profession is regulated (142).
+ *
+ * Replaces `saveBusiness`. The old call demanded a licence number from everybody and
+ * also recorded whether they trade as a registered business — a question onboarding no
+ * longer asks, because the partner application asks it where it matters.
+ */
+export async function saveSpecialty(a: SpecialtyAnswer): Promise<OnboardingStatus> {
+  const { data, error } = await supabase.rpc('save_contractor_specialty', {
+    p_specialty:       a.specialty,
+    p_specialty_other: a.specialtyOther,
+    p_license_number:  a.licenseNumber,
   });
   if (error) throw error;
   return toStatus(data);
@@ -244,12 +262,10 @@ export async function fetchOnboardingRecord(): Promise<{
   dateOfBirth: string | null;
   address: string | null;
   licenseNumber: string | null;
-  /**
-   * Load-bearing. Without it the business step reopens with no option selected, and
-   * saving the wrong one clears the company name and number and deletes the uploaded
-   * registration document — `save_contractor_business` tidies up after an answer of
-   * 'independent'. A blank radio must never be able to cause that.
-   */
+  /** What they do (142), so the specialty step reopens on their answer. */
+  specialty: string | null;
+  specialtyOther: string | null;
+  /** Kept for the admin dossier: answered by everyone who onboarded before 142. */
   businessStatus: 'registered' | 'independent' | null;
   businessName: string | null;
   businessRegNumber: string | null;
@@ -262,7 +278,7 @@ export async function fetchOnboardingRecord(): Promise<{
 
   const [row, contacts, docs] = await Promise.all([
     supabase.from('contractor_onboarding')
-      .select('date_of_birth, residential_address, license_number, business_status, business_name, business_reg_number')
+      .select('date_of_birth, residential_address, license_number, specialty, specialty_other, business_status, business_name, business_reg_number')
       .eq('user_id', uid).maybeSingle(),
     supabase.from('contractor_emergency_contacts')
       .select('full_name, relationship, phone').eq('user_id', uid).order('position'),
@@ -274,6 +290,8 @@ export async function fetchOnboardingRecord(): Promise<{
     dateOfBirth:      row.data?.date_of_birth ?? null,
     address:          row.data?.residential_address ?? null,
     licenseNumber:    row.data?.license_number ?? null,
+    specialty:        row.data?.specialty ?? null,
+    specialtyOther:   row.data?.specialty_other ?? null,
     businessStatus:   row.data?.business_status === 'registered' ? 'registered'
                     : row.data?.business_status === 'independent' ? 'independent'
                     : null,

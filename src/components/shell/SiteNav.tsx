@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils';
 // =========================================================
 
 const LINKS: { to: string; labelKey: TKey }[] = [
-  { to: '/pricing',   labelKey: 'nav.pricing' },
   { to: '/tools',     labelKey: 'nav.freeTools' },
 ];
 

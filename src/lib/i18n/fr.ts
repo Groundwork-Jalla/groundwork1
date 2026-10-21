@@ -2432,29 +2432,17 @@ export const fr: Mirror<EnDict> = {
         title: 'Parlez-nous de vous',
         body:  'Deux informations, pour que Jalla puisse vous identifier et vous retrouver en cas de besoin.',
       },
-      licence: {
-        title: 'Votre licence',
-        body:  'Votre num\u00e9ro de licence professionnelle, et si vous exercez en entreprise enregistr\u00e9e.',
-      },
-      business: {
-        title: 'Votre entreprise',
-        body:  'Vous avez indiqu\u00e9 exercer en entreprise enregistr\u00e9e : il nous faut ses informations.',
+      specialty: {
+        title: 'Quel est votre m\u00e9tier ?',
+        body:  'Choisissez le travail que vous exercez. Si votre m\u00e9tier n\u2019est pas dans la liste, choisissez Autre et dites-nous lequel.',
       },
       payout: {
         title: 'Comment vous \u00eates pay\u00e9',
         body:  'Un compte bancaire ou un num\u00e9ro mobile money, utilis\u00e9 pour tous les projets qui vous sont attribu\u00e9s. Cette \u00e9tape a sa propre page.',
       },
-      contact1: {
-        title: 'Contact d\u2019urgence 1',
-        body:  'Trois personnes joignables en cas d\u2019incident sur le chantier. Nous ne les contacterons que pour cela.',
-      },
-      contact2: {
-        title: 'Contact d\u2019urgence 2',
-        body:  'Le deuxi\u00e8me sur trois.',
-      },
-      contact3: {
-        title: 'Contact d\u2019urgence 3',
-        body:  'Le dernier \u2014 les trois seront alors enregistr\u00e9s ensemble.',
+      contact: {
+        title: 'Contact d\u2019urgence',
+        body:  'Une personne que nous pouvons joindre s\u2019il arrive quelque chose sur le chantier. Nous ne la contacterons jamais pour autre chose \u2014 vous pourrez en ajouter d\u2019autres depuis votre profil.',
       },
       documents: {
         title: 'Vos documents',
@@ -2472,7 +2460,7 @@ export const fr: Mirror<EnDict> = {
     stepDone:      'Termin\u00e9',
     saving:        'Enregistrement\u2026',
     save:          'Enregistrer',
-    saveAllThree:  'Enregistrer les trois',
+    contactMoreLater: 'Vous pourrez ajouter d\u2019autres contacts d\u2019urgence depuis votre profil quand vous le souhaitez.',
 
     step: {
       identity:     { title: 'Vos informations',        hint: 'Date de naissance et lieu de r\u00e9sidence' },
@@ -2487,7 +2475,12 @@ export const fr: Mirror<EnDict> = {
     address:     'Adresse de r\u00e9sidence',
     addressHint: 'Ajoutez les indications pour s\u2019y rendre si l\u2019adresse seule ne suffit pas \u00e0 vous trouver.',
 
+    specialtyLabel:      'Votre sp\u00e9cialit\u00e9',
+    specialtyPlaceholder: 'Choisissez votre m\u00e9tier ou profession',
+    specialtyOther:      'Dites-nous ce que vous faites',
+    specialtyOtherHint:  'Par exemple : \u00e9chafaudeur, carreleur, vitrier.',
     licenseNumber:  'Num\u00e9ro de licence professionnelle',
+    licenseHint:    'Votre profession est r\u00e9glement\u00e9e : nous avons besoin du num\u00e9ro figurant sur votre licence.',
     businessStatus: 'Sous quelle forme exercez-vous ?',
     registered:     'Entreprise enregistr\u00e9e',
     registeredHint: 'Vous avez une entreprise enregistr\u00e9e avec un num\u00e9ro d\u2019enregistrement.',
@@ -2715,6 +2708,7 @@ export const fr: Mirror<EnDict> = {
     },
   },
   common: {
+    next: 'Suivant',
     back:           'Retour',
     backToHome:     "Retour à l'accueil",
     cancel:         'Annuler',
@@ -3548,7 +3542,7 @@ export const fr: Mirror<EnDict> = {
     frameFallback: "Un problème d'affichage ? Ouvrez l'étape directement :",
     doneTitle:     'Tout est prêt.',
     doneBody:      "Nous lirons vos réponses avant de nous parler, pour que l'audit commence par votre chantier et non par les généralités.",
-    backToPricing: 'Retour aux tarifs',
+    backHome: '\u00c0 Groundwork',
     backToProject: 'Retour à votre chantier',
     projectCreated: "Votre chantier est créé. Avant qu'un administrateur Jalla puisse y affecter un budget et une équipe, il nous faut l'audit et vos réponses — les deux étapes ci-dessous.",
     doneCtaProject: 'Ouvrir mon chantier',
@@ -4894,7 +4888,7 @@ export const fr: Mirror<EnDict> = {
     inviteCta: 'Postuler',
     navLabel: 'Réseau partenaire',
     title: 'Rejoindre le réseau de partenaires',
-    sub: 'Une candidature courte. Nous avons déjà l’essentiel depuis votre inscription.',
+    sub: 'Quelques questions. Vos coordonnées et votre spécialité proviennent de votre inscription — inutile de les ressaisir.',
     onFile: 'Déjà enregistré dans votre compte — rien à ressaisir.',
     languages: 'Dans quelle langue souhaitez-vous que nous échangions ?',
     languagesHint: 'Cela détermine qui, chez Jalla, prendra votre appel — choisissez celle où vous êtes le plus à l’aise.',
@@ -4914,8 +4908,8 @@ export const fr: Mirror<EnDict> = {
     whyJoin: 'Pourquoi souhaitez-vous rejoindre le réseau ?',
     differentiator: 'Qu’est-ce qui distingue votre travail ?',
     submit: 'Envoyer la candidature',
-    statusPendingTitle: 'Votre candidature est en cours d’examen',
-    statusPendingBody: 'Nous examinons les candidatures sous un jour ouvré. Si elle correspond, nous vous écrirons pour convenir d’un court appel.',
+    statusPendingTitle: 'Nous avons bien reçu votre candidature',
+    statusPendingBody: 'Réservez ci-dessous votre appel d’intégration partenaire certifié — choisissez l’horaire qui vous convient.',
     statusAcceptedTitle: 'Vous faites partie du réseau de partenaires',
     statusAcceptedBody: 'Bienvenue. L’étape suivante est la présentation de votre client — votre contact Jalla l’organisera avec vous.',
     lang: {

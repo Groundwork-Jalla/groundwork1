@@ -54,8 +54,6 @@ export default function PartnerApplication() {
   /** The language they want to be contacted in. One answer, because it routes the
    *  call and a multi-select left 'both' to be guessed at. */
   const [callLang, setCallLang] = useState('');
-  const [role, setRole] = useState('');
-  const [city, setCity] = useState('');
   const [years, setYears] = useState('');
   const [operatesAs, setOperatesAs] = useState('');
   const [capacity, setCapacity] = useState('');
@@ -65,6 +63,8 @@ export default function PartnerApplication() {
   const [willIntroduce, setWillIntroduce] = useState<boolean | null>(null);
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
+  /** Which of the three pages they are on. */
+  const [page, setPage] = useState(0);
 
   /**
    * Open the calendar, and record that we did.
@@ -88,7 +88,6 @@ export default function PartnerApplication() {
         if (!live) return;
         setPrefill(p);
         setState(summary.state);
-        if (p) setCity('');
         // Coming back to a qualified application that is already in the queue: show the
         // calendar again. Without this, closing the tab before booking was a dead end —
         // the status card rendered with nothing under it and no way to reach a slot.
@@ -109,11 +108,11 @@ export default function PartnerApplication() {
    * application from a half-finished contractor one — a different person needing a
    * different follow-up.
    */
-  const answered = [callLang, role.trim(), city.trim(), years, operatesAs, capacity,
+  const answered = [callLang, years, operatesAs, capacity,
     regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
     .filter(Boolean).length + (hasProject !== null ? 1 : 0) + (willIntroduce !== null ? 1 : 0);
-  const progressPct = Math.round((100 * answered) / 12);
-  const draftState = JSON.stringify([callLang, role, city, years, operatesAs, capacity,
+  const progressPct = Math.round((100 * answered) / 10);
+  const draftState = JSON.stringify([callLang, years, operatesAs, capacity,
     regions, history, whyJoin, differentiator, hasProject, willIntroduce]);
 
   useEffect(() => {
@@ -128,9 +127,9 @@ export default function PartnerApplication() {
         fullName: prefill.fullName ?? undefined,
         email: prefill.email ?? undefined,
         phone: prefill.phone ?? undefined,
-        role: role.trim() || undefined,
+        role: prefill?.specialty ?? undefined,
         payload: {
-          languages: callLang ? [callLang] : [], city: city.trim(), years, operatesAs,
+          languages: callLang ? [callLang] : [], years, operatesAs,
           capacity, regions: regions.trim(), diasporaHistory: history.trim(),
           whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
           hasCurrentProject: hasProject, willIntroduce,
@@ -195,9 +194,25 @@ export default function PartnerApplication() {
   }
 
   const ready = hasProject !== null && willIntroduce !== null
-    && isDecisionReady({ hasCurrentProject: hasProject, willIntroduce });
+    && isDecisionReady({ hasCurrentProject: hasProject, willIntroduce, yearsExperience: years });
 
-  const complete = !!callLang && role.trim() && city.trim() && years && operatesAs
+  /**
+   * Three pages, not one long form and not one question at a time.
+   *
+   * The whole form at once made the application feel like a different exercise from the
+   * onboarding people had just come through, and it was easy to abandon. A single
+   * question per screen would be nine screens for a short application. Three pages of
+   * three keeps the sense of moving forward without making it a slog.
+   */
+  const PAGES = 3;
+  const pageReady = (n: number): boolean => {
+    if (n === 0) return !!callLang && !!years && !!operatesAs;
+    if (n === 1) return regions.trim() !== '' && !!capacity;
+    return hasProject !== null && willIntroduce !== null
+        && whyJoin.trim() !== '' && differentiator.trim() !== '';
+  };
+
+  const complete = !!callLang && years && operatesAs
     && capacity && regions.trim() && whyJoin.trim() && differentiator.trim()
     && hasProject !== null && willIntroduce !== null;
 
@@ -211,7 +226,10 @@ export default function PartnerApplication() {
         hasCurrentProject: hasProject === true, willIntroduce: willIntroduce === true,
         whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
         regions: regions.trim(), concurrentProjects: capacity,
-        yearsExperience: years, role: role.trim(), operatesAs, city: city.trim(),
+        yearsExperience: years,
+        // Both come from onboarding now (142): the specialty was asked there, and the
+        // address it had already taken is what "city you work from" was reaching for.
+        role: prefill.specialty ?? '', operatesAs, city: '',
       });
       setState('pending');
       // They finished, so take them off the follow-up list. By user rather than by draft
@@ -274,84 +292,114 @@ export default function PartnerApplication() {
         </div>
       )}
 
-      <Row label={t('partner.languages')} hint={t('partner.languagesHint')}>
-        <div className="flex gap-2">
-          {LANGS.map(l => (
-            <button key={l} type="button" className={chip(callLang === l)}
-              onClick={() => setCallLang(l)}>
-              {t(`partner.lang.${l}` as never)}
-            </button>
-          ))}
-        </div>
-      </Row>
-
-      <Row label={t('partner.role')}>
-        <input value={role} onChange={e => setRole(e.target.value)} className={field}
-          placeholder={t('partner.rolePlaceholder')} />
-      </Row>
-
-      <Row label={t('partner.city')}>
-        <input value={city} onChange={e => setCity(e.target.value)} className={field} />
-      </Row>
-
-      <Row label={t('partner.years')}>
-        <div className="flex flex-wrap gap-2">
-          {YEARS.map(y => <button key={y} type="button" className={chip(years === y)}
-            onClick={() => setYears(y)}>{y}</button>)}
-        </div>
-      </Row>
-
-      <Row label={t('partner.operatesAs')}>
-        <div className="flex gap-2">
-          {OPERATES.map(o => <button key={o} type="button" className={chip(operatesAs === o)}
-            onClick={() => setOperatesAs(o)}>{t(`partner.operates.${o}` as never)}</button>)}
-        </div>
-      </Row>
-
-      <Row label={t('partner.regions')}>
-        <input value={regions} onChange={e => setRegions(e.target.value)} className={field}
-          placeholder={t('partner.regionsPlaceholder')} />
-      </Row>
-
-      <Row label={t('partner.capacity')}>
-        <div className="flex gap-2">
-          {CAPACITY.map(c => <button key={c} type="button" className={chip(capacity === c)}
-            onClick={() => setCapacity(c)}>{c}</button>)}
-        </div>
-      </Row>
-
-      <Row label={t('partner.history')} hint={t('partner.historyHint')}>
-        <textarea rows={2} value={history} onChange={e => setHistory(e.target.value)} className={field} />
-      </Row>
-
-      {/* The two that decide whether this reaches a calendar. */}
-      <div className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-        <YesNo label={t('partner.hasProject')} value={hasProject} onChange={setHasProject} chip={chip} />
-        <div className="mt-4">
-          <YesNo label={t('partner.willIntroduce')} value={willIntroduce} onChange={setWillIntroduce} chip={chip} />
-        </div>
-        {/* Said plainly rather than silently de-prioritising them: somebody without a
-            project today is welcome on Groundwork and can apply again when they have one. */}
-        {hasProject !== null && willIntroduce !== null && !ready && (
-          <p className="mt-3 text-xs text-brand-mid-grey">{t('partner.notReadyNote')}</p>
-        )}
+      {/* Where they are, so three pages read as progress rather than as more forms. */}
+      <div className="flex gap-1" role="progressbar" aria-valuenow={page + 1} aria-valuemin={1} aria-valuemax={PAGES}>
+        {Array.from({ length: PAGES }, (_, i) => (
+          <span key={i} className={cn('h-1.5 flex-1 rounded-full transition-colors',
+            i < page ? 'bg-state-success'
+            : i === page ? 'bg-brand-near-black dark:bg-white'
+            : 'bg-brand-border-grey dark:bg-[#2c2c2c]')} />
+        ))}
       </div>
 
-      <Row label={t('partner.whyJoin')}>
-        <textarea rows={2} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
-      </Row>
+      {page === 0 && (
+        <>
+          <Row label={t('partner.languages')} hint={t('partner.languagesHint')}>
+            <div className="flex gap-2">
+              {LANGS.map(l => (
+                <button key={l} type="button" className={chip(callLang === l)}
+                  onClick={() => setCallLang(l)}>
+                  {t(`partner.lang.${l}` as never)}
+                </button>
+              ))}
+            </div>
+          </Row>
 
-      <Row label={t('partner.differentiator')}>
-        <textarea rows={2} value={differentiator} onChange={e => setDifferentiator(e.target.value)} className={field} />
-      </Row>
+          <Row label={t('partner.years')}>
+            <div className="flex flex-wrap gap-2">
+              {YEARS.map(y => <button key={y} type="button" className={chip(years === y)}
+                onClick={() => setYears(y)}>{y}</button>)}
+            </div>
+          </Row>
+
+          <Row label={t('partner.operatesAs')}>
+            <div className="flex gap-2">
+              {OPERATES.map(o => <button key={o} type="button" className={chip(operatesAs === o)}
+                onClick={() => setOperatesAs(o)}>{t(`partner.operates.${o}` as never)}</button>)}
+            </div>
+          </Row>
+        </>
+      )}
+
+      {page === 1 && (
+        <>
+          <Row label={t('partner.regions')}>
+            <input value={regions} onChange={e => setRegions(e.target.value)} className={field}
+              placeholder={t('partner.regionsPlaceholder')} />
+          </Row>
+
+          <Row label={t('partner.capacity')}>
+            <div className="flex gap-2">
+              {CAPACITY.map(c => <button key={c} type="button" className={chip(capacity === c)}
+                onClick={() => setCapacity(c)}>{c}</button>)}
+            </div>
+          </Row>
+
+          <Row label={t('partner.history')} hint={t('partner.historyHint')}>
+            <textarea rows={2} value={history} onChange={e => setHistory(e.target.value)} className={field} />
+          </Row>
+        </>
+      )}
+
+      {page === 2 && (
+        <>
+          {/* The two that decide whether this reaches a calendar. */}
+          <div className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
+            <YesNo label={t('partner.hasProject')} value={hasProject} onChange={setHasProject} chip={chip} />
+            <div className="mt-4">
+              <YesNo label={t('partner.willIntroduce')} value={willIntroduce} onChange={setWillIntroduce} chip={chip} />
+            </div>
+            {/* Said plainly rather than silently de-prioritising them: somebody without a
+                project today is welcome on Groundwork and can apply again when they have one. */}
+            {hasProject !== null && willIntroduce !== null && !ready && (
+              <p className="mt-3 text-xs text-brand-mid-grey">{t('partner.notReadyNote')}</p>
+            )}
+          </div>
+
+          <Row label={t('partner.whyJoin')}>
+            <textarea rows={2} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
+          </Row>
+
+          <Row label={t('partner.differentiator')}>
+            <textarea rows={2} value={differentiator} onChange={e => setDifferentiator(e.target.value)} className={field} />
+          </Row>
+        </>
+      )}
 
       {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
 
-      <button type="submit" disabled={busy || !complete}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
-        {busy && <Loader2 className="size-4 animate-spin" />}
-        {t('partner.submit')}
-      </button>
+      <div className="flex items-center gap-3">
+        {page > 0 && (
+          <button type="button" onClick={() => setPage(p => p - 1)}
+            className="text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
+            {t('common.back')}
+          </button>
+        )}
+        {page < PAGES - 1 ? (
+          // A plain button, never a submit: Enter on a text field would otherwise file a
+          // half-finished application from page one.
+          <button type="button" disabled={!pageReady(page)} onClick={() => setPage(p => p + 1)}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
+            {t('common.next')}
+          </button>
+        ) : (
+          <button type="submit" disabled={busy || !complete}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {t('partner.submit')}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
