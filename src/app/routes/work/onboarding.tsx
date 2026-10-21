@@ -600,7 +600,7 @@ function SpecialtyPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void })
           >
             <option value="">{t('contractorOnboarding.specialtyPlaceholder')}</option>
             {CONTRACTOR_ROLES.map(r => (
-              <option key={r} value={r}>{t(`contractorApply.form.roles.${r}` as TKey)}</option>
+              <option key={r} value={r}>{t(`contractorApply.form.role.${r}` as TKey)}</option>
             ))}
           </select>
         </div>

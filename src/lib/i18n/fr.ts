@@ -2537,7 +2537,7 @@ export const fr: Mirror<EnDict> = {
       license_required:         'Saisissez votre num\u00e9ro de licence professionnelle.',
       business_status_required: 'Indiquez si vous \u00eates une entreprise enregistr\u00e9e ou un entrepreneur ind\u00e9pendant.',
       business_details_required:'Une entreprise enregistr\u00e9e doit indiquer son nom et son num\u00e9ro d\u2019enregistrement.',
-      contacts_count:           'Les trois contacts d\u2019urgence sont obligatoires.',
+      contacts_count:           'Indiquez au moins un contact d\u2019urgence.',
       contacts_shape:           'Ces contacts n\u2019ont pas pu \u00eatre lus. Actualisez la page et r\u00e9essayez.',
       bad_intent:               'Choisissez l\u2019une des deux options.',
       bad_kind:                 'Ce n\u2019est pas un document que nous demandons.',
@@ -3629,8 +3629,8 @@ export const fr: Mirror<EnDict> = {
     },
     nav: {
       joinFree:       'Rejoindre gratuitement',
-      forContractors: "Devenir partenaire",
-      forContractorsShort: "Partenaires",
+      forContractors: "Devenir entrepreneur",
+      forContractorsShort: "Entrepreneurs",
       joinFreeShort:  'Rejoindre',
     },
 
@@ -3778,7 +3778,7 @@ export const fr: Mirror<EnDict> = {
 
     cta: {
       button:         'Rejoindre gratuitement',
-      contractorLink: 'Devenir partenaire',
+      contractorLink: 'Devenir entrepreneur',
     },
 
 

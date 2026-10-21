@@ -2571,7 +2571,7 @@ export const en = {
       license_required:         'Enter your professional licence number.',
       business_status_required: 'Say whether you are a registered business or an independent contractor.',
       business_details_required:'A registered business needs its name and registration number.',
-      contacts_count:           'All three emergency contacts are required.',
+      contacts_count:           'Give us at least one emergency contact.',
       contacts_shape:           'Those contacts could not be read. Refresh the page and try again.',
       bad_intent:               'Choose one of the two options.',
       bad_kind:                 'That is not a document we ask for.',
@@ -3676,8 +3676,8 @@ export const en = {
     },
     nav: {
       joinFree:       'Join for Free',
-      forContractors: "Join as a Partner",
-      forContractorsShort: "Partners",
+      forContractors: "Join as a Contractor",
+      forContractorsShort: "Contractors",
       joinFreeShort:  'Join Free',
     },
 
@@ -3833,7 +3833,7 @@ export const en = {
 
     cta: {
       button:         'Join for Free',
-      contractorLink: 'Join as a partner',
+      contractorLink: 'Join as a contractor',
     },
 
 
