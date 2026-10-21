@@ -45,13 +45,19 @@ export default function CTASection() {
         </p>
         </div>
 
-        <div className="mt-4">
-          <a
-            href="/contractor-apply"
-            className="text-xs sm:text-sm text-white/40 underline underline-offset-4 hover:text-white/70 transition-colors"
+        {/* The second audience, and a real button rather than the fine print it used to be:
+            partner recruitment is its own funnel now, not an afterthought under the client
+            CTA. Outlined so it reads as the second action, not a competing first one. */}
+        <div className="mt-8 flex justify-center">
+          <Button
+            asChild
+            variant="outline"
+            className="w-full border-white/25 bg-transparent px-8 py-4 h-auto text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
           >
-            {t('landing.cta.contractorLink')}
-          </a>
+            <Link to="/contractor-signup" className="flex items-center justify-center gap-1.5">
+              {t('landing.cta.contractorLink')}
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

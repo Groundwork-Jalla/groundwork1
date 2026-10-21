@@ -199,8 +199,21 @@ describe('one calendar, and Vanessa is brought into the French ones', () => {
 
   it('only a decision-ready applicant is offered a slot', () => {
     // Philip's calendar is the constraint. A call is booked by somebody with a live
-    // project they will introduce, and nobody else.
-    expect(page).toMatch(/if \(ready\) setBooking/);
+    // project they will introduce, and nobody else — on BOTH paths to the calendar:
+    // the submit that just qualified them, and the reload that finds them already in
+    // the queue. The second path is the one that did not exist: an applicant who closed
+    // the tab before booking saw their status card with no calendar under it.
+    expect(page).toMatch(/if \(ready\) await openBooking\(\)/);
+    expect(page).toMatch(/if \(inQueue && summary\.decisionReady\) void openBooking\(\)/);
+  });
+
+  it('and reaching the booking step is recorded, but never as a confirmed booking', () => {
+    // The widget is a cross-origin Google iframe, so a click inside it is invisible to
+    // us. Marking only when a real URL came back keeps the counter honest: an
+    // unconfigured schedule is a step we failed to offer, not one they reached.
+    expect(page).toMatch(/if \(url\) void markBookingShown\(\)/);
+    const funnel = read('src/lib/admin/partner-funnel.ts');
+    expect(funnel).toMatch(/NOT confirmed bookings/);
   });
 
   it('and an unconfigured schedule says so rather than showing an empty frame', () => {

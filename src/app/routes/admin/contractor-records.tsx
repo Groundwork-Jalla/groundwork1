@@ -7,6 +7,9 @@ import {
   type ContractorDossier, type ContractorRecordRow,
 } from '@/lib/supabase/admin-contractor-records';
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/supabase/contractor-onboarding';
+import {
+  fetchPartnerFunnel, funnelStages, partnerFunnelAvailable, type PartnerFunnel,
+} from '@/lib/admin/partner-funnel';
 import { bankName } from '@/lib/payments/banks';
 import { signCredentialUrl } from '@/lib/supabase/admin-applications';
 import { formatDate } from '@/lib/format';
@@ -41,6 +44,8 @@ export default function AdminContractorRecords() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  /** null until loaded, false when 136 is not on this database yet. */
+  const [funnel, setFunnel] = useState<PartnerFunnel | null | false>(null);
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +59,20 @@ export default function AdminContractorRecords() {
   }, [t]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Separate from `load`: the funnel is a different RPC behind a different migration, and
+  // a database without 136 must still render the table rather than an error.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        if (!(await partnerFunnelAvailable())) { if (alive) setFunnel(false); return; }
+        const f = await fetchPartnerFunnel();
+        if (alive) setFunnel(f);
+      } catch { if (alive) setFunnel(false); }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,6 +107,8 @@ export default function AdminContractorRecords() {
       {error && (
         <p role="alert" className="mb-6 rounded-xl border border-state-alert/30 bg-brand-off-white px-4 py-3 text-sm dark:bg-[#1e1e1e] dark:text-white">{error}</p>
       )}
+
+      {funnel && <FunnelStrip funnel={funnel} />}
 
       {/* Counts of real rows, not illustrative figures. */}
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
@@ -151,6 +172,58 @@ function Stat({ label, value }: { label: string; value: number }) {
       <p className="text-xs text-brand-mid-grey">{label}</p>
       <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-near-black dark:text-white">{value}</p>
     </div>
+  );
+}
+
+/**
+ * The partner funnel, in the order the flow runs.
+ *
+ * Outreach → contractor signup → contractor onboarding → partner application →
+ * pre-qualification → the call with Philip. Each stage shows what it lost from the one
+ * before it, because the count alone never says where to act.
+ *
+ * Two labels are load-bearing. "Sent to booking" is not confirmed bookings — Philip's
+ * calendar holds those, and the widget is a cross-origin iframe, so this is the nearest
+ * fact Groundwork owns. And the interested-but-not-applied line is the follow-up list:
+ * somebody who said yes at onboarding and then stopped is the cheapest person to
+ * recover, which is the one number here that names an action.
+ */
+function FunnelStrip({ funnel }: { funnel: PartnerFunnel }) {
+  const t = useT();
+  const stages = funnelStages(funnel);
+  const gap = Math.max(0, funnel.partnerInterested - funnel.applications);
+
+  return (
+    <section className="mb-5" aria-label={t('adminContractorRecords.funnelTitle')}>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
+        {t('adminContractorRecords.funnelTitle')}
+      </h2>
+      <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {stages.map((stage, i) => (
+          <li
+            key={stage.key}
+            className="rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+          >
+            <p className="text-xs text-brand-mid-grey">
+              {t(`adminContractorRecords.funnel.${stage.key}` as TKey)}
+            </p>
+            <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-near-black dark:text-white">
+              {stage.count}
+            </p>
+            {/* No drop on the first stage: there is nothing before it to have lost. */}
+            {i > 0 && stage.dropFromPrevious > 0 && (
+              <p className="mt-0.5 text-[11px] tabular-nums text-brand-mid-grey">
+                −{stage.dropFromPrevious}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
+        {t('adminContractorRecords.funnelBookingNote')}
+        {gap > 0 && <> {t('adminContractorRecords.funnelGap').replace('{n}', String(gap))}</>}
+      </p>
+    </section>
   );
 }
 

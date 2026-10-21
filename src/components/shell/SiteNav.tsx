@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Link, NavLink, useLocation } from 'react-router';
+import { Link, NavLink } from 'react-router';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
@@ -27,12 +27,6 @@ const LINKS: { to: string; labelKey: TKey }[] = [
 export function SiteNav() {
   const t = useT();
   const join = useJoinDestination();
-  const { pathname } = useLocation();
-
-  // On the contractor page itself, "Join as a Contractor" would link to the page
-  // you are already on. Point it at the form instead — that page is long, and the
-  // sticky jump to #apply was the conversion path its own navbar used to provide.
-  const onContractorPage = pathname === '/contractor-apply';
 
   return (
     <motion.nav
@@ -83,18 +77,11 @@ export function SiteNav() {
             variant="outline"
             className="h-9 shrink-0 rounded-md border-white/20 bg-transparent px-2.5 text-[11px] font-medium text-white/75 hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
           >
-            {onContractorPage ? (
-              <a href="#apply">
-                <span className="hidden sm:inline">{t('contractorApply.nav.apply')}</span>
-                <span className="sm:hidden">{t('contractorApply.nav.applyShort')}</span>
-              </a>
-            ) : (
-              <Link to="/contractor-apply">
-                {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
-                <span className="hidden sm:inline">{t('landing.nav.forContractors')}</span>
-                <span className="sm:hidden">{t('landing.nav.forContractorsShort')}</span>
-              </Link>
-            )}
+            <Link to="/contractor-signup">
+              {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
+              <span className="hidden sm:inline">{t('landing.nav.forContractors')}</span>
+              <span className="sm:hidden">{t('landing.nav.forContractorsShort')}</span>
+            </Link>
           </Button>
           {/* The one action the bar is for. Heavier weight, more padding and a lift
               off the dark ground, so it outranks the contractor button rather than

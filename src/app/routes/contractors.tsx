@@ -744,8 +744,8 @@ export default function ContractorsPage() {
             <p className="text-sm font-semibold text-brand-near-black">{t('contractors.emptyTitle')}</p>
             <p className="text-xs text-brand-mid-grey mt-1 max-w-xs">
               The Jalla team is vetting professionals. Check back soon, or{' '}
-              <Link to="/contractor-apply" className="underline underline-offset-2 hover:text-brand-near-black transition-colors">
-                apply to join
+              <Link to="/contractor-signup" className="underline underline-offset-2 hover:text-brand-near-black transition-colors">
+                join as a partner
               </Link>.
             </p>
           </div>
@@ -788,7 +788,7 @@ export default function ContractorsPage() {
           <p className="mt-10 text-center text-xs text-brand-mid-grey">
             {t('contractors.screenedNote')}{' '}
             <Link
-              to="/contractor-apply"
+              to="/contractor-signup"
               className="underline underline-offset-4 hover:text-brand-near-black transition-colors"
             >
               {t('contractors.applyToJoin')}

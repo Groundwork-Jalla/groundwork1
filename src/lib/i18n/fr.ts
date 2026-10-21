@@ -2317,6 +2317,18 @@ export const fr: Mirror<EnDict> = {
     statTotal:     'Entrepreneurs',
     statComplete:  'Int\u00e9gration termin\u00e9e',
     statPartners:  'Am\u00e8nent leur propre client',
+
+    // L'entonnoir partenaire (136). Les noms d'\u00e9tapes suivent la s\u00e9quence de Philip.
+    funnelTitle: 'Entonnoir partenaire',
+    funnel: {
+      accounts:      'Comptes entrepreneurs',
+      onboarded:     'Int\u00e9gration termin\u00e9e',
+      applications:  'Candidatures partenaire',
+      prequalified:  'Pr\u00e9qualifi\u00e9s',
+      sentToBooking: 'Orient\u00e9s vers la r\u00e9servation',
+    },
+    funnelBookingNote: 'Orient\u00e9s vers la r\u00e9servation compte les candidats arriv\u00e9s \u00e0 l\u2019\u00e9tape de r\u00e9servation \u00e0 qui un cr\u00e9neau a \u00e9t\u00e9 propos\u00e9. Les appels confirm\u00e9s sont dans l\u2019agenda de Philip.',
+    funnelGap: '{n} ont dit oui au partenariat lors de l\u2019int\u00e9gration mais n\u2019ont pas encore d\u00e9pos\u00e9 de candidature.',
     secPersonal:   'Informations personnelles',
     secBusiness:   'Licence et entreprise',
     secEmergency:  'Contacts d\u2019urgence',
@@ -3620,8 +3632,8 @@ export const fr: Mirror<EnDict> = {
     },
     nav: {
       joinFree:       'Rejoindre gratuitement',
-      forContractors: "Devenir entrepreneur partenaire",
-      forContractorsShort: "Entrepreneurs",
+      forContractors: "Devenir partenaire",
+      forContractorsShort: "Partenaires",
       joinFreeShort:  'Rejoindre',
     },
 
@@ -3769,7 +3781,7 @@ export const fr: Mirror<EnDict> = {
 
     cta: {
       button:         'Rejoindre gratuitement',
-      contractorLink: 'Vous êtes un professionnel du bâtiment ?',
+      contractorLink: 'Devenir partenaire',
     },
 
 
@@ -4274,9 +4286,9 @@ export const fr: Mirror<EnDict> = {
       homeowner: 'Client',
       contractor: 'Entrepreneur',
       // Choisir « Entrepreneur » n’ouvre pas de compte : Jalla examine d’abord la candidature.
-      contractorReviewed:     'Les entrepreneurs sont examinés avant d’obtenir un compte',
-      contractorReviewedBody: 'Parlez-nous de votre travail et de vos corps de métier. Dès que Jalla approuve votre candidature, nous vous enverrons un lien pour créer votre compte.',
-      contractorApplyCta:     'Postuler pour rejoindre Groundwork',
+      contractorDoor:     'Les entrepreneurs ont leur propre inscription',
+      contractorDoorBody: 'Créez votre compte là-bas et commencez à gérer vos chantiers tout de suite. Devenir partenaire certifié Jalla est une étape distincte, à franchir quand vous le souhaitez.',
+      contractorDoorCta:  'Continuer vers l’inscription entrepreneur',
       contractorLink: 'Créer un compte entrepreneur',
       titleInvite:    'Créez votre compte',
       subtitle:       'Rejoignez les bâtisseurs de la diaspora qui ne perdent jamais la trace de leur argent.',

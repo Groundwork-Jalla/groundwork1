@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH,
+  signupAccountType, signupMetadata, signupGoesToPartnerDoor, CONTRACTOR_SIGNUP_PATH,
 } from './signup-account';
 import { lookup } from '@/lib/i18n/translate';
 import { en } from '@/lib/i18n/en';
@@ -70,14 +70,35 @@ describe('signup metadata carries contact details and nothing privileged', () =>
 describe('what the account-type choice actually does', () => {
   it('defaults to a client', () => {
     expect(signupAccountType(new URLSearchParams())).toBe('homeowner');
-    expect(signupGoesToApplication(new URLSearchParams())).toBe(false);
+    expect(signupGoesToPartnerDoor(new URLSearchParams())).toBe(false);
   });
 
-  it('the contractor radio leads to the application, not to an account', () => {
+  it('the contractor radio leads to the contractor door, which creates a real account', () => {
+    // Reversed from the original order: a contractor no longer has to be accepted before
+    // holding an account. The application became a step inside the product (133), so this
+    // radio points at the door that signs them up — not at a form that reviews them.
     const params = new URLSearchParams('role=contractor');
     expect(signupAccountType(params)).toBe('contractor');
-    expect(signupGoesToApplication(params)).toBe(true);
-    expect(CONTRACTOR_APPLY_PATH).toBe('/contractor-apply');
+    expect(signupGoesToPartnerDoor(params)).toBe(true);
+    expect(CONTRACTOR_SIGNUP_PATH).toBe('/contractor-signup');
+  });
+
+  it('nobody is sent to the retired apply-first flow', () => {
+    // The whole point of the change. If this path reappears as a destination anywhere in
+    // the app, a contractor is being asked for an application before they have an
+    // account, which is the order Groundwork moved away from.
+    const doors = [
+      'src/app/routes/auth/signup.tsx',
+      'src/components/auth/RoleSignup.tsx',
+      'src/components/landing/CTASection.tsx',
+      'src/components/shell/SiteNav.tsx',
+      'src/app/routes/contractors.tsx',
+    ];
+    for (const door of doors) {
+      const src = readFileSync(resolve(process.cwd(), door), 'utf8');
+      expect(src, `${door} still sends somebody to /contractor-apply`)
+        .not.toMatch(/to=["'{]\s*["']?\/contractor-apply|href=["']\/contractor-apply/);
+    }
   });
 
   it('an invite link still creates an account', () => {
@@ -85,19 +106,19 @@ describe('what the account-type choice actually does', () => {
     // invite, which carries its own admin-issued token.
     const params = new URLSearchParams('invite=abc&role=contractor');
     expect(signupAccountType(params)).toBe('contractor');
-    expect(signupGoesToApplication(params), 'an invited contractor must still sign up').toBe(false);
+    expect(signupGoesToPartnerDoor(params), 'an invited contractor must still sign up').toBe(false);
   });
 
-  it('the page hides the form and the OAuth buttons when it is sending them to apply', () => {
-    expect(page).toContain('{sendToApplication ? (');
-    expect(page).toContain('{!sendToApplication && (');
-    expect(page).toContain('{!isContractorSignup && !sendToApplication && (');
-    expect(page).toContain('to={CONTRACTOR_APPLY_PATH}');
+  it('the page hides its own form and the OAuth buttons when it is handing off', () => {
+    expect(page).toContain('{sendToPartnerDoor ? (');
+    expect(page).toContain('{!sendToPartnerDoor && (');
+    expect(page).toContain('{!isContractorSignup && !sendToPartnerDoor && (');
+    expect(page).toContain('to={CONTRACTOR_SIGNUP_PATH}');
   });
 });
 
 describe('the explainer is translated', () => {
-  it.each(['contractorReviewed', 'contractorReviewedBody', 'contractorApplyCta'])(
+  it.each(['contractorDoor', 'contractorDoorBody', 'contractorDoorCta'])(
     'auth.signup.%s exists in both languages', key => {
       for (const [lang, dict] of [['en', en], ['fr', fr]] as const) {
         const hit = lookup(dict as never, `auth.signup.${key}`);
@@ -106,8 +127,13 @@ describe('the explainer is translated', () => {
       }
     });
 
-  it('does not promise an account the applicant will not get', () => {
-    const body = String(lookup(en as never, 'auth.signup.contractorReviewedBody')).toLowerCase();
-    expect(body).toMatch(/approv|review/);
+  it('no longer makes an account conditional on being approved first', () => {
+    // The inverse of what this test used to assert, because the flow inverted: the
+    // account comes first and the partner application is a later, separate step. Copy
+    // that still talked about approval would send a contractor away to wait for an
+    // email that is never coming.
+    const body = String(lookup(en as never, 'auth.signup.contractorDoorBody')).toLowerCase();
+    expect(body).not.toMatch(/approv|once we|wait/);
+    expect(body, 'it should say the partner step is separate').toMatch(/partner/);
   });
 });

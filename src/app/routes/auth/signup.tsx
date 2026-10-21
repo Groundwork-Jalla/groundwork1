@@ -14,7 +14,7 @@ import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
-import { signupAccountType, signupMetadata, signupGoesToApplication, CONTRACTOR_APPLY_PATH } from "@/lib/auth/signup-account";
+import { signupAccountType, signupMetadata, signupGoesToPartnerDoor, CONTRACTOR_SIGNUP_PATH } from "@/lib/auth/signup-account";
 import { PasswordField } from '@/components/ui/PasswordField';
 
 export default function Signup() {
@@ -25,7 +25,7 @@ export default function Signup() {
   const accountType = signupAccountType(searchParams);
   const isContractorSignup = accountType === 'contractor';
   // The radio does not make an account: contractors are reviewed first (100).
-  const sendToApplication  = signupGoesToApplication(searchParams);
+  const sendToPartnerDoor  = signupGoesToPartnerDoor(searchParams);
   const t              = useT();
 
   const [fullName,        setFullName]        = useState("");
@@ -220,18 +220,19 @@ export default function Signup() {
             </div>
           </fieldset>
         )}
-        {sendToApplication ? (
-          /* Groundwork reviews contractors before they hold an account (100). Offering a
-             signup form here would hand them one with no standing — which looks like
-             success and is not. The application is the real next step. */
+        {sendToPartnerDoor ? (
+          /* A contractor's account is granted by `register_contractor_account` on its own
+             door (106), not by anything typed here — so this form cannot create one. The
+             card points at that door rather than silently making a client account. The
+             radio stays above it, so choosing "contractor" is still reversible. */
           <div className="rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <p className="text-sm text-brand-near-black dark:text-white">{t('auth.signup.contractorReviewed')}</p>
-            <p className="mt-1.5 text-sm text-brand-mid-grey">{t('auth.signup.contractorReviewedBody')}</p>
+            <p className="text-sm text-brand-near-black dark:text-white">{t('auth.signup.contractorDoor')}</p>
+            <p className="mt-1.5 text-sm text-brand-mid-grey">{t('auth.signup.contractorDoorBody')}</p>
             <Link
-              to={CONTRACTOR_APPLY_PATH}
+              to={CONTRACTOR_SIGNUP_PATH}
               className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
             >
-              {t('auth.signup.contractorApplyCta')}
+              {t('auth.signup.contractorDoorCta')}
             </Link>
           </div>
         ) : (
@@ -322,14 +323,14 @@ export default function Signup() {
 
         </>
         )}
-        {!sendToApplication && (
+        {!sendToPartnerDoor && (
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? t('auth.signup.submitting') : t('auth.signup.submit')}
         </Button>
         )}
       </form>
 
-      {!isContractorSignup && !sendToApplication && (
+      {!isContractorSignup && !sendToPartnerDoor && (
         <>
           <div className="flex items-center gap-3 my-6">
             <div className="h-px flex-1 bg-brand-border-grey" />

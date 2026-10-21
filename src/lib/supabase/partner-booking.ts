@@ -56,3 +56,20 @@ export async function bookingUrl(): Promise<string | null> {
   const id = String(data).trim();
   return id ? embedUrl(id) : null;
 }
+
+/**
+ * Record that they reached the booking step.
+ *
+ * Not "a call was booked": Philip's calendar holds that, and the widget is a
+ * cross-origin Google iframe, so a click inside it is invisible to us. This is the
+ * nearest fact Groundwork owns, and `admin_partner_funnel` reports it under the name
+ * `sent_to_booking` so the two are never confused.
+ *
+ * Fire-and-forget by design. A funnel counter that failed to write must never be the
+ * reason an applicant cannot see their calendar.
+ */
+export async function markBookingShown(): Promise<void> {
+  const { error } = await supabase.rpc('mark_booking_shown');
+  // 136 may not be on this database yet; an absent counter is not a broken page.
+  if (error && error.code !== 'PGRST202') return;
+}

@@ -13,7 +13,7 @@ import { normalisePhone, isE164 } from '@/lib/phone';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
-import { signupMetadata, CONTRACTOR_APPLY_PATH, type SignupIntent } from '@/lib/auth/signup-account';
+import { signupMetadata, type SignupIntent } from '@/lib/auth/signup-account';
 import { getClaimPreview, rememberClaim, rememberContractorRegistration, registerContractorAccount } from '@/lib/supabase/contractor-claim';
 import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration, registerVerifierAccount } from '@/lib/supabase/verifier-claim';
 import { useT, type TKey } from '@/lib/i18n';
@@ -95,9 +95,11 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
     intro:    'auth.roleSignup.contractorIntro',
     submit:   'auth.roleSignup.contractorSubmit',
     noToken:  'auth.roleSignup.contractorNoToken',
-    /** An applicant with no token has somewhere to go: the application itself. */
-    noTokenHref: CONTRACTOR_APPLY_PATH,
-    noTokenCta:  'auth.roleSignup.contractorNoTokenCta',
+    // Unreachable for a contractor, since `openWithoutInvite` below means a missing token
+    // shows the form rather than this refusal. Left null because the old apply-first
+    // route it used to point at is no longer a door anyone is sent through.
+    noTokenHref: null,
+    noTokenCta:  null,
     /** A partner may sign up with nothing in the query (106). */
     openWithoutInvite: true,
     openIntro: 'auth.roleSignup.contractorOpenIntro',

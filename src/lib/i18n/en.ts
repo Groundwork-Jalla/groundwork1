@@ -2350,6 +2350,19 @@ export const en = {
     statTotal:     'Contractors',
     statComplete:  'Finished onboarding',
     statPartners:  'Bringing their own client',
+
+    // The partner funnel (136). Stage names match Philip's own sequence so a number here
+    // and a number in his update mean the same thing.
+    funnelTitle: 'Partner funnel',
+    funnel: {
+      accounts:      'Contractor accounts',
+      onboarded:     'Onboarding complete',
+      applications:  'Partner applications',
+      prequalified:  'Pre-qualified',
+      sentToBooking: 'Sent to booking',
+    },
+    funnelBookingNote: 'Sent to booking counts applicants who reached the booking step and were shown a slot. Confirmed calls are in Philip\u2019s calendar.',
+    funnelGap: '{n} said yes to partnering at onboarding but have not filed an application yet.',
     secPersonal:   'Personal',
     secBusiness:   'Licence and business',
     secEmergency:  'Emergency contacts',
@@ -3666,8 +3679,8 @@ export const en = {
     },
     nav: {
       joinFree:       'Join for Free',
-      forContractors: "Join as a Contractor",
-      forContractorsShort: "Contractors",
+      forContractors: "Join as a Partner",
+      forContractorsShort: "Partners",
       joinFreeShort:  'Join Free',
     },
 
@@ -3823,7 +3836,7 @@ export const en = {
 
     cta: {
       button:         'Join for Free',
-      contractorLink: 'Are you a Construction Professional?',
+      contractorLink: 'Join as a partner',
     },
 
 
@@ -4345,9 +4358,9 @@ export const en = {
       contractor: 'Contractor',
       // Choosing "Contractor" does not open an account: Groundwork reviews contractors
       // first, and the application is the honest next step (migration 100).
-      contractorReviewed:     'Contractors are reviewed before they get an account',
-      contractorReviewedBody: 'Tell us about your work and the trades you cover. Once Jalla approves your application we will email you a link to set up your account.',
-      contractorApplyCta:     'Apply to join Groundwork',
+      contractorDoor:     'Contractors have their own sign-up',
+      contractorDoorBody: 'Create your account there and start running projects straight away. Becoming a certified Jalla partner is a separate step you can take once you are in.',
+      contractorDoorCta:  'Continue to contractor sign-up',
       contractorLink: 'Create a contractor account',
       titleInvite:    'Create your account',
       subtitle:       'Join the diaspora builders who never lost track of their money.',

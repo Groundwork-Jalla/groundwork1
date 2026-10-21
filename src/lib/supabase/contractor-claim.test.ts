@@ -36,11 +36,13 @@ describe('the acceptance email carries the claim link', () => {
     expect(email).toContain('`${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}`');
   });
 
-  it('falls back to the application, not to a signup that cannot grant standing', () => {
-    // Without a token no page can make them a contractor. /auth/signup would produce an
-    // ordinary account — 100's original defect, which looks like success and is not — so
-    // the button goes back to the application instead.
-    expect(email).toContain('`${siteUrl}/contractor-apply`');
+  it('falls back to the contractor door, not to a signup that cannot grant standing', () => {
+    // Without a token, /auth/signup would produce an ordinary account — 100's original
+    // defect, which looks like success and is not. The fallback is the contractor door,
+    // which grants the role itself (106) and sends a signed-in contractor to /work. It
+    // used to be the public application page; since 133 a tokenless acceptance means an
+    // in-app applicant who already has an account, for whom that page is a dead end.
+    expect(email).toContain('`${siteUrl}/contractor-signup`');
     expect(email).not.toContain('`${siteUrl}/auth/signup`');
   });
 

@@ -18,7 +18,7 @@ export type SignupAccountType = 'homeowner' | 'contractor';
  * `?invite=` means a client has invited them to a project, so the page addresses a
  * contractor — their standing still comes from accepting that invite, not from here.
  * `?role=contractor` is the radio, which leads to the application form rather than an
- * account (see CONTRACTOR_APPLY_PATH).
+ * account (see CONTRACTOR_SIGNUP_PATH).
  */
 export function signupAccountType(params: URLSearchParams): SignupAccountType {
   return params.get('invite') || params.get('role') === 'contractor'
@@ -98,18 +98,22 @@ export function signupIntentOf(v: unknown): SignupIntent | null {
 /**
  * Where someone choosing "contractor" actually goes.
  *
- * Not to an account. Groundwork reviews contractors before they can hold one, so the
- * honest next step is the application — and offering a signup form that produces an
- * account with no standing would be a worse lie than sending them here.
+ * To an account of their own. A contractor signs up, starts using Groundwork, and only
+ * then decides whether to apply as a certified partner (133) — the application is a step
+ * inside the product, not the gate in front of it. This reverses the original order,
+ * where nobody could hold an account until an admin had accepted an application.
+ *
+ * The role itself is still never granted by anything a visitor types: that door calls
+ * `register_contractor_account` after they are authenticated (106).
  */
-export const CONTRACTOR_APPLY_PATH = '/contractor-apply';
+export const CONTRACTOR_SIGNUP_PATH = '/contractor-signup';
 
 /**
- * Does this choice lead somewhere other than the signup form?
+ * Does this choice lead somewhere other than this form?
  *
  * True only for the radio. Someone arriving on an invite link is signing up for a real
  * account right now — they have a project waiting — so the form stays.
  */
-export function signupGoesToApplication(params: URLSearchParams): boolean {
+export function signupGoesToPartnerDoor(params: URLSearchParams): boolean {
   return !params.get('invite') && params.get('role') === 'contractor';
 }

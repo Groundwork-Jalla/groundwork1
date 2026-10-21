@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,10 +6,10 @@ import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import {
-  loadPartnerPrefill, myApplicationState, submitPartnerApplication, isDecisionReady,
+  loadPartnerPrefill, myApplicationSummary, submitPartnerApplication, isDecisionReady,
   type ApplicationState, type PartnerPrefill,
 } from '@/lib/supabase/partner-application';
-import { bookingUrl, needsVanessa } from '@/lib/supabase/partner-booking';
+import { bookingUrl, needsVanessa, markBookingShown } from '@/lib/supabase/partner-booking';
 import { notifyAdmins } from '@/lib/supabase/notifications';
 
 /**
@@ -63,14 +63,39 @@ export default function PartnerApplication() {
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
 
+  /**
+   * Open the calendar, and record that we did.
+   *
+   * The single way `booking` is ever set to a URL, so the funnel's `sent_to_booking`
+   * cannot drift from what the applicant was actually shown.
+   */
+  const openBooking = useCallback(async () => {
+    const url = await bookingUrl();
+    setBooking(url);
+    // Only when a real slot was shown. An unconfigured schedule is not a booking step
+    // they reached — it is one we failed to offer, and counting it would hide that.
+    if (url) void markBookingShown();
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     let live = true;
-    void Promise.all([loadPartnerPrefill(user.id), myApplicationState(user.id)])
-      .then(([p, s]) => { if (live) { setPrefill(p); setState(s); if (p) setCity(''); } })
+    void Promise.all([loadPartnerPrefill(user.id), myApplicationSummary(user.id)])
+      .then(([p, summary]) => {
+        if (!live) return;
+        setPrefill(p);
+        setState(summary.state);
+        if (p) setCity('');
+        // Coming back to a qualified application that is already in the queue: show the
+        // calendar again. Without this, closing the tab before booking was a dead end —
+        // the status card rendered with nothing under it and no way to reach a slot.
+        const inQueue = summary.state === 'pending' || summary.state === 'reviewing'
+                     || summary.state === 'accepted';
+        if (inQueue && summary.decisionReady) void openBooking();
+      })
       .catch(() => { if (live) setState('none'); });
     return () => { live = false; };
-  }, [user]);
+  }, [user, openBooking]);
 
   if (!user || state === null) {
     return <p role="status" className="flex items-center gap-2 py-10 text-sm text-brand-mid-grey">
@@ -145,7 +170,7 @@ export default function PartnerApplication() {
       // Only a decision-ready applicant is offered the calendar. Philip's time is the
       // constraint — 18 calls, 4 qualified — so a call is booked by somebody with a
       // live project they will introduce, and nobody else.
-      if (ready) setBooking(await bookingUrl());
+      if (ready) await openBooking();
 
       /**
        * A French applicant means Vanessa is needed in the room.

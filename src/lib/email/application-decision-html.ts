@@ -48,10 +48,13 @@ export function buildApplicationDecisionHtml(
   const body1   = t(accepted ? 'email.decision.acceptedBody1'   : 'email.decision.rejectedBody1');
   const body2   = t(accepted ? 'email.decision.acceptedBody2'   : 'email.decision.rejectedBody2');
 
+  // No claim token means an in-app applicant (133): they already hold an account, so the
+  // fallback is their own door, which sends a signed-in contractor to /work. It used to be
+  // the public marketing page, which is a dead end for somebody who has already signed up.
   const cta = accepted
     ? `<table cellpadding="0" cellspacing="0" style="margin:24px 0 4px;">
          <tr><td style="background:#0a0a0a;border-radius:10px;">
-           <a href="${esc(claimToken ? `${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}` : `${siteUrl}/contractor-apply`)}"
+           <a href="${esc(claimToken ? `${siteUrl}/contractor-signup?t=${encodeURIComponent(claimToken)}` : `${siteUrl}/contractor-signup`)}"
               style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;">
              ${esc(t('email.decision.acceptedCta'))}
            </a>

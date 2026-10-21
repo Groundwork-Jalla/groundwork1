@@ -62,6 +62,39 @@ export async function myApplicationState(userId: string): Promise<ApplicationSta
   return known.includes(s) ? (s as ApplicationState) : 'none';
 }
 
+/**
+ * Their application's status AND whether it qualified, in one read.
+ *
+ * Needed because the booking frame used to be set only by the submit handler: somebody
+ * who applied, closed the tab and came back saw their "we have your application" card
+ * with no calendar under it, and had no way back to one. That is the last stage of the
+ * funnel, so the drop-out was the expensive kind.
+ *
+ * The readiness answer is recomputed from the stored columns through `isDecisionReady`
+ * rather than stored as a verdict, so staff and applicant can never be looking at two
+ * different rules.
+ */
+export async function myApplicationSummary(
+  userId: string,
+): Promise<{ state: ApplicationState; decisionReady: boolean }> {
+  const { data, error } = await supabase
+    .from('contractor_applications')
+    .select('status, has_current_project, will_introduce').eq('user_id', userId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (error || !data) return { state: 'none', decisionReady: false };
+
+  const r = data as Record<string, unknown>;
+  const s = String(r.status ?? '');
+  const known: readonly string[] = ['pending', 'reviewing', 'accepted', 'rejected', 'disqualified'];
+  return {
+    state: known.includes(s) ? (s as ApplicationState) : 'none',
+    decisionReady: isDecisionReady({
+      hasCurrentProject: r.has_current_project === true,
+      willIntroduce:     r.will_introduce === true,
+    }),
+  };
+}
+
 export interface PartnerAnswers {
   /** Which languages they WORK IN. Routes the qualification call. */
   languages: string[];
