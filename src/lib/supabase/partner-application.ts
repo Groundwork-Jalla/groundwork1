@@ -119,10 +119,18 @@ export interface PartnerAnswers {
  * agreement during onboarding (116/117), which contains all three. Asking a second time
  * would imply the first did not count.
  */
+/**
+ * File the application, and return its id.
+ *
+ * The id is what closes their draft in `contractor_application_drafts` (138), so a
+ * partner who finished stops appearing on the follow-up list. Reading the row back is
+ * safe here, unlike the anonymous writes in application-drafts.ts: `self_read_application`
+ * (133) lets an applicant see their own row.
+ */
 export async function submitPartnerApplication(
   userId: string, prefill: PartnerPrefill, a: PartnerAnswers,
-): Promise<void> {
-  const { error } = await supabase.from('contractor_applications').insert({
+): Promise<string | null> {
+  const { data, error } = await supabase.from('contractor_applications').insert({
     source: 'in_app',
     user_id: userId,
     full_name: prefill.fullName,
@@ -148,8 +156,9 @@ export async function submitPartnerApplication(
     accepts_no_side_pay: true,
     agreed_to_terms: true,
     ready_for_early: true,
-  });
+  }).select('id').single();
   if (error) throw error;
+  return (data as { id?: string } | null)?.id ?? null;
 }
 
 /**

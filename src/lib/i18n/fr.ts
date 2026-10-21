@@ -2110,6 +2110,9 @@ export const fr: Mirror<EnDict> = {
       subtitle:   'Les personnes qui ont commencé la candidature entrepreneur sans l\'envoyer. Enregistrée au fil de la saisie ; le formulaire les en informe.',
       search:     'Rechercher par nom, e-mail ou téléphone…',
       anonymous:  'Sans nom pour l\'instant',
+      // De quelle porte vient la candidature inachevée (138).
+      sourcePartner:    'Partenaire',
+      sourceContractor: 'Entrepreneur',
       submitted:  'Candidature envoyée',
       emailThem:  'Envoyer un e-mail',
       callThem:   'Appeler',

@@ -58,7 +58,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
         </div>
         <Form action={home} method="get" className="relative mx-6 hidden max-w-lg flex-1 lg:block">
           <Search className="pointer-events-none absolute left-3 top-3 size-4 text-brand-mid-grey" />
-          <input key={params.get('q')} type="search" name="q" defaultValue={params.get('q') ?? ''} aria-label={t(searchKey)} placeholder={t(searchKey)} className="w-full rounded-xl border border-brand-border-grey bg-brand-off-white py-2.5 pl-10 pr-4 text-xs outline-none focus:ring-2 focus:ring-brand-mid-grey dark:border-[#444] dark:bg-[#141414]" />
+          <input key={params.get('q')} type="search" name="q" defaultValue={params.get('q') ?? ''} aria-label={t(searchKey)} placeholder={t(searchKey)} className="w-full rounded-xl border border-brand-border-grey bg-brand-off-white py-2.5 pl-10 pr-4 text-base sm:text-xs outline-none focus:ring-2 focus:ring-brand-mid-grey dark:border-[#444] dark:bg-[#141414]" />
         </Form>
         <div className="ml-auto flex min-w-0 items-center gap-3 px-4 sm:px-6">
           <LanguageToggle compact /><ThemeToggle compact />

@@ -10,6 +10,9 @@ import {
   type ApplicationState, type PartnerPrefill,
 } from '@/lib/supabase/partner-application';
 import { bookingUrl, needsVanessa, markBookingShown } from '@/lib/supabase/partner-booking';
+import {
+  partnerDraftId, clearPartnerDraftId, markPartnerDraftSubmitted, saveApplicationDraft,
+} from '@/lib/supabase/application-drafts';
 import { notifyAdmins } from '@/lib/supabase/notifications';
 
 /**
@@ -150,6 +153,49 @@ export default function PartnerApplication() {
 
   const ready = hasProject !== null && willIntroduce !== null
     && isDecisionReady({ hasCurrentProject: hasProject, willIntroduce });
+
+  /**
+   * Who started this application and did not finish.
+   *
+   * The public form has had this since 043; the partner application had nothing, so
+   * somebody who got five questions in and stopped left no trace and nobody to chase.
+   * Written with `source: 'in_app'` so /admin/drafts can tell a half-finished PARTNER
+   * application from a half-finished contractor one — a different person needing a
+   * different follow-up.
+   */
+  const answered = [callLang, role.trim(), city.trim(), years, operatesAs, capacity,
+    regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
+    .filter(Boolean).length + (hasProject !== null ? 1 : 0) + (willIntroduce !== null ? 1 : 0);
+  const progressPct = Math.round((100 * answered) / 12);
+  const draftState = JSON.stringify([callLang, role, city, years, operatesAs, capacity,
+    regions, history, whyJoin, differentiator, hasProject, willIntroduce]);
+
+  useEffect(() => {
+    // Nothing answered yet means they only opened the page. Writing then would put every
+    // partner who said "yes" at onboarding onto the follow-up list before they had done
+    // anything, which is exactly the signal the list is supposed to carry.
+    if (!user || !prefill || state !== 'none' || answered === 0) return;
+    const timer = setTimeout(() => {
+      void saveApplicationDraft(partnerDraftId(user.id), {
+        source: 'in_app',
+        userId: user.id,
+        fullName: prefill.fullName ?? undefined,
+        email: prefill.email ?? undefined,
+        phone: prefill.phone ?? undefined,
+        role: role.trim() || undefined,
+        payload: {
+          languages: callLang ? [callLang] : [], city: city.trim(), years, operatesAs,
+          capacity, regions: regions.trim(), diasporaHistory: history.trim(),
+          whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
+          hasCurrentProject: hasProject, willIntroduce,
+        },
+        progressPct,
+      });
+    }, 2_000);
+    return () => clearTimeout(timer);
+    // `draftState` stands in for every answer above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftState, user?.id, prefill, state]);
   const complete = !!callLang && role.trim() && city.trim() && years && operatesAs
     && capacity && regions.trim() && whyJoin.trim() && differentiator.trim()
     && hasProject !== null && willIntroduce !== null;
@@ -159,7 +205,7 @@ export default function PartnerApplication() {
     if (!user || !prefill || !complete) return;
     setBusy(true); setError(null);
     try {
-      await submitPartnerApplication(user.id, prefill, {
+      const applicationId = await submitPartnerApplication(user.id, prefill, {
         languages: [callLang], diasporaHistory: history.trim(),
         hasCurrentProject: hasProject === true, willIntroduce: willIntroduce === true,
         whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
@@ -167,6 +213,12 @@ export default function PartnerApplication() {
         yearsExperience: years, role: role.trim(), operatesAs, city: city.trim(),
       });
       setState('pending');
+      // They finished, so take them off the follow-up list. By user rather than by draft
+      // id: starting on a phone and finishing on a laptop leaves a row this browser has
+      // never heard of, and chasing somebody who already applied is worse than not
+      // chasing at all.
+      if (applicationId) void markPartnerDraftSubmitted(user.id, applicationId);
+      clearPartnerDraftId(user.id);
       // Only a decision-ready applicant is offered the calendar. Philip's time is the
       // constraint — 18 calls, 4 qualified — so a call is booked by somebody with a
       // live project they will introduce, and nobody else.
@@ -200,7 +252,8 @@ export default function PartnerApplication() {
     'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
     on ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
        : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]');
-  const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-white';
+  // text-base below sm so iOS does not zoom the page on focus; see ui/input.tsx.
+  const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-white';
 
   return (
     <form onSubmit={submit} className="max-w-xl space-y-5">

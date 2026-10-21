@@ -63,7 +63,67 @@ export function clearDraftId(): void {
   try { localStorage.removeItem(DRAFT_KEY); } catch { /* nothing to clear */ }
 }
 
+/**
+ * The draft id for a signed-in partner, minted once per contractor.
+ *
+ * Keyed by user id rather than sharing `DRAFT_KEY`, for two reasons. A contractor who
+ * once filled in the public form on this browser already has a draft id sitting in
+ * storage, and reusing it would flip that stranger's row to `in_app` and attach it to
+ * the wrong person. And two partners signing in on one site-office machine would
+ * otherwise write to the same row.
+ *
+ * The user's own id is deliberately NOT used as the draft id. 043's update policy is
+ * `USING (true)` — the id IS the credential — so it has to stay unguessable.
+ */
+export function partnerDraftId(userId: string): string {
+  const key = `${DRAFT_KEY}:partner:${userId}`;
+  try {
+    const existing = localStorage.getItem(key);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+    return id;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+export function clearPartnerDraftId(userId: string): void {
+  try { localStorage.removeItem(`${DRAFT_KEY}:partner:${userId}`); } catch { /* nothing to clear */ }
+}
+
+/**
+ * Close every open partner draft for this contractor.
+ *
+ * By user, not by draft id: somebody who starts on a phone and finishes on a laptop has
+ * a row the laptop has never heard of, and marking only the local one would leave them
+ * on the follow-up list for ever — chased for an application they already sent.
+ */
+export async function markPartnerDraftSubmitted(userId: string, applicationId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('contractor_application_drafts')
+      .update({ submitted_application_id: applicationId, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('source', 'in_app')
+      .is('submitted_application_id', null);
+    if (error) throw error;
+  } catch (err) {
+    console.warn('[draft] mark partner submitted failed', err);
+  }
+}
+
 export interface DraftSnapshot {
+  /**
+   * Which door they started at (138).
+   *
+   * 'public' is the open form at /contractor-apply; 'in_app' is the partner application
+   * at /work/partner. Defaulted here rather than required, so the public form — which
+   * knows nothing about any of this — keeps calling exactly as it did.
+   */
+  source?: 'public' | 'in_app';
+  /** Required for an in_app draft: a partner is signed in and staff need to know who. */
+  userId?: string;
   fullName?: string;
   email?: string;
   phone?: string;
@@ -106,6 +166,8 @@ async function writeDraft(id: string, snap: DraftSnapshot): Promise<void> {
       email:        snap.email?.trim().toLowerCase() || null,
       phone:        snap.phone?.trim() || null,
       role:         snap.role || null,
+      source:       snap.source ?? 'public',
+      user_id:      snap.userId ?? null,
       payload:      snap.payload,
       progress_pct: Math.max(0, Math.min(100, Math.round(snap.progressPct))),
       updated_at:   new Date().toISOString(),
@@ -136,6 +198,9 @@ export async function markDraftSubmitted(id: string, applicationId: string): Pro
 
 export interface DraftRow {
   id: string;
+  /** 'public' (the open form) or 'in_app' (the partner application) — 138. */
+  source: 'public' | 'in_app';
+  user_id: string | null;
   full_name: string | null;
   email: string | null;
   phone: string | null;

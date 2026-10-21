@@ -61,10 +61,13 @@ export default function AdminDrafts() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const hit = (r: DraftRow) =>
-      !q || [r.full_name, r.email, r.phone].some(v => v?.toLowerCase().includes(q));
+      !q || [r.full_name, r.email, r.phone,
+             // So "partner" and "contractor" work as filters, not just as labels.
+             t(r.source === 'in_app' ? 'admin.drafts.sourcePartner' : 'admin.drafts.sourceContractor'),
+            ].some(v => v?.toLowerCase().includes(q));
     // Furthest along first — see the header note.
     return rows.filter(hit).sort((a, b) => b.progress_pct - a.progress_pct);
-  }, [rows, query]);
+  }, [rows, query, t]);
 
   const fmt = (iso: string) => {
     const d = new Date(iso);
@@ -135,8 +138,23 @@ export default function AdminDrafts() {
                       ? <ChevronDown className="size-4 shrink-0 text-brand-mid-grey" />
                       : <ChevronRight className="size-4 shrink-0 text-brand-mid-grey" />}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-brand-near-black">
-                        {r.full_name || r.email || t('admin.drafts.anonymous')}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium text-brand-near-black">
+                          {r.full_name || r.email || t('admin.drafts.anonymous')}
+                        </span>
+                        {/* Which door they started at (138). A partner already has an
+                            account and stopped short of a call with Philip; a contractor
+                            is a stranger who typed an email into the public form. Same
+                            list, opposite follow-up, so the row has to say which. */}
+                        <span className={cn(
+                          'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                          r.source === 'in_app'
+                            ? 'bg-brand-near-black text-white'
+                            : 'bg-brand-light-grey text-brand-mid-grey',
+                        )}>
+                          {t(r.source === 'in_app'
+                            ? 'admin.drafts.sourcePartner' : 'admin.drafts.sourceContractor')}
+                        </span>
                       </span>
                       <span className="block truncate text-xs text-brand-mid-grey">
                         {[r.role, r.email, r.phone].filter(Boolean).join(' · ') || '—'}

@@ -19,6 +19,10 @@ import {
 } from '@/lib/supabase/contractor-onboarding';
 import { cn } from '@/lib/utils';
 import { setPartnerInterest } from '@/lib/supabase/partner-application';
+import {
+  clearEmergencyContactDraft, readEmergencyContactDraft, saveEmergencyContactDraft,
+} from '@/lib/contractor/emergency-contact-draft';
+import { useAuth } from '@/contexts/AuthContext';
 
 // =========================================================
 // /work/onboarding — the one sequence every contractor completes.
@@ -52,6 +56,7 @@ type PanelId =
 
 export default function ContractorOnboarding() {
   const t = useT();
+  const { user } = useAuth();
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [at, setAt] = useState<PanelId>('agreements');
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +79,22 @@ export default function ContractorOnboarding() {
 
   useEffect(() => {
     void fetchOnboardingRecord()
-      .then(r => { if (r.contacts.length === 3) setContacts(r.contacts); })
+      .then(r => {
+        // Saved contacts win: they are the record. A draft only fills in for somebody
+        // who typed one or two and left before the single save could happen.
+        if (r.contacts.length === 3) { setContacts(r.contacts); return; }
+        const draft = user?.id ? readEmergencyContactDraft(user.id) : null;
+        if (draft) setContacts(draft);
+      })
       .catch(() => {});
-  }, []);
+  }, [user?.id]);
+
+  // Keep the draft in step with what they have typed, so walking away mid-way through
+  // the three contacts does not mean typing them all again.
+  useEffect(() => {
+    if (!user?.id || !status || status.steps.emergency) return;
+    saveEmergencyContactDraft(user.id, contacts);
+  }, [user?.id, contacts, status]);
 
   // Land on the first thing outstanding, once.
   const picked = useRef(false);
@@ -99,6 +117,8 @@ export default function ContractorOnboarding() {
 
   const advance = (next: OnboardingStatus) => {
     setStatus(next);
+    // The three contacts are in the database now, so the local copy has no job left.
+    if (next.steps.emergency && user?.id) clearEmergencyContactDraft(user.id);
     const ord = panelOrder(next);
     // Forward to the next panel that still needs something; if the current one is still
     // outstanding (a half-signed agreement, say), stay put.
@@ -527,7 +547,7 @@ function YouPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
           <Label htmlFor="addr">{t('contractorOnboarding.address')}</Label>
           <textarea
             id="addr" required rows={3} value={address} onChange={e => setAddress(e.target.value)}
-            className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#141414] dark:text-white"
+            className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm dark:border-[#444] dark:bg-[#141414] dark:text-white"
           />
           <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.addressHint')}</p>
         </div>

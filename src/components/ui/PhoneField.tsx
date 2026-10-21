@@ -73,7 +73,7 @@ export function PhoneField({
           value={selected}
           disabled={disabled}
           onChange={e => { setCountry(e.target.value); emit(e.target.value, national); }}
-          className="h-full appearance-none rounded-xl border border-brand-border-grey bg-white py-2 pl-3 pr-7 text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white"
+          className="h-full appearance-none rounded-xl border border-brand-border-grey bg-white py-2 pl-3 pr-7 text-base sm:text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white"
         >
           {countries.map(c => (
             // The flag and the dialling code, because the code is the thing being
@@ -94,7 +94,7 @@ export function PhoneField({
         value={national}
         placeholder={placeholder ?? (dial === '237' ? '6 70 00 00 00' : undefined)}
         onChange={e => { setNational(e.target.value); emit(selected, e.target.value); }}
-        className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white"
+        className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white"
       />
     </div>
   );

@@ -91,7 +91,7 @@ export function PayoutDialog({ onSaved, onClose }: {
     } finally { setBusy(false); }
   }
 
-  const field = 'mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white';
+  const field = 'mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm text-brand-near-black dark:border-[#444] dark:bg-[#141414] dark:text-white';
   const label = 'text-xs font-semibold text-brand-near-black dark:text-white';
 
   return (

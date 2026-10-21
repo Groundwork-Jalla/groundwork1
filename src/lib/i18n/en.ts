@@ -2140,6 +2140,9 @@ export const en = {
       subtitle:   'People who began the contractor application and have not sent it. Saved as they typed; the form tells them so.',
       search:     'Search by name, email or phone…',
       anonymous:  'No name yet',
+      // Which door the half-finished application came from (138).
+      sourcePartner:    'Partner',
+      sourceContractor: 'Contractor',
       submitted:  'Applied',
       emailThem:  'Email',
       callThem:   'Call',
