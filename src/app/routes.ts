@@ -98,6 +98,9 @@ export default [
     // The one onboarding sequence every contractor completes (116) — the same for an
     // approved applicant, an open signup and a contractor invited onto one project.
     route("work/onboarding",        "routes/work/onboarding.tsx"),
+    // Step four of the partner funnel, which had no door: the application existed
+    // only on the public marketing page, so an onboarded contractor could not apply.
+    route("work/partner",           "routes/work/partner.tsx"),
     // A partner contractor bringing their own client (109). The same wizard an admin
     // runs — what differs is who may run it, and for whom.
     route("work/clients/new",       "routes/work/clients.new.tsx"),

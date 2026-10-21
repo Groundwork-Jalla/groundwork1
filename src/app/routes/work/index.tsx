@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, FolderOpen, Image, Loader2, Wallet, Building2, Search, ClipboardList, MapPin, Landmark, UserPlus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, ClipboardList, FolderOpen, Handshake, Image, Landmark, Loader2, MapPin, Search, UserPlus, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments,
   type AssignedProject, type ReworkItem, type ContractorPayment,
@@ -39,6 +40,8 @@ export default function ContractorDashboard() {
   const query = params.get('q') ?? '';
 
   const [projects, setProjects] = useState<AssignedProject[] | null>(null);
+  /** Whether to invite them into the partner funnel. Null until we know. */
+  const [partnerState, setPartnerState] = useState<ApplicationState | null>(null);
   const [rework, setRework] = useState<ReworkItem[] | null>(null);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,15 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+
+  // Separately from everything else: a failure here costs one invitation card, and
+  // must not cost the dashboard.
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    void myApplicationState(user.id).then(x => { if (live) setPartnerState(x); }).catch(() => {});
+    return () => { live = false; };
+  }, [user]);
 
   useEffect(() => {
     let alive = true;
@@ -297,6 +309,28 @@ export default function ContractorDashboard() {
         </ul>}
       </section>
       </div>
+      {/* The partner funnel's door on the dashboard.
+          Step four of the new sequence — signup, onboarding, APPLICATION, one call —
+          and it had no entrance for somebody already inside Groundwork. Shown only to
+          those who have not applied: once they are in the queue this becomes noise, and
+          the sidebar entry is there permanently for anyone who wants it later. */}
+      {partnerState === 'none' && (
+        <section className="rounded-2xl border border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+                <Handshake className="size-4" />{t('partner.inviteTitle')}
+              </h2>
+              <p className="mt-0.5 text-xs text-brand-mid-grey">{t('partner.inviteBody')}</p>
+            </div>
+            <Link to="/work/partner"
+              className="shrink-0 rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
+              {t('partner.inviteCta')}
+            </Link>
+          </div>
+        </section>
+      )}
+
       <WorkOverview projects={projects} payments={payments} />
       {/* ── Needs action: real reviewer findings, nothing invented ─────────────────── */}
       <section id="action" className="scroll-mt-24 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

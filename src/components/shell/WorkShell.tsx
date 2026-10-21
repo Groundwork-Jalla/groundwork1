@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, ClipboardList, UserRound, Landmark, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, ClipboardList, Handshake, UserRound, Landmark, ShieldCheck } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
@@ -18,6 +18,10 @@ const links: PortalLink[] = [
   // a standing duty on contractors to keep licensing and insurance current, so the
   // page they do that on cannot only exist while they are still unfinished.
   { to: '/work/onboarding', label: 'contractorOnboarding.navLabel', icon: ShieldCheck },
+  // Reachable at any time, not only right after onboarding: a contractor without a
+  // diaspora project today may well have one next month, and the funnel should still
+  // be open to them then.
+  { to: '/work/partner', label: 'partner.navLabel', icon: Handshake },
   { to: '/profile', label: 'nav.viewProfile', icon: UserRound },
 ];
 

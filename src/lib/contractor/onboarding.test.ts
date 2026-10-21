@@ -790,7 +790,7 @@ describe('the question at the end, and the two ways out (118)', () => {
     // The layout resolved `decided` before this answer existed. A client-side navigate
     // would be judged against the stale value and bounce them straight back here —
     // the same stale-gate loop that bit the agreement hold.
-    const fn = page.slice(page.indexOf('onAnswered={async intent'));
+    const fn = page.slice(page.indexOf('onAnswered={async ('));
     expect(fn.slice(0, fn.indexOf('}}'))).toMatch(/window\.location\.href =/);
   });
 
