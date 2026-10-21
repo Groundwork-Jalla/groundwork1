@@ -18,6 +18,7 @@ const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 const strip = (s: string) => s.replace(/--.*$/gm, '');
 
 const m138  = read('supabase/migrations/138_partner_drafts_are_marked.sql');
+const m139  = read('supabase/migrations/139_drafts_are_writable_again.sql');
 const lib   = read('src/lib/supabase/application-drafts.ts');
 const form  = read('src/app/routes/work/partner.tsx');
 const admin = read('src/app/routes/admin/drafts.tsx');
@@ -90,6 +91,19 @@ describe('finishing takes them off the list', () => {
   });
 });
 
+describe('deploying before the migration breaks nothing', () => {
+  it('a public draft is written with exactly the columns it always had', () => {
+    // 138 adds source and user_id. Sending them on every write would make each public
+    // save fail with 42703 until the migration ran — breaking a working feature in the
+    // window between deploy and migration. The column defaults to 'public' regardless.
+    expect(lib).toMatch(/snap\.source === 'in_app'\s*\?\s*\{ source: 'in_app', user_id: snap\.userId \?\? null \}\s*:\s*\{\}/);
+  });
+
+  it('and the partner path, which is new, names them', () => {
+    expect(lib).toMatch(/\.\.\.partnerColumns/);
+  });
+});
+
 describe('merely opening the page is not "started"', () => {
   it('nothing is written until at least one question is answered', () => {
     // Every partner who said yes at onboarding lands here. Writing on arrival would
@@ -111,6 +125,12 @@ describe('merely opening the page is not "started"', () => {
   it('it is written as in_app, with the author', () => {
     expect(form).toMatch(/source: 'in_app'/);
     expect(form).toMatch(/userId: user\.id/);
+  });
+
+  it('and only while the application has not been filed', () => {
+    // state !== 'none' means it is already in the queue; autosaving then would recreate
+    // a draft for somebody who has finished.
+    expect(form).toMatch(/state !== 'none' \|\| answered === 0\) return/);
   });
 });
 
@@ -135,5 +155,39 @@ describe('the admin list says which is which', () => {
 
   it('and French is translated, not copied', () => {
     expect(read('src/lib/i18n/fr.ts')).toMatch(/sourcePartner:\s*'Partenaire'/);
+  });
+});
+
+describe('a draft can actually be saved', () => {
+  /**
+   * Found while testing 138: every write to the table was refused with 42501, as `anon`
+   * and as `authenticated` alike. 043 wrote the policies; they were not in force. The
+   * autosave swallows its errors by design — an autosave must never interrupt somebody
+   * applying — so this failed silently, and /admin/drafts has been listing only rows
+   * written before it broke.
+   */
+  it('139 re-asserts the write policies for both roles', () => {
+    const sql = strip(m139);
+    expect(sql).toMatch(/CREATE POLICY "anyone_can_draft"[\s\S]{0,120}FOR INSERT[\s\S]{0,60}TO anon, authenticated/);
+    expect(sql).toMatch(/CREATE POLICY "anyone_can_update_draft"[\s\S]{0,120}FOR UPDATE[\s\S]{0,60}TO anon, authenticated/);
+  });
+
+  it('and is idempotent, so running it twice is harmless', () => {
+    for (const name of ['anyone_can_draft', 'anyone_can_update_draft',
+                        'admins_read_drafts', 'admins_delete_drafts']) {
+      expect(strip(m139)).toMatch(new RegExp(`DROP POLICY IF EXISTS "${name}"`));
+    }
+  });
+
+  it('without opening the rows up to being read', () => {
+    // Names, phone numbers and emails. Only staff read them back; the applicant's own
+    // client must never call .select() on a write either.
+    const sql = strip(m139);
+    expect(sql).toMatch(/CREATE POLICY "admins_read_drafts"[\s\S]{0,140}USING \(public\.is_admin\(\)\)/);
+    expect(sql).not.toMatch(/FOR SELECT[\s\S]{0,60}TO anon/);
+  });
+
+  it('and states the grants, so a missing one is not the next silent cause', () => {
+    expect(strip(m139)).toMatch(/GRANT INSERT, UPDATE ON public\.contractor_application_drafts TO anon, authenticated/);
   });
 });

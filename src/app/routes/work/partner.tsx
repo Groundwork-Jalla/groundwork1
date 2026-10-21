@@ -100,6 +100,49 @@ export default function PartnerApplication() {
     return () => { live = false; };
   }, [user, openBooking]);
 
+  /**
+   * Who started this application and did not finish.
+   *
+   * The public form has had this since 043; the partner application had nothing, so
+   * somebody who got five questions in and stopped left no trace and nobody to chase.
+   * Written with `source: 'in_app'` so /admin/drafts can tell a half-finished PARTNER
+   * application from a half-finished contractor one — a different person needing a
+   * different follow-up.
+   */
+  const answered = [callLang, role.trim(), city.trim(), years, operatesAs, capacity,
+    regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
+    .filter(Boolean).length + (hasProject !== null ? 1 : 0) + (willIntroduce !== null ? 1 : 0);
+  const progressPct = Math.round((100 * answered) / 12);
+  const draftState = JSON.stringify([callLang, role, city, years, operatesAs, capacity,
+    regions, history, whyJoin, differentiator, hasProject, willIntroduce]);
+
+  useEffect(() => {
+    // Nothing answered yet means they only opened the page. Writing then would put every
+    // partner who said "yes" at onboarding onto the follow-up list before they had done
+    // anything, which is exactly the signal the list is supposed to carry.
+    if (!user || !prefill || state !== 'none' || answered === 0) return;
+    const timer = setTimeout(() => {
+      void saveApplicationDraft(partnerDraftId(user.id), {
+        source: 'in_app',
+        userId: user.id,
+        fullName: prefill.fullName ?? undefined,
+        email: prefill.email ?? undefined,
+        phone: prefill.phone ?? undefined,
+        role: role.trim() || undefined,
+        payload: {
+          languages: callLang ? [callLang] : [], city: city.trim(), years, operatesAs,
+          capacity, regions: regions.trim(), diasporaHistory: history.trim(),
+          whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
+          hasCurrentProject: hasProject, willIntroduce,
+        },
+        progressPct,
+      });
+    }, 2_000);
+    return () => clearTimeout(timer);
+    // `draftState` stands in for every answer above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftState, user?.id, prefill, state]);
+
   if (!user || state === null) {
     return <p role="status" className="flex items-center gap-2 py-10 text-sm text-brand-mid-grey">
       <Loader2 className="size-4 animate-spin" />{t('common.loading')}
@@ -154,48 +197,6 @@ export default function PartnerApplication() {
   const ready = hasProject !== null && willIntroduce !== null
     && isDecisionReady({ hasCurrentProject: hasProject, willIntroduce });
 
-  /**
-   * Who started this application and did not finish.
-   *
-   * The public form has had this since 043; the partner application had nothing, so
-   * somebody who got five questions in and stopped left no trace and nobody to chase.
-   * Written with `source: 'in_app'` so /admin/drafts can tell a half-finished PARTNER
-   * application from a half-finished contractor one — a different person needing a
-   * different follow-up.
-   */
-  const answered = [callLang, role.trim(), city.trim(), years, operatesAs, capacity,
-    regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
-    .filter(Boolean).length + (hasProject !== null ? 1 : 0) + (willIntroduce !== null ? 1 : 0);
-  const progressPct = Math.round((100 * answered) / 12);
-  const draftState = JSON.stringify([callLang, role, city, years, operatesAs, capacity,
-    regions, history, whyJoin, differentiator, hasProject, willIntroduce]);
-
-  useEffect(() => {
-    // Nothing answered yet means they only opened the page. Writing then would put every
-    // partner who said "yes" at onboarding onto the follow-up list before they had done
-    // anything, which is exactly the signal the list is supposed to carry.
-    if (!user || !prefill || state !== 'none' || answered === 0) return;
-    const timer = setTimeout(() => {
-      void saveApplicationDraft(partnerDraftId(user.id), {
-        source: 'in_app',
-        userId: user.id,
-        fullName: prefill.fullName ?? undefined,
-        email: prefill.email ?? undefined,
-        phone: prefill.phone ?? undefined,
-        role: role.trim() || undefined,
-        payload: {
-          languages: callLang ? [callLang] : [], city: city.trim(), years, operatesAs,
-          capacity, regions: regions.trim(), diasporaHistory: history.trim(),
-          whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
-          hasCurrentProject: hasProject, willIntroduce,
-        },
-        progressPct,
-      });
-    }, 2_000);
-    return () => clearTimeout(timer);
-    // `draftState` stands in for every answer above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftState, user?.id, prefill, state]);
   const complete = !!callLang && role.trim() && city.trim() && years && operatesAs
     && capacity && regions.trim() && whyJoin.trim() && differentiator.trim()
     && hasProject !== null && willIntroduce !== null;

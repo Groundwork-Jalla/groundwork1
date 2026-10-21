@@ -158,16 +158,31 @@ export async function saveApplicationDraft(id: string, snap: DraftSnapshot): Pro
 }
 
 async function writeDraft(id: string, snap: DraftSnapshot): Promise<void> {
+  /**
+   * The public form sends exactly the columns it always sent.
+   *
+   * `source` and `user_id` arrive with 138. Adding them to every write would mean that
+   * between deploying this code and running that migration, PostgREST answered 42703 to
+   * each save and the live capture of abandoned PUBLIC applications stopped — a working
+   * feature broken by a change meant to extend it. The column defaults to 'public'
+   * anyway, so saying so adds nothing.
+   *
+   * A partner draft names them because it has to: it is the whole point, and that path
+   * is new, so it simply does nothing until the migration lands.
+   */
+  const partnerColumns = snap.source === 'in_app'
+    ? { source: 'in_app', user_id: snap.userId ?? null }
+    : {};
+
   const { error } = await supabase
     .from('contractor_application_drafts')
     .upsert({
+      ...partnerColumns,
       id,
       full_name:    snap.fullName?.trim() || null,
       email:        snap.email?.trim().toLowerCase() || null,
       phone:        snap.phone?.trim() || null,
       role:         snap.role || null,
-      source:       snap.source ?? 'public',
-      user_id:      snap.userId ?? null,
       payload:      snap.payload,
       progress_pct: Math.max(0, Math.min(100, Math.round(snap.progressPct))),
       updated_at:   new Date().toISOString(),
