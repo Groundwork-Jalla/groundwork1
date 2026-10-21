@@ -75,9 +75,19 @@ GRANT SELECT, DELETE  ON public.contractor_application_drafts TO authenticated;
 COMMIT;
 
 -- ── Verify ───────────────────────────────────────────────
---   As the anon key, a draft must save:
+--
+-- Verify with an UPSERT, not a plain insert. `saveApplicationDraft` upserts on `id` so
+-- that the first save creates the row and every later one replaces it — which is
+-- INSERT ... ON CONFLICT DO UPDATE, and Postgres requires the UPDATE policy for it as
+-- well as the INSERT one. A plain insert passes on the INSERT policy alone, so it can
+-- report success while every real save still fails. That is exactly how this migration
+-- was first mis-verified as applied.
+--
+--   As the anon key AND again with a user's JWT:
 --     POST /rest/v1/contractor_application_drafts
+--       Prefer: resolution=merge-duplicates
 --       {"id":"<uuid>","full_name":"probe","payload":{},"progress_pct":10}
---     → 201, not 42501
+--     → 201 for both. A 401 or 403 means the UPDATE policy is still missing.
+--
 --   And staff must still be the only ones who can read them back:
 --     GET /rest/v1/contractor_application_drafts   as anon → empty, never rows.

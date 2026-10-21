@@ -187,6 +187,19 @@ describe('a draft can actually be saved', () => {
     expect(sql).not.toMatch(/FOR SELECT[\s\S]{0,60}TO anon/);
   });
 
+  it('the save is an upsert, so the UPDATE policy is load-bearing', () => {
+    // INSERT ... ON CONFLICT DO UPDATE needs both policies. A plain insert passes on the
+    // INSERT policy alone, which is how 139 was first mis-verified as applied while every
+    // real save was still being refused.
+    expect(lib).toMatch(/\.upsert\(/);
+    expect(lib).toMatch(/onConflict: 'id'/);
+    expect(strip(m139)).toMatch(/CREATE POLICY "anyone_can_update_draft"/);
+  });
+
+  it('and its verification says to test the upsert, not a bare insert', () => {
+    expect(m139).toMatch(/resolution=merge-duplicates/);
+  });
+
   it('and states the grants, so a missing one is not the next silent cause', () => {
     expect(strip(m139)).toMatch(/GRANT INSERT, UPDATE ON public\.contractor_application_drafts TO anon, authenticated/);
   });
