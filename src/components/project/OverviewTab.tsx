@@ -1239,7 +1239,7 @@ export default function OverviewTab({
                       <Lock className="size-3 text-brand-border-grey" />
                     )}
                   </div>
-                  <p className="text-[9px] text-center text-brand-mid-grey leading-tight line-clamp-2">{stage.name.split(' ')[0]}</p>
+                  <p className="text-[9px] text-center text-brand-mid-grey leading-tight line-clamp-2">{stageLabel(stage).split(' ')[0]}</p>
                 </div>
               ))}
             </div>

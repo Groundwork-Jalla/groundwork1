@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
 import { useT, type TKey } from '@/lib/i18n';
+import { useStageLabels } from '@/lib/stage-labels';
 import { supabase }              from '@/lib/supabase/client';
 import {
   fetchProject,
@@ -138,6 +139,7 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 // ── Main component ────────────────────────────────────────
 
 export default function ProjectDetail() {
+  const { stageLabel, substageLabel } = useStageLabels();
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -186,14 +188,16 @@ export default function ProjectDetail() {
         fetchProjectStages(id),
         fetchProjectSubstages(id),
       ]);
-      if (!p) { setError('Project not found.'); return; }
+      if (!p) { setError(t('project.notFound')); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
     } catch {
-      setError('Failed to load project.');
+      setError(t('project.loadFailed'));
     }
-  }, [id]);
+    // `t` is a dependency now that the messages come from the dictionary: without it
+    // a toggle after mount would leave this closure reporting in the old language.
+  }, [id, t]);
 
   useEffect(() => {
     loadAll().finally(() => setLoading(false));
@@ -256,8 +260,12 @@ export default function ProjectDetail() {
   }) => {
     if (!project) return null;
     const stageId = substages.find(sub => sub.id === props.substageId)?.stage_id ?? '';
-    const stageName = stages.find(s => s.id === stageId)?.name;
-    const substageName = substages.find(sub => sub.id === props.substageId)?.name;
+    // Through the dictionary, not the stored English. `name` is the persisted seed
+    // string; `stage_key` is what makes it read in the client's own language.
+    const stage = stages.find(s => s.id === stageId);
+    const sub = substages.find(x => x.id === props.substageId);
+    const stageName = stage ? stageLabel(stage) : undefined;
+    const substageName = sub ? substageLabel(sub) : undefined;
     return (
       <EvidenceUpload
         projectId={project.id}
@@ -271,7 +279,7 @@ export default function ProjectDetail() {
         substageName={substageName}
       />
     );
-  }, [project, stages, substages]);
+  }, [project, stages, substages, stageLabel, substageLabel]);
 
   // ── Loading / error ────────────────────────────────────
 

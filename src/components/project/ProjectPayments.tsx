@@ -70,6 +70,9 @@ export default function ProjectPayments({
     await notifyAdmins(
       'funding_reported',
       'Client reports a payment',
+      // This body is read by STAFF, not the client, and the stored English name is the
+      // point: it matches the row an admin will open.
+      // i18n-exempt: staff-facing notification body.
       `${project.name}: the client reports paying stage ${stage.stage_number} (${stage.name})`,
       { project_id: project.id, stage_id: stage.id, stage_number: stage.stage_number, amount_usd: stage.payment_milestone_usd ?? null },
     );

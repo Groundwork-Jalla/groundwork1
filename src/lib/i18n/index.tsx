@@ -4,7 +4,9 @@ import {
 import { en } from './en';
 import { LANG_META, LANGS, type Lang } from './types';
 import { FRENCH_DEFAULT_COUNTRIES, translate, translatePlural, type TKey } from './translate';
-import { persistPreferredLang } from './persist-lang';
+import {
+  fetchPreferredLang, onAuthUser, persistPreferredLang, reconcileLang,
+} from './persist-lang';
 import {
   formatDate, formatDateTime, formatMoney, formatNumber, formatPercent,
   formatRelative, localeFor, setFormatLocale, type DateStyle,
@@ -66,15 +68,20 @@ export function detectLang(): Lang {
  */
 export { FRENCH_DEFAULT_COUNTRIES };
 
-/** True when the user has already made an explicit language choice. */
-export function hasExplicitLangChoice(): boolean {
-  if (typeof window === 'undefined') return false;
+/** The explicit choice this browser remembers, or null if there has never been one. */
+export function storedLang(): Lang | null {
+  if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'en' || stored === 'fr';
+    return stored === 'en' || stored === 'fr' ? stored : null;
   } catch {
-    return false;
+    return null;   // private mode / blocked storage
   }
+}
+
+/** True when the user has already made an explicit language choice. */
+export function hasExplicitLangChoice(): boolean {
+  return storedLang() !== null;
 }
 
 interface LanguageContextValue {
@@ -139,6 +146,30 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLangState(next);
     persistChoice(next);
   }, [persistChoice]);
+
+  /**
+   * Adopt the account's stored language when a session appears.
+   *
+   * This is what makes a language choice follow the *person* rather than the browser
+   * they happened to make it in. `profiles.preferred_lang` has been written on every
+   * explicit toggle since 025, but nothing read it back into the UI — only the email
+   * path did. So a francophone contractor who picked French on a laptop was handed an
+   * English screen on their phone, and clearing site data reverted them silently,
+   * while the mail we sent them stayed correctly in French.
+   *
+   * Only when this browser has no explicit choice of its own, for the same reason as
+   * the theme: signing in must not undo a toggle somebody just pressed here. A local
+   * choice the account does not know about is pushed up instead.
+   */
+  useEffect(() => onAuthUser(uid => {
+    if (!uid) return;
+    void (async () => {
+      const remote = await fetchPreferredLang(uid);
+      const { adopt, push } = reconcileLang(storedLang(), remote);
+      if (adopt) { setLangState(adopt); persistChoice(adopt); }
+      if (push) void persistPreferredLang(push);
+    })();
+  }), [persistChoice]);
 
   const toggle = useCallback(() => {
     setLangState(prev => {
