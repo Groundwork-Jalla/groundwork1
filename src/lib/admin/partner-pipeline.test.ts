@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  attention, sortForWork, byStage, partnersOnly,
+  attention, sortForWork, byStage, partnersOnly, realOnly,
   PIPELINE_STAGES, MANUAL_STAGES, TERMINAL_STAGES,
   type PipelineRow, type PipelineStage,
 } from './partner-pipeline';
@@ -27,7 +27,7 @@ const row = (o: Partial<PipelineRow> = {}): PipelineRow => ({
   lastAction: 'Called', lastActionAt: null, nextAction: 'Send the agreement',
   nextActionOn: '2026-10-30', activationDeadline: null, notes: null,
   appliedAt: null, stageSince: null, daysInStage: 3,
-  applicationStatus: null, inDirectory: false, applicationId: 'app-1', ...o,
+  applicationStatus: null, inDirectory: false, applicationId: 'app-1', isInternal: false, endedReason: null, endedSource: null, endedNote: null, ...o,
 });
 
 describe('what needs attention, and in what order', () => {
@@ -97,8 +97,10 @@ describe('the review, the decision and the directory', () => {
   });
 
   it('a rejection is terminal and outranks the progress before it', () => {
+    // 146 ordered on 'rejected' alone; 153 split the endings in two and both have to
+    // sort out of the way, so the SQL tests membership rather than equality.
     expect(sqlNew).toMatch(/ORDER BY \(v\.name = 'rejected'\) DESC/);
-    expect([...TERMINAL_STAGES].sort()).toEqual(['activated', 'rejected']);
+    expect([...TERMINAL_STAGES].sort()).toEqual(['activated', 'disqualified', 'rejected']);
     expect(attention(row({ stage: 'rejected', ownerId: null }), NOW)).toBeNull();
   });
 
@@ -233,5 +235,102 @@ describe('148 exposes the application', () => {
 
   it('runs inside one transaction, so a failure leaves nothing behind', () => {
     expect(m148.replace(/--.*$/gm, '')).toMatch(/BEGIN;[\s\S]*COMMIT;/);
+  });
+});
+
+/**
+ * The board collects; a report is made from it.
+ *
+ * Ruth: "Use the Admin dashboard as the data collection, not the accurate
+ * representation of reports." Right — and the cleanup should not be a judgement call
+ * made afresh each week by recognising `gwtest.…@mailinator.com` by eye. 151 puts the
+ * fact in the data so the real figure is the default and the raw one stays available.
+ */
+describe('our own accounts are separable from prospects', () => {
+  it('drops them, so the default figure is the one worth reporting', () => {
+    const rows = [
+      row({ userId: 'prospect', isInternal: false }),
+      row({ userId: 'fixture',  isInternal: true }),
+      row({ userId: 'staff',    isInternal: true }),
+    ];
+    expect(realOnly(rows).map(r => r.userId)).toEqual(['prospect']);
+  });
+
+  it('keeps both figures available rather than deleting anything', () => {
+    // The raw number is what you want when checking a test run actually worked.
+    const rows = [row({ isInternal: false }), row({ isInternal: true })];
+    expect(realOnly(rows)).toHaveLength(1);
+    expect(rows).toHaveLength(2);
+  });
+
+  it('composes with the partner filter in either order', () => {
+    const rows = [
+      row({ userId: 'a', isInternal: false, applicationId: 'app-1' }),
+      row({ userId: 'b', isInternal: true,  applicationId: 'app-2' }),
+      row({ userId: 'c', isInternal: false, applicationId: null }),
+    ];
+    expect(partnersOnly(realOnly(rows)).map(r => r.userId)).toEqual(['a']);
+    expect(realOnly(partnersOnly(rows)).map(r => r.userId)).toEqual(['a']);
+  });
+});
+
+/**
+ * A rejected applicant is captured, and the board says why.
+ *
+ * 152 files the row as `disqualified` with the rule that ended it rather than
+ * discarding the application, because two of the three reasons are circumstance:
+ * "no project yet" is a matter of time, and a client who can be on site today is not
+ * the only client that contractor will ever have.
+ */
+describe('the two ways an application ends', () => {
+  it('are separate stages, not one heap', () => {
+    // Somebody the FORM stopped has never heard from us; somebody Ruth turned down
+    // has. They need different follow-up, so they cannot share a stage.
+    expect(PIPELINE_STAGES).toContain('disqualified');
+    expect(PIPELINE_STAGES).toContain('rejected');
+    expect(PIPELINE_STAGES.indexOf('disqualified'))
+      .toBeLessThan(PIPELINE_STAGES.indexOf('rejected'));
+  });
+
+  it('are both terminal, so neither sits on the worklist', () => {
+    expect(TERMINAL_STAGES).toContain('disqualified');
+    expect(attention(row({ stage: 'disqualified', ownerId: null }))).toBeNull();
+    expect(attention(row({ stage: 'rejected', ownerId: null }))).toBeNull();
+  });
+
+  it('carry the reason the form ended it, marked as the form', () => {
+    const r = row({ stage: 'disqualified', endedReason: 'no_project', endedSource: 'form' });
+    expect(r.endedReason).toBe('no_project');
+    expect(r.endedSource).toBe('form');
+  });
+
+  /**
+   * A rejection after a meeting now says why too (154).
+   *
+   * It used to be a bare status flip: Ruth decided, the applicant was emailed, and
+   * three weeks later nobody could say what was wrong — not to answer the applicant,
+   * and not to see a pattern across them.
+   */
+  it('and a human rejection carries its own reason and the sentence behind it', () => {
+    const r = row({
+      stage: 'rejected', endedReason: 'unreachable', endedSource: 'staff',
+      endedNote: 'Booked twice, did not join either call.',
+    });
+    expect(r.endedSource).toBe('staff');
+    expect(r.endedNote).toContain('did not join');
+  });
+
+  it('a row still in play has no ending at all', () => {
+    const r = row({ stage: 'applied' });
+    expect(r.endedReason).toBeNull();
+    expect(r.endedSource).toBeNull();
+  });
+
+  it('sort below everything still in play', () => {
+    const rows = [
+      row({ userId: 'out',  stage: 'disqualified', stageRank: 0 }),
+      row({ userId: 'live', stage: 'applied',      stageRank: 4 }),
+    ];
+    expect(sortForWork(rows)[0].userId).toBe('live');
   });
 });

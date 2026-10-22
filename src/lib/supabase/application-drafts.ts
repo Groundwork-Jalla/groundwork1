@@ -99,14 +99,19 @@ export function clearPartnerDraftId(userId: string): void {
  * a row the laptop has never heard of, and marking only the local one would leave them
  * on the follow-up list for ever — chased for an application they already sent.
  */
-export async function markPartnerDraftSubmitted(userId: string, applicationId: string): Promise<void> {
+export async function markPartnerDraftSubmitted(applicationId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('contractor_application_drafts')
-      .update({ submitted_application_id: applicationId, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('source', 'in_app')
-      .is('submitted_application_id', null);
+    // Through the function, not a direct UPDATE (150). This table is closed to writes
+    // from anon and authenticated — these rows hold applicants' names, phones and
+    // emails — so the UPDATE that used to be here matched nothing and PostgREST
+    // reported the zero-row result as a 204. It failed nine times out of nine and said
+    // nothing, leaving four people who had applied on the follow-up list.
+    //
+    // The user is not passed: the function takes it from auth.uid(), so a caller
+    // cannot close somebody else's draft.
+    const { error } = await supabase.rpc('mark_contractor_draft_submitted', {
+      p_application: applicationId,
+    });
     if (error) throw error;
   } catch (err) {
     console.warn('[draft] mark partner submitted failed', err);
@@ -194,10 +199,13 @@ async function writeDraft(id: string, snap: DraftSnapshot): Promise<void> {
  */
 export async function markDraftSubmitted(id: string, applicationId: string): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('contractor_application_drafts')
-      .update({ submitted_application_id: applicationId, updated_at: new Date().toISOString() })
-      .eq('id', id);
+    // Same function, by draft id (150): the public form has no account, and the
+    // unguessable id in that browser is the only thing identifying the row — 043's
+    // reasoning, unchanged.
+    const { error } = await supabase.rpc('mark_contractor_draft_submitted', {
+      p_application: applicationId,
+      p_draft:       id,
+    });
     if (error) throw error;
   } catch (err) {
     console.warn('[draft] mark submitted failed', err);

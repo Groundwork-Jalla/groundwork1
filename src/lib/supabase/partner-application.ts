@@ -1,4 +1,7 @@
 import { supabase } from './client';
+import type {
+  Disqualifier, GroundworkUse, ProjectStatus,
+} from '@/lib/contractor/partner-qualification';
 
 /**
  * The partner application, for somebody already inside Groundwork.
@@ -105,11 +108,38 @@ export async function myApplicationSummary(
 }
 
 export interface PartnerAnswers {
+  /**
+   * Philip's branching questions (152).
+   *
+   * `projectStatus` replaced a yes/no: "about to start" is a real situation and a
+   * different conversation from one already running, and only an outright "no" ends the
+   * application. The sub-answer that follows is constrained by the table — a stage
+   * against a project that has not started is refused.
+   */
+  projectStatus?: ProjectStatus | null;
+  projectStage?: string;
+  projectStartWindow?: string;
+  /** TRUE ends it: a client who can be on site daily is supervising in person. */
+  clientOnSiteDaily?: boolean | null;
+  clientOffsiteReason?: string;
+  clientOffsiteReasonOther?: string;
+  willUseGroundwork?: GroundworkUse | null;
+  /** Which rule ended it, or null. Decides the status the row is filed under. */
+  disqualifiedReason?: Disqualifier | null;
   /** Which languages they WORK IN. Routes the qualification call. */
   languages: string[];
   diasporaHistory: string;
   hasCurrentProject: boolean;
-  willIntroduce: boolean;
+  /**
+   * No longer asked (152).
+   *
+   * The form document dropped the question: under the new rules anybody who reaches
+   * the end has a live project, a client who cannot be on site, and the intention to
+   * run it here — which is what this column was standing in for. Left optional rather
+   * than removed because 136's funnel counts still read it for applications filed
+   * before today.
+   */
+  willIntroduce?: boolean;
   whyJoin: string;
   differentiator: string;
   regions: string;
@@ -139,9 +169,25 @@ export interface PartnerAnswers {
 export async function submitPartnerApplication(
   userId: string, prefill: PartnerPrefill, a: PartnerAnswers,
 ): Promise<string | null> {
+  // Filed under the status the answers earned. An application that ended at a
+  // disqualifying question is RECORDED, not discarded: it is where the funnel loses
+  // people, which is the thing Philip's metrics are about. 133's unique index counts
+  // only pending/reviewing/accepted as live, so a disqualified row never blocks a
+  // fresh attempt when their situation changes.
+  const status = a.disqualifiedReason ? 'disqualified' : 'pending';
+
   const { data, error } = await supabase.from('contractor_applications').insert({
     source: 'in_app',
     user_id: userId,
+    status,
+    project_status:              a.projectStatus ?? null,
+    project_stage:               a.projectStage || null,
+    project_start_window:        a.projectStartWindow || null,
+    client_on_site_daily:        a.clientOnSiteDaily ?? null,
+    client_offsite_reason:       a.clientOffsiteReason || null,
+    client_offsite_reason_other: a.clientOffsiteReasonOther || null,
+    will_use_groundwork:         a.willUseGroundwork ?? null,
+    disqualified_reason:         a.disqualifiedReason ?? null,
     full_name: prefill.fullName,
     email: prefill.email,
     phone: prefill.phone,

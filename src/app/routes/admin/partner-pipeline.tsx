@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { AlertTriangle, Clock, FileText, Loader2, Search, UserRound } from 'lucide-react';
 import {
-  attention, byStage, fetchPipeline, partnersOnly, pipelineAvailable, savePipeline, sortForWork,
+  attention, byStage, fetchPipeline, partnersOnly, pipelineAvailable, realOnly, savePipeline,
+  sortForWork,
   PIPELINE_STAGES, MANUAL_STAGES,
   type Attention, type PipelineRow, type PipelineStage,
 } from '@/lib/admin/partner-pipeline';
@@ -39,6 +40,15 @@ export default function AdminPartnerPipeline() {
    * people who never made one, so applicants lead and the rest are a click away.
    */
   const [scope, setScope] = useState<'partners' | 'everyone'>('partners');
+  /**
+   * Our own accounts are out by default.
+   *
+   * The board collects; a report is made from it. Staff addresses and end-to-end
+   * fixtures are not prospects, and leaving them in means every figure quoted from this
+   * screen has to be corrected by hand first. Available on demand, because when a test
+   * run is being checked they are exactly what you want to see.
+   */
+  const [showInternal, setShowInternal] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,9 +73,10 @@ export default function AdminPartnerPipeline() {
    */
   const canSeparate = (rows ?? []).some(r => r.applicationId !== null);
 
-  const scoped = useMemo(
-    () => (scope === 'partners' && canSeparate ? partnersOnly(rows ?? []) : (rows ?? [])),
-    [rows, scope, canSeparate]);
+  const scoped = useMemo(() => {
+    const base = showInternal ? (rows ?? []) : realOnly(rows ?? []);
+    return scope === 'partners' && canSeparate ? partnersOnly(base) : base;
+  }, [rows, scope, canSeparate, showInternal]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -82,8 +93,9 @@ export default function AdminPartnerPipeline() {
 
   const counts = byStage(scoped);
   const needing = scoped.filter(r => attention(r) !== null).length;
-  const applicants = partnersOnly(rows).length;
-  const prospects = rows.length - applicants;
+  const applicants = partnersOnly(showInternal ? rows : realOnly(rows)).length;
+  const prospects = (showInternal ? rows : realOnly(rows)).length - applicants;
+  const internal = rows.length - realOnly(rows).length;
 
   return (
     <div className="p-6 sm:p-8">
@@ -171,6 +183,18 @@ export default function AdminPartnerPipeline() {
       </p>
       )}
 
+      {/* The figure on screen is the one worth reporting; the raw one is a click away. */}
+      {internal > 0 && (
+        <p className="mb-4 -mt-2 text-xs text-brand-mid-grey">
+          {t(showInternal ? 'adminPipeline.internalShown' : 'adminPipeline.internalHidden')
+            .replace('{n}', String(internal))}{' '}
+          <button type="button" onClick={() => setShowInternal(!showInternal)}
+            className="font-semibold text-brand-near-black underline underline-offset-2 dark:text-white">
+            {t(showInternal ? 'adminPipeline.hideInternal' : 'adminPipeline.includeInternal')}
+          </button>
+        </p>
+      )}
+
       {shown.length === 0 ? (
         <p className="rounded-xl border border-brand-border-grey px-4 py-8 text-center text-sm text-brand-mid-grey dark:border-[#2c2c2c]">
           {t(rows.length === 0 ? 'adminPipeline.empty' : 'adminPipeline.emptyFiltered')}
@@ -228,6 +252,12 @@ function PipelineCard({ row, canSeparate, expanded, onToggle, onSaved }: {
             )}
             {/* Never applied: a contractor account, not a partner. Said plainly rather
                 than left for staff to infer from a missing button. */}
+            {/* Why it ended, beside the stage that says it did — from either side. */}
+            {row.endedReason && (
+              <span className="shrink-0 rounded-full bg-brand-light-grey px-2 py-0.5 text-[11px] font-medium text-brand-mid-grey dark:bg-[#2c2c2c]">
+                {t(`adminPipeline.why.${row.endedReason}` as TKey)}
+              </span>
+            )}
             {canSeparate && !row.applicationId && (
               <span className="shrink-0 rounded-full border border-brand-border-grey px-2 py-0.5 text-[11px] font-medium text-brand-mid-grey dark:border-[#444]">
                 {t('adminPipeline.noApplication')}
@@ -236,6 +266,7 @@ function PipelineCard({ row, canSeparate, expanded, onToggle, onSaved }: {
           </span>
           <span className="mt-0.5 block truncate text-xs text-brand-mid-grey">
             {[row.specialty,
+              row.endedNote,
               row.applicationStatus === 'accepted' && row.inDirectory ? t('adminPipeline.inDirectory') : null,
               row.ownerName ? t('adminPipeline.ownedBy').replace('{n}', row.ownerName) : null,
               row.nextAction ? `${row.nextAction}${row.nextActionOn ? ` · ${row.nextActionOn}` : ''}` : null]

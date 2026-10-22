@@ -83,15 +83,41 @@ describe('finishing takes them off the list', () => {
     expect(app).toMatch(/Promise<string \| null>/);
   });
 
-  it('drafts are closed by user, not only by this browser’s draft id', () => {
-    // Otherwise finishing on a different device leaves a row nothing will ever close,
-    // and they get chased for an application they already sent.
-    expect(lib).toMatch(/markPartnerDraftSubmitted[\s\S]{0,400}\.eq\('user_id', userId\)/);
-    expect(lib).toMatch(/markPartnerDraftSubmitted[\s\S]{0,500}\.is\('submitted_application_id', null\)/);
+  /**
+   * Closed through the function, never with a direct UPDATE.
+   *
+   * The direct UPDATE that used to be here failed nine times out of nine and reported
+   * success every time: this table is closed to writes from anon and authenticated —
+   * the rows hold applicants' names, phones and emails — so the statement matched no
+   * rows, and PostgREST returns a zero-row update as 204. Four people who had applied
+   * stayed on the follow-up list, one of them already offered a call.
+   */
+  it('closes the draft through the function, not a direct update', () => {
+    expect(lib).toMatch(/markPartnerDraftSubmitted[\s\S]{0,900}rpc\('mark_contractor_draft_submitted'/);
+    const body = lib.slice(lib.indexOf('export async function markPartnerDraftSubmitted'));
+    const end = body.indexOf('\n}');
+    expect(body.slice(0, end)).not.toMatch(/\.from\('contractor_application_drafts'\)/);
+  });
+
+  it('does not let the caller name whose draft to close', () => {
+    // The function reads auth.uid() itself, so nobody can close somebody else's.
+    const body = lib.slice(lib.indexOf('export async function markPartnerDraftSubmitted'));
+    expect(body.slice(0, body.indexOf('\n}'))).not.toMatch(/p_user/);
   });
 
   it('and the form calls it on submit', () => {
-    expect(form).toMatch(/markPartnerDraftSubmitted\(user\.id, applicationId\)/);
+    expect(form).toMatch(/markPartnerDraftSubmitted\(applicationId\)/);
+  });
+
+  /**
+   * By account, not only by this browser's draft id: somebody who starts on a phone
+   * and finishes on a laptop leaves a row the laptop has never heard of.
+   */
+  it('the function closes every open draft the account has', () => {
+    const sql = read('supabase/migrations/150_a_finished_application_closes_its_draft.sql');
+    expect(sql).toMatch(/WHERE user_id = v_user[\s\S]{0,120}submitted_application_id IS NULL/);
+    expect(sql).toContain('SECURITY DEFINER');
+    expect(sql).toMatch(/v_user\s+uuid\s*:=\s*auth\.uid\(\)/);
   });
 });
 

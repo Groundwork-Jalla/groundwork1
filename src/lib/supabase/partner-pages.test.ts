@@ -27,7 +27,7 @@ describe('three pages with a way forward', () => {
   });
 
   it('Next is held back until that page is answered', () => {
-    expect(page).toMatch(/disabled=\{!pageReady\(page\)\}/);
+    expect(page).toMatch(/disabled=\{!pageReady\(page\)/);
   });
 
   it('and Next is never a submit button', () => {
@@ -51,16 +51,41 @@ describe('three pages with a way forward', () => {
   });
 });
 
-describe('the two deciding questions stay together', () => {
-  it('a live project and the willingness to introduce it are on the same page', () => {
+describe('the three questions that end an application stay together', () => {
+  /**
+   * Philip's walkthrough replaced the old yes/no pair. The three rules that can
+   * discontinue an application are on one page, each opening its own sub-question:
+   * no project at all, a client who can be on site daily, and an outright refusal to
+   * run the build in Groundwork.
+   */
+  it('all three deciding questions are on the same page', () => {
     const last = page.slice(page.indexOf('{page === 2 && ('));
-    expect(last).toMatch(/partner\.hasProject/);
-    expect(last).toMatch(/partner\.willIntroduce/);
+    expect(last).toMatch(/partner\.projectStatus/);
+    expect(last).toMatch(/partner\.clientOnSite/);
+    expect(last).toMatch(/partner\.useGroundwork/);
   });
 
-  it('and somebody who does not qualify is told so there, not at the calendar', () => {
+  it('a parent question opens its own sub-question and no other', () => {
     const last = page.slice(page.indexOf('{page === 2 && ('));
-    expect(last).toMatch(/partner\.notReadyNote/);
+    expect(last).toMatch(/projectStatus === 'running'[\s\S]{0,200}partner\.projectStage/);
+    expect(last).toMatch(/projectStatus === 'starting'[\s\S]{0,200}partner\.startWindow/);
+    expect(last).toMatch(/clientOnSiteDaily === false[\s\S]{0,300}partner\.offsiteReason/);
+  });
+
+  it('switching parent clears the sub-answer the other parent owned', () => {
+    // 152 refuses a stage against a project that has not started, so a stale value
+    // would be rejected by the table rather than quietly filed.
+    const last = page.slice(page.indexOf('{page === 2 && ('));
+    expect(last).toMatch(/setProjectStage\(''\);\s*setStartWindow\(''\)/);
+  });
+
+  it('a disqualifying answer ends the application rather than noting it', () => {
+    // It used to withhold only the calendar: they finished all ten questions and
+    // waited for a reply that was never coming.
+    expect(page).toMatch(/const reason = disqualifiedBy\(answers\)/);
+    expect(page).toMatch(/if \(reason\) \{ await stopHere\(reason\)/);
+    expect(page).toMatch(/if \(stopped\) \{/);
+    expect(page).toMatch(/partner\.stopped\.dashboard/);
   });
 });
 

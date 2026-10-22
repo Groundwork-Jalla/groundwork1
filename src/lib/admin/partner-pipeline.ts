@@ -22,6 +22,10 @@ import { supabase } from '@/lib/supabase/client';
  * came before it — somebody turned down is not still "pre-qualified".
  */
 export const PIPELINE_STAGES = [
+  // Two endings, not one (153). The FORM stopped the first at the question that ended
+  // it; a person turned the second down after speaking to them. Different follow-up,
+  // and only one of them has ever heard from us.
+  'disqualified',
   'rejected',
   'account_created', 'onboarded', 'applied', 'prequalified', 'booking_shown',
   'call_completed', 'reviewing', 'accepted',
@@ -30,7 +34,8 @@ export const PIPELINE_STAGES = [
 export type PipelineStage = typeof PIPELINE_STAGES[number];
 
 /** Nobody to chase: they are through, or they are out. */
-export const TERMINAL_STAGES: readonly PipelineStage[] = ['activated', 'rejected'];
+export const TERMINAL_STAGES: readonly PipelineStage[] =
+  ['activated', 'rejected', 'disqualified'];
 
 /** The three a person has to tell us; everything else is observed. */
 export const MANUAL_STAGES: readonly PipelineStage[] =
@@ -72,6 +77,29 @@ export interface PipelineRow {
    * exactly the difference between a partner prospect and an ordinary contractor.
    */
   applicationId: string | null;
+  /**
+   * This account is ours, not a prospect (151) — staff, a fixture, an end-to-end run.
+   *
+   * Reported rather than filtered away in SQL, because both figures are wanted: the
+   * real one to put in front of the team, and the raw one when somebody is checking
+   * whether a test run actually worked.
+   */
+  isInternal: boolean;
+  /**
+   * Why it ended, from whichever side ended it (154).
+   *
+   * `endedSource` says which — 'form' for a rule the application failed, 'staff' for a
+   * judgement somebody made after speaking to them. The follow-up differs: one of them
+   * has had a conversation with us and the other has never heard from us at all.
+   *
+   * Two of the three form reasons are circumstance rather than judgement. "No project
+   * yet" is a matter of time, and a client who can be on site today is not the only
+   * client that contractor will ever have.
+   */
+  endedReason: string | null;
+  endedSource: 'form' | 'staff' | null;
+  /** The sentence behind a staff decision. Internal — never sent to the applicant. */
+  endedNote: string | null;
 }
 
 export async function pipelineAvailable(): Promise<boolean> {
@@ -106,6 +134,10 @@ export async function fetchPipeline(): Promise<PipelineRow[]> {
     applicationStatus:  (r.application_status as string) ?? null,
     inDirectory:        r.in_directory === true,
     applicationId:      (r.application_id as string) ?? null,
+    isInternal:         r.is_internal === true,
+    endedReason:        (r.ended_reason as string) ?? null,
+    endedSource:        (r.ended_source as 'form' | 'staff') ?? null,
+    endedNote:          (r.ended_note as string) ?? null,
   }));
 }
 
@@ -183,6 +215,18 @@ export function sortForWork(rows: PipelineRow[], now = new Date()): PipelineRow[
  */
 export function partnersOnly(rows: PipelineRow[]): PipelineRow[] {
   return rows.filter(r => r.applicationId !== null);
+}
+
+/**
+ * Everyone who is not us.
+ *
+ * Ruth's rule for reporting: the dashboard is data collection, and the report is a
+ * human product made from it. This is that cleanup, done once in the data (151) rather
+ * than by recognising `gwtest.…@mailinator.com` by eye every time somebody builds a
+ * report.
+ */
+export function realOnly(rows: PipelineRow[]): PipelineRow[] {
+  return rows.filter(r => !r.isInternal);
 }
 
 /** How many sit at each stage, for the strip above the list. */

@@ -34,9 +34,11 @@ describe('the qualification rule is one rule, in one place', () => {
 
   it('and somebody who is not ready is told they are still welcome', () => {
     // Not silently de-prioritised: a contractor without a project today may have one
-    // next month, and the funnel should still be open to them then.
-    expect(page).toMatch(/partner\.notReadyNote/);
-    expect((en as any).partner.notReadyNote).toMatch(/apply again/i);
+    // next month, and the funnel should still be open to them then. It is now said on
+    // the page the application ends on, rather than beside a form they go on filling in.
+    // The key is built from the rule that fired, so the page carries the prefix.
+    expect(page).toMatch(/partner\.stopped\.\$\{stopped\}/);
+    expect((en as any).partner.stopped.no_project).toMatch(/apply again/i);
   });
 });
 

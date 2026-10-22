@@ -6,9 +6,13 @@ import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import {
-  loadPartnerPrefill, myApplicationSummary, submitPartnerApplication, isDecisionReady,
+  loadPartnerPrefill, myApplicationSummary, submitPartnerApplication,
   type ApplicationState, type PartnerPrefill,
 } from '@/lib/supabase/partner-application';
+import {
+  disqualifiedBy, qualifiesForCall,
+  type Disqualifier, type GroundworkUse, type ProjectStatus,
+} from '@/lib/contractor/partner-qualification';
 import { bookingUrl, needsVanessa, markBookingShown } from '@/lib/supabase/partner-booking';
 import {
   partnerDraftId, clearPartnerDraftId, markPartnerDraftSubmitted, saveApplicationDraft,
@@ -35,6 +39,24 @@ const YEARS = ['1-3', '3-5', '5-10', '10+'] as const;
 const OPERATES = ['solo', 'company'] as const;
 const CAPACITY = ['1', '2', '3', '4+'] as const;
 
+/**
+ * The sub-answers behind Philip's branching questions.
+ *
+ * The stages reuse the dictionary's own `stages.*` keys rather than a second list of
+ * stage names: a partner describing where their build has reached should be choosing
+ * from the same vocabulary the product will then track it in.
+ */
+const PROJECT_STATUS = ['running', 'starting', 'none'] as const;
+/** The applicant's own words for where a build has reached, not the tracked stage list.
+ *  Somebody describing a project they have not put into Groundwork yet is estimating,
+ *  and "half way through" is an answer they can give honestly. */
+const PROJECT_STAGES = ['design', 'just_started', 'half_way', 'almost_done', 'at_finishing'] as const;
+const START_WINDOWS = ['under_month', '1_3_months', '3_6_months', '6_months_plus'] as const;
+const OFFSITE_REASONS = [
+  'very_busy', 'live_far', 'different_region', 'different_country', 'other',
+] as const;
+const GROUNDWORK_USE = ['yes', 'maybe', 'no'] as const;
+
 export default function PartnerApplication() {
   const t = useT();
   const { user } = useAuth();
@@ -59,8 +81,21 @@ export default function PartnerApplication() {
   const [capacity, setCapacity] = useState('');
   const [regions, setRegions] = useState('');
   const [history, setHistory] = useState('');
-  const [hasProject, setHasProject] = useState<boolean | null>(null);
-  const [willIntroduce, setWillIntroduce] = useState<boolean | null>(null);
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(null);
+  const [projectStage, setProjectStage] = useState('');
+  const [startWindow, setStartWindow] = useState('');
+  const [clientOnSiteDaily, setClientOnSiteDaily] = useState<boolean | null>(null);
+  const [offsiteReason, setOffsiteReason] = useState('');
+  const [offsiteOther, setOffsiteOther] = useState('');
+  const [useGroundwork, setUseGroundwork] = useState<GroundworkUse | null>(null);
+  /**
+   * The rule that ended it, once one has.
+   *
+   * Philip: "if a question that they answer disqualifies them then they should not see
+   * the remaining steps." So this is not a warning rendered beside the form — setting
+   * it replaces the form entirely.
+   */
+  const [stopped, setStopped] = useState<Disqualifier | null>(null);
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
   /** Which of the three pages they are on. */
@@ -110,10 +145,14 @@ export default function PartnerApplication() {
    */
   const answered = [callLang, years, operatesAs, capacity,
     regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
-    .filter(Boolean).length + (hasProject !== null ? 1 : 0) + (willIntroduce !== null ? 1 : 0);
-  const progressPct = Math.round((100 * answered) / 10);
+    .filter(Boolean).length
+    + (projectStatus !== null ? 1 : 0)
+    + (clientOnSiteDaily !== null ? 1 : 0)
+    + (useGroundwork !== null ? 1 : 0);
+  const progressPct = Math.round((100 * answered) / 11);
   const draftState = JSON.stringify([callLang, years, operatesAs, capacity,
-    regions, history, whyJoin, differentiator, hasProject, willIntroduce]);
+    regions, history, whyJoin, differentiator, projectStatus, projectStage, startWindow,
+    clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork]);
 
   useEffect(() => {
     // Nothing answered yet means they only opened the page. Writing then would put every
@@ -132,7 +171,8 @@ export default function PartnerApplication() {
           languages: callLang ? [callLang] : [], years, operatesAs,
           capacity, regions: regions.trim(), diasporaHistory: history.trim(),
           whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
-          hasCurrentProject: hasProject, willIntroduce,
+          projectStatus, projectStage, startWindow,
+          clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork,
         },
         progressPct,
       });
@@ -200,8 +240,12 @@ export default function PartnerApplication() {
     );
   }
 
-  const ready = hasProject !== null && willIntroduce !== null
-    && isDecisionReady({ hasCurrentProject: hasProject, willIntroduce, yearsExperience: years });
+  /** Everything the rules look at, in one object so the form and the module agree. */
+  const answers = {
+    yearsExperience: years, projectStatus, clientOnSiteDaily,
+    willUseGroundwork: useGroundwork,
+  };
+  const ready = qualifiesForCall(answers);
 
   /**
    * Three pages, not one long form and not one question at a time.
@@ -211,17 +255,77 @@ export default function PartnerApplication() {
    * question per screen would be nine screens for a short application. Three pages of
    * three keeps the sense of moving forward without making it a slog.
    */
-  const PAGES = 3;
+  const PAGES = 4;
   const pageReady = (n: number): boolean => {
     if (n === 0) return !!callLang && !!years && !!operatesAs;
     if (n === 1) return regions.trim() !== '' && !!capacity;
-    return hasProject !== null && willIntroduce !== null
-        && whyJoin.trim() !== '' && differentiator.trim() !== '';
+    if (n === 2) {
+      // A parent question is not answered until its sub-question is. The table refuses
+      // a stage against a project that has not started (152); this refuses the Next.
+      const projectDone =
+        projectStatus === 'none' ? true
+        : projectStatus === 'running' ? !!projectStage
+        : projectStatus === 'starting' ? !!startWindow
+        : false;
+      const onSiteDone =
+        clientOnSiteDaily === true ? true
+        : clientOnSiteDaily === false
+          ? !!offsiteReason && (offsiteReason !== 'other' || offsiteOther.trim() !== '')
+          : false;
+      return projectDone && onSiteDone && useGroundwork !== null;
+    }
+    return whyJoin.trim() !== '' && differentiator.trim() !== '';
   };
 
-  const complete = !!callLang && years && operatesAs
-    && capacity && regions.trim() && whyJoin.trim() && differentiator.trim()
-    && hasProject !== null && willIntroduce !== null;
+  const complete = !!callLang && years && operatesAs && capacity && regions.trim()
+    && whyJoin.trim() && differentiator.trim()
+    && projectStatus !== null && clientOnSiteDaily !== null && useGroundwork !== null;
+
+  /**
+   * Move on — or end it here.
+   *
+   * The check runs on Next rather than on each answer so somebody can change their mind
+   * about a chip they just tapped without the page vanishing under them. Everything
+   * answered so far is tested, so the rule that fires is the one on the page they are
+   * leaving.
+   */
+  async function advance() {
+    const reason = disqualifiedBy(answers);
+    if (reason) { await stopHere(reason); return; }
+    setPage(p => p + 1);
+  }
+
+  /**
+   * File the application as disqualified, and show them why.
+   *
+   * Recorded rather than discarded: this is where the funnel loses people, which is the
+   * thing the numbers are for. 133's unique index treats only pending, reviewing and
+   * accepted as live, so this never blocks a fresh application when their situation
+   * changes — which for "no project yet" is a matter of time.
+   */
+  async function stopHere(reason: Disqualifier) {
+    setStopped(reason);
+    if (!user || !prefill) return;
+    setBusy(true);
+    try {
+      const applicationId = await submitPartnerApplication(user.id, prefill, {
+        languages: callLang ? [callLang] : [], diasporaHistory: history.trim(),
+        hasCurrentProject: projectStatus != null && projectStatus !== 'none',
+        whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
+        regions: regions.trim(), concurrentProjects: capacity, yearsExperience: years,
+        role: prefill.specialty ?? '', operatesAs, city: '',
+        projectStatus, projectStage, projectStartWindow: startWindow,
+        clientOnSiteDaily, clientOffsiteReason: offsiteReason,
+        clientOffsiteReasonOther: offsiteOther.trim(),
+        willUseGroundwork: useGroundwork, disqualifiedReason: reason,
+      });
+      if (applicationId) void markPartnerDraftSubmitted(applicationId);
+      clearPartnerDraftId(user.id);
+    } catch {
+      // Their application ended either way; a failed write must not turn that into an
+      // error screen asking them to try again.
+    } finally { setBusy(false); }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -230,10 +334,16 @@ export default function PartnerApplication() {
     try {
       const applicationId = await submitPartnerApplication(user.id, prefill, {
         languages: [callLang], diasporaHistory: history.trim(),
-        hasCurrentProject: hasProject === true, willIntroduce: willIntroduce === true,
+        // Kept in step with `projectStatus` so the funnel board's own pre-qualified
+        // rule, which reads this column, does not go blind the day the form changed.
+        hasCurrentProject: projectStatus != null && projectStatus !== 'none',
         whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
         regions: regions.trim(), concurrentProjects: capacity,
         yearsExperience: years,
+        projectStatus, projectStage, projectStartWindow: startWindow,
+        clientOnSiteDaily, clientOffsiteReason: offsiteReason,
+        clientOffsiteReasonOther: offsiteOther.trim(),
+        willUseGroundwork: useGroundwork, disqualifiedReason: null,
         // Both come from onboarding now (142): the specialty was asked there, and the
         // address it had already taken is what "city you work from" was reaching for.
         role: prefill.specialty ?? '', operatesAs, city: '',
@@ -243,7 +353,7 @@ export default function PartnerApplication() {
       // id: starting on a phone and finishing on a laptop leaves a row this browser has
       // never heard of, and chasing somebody who already applied is worse than not
       // chasing at all.
-      if (applicationId) void markPartnerDraftSubmitted(user.id, applicationId);
+      if (applicationId) void markPartnerDraftSubmitted(applicationId);
       clearPartnerDraftId(user.id);
       // Only a decision-ready applicant is offered the calendar. Philip's time is the
       // constraint — 18 calls, 4 qualified — so a call is booked by somebody with a
@@ -280,6 +390,42 @@ export default function PartnerApplication() {
        : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]');
   // text-base below sm so iOS does not zoom the page on focus; see ui/input.tsx.
   const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-white';
+
+  /**
+   * The application ended here.
+   *
+   * Philip: "The application gets discontinued for them. We just redirect them to a
+   * thank you page... the method should still be calming marketing, so they don't get
+   * pissed off and feel like you're not good enough."
+   *
+   * So each reason says what Groundwork is for rather than what they lack, and every
+   * one of them ends on a door that is still open: two of the three are a matter of
+   * circumstance, and circumstance changes. The dashboard stays theirs either way.
+   */
+  if (stopped) {
+    return (
+      <div className="max-w-xl space-y-5">
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-brand-near-black dark:text-white">
+          <ShieldCheck className="size-5" />{t('partner.title')}
+        </h1>
+        <div className="flex items-start gap-3 rounded-2xl border border-brand-border-grey p-5 dark:border-[#2c2c2c]">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-state-complete" />
+          <div>
+            <p className="text-sm font-semibold text-brand-near-black dark:text-white">
+              {t('partner.stopped.title')}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
+              {t(`partner.stopped.${stopped}` as never)}
+            </p>
+          </div>
+        </div>
+        <Link to="/work"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          {t('partner.stopped.dashboard')}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="max-w-xl space-y-5">
@@ -358,27 +504,64 @@ export default function PartnerApplication() {
         </>
       )}
 
+      {/* The three that decide it. A parent question opens its own sub-question and
+          nothing else, which is the shape Philip described: "this is a parent question
+          and after this parent question, depending on either one of these answers,
+          it then has a sub question within that with its own options." */}
       {page === 2 && (
         <>
-          {/* The two that decide whether this reaches a calendar. */}
-          <div className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-            <YesNo label={t('partner.hasProject')} value={hasProject} onChange={setHasProject} chip={chip} />
-            <div className="mt-4">
-              <YesNo label={t('partner.willIntroduce')} value={willIntroduce} onChange={setWillIntroduce} chip={chip} />
-            </div>
-            {/* Said plainly rather than silently de-prioritising them: somebody without a
-                project today is welcome on Groundwork and can apply again when they have one. */}
-            {hasProject !== null && willIntroduce !== null && !ready && (
-              <p className="mt-3 text-xs text-brand-mid-grey">{t('partner.notReadyNote')}</p>
+          <div className="space-y-3 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
+            <Choice label={t('partner.projectStatus')} options={PROJECT_STATUS}
+              value={projectStatus} tKey="partner.projectStatusOpt" chip={chip}
+              onChange={v => {
+                setProjectStatus(v as ProjectStatus);
+                // The sub-answer belongs to one parent only; 152 refuses the other
+                // combination outright, so the form must not keep a stale one.
+                setProjectStage(''); setStartWindow('');
+              }} />
+
+            {projectStatus === 'running' && (
+              <Choice label={t('partner.projectStage')} options={PROJECT_STAGES}
+                value={projectStage} tKey="partner.stageOpt" chip={chip} onChange={setProjectStage} />
+            )}
+            {projectStatus === 'starting' && (
+              <Choice label={t('partner.startWindow')} options={START_WINDOWS}
+                value={startWindow} tKey="partner.startOpt" chip={chip} onChange={setStartWindow} />
             )}
           </div>
 
+          <div className="space-y-3 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
+            <YesNo label={t('partner.clientOnSite')} value={clientOnSiteDaily}
+              onChange={v => { setClientOnSiteDaily(v); if (v) { setOffsiteReason(''); setOffsiteOther(''); } }}
+              chip={chip} />
+            {clientOnSiteDaily === false && (
+              <>
+                <Choice label={t('partner.offsiteReason')} options={OFFSITE_REASONS}
+                  value={offsiteReason} tKey="partner.offsiteOpt" chip={chip} onChange={setOffsiteReason} />
+                {offsiteReason === 'other' && (
+                  <input value={offsiteOther} onChange={e => setOffsiteOther(e.target.value)}
+                    className={field} placeholder={t('partner.offsiteOtherPlaceholder')} />
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
+            <Choice label={t('partner.useGroundwork')} options={GROUNDWORK_USE}
+              value={useGroundwork} tKey="partner.useOpt" chip={chip}
+              onChange={v => setUseGroundwork(v as GroundworkUse)} stacked />
+          </div>
+        </>
+      )}
+
+      {page === 3 && (
+        <>
           <Row label={t('partner.whyJoin')}>
-            <textarea rows={2} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
+            <textarea rows={3} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
           </Row>
 
           <Row label={t('partner.differentiator')}>
-            <textarea rows={2} value={differentiator} onChange={e => setDifferentiator(e.target.value)} className={field} />
+            <textarea rows={3} value={differentiator} onChange={e => setDifferentiator(e.target.value)} className={field} />
           </Row>
         </>
       )}
@@ -395,7 +578,7 @@ export default function PartnerApplication() {
         {page < PAGES - 1 ? (
           // A plain button, never a submit: Enter on a text field would otherwise file a
           // half-finished application from page one.
-          <button type="button" disabled={!pageReady(page)} onClick={() => setPage(p => p + 1)}
+          <button type="button" disabled={!pageReady(page) || busy} onClick={() => void advance()}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
             {t('common.next')}
           </button>
@@ -408,6 +591,31 @@ export default function PartnerApplication() {
         )}
       </div>
     </form>
+  );
+}
+
+/**
+ * A row of chips over a fixed list of options.
+ *
+ * One component rather than five copies of the same map, so a sub-question cannot drift
+ * from its parent in how it looks or how it reads to a screen reader.
+ */
+function Choice({ label, options, value, tKey, chip, onChange, stacked }: {
+  label: string; options: readonly string[]; value: string | null; tKey: string;
+  chip: (on: boolean) => string; onChange: (v: string) => void; stacked?: boolean;
+}) {
+  const t = useT();
+  return (
+    <div>
+      <span className="mb-1.5 block text-xs font-semibold text-brand-near-black dark:text-white">{label}</span>
+      <div className={cn('flex gap-2', stacked ? 'flex-col items-start' : 'flex-wrap')}>
+        {options.map(o => (
+          <button key={o} type="button" className={chip(value === o)} onClick={() => onChange(o)}>
+            {t(`${tKey}.${o}` as never)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
