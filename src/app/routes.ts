@@ -147,6 +147,9 @@ export default [
     // published list clients browse; most records here belong to contractors who are
     // not published, which is exactly who staff need to look at.
     route("admin/contractors/records", "routes/admin/contractor-records.tsx"),
+    // The partner worklist (145). Separate from the counters on the records page:
+    // one says where the funnel leaks, the other says who to ring.
+    route("admin/partners",      "routes/admin/partner-pipeline.tsx"),
     route("admin/verifiers",     "routes/admin/verifiers.tsx"),
     // Path is fixed: api/ghl/contractor.ts writes /admin/applications/:id into
     // every CRM record as `application_url`.

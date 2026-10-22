@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import {
   Check, ChevronRight, FileText, Loader2, Minus, Phone, Search, ShieldCheck, UserPlus, UserRound,
 } from 'lucide-react';
@@ -220,6 +221,10 @@ function FunnelStrip({ funnel }: { funnel: PartnerFunnel }) {
         ))}
       </ol>
       <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
+        {/* The counts say where the funnel leaks; the pipeline says who to ring. */}
+        <Link to="/admin/partners" className="font-semibold text-brand-near-black underline underline-offset-2 dark:text-white">
+          {t('adminContractorRecords.funnelWorklist')}
+        </Link>{' '}
         {t('adminContractorRecords.funnelBookingNote')}
         {gap > 0 && <> {t('adminContractorRecords.funnelGap').replace('{n}', String(gap))}</>}
       </p>

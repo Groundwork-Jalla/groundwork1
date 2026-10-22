@@ -76,6 +76,9 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/contractors',        labelKey: 'nav.contractors',        icon: HardHat },
   // The published directory above; what they FILLED IN here (116-118).
   { to: '/admin/contractors/records', labelKey: 'nav.contractorRecords',  icon: ClipboardList },
+  // The worklist (145): who to chase and by when. The records page counts the funnel;
+  // this one is the list somebody actually works from.
+  { to: '/admin/partners',           labelKey: 'nav.partnerPipeline',    icon: Handshake },
   { to: '/admin/verifiers',          labelKey: 'nav.verifiers',          icon: ShieldCheck },
   { to: '/admin/site-managers',      labelKey: 'nav.siteManagers',       icon: UserCog },
   { to: '/admin/users',              labelKey: 'nav.users',              icon: Users },
