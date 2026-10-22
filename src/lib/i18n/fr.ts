@@ -2491,7 +2491,7 @@ export const fr: Mirror<EnDict> = {
 
   contractorOnboarding: {
     partnerQ: 'Souhaitez-vous devenir partenaire certifié Jalla ?',
-    partnerHint: 'Les partenaires sont présentés aux clients diaspora de Jalla. Répondre non conserve l’accès complet à Groundwork — vous pourrez postuler plus tard.',
+    partnerHint: 'Les partenaires sont présentés aux clients de la diaspora de Jalla. Cela s’adresse aux entrepreneurs qui ont un chantier en cours, ou sur le point de démarrer, avec un client qui ne peut pas venir le suivre sur place. Refuser ne change rien à votre accès à Groundwork — vous pourrez postuler plus tard, et c’est ce que font la plupart des gens.',
     partnerYes: 'Oui, postuler',
     partnerNo: 'Pas maintenant',
     navLabel: 'Configuration du compte',
@@ -5028,7 +5028,7 @@ export const fr: Mirror<EnDict> = {
     inviteCta: 'Postuler',
     navLabel: 'Réseau partenaire',
     title: 'Rejoindre le réseau de partenaires',
-    sub: 'Quelques questions. Vos coordonnées et votre spécialité proviennent de votre inscription — inutile de les ressaisir.',
+    sub: 'Pour les entrepreneurs qui ont un chantier en cours, ou sur le point de démarrer, et un client qui ne peut pas venir le suivre sur place. Quelques questions — vos coordonnées et votre spécialité proviennent de votre inscription, vous n’avez pas à les ressaisir.',
     onFile: 'Déjà enregistré dans votre compte — rien à ressaisir.',
     languages: 'Dans quelle langue souhaitez-vous que nous échangions ?',
     languagesHint: 'Cela détermine qui, chez Jalla, prendra votre appel — choisissez celle où vous êtes le plus à l’aise.',

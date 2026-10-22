@@ -260,6 +260,20 @@ export default function PartnerApplication() {
     if (n === 0) return !!callLang && !!years && !!operatesAs;
     if (n === 1) return regions.trim() !== '' && !!capacity;
     if (n === 2) {
+      /**
+       * A disqualifying answer completes this page by itself.
+       *
+       * Found by driving the form: choosing "No, I don't have a project" left Next
+       * disabled, because the page still wanted the two questions underneath it — so
+       * somebody already out had to answer two more before anything would happen. That
+       * is the opposite of "they should not see the remaining steps", and it is a dead
+       * end for anyone who reads the first question honestly and stops.
+       *
+       * Pressing Next is still what ends it, so a chip tapped by mistake can be
+       * changed; what this removes is being unable to press Next at all.
+       */
+      if (disqualifiedBy(answers)) return true;
+
       // A parent question is not answered until its sub-question is. The table refuses
       // a stage against a project that has not started (152); this refuses the Next.
       const projectDone =

@@ -2533,7 +2533,7 @@ export const en = {
 
   contractorOnboarding: {
     partnerQ: 'Do you want to become a certified Jalla partner?',
-    partnerHint: 'Partners get introduced to Jalla’s diaspora clients. Saying no keeps full access to Groundwork — you can apply any time later.',
+    partnerHint: 'Partners get introduced to Jalla’s diaspora clients. It is for contractors who have a project on now, or about to start, with a client who cannot be on site to watch it. Saying no keeps full access to Groundwork — you can apply any time later, and most people do.',
     partnerYes: 'Yes, apply now',
     partnerNo: 'Not now',
     navLabel: 'Account setup',
@@ -5132,7 +5132,7 @@ export const en = {
     inviteCta: 'Apply',
     navLabel: 'Partner network',
     title: 'Apply to the partner network',
-    sub: 'A few questions. Your contact details and specialty come from your onboarding \u2014 you do not need to type them again.',
+    sub: 'For contractors with a project on now, or about to start, and a client who cannot be on site to watch it. A few questions \u2014 your contact details and specialty come from your onboarding, so you do not need to type them again.',
     onFile: 'On file from your account — nothing to re-enter.',
     languages: 'Which language should we speak with you in?',
     languagesHint: 'This decides who at Jalla takes your call, so please pick the one you are most comfortable in.',

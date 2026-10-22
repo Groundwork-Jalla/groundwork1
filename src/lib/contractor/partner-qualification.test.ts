@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   disqualifiedBy, qualifiesForCall, ranksHighly, stillQualifying,
@@ -114,5 +116,28 @@ describe('who reaches the calendar', () => {
   it('a three-year mason with a live project still reaches the calendar', () => {
     // The 22 October rule would have turned them away at question two.
     expect(qualifiesForCall({ ...full, yearsExperience: '1-3' })).toBe(true);
+  });
+});
+
+/**
+ * A disqualifying answer has to be enough on its own.
+ *
+ * Driving the real form found the opposite: choosing "No, I don't have a project" left
+ * Next disabled, because the page still wanted the two questions underneath it. Somebody
+ * already out had to answer two more before anything would happen — the opposite of
+ * Philip's "they should not see the remaining steps", and a dead end for anyone who
+ * reads the first question honestly and stops.
+ */
+describe('one answer can end the page', () => {
+  it('each of the three ends it without the others being answered', () => {
+    expect(disqualifiedBy({ projectStatus: 'none' })).toBe('no_project');
+    expect(disqualifiedBy({ clientOnSiteDaily: true })).toBe('client_on_site_daily');
+    expect(disqualifiedBy({ willUseGroundwork: 'no' })).toBe('not_using_groundwork');
+  });
+
+  it('and the page gating reads exactly that', () => {
+    const page = readFileSync(
+      resolve(__dirname, '..', '..', 'app', 'routes', 'work', 'partner.tsx'), 'utf8');
+    expect(page).toMatch(/if \(disqualifiedBy\(answers\)\) return true;/);
   });
 });
