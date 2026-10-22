@@ -14,12 +14,23 @@ import { supabase } from '@/lib/supabase/client';
 // how a tracker rots — the derived half goes stale and nobody trusts either half.
 // =========================================================
 
-/** Philip's sequence, in order. The rank is what SQL sorts on. */
+/**
+ * The sequence, in order. The rank is what SQL sorts on.
+ *
+ * `rejected` sits at the start because it is TERMINAL, not early: it ranks below
+ * everything so it sorts out of the way, and a rejection outranks whatever progress
+ * came before it — somebody turned down is not still "pre-qualified".
+ */
 export const PIPELINE_STAGES = [
+  'rejected',
   'account_created', 'onboarded', 'applied', 'prequalified', 'booking_shown',
-  'call_completed', 'committed', 'agreement_signed', 'client_introduced', 'activated',
+  'call_completed', 'reviewing', 'accepted',
+  'committed', 'agreement_signed', 'client_introduced', 'activated',
 ] as const;
 export type PipelineStage = typeof PIPELINE_STAGES[number];
+
+/** Nobody to chase: they are through, or they are out. */
+export const TERMINAL_STAGES: readonly PipelineStage[] = ['activated', 'rejected'];
 
 /** The three a person has to tell us; everything else is observed. */
 export const MANUAL_STAGES: readonly PipelineStage[] =
@@ -44,6 +55,16 @@ export interface PipelineRow {
   appliedAt: string | null;
   stageSince: string | null;
   daysInStage: number;
+  /** The application's own status, so the funnel and the application cannot disagree. */
+  applicationStatus: string | null;
+  /**
+   * Whether clients can actually see them.
+   *
+   * Accepting publishes to the directory (033), but a publish can fail. "Accepted" and
+   * "visible to clients" are two different facts and only one of them is what a client
+   * sees, so the board reports both rather than implying the second from the first.
+   */
+  inDirectory: boolean;
 }
 
 export async function pipelineAvailable(): Promise<boolean> {
@@ -75,6 +96,8 @@ export async function fetchPipeline(): Promise<PipelineRow[]> {
     appliedAt:          (r.applied_at as string) ?? null,
     stageSince:         (r.stage_since as string) ?? null,
     daysInStage:        Number(r.days_in_stage ?? 0),
+    applicationStatus:  (r.application_status as string) ?? null,
+    inDirectory:        r.in_directory === true,
   }));
 }
 
@@ -116,11 +139,15 @@ const today = (now = new Date()) => now.toISOString().slice(0, 10);
  * without somebody chasing them, so an absent owner is itself the finding — not a blank
  * column to be ignored.
  */
-export type Attention = 'unowned' | 'overdue' | 'no_next_action' | 'deadline_passed' | null;
+export type Attention =
+  'unowned' | 'overdue' | 'no_next_action' | 'deadline_passed' | 'not_in_directory' | null;
 
 export function attention(r: PipelineRow, now = new Date()): Attention {
-  // Somebody already in the product and finished with is not a worklist item.
-  if (r.stage === 'activated') return null;
+  // Through, or out. Neither is a worklist item.
+  if (TERMINAL_STAGES.includes(r.stage)) return null;
+  // Accepted but invisible to clients is a silent failure: the decision was made, the
+  // applicant was told, and no client can find them.
+  if (r.applicationStatus === 'accepted' && !r.inDirectory) return 'not_in_directory';
   if (!r.ownerId) return 'unowned';
   if (r.activationDeadline && r.activationDeadline < today(now)) return 'deadline_passed';
   if (r.nextActionOn && r.nextActionOn < today(now)) return 'overdue';
@@ -132,8 +159,8 @@ export function attention(r: PipelineRow, now = new Date()): Attention {
 export function sortForWork(rows: PipelineRow[], now = new Date()): PipelineRow[] {
   const weight = (r: PipelineRow) => {
     const a = attention(r, now);
-    return a === 'deadline_passed' ? 0 : a === 'overdue' ? 1
-         : a === 'unowned' ? 2 : a === 'no_next_action' ? 3 : 4;
+    return a === 'not_in_directory' ? 0 : a === 'deadline_passed' ? 1 : a === 'overdue' ? 2
+         : a === 'unowned' ? 3 : a === 'no_next_action' ? 4 : 5;
   };
   return [...rows].sort((x, y) => weight(x) - weight(y) || y.stageRank - x.stageRank);
 }

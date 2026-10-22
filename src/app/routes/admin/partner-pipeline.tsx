@@ -127,6 +127,9 @@ export default function AdminPartnerPipeline() {
 }
 
 const FLAG_TONE: Record<Exclude<Attention, null>, string> = {
+  // Accepted but invisible to clients is the loudest: the decision was made, the
+  // applicant was told, and no client can find them.
+  not_in_directory: 'bg-state-alert/10 text-state-alert',
   deadline_passed: 'bg-state-alert/10 text-state-alert',
   overdue:         'bg-state-alert/10 text-state-alert',
   unowned:         'bg-amber-500/10 text-amber-700 dark:text-amber-400',
@@ -158,7 +161,9 @@ function PipelineCard({ row, expanded, onToggle, onSaved }: {
             )}
           </span>
           <span className="mt-0.5 block truncate text-xs text-brand-mid-grey">
-            {[row.specialty, row.ownerName ? t('adminPipeline.ownedBy').replace('{n}', row.ownerName) : null,
+            {[row.specialty,
+              row.applicationStatus === 'accepted' && row.inDirectory ? t('adminPipeline.inDirectory') : null,
+              row.ownerName ? t('adminPipeline.ownedBy').replace('{n}', row.ownerName) : null,
               row.nextAction ? `${row.nextAction}${row.nextActionOn ? ` · ${row.nextActionOn}` : ''}` : null]
               .filter(Boolean).join(' · ') || t('adminPipeline.nothingRecorded')}
           </span>

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  attention, sortForWork, byStage, PIPELINE_STAGES, MANUAL_STAGES,
+  attention, sortForWork, byStage, PIPELINE_STAGES, MANUAL_STAGES, TERMINAL_STAGES,
   type PipelineRow, type PipelineStage,
 } from './partner-pipeline';
 
@@ -25,7 +25,8 @@ const row = (o: Partial<PipelineRow> = {}): PipelineRow => ({
   stage: 'applied', stageRank: 4, ownerId: 'staff-1', ownerName: 'Ruth',
   lastAction: 'Called', lastActionAt: null, nextAction: 'Send the agreement',
   nextActionOn: '2026-10-30', activationDeadline: null, notes: null,
-  appliedAt: null, stageSince: null, daysInStage: 3, ...o,
+  appliedAt: null, stageSince: null, daysInStage: 3,
+  applicationStatus: null, inDirectory: false, ...o,
 });
 
 describe('what needs attention, and in what order', () => {
@@ -76,6 +77,54 @@ describe('the order staff work in', () => {
       row({ userId: 'late',  ownerId: null, stageRank: 9 }),
     ];
     expect(sortForWork(rows, NOW).map(r => r.userId)).toEqual(['late', 'early']);
+  });
+});
+
+describe('the review, the decision and the directory', () => {
+  const sqlNew = readFileSync(
+    join(ROOT, 'supabase/migrations/146_application_review_in_the_funnel.sql'), 'utf8')
+    .replace(/--.*$/gm, '');
+
+  it('the meeting happening is what starts the review', () => {
+    // Asking somebody to also remember a dropdown is how a queue fills with
+    // applications nobody is looking at.
+    expect(sqlNew).toMatch(/IF p_call_completed THEN[\s\S]{0,260}SET status = 'reviewing'/);
+  });
+
+  it('but only from pending, so a late tick cannot undo a decision', () => {
+    expect(sqlNew).toMatch(/SET status = 'reviewing'[\s\S]{0,160}AND status = 'pending'/);
+  });
+
+  it('a rejection is terminal and outranks the progress before it', () => {
+    expect(sqlNew).toMatch(/ORDER BY \(v\.name = 'rejected'\) DESC/);
+    expect([...TERMINAL_STAGES].sort()).toEqual(['activated', 'rejected']);
+    expect(attention(row({ stage: 'rejected', ownerId: null }), NOW)).toBeNull();
+  });
+
+  it('accepted but invisible to clients is the loudest finding', () => {
+    // The decision was made and the applicant was told. If the publish failed, no client
+    // can find them and nothing else on the screen would say so.
+    const r = row({ stage: 'accepted', applicationStatus: 'accepted', inDirectory: false });
+    expect(attention(r, NOW)).toBe('not_in_directory');
+    expect(sortForWork([row(), r], NOW)[0].stage).toBe('accepted');
+  });
+
+  it('and published is quiet', () => {
+    expect(attention(row({ stage: 'accepted', applicationStatus: 'accepted', inDirectory: true }), NOW))
+      .toBeNull();
+  });
+
+  it('a decision carries a date, however it was set', () => {
+    // The table had no timestamp for a status change, so a trigger stamps it rather than
+    // relying on every caller to remember.
+    expect(sqlNew).toMatch(/CREATE TRIGGER stamp_application_status/);
+    expect(sqlNew).toMatch(/BEFORE UPDATE ON public\.contractor_applications/);
+  });
+
+  it('and the board reports the application status alongside the stage', () => {
+    // So the funnel and the application screen can never disagree about somebody.
+    expect(sqlNew).toMatch(/application_status\s+text/);
+    expect(sqlNew).toMatch(/in_directory\s+boolean/);
   });
 });
 
