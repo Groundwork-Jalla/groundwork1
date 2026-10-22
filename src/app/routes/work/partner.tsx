@@ -162,8 +162,15 @@ export default function PartnerApplication() {
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
               {t(state === 'accepted' ? 'partner.statusAcceptedTitle' : 'partner.statusPendingTitle')}
             </p>
+            {/* What this says has to match what is actually under it. The page used to
+                promise a call somebody would arrange, on a screen that was already
+                showing the calendar; correcting that for the qualifying case left the
+                opposite contradiction — "book below" to an applicant who does not
+                qualify and is shown no calendar at all. So the line follows the frame. */}
             <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
-              {t(state === 'accepted' ? 'partner.statusAcceptedBody' : 'partner.statusPendingBody')}
+              {t(state === 'accepted' ? 'partner.statusAcceptedBody'
+                 : booking ? 'partner.statusPendingBook'
+                 : 'partner.statusPendingBody')}
             </p>
           </div>
         </div>

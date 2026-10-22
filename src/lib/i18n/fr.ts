@@ -4909,7 +4909,8 @@ export const fr: Mirror<EnDict> = {
     differentiator: 'Qu’est-ce qui distingue votre travail ?',
     submit: 'Envoyer la candidature',
     statusPendingTitle: 'Nous avons bien reçu votre candidature',
-    statusPendingBody: 'Réservez ci-dessous votre appel d’intégration partenaire certifié — choisissez l’horaire qui vous convient.',
+    statusPendingBook: 'Réservez ci-dessous votre appel d’intégration partenaire certifié — choisissez l’horaire qui vous convient.',
+    statusPendingBody: 'Nous examinons les candidatures sous un jour ouvré. Si elle correspond, nous vous écrirons pour convenir de votre appel d’intégration.',
     statusAcceptedTitle: 'Vous faites partie du réseau de partenaires',
     statusAcceptedBody: 'Bienvenue. L’étape suivante est la présentation de votre client — votre contact Jalla l’organisera avec vous.',
     lang: {

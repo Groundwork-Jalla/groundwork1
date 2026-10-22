@@ -5005,7 +5005,8 @@ export const en = {
     differentiator: 'What sets your work apart?',
     submit: 'Send application',
     statusPendingTitle: 'We have your application',
-    statusPendingBody: 'Book your certified partner onboarding call below \u2014 pick the time that suits you.',
+    statusPendingBook: 'Book your certified partner onboarding call below \u2014 pick the time that suits you.',
+    statusPendingBody: 'We review applications within one business day. If it is a fit, we will write to arrange your onboarding call.',
     statusAcceptedTitle: 'You are in the partner network',
     statusAcceptedBody: 'Welcome. Your next step is introducing your client — your Jalla contact will arrange it with you.',
     lang: {
