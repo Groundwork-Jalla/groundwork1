@@ -29,6 +29,13 @@ export async function notifyProjectMembers(
   title: string,
   body: string,
   data?: Record<string, unknown>,
+  /**
+   * Dictionary keys for the title and body, so the bell reads in the recipient's own
+   * language rather than the sender's (149). The stored `title`/`body` stay as the
+   * fallback. `bodyKey` is deliberately omitted where the body is an excerpt of what
+   * somebody typed — user content is never translated.
+   */
+  keys?: { titleKey?: string; bodyKey?: string; params?: Record<string, unknown> },
 ): Promise<void> {
   const { error } = await supabase.rpc('notify_project_members', {
     p_project_id: projectId,
@@ -37,6 +44,9 @@ export async function notifyProjectMembers(
     p_title:      title,
     p_body:       body,
     p_data:       data ?? {},
+    p_title_key:  keys?.titleKey ?? null,
+    p_body_key:   keys?.bodyKey ?? null,
+    p_params:     keys?.params ?? {},
   });
   if (error) console.error('[notify_project_members] rpc error:', error);
 }
@@ -50,6 +60,11 @@ export interface NotificationRow {
   data: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
+  /** Dictionary keys and their values (149). Null on staff notifications, and on
+   *  anything written before 149 — both of which keep rendering their stored English. */
+  title_key: string | null;
+  body_key: string | null;
+  params: Record<string, unknown> | null;
 }
 
 export async function fetchNotifications(userId: string, limit = 20): Promise<NotificationRow[]> {

@@ -484,8 +484,20 @@ export default function ProfilePage() {
   }
 
   // ── Account deletion request ───────────────────────────
+  /**
+   * The word the screen is actually asking for.
+   *
+   * This was compared against the literal 'DELETE' while the prompt beside it rendered
+   * `profile.deleteConfirmWord` — fine for as long as the two happened to be the same
+   * string, and a locked door the moment the French one became SUPPRIMER. Compared
+   * case-insensitively and trimmed, because the demand here is intent, not typing.
+   */
+  const deleteWord = t('profile.deleteConfirmWord');
+  const deleteConfirmed =
+    deleteInput.trim().toLocaleUpperCase() === deleteWord.toLocaleUpperCase();
+
   async function handleDeleteConfirm() {
-    if (deleteInput !== 'DELETE') return;
+    if (!deleteConfirmed) return;
     if (!user?.id || !user?.email) { setDeleteResult(t('profile.deleteFailed')); return; }
 
     // The swallow that was here promised "our team will process it within 48 hours" while
@@ -1169,7 +1181,7 @@ export default function ProfilePage() {
                           </button>
                           <button
                             type="button"
-                            disabled={deleteInput !== 'DELETE'}
+                            disabled={!deleteConfirmed}
                             onClick={handleDeleteConfirm}
                             className="flex-1 h-9 rounded-lg bg-state-alert text-sm font-semibold text-white hover:bg-state-alert transition-colors disabled:opacity-40 disabled:pointer-events-none"
                           >

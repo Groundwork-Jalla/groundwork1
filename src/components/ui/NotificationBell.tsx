@@ -9,6 +9,7 @@ import {
   markAllNotificationsRead,
 } from '@/lib/supabase/notifications';
 import type { NotificationRow } from '@/lib/supabase/notifications';
+import { useNotificationText } from '@/lib/notification-text';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 
@@ -73,6 +74,8 @@ function NotifItem({
     if (to) navigate(to);
   }
 
+  const { title, body } = useNotificationText()(notif);
+
   return (
     <button
       type="button"
@@ -87,8 +90,8 @@ function NotifItem({
         <span className="mt-1.5 shrink-0 size-2 rounded-full bg-state-active" />
       )}
       <div className={cn('flex-1 min-w-0', notif.read_at && 'pl-5')}>
-        <p className="text-xs font-semibold text-brand-near-black dark:text-white leading-snug">{notif.title}</p>
-        <p className="text-xs text-brand-mid-grey mt-0.5 leading-relaxed line-clamp-2">{notif.body}</p>
+        <p className="text-xs font-semibold text-brand-near-black dark:text-white leading-snug">{title}</p>
+        <p className="text-xs text-brand-mid-grey mt-0.5 leading-relaxed line-clamp-2">{body}</p>
         <p className="text-[10px] text-brand-mid-grey mt-1">{timeAgo(notif.created_at)}</p>
       </div>
     </button>

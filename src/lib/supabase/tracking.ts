@@ -65,6 +65,10 @@ export async function adminStartProjectTracking(
     title:   'Your budget is confirmed',
     body:    `Jalla has confirmed the budget for "${projectName}" and tracking is now live. Stage 1 is ready.`,
     data:    { project_id: projectId },
+    // The English above is the fallback; these are what the client actually reads (149).
+    title_key: 'notifications.item.budgetConfirmed',
+    body_key:  'notifications.item.budgetConfirmedBody',
+    params:    { project: projectName },
   });
 
   trackEvent('project_tracking_started', { project_id: projectId, by: 'admin' });
@@ -116,6 +120,9 @@ export async function adminStartProjectAtStage(
            + `The ${joined.skipped.length} earlier stage(s) are recorded as already built, `
            + `so no payment is due for them.`,
     data:    { project_id: projectId, start_stage: joined.startStage },
+    title_key: 'notifications.item.trackingStarted',
+    body_key:  'notifications.item.trackingStartedBody',
+    params:    { project: projectName, stage: joined.startStage, skipped: joined.skipped.length },
   });
 
   trackEvent('project_tracking_started', {

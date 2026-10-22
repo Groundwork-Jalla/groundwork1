@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { reconcileLang } from './persist-lang';
+import { en } from './en';
+import { fr } from './fr';
 
 /**
  * A language choice belongs to the PERSON, not to the browser they made it in.
@@ -37,5 +41,33 @@ describe('reconcileLang', () => {
   it('writes nothing when the two already agree', () => {
     expect(reconcileLang('fr', 'fr')).toEqual({});
     expect(reconcileLang('en', 'en')).toEqual({});
+  });
+});
+
+/**
+ * A confirmation word has to be the word on the screen.
+ *
+ * The delete dialog rendered `profile.deleteConfirmWord` and then compared what was
+ * typed against the literal 'DELETE'. That matched for as long as both languages said
+ * the same thing — and would have become a locked door the moment French said
+ * SUPPRIMER: the prompt asks for one word, the button only unlocks for another.
+ */
+describe('the delete confirmation follows the language', () => {
+  const profile = readFileSync(
+    join(resolve(__dirname, '..', '..', '..'), 'src/app/routes/profile.tsx'), 'utf8');
+
+  it('asks for a different word in each language', () => {
+    expect(en.profile.deleteConfirmWord).toBe('DELETE');
+    expect(fr.profile.deleteConfirmWord).toBe('SUPPRIMER');
+  });
+
+  it('never compares against a hard-coded word', () => {
+    expect(profile).not.toMatch(/deleteInput\s*!==\s*['"]DELETE['"]/);
+    expect(profile).toContain("t('profile.deleteConfirmWord')");
+  });
+
+  it('gates the button on the same check the handler uses', () => {
+    expect(profile).toContain('disabled={!deleteConfirmed}');
+    expect(profile).toContain('if (!deleteConfirmed) return;');
   });
 });

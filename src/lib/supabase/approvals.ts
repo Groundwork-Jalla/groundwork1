@@ -186,6 +186,9 @@ export async function adminApproveStage(
       title: 'Stage approved',
       body: `Stage ${stageNumber} of "${proj.name}" has been approved by Jalla.`,
       data: { project_id: projectId, stage_number: stageNumber },
+      title_key: 'notifications.item.stageApproved',
+      body_key:  'notifications.item.stageApprovedBody',
+      params:    { stage: stageNumber, project: proj.name },
     });
 
     // Send email + issue certificate (fire-and-forget — never block the approval)
@@ -304,6 +307,10 @@ export async function adminRequestRework(
       title: 'Changes requested',
       body: `Jalla has requested changes for Stage ${stageNumber} of "${proj.name}": ${reason}`,
       data: { project_id: projectId, stage_number: stageNumber, reason },
+      title_key: 'notifications.item.stageRework',
+      body_key:  'notifications.item.stageReworkBody',
+      // `reason` is staff's own words and travels as a value, not through the dictionary.
+      params:    { stage: stageNumber, project: proj.name, reason },
     });
 
     // Send email (fire-and-forget)

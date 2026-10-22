@@ -36,6 +36,20 @@ export const fr: Mirror<EnDict> = {
     fieldVerifiedBy: 'Vérifié par',
   },
   notifications: {
+    item: {
+      stageApproved:            'Étape approuvée',
+      stageApprovedBody:        'L’étape {stage} de « {project} » a été approuvée par Jalla.',
+      stageRework:              'Modifications demandées',
+      stageReworkBody:          'Jalla a demandé des modifications pour l’étape {stage} de « {project} » : {reason}',
+      newMessage:               'Nouveau message',
+      newMessageBody:           '{name} a envoyé un message',
+      newMessageFromGroundwork: 'Nouveau message de Groundwork',
+      newMessageAbout:          'Nouveau message à propos de {project}',
+      budgetConfirmed:          'Votre budget est confirmé',
+      budgetConfirmedBody:      'Jalla a confirmé le budget de « {project} » et le suivi est maintenant actif. L’étape 1 est prête.',
+      trackingStarted:          'Votre projet est maintenant suivi',
+      trackingStartedBody:      'Jalla a configuré « {project} » à partir de l’étape {stage}. Les {skipped} étape(s) précédentes sont enregistrées comme déjà construites, aucun paiement n’est dû pour celles-ci.',
+    },
     groupNew: 'Nouveau',
     groupEarlier: 'Plus ancien',
     unreadCount: '{count} non lue',
@@ -2922,7 +2936,7 @@ export const fr: Mirror<EnDict> = {
     // Deliberately NOT translated: the user must type this word exactly, and the
     // component compares against it. Translating the label but not the comparison —
     // or vice versa — would lock francophone users out of deleting their account.
-    deleteConfirmWord:   'DELETE',
+    deleteConfirmWord:   'SUPPRIMER',
     confirmDeletion:     'Confirmer la suppression',
   },
 

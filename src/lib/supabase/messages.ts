@@ -64,6 +64,11 @@ export async function sendMessage(
     'New message',
     `${senderName} sent a message`,
     { project_id: projectId },
+    {
+      titleKey: 'notifications.item.newMessage',
+      bodyKey:  'notifications.item.newMessageBody',
+      params:   { name: senderName },
+    },
   ).catch(() => {});
 }
 

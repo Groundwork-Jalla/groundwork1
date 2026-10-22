@@ -4,6 +4,7 @@ import { Bell, CheckCheck, Building2, Upload, MessageSquare, BadgeCheck, AlertCi
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
+import { useNotificationText } from '@/lib/notification-text';
 import { destinationFor } from '@/components/ui/NotificationBell';
 
 function timeAgo(iso: string): string {
@@ -33,6 +34,10 @@ interface Notification {
   project_id: string | null;
   /** Where it points. `select('*')` always fetched this; nothing ever read it. */
   data: Record<string, unknown> | null;
+  /** Dictionary keys and their values (149); null keeps the stored English. */
+  title_key: string | null;
+  body_key: string | null;
+  params: Record<string, unknown> | null;
 }
 
 type FilterTab = 'all' | 'unread' | 'projects' | 'payments' | 'system';
@@ -192,11 +197,16 @@ export default function NotificationsPage() {
     setLoadingMore(false);
   }
 
+  // One helper for the page and the bell, so the fallback rule cannot drift (149).
+  const notificationText = useNotificationText();
+
   const unreadCount = notifications.filter(n => !n.read_at).length;
   const filtered = filterNotifications(notifications, filter);
   const { fresh, earlier } = splitByAttention(filtered);
 
-  const renderRow = (n: Notification) => (
+  const renderRow = (n: Notification) => {
+    const { title, body } = notificationText(n);
+    return (
     <button
       key={n.id}
       type="button"
@@ -213,19 +223,20 @@ export default function NotificationsPage() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <p className="text-sm font-semibold text-brand-near-black dark:text-white truncate">
-            {n.title}
+            {title}
           </p>
           {!n.read_at && (
             <span className="size-2 rounded-full bg-brand-near-black dark:bg-white shrink-0" />
           )}
         </div>
-        <p className="text-xs text-brand-mid-grey leading-relaxed">{n.body}</p>
+        <p className="text-xs text-brand-mid-grey leading-relaxed">{body}</p>
         <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-1.5 tabular-nums">
           {timeAgo(n.created_at)}
         </p>
       </div>
     </button>
-  );
+    );
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">

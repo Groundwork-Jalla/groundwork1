@@ -22,6 +22,28 @@ export const en = {
     fieldVerifiedBy: 'Verified by',
   },
   notifications: {
+    /**
+     * The bell's own copy (149).
+     *
+     * `notifications.title` and `body` are stored English; `title_key` points here so
+     * the reader gets their own language, with the stored text as the fallback. A
+     * message notification's BODY is an excerpt of what somebody typed, so it has no
+     * key â user content is never passed through the dictionary.
+     */
+    item: {
+      stageApproved:            'Stage approved',
+      stageApprovedBody:        'Stage {stage} of "{project}" has been approved by Jalla.',
+      stageRework:              'Changes requested',
+      stageReworkBody:          'Jalla has requested changes for Stage {stage} of "{project}": {reason}',
+      newMessage:               'New message',
+      newMessageBody:           '{name} sent a message',
+      newMessageFromGroundwork: 'New message from Groundwork',
+      newMessageAbout:          'New message about {project}',
+      budgetConfirmed:          'Your budget is confirmed',
+      budgetConfirmedBody:      'Jalla has confirmed the budget for "{project}" and tracking is now live. Stage 1 is ready.',
+      trackingStarted:          'Your project is now being tracked',
+      trackingStartedBody:      'Jalla has set up "{project}" from stage {stage}. The {skipped} earlier stage(s) are recorded as already built, so no payment is due for them.',
+    },
     groupNew: 'New',
     groupEarlier: 'Earlier',
     unreadCount: '{count} unread',
