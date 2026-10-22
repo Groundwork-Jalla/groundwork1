@@ -2303,6 +2303,13 @@ export const fr: Mirror<EnDict> = {
     errFailed:   'Le compte n\u2019a pas \u00e9t\u00e9 cr\u00e9\u00e9. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   adminPipeline: {
+    review:   'Voir la candidature',
+    noApplication: 'Pas de candidature',
+    clearStage: 'Retirer {s}',
+    scopePartners: '{n} candidats partenaires. {m} comptes entrepreneurs n’ont jamais postulé.',
+    scopeEveryone: 'Tous les comptes entrepreneurs — {n} ont postulé, {m} non.',
+    showEveryone: 'Les afficher aussi',
+    showPartners: 'Candidats seulement',
     title:    'Pipeline partenaires',
     subtitle: 'Toute personne entrée dans l’entonnoir partenaire, à l’étape la plus avancée atteinte. Triée par ce qu’il y a à faire, non par date d’arrivée.',
     stageStrip: 'Nombre de personnes par étape',

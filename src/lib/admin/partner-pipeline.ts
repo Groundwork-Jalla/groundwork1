@@ -65,6 +65,13 @@ export interface PipelineRow {
    * sees, so the board reports both rather than implying the second from the first.
    */
   inDirectory: boolean;
+  /**
+   * The application staff can open and read (148).
+   *
+   * Null for somebody who holds a contractor account but has never applied — which is
+   * exactly the difference between a partner prospect and an ordinary contractor.
+   */
+  applicationId: string | null;
 }
 
 export async function pipelineAvailable(): Promise<boolean> {
@@ -98,6 +105,7 @@ export async function fetchPipeline(): Promise<PipelineRow[]> {
     daysInStage:        Number(r.days_in_stage ?? 0),
     applicationStatus:  (r.application_status as string) ?? null,
     inDirectory:        r.in_directory === true,
+    applicationId:      (r.application_id as string) ?? null,
   }));
 }
 
@@ -163,6 +171,18 @@ export function sortForWork(rows: PipelineRow[], now = new Date()): PipelineRow[
          : a === 'unowned' ? 3 : a === 'no_next_action' ? 4 : 5;
   };
   return [...rows].sort((x, y) => weight(x) - weight(y) || y.stageRank - x.stageRank);
+}
+
+/**
+ * Everyone who has actually entered the partner funnel.
+ *
+ * A contractor account is not a partner application. The board is built over every
+ * contractor because the early stages — account created, onboarded — are real funnel
+ * steps, but a row that never produced an application is a prospect, not a partner,
+ * and staff reviewing applications should not have to read past them.
+ */
+export function partnersOnly(rows: PipelineRow[]): PipelineRow[] {
+  return rows.filter(r => r.applicationId !== null);
 }
 
 /** How many sit at each stage, for the strip above the list. */

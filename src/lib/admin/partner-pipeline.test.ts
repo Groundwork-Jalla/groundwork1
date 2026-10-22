@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  attention, sortForWork, byStage, PIPELINE_STAGES, MANUAL_STAGES, TERMINAL_STAGES,
+  attention, sortForWork, byStage, partnersOnly,
+  PIPELINE_STAGES, MANUAL_STAGES, TERMINAL_STAGES,
   type PipelineRow, type PipelineStage,
 } from './partner-pipeline';
 
@@ -26,7 +27,7 @@ const row = (o: Partial<PipelineRow> = {}): PipelineRow => ({
   lastAction: 'Called', lastActionAt: null, nextAction: 'Send the agreement',
   nextActionOn: '2026-10-30', activationDeadline: null, notes: null,
   appliedAt: null, stageSince: null, daysInStage: 3,
-  applicationStatus: null, inDirectory: false, ...o,
+  applicationStatus: null, inDirectory: false, applicationId: 'app-1', ...o,
 });
 
 describe('what needs attention, and in what order', () => {
@@ -170,5 +171,67 @@ describe('what the database derives and what a person supplies', () => {
   it('and the whole board is staff-only', () => {
     expect(sql).toMatch(/IF NOT public\.is_admin\(\) THEN[\s\S]{0,80}not_allowed/);
     expect(sql).toMatch(/CREATE POLICY "admins_read_pipeline"/);
+  });
+});
+
+/**
+ * A partner is not just any contractor.
+ *
+ * The board is built over everyone holding the contractor role, because "account
+ * created" and "onboarded" are real funnel steps. But somebody reviewing applications
+ * is not looking for people who never made one — Ruth, on the first day of real
+ * applications: "I clicked the applied box and it did nothing. I was hoping it showed
+ * me the 5 applicants and allowed me review." The application's id is what separates
+ * the two, and it is null for an account that never applied.
+ */
+describe('partners are distinct from contractors', () => {
+  it('keeps only the people who actually applied', () => {
+    const rows = [
+      row({ userId: 'applied-1', applicationId: 'app-1' }),
+      row({ userId: 'never-applied', applicationId: null, stage: 'account_created' }),
+      row({ userId: 'applied-2', applicationId: 'app-2', stage: 'booking_shown' }),
+    ];
+    expect(partnersOnly(rows).map(r => r.userId)).toEqual(['applied-1', 'applied-2']);
+  });
+
+  it('does not invent partners when nobody has applied', () => {
+    expect(partnersOnly([row({ applicationId: null })])).toEqual([]);
+  });
+
+  it('counts stages over the scoped set, so a filtered count matches its list', () => {
+    const rows = [
+      row({ userId: 'a', applicationId: 'app-1', stage: 'applied' }),
+      row({ userId: 'b', applicationId: null,    stage: 'applied' }),
+    ];
+    expect(byStage(partnersOnly(rows)).applied).toBe(1);
+    expect(byStage(rows).applied).toBe(2);
+  });
+});
+
+/**
+ * 148 is what makes the row openable. The column has to survive the migration, and the
+ * function has to be DROPPED before it is recreated — CREATE OR REPLACE cannot change
+ * the row type defined by a function's OUT parameters (42P13), which is exactly how
+ * 146 failed in the SQL editor.
+ */
+describe('148 exposes the application', () => {
+  const m148 = readFileSync(
+    join(ROOT, 'supabase/migrations/148_the_board_hands_you_the_application.sql'), 'utf8');
+
+  it('drops the function before recreating it with a wider row', () => {
+    const drop = m148.indexOf('DROP FUNCTION IF EXISTS public.admin_partner_pipeline()');
+    const create = m148.indexOf('CREATE OR REPLACE FUNCTION public.admin_partner_pipeline()');
+    expect(drop).toBeGreaterThan(-1);
+    expect(drop).toBeLessThan(create);
+  });
+
+  it('returns the application id and keeps the grants', () => {
+    expect(m148).toMatch(/application_id\s+uuid/);
+    expect(m148).toContain('GRANT EXECUTE ON FUNCTION public.admin_partner_pipeline() TO authenticated');
+    expect(m148).toMatch(/REVOKE ALL ON FUNCTION public\.admin_partner_pipeline\(\) FROM PUBLIC, anon/);
+  });
+
+  it('runs inside one transaction, so a failure leaves nothing behind', () => {
+    expect(m148.replace(/--.*$/gm, '')).toMatch(/BEGIN;[\s\S]*COMMIT;/);
   });
 });
