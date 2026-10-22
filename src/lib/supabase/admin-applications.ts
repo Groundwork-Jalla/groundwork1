@@ -24,6 +24,32 @@ export const ASSIGNABLE_STATUSES = [
   'reviewing', 'accepted', 'rejected',
 ] as const satisfies readonly ApplicationStatus[];
 
+/**
+ * Why a PERSON rejected an application, after speaking to them (154).
+ *
+ * A closed list so rejections can be counted — "four of the last ten could not be
+ * reached" is a finding, where ten paragraphs are not. The free-text note beside it
+ * carries what the list cannot.
+ *
+ * The same six the database constrains and the same six the pipeline board labels, so
+ * the picker, the column and the board cannot drift apart.
+ */
+export const REJECTION_REASONS = [
+  'not_enough_experience',
+  'no_suitable_project',
+  'quality_concerns',
+  'unreachable',
+  'declined_terms',
+  'other',
+] as const;
+export type RejectionReason = typeof REJECTION_REASONS[number];
+
+export interface DecisionDetail {
+  reason?: RejectionReason | null;
+  /** Internal. Never sent to the applicant. */
+  note?: string | null;
+}
+
 /** Row shape for the list — deliberately narrow, the detail view fetches the rest. */
 export interface ApplicationSummary {
   id: string;
@@ -259,10 +285,31 @@ export async function updateApplication(id: string, edit: ApplicationEdit): Prom
 export async function setApplicationStatus(
   id: string,
   status: typeof ASSIGNABLE_STATUSES[number],
+  decision?: DecisionDetail,
 ): Promise<void> {
+  const patch: Record<string, unknown> = { status };
+
+  if (status === 'rejected') {
+    patch.decision_reason = decision?.reason ?? null;
+    patch.decision_note = decision?.note?.trim() || null;
+  } else {
+    // A reversed decision must not keep the reason it was reversed from. Without this,
+    // accepting somebody previously rejected leaves the board reading
+    // "accepted — could not be reached", which is worse than saying nothing.
+    patch.decision_reason = null;
+    patch.decision_note = null;
+  }
+
+  // Who decided. Read from the session rather than passed in, so the browser cannot
+  // attribute a decision to somebody else.
+  if (status === 'accepted' || status === 'rejected') {
+    const { data } = await supabase.auth.getUser();
+    patch.decided_by = data.user?.id ?? null;
+  }
+
   const { error } = await supabase
     .from('contractor_applications')
-    .update({ status })
+    .update(patch)
     .eq('id', id);
 
   if (error) throw error;

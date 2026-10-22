@@ -1735,6 +1735,10 @@ export const en = {
       },
     },
     apps: {
+    rejectWhy: 'Why are you rejecting this?',
+    rejectNote: 'Anything worth recording — internal, never sent to the applicant',
+    rejectConfirm: 'Confirm rejection',
+    rejectNeedsReason: 'Choose a reason first.',
       title:        'Contractor Applications',
       subtitle:     'Founding-network applications. Supabase holds the full record; GoHighLevel has a lead summary.',
       search:       'Search by name, email, business or city…',

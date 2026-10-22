@@ -10,7 +10,8 @@ import {
   sendDecisionEmail,
   sendAcknowledgement,
   resyncApplicationToCrm,
-  ASSIGNABLE_STATUSES, type ApplicationDetail,
+  ASSIGNABLE_STATUSES, REJECTION_REASONS,
+  type ApplicationDetail, type DecisionDetail, type RejectionReason,
 } from '@/lib/supabase/admin-applications';
 import { StatusPill, useRoleLabel, fmtDate } from './applications';
 import { ApplicationEditor } from '@/components/admin/ApplicationEditor';
@@ -115,6 +116,17 @@ export default function AdminApplicationDetail() {
   const [app, setApp]         = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
+  /**
+   * Rejecting asks why before it commits (154).
+   *
+   * It used to be a single press: Ruth decided, the applicant was emailed, and three
+   * weeks later nobody could say what was wrong — not to answer the applicant, and not
+   * to see a pattern across them. The reason is required here even though the column
+   * allows NULL, because the column has to tolerate every row filed before today.
+   */
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState<RejectionReason | null>(null);
+  const [note, setNote] = useState('');
   const [sendingAck, setSendingAck] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [notice, setNotice]   = useState<{ ok: boolean; text: string } | null>(null);
@@ -140,11 +152,14 @@ export default function AdminApplicationDetail() {
    * admin's and should not be lost to a directory problem, which is recoverable by
    * pressing Accept again.
    */
-  async function decide(status: typeof ASSIGNABLE_STATUSES[number]) {
+  async function decide(
+    status: typeof ASSIGNABLE_STATUSES[number],
+    decision?: DecisionDetail,
+  ) {
     if (!id) return;
     setSaving(true); setNotice(null);
     try {
-      await setApplicationStatus(id, status);
+      await setApplicationStatus(id, status, decision);
       setApp(prev => (prev ? { ...prev, status } : prev));
 
       if (status === 'accepted') {
@@ -345,7 +360,13 @@ export default function AdminApplicationDetail() {
             {ASSIGNABLE_STATUSES.map(s => (
               <button
                 key={s} type="button" disabled={saving || app.status === s}
-                onClick={() => decide(s)}
+                onClick={() => {
+                  // Rejecting asks why first. Every other status is a single press —
+                  // the reason only exists for the decision somebody has to justify.
+                  if (s === 'rejected') { setRejecting(true); return; }
+                  setRejecting(false);
+                  void decide(s);
+                }}
                 className={cn(
                   'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40',
                   app.status === s
@@ -357,6 +378,63 @@ export default function AdminApplicationDetail() {
               </button>
             ))}
           </div>
+
+          {rejecting && (
+            <div className="mt-2 w-full max-w-md rounded-xl border border-brand-border-grey p-4 text-left">
+              <p className="mb-2 text-xs font-semibold text-brand-near-black">
+                {t('admin.apps.rejectWhy')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {REJECTION_REASONS.map(r => (
+                  <button
+                    key={r} type="button" onClick={() => setReason(r)}
+                    className={cn('rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                      reason === r
+                        ? 'border-brand-near-black bg-brand-near-black text-white'
+                        : 'border-brand-border-grey text-brand-near-black hover:bg-brand-off-white')}
+                  >
+                    {t(`adminPipeline.why.${r}` as TKey)}
+                  </button>
+                ))}
+              </div>
+
+              <label className="mt-3 block">
+                <span className="mb-1 block text-xs font-semibold text-brand-near-black">
+                  {t('admin.apps.rejectNote')}
+                </span>
+                <textarea
+                  rows={2} value={note} onChange={e => setNote(e.target.value)}
+                  className="w-full rounded-lg border border-brand-border-grey px-3 py-2 text-base sm:text-sm"
+                />
+              </label>
+
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button" disabled={!reason || saving}
+                  onClick={() => {
+                    if (!reason) return;
+                    setRejecting(false);
+                    void decide('rejected', { reason, note });
+                  }}
+                  className="rounded-lg bg-brand-near-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  {t('admin.apps.rejectConfirm')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRejecting(false); setReason(null); setNote(''); }}
+                  className="text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black"
+                >
+                  {t('common.cancel')}
+                </button>
+                {!reason && (
+                  <span className="text-[11px] text-brand-mid-grey">
+                    {t('admin.apps.rejectNeedsReason')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* The acknowledgement is normally automatic. This is the manual send for the
               applicants it never reached, and the timestamp is how you tell them apart —

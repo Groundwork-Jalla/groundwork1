@@ -1715,6 +1715,10 @@ export const fr: Mirror<EnDict> = {
       },
     },
     apps: {
+    rejectWhy: 'Pourquoi rejetez-vous cette candidature ?',
+    rejectNote: 'Ce qui mérite d’être noté — interne, jamais envoyé au candidat',
+    rejectConfirm: 'Confirmer le rejet',
+    rejectNeedsReason: 'Choisissez d’abord une raison.',
       title:        'Candidatures de prestataires',
       subtitle:     'Candidatures au réseau fondateur. Supabase conserve le dossier complet ; GoHighLevel en a un résumé.',
       search:       'Rechercher par nom, e-mail, entreprise ou ville…',
