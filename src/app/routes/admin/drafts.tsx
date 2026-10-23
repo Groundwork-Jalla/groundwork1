@@ -6,7 +6,8 @@ import {
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
-import { useT, useLanguage } from '@/lib/i18n';
+import { readAnswers, humanise } from '@/lib/admin/draft-answers';
+import { useT, useLanguage, type TKey } from '@/lib/i18n';
 
 // =========================================================
 // /admin/drafts
@@ -211,15 +212,7 @@ export default function AdminDrafts() {
                   </button>
                 </div>
 
-                {expanded && (
-                  <div className="border-t border-brand-border-grey px-4 py-3">
-                    {/* Raw, deliberately. The form's shape changes; a hand-written field
-                        list here would silently stop showing whatever was added last. */}
-                    <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-brand-off-white p-3 text-[11px] leading-relaxed text-brand-near-black">
-                      {JSON.stringify(r.payload, null, 2)}
-                    </pre>
-                  </div>
-                )}
+                {expanded && <Answers payload={r.payload} />}
               </div>
             );
           })}
@@ -253,5 +246,45 @@ function Chip({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * What the applicant actually said, so far.
+ *
+ * Walks whatever is in the payload rather than a list of expected fields — the raw JSON
+ * this replaces was deliberate for exactly that reason, and the form's shape has changed
+ * twice this week. A field nobody has labelled yet still shows, under its own name, so
+ * nothing can go missing.
+ */
+function Answers({ payload }: { payload: unknown }) {
+  const t = useT();
+  const answers = readAnswers(payload);
+  if (!answers.length) return null;
+
+  const show = (key: TKey | null, fallback: string) => {
+    if (!key) return fallback;
+    const out = t(key);
+    // t() hands back the key when it is missing; the raw value beats a raw key.
+    return out === key ? fallback : out;
+  };
+
+  return (
+    <div className="border-t border-brand-border-grey px-4 py-3 dark:border-[#2c2c2c]">
+      <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+        {answers.map(a => (
+          <div key={a.key} className={a.answered ? '' : 'opacity-45'}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">
+              {show(a.labelKey, humanise(a.key))}
+            </dt>
+            <dd className="mt-0.5 whitespace-pre-wrap break-words text-xs text-brand-near-black dark:text-white">
+              {a.answered
+                ? show(a.valueKey, a.raw)
+                : <span className="text-brand-mid-grey">{t('admin.drafts.unanswered')}</span>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

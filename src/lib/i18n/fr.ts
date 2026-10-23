@@ -2124,6 +2124,7 @@ export const fr: Mirror<EnDict> = {
     },
     // ── Candidatures commencées (/admin/drafts) ──
     drafts: {
+    unanswered: 'Pas encore répondu',
       title:      'Candidatures commencées',
       subtitle:   'Les personnes qui ont commencé la candidature entrepreneur sans l\'envoyer. Enregistrée au fil de la saisie ; le formulaire les en informe.',
       search:     'Rechercher par nom, e-mail ou téléphone…',

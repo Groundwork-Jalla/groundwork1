@@ -2162,6 +2162,7 @@ export const en = {
     },
     // ── Started applications (/admin/drafts) ──
     drafts: {
+    unanswered: 'Not answered yet',
       title:      'Started applications',
       subtitle:   'People who began the contractor application and have not sent it. Saved as they typed; the form tells them so.',
       search:     'Search by name, email or phone…',
