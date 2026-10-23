@@ -107,8 +107,11 @@ export default function PartnerApplication() {
    * The single way `booking` is ever set to a URL, so the funnel's `sent_to_booking`
    * cannot drift from what the applicant was actually shown.
    */
-  const openBooking = useCallback(async () => {
-    const url = await bookingUrl();
+  const openBooking = useCallback(async (preferredLanguage: string) => {
+    // Which calendar depends on the language they asked to be spoken to in: Philip
+    // hosts both, Vanessa co-hosts the French one. A co-host sits on the schedule
+    // rather than on a booking, so this is the only way to put her in the right room.
+    const url = await bookingUrl(preferredLanguage);
     setBooking(url);
     // Only when a real slot was shown. An unconfigured schedule is not a booking step
     // they reached — it is one we failed to offer, and counting it would hide that.
@@ -128,7 +131,9 @@ export default function PartnerApplication() {
         // the status card rendered with nothing under it and no way to reach a slot.
         const inQueue = summary.state === 'pending' || summary.state === 'reviewing'
                      || summary.state === 'accepted';
-        if (inQueue && summary.decisionReady) void openBooking();
+        // Their stored answer, not this page's empty state: somebody returning to a
+        // pending application has not re-answered anything yet.
+        if (inQueue && summary.decisionReady) void openBooking(summary.language);
       })
       .catch(() => { if (live) setState('none'); });
     return () => { live = false; };
@@ -372,7 +377,7 @@ export default function PartnerApplication() {
       // Only a decision-ready applicant is offered the calendar. Philip's time is the
       // constraint — 18 calls, 4 qualified — so a call is booked by somebody with a
       // live project they will introduce, and nobody else.
-      if (ready) await openBooking();
+      if (ready) await openBooking(callLang);
 
       /**
        * A French applicant means Vanessa is needed in the room.

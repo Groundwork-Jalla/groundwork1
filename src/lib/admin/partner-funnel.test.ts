@@ -157,17 +157,19 @@ describe('every string is in both languages', () => {
   });
 });
 
-describe('one calendar, and Vanessa is brought into the French ones', () => {
+describe('two calendars, and Vanessa co-hosts the French one', () => {
   const booking = read('src/lib/supabase/partner-booking.ts');
 
-  it('everyone books Philip — language does not change whose calendar', () => {
+  it('language chooses the schedule, and Philip is on both', () => {
     /**
-     * An earlier draft sent French applicants to a second schedule of Vanessa's. That
-     * would have taken Philip out of a partnership decision, and a Google appointment
-     * schedule cannot add a guest per booking anyway — co-hosts sit on the schedule and
-     * apply to every slot.
+     * Philip's decision, replacing the single-calendar arrangement this used to pin.
+     * A Google co-host sits on the SCHEDULE, not on a booking, so "Vanessa for French
+     * speakers" cannot be expressed on one calendar — she would join every call or
+     * none. The French schedule is Philip's with Vanessa added, not Vanessa's, so the
+     * original worry (taking Philip out of a partnership decision) does not apply.
      */
-    expect(booking).toMatch(/p_key: 'booking_schedule_philip'/);
+    expect(booking).toMatch(/booking_schedule_philip/);
+    expect(booking).toMatch(/booking_schedule_fr/);
     expect(booking).not.toMatch(/booking_schedule_vanessa/);
   });
 
@@ -207,8 +209,8 @@ describe('one calendar, and Vanessa is brought into the French ones', () => {
     // the submit that just qualified them, and the reload that finds them already in
     // the queue. The second path is the one that did not exist: an applicant who closed
     // the tab before booking saw their status card with no calendar under it.
-    expect(page).toMatch(/if \(ready\) await openBooking\(\)/);
-    expect(page).toMatch(/if \(inQueue && summary\.decisionReady\) void openBooking\(\)/);
+    expect(page).toMatch(/if \(ready\) await openBooking\(callLang\)/);
+    expect(page).toMatch(/if \(inQueue && summary\.decisionReady\) void openBooking\(summary\.language\)/);
   });
 
   it('and reaching the booking step is recorded, but never as a confirmed booking', () => {

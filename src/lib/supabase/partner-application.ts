@@ -87,18 +87,26 @@ export async function myApplicationState(userId: string): Promise<ApplicationSta
  */
 export async function myApplicationSummary(
   userId: string,
-): Promise<{ state: ApplicationState; decisionReady: boolean }> {
+): Promise<{ state: ApplicationState; decisionReady: boolean; language: string }> {
   const { data, error } = await supabase
     .from('contractor_applications')
-    .select('status, has_current_project, will_introduce, years_experience').eq('user_id', userId)
+    .select('status, has_current_project, will_introduce, years_experience, languages')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (error || !data) return { state: 'none', decisionReady: false };
+  if (error || !data) return { state: 'none', decisionReady: false, language: 'en' };
 
   const r = data as Record<string, unknown>;
   const s = String(r.status ?? '');
   const known: readonly string[] = ['pending', 'reviewing', 'accepted', 'rejected', 'disqualified'];
+  // The language they asked to be spoken to in, so somebody who closes the tab and
+  // comes back is offered the same calendar they were offered the first time. Stored
+  // as an array because the question once allowed several answers; it now takes one.
+  const langs = Array.isArray(r.languages) ? r.languages : [];
+  const language = typeof langs[0] === 'string' ? langs[0] : 'en';
+
   return {
     state: known.includes(s) ? (s as ApplicationState) : 'none',
+    language,
     decisionReady: isDecisionReady({
       hasCurrentProject: r.has_current_project === true,
       willIntroduce:     r.will_introduce === true,

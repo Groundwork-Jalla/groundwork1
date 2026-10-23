@@ -59,6 +59,6 @@ describe('who is shown a calendar at all', () => {
   it('only an applicant who qualifies', () => {
     // Five years, a live diaspora project, and a willingness to introduce it. Somebody
     // who misses any of them sees the no-calendar wording, which is now accurate.
-    expect(page).toMatch(/if \(inQueue && summary\.decisionReady\) void openBooking\(\)/);
+    expect(page).toMatch(/if \(inQueue && summary\.decisionReady\) void openBooking\(summary\.language\)/);
   });
 });

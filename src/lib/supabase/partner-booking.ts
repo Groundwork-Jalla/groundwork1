@@ -3,16 +3,18 @@ import { supabase } from './client';
 /**
  * Booking the qualification call.
  *
- * ── One calendar, not two ───────────────────────────────────────────────────────────
- * Every applicant books Philip: he is the partner decision-maker and the call is a
- * decision. Language does not change WHOSE calendar — it changes who else is in the
- * room. A French-speaking applicant means Vanessa joins.
+ * ── Two schedules, one per language ─────────────────────────────────────────────────
+ * Philip is on both: he is the partner decision-maker and the call is a decision.
+ * Vanessa is a co-host on the French one only.
  *
- * An earlier draft routed French applicants to a second schedule of Vanessa's. That was
- * wrong in a way worth recording: it would have taken Philip out of a partnership
- * decision, and a Google appointment schedule cannot add a guest per booking anyway —
- * co-hosts are set on the schedule itself and apply to every slot. So the invitation is
- * ours to send, not Google's.
+ * This is the shape Google forces. A co-host sits on the SCHEDULE, not on a booking, so
+ * "Vanessa for French speakers" cannot be expressed on a single calendar — she would
+ * either join every call or none. Two schedules is the only way to say it, which is why
+ * an earlier single-calendar draft had to send her a separate email instead.
+ *
+ * The earlier note here warned that routing French applicants to a second schedule
+ * would take Philip out of a partnership decision. That was the right worry about the
+ * wrong arrangement: the French schedule is Philip's with Vanessa added, not Vanessa's.
  *
  * ── Why the id is a lookup ──────────────────────────────────────────────────────────
  * `jalla-management.ts` hardcodes one, with a comment warning that a stale copy "sends
@@ -29,6 +31,23 @@ import { supabase } from './client';
  */
 export function needsVanessa(preferredLanguage: string): boolean {
   return preferredLanguage === 'fr';
+}
+
+/**
+ * Which schedule a given language books into.
+ *
+ * `booking_schedule_fr` falling back to the English one is deliberate: an unconfigured
+ * French schedule must not leave a French applicant with no calendar at all. They get
+ * Philip's, which is a worse call rather than no call, and the fallback is visible here
+ * rather than buried in an empty frame.
+ */
+export const SCHEDULE_KEY = {
+  en: 'booking_schedule_philip',
+  fr: 'booking_schedule_fr',
+} as const;
+
+export function scheduleKeyFor(preferredLanguage: string): string {
+  return preferredLanguage === 'fr' ? SCHEDULE_KEY.fr : SCHEDULE_KEY.en;
 }
 
 /**
@@ -50,10 +69,19 @@ export const embedUrl = (scheduleId: string) =>
  * sentence saying Jalla will be in touch, rather than an empty frame that reads as
  * broken.
  */
-export async function bookingUrl(): Promise<string | null> {
-  const { data, error } = await supabase.rpc('public_setting', { p_key: 'booking_schedule_philip' });
-  if (error || !data) return null;
-  const id = String(data).trim();
+export async function bookingUrl(preferredLanguage = 'en'): Promise<string | null> {
+  const read = async (key: string): Promise<string | null> => {
+    const { data, error } = await supabase.rpc('public_setting', { p_key: key });
+    if (error || !data) return null;
+    const id = String(data).trim();
+    return id || null;
+  };
+
+  const wanted = scheduleKeyFor(preferredLanguage);
+  const id = (await read(wanted))
+    // A French applicant with no French schedule configured still gets a calendar.
+    ?? (wanted === SCHEDULE_KEY.fr ? await read(SCHEDULE_KEY.en) : null);
+
   return id ? embedUrl(id) : null;
 }
 
