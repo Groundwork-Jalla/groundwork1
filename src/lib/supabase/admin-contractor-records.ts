@@ -35,7 +35,9 @@ export interface PayoutRow {
   country_code: string;
   method: 'mobile_money' | 'bank';
   mobile_no: string | null;
-  bank_code: string | null;
+  /** A Groundwork bank slug, not a provider routing code — renamed in 101, and the
+   *  dossier payload caught up in 158. */
+  bank_key: string | null;
   account_number: string | null;
   account_name: string | null;
   status: string;

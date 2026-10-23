@@ -54,7 +54,10 @@ export default function CTASection() {
             variant="outline"
             className="w-full border-white/25 bg-transparent px-8 py-4 h-auto text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
           >
-            <Link to="/contractor-signup" className="flex items-center justify-center gap-1.5">
+            {/* The sign-up page with the contractor option chosen — Philip's point 2.
+                Named outright, not derived from `join`, which may be the log-in page
+                for a returning browser and would drop the role. */}
+            <Link to="/auth/signup?role=contractor" className="flex items-center justify-center gap-1.5">
               {t('landing.cta.contractorLink')}
             </Link>
           </Button>

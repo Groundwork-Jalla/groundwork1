@@ -76,7 +76,13 @@ export function SiteNav() {
             variant="outline"
             className="h-9 shrink-0 rounded-md border-white/20 bg-transparent px-2.5 text-[11px] font-medium text-white/75 hover:bg-white/10 hover:text-white sm:h-auto sm:px-4 sm:py-2 sm:text-xs"
           >
-            <Link to="/contractor-signup">
+            {/* The same page "Join for Free" sends a first-timer to, with the
+                contractor option already chosen — Philip's point 2. Named outright
+                rather than reusing `join`: that one sends a browser which has signed in
+                before to /auth/login, and the log-in page has no role selector, so the
+                parameter would be dropped and the person would land on a log-in form
+                with no sign of what they clicked. */}
+            <Link to="/auth/signup?role=contractor">
               {/* Full label from sm up; short one below it so both CTAs fit at 375px. */}
               <span className="hidden sm:inline">{t('landing.nav.forContractors')}</span>
               <span className="sm:hidden">{t('landing.nav.forContractorsShort')}</span>

@@ -1,16 +1,18 @@
 // =========================================================
 // "Has anyone signed in on this browser before?"
 //
-// The landing page's join button has to send two different people to two different
-// places from the same click, and nothing on a signed-out page can tell them apart —
-// the server has no idea who is looking, and asking for an email first would put a
-// form in front of the one button whose job is to remove friction.
+// A flag set the first time anyone authenticates here. It is a hint, not a fact, and
+// deliberately not a lookup: an endpoint answering "does this email have an account?"
+// is an account-enumeration endpoint.
 //
-// So: a flag set the first time anyone authenticates here. It is a hint, not a fact.
 // Someone on a new device is sent to sign-up and someone who shares a laptop is sent
-// to log-in; both pages link to the other, so the wrong guess costs one click. That is
-// the whole reason this is a local flag and not a lookup — a lookup that answers
-// "does this email have an account?" is an account-enumeration endpoint.
+// to log-in; both pages link to the other, so the wrong guess costs one click.
+//
+// ── It steers "Join for Free" ONLY ──────────────────────────────────────────────────
+// Not the contractor CTA beside it. That one carries `?role=contractor`, and the
+// log-in page has no role selector — it would drop the parameter and land the person
+// on a log-in form with no sign of the thing they clicked. So the contractor CTA
+// names the sign-up page outright rather than sharing this guess.
 //
 // Deliberately no React in this file. AuthContext imports it, and a hook here would
 // make that import cycle back on itself.
@@ -32,6 +34,10 @@ export function hasAccountHere(): boolean {
  *
  * Signed in already → straight past the auth pages; the landing route redirects there
  * anyway, so the button should not appear to lead somewhere else.
+ *
+ * Signed out → sign-up, unless this browser has authenticated before, in which case
+ * log-in is the better guess. Both pages link to the other, so a wrong guess costs one
+ * click. The contractor CTA does NOT use this — see the note at the top.
  */
 export function joinDestination(signedIn: boolean): string {
   if (signedIn) return '/dashboard';

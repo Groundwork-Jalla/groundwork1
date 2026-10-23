@@ -309,7 +309,7 @@ function Dossier({ userId }: { userId: string }) {
               key={p.id}
               label={p.method === 'mobile_money'
                 ? t('contractorPayout.mobileMoney')
-                : `${bankName(p.bank_code)} · ${p.account_name ?? ''}`}
+                : `${bankName(p.bank_key)} · ${p.account_name ?? ''}`}
               // Full, not masked. Staff authorising a release must be able to check it.
               value={p.method === 'mobile_money' ? p.mobile_no : p.account_number}
             />

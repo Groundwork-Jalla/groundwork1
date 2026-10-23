@@ -14,7 +14,8 @@ import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
-import { signupAccountType, signupMetadata, signupGoesToPartnerDoor, CONTRACTOR_SIGNUP_PATH } from "@/lib/auth/signup-account";
+import { signupAccountType, signupMetadata, signupGoesToPartnerDoor } from "@/lib/auth/signup-account";
+import RoleSignup from "@/components/auth/RoleSignup";
 import { PasswordField } from '@/components/ui/PasswordField';
 
 export default function Signup() {
@@ -221,20 +222,24 @@ export default function Signup() {
           </fieldset>
         )}
         {sendToPartnerDoor ? (
-          /* A contractor's account is granted by `register_contractor_account` on its own
-             door (106), not by anything typed here — so this form cannot create one. The
-             card points at that door rather than silently making a client account. The
-             radio stays above it, so choosing "contractor" is still reversible. */
-          <div className="rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <p className="text-sm text-brand-near-black dark:text-white">{t('auth.signup.contractorDoor')}</p>
-            <p className="mt-1.5 text-sm text-brand-mid-grey">{t('auth.signup.contractorDoorBody')}</p>
-            <Link
-              to={CONTRACTOR_SIGNUP_PATH}
-              className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black"
-            >
-              {t('auth.signup.contractorDoorCta')}
-            </Link>
-          </div>
+          /*
+           * The contractor form, in place — Ruth's point 4: "it should simply load the
+           * Signup Form on the same page. Not a redirect, Not a Pop up, Not a different
+           * page opened."
+           *
+           * A contractor's account is still granted by `register_contractor_account`
+           * (106) and not by the client form below, which is why this is a different
+           * component rather than a different submit handler. What changed is where it
+           * renders: this used to be a card pointing at /contractor-signup, so choosing
+           * "contractor" cost a page load and landed somewhere that looked unrelated.
+           *
+           * RoleSignup works without a token. An applicant arrives from an acceptance
+           * email carrying one; a contractor who found us on their own — most of them,
+           * since outreach reaches contractors before clients — opens it bare.
+           *
+           * The radio stays above it, so choosing contractor is still reversible.
+           */
+          <RoleSignup role="contractor" embedded />
         ) : (
         <>
         <div className="space-y-1.5">

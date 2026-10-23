@@ -127,7 +127,18 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
   },
 };
 
-export default function RoleSignup({ role }: { role: SignupRole }) {
+export default function RoleSignup({ role, embedded = false }: {
+  role: SignupRole;
+  /**
+   * Rendered inside another page rather than as its own.
+   *
+   * /auth/signup already carries a heading that switches to the contractor wording when
+   * the contractor option is chosen, so the form's own heading would restate it. Only
+   * the heading changes: the form, its validation and `register_contractor_account` are
+   * the same, because this is the same door whichever page it is drawn on.
+   */
+  embedded?: boolean;
+}) {
   const cfg = CONFIG[role];
   const t = useT();
   const [searchParams] = useSearchParams();
@@ -343,14 +354,18 @@ export default function RoleSignup({ role }: { role: SignupRole }) {
 
   return (
     <div>
-      <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t(cfg.heading)}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
-        {preview
-          ? t(cfg.intro, { name: preview.fullName.trim().split(' ')[0] || preview.fullName })
-          : t(cfg.openIntro ?? cfg.intro)}
-      </p>
+      {!embedded && (
+        <>
+          <h1 className="font-sans text-2xl font-bold text-brand-near-black">{t(cfg.heading)}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
+            {preview
+              ? t(cfg.intro, { name: preview.fullName.trim().split(' ')[0] || preview.fullName })
+              : t(cfg.openIntro ?? cfg.intro)}
+          </p>
+        </>
+      )}
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'mt-8 space-y-4'}>
         <div className="space-y-1.5">
           <Label htmlFor="fullName">{t('auth.signup.fullName')}</Label>
           <Input id="fullName" autoComplete="name" value={fullName}

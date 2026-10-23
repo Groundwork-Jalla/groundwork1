@@ -109,11 +109,36 @@ describe('what the account-type choice actually does', () => {
     expect(signupGoesToPartnerDoor(params), 'an invited contractor must still sign up').toBe(false);
   });
 
-  it('the page hides its own form and the OAuth buttons when it is handing off', () => {
+  /**
+   * Philip's flow, point 4: "When someone checks the Contractor box, it should simply
+   * load the Signup Form on the same page (Not a redirect, Not a Pop up, Not a
+   * different page opened)."
+   *
+   * This used to assert the opposite — that the page handed off to /contractor-signup.
+   * The account is still created by `register_contractor_account` and not by the client
+   * form; what changed is that the contractor form is now drawn here.
+   */
+  it('loads the contractor form in place rather than handing off', () => {
     expect(page).toContain('{sendToPartnerDoor ? (');
+    expect(page).toContain('<RoleSignup role="contractor" embedded />');
     expect(page).toContain('{!sendToPartnerDoor && (');
     expect(page).toContain('{!isContractorSignup && !sendToPartnerDoor && (');
-    expect(page).toContain('to={CONTRACTOR_SIGNUP_PATH}');
+  });
+
+  it('and never sends them to another page to do it', () => {
+    expect(page).not.toContain('CONTRACTOR_SIGNUP_PATH');
+    expect(page).not.toMatch(/to=["'{]\s*["']?\/contractor-signup/);
+  });
+
+  /**
+   * Point 2: "it should take them to the same page as when someone clicks on Join for
+   * Free." The two CTAs sit beside each other, so they have to share a destination —
+   * the contractor one only adds which option is already chosen.
+   */
+  it('the nav CTA lands on the signup page with the role chosen', () => {
+    const nav = code('src/components/shell/SiteNav.tsx');
+    expect(nav).toContain('to="/auth/signup?role=contractor"');
+    expect(nav).not.toContain('to="/contractor-signup"');
   });
 });
 

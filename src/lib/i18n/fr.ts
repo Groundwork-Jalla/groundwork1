@@ -2962,6 +2962,8 @@ export const fr: Mirror<EnDict> = {
 
   // ── Annuaire des entrepreneurs ────────────────────────────
   contractors: {
+    emptyVetting: 'L’équipe Jalla vérifie les professionnels. Revenez bientôt, ou',
+    emptyJoinCta: 'inscrivez-vous comme entrepreneur',
     // L’invitation à passer à l’offre supérieure quand le plan n’inclut pas l’annuaire.
     lockedTitle: 'Les entrepreneurs font partie de Jalla Verify',
     lockedBody:  "Passez à l'offre supérieure pour voir les entrepreneurs vérifiés de votre région, leur historique, et demander des devis sans quitter Groundwork.",

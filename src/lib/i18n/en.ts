@@ -3006,6 +3006,8 @@ export const en = {
 
   // ── Contractor directory ──────────────────────────────────
   contractors: {
+    emptyVetting: 'The Jalla team is vetting professionals. Check back soon, or',
+    emptyJoinCta: 'sign up as a contractor',
     // The upgrade prompt shown when a plan does not include the directory.
     lockedTitle: 'Contractors are part of Jalla Verify',
     lockedBody:  'Upgrade to see verified contractors in your region, their track record, and request quotes without leaving Groundwork.',
