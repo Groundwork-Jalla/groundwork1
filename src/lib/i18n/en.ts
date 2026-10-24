@@ -2439,6 +2439,8 @@ export const en = {
     },
   },
   adminContractorRecords: {
+    unfinished: 'Onboarding not finished — still to do:',
+    intentLabel: 'Do they have a client to onboard?',
     docFailed:     'That document could not be opened. Try again.',
     doc: {
       professional_license:  'Professional licence',
@@ -2476,7 +2478,6 @@ export const en = {
     secPayout:     'Paid into',
     secAgreement:  'Signed',
     secIntent:     'Client',
-    intentLabel:      'Has a client to onboard',
     intentHasClient:  'Yes',
     intentNoClient:   'No \u2014 waiting to be assigned',
     none:          'None given',
@@ -2534,7 +2535,7 @@ export const en = {
 
   contractorOnboarding: {
     partnerQ: 'Do you want to become a certified Jalla partner?',
-    partnerHint: 'Partners get introduced to Jalla’s diaspora clients. It is for contractors who have a project on now, or about to start, with a client who cannot be on site to watch it. Saying no keeps full access to Groundwork — you can apply any time later, and most people do.',
+    partnerHint: 'If you have a client whose build you want to run here — someone who cannot be on site to watch it — the next step is the partner application. If not, your dashboard is ready either way and you can apply whenever a project comes up.',
     partnerYes: 'Yes, apply now',
     partnerNo: 'Not now',
     navLabel: 'Account setup',

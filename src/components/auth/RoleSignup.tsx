@@ -416,12 +416,16 @@ export default function RoleSignup({ role, embedded = false }: {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-brand-mid-grey">
-        {t('auth.roleSignup.haveAccount')}{' '}
-        <Link to="/auth/login" className="text-brand-near-black underline underline-offset-4">
-          {t('auth.login.submit')}
-        </Link>
-      </p>
+      {/* The host page carries this when embedded; two of them read as a mistake, and
+          Ruth reported exactly that. */}
+      {!embedded && (
+        <p className="mt-8 text-center text-sm text-brand-mid-grey">
+          {t('auth.roleSignup.haveAccount')}{' '}
+          <Link to="/auth/login" className="text-brand-near-black underline underline-offset-4">
+            {t('auth.login.submit')}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

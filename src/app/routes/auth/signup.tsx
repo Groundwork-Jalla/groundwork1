@@ -201,27 +201,30 @@ export default function Signup() {
         {isInviteFlow ? t('auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4 mt-8">
-        {!isInviteFlow && (
-          <fieldset disabled={submitting} className="space-y-2">
+      {/* Outside the form on purpose. It submits nothing — it rewrites the URL — and
+          keeping it here lets the two branches below be two separate forms rather than
+          one wrapping the other. */}
+      {!isInviteFlow && (
+        <fieldset disabled={submitting} className="space-y-2 mt-8">
             <legend className="text-sm font-medium">{t('auth.signup.accountType')}</legend>
-            <div className="flex flex-wrap gap-4">
-              {(['homeowner', 'contractor'] as const).map(type => (
-                <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="radio" name="accountType" value={type} checked={accountType === type}
-                    onChange={() => {
-                      const next = new URLSearchParams(searchParams);
-                      next.set('role', type);
-                      setSearchParams(next, { replace: true });
-                      setError(null);
-                    }} />
-                  {t(type === 'contractor' ? 'auth.signup.contractor' : 'auth.signup.homeowner')}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        {sendToPartnerDoor ? (
+          <div className="flex flex-wrap gap-4">
+            {(['homeowner', 'contractor'] as const).map(type => (
+              <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="accountType" value={type} checked={accountType === type}
+                  onChange={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set('role', type);
+                    setSearchParams(next, { replace: true });
+                    setError(null);
+                  }} />
+                {t(type === 'contractor' ? 'auth.signup.contractor' : 'auth.signup.homeowner')}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {sendToPartnerDoor ? (
           /*
            * The contractor form, in place — Ruth's point 4: "it should simply load the
            * Signup Form on the same page. Not a redirect, Not a Pop up, Not a different
@@ -238,10 +241,16 @@ export default function Signup() {
            * since outreach reaches contractors before clients — opens it bare.
            *
            * The radio stays above it, so choosing contractor is still reversible.
+           *
+           * It renders its own <form>, which is why it sits OUTSIDE this page's. Nested
+           * forms are invalid HTML: React builds them anyway through the DOM, the inner
+           * submit escapes as a native GET, and the page reloads to /auth/signup? with
+           * the role parameter stripped and every field cleared. Reported from a live
+           * onboarding call as "it takes us back to the beginning".
            */
-          <RoleSignup role="contractor" embedded />
-        ) : (
-        <>
+        <RoleSignup role="contractor" embedded />
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">
           <Label htmlFor="fullName">{t('auth.signup.fullName')}</Label>
           <Input
@@ -326,14 +335,11 @@ export default function Signup() {
           </motion.p>
         )}
 
-        </>
-        )}
-        {!sendToPartnerDoor && (
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? t('auth.signup.submitting') : t('auth.signup.submit')}
         </Button>
-        )}
-      </form>
+        </form>
+      )}
 
       {!isContractorSignup && !sendToPartnerDoor && (
         <>

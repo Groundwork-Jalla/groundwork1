@@ -121,8 +121,32 @@ describe('what the account-type choice actually does', () => {
   it('loads the contractor form in place rather than handing off', () => {
     expect(page).toContain('{sendToPartnerDoor ? (');
     expect(page).toContain('<RoleSignup role="contractor" embedded />');
-    expect(page).toContain('{!sendToPartnerDoor && (');
     expect(page).toContain('{!isContractorSignup && !sendToPartnerDoor && (');
+  });
+
+  /**
+   * The two branches are SIBLINGS, never one inside the other.
+   *
+   * RoleSignup renders its own <form>. Nested inside this page's, React builds the
+   * invalid markup anyway through the DOM, the inner submit escapes as a native GET,
+   * and the browser reloads /auth/signup? — role stripped, every field cleared, no
+   * error. Reported from a live onboarding call: "it takes us back to the beginning",
+   * twice, with the contractor giving up.
+   */
+  it('never puts one form inside another', () => {
+    const open = page.indexOf('<form onSubmit={handleSubmit}');
+    const close = page.indexOf('</form>', open);
+    expect(open).toBeGreaterThan(-1);
+    // RoleSignup must not fall between this form's open and close tags.
+    const role = page.indexOf('<RoleSignup');
+    expect(role === -1 || role < open || role > close, 'RoleSignup is inside the form').toBe(true);
+  });
+
+  it('and the role radio sits outside the form, since it only rewrites the URL', () => {
+    const radio = page.indexOf("name=\"accountType\"");
+    const open = page.indexOf('<form onSubmit={handleSubmit}');
+    expect(radio).toBeGreaterThan(-1);
+    expect(radio).toBeLessThan(open);
   });
 
   it('and never sends them to another page to do it', () => {

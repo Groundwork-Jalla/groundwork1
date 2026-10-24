@@ -799,18 +799,18 @@ describe('the question at the end, and the two ways out (118)', () => {
   });
 
   it('each answer goes where it should', () => {
-    // Philip's correction: having a client is a CONDITION of the partner application,
-    // so "I don't have one" goes to the dashboard rather than to a form they cannot
-    // qualify on. Only somebody who wants to partner AND has a client reaches it.
-    expect(page).toMatch(/window\.location\.href = !partner \|\| intent === 'no_client'/);
-    expect(page).toMatch(/\? '\/work'\s*\n\s*: '\/work\/partner';/);
+    // Philip, 23 Oct: "Certified partner application begins when they click I have a
+    // client." One question carries both answers — a separate partner question above
+    // it was asked too early and cost conversion.
+    expect(page).toMatch(/const wantsPartner = intent === 'onboard_client'/);
+    expect(page).toMatch(/window\.location\.href = wantsPartner \? '\/work\/partner' : '\/work'/);
   });
 
   it('and does so with a full load, so the gate is re-read', () => {
     // The layout resolved `decided` before this answer existed. A client-side navigate
     // would be judged against the stale value and bounce them straight back here —
     // the same stale-gate loop that bit the agreement hold.
-    const fn = page.slice(page.indexOf('onAnswered={async ('));
+    const fn = page.slice(page.indexOf('onAnswered={async'));
     expect(fn.slice(0, fn.indexOf('}}'))).toMatch(/window\.location\.href =/);
   });
 

@@ -110,31 +110,39 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
 
   it('and a third: the decision is asked inside onboarding itself', () => {
     /**
-     * This test used to assert the opposite — that onboarding stayed untouched — on the
-     * reasoning that the two-choice gate (Philip, 15 Oct) should not be weakened. He
-     * then ruled the other way: "onboarding is not complete unless they are able to
-     * decide whether they want to be certified partners" (21 Oct). So the question is
-     * asked where everybody passes.
+     * Twice revised, so the current rule is stated in full.
+     *
+     * 15 Oct: a two-choice gate. 21 Oct: "onboarding is not complete unless they are
+     * able to decide whether they want to be certified partners", which added a
+     * separate partner question. 23 Oct, Philip again: that question is asked too
+     * early and costs conversion — "I've just created an account, I don't really know
+     * who you guys are yet… I'm likely to just say no… then I'm disqualified from ever
+     * seeing the partner application."
+     *
+     * So there is ONE question, and having a client is the partner intent: "the
+     * contractor onboarding ends at the last question before the do you have a client
+     * question pops up… Certified partner application begins when they click I have a
+     * client."
      */
     const onboarding = read('src/app/routes/work/onboarding.tsx');
-    expect(onboarding).toMatch(/contractorOnboarding\.partnerQ/);
-    // Having a client is a condition of applying, so somebody without one now goes to
-    // the dashboard — they used to be sent to a form they could not qualify on.
-    expect(onboarding).toMatch(/window\.location\.href = !partner \|\| intent === 'no_client'/);
+    expect(onboarding).toMatch(/haveClient/);
+    expect(onboarding).not.toMatch(/contractorOnboarding\.partnerQ/);
+    expect(onboarding).toMatch(/const wantsPartner = intent === 'onboard_client'/);
+    expect(onboarding).toMatch(/window\.location\.href = wantsPartner \? '\/work\/partner' : '\/work'/);
   });
 
   it('but the client-intent answer is still what unlocks the sidebar', () => {
     // Routing around it would leave somebody locked out of the app they just joined.
     const onboarding = read('src/app/routes/work/onboarding.tsx');
     expect(onboarding).toMatch(/await setClientIntent\(intent\)/);
-    // Neither question can be skipped: the client buttons wait for the partner answer.
-    expect(onboarding).toMatch(/disabled=\{busy !== null \|\| partner === null\}/);
+    // And nothing stands in front of it now.
+    expect(onboarding).not.toMatch(/partner === null/);
   });
 
   it('and the answer is recorded even when it is no', () => {
     // Somebody who says yes and abandons the form is a funnel leak Ruth cannot chase
     // unless it was written down.
-    expect(read('src/app/routes/work/onboarding.tsx')).toMatch(/await setPartnerInterest\(partner\)/);
+    expect(read('src/app/routes/work/onboarding.tsx')).toMatch(/await setPartnerInterest\(wantsPartner\)/);
     expect(m133).toMatch(/ADD COLUMN IF NOT EXISTS partner_interest\b/);
   });
 

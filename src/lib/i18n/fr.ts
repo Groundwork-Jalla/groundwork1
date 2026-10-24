@@ -2398,6 +2398,8 @@ export const fr: Mirror<EnDict> = {
     },
   },
   adminContractorRecords: {
+    unfinished: 'Inscription non terminée — il reste :',
+    intentLabel: 'A-t-il un client à intégrer ?',
     docFailed:     'Ce document n\u2019a pas pu \u00eatre ouvert. R\u00e9essayez.',
     doc: {
       professional_license:  'Licence professionnelle',
@@ -2434,7 +2436,6 @@ export const fr: Mirror<EnDict> = {
     secPayout:     'Pay\u00e9 sur',
     secAgreement:  'Sign\u00e9',
     secIntent:     'Client',
-    intentLabel:      'A un client \u00e0 int\u00e9grer',
     intentHasClient:  'Oui',
     intentNoClient:   'Non \u2014 en attente d\u2019affectation',
     none:          'Aucun renseign\u00e9',
@@ -2492,7 +2493,7 @@ export const fr: Mirror<EnDict> = {
 
   contractorOnboarding: {
     partnerQ: 'Souhaitez-vous devenir partenaire certifié Jalla ?',
-    partnerHint: 'Les partenaires sont présentés aux clients de la diaspora de Jalla. Cela s’adresse aux entrepreneurs qui ont un chantier en cours, ou sur le point de démarrer, avec un client qui ne peut pas venir le suivre sur place. Refuser ne change rien à votre accès à Groundwork — vous pourrez postuler plus tard, et c’est ce que font la plupart des gens.',
+    partnerHint: 'Si vous avez un client dont vous souhaitez suivre le chantier ici — quelqu’un qui ne peut pas se rendre sur place pour le voir — l’étape suivante est la candidature partenaire. Sinon, votre tableau de bord est prêt et vous pourrez postuler dès qu’un projet se présente.',
     partnerYes: 'Oui, postuler',
     partnerNo: 'Pas maintenant',
     navLabel: 'Configuration du compte',

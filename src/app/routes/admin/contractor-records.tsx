@@ -268,8 +268,25 @@ function Dossier({ userId }: { userId: string }) {
   }
 
   const o = d.onboarding;
+  /**
+   * What they have not done yet, said once at the top.
+   *
+   * Ruth read a half-finished record as a finished one: the Client row's LABEL is the
+   * statement "Has a client to onboard" and the unanswered value is a bare dash, so it
+   * scanned as the answer — and "Emergency contacts: none given" read as a step skipped
+   * rather than a step never reached. Five contractors are sitting in exactly that
+   * state. A blank is ambiguous; this is not.
+   */
+  const outstanding = ONBOARDING_STEPS.filter(k => !d.status.steps[k]);
+
   return (
     <div className="grid gap-5 border-b border-brand-border-grey bg-brand-off-white px-4 py-5 sm:grid-cols-2 dark:border-[#2c2c2c] dark:bg-[#141414]">
+      {outstanding.length > 0 && (
+        <p className="sm:col-span-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          <span className="font-semibold">{t('adminContractorRecords.unfinished')}</span>{' '}
+          {outstanding.map(k => t(`contractorOnboarding.step.${k}.title` as TKey)).join(' · ')}
+        </p>
+      )}
       <Section icon={<UserRound className="size-3.5" />} title={t('adminContractorRecords.secPersonal')}>
         <Row label={t('contractorOnboarding.dob')} value={o?.date_of_birth ? formatDate(o.date_of_birth) : null} />
         <Row label={t('contractorOnboarding.address')} value={o?.residential_address ?? null} />

@@ -133,22 +133,31 @@ export default function ContractorOnboarding() {
       {status.complete
         ? (
           <AllDone
-            onAnswered={async (intent, partner) => {
-              // Recorded before anything navigates: somebody who says yes and then
-              // abandons the form must still be visible in the funnel (133).
-              await setPartnerInterest(partner);
+            onAnswered={async intent => {
+              /**
+               * Having a client IS the partner intent — Philip, in the 23 October retro:
+               * "the contractor onboarding ends at the last question before the do you
+               * have a client question pops up… Certified partner application begins
+               * when they click I have a client."
+               *
+               * A separate "do you want to become a certified partner?" question used to
+               * sit above this one and gate it. His objection: asked that early it kills
+               * conversion — "I've just created an account, I don't really know who you
+               * guys are yet, and you're already asking me this. I'm likely to just say
+               * no… then I'm disqualified from ever seeing the partner application."
+               * So the one question carries both answers.
+               *
+               * Recorded before anything navigates: somebody who says yes and then
+               * abandons the form must still be visible in the funnel (133).
+               */
+              const wantsPartner = intent === 'onboard_client';
+              await setPartnerInterest(wantsPartner);
               const next = await setClientIntent(intent);
               setStatus(next);
               // A full load, not a client-side navigate: the /work layout resolved the
               // gate before this answer existed, and would otherwise bounce them
               // straight back here. The same reason the role handoffs reload.
-              // Having a client is a CONDITION of the partner application, so somebody
-              // who says they have none is not sent to it — they used to be, which meant
-              // filling in a form they could not qualify on. They get the dashboard and
-              // can apply later, from the sidebar, when a project comes up.
-              window.location.href = !partner || intent === 'no_client'
-                ? '/work'
-                : '/work/partner';
+              window.location.href = wantsPartner ? '/work/partner' : '/work';
             }}
           />
         )
@@ -325,15 +334,22 @@ function LockedNotice({ onBack }: { onBack: () => void }) {
  * the sidebar (118), and routing around it would leave somebody locked out of the app
  * they just joined. The partner answer only decides where they land afterwards.
  */
-function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent, partner: boolean) => Promise<void> }) {
+/**
+ * The last screen of onboarding, and the first of the partner application.
+ *
+ * Onboarding is already 100% complete by the time this renders — `status.complete`
+ * counts identity, specialty, payout, emergency contact and agreements, and nothing
+ * here. That is Philip's line: "for a contractor to be 100% complete, once they
+ * complete that last question, then they're good."
+ */
+function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent) => Promise<void> }) {
   const t = useT();
   const [busy, setBusy] = useState<ClientIntent | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [partner, setPartner] = useState<boolean | null>(null);
 
   const answer = async (intent: ClientIntent) => {
     setBusy(intent); setErr(null);
-    try { await onAnswered(intent, partner === true); }
+    try { await onAnswered(intent); }
     catch { setErr(t('contractorOnboarding.err.generic')); setBusy(null); }
   };
 
@@ -349,34 +365,16 @@ function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent, partner: boolea
         {t('contractorOnboarding.doneBody')}
       </p>
 
-      <div className="mx-auto mt-6 max-w-sm rounded-xl border border-brand-border-grey p-4 text-left dark:border-[#2c2c2c]">
-        <p className="text-xs font-semibold text-brand-near-black dark:text-white">
-          {t('contractorOnboarding.partnerQ')}
-        </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">
-          {t('contractorOnboarding.partnerHint')}
-        </p>
-        <div className="mt-2.5 flex gap-2">
-          {[true, false].map(v => (
-            <button
-              key={String(v)} type="button" disabled={busy !== null}
-              onClick={() => setPartner(v)}
-              className={cn('rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50',
-                partner === v
-                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
-                  : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]')}
-            >
-              {t(v ? 'contractorOnboarding.partnerYes' : 'contractorOnboarding.partnerNo')}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* One question, and the only one here. It closes onboarding and opens the partner
+          application in the same click — so the eligibility note that used to sit on a
+          separate partner question belongs with it. */}
+      <p className="mx-auto mt-6 max-w-sm text-xs leading-relaxed text-brand-mid-grey">
+        {t('contractorOnboarding.partnerHint')}
+      </p>
 
-      {/* The existing question, unchanged — and still what unlocks the sidebar. It waits
-          for the partner answer so neither can be skipped. */}
-      <div className="mx-auto mt-4 flex max-w-sm flex-col gap-2.5">
+      <div className="mx-auto mt-3 flex max-w-sm flex-col gap-2.5">
         <Button
-          type="button" disabled={busy !== null || partner === null}
+          type="button" disabled={busy !== null}
           onClick={() => void answer('onboard_client')}
         >
           {busy === 'onboard_client'
@@ -384,7 +382,7 @@ function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent, partner: boolea
             : <><UserPlus className="mr-1.5 size-3.5" aria-hidden />{t('contractorOnboarding.haveClient')}</>}
         </Button>
         <button
-          type="button" disabled={busy !== null || partner === null}
+          type="button" disabled={busy !== null}
           onClick={() => void answer('no_client')}
           className="rounded-lg px-4 py-2.5 text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black disabled:opacity-50 dark:hover:text-white"
         >
