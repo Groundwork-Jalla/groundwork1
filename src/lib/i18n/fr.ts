@@ -2521,32 +2521,32 @@ export const fr: Mirror<EnDict> = {
     lockedBody:  'La suite de ce formulaire demande votre licence, vos coordonn\u00e9es bancaires et vos proches \u00e0 pr\u00e9venir. L\u2019accord explique ce que Jalla en fait \u2014 il vient donc en premier.',
     lockedCta:   'Aller \u00e0 l\u2019accord',
 
-    doneTitle: 'Tout est en ordre',
-    doneBody:  'Vos informations sont enregistr\u00e9es. Une derni\u00e8re chose \u2014 amenez-vous votre propre client sur Groundwork, ou attendez-vous d\u2019\u00eatre affect\u00e9 \u00e0 un chantier ? Vous pourrez changer plus tard.',
+    doneTitle: 'Vous y êtes presque',
+    doneBody:  'G\u00e9rez votre premier projet sur Groundwork, devenez partenaire certifi\u00e9 et commencez \u00e0 recevoir des projets de Groundwork.',
     doneCta:   'Aller \u00e0 mon espace',
-    haveClient: 'J\u2019ai un client \u00e0 int\u00e9grer',
-    noClient:   'Je n\u2019ai pas de client \u00e0 int\u00e9grer',
+    haveClient: 'Cr\u00e9er un projet',
+    noClient:   'Je n\u2019ai pas de projet',
 
     panel: {
       agreements: {
         title: 'D\u2019abord, l\u2019accord',
-        body:  'Un seul document, et il couvre tout \u2014 votre utilisation de Groundwork, votre r\u00e9mun\u00e9ration, le traitement de vos donn\u00e9es. Ouvrez-le, lisez-le et signez en bas. Rien d\u2019autre ne vous est demand\u00e9 avant cela.',
+        body:  'Un seul document, et il couvre tout \u2014 votre utilisation de Groundwork, votre r\u00e9mun\u00e9ration, le traitement de vos donn\u00e9es. Ouvrez-le, lisez-le et signez en bas.',
       },
       you: {
         title: 'Parlez-nous de vous',
-        body:  'Deux informations, pour que Jalla puisse vous identifier et vous retrouver en cas de besoin.',
+        body:  '',
       },
       specialty: {
         title: 'Quel est votre m\u00e9tier ?',
-        body:  'Choisissez le travail que vous exercez. Si votre m\u00e9tier n\u2019est pas dans la liste, choisissez Autre et dites-nous lequel.',
+        body:  '',
       },
       payout: {
         title: 'Comment vous \u00eates pay\u00e9',
-        body:  'Un compte bancaire ou un num\u00e9ro mobile money, utilis\u00e9 pour tous les projets qui vous sont attribu\u00e9s. Cette \u00e9tape a sa propre page.',
+        body:  'Les clients peuvent vous payer directement via Groundwork. Indiquez votre mode de paiement pr\u00e9f\u00e9r\u00e9.',
       },
       contact: {
         title: 'Contact d\u2019urgence',
-        body:  'Une personne que nous pouvons joindre s\u2019il arrive quelque chose sur le chantier. Nous ne la contacterons jamais pour autre chose \u2014 vous pourrez en ajouter d\u2019autres depuis votre profil.',
+        body:  'En cas d\u2019urgence, qui souhaitez-vous que nous contactions ? Cela peut \u00eatre un membre de votre famille, un ami de confiance ou votre conjoint.',
       },
       documents: {
         title: 'Vos documents',
@@ -2578,11 +2578,13 @@ export const fr: Mirror<EnDict> = {
     dob:         'Date de naissance',
     address:     'Adresse de r\u00e9sidence',
     addressHint: 'Ajoutez les indications pour s\u2019y rendre si l\u2019adresse seule ne suffit pas \u00e0 vous trouver.',
+    addressPlaceholder: 'ex. Mile 16, Limb\u00e9 \u2014 pr\u00e8s de la Poly Clinic, r\u00e9gion du Sud-Ouest, Cameroun',
+    privacyLink: 'Lire notre politique de confidentialit\u00e9',
 
     specialtyLabel:      'Votre sp\u00e9cialit\u00e9',
     specialtyPlaceholder: 'Choisissez votre m\u00e9tier ou profession',
     specialtyOther:      'Dites-nous ce que vous faites',
-    specialtyOtherHint:  'Par exemple : \u00e9chafaudeur, carreleur, vitrier.',
+    specialtyOtherHint:  'Par exemple : \u00e9chafaudeur, carreleur, vitrier',
     licenseNumber:  'Num\u00e9ro de licence professionnelle',
     licenseHint:    'Votre profession est r\u00e9glement\u00e9e : nous avons besoin du num\u00e9ro figurant sur votre licence.',
     businessStatus: 'Sous quelle forme exercez-vous ?',
@@ -2615,7 +2617,7 @@ export const fr: Mirror<EnDict> = {
 
     agreementsBody: 'Lisez-le, puis saisissez votre nom complet pour signer. Votre signature est enregistr\u00e9e pour la version sign\u00e9e.',
     doc: {
-      terms_of_service:  'Conditions d\u2019utilisation',
+      terms_of_service:  'Groundwork Terms of Service',
       partner_agreement: 'Groundwork Partner Agreement and Terms of Service',
     },
     readIt:      'Lire le document',
@@ -2664,7 +2666,7 @@ export const fr: Mirror<EnDict> = {
     addTitle:   'Ajouter des coordonnées de paiement',
     editHint:   'Vous pouvez en enregistrer plusieurs et choisir celle utilisée par défaut.',
 
-    method:      'Comment souhaitez-vous être payé ?',
+    method:      'Comment vous êtes payé pour vos projets',
     mobileMoney: 'Mobile money',
     bank:        'Compte bancaire',
     country:     'Pays',
@@ -4379,13 +4381,13 @@ export const fr: Mirror<EnDict> = {
       claimedTitle:      'Ce lien a déjà été utilisé',
       claimedBody:       'Un compte a déjà été créé depuis cette invitation. Connectez-vous avec celui-ci — et s\'il ne s\'agissait pas de vous, dites-le nous immédiatement.',
       emailHint:         'Vous pouvez la modifier si vous préférez une autre adresse.',
-      checkEmailBody:    'Nous avons envoyé un lien de confirmation à {email}. Ouvrez-le et votre compte est prêt — il n\'y a rien d\'autre à remplir.',
+      checkEmailBody:    'Nous avons envoyé un lien de confirmation à {email}. Suivez le lien dans votre e-mail pour finaliser la création de votre compte.',
       haveAccount:       'Vous avez déjà un compte ?',
     },
     signup: {
       title:          'Inscription',
       titleContractor: 'Créez votre compte entrepreneur',
-      subtitleContractor: 'Inscrivez-vous avec votre e-mail et un mot de passe pour gérer vos chantiers. Aucun projet requis pour commencer.',
+      subtitleContractor: 'Inscrivez-vous pour gérer votre projet.',
       accountType: 'Je souhaite créer un compte',
       homeowner: 'Client',
       contractor: 'Entrepreneur',
@@ -4411,7 +4413,7 @@ export const fr: Mirror<EnDict> = {
       logIn:          'Se connecter',
       errGeneric:     "L'inscription a échoué. Veuillez réessayer ou contacter le support.",
       checkEmailTitle:'Consultez vos e-mails',
-      checkEmailBody: 'Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte.',
+      checkEmailBody: 'Nous avons envoyé un lien de confirmation à {email}. Suivez le lien dans votre e-mail pour finaliser la création de votre compte.',
       checkEmailInvite:'Après confirmation, vous serez dirigé directement vers le projet qui vous a été attribué.',
       backToLogin:    'Retour à la connexion',
       noEmailPrompt:  "Vous ne l'avez pas reçu ? Vérifiez vos spams, ou",

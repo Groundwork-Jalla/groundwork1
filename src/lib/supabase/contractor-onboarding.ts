@@ -237,7 +237,10 @@ export type AgreementDocument = 'terms_of_service' | 'partner_agreement';
  * written for them. `current_agreement_version` returns NULL for anything else, so this
  * is not merely the one we show: it is the only one that can be signed.
  */
-export const SIGNABLE_AGREEMENTS: readonly AgreementDocument[] = ['partner_agreement'];
+// 160: the Contractor Platform Terms of Service. The Partner Agreement is still a
+// current, signable document — it is just no longer the price of using the platform,
+// which §5 of the Terms states outright.
+export const SIGNABLE_AGREEMENTS: readonly AgreementDocument[] = ['terms_of_service'];
 
 /**
  * Sign an agreement.

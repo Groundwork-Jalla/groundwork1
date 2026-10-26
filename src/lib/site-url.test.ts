@@ -83,4 +83,43 @@ describe('site URL', () => {
     expect(siteLink('invite/abc')).toBe(`${siteUrl()}/invite/abc`);
     expect(siteLink('/invite/abc')).toBe(`${siteUrl()}/invite/abc`);
   });
+
+  /**
+   * No deployment hostname may reach a person.
+   *
+   * The confirm-signup mail went out carrying `groundwork1-phl.vercel.app` in its
+   * footer, because Supabase's Site URL setting had been left pointing at a preview
+   * deployment and the template printed it. The address is correct for a preview and
+   * wrong for everyone who receives it: it is not a domain we tell anybody to trust,
+   * it is not where their account lives, and on an account-confirmation mail it is the
+   * first thing a new contractor sees of us.
+   *
+   * The dashboard setting is not in this repository, so this only guards what is: no
+   * template may hardcode a deployment host, and the footer origin must be the
+   * canonical one. A mail that renders the preview host now needs the Site URL fixed
+   * in Supabase, which README.md states.
+   */
+  it('no email template carries a deployment hostname', () => {
+    const dir = join(ROOT, 'docs', 'supabase-email-templates');
+    const offenders: string[] = [];
+    for (const name of readdirSync(dir).filter(f => f.endsWith('.html'))) {
+      const html = readFileSync(join(dir, name), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+      for (const line of html.split('\n')) {
+        if (/vercel\.app|netlify\.app|localhost:\d+/.test(line)) {
+          offenders.push(`${name}: ${line.trim().slice(0, 100)}`);
+        }
+      }
+    }
+    expect(offenders, `\nEmail templates must not name a deployment host:\n${offenders.join('\n')}\n`)
+      .toEqual([]);
+  });
+
+  it('every email template signs off with the canonical origin', () => {
+    const dir = join(ROOT, 'docs', 'supabase-email-templates');
+    for (const name of readdirSync(dir).filter(f => f.endsWith('.html'))) {
+      const html = readFileSync(join(dir, name), 'utf8');
+      expect(html, `${name} should link its footer to ${CANONICAL_SITE_URL}`)
+        .toContain(`href="${CANONICAL_SITE_URL}"`);
+    }
+  });
 });

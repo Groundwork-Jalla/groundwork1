@@ -288,9 +288,14 @@ function Panel({ id, children }: { id: PanelId; children: React.ReactNode }) {
         <h1 className="text-xl font-bold leading-snug text-brand-near-black dark:text-white">
           {t(`contractorOnboarding.panel.${id}.title` as TKey)}
         </h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">
-          {t(`contractorOnboarding.panel.${id}.body` as TKey)}
-        </p>
+        {/* A step whose body is blank shows no subtext at all. Rendering the empty
+            string would still cost the paragraph's top margin, leaving a gap under the
+            heading that reads as a missing line rather than a deliberate one. */}
+        {t(`contractorOnboarding.panel.${id}.body` as TKey).trim() !== '' && (
+          <p className="mt-1 text-sm text-brand-mid-grey">
+            {t(`contractorOnboarding.panel.${id}.body` as TKey)}
+          </p>
+        )}
       </div>
       {children}
     </section>
@@ -366,13 +371,9 @@ function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent) => Promise<void
       </p>
 
       {/* One question, and the only one here. It closes onboarding and opens the partner
-          application in the same click — so the eligibility note that used to sit on a
-          separate partner question belongs with it. */}
-      <p className="mx-auto mt-6 max-w-sm text-xs leading-relaxed text-brand-mid-grey">
-        {t('contractorOnboarding.partnerHint')}
-      </p>
-
-      <div className="mx-auto mt-3 flex max-w-sm flex-col gap-2.5">
+          application in the same click. The eligibility note that used to sit above these
+          buttons is gone — the two buttons say the same thing in fewer words. */}
+      <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
         <Button
           type="button" disabled={busy !== null}
           onClick={() => void answer('onboard_client')}
@@ -492,6 +493,16 @@ function AgreementsPanel({ status, onSaved }: {
         })}
       </ul>
 
+      {/* The acceptance statement has them acknowledge the privacy notice by name, so
+          the notice has to be one click away from the thing they are acknowledging.
+          Same tab on purpose: this panel holds no unsaved input, and the signing flow
+          itself is tested to hand off nowhere. */}
+      <p className="mt-3 text-xs text-brand-mid-grey">
+        <Link to="/privacy" className="underline underline-offset-2 hover:text-brand-near-black dark:hover:text-white">
+          {t('contractorOnboarding.privacyLink')}
+        </Link>
+      </p>
+
       <Err>{err}</Err>
 
       {open && (
@@ -543,7 +554,8 @@ function YouPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void }) {
           <Label htmlFor="addr">{t('contractorOnboarding.address')}</Label>
           <textarea
             id="addr" required rows={3} value={address} onChange={e => setAddress(e.target.value)}
-            className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-base sm:text-sm dark:border-[#444] dark:bg-[#141414] dark:text-white"
+            placeholder={t('contractorOnboarding.addressPlaceholder')}
+            className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 placeholder:text-brand-mid-grey/60 text-base sm:text-sm dark:border-[#444] dark:bg-[#141414] dark:text-white"
           />
           <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.addressHint')}</p>
         </div>
@@ -606,9 +618,15 @@ function SpecialtyPanel({ onSaved }: { onSaved: (s: OnboardingStatus) => void })
         {/* Only when the list did not have it. */}
         {specialty === 'other' && (
           <div className="space-y-1.5">
-            <Label htmlFor="specOther">{t('contractorOnboarding.specialtyOther')}</Label>
-            <Input id="specOther" required value={other} onChange={e => setOther(e.target.value)} />
-            <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.specialtyOtherHint')}</p>
+            {/* No label and no hint line. The field only appears once "Other" is chosen,
+                so what it is for is already established by the answer above it, and the
+                examples do more work inside the box than under it — they are visible at
+                the moment of typing rather than after. */}
+            <Input
+              id="specOther" required value={other} onChange={e => setOther(e.target.value)}
+              aria-label={t('contractorOnboarding.specialtyOther')}
+              placeholder={t('contractorOnboarding.specialtyOtherHint')}
+            />
           </div>
         )}
 
@@ -707,7 +725,6 @@ function ContactPanel({ contacts, setContacts, onSaved }: {
           {/* The full dialling list, not the build-country list: a contractor's next of
               kin is often not in the country they build in. */}
           <PhoneField id="cp1" required value={c.phone} onChange={phone => set({ phone })} />
-          <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.phoneHint')}</p>
         </div>
         <p className="text-xs text-brand-mid-grey">{t('contractorOnboarding.contactMoreLater')}</p>
       </div>

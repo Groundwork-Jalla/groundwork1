@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguage, useT } from '@/lib/i18n';
 import { PARTNER_AGREEMENT } from '@/lib/legal/partner-agreement';
+import { ACCEPTANCE_STATEMENT, CONTRACTOR_TOS } from '@/lib/legal/contractor-tos';
 import { TERMS } from '@/lib/legal/content';
 import type { AgreementDocument } from '@/lib/supabase/contractor-onboarding';
 import { cn } from '@/lib/utils';
@@ -26,19 +27,15 @@ type Block = ['h2' | 'clause' | 'p', string];
 /**
  * Both documents, flattened to the same shape.
  *
- * The partner agreement is generated from Ruth's .docx as a flat list already. The terms
- * of service are the bilingual `LegalDoc` the public /terms page renders. They print the
- * same way here so the reader does not need to know which it is showing.
+ * `terms_of_service` is the CONTRACTOR Platform Terms of Service (160), not the public
+ * /terms page — that one is the client's contract and a contractor is not that person.
+ * `TERMS` is still imported for the public page and deliberately not read here.
+ *
+ * Neither document is translated. Both state that the English version controls, so a
+ * French rendering beside an English signature would be a second text nobody signed.
  */
-function blocksFor(doc: AgreementDocument, lang: 'en' | 'fr'): Block[] {
-  if (doc === 'partner_agreement') return PARTNER_AGREEMENT;
-  const d = TERMS[lang] ?? TERMS.en;
-  const out: Block[] = [['p', d.intro]];
-  for (const s of d.sections) {
-    out.push(['h2', s.heading]);
-    for (const p of s.body) out.push(['p', p]);
-  }
-  return out;
+function blocksFor(doc: AgreementDocument, _lang: 'en' | 'fr'): Block[] {
+  return doc === 'partner_agreement' ? PARTNER_AGREEMENT : [...CONTRACTOR_TOS];
 }
 
 export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
@@ -169,7 +166,9 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
               type="checkbox" className="mt-0.5" disabled={!readToEnd || busy}
               checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
             />
-            {t('contractorOnboarding.confirmRead')}
+            {doc === 'terms_of_service'
+              ? ACCEPTANCE_STATEMENT
+              : t('contractorOnboarding.confirmRead')}
           </label>
 
           <div className="flex flex-wrap items-end gap-3">

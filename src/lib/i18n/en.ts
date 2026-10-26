@@ -2563,32 +2563,32 @@ export const en = {
     lockedBody:  'The rest of this form asks for your licence, bank details and next of kin. The agreement explains what Jalla does with all of it, so it comes first.',
     lockedCta:   'Go to the agreement',
 
-    doneTitle: 'You\u2019re all set',
-    doneBody:  'Your details are in. One last thing \u2014 are you bringing a client of your own onto Groundwork, or waiting to be assigned to a build? You can change this later.',
+    doneTitle: 'You\u2019re almost there',
+    doneBody:  'Manage your first project on Groundwork, become a certified partner, and start receiving projects from Groundwork.',
     doneCta:   'Go to my work',
-    haveClient: 'I have a client to onboard',
-    noClient:   'I don\u2019t have a client to onboard',
+    haveClient: 'Create a project',
+    noClient:   'I don\u2019t have a project',
 
     panel: {
       agreements: {
         title: 'First, the agreement',
-        body:  'One document, and it covers everything \u2014 how you use Groundwork, how you are paid, how your data is handled. Open it, read it, and sign at the bottom. Nothing else is asked of you until this is done.',
+        body:  'One document, and it covers everything \u2014 how you use Groundwork, how you are paid, how your data is handled. Open it, read it, and sign at the bottom.',
       },
       you: {
         title: 'Tell us about you',
-        body:  'Two things, so Jalla can identify you and find you if it ever needs to.',
+        body:  '',
       },
       specialty: {
         title: 'What do you do?',
-        body:  'Pick the work you do. If your trade is not on the list, choose Other and tell us.',
+        body:  '',
       },
       payout: {
         title: 'How you get paid',
-        body:  'A bank account or mobile money number, used for every project you are assigned to. This one lives on its own page.',
+        body:  'Clients can pay you directly through Groundwork. Provide your preferred method of receiving payment.',
       },
       contact: {
         title: 'Emergency contact',
-        body:  'One person we can reach if something happens on site. We will only ever contact them for that \u2014 you can add more from your profile later.',
+        body:  'In case of an emergency, who is your preferred person of contact? That could be your family member, a trusted friend or spouse.',
       },
       documents: {
         title: 'Your documents',
@@ -2620,11 +2620,13 @@ export const en = {
     dob:         'Date of birth',
     address:     'Residential address',
     addressHint: 'Include directions to the location if the address alone would not find it.',
+    addressPlaceholder: 'e.g. Mile 16, Limbe \u2014 near the Poly Clinic, South West Region, Cameroon',
+    privacyLink: 'Read our Privacy Policy',
 
     specialtyLabel:      'Your specialty',
     specialtyPlaceholder: 'Choose your trade or profession',
     specialtyOther:      'Tell us what you do',
-    specialtyOtherHint:  'For example: scaffolder, tiler, glazier.',
+    specialtyOtherHint:  'For example: scaffolder, tiler, glazier',
     licenseNumber:  'Professional licence number',
     licenseHint:    'Your profession is licensed, so we need the number on your licence.',
     businessStatus: 'How do you trade?',
@@ -2657,7 +2659,7 @@ export const en = {
 
     agreementsBody: 'Read it, then type your full name to sign. Your signature is recorded against the version you signed.',
     doc: {
-      terms_of_service:  'Terms of Service',
+      terms_of_service:  'Groundwork Terms of Service',
       partner_agreement: 'Groundwork Partner Agreement and Terms of Service',
     },
     readIt:      'Read the document',
@@ -2706,7 +2708,7 @@ export const en = {
     addTitle:   'Add payment details',
     editHint:   'You can add more than one and choose which is used by default.',
 
-    method:      'How do you want to be paid?',
+    method:      'How you get paid for projects',
     mobileMoney: 'Mobile money',
     bank:        'Bank account',
     country:     'Country',
@@ -4458,13 +4460,13 @@ export const en = {
       claimedTitle:      'This link has already been used',
       claimedBody:       'An account has already been set up from this invitation. Sign in with it instead — and if that was not you, tell us straight away.',
       emailHint:         'You can change this if you would rather use a different address.',
-      checkEmailBody:    'We sent a confirmation link to {email}. Open it and your account is ready — there is nothing else to fill in.',
+      checkEmailBody:    'We sent a confirmation link to {email}. Follow the link in your email to complete your account setup.',
       haveAccount:       'Already have an account?',
     },
     signup: {
       title:          'Sign up',
       titleContractor: 'Create your contractor account',
-      subtitleContractor: 'Sign up with email and password to manage your assigned work. No project is needed to get started.',
+      subtitleContractor: 'Sign up to manage your project.',
       accountType: 'I am signing up as a',
       homeowner: 'Client',
       contractor: 'Contractor',
@@ -4493,7 +4495,7 @@ export const en = {
       logIn:          'Log in',
       errGeneric:     'Sign up failed. Please try again or contact support.',
       checkEmailTitle:'Check your email',
-      checkEmailBody: 'We sent a confirmation link to {email}. Click it to activate your account.',
+      checkEmailBody: 'We sent a confirmation link to {email}. Follow the link in your email to complete your account setup.',
       checkEmailInvite:"After confirming, you'll be taken directly to your assigned project.",
       backToLogin:    'Back to login',
       noEmailPrompt:  "Didn't get it? Check your spam folder, or",

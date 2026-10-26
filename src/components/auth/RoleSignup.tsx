@@ -127,8 +127,15 @@ const CONFIG: Record<SignupRole, DoorConfig> = {
   },
 };
 
-export default function RoleSignup({ role, embedded = false }: {
+export default function RoleSignup({ role, embedded = false, onSubmitted }: {
   role: SignupRole;
+  /**
+   * Told when the form gives way to "check your email". Embedded, the host page draws
+   * the heading and the Client/Contractor radio above this component, and both are
+   * answers to a question that has already been asked by then — leaving them beside a
+   * confirmation invites somebody to change their role after the account exists.
+   */
+  onSubmitted?: (submitted: boolean) => void;
   /**
    * Rendered inside another page rather than as its own.
    *
@@ -181,6 +188,7 @@ export default function RoleSignup({ role, embedded = false }: {
   const [error,           setError]           = useState<string | null>(null);
   const [submitting,      setSubmitting]      = useState(false);
   const [submitted,       setSubmitted]       = useState(false);
+  useEffect(() => { onSubmitted?.(submitted); }, [submitted, onSubmitted]);
 
   // Who the link is for. Both previews are granted to anon precisely so this page can
   // name them before they have an account — a page that cannot reads as a phishing link.
@@ -365,7 +373,11 @@ export default function RoleSignup({ role, embedded = false }: {
         </>
       )}
 
-      <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'mt-8 space-y-4'}>
+      {/* `mt-8` in both cases. Standalone it separates the form from this component's
+          own heading; embedded on /auth/signup it separates it from the host page's
+          role radio — the same gap the client form there carries, so switching between
+          Client and Contractor does not move the fields. */}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="fullName">{t('auth.signup.fullName')}</Label>
           <Input id="fullName" autoComplete="name" value={fullName}
@@ -376,9 +388,6 @@ export default function RoleSignup({ role, embedded = false }: {
           <Label htmlFor="email">{t('auth.signup.email')}</Label>
           <Input id="email" type="email" autoComplete="email" value={email}
             onChange={e => setEmail(e.target.value)} />
-          {/* Editable on purpose: 100's rule — somebody who signs up with a different
-              address than we wrote to is still the person who opened our mail. */}
-          <p className="text-xs text-brand-mid-grey">{t('auth.roleSignup.emailHint')}</p>
         </div>
 
         <div className="space-y-1.5">
@@ -387,7 +396,6 @@ export default function RoleSignup({ role, embedded = false }: {
               used to have their number silently prefixed +237 — a number reaching
               nobody, on the account we then use to contact them. */}
           <PhoneField id="phone" value={phone} onChange={setPhone} />
-          <p className="text-xs text-brand-mid-grey">{t('auth.signup.phoneHint')}</p>
         </div>
 
         <div className="space-y-1.5">

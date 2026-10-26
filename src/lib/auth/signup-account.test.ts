@@ -120,8 +120,18 @@ describe('what the account-type choice actually does', () => {
    */
   it('loads the contractor form in place rather than handing off', () => {
     expect(page).toContain('{sendToPartnerDoor ? (');
-    expect(page).toContain('<RoleSignup role="contractor" embedded />');
+    expect(page).toContain('<RoleSignup role="contractor" embedded onSubmitted={handleRoleFormSent} />');
     expect(page).toContain('{!isContractorSignup && !sendToPartnerDoor && (');
+  });
+
+  // Once the embedded form says "check your email" the account exists, so the heading
+  // and the Client/Contractor radio above it are answering a settled question. Offering
+  // the radio there invites somebody to switch role after signing up.
+  it('the heading and the role radio go away once the form has been sent', () => {
+    expect(page).toContain('{!roleFormSent && (');
+    expect(page).toContain('{!isInviteFlow && !roleFormSent && (');
+    expect(code('src/components/auth/RoleSignup.tsx'))
+      .toContain('useEffect(() => { onSubmitted?.(submitted); }, [submitted, onSubmitted]);');
   });
 
   /**

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { Mail, Lock } from "lucide-react";
@@ -36,6 +36,10 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error,           setError]           = useState<string | null>(null);
   const [submitting,      setSubmitting]      = useState(false);
+  // True once the embedded contractor form has given way to "check your email". The
+  // heading and the role radio below are answers to a question already asked by then.
+  const [roleFormSent,    setRoleFormSent]    = useState(false);
+  const handleRoleFormSent = useCallback((sent: boolean) => setRoleFormSent(sent), []);
   const [submitted,       setSubmitted]       = useState(false);
 
   // Resend state. Confirmation mail is sent by Supabase Auth (not our Resend
@@ -194,17 +198,21 @@ export default function Signup() {
 
   return (
     <div>
-      <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-        {isInviteFlow ? t('auth.signup.titleInvite') : isContractorSignup ? t('auth.signup.titleContractor') : t('auth.signup.title')}
-      </h1>
-      <p className="text-sm text-brand-mid-grey mt-2">
-        {isInviteFlow ? t('auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
-      </p>
+      {!roleFormSent && (
+        <>
+          <h1 className="font-sans text-3xl font-bold text-brand-near-black">
+            {isInviteFlow ? t('auth.signup.titleInvite') : isContractorSignup ? t('auth.signup.titleContractor') : t('auth.signup.title')}
+          </h1>
+          <p className="text-sm text-brand-mid-grey mt-2">
+            {isInviteFlow ? t('auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
+          </p>
+        </>
+      )}
 
       {/* Outside the form on purpose. It submits nothing — it rewrites the URL — and
           keeping it here lets the two branches below be two separate forms rather than
           one wrapping the other. */}
-      {!isInviteFlow && (
+      {!isInviteFlow && !roleFormSent && (
         <fieldset disabled={submitting} className="space-y-2 mt-8">
             <legend className="text-sm font-medium">{t('auth.signup.accountType')}</legend>
           <div className="flex flex-wrap gap-4">
@@ -248,7 +256,7 @@ export default function Signup() {
            * the role parameter stripped and every field cleared. Reported from a live
            * onboarding call as "it takes us back to the beginning".
            */
-        <RoleSignup role="contractor" embedded />
+        <RoleSignup role="contractor" embedded onSubmitted={handleRoleFormSent} />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">
@@ -274,7 +282,6 @@ export default function Signup() {
             value={phone}
             onChange={(v) => { setPhone(v); setError(null); }}
           />
-          <p className="text-xs text-brand-mid-grey">{t('auth.signup.phoneHint')}</p>
         </div>
 
         <div className="space-y-1.5">

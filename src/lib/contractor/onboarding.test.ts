@@ -42,7 +42,8 @@ const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql',
  * newest definition of each function.
  */
 const RPC_MIGRATIONS = [...MIGRATIONS, '141_licence_is_not_everyone.sql',
-                        '142_specialty_replaces_trade.sql'];
+                        '142_specialty_replaces_trade.sql',
+                        '160_the_contractor_terms_of_service.sql'];
 const sqlCode = MIGRATIONS
   .map(f => read(`supabase/migrations/${f}`))
   .join('\n')
@@ -144,7 +145,10 @@ describe('the agreement cannot be forged', () => {
     // text was on one page and the signature box on another, so the honest answer to
     // "have you read this?" was "I clicked a link that went somewhere else".
     expect(reader).toMatch(/PARTNER_AGREEMENT/);
-    expect(reader).toMatch(/TERMS\[lang\] \?\? TERMS\.en/);
+    // 160: `terms_of_service` is the CONTRACTOR Terms of Service, not the public /terms
+    // page — that one is the client's contract and a contractor is not that person.
+    expect(reader).toMatch(/CONTRACTOR_TOS/);
+    expect(reader).not.toMatch(/TERMS\[lang\] \?\? TERMS\.en/);
     expect(reader).toMatch(/role="dialog" aria-modal="true"/);
     // No hand-off anywhere in the signing flow.
     expect(reader).not.toMatch(/target="_blank"|window\.open/);
@@ -552,15 +556,23 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
   });
 
   it('and /work sends them to the form until BOTH holds clear', () => {
-    expect(layout).toMatch(/if \(gate\.signed && gate\.decided\) return;/);
+    expect(layout).toMatch(/if \(through\(gate\)\) return;/);
     expect(layout).toMatch(/navigate\('\/work\/onboarding', \{ replace: true \}\)/);
   });
 
-  it('it gates on the agreement alone, not the whole sequence', () => {
-    // A contractor already on a site who has signed but not finished their third
-    // emergency contact must still be able to post evidence — locking them out would
-    // punish the client, not the contractor.
+  it('it gates on the WHOLE sequence, not the agreement alone', () => {
+    // This reverses the earlier rule deliberately. It used to gate on the signature
+    // only, so that a contractor already on a site who had signed but not finished
+    // their emergency contact could still post evidence — locking them out was judged
+    // to punish the client rather than the contractor.
+    //
+    // Philip's call on 27 October is that an unfinished contractor reaches nothing: the
+    // sidebar is visible and inert until every step is done. The protection that
+    // reasoning asked for now lives in the fail-open default below, which keeps a
+    // FINISHED contractor working when the read fails — rather than in letting an
+    // unfinished one through.
     expect(layout).toMatch(/signed: st\.steps\.agreements/);
+    expect(layout).toMatch(/complete: st\.complete/);
   });
 
   it('the deciding hold only applies to a FINISHED form', () => {
@@ -571,13 +583,16 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
 
   it('it fails OPEN, so a timeout never locks a working contractor out', () => {
     // Two ways to not know: 116 absent, or the read threw. Both leave the surface open.
-    expect(layout).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{\s*if \(alive\) setGate\(\{ signed: true, decided: true \}\);/);
-    expect(layout).toMatch(/catch \{\s*if \(alive\) setGate\(\{ signed: true, decided: true \}\);\s*\}/);
+    expect(layout).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{\s*if \(alive\) setGate\(\{ signed: true, decided: true, complete: true \}\);/);
+    expect(layout).toMatch(/catch \{\s*if \(alive\) setGate\(\{ signed: true, decided: true, complete: true \}\);\s*\}/);
+    // `complete: true` is the load-bearing word. Without it a read that times out would
+    // lock a finished contractor out of a live project, which is the failure the open
+    // default exists to prevent.
   });
 
   it('no flash of the dashboard before the redirect', () => {
     expect(layout).toMatch(/\(!gate && !onOnboarding\)/);
-    expect(layout).toMatch(/!\(gate\.signed && gate\.decided\) && !onOnboarding/);
+    expect(layout).toMatch(/!through\(gate\) && !onOnboarding/);
   });
 
   it('re-asks when they leave the form, so signing is not judged on a stale answer', () => {
@@ -664,7 +679,7 @@ describe('one merged document, not two (117)', () => {
   });
 
   it('the UI offers exactly that one', () => {
-    expect(lib).toMatch(/SIGNABLE_AGREEMENTS: readonly AgreementDocument\[\] = \['partner_agreement'\]/);
+    expect(lib).toMatch(/SIGNABLE_AGREEMENTS: readonly AgreementDocument\[\] = \['terms_of_service'\]/);
     expect(page).toMatch(/\{SIGNABLE_AGREEMENTS\.map\(d => \{/);
   });
 
@@ -826,7 +841,7 @@ describe('the question at the end, and the two ways out (118)', () => {
   it('until it is answered the sidebar is inert, not hidden', () => {
     // "They should not be able to click on the sidebar." Visible, so they can see what
     // is coming; inert, so the two buttons are the only things that do anything.
-    expect(layout).toMatch(/navLocked=\{gate !== null && !gate\.decided\}/);
+    expect(layout).toMatch(/navLocked=\{gate !== null && !\(gate\.decided && gate\.complete\)\}/);
     expect(shell).toMatch(/if \(navLocked\) return <span/);
     expect(shell).toMatch(/aria-disabled="true"/);
   });

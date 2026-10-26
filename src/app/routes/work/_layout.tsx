@@ -40,7 +40,18 @@ import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contr
  *                  complete they must answer it before going anywhere, so the nav is
  *                  rendered inert and every other path returns them to it.
  */
-type Gate = { signed: boolean; decided: boolean } | null;
+/**
+ * `complete` is the whole of onboarding, not just the signature.
+ *
+ * The sidebar is visible and inert until every step is done. A half-onboarded
+ * contractor can see what they are working towards and has exactly one way forward,
+ * which is the screen they are already on.
+ *
+ * Every failure path below sets all three true. A read that times out must not lock
+ * somebody out of a live project — being wrong in that direction costs a client their
+ * site updates, and being wrong in the other costs nothing but an extra visit.
+ */
+type Gate = { signed: boolean; decided: boolean; complete: boolean } | null;
 
 export default function WorkLayout() {
   const { session, loading, isContractor, rolesChecked, user, signOut } = useAuth();
@@ -79,7 +90,7 @@ export default function WorkLayout() {
     (async () => {
       try {
         if (!(await onboardingAvailable())) {
-          if (alive) setGate({ signed: true, decided: true });
+          if (alive) setGate({ signed: true, decided: true, complete: true });
           return;
         }
         const st = await fetchOnboardingStatus();
@@ -90,19 +101,24 @@ export default function WorkLayout() {
             // reached the question yet, and holding them against it would be a gate
             // on a screen they have never seen.
             decided: !st.complete || st.clientIntent !== null,
+            complete: st.complete,
           });
         }
       } catch {
-        if (alive) setGate({ signed: true, decided: true });
+        if (alive) setGate({ signed: true, decided: true, complete: true });
       }
     })();
     return () => { alive = false; };
   }, [loading, session, resolved, allowed, onOnboarding]);
 
-  // Unsigned, or finished-but-undecided: either way the only place to be is the form.
+  // Unsigned, unfinished, or finished-but-undecided: either way the only place to be is
+  // the form. The redirect matters as much as the inert sidebar — without it the lock is
+  // decoration that a typed URL walks straight past.
+  const through = (g: NonNullable<Gate>) => g.signed && g.decided && g.complete;
+
   useEffect(() => {
     if (!gate || onOnboarding) return;
-    if (gate.signed && gate.decided) return;
+    if (through(gate)) return;
     navigate('/work/onboarding', { replace: true });
   }, [gate, onOnboarding, navigate]);
 
@@ -110,7 +126,7 @@ export default function WorkLayout() {
   // a flash of the dashboard before being moved on.
   const waiting = loading || !session || !resolved || !allowed
     || (!gate && !onOnboarding)
-    || (gate !== null && !(gate.signed && gate.decided) && !onOnboarding);
+    || (gate !== null && !through(gate) && !onOnboarding);
 
   if (waiting) {
     return (
@@ -126,9 +142,9 @@ export default function WorkLayout() {
   return (
     <WorkShell
       displayName={displayName}
-      // On the question at the end of the form, the sidebar is visible and inert:
-      // the two buttons on that screen are the only things that do anything.
-      navLocked={gate !== null && !gate.decided}
+      // Visible and inert until onboarding is finished — and on the client question at
+      // the end of it, where the two buttons on that screen are the only live things.
+      navLocked={gate !== null && !(gate.decided && gate.complete)}
       // A contractor had no bell at all: a message notification was written and had
       // nowhere to appear. Suppressed while the client question is unanswered, since
       // nothing on that screen is meant to be clickable but its two buttons.

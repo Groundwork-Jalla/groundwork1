@@ -103,7 +103,6 @@ export function PayoutDialog({ onSaved, onClose }: {
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-brand-border-grey px-5 py-4 dark:border-[#2c2c2c]">
           <div>
             <h2 className="text-base font-bold text-brand-near-black dark:text-white">{t('contractorPayout.addTitle')}</h2>
-            <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorOnboarding.payoutDialogBody')}</p>
           </div>
           <button
             type="button" onClick={onClose} disabled={busy}

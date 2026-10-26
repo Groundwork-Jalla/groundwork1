@@ -8,8 +8,28 @@ field using Source view:
 
 | Template | File | Subject |
 | --- | --- | --- |
+| Confirm signup | `confirm-signup.html` | Confirm your email address |
 | Invite user | `invite-user.html` | Set up your Groundwork account |
 | Reset password | `reset-password.html` | Reset your password |
+
+## Site URL is not cosmetic
+
+**Authentication → URL Configuration → Site URL must be `https://www.tryjalla.com`.**
+
+Every template builds its button from `{{ .SiteURL }}`, because the token is only valid
+against the origin that issued it. Whatever that setting holds is therefore both where a
+new account is confirmed and what the recipient reads in the mail.
+
+Left pointing at a preview deployment it does not fail — it sends working links to
+`*.vercel.app`. A contractor confirming their account there lands on a build nobody is
+watching, on a hostname we have never asked anyone to trust, in the first mail we ever
+send them. This happened: the 26 October confirmation mails carried
+`groundwork1-phl.vercel.app`.
+
+The footers are written out rather than templated so that at least the signature is
+always the real domain; `src/lib/site-url.test.ts` fails the build if a template names a
+deployment host or drops the canonical footer. Neither guard can see the dashboard, so
+check the setting after any Supabase project change.
 
 Keep `token_hash` and `type` in the links. They let the recipient open the email on their
 own device and send invitations to password setup rather than the dashboard. Configure
