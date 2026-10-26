@@ -3,22 +3,20 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * The application is three pages, not one form and not nine screens.
- *
- * Philip's note: opening the whole form made the application feel like a different
- * exercise from the onboarding somebody had just finished, and it was easy to abandon
- * part-way. One question per screen would be nine screens for a short application, so
- * the questions are grouped three to a page with a Next between them.
+ * The application keeps its initial groups and gives dependent project questions their
+ * own Next-driven screens, so applicants cannot see follow-ups before answering.
  */
 
 const ROOT = resolve(__dirname, '..', '..', '..');
 const page = readFileSync(join(ROOT, 'src/app/routes/work/partner.tsx'), 'utf8');
 
-describe('three pages with a way forward', () => {
+describe('step-by-step project questions with a way forward', () => {
   it('renders one page at a time', () => {
-    for (const n of [0, 1, 2]) {
+    for (const n of [0, 1, 2, 4, 5, 6]) {
       expect(page, `page ${n} is not rendered`).toContain(`{page === ${n} && (`);
     }
+    expect(page).toMatch(/\{page === 3 && projectStatus === 'running' && \(/);
+    expect(page).toMatch(/\{page === 3 && projectStatus === 'starting' && \(/);
   });
 
   it('and shows where they are', () => {
@@ -51,32 +49,45 @@ describe('three pages with a way forward', () => {
   });
 });
 
-describe('the three questions that end an application stay together', () => {
-  /**
-   * Philip's walkthrough replaced the old yes/no pair. The three rules that can
-   * discontinue an application are on one page, each opening its own sub-question:
-   * no project at all, a client who can be on site daily, and an outright refusal to
-   * run the build in Groundwork.
-   */
-  it('all three deciding questions are on the same page', () => {
-    const last = page.slice(page.indexOf('{page === 2 && ('));
-    expect(last).toMatch(/partner\.projectStatus/);
-    expect(last).toMatch(/partner\.clientOnSite/);
-    expect(last).toMatch(/partner\.useGroundwork/);
+describe('the project question reveals only its matching follow-up', () => {
+  const projectQuestion = page.slice(page.indexOf('{page === 2 && ('), page.indexOf('{page === 3 &&'));
+  const projectFollowups = page.slice(page.indexOf('{page === 3 &&'), page.indexOf('{page === 4 &&'));
+
+  it('shows the three project answers without either follow-up on that screen', () => {
+    expect(projectQuestion).toMatch(/partner\.projectStatus/);
+    expect(projectQuestion).not.toMatch(/partner\.projectStage|partner\.startWindow/);
+    expect(projectQuestion).not.toMatch(/partner\.clientOnSite|partner\.useGroundwork/);
   });
 
-  it('a parent question opens its own sub-question and no other', () => {
-    const last = page.slice(page.indexOf('{page === 2 && ('));
-    expect(last).toMatch(/projectStatus === 'running'[\s\S]{0,200}partner\.projectStage/);
-    expect(last).toMatch(/projectStatus === 'starting'[\s\S]{0,200}partner\.startWindow/);
-    expect(last).toMatch(/clientOnSiteDaily === false[\s\S]{0,300}partner\.offsiteReason/);
+  it('shows only the follow-up for the selected project answer on the next screen', () => {
+    expect(projectFollowups).toMatch(/page === 3 && projectStatus === 'running'[\s\S]*partner\.projectStage/);
+    expect(projectFollowups).toMatch(/page === 3 && projectStatus === 'starting'[\s\S]*partner\.startWindow/);
+    expect(projectFollowups).not.toMatch(/partner\.projectStatus|partner\.clientOnSite|partner\.useGroundwork/);
   });
 
-  it('switching parent clears the sub-answer the other parent owned', () => {
+  it('requires a project answer, and allows no-project to proceed directly to disqualification', () => {
+    expect(page).toMatch(/if \(n === 2\) return projectStatus !== null/);
+    expect(page).toMatch(/if \(reason\) \{ await stopHere\(reason\); return; \}/);
+  });
+
+  it('a project answer advances without a Next button', () => {
+    expect(projectQuestion).toMatch(/if \(selected === 'none'\) \{\s*void stopHere\('no_project', selected\)/);
+    expect(projectQuestion).toMatch(/setPage\(3\)/);
+    expect(projectFollowups).toMatch(/setProjectStage\(v\); setPage\(4\)/);
+    expect(projectFollowups).toMatch(/setStartWindow\(v\); setPage\(4\)/);
+    expect(page).toMatch(/page !== 2 && page !== 3 && \(/);
+  });
+
+  it('switching the project answer clears its previous follow-up', () => {
     // 152 refuses a stage against a project that has not started, so a stale value
     // would be rejected by the table rather than quietly filed.
-    const last = page.slice(page.indexOf('{page === 2 && ('));
-    expect(last).toMatch(/setProjectStage\(''\);\s*setStartWindow\(''\)/);
+    expect(projectQuestion).toMatch(/setProjectStage\(''\);\s*setStartWindow\(''\)/);
+  });
+
+  it('records the no-project answer when disqualification starts immediately', () => {
+    expect(page).toMatch(/async function stopHere\(reason: Disqualifier, projectStatusAnswer = projectStatus\)/);
+    expect(page).toMatch(/projectStatus: projectStatusAnswer/);
+    expect(page).toMatch(/hasCurrentProject: projectStatusAnswer != null && projectStatusAnswer !== 'none'/);
   });
 
   it('a disqualifying answer ends the application rather than noting it', () => {

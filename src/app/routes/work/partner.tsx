@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,6 +81,9 @@ export default function PartnerApplication() {
   const [capacity, setCapacity] = useState('');
   const [regions, setRegions] = useState('');
   const [history, setHistory] = useState('');
+  // Asked as yes/no (27 Oct). The description is only meaningful on a yes, and a free
+  // text box as the whole question made "no" look like "not answered yet".
+  const [workedDiaspora, setWorkedDiaspora] = useState<boolean | null>(null);
   const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(null);
   const [projectStage, setProjectStage] = useState('');
   const [startWindow, setStartWindow] = useState('');
@@ -98,8 +101,10 @@ export default function PartnerApplication() {
   const [stopped, setStopped] = useState<Disqualifier | null>(null);
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
-  /** Which of the three pages they are on. */
+  /** Current question and route history (some questions are conditional). */
   const [page, setPage] = useState(0);
+  const [pageStack, setPageStack] = useState<number[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
 
   /**
    * Open the calendar, and record that we did.
@@ -149,14 +154,15 @@ export default function PartnerApplication() {
    * different follow-up.
    */
   const answered = [callLang, years, operatesAs, capacity,
-    regions.trim(), history.trim(), whyJoin.trim(), differentiator.trim()]
+    regions.trim(), whyJoin.trim(), differentiator.trim()]
     .filter(Boolean).length
+    + (workedDiaspora !== null ? 1 : 0)
     + (projectStatus !== null ? 1 : 0)
     + (clientOnSiteDaily !== null ? 1 : 0)
     + (useGroundwork !== null ? 1 : 0);
   const progressPct = Math.round((100 * answered) / 11);
   const draftState = JSON.stringify([callLang, years, operatesAs, capacity,
-    regions, history, whyJoin, differentiator, projectStatus, projectStage, startWindow,
+    regions, workedDiaspora, history, whyJoin, differentiator, projectStatus, projectStage, startWindow,
     clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork]);
 
   useEffect(() => {
@@ -252,66 +258,26 @@ export default function PartnerApplication() {
   };
   const ready = qualifiesForCall(answers);
 
-  /**
-   * Three pages, not one long form and not one question at a time.
-   *
-   * The whole form at once made the application feel like a different exercise from the
-   * onboarding people had just come through, and it was easy to abandon. A single
-   * question per screen would be nine screens for a short application. Three pages of
-   * three keeps the sense of moving forward without making it a slog.
-   */
-  const PAGES = 4;
-  const pageReady = (n: number): boolean => {
-    if (n === 0) return !!callLang && !!years && !!operatesAs;
-    if (n === 1) return regions.trim() !== '' && !!capacity;
-    if (n === 2) {
-      /**
-       * A disqualifying answer completes this page by itself.
-       *
-       * Found by driving the form: choosing "No, I don't have a project" left Next
-       * disabled, because the page still wanted the two questions underneath it — so
-       * somebody already out had to answer two more before anything would happen. That
-       * is the opposite of "they should not see the remaining steps", and it is a dead
-       * end for anyone who reads the first question honestly and stops.
-       *
-       * Pressing Next is still what ends it, so a chip tapped by mistake can be
-       * changed; what this removes is being unable to press Next at all.
-       */
-      if (disqualifiedBy(answers)) return true;
-
-      // A parent question is not answered until its sub-question is. The table refuses
-      // a stage against a project that has not started (152); this refuses the Next.
-      const projectDone =
-        projectStatus === 'none' ? true
-        : projectStatus === 'running' ? !!projectStage
-        : projectStatus === 'starting' ? !!startWindow
-        : false;
-      const onSiteDone =
-        clientOnSiteDaily === true ? true
-        : clientOnSiteDaily === false
-          ? !!offsiteReason && (offsiteReason !== 'other' || offsiteOther.trim() !== '')
-          : false;
-      return projectDone && onSiteDone && useGroundwork !== null;
-    }
-    return whyJoin.trim() !== '' && differentiator.trim() !== '';
-  };
+  /** One question per screen; answers reveal the next question without a Next button. */
+  const PAGES = 15;
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [page]);
 
   const complete = !!callLang && years && operatesAs && capacity && regions.trim()
     && whyJoin.trim() && differentiator.trim()
     && projectStatus !== null && clientOnSiteDaily !== null && useGroundwork !== null;
 
-  /**
-   * Move on — or end it here.
-   *
-   * The check runs on Next rather than on each answer so somebody can change their mind
-   * about a chip they just tapped without the page vanishing under them. Everything
-   * answered so far is tested, so the rule that fires is the one on the page they are
-   * leaving.
-   */
-  async function advance() {
-    const reason = disqualifiedBy(answers);
-    if (reason) { await stopHere(reason); return; }
-    setPage(p => p + 1);
+  function continueTo(nextPage: number) {
+    setPageStack(stack => [...stack, page]);
+    setPage(nextPage);
+  }
+
+  function goBack() {
+    const previous = pageStack.at(-1);
+    if (previous === undefined) return;
+    setPageStack(stack => stack.slice(0, -1));
+    setPage(previous);
   }
 
   /**
@@ -322,27 +288,35 @@ export default function PartnerApplication() {
    * accepted as live, so this never blocks a fresh application when their situation
    * changes — which for "no project yet" is a matter of time.
    */
-  async function stopHere(reason: Disqualifier) {
-    setStopped(reason);
-    if (!user || !prefill) return;
+  async function stopHere(reason: Disqualifier, overrides: {
+    projectStatus?: ProjectStatus;
+    clientOnSiteDaily?: boolean;
+    willUseGroundwork?: GroundworkUse;
+  } = {}) {
+    if (!user || !prefill) {
+      setError(t('common.somethingWrong'));
+      return;
+    }
     setBusy(true);
+    setError(null);
     try {
       const applicationId = await submitPartnerApplication(user.id, prefill, {
         languages: callLang ? [callLang] : [], diasporaHistory: history.trim(),
-        hasCurrentProject: projectStatus != null && projectStatus !== 'none',
+        hasCurrentProject: (overrides.projectStatus ?? projectStatus) != null
+          && (overrides.projectStatus ?? projectStatus) !== 'none',
         whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
         regions: regions.trim(), concurrentProjects: capacity, yearsExperience: years,
         role: prefill.specialty ?? '', operatesAs, city: '',
-        projectStatus, projectStage, projectStartWindow: startWindow,
-        clientOnSiteDaily, clientOffsiteReason: offsiteReason,
+        projectStatus: overrides.projectStatus ?? projectStatus, projectStage, projectStartWindow: startWindow,
+        clientOnSiteDaily: overrides.clientOnSiteDaily ?? clientOnSiteDaily, clientOffsiteReason: offsiteReason,
         clientOffsiteReasonOther: offsiteOther.trim(),
-        willUseGroundwork: useGroundwork, disqualifiedReason: reason,
+        willUseGroundwork: overrides.willUseGroundwork ?? useGroundwork, disqualifiedReason: reason,
       });
       if (applicationId) void markPartnerDraftSubmitted(applicationId);
       clearPartnerDraftId(user.id);
-    } catch {
-      // Their application ended either way; a failed write must not turn that into an
-      // error screen asking them to try again.
+      setStopped(reason);
+    } catch (err) {
+      setError(errorMessage(err, t('common.somethingWrong')));
     } finally { setBusy(false); }
   }
 
@@ -447,7 +421,7 @@ export default function PartnerApplication() {
   }
 
   return (
-    <form onSubmit={submit} className="max-w-xl space-y-5">
+    <form ref={formRef} onSubmit={submit} className="max-w-xl space-y-5 scroll-mt-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold text-brand-near-black dark:text-white">
           <ShieldCheck className="size-5" />{t('partner.title')}
@@ -460,7 +434,6 @@ export default function PartnerApplication() {
         <div className="rounded-xl bg-brand-off-white px-4 py-3 text-xs text-brand-mid-grey dark:bg-[#2c2c2c]">
           <span className="font-semibold text-brand-near-black dark:text-white">{prefill.fullName}</span>
           {prefill.businessName && ` · ${prefill.businessName}`} · {prefill.email}
-          <span className="mt-1 block">{t('partner.onFile')}</span>
         </div>
       )}
 
@@ -476,7 +449,7 @@ export default function PartnerApplication() {
 
       {page === 0 && (
         <>
-          <Row label={t('partner.languages')} hint={t('partner.languagesHint')}>
+          <Row label={t('partner.languages')}>
             <div className="flex gap-2">
               {LANGS.map(l => (
                 <button key={l} type="button" className={chip(callLang === l)}
@@ -517,91 +490,190 @@ export default function PartnerApplication() {
             </div>
           </Row>
 
-          <Row label={t('partner.history')} hint={t('partner.historyHint')}>
-            <textarea rows={2} value={history} onChange={e => setHistory(e.target.value)} className={field} />
-          </Row>
+          {/* Yes/no first; the description only appears on a yes. Answering no clears
+              anything already typed, so a changed mind cannot submit a description of
+              work they have just said they did not do. */}
+          <YesNo label={t('partner.history')} value={workedDiaspora}
+            onChange={v => { setWorkedDiaspora(v); if (!v) setHistory(''); }}
+            chip={chip} />
+          {workedDiaspora === true && (
+            <Row label={t('partner.historyDescribe')} hint={t('partner.historyHint')}>
+              <textarea rows={2} value={history} onChange={e => setHistory(e.target.value)} className={field} />
+            </Row>
+          )}
         </>
       )}
 
-      {/* The three that decide it. A parent question opens its own sub-question and
-          nothing else, which is the shape Philip described: "this is a parent question
-          and after this parent question, depending on either one of these answers,
-          it then has a sub question within that with its own options." */}
+      {page === 0 && (
+        <Row label={t('partner.languages')}>
+          <div className="flex gap-2">
+            {LANGS.map(language => (
+              <button key={language} type="button" className={chip(callLang === language)}
+                onClick={() => { setCallLang(language); continueTo(1); }}>
+                {t(`partner.lang.${language}` as never)}
+              </button>
+            ))}
+          </div>
+        </Row>
+      )}
+
+      {page === 1 && (
+        <Row label={t('partner.years')}>
+          <div className="flex flex-wrap gap-2">
+            {YEARS.map(value => (
+              <button key={value} type="button" className={chip(years === value)}
+                onClick={() => { setYears(value); continueTo(2); }}>{value}</button>
+            ))}
+          </div>
+        </Row>
+      )}
+
       {page === 2 && (
-        <>
-          <div className="space-y-3 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-            <Choice label={t('partner.projectStatus')} options={PROJECT_STATUS}
-              value={projectStatus} tKey="partner.projectStatusOpt" chip={chip}
-              onChange={v => {
-                setProjectStatus(v as ProjectStatus);
-                // The sub-answer belongs to one parent only; 152 refuses the other
-                // combination outright, so the form must not keep a stale one.
-                setProjectStage(''); setStartWindow('');
-              }} />
-
-            {projectStatus === 'running' && (
-              <Choice label={t('partner.projectStage')} options={PROJECT_STAGES}
-                value={projectStage} tKey="partner.stageOpt" chip={chip} onChange={setProjectStage} />
-            )}
-            {projectStatus === 'starting' && (
-              <Choice label={t('partner.startWindow')} options={START_WINDOWS}
-                value={startWindow} tKey="partner.startOpt" chip={chip} onChange={setStartWindow} />
-            )}
+        <Row label={t('partner.operatesAs')}>
+          <div className="flex gap-2">
+            {OPERATES.map(value => (
+              <button key={value} type="button" className={chip(operatesAs === value)}
+                onClick={() => { setOperatesAs(value); continueTo(3); }}>
+                {t(`partner.operates.${value}` as never)}
+              </button>
+            ))}
           </div>
-
-          <div className="space-y-3 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-            <YesNo label={t('partner.clientOnSite')} value={clientOnSiteDaily}
-              onChange={v => { setClientOnSiteDaily(v); if (v) { setOffsiteReason(''); setOffsiteOther(''); } }}
-              chip={chip} />
-            {clientOnSiteDaily === false && (
-              <>
-                <Choice label={t('partner.offsiteReason')} options={OFFSITE_REASONS}
-                  value={offsiteReason} tKey="partner.offsiteOpt" chip={chip} onChange={setOffsiteReason} />
-                {offsiteReason === 'other' && (
-                  <input value={offsiteOther} onChange={e => setOffsiteOther(e.target.value)}
-                    className={field} placeholder={t('partner.offsiteOtherPlaceholder')} />
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-            <Choice label={t('partner.useGroundwork')} options={GROUNDWORK_USE}
-              value={useGroundwork} tKey="partner.useOpt" chip={chip}
-              onChange={v => setUseGroundwork(v as GroundworkUse)} stacked />
-          </div>
-        </>
+        </Row>
       )}
 
       {page === 3 && (
-        <>
-          <Row label={t('partner.whyJoin')}>
-            <textarea rows={3} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
-          </Row>
+        <Row label={t('partner.regions')}>
+          <input value={regions} onChange={e => setRegions(e.target.value)} className={field}
+            placeholder={t('partner.regionsPlaceholder')}
+            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(4); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                e.preventDefault(); continueTo(4);
+              }
+            }} />
+        </Row>
+      )}
 
-          <Row label={t('partner.differentiator')}>
-            <textarea rows={3} value={differentiator} onChange={e => setDifferentiator(e.target.value)} className={field} />
-          </Row>
-        </>
+      {page === 4 && (
+        <Row label={t('partner.capacity')}>
+          <div className="flex gap-2">
+            {CAPACITY.map(value => (
+              <button key={value} type="button" className={chip(capacity === value)}
+                onClick={() => { setCapacity(value); continueTo(5); }}>{value}</button>
+            ))}
+          </div>
+        </Row>
+      )}
+
+      {page === 5 && (
+        <YesNo label={t('partner.history')} value={workedDiaspora}
+          onChange={value => {
+            setWorkedDiaspora(value);
+            if (!value) { setHistory(''); continueTo(7); }
+            else continueTo(6);
+          }} chip={chip} />
+      )}
+
+      {page === 6 && (
+        <Row label={t('partner.historyDescribe')} hint={t('partner.historyHint')}>
+          <textarea rows={3} value={history} onChange={e => setHistory(e.target.value)} className={field}
+            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(7); }} />
+        </Row>
+      )}
+
+      {page === 7 && (
+        <Choice label={t('partner.projectStatus')} options={PROJECT_STATUS}
+          value={projectStatus} tKey="partner.projectStatusOpt" chip={chip}
+          disabled={busy}
+          onChange={value => {
+            const selected = value as ProjectStatus;
+            setProjectStatus(selected);
+            setProjectStage(''); setStartWindow('');
+            if (selected === 'none') void stopHere('no_project', { projectStatus: selected });
+            else continueTo(8);
+          }} />
+      )}
+
+      {page === 8 && projectStatus === 'running' && (
+        <Choice label={t('partner.projectStage')} options={PROJECT_STAGES}
+          value={projectStage} tKey="partner.stageOpt" chip={chip}
+          onChange={value => { setProjectStage(value); continueTo(9); }} stacked />
+      )}
+      {page === 8 && projectStatus === 'starting' && (
+        <Choice label={t('partner.startWindow')} options={START_WINDOWS}
+          value={startWindow} tKey="partner.startOpt" chip={chip}
+          onChange={value => { setStartWindow(value); continueTo(9); }} stacked />
+      )}
+
+      {page === 9 && (
+        <YesNo label={t('partner.clientOnSite')} value={clientOnSiteDaily}
+          onChange={value => {
+            setClientOnSiteDaily(value);
+            if (value) {
+              setOffsiteReason(''); setOffsiteOther('');
+              void stopHere('client_on_site_daily', { clientOnSiteDaily: value });
+            } else continueTo(10);
+          }} chip={chip} />
+      )}
+
+      {page === 10 && (
+        <Choice label={t('partner.offsiteReason')} options={OFFSITE_REASONS}
+          value={offsiteReason} tKey="partner.offsiteOpt" chip={chip}
+          onChange={value => {
+            setOffsiteReason(value);
+            if (value === 'other') continueTo(11);
+            else continueTo(12);
+          }} stacked />
+      )}
+
+      {page === 11 && (
+        <Row label={t('partner.offsiteReason')}>
+          <input value={offsiteOther} onChange={e => setOffsiteOther(e.target.value)}
+            className={field} placeholder={t('partner.offsiteOtherPlaceholder')}
+            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(12); }} />
+        </Row>
+      )}
+
+      {page === 12 && (
+        <Choice label={t('partner.useGroundwork')} options={GROUNDWORK_USE}
+          value={useGroundwork} tKey="partner.useOpt" chip={chip}
+          onChange={value => {
+            const selected = value as GroundworkUse;
+            setUseGroundwork(selected);
+            if (selected === 'no') void stopHere('not_using_groundwork', { willUseGroundwork: selected });
+            else continueTo(13);
+          }} stacked />
+      )}
+
+      {page === 13 && (
+        <Row label={t('partner.whyJoin')}>
+          <textarea rows={4} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field}
+            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(14); }} />
+        </Row>
+      )}
+
+      {page === 14 && (
+        <Row label={t('partner.differentiator')}>
+          <textarea rows={4} value={differentiator}
+            onChange={e => setDifferentiator(e.target.value)} className={field} />
+        </Row>
       )}
 
       {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
+      {busy && (page === 7 || page === 9 || page === 12) && (
+        <p role="status" className="flex items-center gap-2 text-xs text-brand-mid-grey">
+          <Loader2 className="size-4 animate-spin" />{t('common.loading')}
+        </p>
+      )}
 
       <div className="flex items-center gap-3">
-        {page > 0 && (
-          <button type="button" onClick={() => setPage(p => p - 1)}
+        {pageStack.length > 0 && (
+          <button type="button" onMouseDown={e => e.preventDefault()} onClick={goBack}
             className="text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
             {t('common.back')}
           </button>
         )}
-        {page < PAGES - 1 ? (
-          // A plain button, never a submit: Enter on a text field would otherwise file a
-          // half-finished application from page one.
-          <button type="button" disabled={!pageReady(page) || busy} onClick={() => void advance()}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
-            {t('common.next')}
-          </button>
-        ) : (
+        {page === PAGES - 1 && (
           <button type="submit" disabled={busy || !complete}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
             {busy && <Loader2 className="size-4 animate-spin" />}
@@ -619,9 +691,10 @@ export default function PartnerApplication() {
  * One component rather than five copies of the same map, so a sub-question cannot drift
  * from its parent in how it looks or how it reads to a screen reader.
  */
-function Choice({ label, options, value, tKey, chip, onChange, stacked }: {
+function Choice({ label, options, value, tKey, chip, onChange, stacked, disabled = false }: {
   label: string; options: readonly string[]; value: string | null; tKey: string;
   chip: (on: boolean) => string; onChange: (v: string) => void; stacked?: boolean;
+  disabled?: boolean;
 }) {
   const t = useT();
   return (
@@ -629,7 +702,8 @@ function Choice({ label, options, value, tKey, chip, onChange, stacked }: {
       <span className="mb-1.5 block text-xs font-semibold text-brand-near-black dark:text-white">{label}</span>
       <div className={cn('flex gap-2', stacked ? 'flex-col items-start' : 'flex-wrap')}>
         {options.map(o => (
-          <button key={o} type="button" className={chip(value === o)} onClick={() => onChange(o)}>
+          <button key={o} type="button" disabled={disabled}
+            className={chip(value === o)} onClick={() => onChange(o)}>
             {t(`${tKey}.${o}` as never)}
           </button>
         ))}
@@ -652,12 +726,36 @@ function YesNo({ label, value, onChange, chip }: {
   label: string; value: boolean | null; onChange: (v: boolean) => void; chip: (on: boolean) => string;
 }) {
   const t = useT();
+  const optionClass = (selected: boolean) => cn(
+    'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors',
+    selected
+      ? 'border-brand-near-black bg-brand-near-black/5 text-brand-near-black dark:border-white dark:bg-white/10 dark:text-white'
+      : 'border-brand-border-grey bg-white text-brand-mid-grey hover:border-brand-near-black/40 dark:border-[#444] dark:bg-[#1e1e1e] dark:text-brand-mid-grey dark:hover:border-white/40',
+    chip(selected),
+  );
+
   return (
     <div>
       <span className="mb-1.5 block text-xs font-semibold text-brand-near-black dark:text-white">{label}</span>
-      <div className="flex gap-2">
-        <button type="button" className={chip(value === true)} onClick={() => onChange(true)}>{t('common.yes')}</button>
-        <button type="button" className={chip(value === false)} onClick={() => onChange(false)}>{t('common.no')}</button>
+      <div className="flex flex-col gap-2">
+        <label className={optionClass(value === true)}>
+          <input
+            type="checkbox"
+            checked={value === true}
+            onChange={() => onChange(true)}
+            className="h-4 w-4 accent-brand-near-black dark:accent-white"
+          />
+          <span>{t('common.yes')}</span>
+        </label>
+        <label className={optionClass(value === false)}>
+          <input
+            type="checkbox"
+            checked={value === false}
+            onChange={() => onChange(false)}
+            className="h-4 w-4 accent-brand-near-black dark:accent-white"
+          />
+          <span>{t('common.no')}</span>
+        </label>
       </div>
     </div>
   );

@@ -47,7 +47,11 @@ describe('it asks only what Groundwork does not already hold', () => {
     // Asking again is the friction the new funnel exists to remove.
     expect(lib).toMatch(/loadPartnerPrefill/);
     expect(page).toMatch(/prefill\.fullName/);
-    expect(page).toMatch(/partner\.onFile/);
+    expect(page).toMatch(/prefill\.email/);
+    // The "nothing to re-enter" line under them was cut on 27 October. The details
+    // themselves still appear, which is what this test is about — a line explaining
+    // that we are not asking is not the same thing as not asking.
+    expect(page).not.toMatch(/partner\.onFile/);
   });
 
   it('and the commitments accepted at onboarding are not re-asked', () => {
