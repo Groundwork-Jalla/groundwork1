@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, Building2, ClipboardList, FolderOpen, Handshake, Image, Landmark, Loader2, MapPin, Search, UserPlus, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Building2, ClipboardList, FolderOpen, FolderPlus, Handshake, Image, Landmark, Loader2, MapPin, Search, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments,
   type AssignedProject, type ReworkItem, type ContractorPayment,
 } from '@/lib/supabase/contractor-work';
-import { partnerOnboardingAvailable } from '@/lib/supabase/contractor-clients';
 import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
 import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
          type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
@@ -48,8 +47,6 @@ export default function ContractorDashboard() {
   // null while unknown. A prompt shown because a read failed would nag somebody who has
   // already given their details, so silence is the answer to "we could not tell".
   const [needsPayout, setNeedsPayout] = useState<boolean | null>(null);
-  // Null until known, so the partner button never flashes in and out.
-  const [canOnboard, setCanOnboard] = useState<boolean | null>(null);
   // The contractor's onboarding progress (116). Null while unknown or while the
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
@@ -82,15 +79,6 @@ export default function ContractorDashboard() {
     })();
     return () => { alive = false; };
   }, [t]);
-
-  // Is the partner feature on this database at all? Its migration may not be applied.
-  useEffect(() => {
-    let alive = true;
-    partnerOnboardingAvailable()
-      .then(ok => { if (alive) setCanOnboard(ok); })
-      .catch(() => { if (alive) setCanOnboard(false); });
-    return () => { alive = false; };
-  }, []);
 
   // Onboarding progress (116). Read separately from everything else: a contractor who
   // has not finished should still see their work, and a failure here must not blank it.
@@ -154,28 +142,28 @@ export default function ContractorDashboard() {
         <p className="hidden text-right text-xs text-brand-mid-grey xl:block">{formatDate(new Date().toISOString())}<br /><span className="mt-1 block">{t('contractorDashboard.actionHint')}</span></p>
       </header>
 
-      {/* A partner brings their own client (109). Shown to every contractor: the role is
-          the same, and an invited contractor who later brings somebody is a partner from
-          that moment — there is no second kind of account to switch to. Hidden entirely
-          until the database actually has the feature, so it cannot be pressed into a 500. */}
-      {/* Gated on a finished onboarding (§3.2: Jalla may withhold activation until the
-          required forms are complete). Bringing your own client is the partner
-          capability, so it is the one that waits. `onboarding === null` means 116 is not
-          applied or the read failed — not a reason to take away a working feature. */}
-      {canOnboard === true && (onboarding === null || onboarding.complete) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      {/* ── A project of their own ────────────────────────────────────────────────
+          Most contractors are not partners and have no client to bring. Until now the
+          dashboard offered them nothing to do: "onboard a client" answers a question
+          they have not got to yet, and pressing it tells them a client is needed first.
+
+          This is the same wizard at /projects/new that any signed-in user may run, so
+          nothing here is new capability — only a way in. The contractor OWNS what they
+          create (projects.user_id), which is correct: it is their own build, not a
+          client's project waiting for an owner. `created_by` stays null, which is what
+          keeps these out of the activated-project count — see isClientProject(). */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorClient.promptTitle')}</p>
-          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorClient.promptBody')}</p>
+          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorOwnProject.promptTitle')}</p>
+          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorOwnProject.promptBody')}</p>
         </div>
         <Link
-          to="/work/clients/new"
+          to="/projects/new"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
         >
-          <UserPlus className="size-3.5" aria-hidden />{t('contractorClient.promptCta')}
+          <FolderPlus className="size-3.5" aria-hidden />{t('contractorOwnProject.promptCta')}
         </Link>
       </div>
-      )}
 
       {/* ── Finish setting up (116) ────────────────────────────────────────────────
           One banner for the whole sequence, including payout. The separate "add your

@@ -189,7 +189,9 @@ describe('the gate', () => {
     // a guess is worse than letting an unfinished partner through once.
     expect(clients).toMatch(/catch \{ if \(alive\) setMayOnboard\(true\); \}/);
     expect(clients).toMatch(/if \(!\(await onboardingAvailable\(\)\)\) \{ if \(alive\) setMayOnboard\(true\); return; \}/);
-    expect(dash).toMatch(/canOnboard === true && \(onboarding === null \|\| onboarding\.complete\)/);
+    // The dashboard used to repeat this gate on its "Onboard a client" button. That
+    // button is now "Create project", which no partner gate applies to; clients.new.tsx
+    // keeps the gate itself, which is what this test is really about.
   });
 
   it('the banner stays quiet unless it knows', () => {

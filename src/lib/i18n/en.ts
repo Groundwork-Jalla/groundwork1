@@ -2327,6 +2327,13 @@ export const en = {
   // Where a contractor is paid (099, 101). Wording rules that apply here: Groundwork
   // records and governs, a licensed provider holds and moves the money — so nothing on
   // this screen may say Groundwork holds it. The provider is not named to contractors.
+  // The contractor's own build. Most contractors are not partners and have no
+  // client to bring; this is what the dashboard offers them instead of a dead end.
+  contractorOwnProject: {
+    promptTitle: 'Start a project of your own',
+    promptBody:  'Set up a build you are running and track it here. You do not need a client to begin.',
+    promptCta:   'Create project',
+  },
   contractorClient: {
     phone:       'Client\u2019s phone number',
     phoneHint:   'How Groundwork reaches them on WhatsApp. Pick their country, then the number as they would dial it at home.',

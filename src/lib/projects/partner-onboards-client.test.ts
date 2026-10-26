@@ -181,9 +181,18 @@ describe('the widened budget gate stays in step with the original', () => {
 
 
 describe('the partner can actually reach it', () => {
-  it('the route and the button exist', () => {
+  it('the route exists', () => {
     expect(routes).toMatch(/route\("work\/clients\/new",\s*"routes\/work\/clients\.new\.tsx"\)/);
-    expect(home).toMatch(/to="\/work\/clients\/new"/);
+  });
+
+  // The dashboard card that used to link here now offers "Create project" instead:
+  // most contractors are not partners and have no client to bring, and the old CTA
+  // answered a question they had not reached. The partner flow itself is unchanged —
+  // but NOTHING in the UI navigates to it any more. If a way back in is added, assert
+  // it here rather than restoring the assertion on the dashboard.
+  it('the dashboard sends a contractor to their own project', () => {
+    expect(home).toMatch(/to="\/projects\/new"/);
+    expect(home).not.toMatch(/to="\/work\/clients\/new"/);
   });
 
   it('invites BEFORE the wizard, so no project is ever written without a link', () => {
@@ -346,8 +355,9 @@ describe('the fixes that are not SQL', () => {
     expect(cb).toMatch(/navigate\('\/verifier-signup', \{ replace: true \}\)/);
   });
 
-  it('the partner button is hidden when the feature is not on this database', () => {
-    expect(home).toMatch(/canOnboard === true &&/);
+  it('the partner feature can still report whether this database has it', () => {
+    // The dashboard no longer gates a button on this, but clients.new.tsx still reads
+    // it, so the helper must survive.
     expect(read('src/lib/supabase/contractor-clients.ts')).toMatch(/partnerOnboardingAvailable/);
   });
 

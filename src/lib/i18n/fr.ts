@@ -2286,6 +2286,13 @@ export const fr: Mirror<EnDict> = {
     closed:     "Cette étape n'accepte pas de soumission pour le moment.",
     photoCount: '{n} fichier(s)',
   },
+  // The contractor's own build. Most contractors are not partners and have no
+  // client to bring; this is what the dashboard offers them instead of a dead end.
+  contractorOwnProject: {
+    promptTitle: 'Lancez votre propre projet',
+    promptBody:  'Enregistrez un chantier que vous dirigez et suivez‑le ici. Aucun client n’est nécessaire pour commencer.',
+    promptCta:   'Créer un projet',
+  },
   contractorClient: {
     phone:       'Num\u00e9ro de t\u00e9l\u00e9phone du client',
     phoneHint:   'Par o\u00f9 Groundwork le joint sur WhatsApp. Choisissez son pays, puis le num\u00e9ro tel qu\u2019il se compose sur place.',
