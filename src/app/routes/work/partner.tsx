@@ -448,63 +448,6 @@ export default function PartnerApplication() {
       </div>
 
       {page === 0 && (
-        <>
-          <Row label={t('partner.languages')}>
-            <div className="flex gap-2">
-              {LANGS.map(l => (
-                <button key={l} type="button" className={chip(callLang === l)}
-                  onClick={() => setCallLang(l)}>
-                  {t(`partner.lang.${l}` as never)}
-                </button>
-              ))}
-            </div>
-          </Row>
-
-          <Row label={t('partner.years')}>
-            <div className="flex flex-wrap gap-2">
-              {YEARS.map(y => <button key={y} type="button" className={chip(years === y)}
-                onClick={() => setYears(y)}>{y}</button>)}
-            </div>
-          </Row>
-
-          <Row label={t('partner.operatesAs')}>
-            <div className="flex gap-2">
-              {OPERATES.map(o => <button key={o} type="button" className={chip(operatesAs === o)}
-                onClick={() => setOperatesAs(o)}>{t(`partner.operates.${o}` as never)}</button>)}
-            </div>
-          </Row>
-        </>
-      )}
-
-      {page === 1 && (
-        <>
-          <Row label={t('partner.regions')}>
-            <input value={regions} onChange={e => setRegions(e.target.value)} className={field}
-              placeholder={t('partner.regionsPlaceholder')} />
-          </Row>
-
-          <Row label={t('partner.capacity')}>
-            <div className="flex gap-2">
-              {CAPACITY.map(c => <button key={c} type="button" className={chip(capacity === c)}
-                onClick={() => setCapacity(c)}>{c}</button>)}
-            </div>
-          </Row>
-
-          {/* Yes/no first; the description only appears on a yes. Answering no clears
-              anything already typed, so a changed mind cannot submit a description of
-              work they have just said they did not do. */}
-          <YesNo label={t('partner.history')} value={workedDiaspora}
-            onChange={v => { setWorkedDiaspora(v); if (!v) setHistory(''); }}
-            chip={chip} />
-          {workedDiaspora === true && (
-            <Row label={t('partner.historyDescribe')} hint={t('partner.historyHint')}>
-              <textarea rows={2} value={history} onChange={e => setHistory(e.target.value)} className={field} />
-            </Row>
-          )}
-        </>
-      )}
-
-      {page === 0 && (
         <Row label={t('partner.languages')}>
           <div className="flex gap-2">
             {LANGS.map(language => (
