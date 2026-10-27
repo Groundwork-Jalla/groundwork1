@@ -47,13 +47,12 @@ import { useAuth } from '@/contexts/AuthContext';
 // three emergency contacts fall out of that naturally: one contact per panel, three
 // fields apiece.
 //
-// The panels are presentation only. The six steps in the DATABASE are what "finished"
-// means (116), and a panel is done when its underlying step says so — never because the
-// browser thinks it saved.
+// The first five panels represent required database steps. The sixth is the final
+// "almost there" screen where the contractor chooses their next destination.
 // =========================================================
 
 /** A panel is at most three inputs. Several panels can serve one database step. */
-type PanelId = 'agreements' | 'you' | 'specialty' | 'payout' | 'contact';
+type PanelId = 'agreements' | 'you' | 'specialty' | 'payout' | 'contact' | 'almostThere';
 
 export default function ContractorOnboarding() {
   const t = useT();
@@ -211,14 +210,13 @@ export default function ContractorOnboarding() {
 
 /** A registered business owes two extra fields and a document; a sole trader does not. */
 function panelOrder(_s: OnboardingStatus): PanelId[] {
-  // Five steps, fixed (142). "How do you trade" is gone — the partner application still
-  // asks whether they operate as an individual or a company, which is where it matters —
-  // and the three emergency contacts are one, because speed onto the platform is what
-  // this sequence is for.
+  // Five required setup steps plus the final "almost there" choice as step six.
+  // "How do you trade" is gone — the partner application still asks whether they
+  // operate as an individual or a company, which is where it matters.
   //
   // The contact is LAST on purpose: finishing it ends the form and brings up the
   // partner question.
-  return ['agreements', 'you', 'specialty', 'payout', 'contact'];
+  return ['agreements', 'you', 'specialty', 'payout', 'contact', 'almostThere'];
 }
 
 function panelDone(p: PanelId, s: OnboardingStatus): boolean {
@@ -228,17 +226,19 @@ function panelDone(p: PanelId, s: OnboardingStatus): boolean {
     case 'specialty':  return s.steps.professional;
     case 'payout':     return s.steps.payout;
     case 'contact':    return s.steps.emergency;
+    case 'almostThere': return s.clientIntent !== null;
   }
 }
 
 function firstOpenPanel(s: OnboardingStatus): PanelId {
   const order = panelOrder(s);
+  if (s.complete) return 'almostThere';
   return order.find(p => !panelDone(p, s)) ?? order[0];
 }
 
 const PANEL_ICON: Record<PanelId, typeof UserRound> = {
   agreements: ShieldCheck, you: UserRound, specialty: FileText,
-  payout: Landmark, contact: Phone,
+  payout: Landmark, contact: Phone, almostThere: Check,
 };
 
 // ── Chrome ───────────────────────────────────────────────
@@ -251,7 +251,7 @@ function Progress({ order, index, status }: {
     <div className="mb-7">
       <div className="mb-2 flex items-center justify-between text-xs font-semibold">
         <span className="text-brand-near-black dark:text-white">
-          {status.complete
+          {status.complete && status.clientIntent !== null
             ? t('contractorOnboarding.allDone')
             : t('contractorOnboarding.panelOf', { n: String(index + 1), total: String(order.length) })}
         </span>
@@ -733,4 +733,3 @@ function ContactPanel({ contacts, setContacts, onSaved }: {
     </form>
   );
 }
-

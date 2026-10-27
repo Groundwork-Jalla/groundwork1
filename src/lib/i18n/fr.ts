@@ -2583,7 +2583,7 @@ export const fr: Mirror<EnDict> = {
 
     specialtyLabel:      'Votre sp\u00e9cialit\u00e9',
     specialtyPlaceholder: 'Choisissez votre m\u00e9tier ou profession',
-    specialtyOther:      'Dites-nous ce que vous faites',
+    specialtyOther:      'Autre spécialité',
     specialtyOtherHint:  'Par exemple : \u00e9chafaudeur, carreleur, vitrier',
     licenseNumber:  'Num\u00e9ro de licence professionnelle',
     licenseHint:    'Votre profession est r\u00e9glement\u00e9e : nous avons besoin du num\u00e9ro figurant sur votre licence.',
@@ -5037,7 +5037,7 @@ export const fr: Mirror<EnDict> = {
     bookBody: 'Choisissez un créneau qui vous convient. Munissez-vous des détails du chantier que vous souhaitez présenter.',
     bookUnavailable: 'Merci — votre candidature est enregistrée. Jalla vous contactera pour fixer l’appel.',
     inviteTitle: 'Devenir partenaire Jalla',
-    inviteBody: 'Amenez vos clients de la diaspora sur Groundwork et faites-vous présenter ceux de Jalla. Candidature courte — nous avons déjà l’essentiel.',
+    inviteBody: 'Amenez vos clients de la diaspora sur Groundwork. Les partenaires certifiés peuvent être sélectionnés pour des projets de Groundwork et bénéficier d’un accès gratuit à vie.',
     inviteCta: 'Postuler',
     navLabel: 'Réseau partenaire',
     title: 'Intégrez votre premier projet et devenez partenaire certifié',

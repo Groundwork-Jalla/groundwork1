@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(__dirname, '..', '..', '..');
 const page = readFileSync(join(ROOT, 'src/app/routes/work/partner.tsx'), 'utf8');
+const english = readFileSync(join(ROOT, 'src/lib/i18n/en.ts'), 'utf8');
+const french = readFileSync(join(ROOT, 'src/lib/i18n/fr.ts'), 'utf8');
 
 describe('partner application step flow', () => {
   it('renders one question per screen and advances via selection', () => {
@@ -17,6 +19,11 @@ describe('partner application step flow', () => {
     expect(page).toMatch(/role="progressbar"/);
     expect(page).toMatch(/aria-valuemax=\{PAGES\}/);
     expect(page).not.toMatch(/common\.next/);
+  });
+
+  it('omits the extra form subtitle and account-details notice', () => {
+    expect(page).not.toMatch(/t\('partner\.sub'\)/);
+    expect(page).not.toMatch(/\{prefill && \(/);
   });
 
   it('uses checkbox-style yes/no answers', () => {
@@ -41,5 +48,12 @@ describe('partner application step flow', () => {
     expect(page).toContain("{pageStack.length > 0 && (");
     expect(page).toContain("{page === PAGES - 1 && (");
     expect(page).toContain("type=\"submit\"");
+  });
+
+  it('removes the old specialty prompt and explains the partner benefits', () => {
+    expect(english).not.toContain("specialtyOther:      'Tell us what you do'");
+    expect(french).not.toContain("specialtyOther:      'Dites-nous ce que vous faites'");
+    expect(english).toMatch(/Certified partners can qualify for projects from Groundwork and receive free lifetime access/);
+    expect(french).toMatch(/partenaires certifiés peuvent être sélectionnés pour des projets de Groundwork et bénéficier d’un accès gratuit à vie/);
   });
 });

@@ -426,16 +426,7 @@ export default function PartnerApplication() {
         <h1 className="flex items-center gap-2 text-xl font-semibold text-brand-near-black dark:text-white">
           <ShieldCheck className="size-5" />{t('partner.title')}
         </h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">{t('partner.sub')}</p>
       </div>
-
-      {/* What we already hold. Shown, not asked — the point of applying from inside. */}
-      {prefill && (
-        <div className="rounded-xl bg-brand-off-white px-4 py-3 text-xs text-brand-mid-grey dark:bg-[#2c2c2c]">
-          <span className="font-semibold text-brand-near-black dark:text-white">{prefill.fullName}</span>
-          {prefill.businessName && ` · ${prefill.businessName}`} · {prefill.email}
-        </div>
-      )}
 
       {/* Where they are, so three pages read as progress rather than as more forms. */}
       <div className="flex gap-1" role="progressbar" aria-valuenow={page + 1} aria-valuemin={1} aria-valuemax={PAGES}>

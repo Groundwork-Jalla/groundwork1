@@ -2625,7 +2625,7 @@ export const en = {
 
     specialtyLabel:      'Your specialty',
     specialtyPlaceholder: 'Choose your trade or profession',
-    specialtyOther:      'Tell us what you do',
+    specialtyOther:      'Other specialty',
     specialtyOtherHint:  'For example: scaffolder, tiler, glazier',
     licenseNumber:  'Professional licence number',
     licenseHint:    'Your profession is licensed, so we need the number on your licence.',
@@ -5141,7 +5141,7 @@ export const en = {
     bookBody: 'Pick a time that suits you. Bring the details of the project you want to introduce.',
     bookUnavailable: 'Thank you — your application is in. Jalla will be in touch to arrange your call.',
     inviteTitle: 'Become a Jalla partner',
-    inviteBody: 'Bring your diaspora clients onto Groundwork and get introduced to Jalla’s. A short application — we already have most of your details.',
+    inviteBody: 'Bring your diaspora clients onto Groundwork. Certified partners can qualify for projects from Groundwork and receive free lifetime access.',
     inviteCta: 'Apply',
     navLabel: 'Partner network',
     title: 'Onboard your first project, and become a certified partner',

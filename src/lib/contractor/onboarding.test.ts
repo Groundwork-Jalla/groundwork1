@@ -617,15 +617,23 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
 });
 
 describe('the agreement gates the rest of the form', () => {
-  it('the five remaining panels are locked until it is signed', () => {
+  it('the remaining setup panels are locked until it is signed', () => {
     expect(page).toMatch(/\{at !== 'agreements' && !signed && <LockedNotice/);
     expect(page).toMatch(/\{at !== 'agreements' && signed && \(/);
   });
 
   it('agreements is the first panel, and named rather than indexed', () => {
     const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/\['agreements', 'you', 'specialty', 'payout', 'contact'\]/);
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(
+      /\['agreements', 'you', 'specialty', 'payout', 'contact', 'almostThere'\]/);
     expect(lib).toMatch(/GATING_STEP: OnboardingStep = 'agreements'/);
+  });
+
+  it('counts the almost-there destination choice as the sixth visible step', () => {
+    expect(page).toMatch(/type PanelId = [^;]*'almostThere'/);
+    expect(page).toMatch(/case 'almostThere': return s\.clientIntent !== null/);
+    expect(page).toMatch(/if \(s\.complete\) return 'almostThere'/);
+    expect(page).toMatch(/total: String\(order\.length\)/);
   });
 
   it('no panel carries more than three inputs', () => {
@@ -804,9 +812,9 @@ describe('one merged document, not two (117)', () => {
 });
 
 describe('the question at the end, and the two ways out (118)', () => {
-  it('the form ends on the emergency contacts', () => {
+  it('the final destination choice follows the required setup steps', () => {
     const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact'\];/);
+    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact', 'almostThere'\]/);
   });
 
   it('finishing shows the question, not an exit', () => {
