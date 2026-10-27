@@ -32,8 +32,8 @@ export const PAYMENTS_ARE_PREVIEW = MILESTONE_PAYMENTS_ARE_PREVIEW;
  * label, description, feature bullets, CTA) lives in the dictionary and is read via
  * `useTierBilling()` in src/lib/tier-labels.ts.
  *
- * They used to live together. That meant the same plan name existed here, in
- * `UpgradeScreen`'s SHORT map, in `tiers.*` and in profile.tsx — four copies that had
+ * They used to live together. That meant the same plan name existed here, in the
+ * project plan selector, in `tiers.*` and in profile.tsx — four copies that had
  * already drifted. One home for the money, one home for the words.
  */
 export interface TierEconomics {

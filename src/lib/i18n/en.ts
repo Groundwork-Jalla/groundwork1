@@ -4791,8 +4791,8 @@ export const en = {
       effect:      '{n} earlier stage(s) will be marked as already built \u2014 no payment, no verification, no certificate. This client will be asked for {amount}, not the full build cost of {full}.',
     },
     confirmBudget: {
-      title:         'Confirm your budget',
-      subtitle:      "This becomes your project budget. Every stage milestone is calculated from it, so use your contractor's figure if you have one.",
+      title:         'Confirm Project Stage',
+      subtitle:      'Select the current stage of this project',
       fromBqLabel:   'From your bill of quantities',
       unreadableBq:  'No verified amount was extracted — enter the confirmed USD budget',
       estimateLabel: 'Groundwork estimate',

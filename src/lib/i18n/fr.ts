@@ -4689,8 +4689,8 @@ export const fr: Mirror<EnDict> = {
       effect:      '{n} \u00e9tape(s) ant\u00e9rieure(s) seront marqu\u00e9es comme d\u00e9j\u00e0 construites \u2014 sans paiement, sans v\u00e9rification, sans certificat. Ce client devra {amount}, et non le co\u00fbt total du chantier de {full}.',
     },
     confirmBudget: {
-      title:         'Confirmez votre budget',
-      subtitle:      "Ce montant devient le budget du chantier. Chaque jalon d'étape en découle — utilisez le chiffre de votre entrepreneur si vous en avez un.",
+      title:         "Confirmez l'étape du projet",
+      subtitle:      "Sélectionnez l'étape actuelle de ce projet",
       fromBqLabel:   'D\u2019apr\u00e8s votre devis quantitatif',
       unreadableBq:  'Aucun montant vérifié n’a été extrait — saisissez le budget confirmé en USD',
       estimateLabel: 'Estimation Groundwork',
