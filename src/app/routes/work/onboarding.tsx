@@ -134,22 +134,8 @@ export default function ContractorOnboarding() {
         ? (
           <AllDone
             onAnswered={async intent => {
-              /**
-               * Having a client IS the partner intent — Philip, in the 23 October retro:
-               * "the contractor onboarding ends at the last question before the do you
-               * have a client question pops up… Certified partner application begins
-               * when they click I have a client."
-               *
-               * A separate "do you want to become a certified partner?" question used to
-               * sit above this one and gate it. His objection: asked that early it kills
-               * conversion — "I've just created an account, I don't really know who you
-               * guys are yet, and you're already asking me this. I'm likely to just say
-               * no… then I'm disqualified from ever seeing the partner application."
-               * So the one question carries both answers.
-               *
-               * Recorded before anything navigates: somebody who says yes and then
-               * abandons the form must still be visible in the funnel (133).
-               */
+              // Save the completed choice before routing so the work-layout gate sees
+              // the decision when the contractor next opens the dashboard.
               const wantsPartner = intent === 'onboard_client';
               await setPartnerInterest(wantsPartner);
               const next = await setClientIntent(wantsPartner ? 'onboard_client' : 'no_client');
@@ -373,9 +359,7 @@ function AllDone({ onAnswered }: { onAnswered: (i: OnboardingDestination) => Pro
         {t('contractorOnboarding.doneBody')}
       </p>
 
-      {/* One question, and the only one here. It closes onboarding and opens the partner
-          application in the same click. The eligibility note that used to sit above these
-          buttons is gone — the two buttons say the same thing in fewer words. */}
+      {/* Keep the final destination choices separate from the onboarding questions. */}
       <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
         <Button
           type="button" disabled={busy !== null}

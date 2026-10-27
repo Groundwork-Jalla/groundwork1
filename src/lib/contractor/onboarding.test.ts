@@ -852,19 +852,15 @@ describe('the question at the end, and the two ways out (118)', () => {
   });
 
   it('each answer goes where it should', () => {
-    // Philip, 23 Oct: "Certified partner application begins when they click I have a
-    // client." One question carries both answers — a separate partner question above
-    // it was asked too early and cost conversion.
-    expect(page).toMatch(/const wantsPartner = intent === 'onboard_client'/);
-    expect(page).toMatch(/window\.location\.href = wantsPartner \? '\/work\/partner' : '\/work'/);
+    expect(page).toMatch(/intent === 'create_project' \? '\/projects\/new'/);
+    expect(page).toMatch(/: '\/work'/);
+    expect(page).toMatch(/navigate\(destination, \{ replace: true \}\)/);
   });
 
-  it('and does so with a full load, so the gate is re-read', () => {
-    // The layout resolved `decided` before this answer existed. A client-side navigate
-    // would be judged against the stale value and bounce them straight back here —
-    // the same stale-gate loop that bit the agreement hold.
+  it('records the onboarding answer before navigating away', () => {
     const fn = page.slice(page.indexOf('onAnswered={async'));
-    expect(fn.slice(0, fn.indexOf('}}'))).toMatch(/window\.location\.href =/);
+    const handler = fn.slice(0, fn.indexOf('}}'));
+    expect(handler.indexOf('await setClientIntent(')).toBeLessThan(handler.indexOf('navigate(destination'));
   });
 
   it('the answer is recorded in the database, not the browser', () => {

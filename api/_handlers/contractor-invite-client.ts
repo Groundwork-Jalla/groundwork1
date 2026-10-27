@@ -1,6 +1,6 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
-import { isE164 } from '../../src/lib/phone.js';
+import { isValidPhone } from '../../src/lib/phone.js';
 import { siteUrl } from '../../src/lib/site-url.js';
 
 /**
@@ -130,7 +130,7 @@ export async function handler(req: any, res: any): Promise<void> {
   const phone = str(req.body?.phone, 20);
   if (!isValidEmail(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
   if (fullName.length < 2)  { res.status(400).json({ error: 'name_required' }); return; }
-  if (!isE164(phone))       { res.status(400).json({ error: 'invalid_phone' }); return; }
+  if (!isValidPhone(phone)) { res.status(400).json({ error: 'invalid_phone' }); return; }
 
   // Inviting yourself would make you your own client and the CHECK in 109 refuses the
   // link anyway; saying so is friendlier than a constraint violation.

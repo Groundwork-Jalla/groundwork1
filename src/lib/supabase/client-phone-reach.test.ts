@@ -34,7 +34,7 @@ describe('the contractor supplies it, so the channel works from the first messag
   });
 
   it('and will not submit without a usable one', () => {
-    expect(form).toMatch(/if \(!isE164\(phone\)\) \{ setError\(t\('contractorClient\.errPhone'\)\); return; \}/);
+    expect(form).toMatch(/if \(!isValidPhone\(phone\)\) \{ setError\(t\('contractorClient\.errPhone'\)\); return; \}/);
   });
 
   it('it reaches the server', () => {
@@ -44,7 +44,7 @@ describe('the contractor supplies it, so the channel works from the first messag
   it('which checks it rather than trusting the browser', () => {
     // normalisePhone returns its input unchanged when it cannot place a number, so
     // "the field had something in it" is not "this reaches a handset".
-    expect(handler).toMatch(/if \(!isE164\(phone\)\)\s*\{ res\.status\(400\)\.json\(\{ error: 'invalid_phone' \}\); return; \}/);
+    expect(handler).toMatch(/if \(!isValidPhone\(phone\)\)\s*\{ res\.status\(400\)\.json\(\{ error: 'invalid_phone' \}\); return; \}/);
   });
 
   it('and stores it where delivery actually looks', () => {
