@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { useLanguage, type TKey } from '@/lib/i18n';
 import { COUNTRIES, DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { isValidEmail } from '@/lib/email/is-valid-email';
+import { PhoneField } from '@/components/ui/PhoneField';
+import { isValidPhone } from '@/lib/phone';
 import { STEPS } from '@/lib/contractor/application-steps';
 import {
   CONTRACTOR_ROLES, credentialTrack, qualifies, submitContractorApplication,
@@ -294,6 +296,7 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
     switch (STEPS[i]?.key) {
       case 'identity':
         if (!fullName || !businessName || !phone || !email || !country || !city) return f('errorRequired');
+        if (!isValidPhone(phone)) return f('errorPhone');
         if (!isValidEmail(email)) return f('errorEmail');
         return null;
 
@@ -685,7 +688,13 @@ export default function ContractorApplicationForm({ onSuccess }: { onSuccess?: (
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label={f('phone')} required htmlFor="ca-phone">
-              <Input id="ca-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" />
+              <PhoneField
+                id="ca-phone"
+                required
+                value={phone}
+                defaultCountry={DEFAULT_COUNTRY_CODE}
+                onChange={setPhone}
+              />
             </Field>
             <Field label={f('email')} required htmlFor="ca-email">
               <Input id="ca-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />

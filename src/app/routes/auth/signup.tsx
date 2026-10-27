@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
-import { normalisePhone, isE164 } from "@/lib/phone";
+import { normalisePhone, isValidPhone } from "@/lib/phone";
 import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
@@ -100,7 +100,7 @@ export default function Signup() {
     // refused now rather than stored as provider-ready data that is not — `handle_new_user`
     // would drop it silently and the person would believe we had it.
     const canonicalPhone = normalisePhone(phone, DEFAULT_COUNTRY_CODE);
-    if (!isE164(canonicalPhone)) {
+    if (!isValidPhone(canonicalPhone)) {
       setError(t('auth.signup.phoneInvalid'));
       return;
     }

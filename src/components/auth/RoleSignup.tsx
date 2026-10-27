@@ -9,7 +9,7 @@ import { PasswordField } from '@/components/ui/PasswordField';
 import { Label } from '@/components/ui/label';
 import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { isPasswordAcceptable } from '@/lib/auth/password-policy';
-import { normalisePhone, isE164 } from '@/lib/phone';
+import { normalisePhone, isValidPhone } from '@/lib/phone';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
@@ -218,7 +218,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
     // number only when it is already E.164 and drops anything else silently, so a number
     // that cannot be placed is refused now rather than believed to be on file.
     const canonicalPhone = normalisePhone(phone, DEFAULT_COUNTRY_CODE);
-    if (!isE164(canonicalPhone)) { setError(t('auth.signup.phoneInvalid')); return; }
+    if (!isValidPhone(canonicalPhone)) { setError(t('auth.signup.phoneInvalid')); return; }
 
     // Parked BEFORE signUp: the confirmation lands in another tab, and /auth/callback is
     // what turns this account into a contractor or a verifier.

@@ -14,12 +14,10 @@
   2. type=signup routes to the confirmation handler. Without it the link signs the
      person in but never marks the address confirmed.
 
-  3. The FOOTER origin is written out, not {{ .SiteURL }}. SiteURL is a dashboard
-     setting, and when it points at a preview deployment every account-confirmation
-     mail we send advertises a vercel.app address to the person signing up. The button
-     above still has to use SiteURL — the token is only valid against the origin that
-     issued it — so the dashboard setting must be the production origin regardless.
-     See README.md: Site URL is https://www.tryjalla.com.
+  3. Both links use the production origin directly. Do not use {{ .SiteURL }} here:
+     the Supabase dashboard setting can point to a Vercel preview deployment.
+     The production URL must be listed under Supabase Authentication → URL Configuration
+     → Redirect URLs.
 -->
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <tr><td align="center">
@@ -47,7 +45,7 @@
 
           <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
             <tr><td style="background:#1a1a1a;border-radius:8px;">
-              <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=signup"
+              <a href="https://www.tryjalla.com/auth/callback?token_hash={{ .TokenHash }}&amp;type=signup"
                  style="display:inline-block;padding:13px 28px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;letter-spacing:-0.1px;">
                 Confirm email address &rarr;
               </a>

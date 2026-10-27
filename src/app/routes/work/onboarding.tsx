@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import {
   ArrowLeft, ArrowRight, Check, FileText, Landmark, Loader2, Lock,
   Phone, ShieldCheck, UserPlus, UserRound,
@@ -11,7 +11,7 @@ import { PhoneField } from '@/components/ui/PhoneField';
 import { AgreementReader } from '@/components/contractor/AgreementReader';
 import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
-import { isE164 } from '@/lib/phone';
+import { isValidPhone } from '@/lib/phone';
 import {
   CONTRACTOR_ROLES, requiresLicence, type ContractorRole,
 } from '@/lib/contractor/application-types';
@@ -56,6 +56,7 @@ type PanelId = 'agreements' | 'you' | 'specialty' | 'payout' | 'contact' | 'almo
 
 export default function ContractorOnboarding() {
   const t = useT();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [at, setAt] = useState<PanelId>('agreements');
@@ -151,12 +152,12 @@ export default function ContractorOnboarding() {
                */
               const wantsPartner = intent === 'onboard_client';
               await setPartnerInterest(wantsPartner);
-              const next = await setClientIntent(intent);
+              const next = await setClientIntent(wantsPartner ? 'onboard_client' : 'no_client');
               setStatus(next);
-              // A full load, not a client-side navigate: the /work layout resolved the
-              // gate before this answer existed, and would otherwise bounce them
-              // straight back here. The same reason the role handoffs reload.
-              window.location.href = wantsPartner ? '/work/partner' : '/work';
+              const destination = intent === 'onboard_client' ? '/work/partner'
+                : intent === 'create_project' ? '/projects/new'
+                : '/work';
+              navigate(destination, { replace: true });
             }}
           />
         )
@@ -347,12 +348,14 @@ function LockedNotice({ onBack }: { onBack: () => void }) {
  * here. That is Philip's line: "for a contractor to be 100% complete, once they
  * complete that last question, then they're good."
  */
-function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent) => Promise<void> }) {
+type OnboardingDestination = ClientIntent | 'create_project';
+
+function AllDone({ onAnswered }: { onAnswered: (i: OnboardingDestination) => Promise<void> }) {
   const t = useT();
-  const [busy, setBusy] = useState<ClientIntent | null>(null);
+  const [busy, setBusy] = useState<OnboardingDestination | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const answer = async (intent: ClientIntent) => {
+  const answer = async (intent: OnboardingDestination) => {
     setBusy(intent); setErr(null);
     try { await onAnswered(intent); }
     catch { setErr(t('contractorOnboarding.err.generic')); setBusy(null); }
@@ -376,9 +379,9 @@ function AllDone({ onAnswered }: { onAnswered: (i: ClientIntent) => Promise<void
       <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
         <Button
           type="button" disabled={busy !== null}
-          onClick={() => void answer('onboard_client')}
+          onClick={() => void answer('create_project')}
         >
-          {busy === 'onboard_client'
+          {busy === 'create_project'
             ? <><Loader2 className="mr-1.5 size-3.5 animate-spin" />{t('contractorOnboarding.saving')}</>
             : <><UserPlus className="mr-1.5 size-3.5" aria-hidden />{t('contractorOnboarding.haveClient')}</>}
         </Button>
@@ -702,7 +705,7 @@ function ContactPanel({ contacts, setContacts, onSaved }: {
     // here, because normalisePhone passes a number through unchanged when it cannot
     // place it — "it returned something" is not "this is dialable".
     const phone = c.phone.trim();
-    if (!isE164(phone)) { setLocal(t('contractorOnboarding.err.badPhone', { n: '1' })); return; }
+    if (!isValidPhone(phone)) { setLocal(t('contractorOnboarding.err.badPhone', { n: '1' })); return; }
     setLocal(null);
     // One contact, saved on its own (142). Three used to be collected across three
     // screens and sent together, so walking away after the first lost that typing.

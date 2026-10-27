@@ -16,15 +16,13 @@ field using Source view:
 
 **Authentication → URL Configuration → Site URL must be `https://www.tryjalla.com`.**
 
-Every template builds its button from `{{ .SiteURL }}`, because the token is only valid
-against the origin that issued it. Whatever that setting holds is therefore both where a
-new account is confirmed and what the recipient reads in the mail.
+Email buttons use the production origin directly and do not render `{{ .SiteURL }}`.
+Keep the Supabase Site URL set to production as well, so other Auth redirects do not
+send users to a preview deployment.
 
-Left pointing at a preview deployment it does not fail — it sends working links to
-`*.vercel.app`. A contractor confirming their account there lands on a build nobody is
-watching, on a hostname we have never asked anyone to trust, in the first mail we ever
-send them. This happened: the 26 October confirmation mails carried
-`groundwork1-phl.vercel.app`.
+If it points at a preview deployment, other Supabase Auth flows may still send users to
+`*.vercel.app`. The email templates avoid that by linking directly to the production
+callback URL.
 
 The footers are written out rather than templated so that at least the signature is
 always the real domain; `src/lib/site-url.test.ts` fails the build if a template names a

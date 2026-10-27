@@ -1,3 +1,5 @@
+import { isValidPhoneNumber as isValidInternationalPhoneNumber } from 'libphonenumber-js/min';
+
 /**
  * Phone numbers GoHighLevel can actually message.
  *
@@ -126,6 +128,12 @@ export function isE164(value: string | null | undefined): boolean {
   if (!/^\+\d+$/.test(v)) return false;
   const digits = v.length - 1;
   return digits >= MIN_DIGITS && digits <= MAX_DIGITS;
+}
+
+/** Validate an E.164 number against its country's numbering plan and valid lengths. */
+export function isValidPhone(value: string | null | undefined): boolean {
+  const phone = (value ?? '').trim();
+  return isE164(phone) && isValidInternationalPhoneNumber(phone);
 }
 
 // =========================================================
