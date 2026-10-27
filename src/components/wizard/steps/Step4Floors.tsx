@@ -14,6 +14,10 @@ function useFloorLabel() {
     n >= 1 && n <= 8 ? t(`wizard.floors${n}` as TKey) : t('wizard.floorsN', { n });
 }
 
+function floorCode(floors: number) {
+  return floors === 1 ? 'G' : `G+${floors - 1}`;
+}
+
 // Stacked floor bars visual (compact version for the step panel)
 function FloorStack({ floors }: { floors: number }) {
   const count = Math.min(floors, 8);
@@ -88,12 +92,9 @@ export default function Step4Floors() {
                 transition={{ duration: 0.15 }}
                 className="text-4xl font-black tabular-nums leading-none"
               >
-                {data.floors}
+                {floorCode(data.floors)}
               </motion.span>
             </AnimatePresence>
-            <span className="text-xs opacity-60 mt-1.5 font-medium">
-              {data.floors === 1 ? 'floor' : 'floors'}
-            </span>
           </div>
 
           <button
