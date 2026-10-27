@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
@@ -236,10 +236,17 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
   const estimate = Math.round(data.bqTotalUsd
     ?? (data.hasArchitecturePlan === true ? 0 : calculateBudget(data, constructionRate, cityRate).total));
   const raw = confirmationDraft?.raw ?? '';
+  const previousEstimate = useRef<number | null>(null);
 
-  // Seed once; later edits are the person's own figure.
+  // Keep the shown amount in sync with estimate changes unless the person has
+  // deliberately overridden it with a custom figure.
   useEffect(() => {
-    if (!raw && estimate > 0) updateConfirmationDraft?.({ raw: String(estimate) });
+    const numericRaw = Number(raw.replace(/[^0-9.]/g, '') || 0);
+    const wasAutoFilled = previousEstimate.current != null && numericRaw === previousEstimate.current;
+    if (estimate > 0 && (!raw || wasAutoFilled)) {
+      updateConfirmationDraft?.({ raw: String(estimate) });
+    }
+    previousEstimate.current = estimate;
   }, [raw, estimate, updateConfirmationDraft]);
 
   const amount = Number((raw || String(estimate)).replace(/[^0-9.]/g, '') || 0);
@@ -255,7 +262,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
           id="final-budget"
           inputMode="numeric"
           value={amount > 0 ? amount.toLocaleString('en-US') : ''}
-          onChange={e => { onConfirmed(false); updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') }); }}
+          onChange={e => updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') })}
           placeholder="0"
           className="w-full rounded-xl border border-brand-border-grey bg-white pl-9 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"
         />
