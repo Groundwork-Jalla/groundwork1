@@ -4794,6 +4794,8 @@ export const en = {
       title:         'Confirm Project Stage',
       subtitle:      'Select the current stage of this project',
       glanceTitle:   'Confirm project budget',
+      glanceCheck:   'I confirm this is my project budget',
+      glanceCta:     'Confirm budget',
       glanceSub:     'If your budget is different from estimate, type in the actual budget.',
       fromBqLabel:   'From your bill of quantities',
       unreadableBq:  'No verified amount was extracted — enter the confirmed USD budget',
