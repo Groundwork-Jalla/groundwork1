@@ -32,6 +32,9 @@ const strip = (src: string) =>
  */
 const MIGRATIONS = ['116_contractor_onboarding.sql', '117_one_agreement.sql',
                     '118_onboarding_intent_and_dossier.sql'];
+const ACKNOWLEDGEMENT_MIGRATION = read(
+  'supabase/migrations/161_contractor_onboarding_acknowledgement.sql',
+);
 
 /**
  * Every migration that defines an onboarding RPC, for the argument-name check only.
@@ -93,6 +96,31 @@ describe('one definition of finished', () => {
     // No `every`/`&&` chain over the steps producing a local verdict.
     expect(lib).not.toMatch(/ONBOARDING_STEPS\.every/);
     expect(lib).not.toMatch(/steps\.\w+ && steps\./);
+  });
+
+  describe('onboarding acknowledgement email', () => {
+    const acknowledgementCode = strip(ACKNOWLEDGEMENT_MIGRATION)
+      .replace(/^\s*--.*$/gm, '')
+      .replace(/COMMENT ON[\s\S]*?;/g, '');
+
+    it('sends one email when the final answer is saved for a complete onboarding', () => {
+      expect(acknowledgementCode).toMatch(/AFTER INSERT OR UPDATE OF client_intent/);
+      expect(acknowledgementCode).toMatch(/contractor_onboarding_status\(NEW\.user_id\)/);
+      expect(acknowledgementCode).toMatch(/OLD\.client_intent IS NOT NULL/);
+      expect(acknowledgementCode).toMatch(/UNIQUE \(user_id, event\)/);
+    });
+
+    it('uses the account email and supports the contractor’s preferred English or French', () => {
+      expect(acknowledgementCode).toMatch(/FROM auth\.users WHERE id = NEW\.user_id/);
+      expect(acknowledgementCode).toMatch(/p\.preferred_lang/);
+      expect(acknowledgementCode).toMatch(/Votre intégration Groundwork est terminée/);
+      expect(acknowledgementCode).toMatch(/Your Groundwork onboarding is complete/);
+    });
+
+    it('does not make onboarding completion depend on Resend succeeding', () => {
+      expect(acknowledgementCode).toMatch(/EXCEPTION WHEN OTHERS THEN/);
+      expect(acknowledgementCode).toMatch(/RAISE WARNING 'contractor onboarding acknowledgement failed/);
+    });
   });
 
   it('every surface reads that one function', () => {
