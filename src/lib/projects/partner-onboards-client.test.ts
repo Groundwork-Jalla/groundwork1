@@ -215,11 +215,9 @@ describe('the partner can actually reach it', () => {
     expect(page).not.toMatch(/tier: null|tier: 'jalla_management'|tier: 'jalla_verify'/);
   });
 
-  it('skips the plan step for the fixed contractor plan', () => {
+  it('does not include the plan step in managed project creation', () => {
     const wiz = strip2(read('src/app/routes/admin/projects.new.tsx'));
-    expect(wiz).toMatch(/const planDecided = \(onBehalfOf\?\.by === 'admin' && onBehalfOf\.tier === 'jalla_management'\)\s*\|\|\s*\(onBehalfOf\?\.by === 'partner' && onBehalfOf\.tier === 'self_verify'\);/);
-    expect(wiz).toMatch(/if \(planDecided && step === 9\)/);
-    expect(wiz).toMatch(/Step10PlanSelection/);
+    expect(wiz).not.toMatch(/Step10PlanSelection/);
   });
 
   it('saves the fixed plan and keeps the client as owner', () => {

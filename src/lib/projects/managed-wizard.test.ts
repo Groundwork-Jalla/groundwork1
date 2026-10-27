@@ -77,7 +77,6 @@ vi.mock('@/components/wizard/steps/Step5Rooms', () => ({ default: () => null }))
 vi.mock('@/components/wizard/steps/Step7RoofType', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step8Details', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step9Summary', () => ({ default: () => 'project-summary' }));
-vi.mock('@/components/wizard/steps/Step10PlanSelection', () => ({ default: () => 'plan-picker' }));
 
 import { ManagedWizard } from '@/app/routes/admin/projects.new';
 
@@ -93,24 +92,17 @@ describe('contractor client project wizard', () => {
     h.createProject.mockResolvedValue({ id: 'project-id', name: 'Client home' });
   });
 
-  it('renders budget confirmation instead of a plan picker for the fixed Self Verify project', () => {
+  it('renders budget confirmation for the fixed Self Verify project', () => {
     const html = renderToStaticMarkup(createElement(ManagedWizard));
     expect(html).toContain('wizard.confirmBudget.title');
-    expect(html).not.toContain('plan-picker');
     expect(h.submit).toBeTypeOf('function');
-  });
-
-  it('returns to the summary when moving backwards over the skipped plan step', () => {
-    h.direction = 'back';
-    expect(renderToStaticMarkup(createElement(ManagedWizard))).toContain('project-summary');
-    expect(h.submit).toBeNull();
   });
 
   it('preserves fixed Management behavior for admin-created projects', () => {
     h.onBehalfOf = { userId: 'client-id', label: 'Client', tier: 'jalla_management', by: 'admin' };
     const html = renderToStaticMarkup(createElement(ManagedWizard));
     expect(html).toContain('wizard.confirmBudget.title');
-    expect(html).not.toContain('plan-picker');
+    expect(h.submit).toBeTypeOf('function');
   });
 
   it('restores the confirmed budget and joining answers and requests the missing attachment', () => {
