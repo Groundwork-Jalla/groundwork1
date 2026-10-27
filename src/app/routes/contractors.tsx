@@ -831,15 +831,8 @@ function ContractorsLocked() {
             {t('contractors.lockedBody')}
           </p>
           <Link
-            to="/upgrade"
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-brand-near-black dark:hover:bg-brand-off-white"
-          >
-            {t('contractors.lockedCta')}
-            <ChevronRight className="size-4" />
-          </Link>
-          <Link
             to="/dashboard"
-            className="mt-3 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
+            className="mt-6 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
           >
             {t('contractors.lockedBack')}
           </Link>

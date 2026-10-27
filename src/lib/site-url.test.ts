@@ -109,8 +109,8 @@ describe('site URL', () => {
    *
    * The dashboard setting is not in this repository, so this only guards what is: no
    * template may hardcode a deployment host, and the footer origin must be the
-   * canonical one. A mail that renders the preview host now needs the Site URL fixed
-   * in Supabase, which README.md states.
+   * canonical one. Generated links now fall back to the canonical origin if a Vercel
+   * host is configured; Supabase's Site URL still needs to be production as documented.
    */
   it('no email template carries a deployment hostname', () => {
     const dir = join(ROOT, 'docs', 'supabase-email-templates');

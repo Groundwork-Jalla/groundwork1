@@ -89,7 +89,6 @@ export const fr: Mirror<EnDict> = {
     certsEarnBody: 'Les certificats sont délivrés automatiquement lorsqu’une étape est approuvée et terminée. Avancez dans votre chantier pour les obtenir.',
     certsSelfVerifyTitle: 'Votre formule vérifie ses propres étapes',
     certsSelfVerifyBody: 'Un certificat d’approbation atteste d’un contrôle par un vérificateur indépendant. En auto-vérification, vous approuvez vos propres étapes : aucun certificat n’est délivré. Jalla Verify ajoute un ingénieur indépendant et le certificat correspondant.',
-    certsUpgradeCta: 'Découvrir Jalla Verify',
     noEvidence: 'Aucune preuve déposée',
     startBuild: 'Démarrer un chantier',
     clickRowHint: 'Cliquez sur une ligne pour voir les fichiers en contexte',
@@ -2988,10 +2987,8 @@ export const fr: Mirror<EnDict> = {
   contractors: {
     emptyVetting: 'L’équipe Jalla vérifie les professionnels. Revenez bientôt, ou',
     emptyJoinCta: 'inscrivez-vous comme entrepreneur',
-    // L’invitation à passer à l’offre supérieure quand le plan n’inclut pas l’annuaire.
     lockedTitle: 'Les entrepreneurs font partie de Jalla Verify',
-    lockedBody:  "Passez à l'offre supérieure pour voir les entrepreneurs vérifiés de votre région, leur historique, et demander des devis sans quitter Groundwork.",
-    lockedCta:   'Passer à Jalla Verify',
+    lockedBody:  'Les entrepreneurs vérifiés de votre région, leur historique et les demandes de devis sont disponibles avec Jalla Verify.',
     lockedBack:  'Retour au tableau de bord',
       searchPlaceholder: 'Rechercher par nom, métier, lieu ou spécialité…',
       viewProfile: 'Voir le profil',
@@ -4932,7 +4929,6 @@ export const fr: Mirror<EnDict> = {
     newBuild:   'Nouveau chantier',
     starterUsed:'{used} / {limit} projets Self Verify utilisés',
     limitReached:'— limite atteinte',
-    upgradeNudge:'Passer à Jalla Verify',
     filters: {
       all:       'Tous',
       active:    'Actifs',
@@ -5477,7 +5473,6 @@ export const fr: Mirror<EnDict> = {
       recordPayment: 'Enregistrer le paiement',
       wallet:        'Financement',
       history:       'Historique',
-      upgradePlan:   'Changer de forfait',
       notReleasedLabel:   'Pas encore débloqué',
       heldSecurely:  'en attente de vérification · {count} étape restante',
       heldSecurely_plural: 'en attente de vérification · {count} étapes restantes',

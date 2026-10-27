@@ -21,12 +21,11 @@ import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 // copy after the four that payments/config.ts consolidated, and one that had
 // drifted: it omitted the 10% processing fee and the one-contractor limit, at
 // the exact moment someone commits to a tier. The words now come from
-// `useTierBilling()`, the same source as /upgrade, so the two screens cannot
-// disagree and both translate.
+// `useTierBilling()`, so every tier label and price has one source and remains
+// translated.
 //
-// The difference from /upgrade is the interaction, not the layout: here the card
-// *is* the control (nothing is being bought yet — the wizard's own button
-// submits), so there is no per-card CTA and selection is shown by a ring.
+// Here the card *is* the control (nothing is being bought yet — the wizard's own
+// button submits), so there is no per-card CTA and selection is shown by a ring.
 // =========================================================
 
 const ORDER: ProjectTier[] = ['self_verify', 'jalla_verify', 'jalla_management'];
@@ -37,7 +36,7 @@ const ICON: Record<ProjectTier, React.ReactNode> = {
   jalla_management: <Briefcase className="size-4" />,
 };
 
-/** The plan we actually sell gets the dark column, as on /upgrade. */
+/** The plan we actually sell gets the dark column. */
 const FEATURED: ProjectTier = 'jalla_verify';
 
 export default function Step10PlanSelection() {

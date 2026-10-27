@@ -321,14 +321,6 @@ export default function DocumentsPage() {
                   {t(allSelfVerify ? 'documents.certsSelfVerifyBody' : 'documents.certsEarnBody')}
                 </p>
               </div>
-              {allSelfVerify && (
-                <Link
-                  to="/upgrade"
-                  className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
-                >
-                  {t('documents.certsUpgradeCta')}
-                </Link>
-              )}
               {projects.length === 0 && (
                 <Link
                   to="/projects/new"

@@ -83,7 +83,6 @@ export const en = {
     certsEarnBody: 'Certificates are issued automatically when a stage is approved and completed. Progress through your build to earn them.',
     certsSelfVerifyTitle: 'Your plan verifies its own stages',
     certsSelfVerifyBody: 'An approval certificate records a check by an independent verifier. On a self-verifying plan you approve your own stages, so none is issued. Jalla Verify adds an independent engineer and the certificate that comes with it.',
-    certsUpgradeCta: 'See Jalla Verify',
     noEvidence: 'No evidence uploaded yet',
     startBuild: 'Start a build',
     clickRowHint: 'Click a row to view files in context',
@@ -3032,10 +3031,8 @@ export const en = {
   contractors: {
     emptyVetting: 'The Jalla team is vetting professionals. Check back soon, or',
     emptyJoinCta: 'sign up as a contractor',
-    // The upgrade prompt shown when a plan does not include the directory.
     lockedTitle: 'Contractors are part of Jalla Verify',
-    lockedBody:  'Upgrade to see verified contractors in your region, their track record, and request quotes without leaving Groundwork.',
-    lockedCta:   'Upgrade to Jalla Verify',
+    lockedBody:  'Verified contractors in your region, their track record, and quote requests are available with Jalla Verify.',
     lockedBack:  'Back to dashboard',
       searchPlaceholder: 'Search by name, trade, location, or specialty…',
       viewProfile: 'View profile',
@@ -5036,7 +5033,6 @@ export const en = {
     newBuild:   'New Build',
     starterUsed:'{used} / {limit} Self Verify projects used',
     limitReached:'— limit reached',
-    upgradeNudge:'Upgrade to Jalla Verify',
     filters: {
       all:       'All',
       active:    'Active',
@@ -5586,7 +5582,6 @@ export const en = {
       recordPayment: 'Record payment',
       wallet:        'Funding',
       history:       'History',
-      upgradePlan:   'Upgrade plan',
       notReleasedLabel:   'Not yet released',
       heldSecurely:  'awaiting stage verification · {count} stage remaining',
       heldSecurely_plural: 'awaiting stage verification · {count} stages remaining',

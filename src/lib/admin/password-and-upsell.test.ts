@@ -57,10 +57,9 @@ describe('self-verify users are told why they have no certificate', () => {
     expect(page).toMatch(/allSelfVerify \? 'documents\.certsSelfVerifyBody' : 'documents\.certsEarnBody'/);
   });
 
-  it('and it offers the upgrade only to them', () => {
+  it('does not send them to the removed plan comparison screen', () => {
     expect(page).toMatch(/\{allSelfVerify && \(/);
-    expect(page).toMatch(/documents\.certsUpgradeCta/);
-    expect(page).toMatch(/to="\/upgrade"/);
+    expect(page).not.toMatch(/to="\/upgrade"/);
   });
 
   it('it says what Jalla Verify actually adds, not just "upgrade"', () => {
@@ -71,11 +70,20 @@ describe('self-verify users are told why they have no certificate', () => {
 
   it('every new string is in both languages', () => {
     for (const d of [en, fr]) {
-      for (const k of ['certsEarnBody', 'certsSelfVerifyTitle', 'certsSelfVerifyBody', 'certsUpgradeCta']) {
+      for (const k of ['certsEarnBody', 'certsSelfVerifyTitle', 'certsSelfVerifyBody']) {
         expect(typeof (d as any).documents[k], k).toBe('string');
         expect((d as any).documents[k].length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe('the removed plan comparison route', () => {
+  const page = read('src/app/routes/upgrade.tsx');
+
+  it('redirects existing links and direct visits to the dashboard', () => {
+    expect(page).toMatch(/<Navigate to="\/dashboard" replace \/>/);
+    expect(page).not.toMatch(/UpgradeScreen/);
   });
 });
 

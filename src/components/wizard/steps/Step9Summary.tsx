@@ -326,6 +326,9 @@ export default function Step9Summary() {
                   `${data.sqm} sqm`,
                   `${data.bedrooms} bed`,
                   `${data.bathrooms} bath`,
+                  data.livingRooms > 0 ? `${data.livingRooms} ${t('wizardFields.livingAreas')}` : null,
+                  data.kitchens > 0 ? `${data.kitchens} ${t('wizardFields.kitchens')}` : null,
+                  data.offices > 0 ? `${data.offices} ${t('wizardFields.offices')}` : null,
                 ].filter(Boolean).join(' · ')}
               />
               <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"

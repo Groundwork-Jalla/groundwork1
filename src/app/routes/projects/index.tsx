@@ -166,11 +166,6 @@ export default function ProjectsIndex() {
             {t('projects.starterUsed', { used: starterCount, limit: STARTER_LIMIT })}
             {atStarterLimit && ` ${t('projects.limitReached')}`}
           </span>
-          {atStarterLimit && (
-            <Link to="/upgrade" className="shrink-0 text-xs font-semibold text-state-held underline underline-offset-2 hover:text-state-held">
-              {t('projects.upgradeNudge')}
-            </Link>
-          )}
         </div>
       )}
 

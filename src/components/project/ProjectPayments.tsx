@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-import { Wallet, History, ArrowUpRight } from 'lucide-react';
+import { Wallet, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { notifyAdmins } from '@/lib/supabase/notifications';
@@ -78,11 +77,9 @@ export default function ProjectPayments({
     );
   }
 
-  const canUpgrade = tier !== 'jalla_management';
-
   return (
     <div>
-      {/* Header: view toggle + upgrade */}
+      {/* Header: view toggle */}
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="inline-flex rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-1 bg-white dark:bg-[#1e1e1e]">
           {([['wallet', 'project.payments.wallet', Wallet], ['history', 'project.payments.history', History]] as [View, TKey, typeof Wallet][]).map(([id, labelKey, Icon]) => (
@@ -100,14 +97,6 @@ export default function ProjectPayments({
             </button>
           ))}
         </div>
-        {canUpgrade && (
-          <Link
-            to="/upgrade"
-            className="inline-flex items-center gap-1 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:text-white hover:border-brand-near-black dark:hover:border-white transition-colors"
-          >
-            {t('project.payments.upgradePlan')} <ArrowUpRight className="size-3.5" />
-          </Link>
-        )}
       </div>
 
       {view === 'wallet' ? (
