@@ -11,7 +11,7 @@ import type { WizardFormData, ConstructionRate, CityRate } from '@/types/project
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
 import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-rates';
 import { clearWizardDraft, readWizardDraft, writeWizardDraft, type WizardConfirmationDraft } from '@/lib/projects/wizard-draft';
-import type { BqLineItem } from '@/lib/budget/read-bq-total';
+import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import type { FloorPlanFacts } from '@/lib/budget/extract-bq';
 
 // =========================================================
@@ -56,6 +56,7 @@ export interface OnBehalfOf {
 }
 
 export interface DocumentExtraction {
+  bqReading: BqReading | null;
   bqLineItems: BqLineItem[];
   floorPlans: { fileName: string; facts: FloorPlanFacts }[];
 }

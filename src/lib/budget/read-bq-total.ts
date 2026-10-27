@@ -25,7 +25,7 @@
 
 /** A total we think we found, and why we think so. */
 export interface BqReading {
-  /** USD. Always a positive finite number. */
+  /** Amount as written in the document. Always a positive finite number. */
   total: number;
   /** The row the figure came from, shown to the person so they can check it. */
   label: string;
@@ -34,6 +34,8 @@ export interface BqReading {
    * `sum`   — no such row; the largest figure present, which is a guess.
    */
   confidence: 'grand' | 'sum';
+  /** Explicitly detected currency. Null means the document did not identify one. */
+  currencyCode?: string | null;
 }
 
 export interface BqLineItem {
@@ -189,6 +191,32 @@ function splitOn(line: string, sep: string): string[] {
   return out;
 }
 
+export function detectCurrencyCode(text: string): string | null {
+  const upper = text.toUpperCase();
+  const currencies: Array<[RegExp, string]> = [
+    [/\bXAF\b|\bFCFA\b|\bCFA\b/, 'XAF'],
+    [/\bXOF\b/, 'XOF'],
+    [/\bNGN\b|₦/, 'NGN'],
+    [/\bGHS\b/, 'GHS'],
+    [/\bKES\b/, 'KES'],
+    [/\bUGX\b/, 'UGX'],
+    [/\bTZS\b/, 'TZS'],
+    [/\bRWF\b/, 'RWF'],
+    [/\bETB\b/, 'ETB'],
+    [/\bZAR\b/, 'ZAR'],
+    [/\bZMW\b/, 'ZMW'],
+    [/\bMZN\b/, 'MZN'],
+    [/\bBWP\b/, 'BWP'],
+    [/\bCDF\b/, 'CDF'],
+    [/\bMAD\b/, 'MAD'],
+    [/\bEGP\b/, 'EGP'],
+    [/\bUSD\b/, 'USD'],
+    [/\bEUR\b|€/, 'EUR'],
+    [/\bGBP\b|£/, 'GBP'],
+  ];
+  return currencies.find(([pattern]) => pattern.test(upper))?.[1] ?? null;
+}
+
 /**
  * Extract priced rows without allocating them into model-generated trade categories.
  *
@@ -260,7 +288,10 @@ export function readBqTotal(text: string): BqReading | null {
       if (!pattern.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
       const amount = rowAmount(cells(line));
       if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL) {
-        return { total: amount, label: line.trim().slice(0, 120), confidence: 'grand' };
+        return {
+          total: amount, label: line.trim().slice(0, 120), confidence: 'grand',
+          currencyCode: detectCurrencyCode(line) ?? detectCurrencyCode(text),
+        };
       }
     }
   }
@@ -279,7 +310,9 @@ export function readBqTotal(text: string): BqReading | null {
       best = { total: amount, label: line.trim().slice(0, 120) };
     }
   }
-  return best ? { ...best, confidence: 'sum' } : null;
+  return best ? {
+    ...best, confidence: 'sum', currencyCode: detectCurrencyCode(best.label) ?? detectCurrencyCode(text),
+  } : null;
 }
 
 /**

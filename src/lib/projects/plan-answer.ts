@@ -2,6 +2,11 @@ import type { WizardFormData } from '@/types/project';
 import { readWizardDraft } from './wizard-draft';
 import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 
+export interface PlanBudgetConversion {
+  localCurrencyCode: string | null;
+  approxFxRate: number | null;
+}
+
 // =========================================================
 // Carrying the architecture-plan answer into the wizard.
 //
@@ -15,20 +20,42 @@ import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 // =========================================================
 
 /** The wizard fields an answered plan question sets. Empty when unanswered. */
-export function planSeed(answer: PlanAnswer | null): Partial<WizardFormData> {
+export function planSeed(
+  answer: PlanAnswer | null,
+  conversion: PlanBudgetConversion = { localCurrencyCode: null, approxFxRate: null },
+): Partial<WizardFormData> {
   if (!answer) return {};
   if (!answer.hasPlan) {
     // Recorded as a definite NO, which is what suppresses the bill-of-quantities
     // prompt on the final step. `null` would leave it showing.
     return { hasArchitecturePlan: false, bqTotalUsd: null };
   }
+  const facts = answer.floorPlanFacts ?? [];
+  const detectedFloors = facts
+    .map(fact => fact.floors)
+    .filter((floors): floors is number => floors != null);
+  const detectedFootprints = facts
+    .map(fact => fact.footprintSqm)
+    .filter((sqm): sqm is number => sqm != null);
+  const sourceReading = answer.reading;
+  const totalUsd = sourceReading?.confidence === 'grand'
+    ? sourceReading.currencyCode === 'USD'
+      ? sourceReading.total
+      : sourceReading.currencyCode === conversion.localCurrencyCode
+        && conversion.approxFxRate != null && conversion.approxFxRate > 0
+        ? sourceReading.total / conversion.approxFxRate
+        : null
+    : null;
+
   return {
     hasArchitecturePlan: true,
     // A suggestion, not a decision: the confirm step shows it and it can be corrected
     // before anything is created. Only a reading we are confident in is carried
     // forward — a guess is left for the person to type, so a figure they never looked
     // at cannot become the stage payment schedule.
-    bqTotalUsd: answer.reading?.confidence === 'grand' ? answer.reading.total : null,
+    ...(detectedFloors.length ? { floors: Math.max(...detectedFloors) } : {}),
+    ...(detectedFootprints.length ? { sqm: detectedFootprints[0] } : {}),
+    bqTotalUsd: totalUsd,
   };
 }
 

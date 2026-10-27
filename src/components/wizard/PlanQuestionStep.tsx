@@ -1,6 +1,7 @@
 import { useWizard } from '@/contexts/WizardContext';
 import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
+import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 
 // =========================================================
 // "Does your project have an architecture plan?", asked straight after the country.
@@ -25,7 +26,10 @@ import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
  * wizard's own data, so a Back to step 1 and forward again does not ask twice.
  */
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
-  const { step, data, update, back, pendingDocuments, setPendingDocuments, setDocumentExtraction } = useWizard();
+  const {
+    step, data, update, back, pendingDocuments, setPendingDocuments,
+    setDocumentExtraction, constructionRate,
+  } = useWizard();
 
   const uploadedPlanDocs = pendingDocuments?.some(doc => doc.category === 'other') ?? false;
   const uploadedBq = pendingDocuments?.some(doc => doc.category === 'boq') ?? false;
@@ -38,15 +42,21 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
       // inside it now, and the only way out of a wizard is its own Back.
       onCancel={back}
       onAnswered={(answer: PlanAnswer) => {
-        update(planSeed(answer));
+        update(planSeed(answer, {
+          localCurrencyCode: constructionRate?.currency_code ?? getCurrencyCode(data.country),
+          approxFxRate: constructionRate?.approx_fx_rate ?? getApproxFx(data.country),
+        }));
         // The files travel separately: they are uploaded once the project exists,
         // because there is nothing to attach them to until then.
         setPendingDocuments?.(planDocuments(answer));
         setDocumentExtraction(answer.hasPlan ? {
+          bqReading: answer.reading,
           bqLineItems: answer.lineItems,
           floorPlans: answer.floorPlans.map((file, i) => ({
             fileName: file.name,
-            facts: answer.floorPlanFacts[i] ?? { readable: false, floors: null, areaSqm: null },
+            facts: answer.floorPlanFacts[i] ?? {
+              readable: false, floors: null, areaSqm: null, footprintSqm: null,
+            },
           })),
         } : null);
       }}

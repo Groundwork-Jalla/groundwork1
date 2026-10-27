@@ -258,6 +258,7 @@ export interface FloorPlanFacts {
   readable: boolean;
   floors: number | null;
   areaSqm: number | null;
+  footprintSqm: number | null;
 }
 
 /** Extract only dimensions and floor counts explicitly written on a plan. */
@@ -272,9 +273,14 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
     /\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i,
   );
   const areaSqm = areaMatch ? parseAmount(areaMatch[1]) : null;
+  const footprintMatch = text.match(
+    /\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i,
+  );
+  const footprintSqm = footprintMatch ? parseAmount(footprintMatch[1]) : null;
   return {
     floors: floors != null && Number.isInteger(floors) && floors > 0 ? floors : null,
     areaSqm: areaSqm != null && areaSqm > 0 ? areaSqm : null,
+    footprintSqm: footprintSqm != null && footprintSqm > 0 ? footprintSqm : null,
   };
 }
 
@@ -282,12 +288,12 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
 export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts> {
   const isPdf = PDF.test(file.name);
   const isImage = IMAGE.test(file.name);
-  if (!isPdf && !isImage) return { readable: false, floors: null, areaSqm: null };
+  if (!isPdf && !isImage) return { readable: false, floors: null, areaSqm: null, footprintSqm: null };
 
   try {
     const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
     return { readable: !!out.text.trim(), ...readFloorPlanFacts(out.text) };
   } catch {
-    return { readable: false, floors: null, areaSqm: null };
+    return { readable: false, floors: null, areaSqm: null, footprintSqm: null };
   }
 }
