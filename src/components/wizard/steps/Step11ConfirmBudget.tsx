@@ -19,6 +19,8 @@ import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 
+const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
+
 /**
  * Final wizard step — confirm the budget, then create the project.
  *
@@ -202,10 +204,18 @@ export default function Step11ConfirmBudget() {
         ...(file ? [{ file, category: 'boq' as const }] : []),
       ];
       for (const item of toUpload) {
+        let timer: ReturnType<typeof setTimeout> | null = null;
         try {
-          await uploadDocument(project.id, ownerId, item.file, undefined, item.category);
+          await Promise.race([
+            uploadDocument(project.id, ownerId, item.file, undefined, item.category),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => reject(new Error('attachment-upload-timeout')), ATTACHMENT_UPLOAD_TIMEOUT_MS);
+            }),
+          ]);
         } catch {
           attachmentFailed = true;
+        } finally {
+          if (timer) clearTimeout(timer);
         }
       }
 
