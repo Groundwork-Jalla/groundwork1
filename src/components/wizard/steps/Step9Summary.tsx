@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
-  ShieldCheck, Info, CalendarDays, TriangleAlert,
+  ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
@@ -49,6 +49,7 @@ function daysBetween(start: string, end: string): number {
 
 function BudgetBreakdownCard() {
   const t = useT();
+  const [open, setOpen] = useState(false);
   const { data, constructionRate, cityRate, rateLoading } = useWizard();
   const detail = calculateBudgetDetail(data, constructionRate, cityRate);
   const isVerified = detail.dataSource === 'real_bq';
@@ -79,8 +80,9 @@ function BudgetBreakdownCard() {
   return (
     <div className="rounded-xl border border-brand-border-grey overflow-hidden">
 
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-brand-off-white">
+      {/* Header — click to expand the breakdown */}
+      <button type="button" aria-expanded={open} onClick={() => setOpen(o => !o)}
+        className="block w-full text-left px-5 py-4 border-b border-brand-off-white">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -115,10 +117,12 @@ function BudgetBreakdownCard() {
                 <span className="text-[9px] ml-1">(approx.)</span>
               </p>
             )}
+            <ChevronDown className={cn('ml-auto mt-1 size-4 text-brand-mid-grey transition-transform', open && 'rotate-180')} aria-hidden />
           </div>
         </div>
-      </div>
+      </button>
 
+      {open && (<>
       {/* Trade sections */}
       <div className="px-5 py-4 space-y-3">
         {detail.sections.map((section, i) => {
@@ -181,6 +185,7 @@ function BudgetBreakdownCard() {
           <span className="text-sm font-black tabular-nums text-brand-near-black">{formatUSDFull(detail.budget.total)}</span>
         </div>
       </div>
+      </>)}
 
       {/* Under-estimate warning. Above the disclaimer because it is the more urgent of
           the two, and only ever rendered when we can actually defend the comparison. */}
