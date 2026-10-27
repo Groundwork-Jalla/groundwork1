@@ -108,8 +108,8 @@ interface WizardContextValue {
 // =========================================================
 const WizardContext = createContext<WizardContextValue | null>(null);
 
-// 10: five setup steps, roof, details, summary, plan, and budget confirmation.
-export const TOTAL_STEPS = 10;
+// 9: five setup steps, roof, details, summary, and budget confirmation.
+export const TOTAL_STEPS = 9;
 
 // =========================================================
 // Provider
@@ -168,10 +168,7 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [rateLoading, setRateLoading]           = useState(false);
   const planDocumentsReady = docs.some(doc => doc.category === 'boq')
     && docs.some(doc => doc.category === 'other');
-  const fixedTier = onBehalfOf?.tier != null;
-  const totalSteps = data.hasArchitecturePlan === true && planDocumentsReady
-    ? fixedTier ? 5 : 6
-    : fixedTier ? TOTAL_STEPS - 1 : TOTAL_STEPS;
+  const totalSteps = data.hasArchitecturePlan === true && planDocumentsReady ? 5 : TOTAL_STEPS;
 
   useEffect(() => {
     if (data.hasArchitecturePlan === true && planDocumentsReady && step >= 4 && step <= 7) {
@@ -228,8 +225,8 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
     setDirection('forward');
     setStep(prev => data.hasArchitecturePlan === true && planDocumentsReady && prev === 3
       ? 8
-      : Math.min(prev + 1, TOTAL_STEPS));
-  }, [data.hasArchitecturePlan, planDocumentsReady]);
+      : Math.min(prev + 1, totalSteps));
+  }, [data.hasArchitecturePlan, planDocumentsReady, totalSteps]);
 
   const back = useCallback(() => {
     draftCleared.current = false;
@@ -242,8 +239,8 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const goTo = useCallback((n: number) => {
     draftCleared.current = false;
     setDirection(n > step ? 'forward' : 'back');
-    setStep(Math.max(1, Math.min(n, TOTAL_STEPS)));
-  }, [step]);
+    setStep(Math.max(1, Math.min(n, totalSteps)));
+  }, [step, totalSteps]);
 
   const reset = useCallback(() => {
     // Clear before resetting state; the resulting effect must not save a blank draft

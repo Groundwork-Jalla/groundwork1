@@ -16,21 +16,21 @@ const STEP_KEYS: TKey[] = [
   'wizard.stepRoof',
   'wizard.stepDetails',
   'wizard.stepSummary',
-  'wizard.stepPlan',
   'wizard.stepConfirm',
 ];
 
 export default function ProgressBar() {
   const t = useT();
-  const { step, totalSteps, direction, data, onBehalfOf, goTo } = useWizard();
-  const fixedTier = onBehalfOf?.tier != null;
+  const { step, totalSteps, direction, data, goTo } = useWizard();
   const routeSteps = data.hasArchitecturePlan === true
-    ? [1, 2, 3, 8, ...(fixedTier ? [] : [9]), 10]
-    : Array.from({ length: 10 }, (_, i) => i + 1).filter(n => !(fixedTier && n === 9));
+    ? [1, 2, 3, 8, 9]
+    : Array.from({ length: totalSteps }, (_, i) => i + 1);
   const progressIndex = routeSteps.indexOf(step);
+  const summaryStep = routeSteps[Math.max(0, routeSteps.length - 2)] ?? step;
+  const finalStep = routeSteps[routeSteps.length - 1] ?? step;
   const displayedIndex = progressIndex >= 0
     ? progressIndex
-    : direction === 'back' ? routeSteps.indexOf(8) : routeSteps.indexOf(10);
+    : direction === 'back' ? routeSteps.indexOf(summaryStep) : routeSteps.indexOf(finalStep);
   const pct = (displayedIndex / (routeSteps.length - 1)) * 100;
   const labelStep = routeSteps[Math.max(0, displayedIndex)] ?? step;
 
