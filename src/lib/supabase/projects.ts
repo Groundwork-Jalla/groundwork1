@@ -53,7 +53,8 @@ export async function createProject(
       finish_level:        formData.finishLevel,
       has_boys_quarters:   formData.hasBoysQuarters,
       bq_rooms:            formData.bqRooms,
-      roof_type:           formData.roofType,
+      // The architecture-plan flow can skip the roof step; keep inserts valid.
+      roof_type:           formData.roofType ?? 'stone_coated',
       bedrooms:            formData.bedrooms,
       bathrooms:           formData.bathrooms,
       living_rooms:        formData.livingRooms,
