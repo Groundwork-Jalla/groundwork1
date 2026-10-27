@@ -1,4 +1,4 @@
-import { readBqTotal, type BqReading } from './read-bq-total';
+import { parseAmount, readBqLineItems, readBqTotal, type BqLineItem, type BqReading } from './read-bq-total';
 
 // =========================================================
 // Getting the rows out of a bill of quantities, whatever it arrived as.
@@ -179,6 +179,7 @@ export type BqSource = 'spreadsheet' | 'pdf' | 'text' | 'image';
 
 export interface BqExtraction {
   reading: BqReading | null;
+  lineItems: BqLineItem[];
   source: BqSource;
   /** False when the file yielded no text at all — an empty sheet, or an unreadable scan. */
   readable: boolean;
@@ -232,18 +233,18 @@ export async function extractBqTotal(file: File): Promise<BqExtraction> {
     } else if (PLAIN.test(name)) {
       text = await file.text();
     } else {
-      return { reading: null, source, readable: false, ocr: false };
+      return { reading: null, lineItems: [], source, readable: false, ocr: false };
     }
 
     // Nothing at all is a different answer from "text, but no total in it": one means
     // the file could not be read, the other that it holds no total to find.
-    if (!text.trim()) return { reading: null, source, readable: false, ocr };
+    if (!text.trim()) return { reading: null, lineItems: [], source, readable: false, ocr };
 
-    return { reading: readBqTotal(text), source, readable: true, ocr };
+    return { reading: readBqTotal(text), lineItems: readBqLineItems(text), source, readable: true, ocr };
   } catch {
     // Corrupt, password-protected, or a format the library will not take. All the
     // same answer to the person: type the figure.
-    return { reading: null, source, readable: false, ocr: false };
+    return { reading: null, lineItems: [], source, readable: false, ocr: false };
   }
 }
 
@@ -251,4 +252,42 @@ export async function extractBqTotal(file: File): Promise<BqExtraction> {
 export function canExtract(filename: string): boolean {
   return SPREADSHEET.test(filename) || PLAIN.test(filename)
       || PDF.test(filename) || IMAGE.test(filename);
+}
+
+export interface FloorPlanFacts {
+  readable: boolean;
+  floors: number | null;
+  areaSqm: number | null;
+}
+
+/** Extract only dimensions and floor counts explicitly written on a plan. */
+export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
+  const floorMatch = text.match(/\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i)
+    ?? text.match(/\b(\d{1,2})\s*(?:floors?|storeys?|levels?|etages?)\b/i);
+  const floors = floorMatch
+    ? Number(floorMatch[1] ?? floorMatch[2]) + (floorMatch[0].match(/(?:G|GF|ground\s*floor)\s*\+/i) ? 1 : 0)
+    : null;
+
+  const areaMatch = text.match(
+    /\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i,
+  );
+  const areaSqm = areaMatch ? parseAmount(areaMatch[1]) : null;
+  return {
+    floors: floors != null && Number.isInteger(floors) && floors > 0 ? floors : null,
+    areaSqm: areaSqm != null && areaSqm > 0 ? areaSqm : null,
+  };
+}
+
+/** Read a plan PDF or image and return only explicit, machine-readable annotations. */
+export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts> {
+  const isPdf = PDF.test(file.name);
+  const isImage = IMAGE.test(file.name);
+  if (!isPdf && !isImage) return { readable: false, floors: null, areaSqm: null };
+
+  try {
+    const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
+    return { readable: !!out.text.trim(), ...readFloorPlanFacts(out.text) };
+  } catch {
+    return { readable: false, floors: null, areaSqm: null };
+  }
 }

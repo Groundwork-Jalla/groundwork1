@@ -22,17 +22,26 @@ const STEP_KEYS: TKey[] = [
 
 export default function ProgressBar() {
   const t = useT();
-  const { step, totalSteps, goTo } = useWizard();
-  const pct = ((step - 1) / (totalSteps - 1)) * 100;
+  const { step, totalSteps, direction, data, onBehalfOf, goTo } = useWizard();
+  const fixedTier = onBehalfOf?.tier != null;
+  const routeSteps = data.hasArchitecturePlan === true
+    ? [1, 2, 3, 8, ...(fixedTier ? [] : [9]), 10]
+    : Array.from({ length: 10 }, (_, i) => i + 1).filter(n => !(fixedTier && n === 9));
+  const progressIndex = routeSteps.indexOf(step);
+  const displayedIndex = progressIndex >= 0
+    ? progressIndex
+    : direction === 'back' ? routeSteps.indexOf(8) : routeSteps.indexOf(10);
+  const pct = (displayedIndex / (routeSteps.length - 1)) * 100;
+  const labelStep = routeSteps[Math.max(0, displayedIndex)] ?? step;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium text-brand-mid-grey">
-          {STEP_KEYS[step - 1] ? t(STEP_KEYS[step - 1]) : t('wizard.stepN', { n: step })}
+          {STEP_KEYS[labelStep - 1] ? t(STEP_KEYS[labelStep - 1]) : t('wizard.stepN', { n: labelStep })}
         </span>
         <span className="text-[11px] font-medium text-brand-mid-grey tabular-nums">
-          {step} / {totalSteps}
+          {displayedIndex + 1} / {totalSteps}
         </span>
       </div>
 
@@ -65,20 +74,19 @@ export default function ProgressBar() {
 
       {/* Clickable step dots below the bar */}
       <div className="flex justify-between mt-2.5 px-0">
-        {Array.from({ length: totalSteps }, (_, i) => {
-          const n = i + 1;
-          const done = n < step;
+        {routeSteps.map((n, i) => {
+          const done = i < displayedIndex;
           return (
             <button
               key={n}
               type="button"
               disabled={!done}
               onClick={() => done && goTo(n)}
-              aria-label={t('wizard.goToStep', { n, label: STEP_KEYS[i] ? t(STEP_KEYS[i]) : String(n) })}
+              aria-label={t('wizard.goToStep', { n: i + 1, label: STEP_KEYS[n - 1] ? t(STEP_KEYS[n - 1]) : String(n) })}
               className="w-1 h-1 rounded-full transition-colors disabled:cursor-default focus:outline-none"
               style={{
-                background: n <= step ? '#0a0a0a' : '#e5e5e5',
-                opacity: n < step ? 0.7 : n === step ? 1 : 0.4,
+                background: i <= displayedIndex ? '#0a0a0a' : '#e5e5e5',
+                opacity: i < displayedIndex ? 0.7 : i === displayedIndex ? 1 : 0.4,
               }}
             />
           );

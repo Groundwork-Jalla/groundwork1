@@ -11,6 +11,8 @@ import type { WizardFormData, ConstructionRate, CityRate } from '@/types/project
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
 import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-rates';
 import { clearWizardDraft, readWizardDraft, writeWizardDraft, type WizardConfirmationDraft } from '@/lib/projects/wizard-draft';
+import type { BqLineItem } from '@/lib/budget/read-bq-total';
+import type { FloorPlanFacts } from '@/lib/budget/extract-bq';
 
 // =========================================================
 // Types
@@ -53,6 +55,11 @@ export interface OnBehalfOf {
   by: 'admin' | 'partner';
 }
 
+export interface DocumentExtraction {
+  bqLineItems: BqLineItem[];
+  floorPlans: { fileName: string; facts: FloorPlanFacts }[];
+}
+
 interface WizardContextValue {
   step: number;
   totalSteps: number;
@@ -84,6 +91,8 @@ interface WizardContextValue {
    * long as this tab's wizard does, which is exactly until the project exists.
    */
   setPendingDocuments?: (docs: { file: File; category: 'other' | 'boq' }[]) => void;
+  documentExtraction: DocumentExtraction | null;
+  setDocumentExtraction: (extraction: DocumentExtraction | null) => void;
 }
 
 // =========================================================
@@ -136,6 +145,7 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [saved] = useState(() => readWizardDraft(persistenceKey));
   const [docs, setDocs] = useState<{ file: File; category: 'other' | 'boq' }[]>(
     () => pendingDocuments ?? []);
+  const [documentExtraction, setDocumentExtraction] = useState<DocumentExtraction | null>(null);
   const [step, setStep]           = useState(saved?.step ?? 1);
   const [direction, setDirection] = useState<WizardDirection>(saved?.direction ?? 'forward');
   // Seed last: it is this run's answer to a question asked a moment ago, so it wins
@@ -148,6 +158,19 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [constructionRate, setConstructionRate] = useState<ConstructionRate | null>(null);
   const [cityRate, setCityRate]                 = useState<CityRate | null>(null);
   const [rateLoading, setRateLoading]           = useState(false);
+  const planDocumentsReady = docs.some(doc => doc.category === 'boq')
+    && docs.some(doc => doc.category === 'other');
+  const fixedTier = onBehalfOf?.tier != null;
+  const totalSteps = data.hasArchitecturePlan === true && planDocumentsReady
+    ? fixedTier ? 5 : 6
+    : fixedTier ? TOTAL_STEPS - 1 : TOTAL_STEPS;
+
+  useEffect(() => {
+    if (data.hasArchitecturePlan === true && planDocumentsReady && step >= 4 && step <= 7) {
+      setDirection('forward');
+      setStep(8);
+    }
+  }, [data.hasArchitecturePlan, planDocumentsReady, step]);
 
   useEffect(() => {
     if (draftCleared.current) return;
@@ -195,14 +218,18 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const next = useCallback(() => {
     draftCleared.current = false;
     setDirection('forward');
-    setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
-  }, []);
+    setStep(prev => data.hasArchitecturePlan === true && planDocumentsReady && prev === 3
+      ? 8
+      : Math.min(prev + 1, TOTAL_STEPS));
+  }, [data.hasArchitecturePlan, planDocumentsReady]);
 
   const back = useCallback(() => {
     draftCleared.current = false;
     setDirection('back');
-    setStep(prev => Math.max(prev - 1, 1));
-  }, []);
+    setStep(prev => data.hasArchitecturePlan === true && planDocumentsReady && prev === 8
+      ? 3
+      : Math.max(prev - 1, 1));
+  }, [data.hasArchitecturePlan, planDocumentsReady]);
 
   const goTo = useCallback((n: number) => {
     draftCleared.current = false;
@@ -235,13 +262,14 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   return (
     <WizardContext.Provider
       value={{
-        step, totalSteps: TOTAL_STEPS, direction, data,
+        step, totalSteps, direction, data,
         constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
         onBehalfOf,
         onChangeClient,
         pendingDocuments: docs,
         setPendingDocuments: setDocs,
+        documentExtraction, setDocumentExtraction,
         ...(persistenceKey ? { confirmationDraft, updateConfirmationDraft, persistProgress: true } : {}),
       }}
     >

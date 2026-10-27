@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Paperclip, Ruler, X } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
-import { extractBqTotal, canExtract } from '@/lib/budget/extract-bq';
-import type { BqReading } from '@/lib/budget/read-bq-total';
+import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
+import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -28,7 +28,14 @@ import { cn } from '@/lib/utils';
 
 export type PlanAnswer =
   | { hasPlan: false }
-  | { hasPlan: true; floorPlan: File | null; bq: File | null; reading: BqReading | null };
+  | {
+      hasPlan: true;
+      floorPlans: File[];
+      bq: File | null;
+      reading: BqReading | null;
+      lineItems: BqLineItem[];
+      floorPlanFacts: FloorPlanFacts[];
+    };
 
 export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   onAnswered: (answer: PlanAnswer) => void;
@@ -37,15 +44,27 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
 }) {
   const t = useT();
   const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
-  const [floorPlan, setFloorPlan] = useState<File | null>(null);
+  const [floorPlans, setFloorPlans] = useState<File[]>([]);
   const [bq, setBq] = useState<File | null>(null);
   const [reading, setReading] = useState<BqReading | null>(null);
+  const [lineItems, setLineItems] = useState<BqLineItem[]>([]);
+  const [floorPlanFacts, setFloorPlanFacts] = useState<FloorPlanFacts[]>([]);
   const [scanning, setScanning] = useState(false);
   const [unreadable, setUnreadable] = useState(false);
   // Read from a picture rather than from the file. Said plainly wherever the figure
   // appears: OCR confuses 8 with 3 and 1 with 7, and this number becomes ten payments.
   const [fromOcr, setFromOcr] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function inspectFloorPlans(files: File[]) {
+    setScanning(true);
+    try {
+      const facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
+      setFloorPlanFacts(facts);
+    } finally {
+      setScanning(false);
+    }
+  }
 
   /**
    * Try to read a construction total out of the BQ as soon as it is picked.
@@ -63,12 +82,14 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
     try {
       const out = await extractBqTotal(file);
       setReading(out.reading);
+      setLineItems(out.lineItems);
       setFromOcr(out.ocr);
       // Told apart on purpose: a file we could not read at all (a scanned PDF) is a
       // different thing to say than a file we read but found no total in.
       setUnreadable(!out.readable);
     } catch {
       setReading(null);
+      setLineItems([]);
       setUnreadable(true);
     } finally {
       setScanning(false);
@@ -132,14 +153,20 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       <div className="space-y-3">
         <Drop
           label={t('planGate.floorPlan')} hint={t('planGate.floorPlanHint')}
-          file={floorPlan}
-          onPick={f => { setError(null); setFloorPlan(f); }}
+          files={floorPlans} multiple
+          onPick={files => {
+            const chosen = Array.isArray(files) ? files : files ? [files] : [];
+            setError(null);
+            setFloorPlans(chosen);
+            setFloorPlanFacts([]);
+            if (chosen.length) void inspectFloorPlans(chosen);
+          }}
           onError={setError}
         />
         <Drop
           label={t('planGate.bq')} hint={t('planGate.bqHint')}
           file={bq} busy={scanning}
-          onPick={f => { setError(null); setBq(f); if (f) void inspect(f); else setReading(null); }}
+          onPick={f => { setError(null); setBq(f); if (f) void inspect(f); else { setReading(null); setLineItems([]); } }}
           onError={setError}
         />
       </div>
@@ -175,6 +202,21 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           {t(unreadable ? 'planGate.couldNotRead' : 'planGate.noTotalFound')}
         </p>
       )}
+      {floorPlans.length > 0 && !scanning && (
+        <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
+          {floorPlanFacts.map((facts, i) => (
+            <p key={`${floorPlans[i]?.name ?? 'plan'}-${i}`}>
+              {floorPlans[i]?.name}: {facts.floors ? `${facts.floors} floors` : 'floor count not extracted'}
+              {facts.areaSqm ? ` · ${facts.areaSqm} m² shown on plan` : ' · area not extracted'}
+            </p>
+          ))}
+        </div>
+      )}
+      {bq && lineItems.length === 0 && !scanning && (
+        <p className="mt-2 text-xs text-brand-mid-grey">
+          No itemized priced lines were extracted from this bill.
+        </p>
+      )}
 
       {error && <p role="alert" className="mt-3 text-xs text-state-alert">{error}</p>}
 
@@ -190,8 +232,8 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           // Both documents are the point of this path, so both are required. Somebody
           // who cannot produce them belongs on the other branch, and the Back button
           // above is how they get there.
-          disabled={!floorPlan || !bq || scanning}
-          onClick={() => onAnswered({ hasPlan: true, floorPlan, bq, reading })}
+          disabled={!floorPlans.length || !bq || scanning}
+          onClick={() => onAnswered({ hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts })}
           className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
           {scanning && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -231,27 +273,28 @@ function Choice({ id, title, body, onClick }: {
   );
 }
 
-function Drop({ label, hint, file, busy, onPick, onError }: {
-  label: string; hint: string; file: File | null; busy?: boolean;
-  onPick: (f: File | null) => void;
+function Drop({ label, hint, file, files = [], multiple = false, busy, onPick, onError }: {
+  label: string; hint: string; file?: File | null; files?: File[]; multiple?: boolean; busy?: boolean;
+  onPick: (f: File | File[] | null) => void;
   onError: (message: string) => void;
 }) {
   const t = useT();
   const ref = useRef<HTMLInputElement>(null);
+  const selectedFiles = multiple ? files : file ? [file] : [];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey p-4">
       <div className="min-w-0">
         <p className="text-sm font-medium text-brand-near-black">{label}</p>
         <p className="mt-0.5 truncate text-xs text-brand-mid-grey">
-          {file
-            ? <span className="inline-flex items-center gap-1 text-state-success"><Check className="size-3" aria-hidden />{file.name}</span>
+          {selectedFiles.length
+            ? <span className="inline-flex items-center gap-1 text-state-success"><Check className="size-3" aria-hidden />{selectedFiles.map(f => f.name).join(', ')}</span>
             : hint}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        {file && (
+        {selectedFiles.length > 0 && (
           <button
-            type="button" onClick={() => { onPick(null); if (ref.current) ref.current.value = ''; }}
+            type="button" onClick={() => { onPick(multiple ? [] : null); if (ref.current) ref.current.value = ''; }}
             aria-label={t('planGate.remove')}
             className="rounded-lg p-1.5 text-brand-mid-grey hover:bg-brand-off-white"
           >
@@ -263,24 +306,26 @@ function Drop({ label, hint, file, busy, onPick, onError }: {
           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <FileText className="size-3.5" aria-hidden />}
-          {file ? t('planGate.replace') : t('planGate.choose')}
+          {selectedFiles.length ? t('planGate.replace') : t('planGate.choose')}
         </button>
       </div>
       <input
-        ref={ref} type="file" className="sr-only" accept={FILE_ACCEPT_ATTR}
+        ref={ref} type="file" className="sr-only" accept={FILE_ACCEPT_ATTR} multiple={multiple}
         onChange={e => {
-          const picked = e.target.files?.[0] ?? null;
+          const pickedFiles = [...(e.target.files ?? [])];
           e.target.value = '';
-          if (!picked) return;
+          if (!pickedFiles.length) return;
           // The same size and type rules the rest of the product applies, so a file
           // accepted here cannot be refused by storage a moment later.
-          const problem = fileProblem(picked);
-          if (problem) {
-            onError(t(problem === 'size' ? 'wizard.confirmBudget.quoteTooLarge'
-                                         : 'wizard.confirmBudget.quoteBadType', { mb: MAX_FILE_MB }));
-            return;
+          for (const picked of pickedFiles) {
+            const problem = fileProblem(picked);
+            if (problem) {
+              onError(t(problem === 'size' ? 'wizard.confirmBudget.quoteTooLarge'
+                                           : 'wizard.confirmBudget.quoteBadType', { mb: MAX_FILE_MB }));
+              return;
+            }
           }
-          onPick(picked);
+          onPick(multiple ? pickedFiles : pickedFiles[0]);
         }}
       />
     </div>

@@ -36,6 +36,11 @@ export interface BqReading {
   confidence: 'grand' | 'sum';
 }
 
+export interface BqLineItem {
+  label: string;
+  amount: number;
+}
+
 /** Rows that name themselves as the whole job. Ordered: earlier wins. */
 /**
  * Lower-case and strip accents before matching.
@@ -182,6 +187,45 @@ function splitOn(line: string, sep: string): string[] {
   }
   out.push(cur);
   return out;
+}
+
+/**
+ * Extract priced rows without allocating them into model-generated trade categories.
+ *
+ * A line is included only when its own row contains a readable description and amount.
+ * Subtotals and carry-forward lines are excluded so they cannot be mistaken for work
+ * items or counted twice.
+ */
+export function readBqLineItems(text: string): BqLineItem[] {
+  if (!text || !/\d/.test(text)) return [];
+
+  const items: BqLineItem[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const raw = line.trim();
+    if (!raw) continue;
+
+    const cleaned = normalise(raw);
+    if (NOT_THE_TOTAL.test(cleaned) || GRAND_TOTAL.some(pattern => pattern.test(cleaned))) continue;
+
+    const row = cells(raw);
+    let amount: number | null = null;
+    for (const cell of row) {
+      const parsed = parseAmount(cell);
+      if (parsed !== null && (amount === null || parsed > amount)) amount = parsed;
+    }
+
+    if (amount === null) continue;
+    const label = row
+      .filter(cell => parseAmount(cell) === null)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    if (!/[a-z\u00c0-\u024f]/i.test(label)) continue;
+
+    items.push({ label, amount });
+  }
+  return items;
 }
 
 /**

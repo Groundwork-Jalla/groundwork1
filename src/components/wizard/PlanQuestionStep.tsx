@@ -25,9 +25,12 @@ import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
  * wizard's own data, so a Back to step 1 and forward again does not ask twice.
  */
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
-  const { step, data, update, back, setPendingDocuments } = useWizard();
+  const { step, data, update, back, pendingDocuments, setPendingDocuments, setDocumentExtraction } = useWizard();
 
-  if (step < 2 || data.hasArchitecturePlan !== null) return <>{children}</>;
+  const uploadedPlanDocs = pendingDocuments?.some(doc => doc.category === 'other') ?? false;
+  const uploadedBq = pendingDocuments?.some(doc => doc.category === 'boq') ?? false;
+  const needsPlanUpload = data.hasArchitecturePlan === true && !(uploadedPlanDocs && uploadedBq);
+  if (step < 2 || (data.hasArchitecturePlan !== null && !needsPlanUpload)) return <>{children}</>;
 
   return (
     <ArchitecturePlanGate
@@ -39,6 +42,13 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
         // The files travel separately: they are uploaded once the project exists,
         // because there is nothing to attach them to until then.
         setPendingDocuments?.(planDocuments(answer));
+        setDocumentExtraction(answer.hasPlan ? {
+          bqLineItems: answer.lineItems,
+          floorPlans: answer.floorPlans.map((file, i) => ({
+            fileName: file.name,
+            facts: answer.floorPlanFacts[i] ?? { readable: false, floors: null, areaSqm: null },
+          })),
+        } : null);
       }}
     />
   );

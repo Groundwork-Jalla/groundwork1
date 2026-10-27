@@ -38,7 +38,7 @@ export function planDocuments(answer: PlanAnswer | null): { file: File; category
   const out: { file: File; category: 'other' | 'boq' }[] = [];
   // The floor plan is a drawing, not a costing, so it is not filed as 'boq' — the
   // Documents tab would then show two bills of quantities and no plan.
-  if (answer.floorPlan) out.push({ file: answer.floorPlan, category: 'other' });
+  for (const file of answer.floorPlans) out.push({ file, category: 'other' });
   if (answer.bq) out.push({ file: answer.bq, category: 'boq' });
   return out;
 }

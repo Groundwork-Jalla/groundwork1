@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAmount, readBqTotal, looksReadable } from './read-bq-total';
+import { parseAmount, readBqLineItems, readBqTotal, looksReadable } from './read-bq-total';
 
 /**
  * Reading a bill of quantities.
@@ -103,6 +103,24 @@ describe('finding the total', () => {
   it('keeps the label short enough to show on one line', () => {
     const long = 'Grand Total ' + 'x'.repeat(500) + ',13500000';
     expect(readBqTotal(long)!.label.length).toBeLessThanOrEqual(120);
+  });
+});
+
+describe('extracting priced BoQ rows', () => {
+  it('keeps individual priced rows and excludes totals and subtotals', () => {
+    const text = [
+      'Description,Qty,Rate,Amount',
+      'Excavation,10,2500,25000',
+      'Concrete foundation,4,125000,500000',
+      'Sub-total,,,,525000',
+      'Grand Total,,,,525000',
+    ].join('\n');
+
+    expect(readBqLineItems(text)).toEqual([
+      { label: 'Description', amount: 2500 },
+      { label: 'Excavation', amount: 25000 },
+      { label: 'Concrete foundation', amount: 500000 },
+    ]);
   });
 });
 
