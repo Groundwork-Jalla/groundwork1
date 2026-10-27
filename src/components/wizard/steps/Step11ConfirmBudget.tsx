@@ -320,15 +320,6 @@ export default function Step11ConfirmBudget() {
                     </select>
                   </label>
 
-                  {joined && (
-                    <p className="rounded-lg bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey">
-                      {t('wizard.joined.effect', {
-                        n: String(joined.skipped.length),
-                        amount: f.money(joined.total),
-                        full: f.money(joined.fullTotal),
-                      })}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
@@ -409,9 +400,6 @@ export default function Step11ConfirmBudget() {
             {busy ? t('wizard.confirmBudget.creating') : t('wizard.confirmBudget.cta')}
           </motion.button>
 
-          <p className="text-[11px] text-brand-mid-grey text-center leading-relaxed">
-            {t('wizard.confirmBudget.note')}
-          </p>
         </div>
       </div>
     </WizardShell>

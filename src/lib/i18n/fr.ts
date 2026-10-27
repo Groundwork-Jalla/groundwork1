@@ -4710,7 +4710,7 @@ export const fr: Mirror<EnDict> = {
       quoteTooLarge: 'Ce fichier dépasse {mb} Mo. Joignez-en un plus petit, ou ajoutez-le ensuite depuis l\'onglet Documents du projet.',
       quoteBadType:  'Ce type de fichier ne peut pas être téléversé. Utilisez un PDF, un document Word, un tableur Excel ou CSV, ou une image.',
       quoteFailed:   'Le projet a été créé, mais la pièce jointe n\'a pas été téléversée. Ajoutez-la depuis l\'onglet Documents du projet.',
-      cta:           'Confirmer le budget et créer le chantier',
+      cta:           'Confirmer l\'étape et créer le projet',
       creating:      'Création du chantier…',
       note:          "L'étape 1 s'ouvre dès la création du chantier. Le budget reste modifiable depuis l'onglet Coûts.",
     },
