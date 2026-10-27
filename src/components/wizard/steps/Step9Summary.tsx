@@ -31,6 +31,18 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function dateInputDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function daysBetween(start: string, end: string): number {
+  const startUtc = Date.parse(`${start}T00:00:00Z`);
+  const endUtc = Date.parse(`${end}T00:00:00Z`);
+  return Math.max(0, Math.round((endUtc - startUtc) / 86_400_000));
+}
+
 // ── Label helpers ─────────────────────────────────────────
 
 // ── Budget breakdown display ───────────────────────────────
@@ -226,10 +238,12 @@ export default function Step9Summary() {
   const [manualFootprint, setManualFootprint] = useState(data.sqm > 0 ? String(data.sqm) : '');
   const hasValidFloors = hasExtractedFloors || Number(manualFloors) > 0;
   const hasValidFootprint = hasExtractedFootprint || Number(manualFootprint) > 0;
+  const validDateRange = !data.targetStartDate || !data.targetEndDate
+    || data.targetEndDate >= data.targetStartDate;
 
   return (
     <WizardShell
-      canContinue={!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint)}
+      canContinue={validDateRange && (!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint))}
       continueLabel="Continue"
     >
       <div className="pt-2">
@@ -326,22 +340,59 @@ export default function Step9Summary() {
           ? <DocumentBudgetBreakdown />
           : <div className="mt-6"><BudgetBreakdownCard /></div>}
 
-        {!documentFlow && (
         <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
             <CalendarDays className="size-4 text-brand-mid-grey shrink-0" />
             <p className="text-sm font-semibold text-brand-near-black">{t('wizard.timelineTitle')}</p>
           </div>
 
+          <div className="grid gap-3 p-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-brand-near-black">
+                {t('wizard.targetStartDate')}
+              </span>
+              <input
+                type="date"
+                value={data.targetStartDate}
+                max={data.targetEndDate || undefined}
+                onChange={event => update({ targetStartDate: event.target.value })}
+                className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-brand-near-black">
+                {t('wizard.targetEndDate')}
+              </span>
+              <input
+                type="date"
+                value={data.targetEndDate}
+                min={data.targetStartDate || undefined}
+                onChange={event => update({ targetEndDate: event.target.value })}
+                className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
+              />
+            </label>
+          </div>
+          {!validDateRange && (
+            <p role="alert" className="px-4 pb-3 text-xs text-state-alert">
+              {t('wizard.timelineDateRangeError')}
+            </p>
+          )}
+
           {(() => {
-            const startDate = data.targetStartDate ? new Date(data.targetStartDate) : new Date();
+            const startDate = dateInputDate(data.targetStartDate) ?? new Date();
             const predictedDays = buildDurationDays(data.floors);
-            const months = buildDurationMonths(data.floors);
-            const endDate = addDays(startDate, predictedDays);
+            const selectedEnd = dateInputDate(data.targetEndDate);
+            const endDate = selectedEnd ?? addDays(startDate, predictedDays);
+            const durationDays = data.targetStartDate && data.targetEndDate
+              ? daysBetween(data.targetStartDate, data.targetEndDate)
+              : predictedDays;
+            const months = data.targetStartDate && data.targetEndDate
+              ? Math.max(1, Math.ceil(durationDays / 30))
+              : buildDurationMonths(data.floors);
             const rows = [
-              { label: 'Estimated start', value: fmtDate(startDate) },
-              { label: 'Projected completion', value: fmtDate(endDate) },
-              { label: 'Total duration', value: `~${predictedDays} days (${months} months)` },
+              { label: data.targetStartDate ? t('wizard.targetStartDate') : 'Estimated start', value: fmtDate(startDate) },
+              { label: data.targetEndDate ? t('wizard.targetEndDate') : 'Projected completion', value: fmtDate(endDate) },
+              { label: 'Total duration', value: `${data.targetStartDate && data.targetEndDate ? '' : '~'}${durationDays} days (${months} months)` },
             ];
             return (
               <div className="divide-y divide-brand-off-white">
@@ -361,7 +412,6 @@ export default function Step9Summary() {
             </p>
           </div>
         </div>
-        )}
 
       </div>
     </WizardShell>

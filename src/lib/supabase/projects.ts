@@ -65,6 +65,7 @@ export async function createProject(
       status:              'active' as const,
       current_stage:       1,
       target_start:        formData.targetStartDate || null,
+      target_end:          formData.targetEndDate || null,
       tracking_started_at: gated ? null : new Date().toISOString(),
     })
     .select()

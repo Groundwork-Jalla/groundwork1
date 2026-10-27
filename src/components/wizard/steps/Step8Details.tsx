@@ -421,19 +421,6 @@ export default function Step8Details() {
             </div>
           </div>
 
-          {/* Target start date — optional */}
-          <div className="space-y-1.5">
-            <Label htmlFor="start-date" className="text-sm font-medium text-brand-near-black">
-              Target start date{' '}
-              <span className="font-normal text-brand-soft-grey">(optional)</span>
-            </Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={data.targetStartDate}
-              onChange={e => update({ targetStartDate: e.target.value })}
-            />
-          </div>
         </div>
       </div>
     </WizardShell>

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { CANONICAL_SITE_URL, siteLink, siteUrl } from './site-url';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CANONICAL_SITE_URL, siteLink, siteUrl, trustedSiteOrigin } from './site-url';
 
 /**
  * Keeps the site's origin written down in exactly one place.
@@ -26,6 +26,8 @@ const ALLOWED = new Set([
   'src/lib/site-url.ts',        // the definition itself
   'src/lib/site-url.test.ts',   // this file
 ]);
+
+afterEach(() => vi.unstubAllEnvs());
 
 function stripComments(src: string): string {
   let out = '', i = 0, quote: string | null = null;
@@ -82,6 +84,17 @@ describe('site URL', () => {
   it('joins paths without doubling or dropping the slash', () => {
     expect(siteLink('invite/abc')).toBe(`${siteUrl()}/invite/abc`);
     expect(siteLink('/invite/abc')).toBe(`${siteUrl()}/invite/abc`);
+  });
+
+  it('uses the canonical domain instead of Vercel deployment hosts', () => {
+    vi.stubEnv('PUBLIC_SITE_URL', 'https://groundwork1-phi.vercel.app');
+    expect(siteUrl()).toBe(CANONICAL_SITE_URL);
+    expect(trustedSiteOrigin('https://groundwork1-phi.vercel.com/invite')).toBe(CANONICAL_SITE_URL);
+  });
+
+  it('preserves trusted custom and local origins', () => {
+    expect(trustedSiteOrigin('https://preview.tryjalla.com/path')).toBe('https://preview.tryjalla.com');
+    expect(trustedSiteOrigin('http://localhost:5174')).toBe('http://localhost:5174');
   });
 
   /**

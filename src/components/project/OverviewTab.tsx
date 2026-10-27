@@ -1111,9 +1111,11 @@ export default function OverviewTab({
   const outstanding = Math.max(0, totalBudget - paidTotal);
 
   const country     = findCountry(project.country);
-  const projStart   = new Date(project.target_start ?? project.created_at);
+  const projStart   = new Date(project.target_start ? `${project.target_start}T00:00:00` : project.created_at);
   const predictedDays = buildDurationDays(project.num_floors);
-  const projEnd     = addDays(projStart, predictedDays);
+  const projEnd     = project.target_end
+    ? new Date(`${project.target_end}T00:00:00`)
+    : addDays(projStart, predictedDays);
   const daysLeft    = Math.max(0, Math.ceil((projEnd.getTime() - Date.now()) / 86_400_000));
 
   return (

@@ -26,6 +26,7 @@ function draft(): WizardDraft {
   return {
     version: 1, step: 8, direction: 'back',
     data: { ...WIZARD_DEFAULT_DATA, floors: 2, projectName: 'Client home', city: 'Buea', sqm: 120,
+      targetStartDate: '2026-11-01', targetEndDate: '2027-02-01',
       floorRooms: [{ floor: 0, bedrooms: 3, bathrooms: 2, livingRooms: 1, kitchens: 1, offices: 0 }],
     },
     confirmation: { raw: '45000', alreadyStarted: true, described: 'Roof is complete', stageOverride: 6, hadAttachment: true },
@@ -49,6 +50,13 @@ describe('scoped project wizard drafts', () => {
   it('restores the step, direction, form answers, room breakdown and budget confirmation', () => {
     writeWizardDraft(key, draft());
     expect(readWizardDraft(key)).toEqual(draft());
+  });
+
+  it('defaults the target end date for drafts saved before the field existed', () => {
+    const old = draft();
+    const { targetEndDate: _ignored, ...oldData } = old.data;
+    writeWizardDraft(key, { ...old, data: oldData as typeof old.data });
+    expect(readWizardDraft(key)?.data.targetEndDate).toBe('');
   });
 
   it('saves the pending country change without restoring an older selection or step', () => {

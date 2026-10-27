@@ -25,14 +25,13 @@ export const CANONICAL_SITE_URL = 'https://www.tryjalla.com';
 /**
  * The origin to build links against.
  *
- * Prefers `PUBLIC_SITE_URL` so a preview deployment links to itself instead of quietly
- * sending a tester to production. Falls back to the canonical host in the browser, where
- * the variable is not available.
+ * Prefers `PUBLIC_SITE_URL` when it is a real site origin. Vercel's deployment hostname
+ * is never customer-facing: if it leaks into this setting, use the canonical domain.
  */
 export function siteUrl(): string {
   const fromEnv =
     typeof process !== 'undefined' && process.env ? process.env.PUBLIC_SITE_URL : undefined;
-  return stripTrailingSlash(fromEnv || CANONICAL_SITE_URL);
+  return trustedSiteOrigin(fromEnv);
 }
 
 /** Join a path onto the site origin without doubling or dropping the slash. */
@@ -40,6 +39,19 @@ export function siteLink(path: string): string {
   return `${siteUrl()}/${path.replace(/^\/+/, '')}`;
 }
 
-function stripTrailingSlash(url: string): string {
-  return url.replace(/\/+$/, '');
+/** Resolve a configured or request-derived origin without exposing Vercel hostnames. */
+export function trustedSiteOrigin(value?: string): string {
+  if (!value) return CANONICAL_SITE_URL;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return CANONICAL_SITE_URL;
+    const hostname = url.hostname.toLowerCase();
+    if (
+      hostname === 'vercel.app' || hostname.endsWith('.vercel.app')
+      || hostname === 'vercel.com' || hostname.endsWith('.vercel.com')
+    ) return CANONICAL_SITE_URL;
+    return url.origin;
+  } catch {
+    return CANONICAL_SITE_URL;
+  }
 }

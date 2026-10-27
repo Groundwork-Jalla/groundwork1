@@ -48,6 +48,7 @@ function formData(value: unknown): WizardFormData | null {
     || typeof value.sqm !== 'number' || !Number.isFinite(value.sqm) || value.sqm < 0
     || !choice(value.finishLevel, ['standard', 'premium', 'luxury'])
     || !text(value.targetStartDate, 100)
+    || !(value.targetEndDate === undefined || text(value.targetEndDate, 100))
     || !choice(value.tier, ['', 'self_verify', 'jalla_verify', 'jalla_management'])
     || !count(value.previewActiveFloor)) return null;
 
@@ -78,6 +79,7 @@ function formData(value: unknown): WizardFormData | null {
     projectName: value.projectName, city: value.city, sqm: value.sqm,
     finishLevel: value.finishLevel as WizardFormData['finishLevel'],
     targetStartDate: value.targetStartDate,
+    targetEndDate: text(value.targetEndDate, 100) ? value.targetEndDate : '',
     tier: value.tier as WizardFormData['tier'],
     // Tolerated rather than required: a draft saved before the architecture-plan
     // question existed has neither field, and discarding somebody's half-finished

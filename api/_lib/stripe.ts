@@ -71,11 +71,25 @@ export function jallaVerifyPriceId(): string {
 }
 
 export function siteUrl(req: { headers: Record<string, unknown> }): string {
-  if (process.env.PUBLIC_SITE_URL) return process.env.PUBLIC_SITE_URL;
+  const candidates: string[] = [];
+  if (process.env.PUBLIC_SITE_URL) candidates.push(process.env.PUBLIC_SITE_URL);
   const host = req.headers['x-forwarded-host'] ?? req.headers['host'];
   const h = Array.isArray(host) ? host[0] : String(host ?? 'localhost:5174');
   const proto = h.startsWith('localhost') ? 'http' : 'https';
-  return `${proto}://${h}`;
+  candidates.push(`${proto}://${h}`);
+
+  for (const candidate of candidates) {
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') continue;
+      if (url.hostname.toLowerCase().endsWith('.vercel.app')
+        || url.hostname.toLowerCase().endsWith('.vercel.com')) continue;
+      return url.origin;
+    } catch {
+      continue;
+    }
+  }
+  throw new Error('A public site URL is required for customer-facing links');
 }
 
 /**

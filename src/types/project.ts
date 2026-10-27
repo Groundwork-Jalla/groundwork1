@@ -95,6 +95,7 @@ export interface WizardFormData {
   sqm: number;
   finishLevel: FinishLevel;
   targetStartDate: string;
+  targetEndDate: string;
 
   // Step 9 — Tier selection ('' means not yet chosen)
   tier: ProjectTier | '';
@@ -147,6 +148,7 @@ export const WIZARD_DEFAULT_DATA: WizardFormData = {
   sqm: 0,
   finishLevel: 'standard',
   targetStartDate: '',
+  targetEndDate: '',
   tier: '',
   hasArchitecturePlan: null,
   bqTotalUsd: null,
@@ -401,6 +403,7 @@ export interface ProjectRow {
   status: ProjectStatus;
   current_stage: number;
   target_start: string | null;
+  target_end: string | null;
   tracking_started_at: string | null;
   created_at: string;
   updated_at: string;
