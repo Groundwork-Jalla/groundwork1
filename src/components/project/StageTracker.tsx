@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, Loader2, Lock, Wallet } from 'lucide-react';
+import { Check, Download, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
@@ -139,8 +139,6 @@ interface StageDetailProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
-  /** Opens the payment modal for this stage. Absent for contractors, who cannot pay. */
-  onRecordPayment?: (stage: ProjectStageRow) => void;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -157,7 +155,6 @@ function StageDetail({
   tier,
   userId,
   isContractor,
-  onRecordPayment,
   onMarkSubstageComplete,
   onEvidenceUploaded,
   onApproveStage,
@@ -251,32 +248,10 @@ function StageDetail({
           {stage.status === 'active' && !stagePaid && !isContractor && (
             <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white dark:border-state-held/40 dark:bg-state-held/30 px-3 py-2.5">
               <Lock className="size-3.5 shrink-0 text-state-held mt-0.5" />
-              {/* One key with a {tab} placeholder rather than a prefix/suffix pair:
-                  French does not put the tab name in the same position, and two
-                  half-sentences cannot be reordered by a translator. Split on the
-                  substitution so the tab name still renders bold. */}
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-state-held dark:text-state-held leading-snug">
-                  {t('project.stages.paymentRequired', { tab: '\u0000' })
-                    .split('\u0000')
-                    .flatMap((part, i) => (i === 0
-                      ? [part]
-                      : [<span key="tab" className="font-semibold">{t('nav.payments')}</span>, part]))}
+                  {t('project.stages.paymentRequiredNoAction')}
                 </p>
-                {/* The action belongs beside the sentence that blocks them. Asked for by
-                    the first beta tester: "instead of having to go specifically to the
-                    payment tab to make your payments." It opens the same modal the
-                    Payments tab uses rather than a second one — see ProjectPayments. */}
-                {onRecordPayment && (
-                  <button
-                    type="button"
-                    onClick={() => onRecordPayment(stage)}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-state-held px-2.5 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-                  >
-                    <Wallet className="size-3" />
-                    {t('project.payments.recordPayment')}
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -336,8 +311,6 @@ export interface StageTrackerProps {
   projectCountry: string;
   projectCity: string | null;
   ownerName: string;
-  /** Opens the payment modal for a stage, from the notice that blocks it. */
-  onRecordPayment?: (stage: ProjectStageRow) => void;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -378,7 +351,6 @@ export function StageTracker({
   projectCountry,
   projectCity,
   ownerName,
-  onRecordPayment,
   onMarkSubstageComplete,
   onEvidenceUploaded,
   onApproveStage,
@@ -490,7 +462,6 @@ export function StageTracker({
                 userId={userId}
                 isContractor={isContractor}
                 onMarkSubstageComplete={onMarkSubstageComplete}
-                onRecordPayment={onRecordPayment}
                 onEvidenceUploaded={onEvidenceUploaded}
                 onApproveStage={onApproveStage}
                 renderEvidenceUpload={renderEvidenceUpload}

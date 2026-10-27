@@ -5385,6 +5385,7 @@ export const en = {
       approveEvidence: 'Approve evidence completion',
       approveStage:  'Approve Stage {n}',
       paymentRequired: 'Payment required before uploading evidence or approving this stage. Record payment in the {tab} tab.',
+      paymentRequiredNoAction: 'Payment is required before uploading evidence or approving this stage.',
       requestVerify: 'Request Verification',
       confirmApproveTitle: 'Approve this stage?',
       confirmApproveBody:  'This will mark the stage complete, release the milestone payment, and unlock the next stage.',

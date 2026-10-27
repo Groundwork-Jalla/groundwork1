@@ -5277,6 +5277,7 @@ export const fr: Mirror<EnDict> = {
       approveEvidence: 'Valider les preuves fournies',
       approveStage:  "Valider l'étape {n}",
       paymentRequired: "Le paiement est requis avant d'ajouter des justificatifs ou de valider cette étape. Enregistrez-le dans l'onglet {tab}.",
+      paymentRequiredNoAction: "Le paiement est requis avant d'ajouter des justificatifs ou de valider cette étape.",
       requestVerify: 'Demander la vérification',
       confirmApproveTitle: 'Valider cette étape ?',
       confirmApproveBody:  "Cela marquera l'étape comme terminée, débloquera le paiement du jalon et ouvrira l'étape suivante.",
