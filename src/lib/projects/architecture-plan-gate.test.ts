@@ -26,7 +26,10 @@ const client     = strip(read('src/app/routes/projects/new.tsx'));
 const confirm    = strip(read('src/components/wizard/steps/Step11ConfirmBudget.tsx'));
 
 const YES = (over: Partial<Extract<PlanAnswer, { hasPlan: true }>> = {}): PlanAnswer =>
-  ({ hasPlan: true, floorPlan: null, bq: null, reading: null, ...over });
+  ({
+    hasPlan: true, floorPlans: [], bq: null, reading: null, lineItems: [], floorPlanFacts: [],
+    ...over,
+  });
 
 describe('the answer carried into the wizard', () => {
   it('NO records a definite false, which is what stops the BQ being asked for again', () => {
@@ -40,8 +43,25 @@ describe('the answer carried into the wizard', () => {
   });
 
   it('YES carries a confident reading forward as the budget', () => {
-    const answer = YES({ reading: { total: 13_500_000, label: 'Grand Total', confidence: 'grand' } });
+    const answer = YES({
+      reading: { total: 13_500_000, label: 'Grand Total', confidence: 'grand', currencyCode: 'USD' },
+    });
     expect(planSeed(answer)).toEqual({ hasArchitecturePlan: true, bqTotalUsd: 13_500_000 });
+  });
+
+  it('converts an explicitly local-currency total to the stored USD amount', () => {
+    const answer = YES({
+      reading: { total: 13_500_000, label: 'Grand Total XAF', confidence: 'grand', currencyCode: 'XAF' },
+    });
+    expect(planSeed(answer, { localCurrencyCode: 'XAF', approxFxRate: 600 }).bqTotalUsd)
+      .toBe(22_500);
+  });
+
+  it('does not treat an unidentified currency as USD', () => {
+    const answer = YES({
+      reading: { total: 13_500_000, label: 'Grand Total', confidence: 'grand' },
+    });
+    expect(planSeed(answer).bqTotalUsd).toBeNull();
   });
 
   it('but a GUESS is not carried forward', () => {
@@ -75,9 +95,11 @@ describe('the documents', () => {
     // Filing both as 'boq' would show two bills of quantities and no plan in the
     // Documents tab.
     const plan = new File(['x'], 'plan.pdf');
+    const upperPlan = new File(['z'], 'upper-floor.pdf');
     const bq   = new File(['y'], 'boq.csv');
-    expect(planDocuments(YES({ floorPlan: plan, bq }))).toEqual([
+    expect(planDocuments(YES({ floorPlans: [plan, upperPlan], bq }))).toEqual([
       { file: plan, category: 'other' },
+      { file: upperPlan, category: 'other' },
       { file: bq,   category: 'boq' },
     ]);
   });
@@ -134,7 +156,7 @@ describe('the question itself', () => {
   it('requires both documents on the YES path', () => {
     // Both are the point of that route. Somebody who cannot produce them belongs on
     // the other branch, and Back is how they get there.
-    expect(gate).toMatch(/disabled=\{!floorPlan \|\| !bq \|\| scanning\}/);
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| scanning\}/);
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
@@ -183,13 +205,13 @@ describe('nobody is asked for a bill of quantities twice', () => {
     // the alternative is an empty box labelled as their bill of quantities.
     expect(confirm).toMatch(
       /pricedFromBq = data\.hasArchitecturePlan === true && data\.bqTotalUsd != null/);
-    expect(confirm).toMatch(/opening   = data\.bqTotalUsd \?\? estimate/);
+    expect(confirm).toMatch(/opening\s+= data\.bqTotalUsd \?\? \(documentFlow \? null : estimate\)/);
   });
 
   it('and the comparison against the estimate is suppressed on that path', () => {
     // There is no estimate to compare against — the estimating questions were never
     // asked — so "4000% above our estimate" would be alarming nonsense.
-    expect(confirm).toMatch(/!pricedFromBq && Math\.abs\(diffPct\) >= 1/);
+    expect(confirm).toMatch(/!documentFlow && Math\.abs\(diffPct\) >= 1/);
   });
 });
 

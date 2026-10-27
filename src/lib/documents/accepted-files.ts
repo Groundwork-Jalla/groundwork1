@@ -43,6 +43,20 @@ export const ACCEPTED_MIME_TYPES = [
 /** For an `<input type="file" accept="...">`. Extensions first — Safari prefers them. */
 export const FILE_ACCEPT_ATTR = [...ACCEPTED_EXTENSIONS, ...ACCEPTED_MIME_TYPES].join(',');
 
+const BOQ_EXTENSIONS = ['.xls', '.xlsx', '.csv'] as const;
+const BOQ_MIME_TYPES = [
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+] as const;
+const FLOOR_PLAN_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
+const FLOOR_PLAN_MIME_TYPES = [
+  'application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+] as const;
+
+export const BOQ_ACCEPT_ATTR = [...BOQ_EXTENSIONS, ...BOQ_MIME_TYPES].join(',');
+export const FLOOR_PLAN_ACCEPT_ATTR = [...FLOOR_PLAN_EXTENSIONS, ...FLOOR_PLAN_MIME_TYPES].join(',');
+
 export type FileProblem = 'type' | 'size';
 
 function extensionOf(name: string): string {
@@ -55,6 +69,20 @@ export function isSpreadsheet(file: { name: string; type?: string }): boolean {
   if (['.xls', '.xlsx', '.csv', '.ods'].includes(ext)) return true;
   const type = (file.type ?? '').toLowerCase();
   return type.includes('spreadsheet') || type.includes('excel') || type === 'text/csv';
+}
+
+export function isBoqFile(file: { name: string; type?: string }): boolean {
+  const ext = extensionOf(file.name);
+  const type = (file.type ?? '').toLowerCase();
+  return (BOQ_EXTENSIONS as readonly string[]).includes(ext)
+    || (BOQ_MIME_TYPES as readonly string[]).includes(type);
+}
+
+export function isFloorPlanFile(file: { name: string; type?: string }): boolean {
+  const ext = extensionOf(file.name);
+  const type = (file.type ?? '').toLowerCase();
+  return (FLOOR_PLAN_EXTENSIONS as readonly string[]).includes(ext)
+    || (FLOOR_PLAN_MIME_TYPES as readonly string[]).includes(type);
 }
 
 /**

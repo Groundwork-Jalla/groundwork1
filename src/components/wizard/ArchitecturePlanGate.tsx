@@ -2,7 +2,10 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Paperclip, Ruler, X } from 'lucide-react';
 import { useT } from '@/lib/i18n';
-import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
+import {
+  BOQ_ACCEPT_ATTR, FLOOR_PLAN_ACCEPT_ATTR, MAX_FILE_MB, fileProblem,
+  isBoqFile, isFloorPlanFile,
+} from '@/lib/documents/accepted-files';
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
@@ -49,7 +52,8 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [reading, setReading] = useState<BqReading | null>(null);
   const [lineItems, setLineItems] = useState<BqLineItem[]>([]);
   const [floorPlanFacts, setFloorPlanFacts] = useState<FloorPlanFacts[]>([]);
-  const [scanning, setScanning] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const scanning = scanCount > 0;
   const [unreadable, setUnreadable] = useState(false);
   // Read from a picture rather than from the file. Said plainly wherever the figure
   // appears: OCR confuses 8 with 3 and 1 with 7, and this number becomes ten payments.
@@ -57,12 +61,12 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [error, setError] = useState<string | null>(null);
 
   async function inspectFloorPlans(files: File[]) {
-    setScanning(true);
+    setScanCount(count => count + 1);
     try {
       const facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
       setFloorPlanFacts(facts);
     } finally {
-      setScanning(false);
+      setScanCount(count => Math.max(0, count - 1));
     }
   }
 
@@ -78,7 +82,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
     setUnreadable(false);
     setFromOcr(false);
     if (!canExtract(file.name)) { setUnreadable(true); return; }
-    setScanning(true);
+    setScanCount(count => count + 1);
     try {
       const out = await extractBqTotal(file);
       setReading(out.reading);
@@ -92,7 +96,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       setLineItems([]);
       setUnreadable(true);
     } finally {
-      setScanning(false);
+      setScanCount(count => Math.max(0, count - 1));
     }
   }
 
@@ -153,7 +157,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       <div className="space-y-3">
         <Drop
           label={t('planGate.floorPlan')} hint={t('planGate.floorPlanHint')}
-          files={floorPlans} multiple
+          files={floorPlans} multiple kind="floorPlan" accept={FLOOR_PLAN_ACCEPT_ATTR}
           onPick={files => {
             const chosen = Array.isArray(files) ? files : files ? [files] : [];
             setError(null);
@@ -165,7 +169,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
         />
         <Drop
           label={t('planGate.bq')} hint={t('planGate.bqHint')}
-          file={bq} busy={scanning}
+          file={bq} busy={scanning} kind="boq" accept={BOQ_ACCEPT_ATTR}
           onPick={f => { setError(null); setBq(f); if (f) void inspect(f); else { setReading(null); setLineItems([]); } }}
           onError={setError}
         />
@@ -206,15 +210,15 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
         <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
           {floorPlanFacts.map((facts, i) => (
             <p key={`${floorPlans[i]?.name ?? 'plan'}-${i}`}>
-              {floorPlans[i]?.name}: {facts.floors ? `${facts.floors} floors` : 'floor count not extracted'}
-              {facts.areaSqm ? ` · ${facts.areaSqm} m² shown on plan` : ' · area not extracted'}
+              {floorPlans[i]?.name}: {facts.floors ? `${facts.floors} floors` : t('planGate.floorCountMissing')}
+              {facts.areaSqm ? ` · ${facts.areaSqm} m² shown on plan` : ` · ${t('planGate.areaMissing')}`}
             </p>
           ))}
         </div>
       )}
       {bq && lineItems.length === 0 && !scanning && (
         <p className="mt-2 text-xs text-brand-mid-grey">
-          No itemized priced lines were extracted from this bill.
+          {t('planGate.noLineItems')}
         </p>
       )}
 
@@ -273,8 +277,9 @@ function Choice({ id, title, body, onClick }: {
   );
 }
 
-function Drop({ label, hint, file, files = [], multiple = false, busy, onPick, onError }: {
+function Drop({ label, hint, file, files = [], multiple = false, kind, accept, busy, onPick, onError }: {
   label: string; hint: string; file?: File | null; files?: File[]; multiple?: boolean; busy?: boolean;
+  kind: 'floorPlan' | 'boq'; accept: string;
   onPick: (f: File | File[] | null) => void;
   onError: (message: string) => void;
 }) {
@@ -310,7 +315,7 @@ function Drop({ label, hint, file, files = [], multiple = false, busy, onPick, o
         </button>
       </div>
       <input
-        ref={ref} type="file" className="sr-only" accept={FILE_ACCEPT_ATTR} multiple={multiple}
+        ref={ref} type="file" className="sr-only" accept={accept} multiple={multiple}
         onChange={e => {
           const pickedFiles = [...(e.target.files ?? [])];
           e.target.value = '';
@@ -318,7 +323,11 @@ function Drop({ label, hint, file, files = [], multiple = false, busy, onPick, o
           // The same size and type rules the rest of the product applies, so a file
           // accepted here cannot be refused by storage a moment later.
           for (const picked of pickedFiles) {
-            const problem = fileProblem(picked);
+            const generalProblem = fileProblem(picked);
+            const roleProblem = kind === 'boq'
+              ? isBoqFile(picked) ? null : 'type'
+              : isFloorPlanFile(picked) ? null : 'type';
+            const problem = generalProblem ?? roleProblem;
             if (problem) {
               onError(t(problem === 'size' ? 'wizard.confirmBudget.quoteTooLarge'
                                            : 'wizard.confirmBudget.quoteBadType', { mb: MAX_FILE_MB }));

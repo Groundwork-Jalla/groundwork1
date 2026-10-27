@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
@@ -216,11 +217,19 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 export default function Step9Summary() {
   const labels = useDomainLabels();
   const t = useT();
-  const { data } = useWizard();
+  const { data, update, documentExtraction } = useWizard();
+  const documentFlow = data.hasArchitecturePlan === true;
+  const hasExtractedFloors = documentExtraction?.floorPlans.some(plan => plan.facts.floors != null) ?? false;
+  const hasExtractedFootprint = documentExtraction?.floorPlans
+    .some(plan => plan.facts.footprintSqm != null) ?? false;
+  const [manualFloors, setManualFloors] = useState(data.floors > 1 ? String(data.floors) : '');
+  const [manualFootprint, setManualFootprint] = useState(data.sqm > 0 ? String(data.sqm) : '');
+  const hasValidFloors = hasExtractedFloors || Number(manualFloors) > 0;
+  const hasValidFootprint = hasExtractedFootprint || Number(manualFootprint) > 0;
 
   return (
     <WizardShell
-      canContinue={true}
+      canContinue={!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint)}
       continueLabel="Continue"
     >
       <div className="pt-2">
@@ -231,37 +240,97 @@ export default function Step9Summary() {
           {t('wizard.s9Sub')}
         </p>
 
+        {documentFlow && (
+          <div className="mt-6 space-y-3 rounded-xl border border-brand-border-grey p-4">
+            <p className="text-sm font-semibold text-brand-near-black">{t('planGate.documentSummaryTitle')}</p>
+            <p className="text-xs leading-relaxed text-brand-mid-grey">{t('planGate.documentSummaryBody')}</p>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-brand-near-black">
+                {t('planGate.projectNameRequired')}
+              </span>
+              <input
+                value={data.projectName}
+                onChange={event => update({ projectName: event.target.value })}
+                className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
+                required
+              />
+            </label>
+            {!hasExtractedFloors && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-brand-near-black">
+                  {t('planGate.floorsRequired')}
+                </span>
+                <input
+                  type="number" min="1" step="1" value={manualFloors}
+                  onChange={event => {
+                    setManualFloors(event.target.value);
+                    update({ floors: Number(event.target.value) || 1 });
+                  }}
+                  className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
+                  required
+                />
+              </label>
+            )}
+            {!hasExtractedFootprint && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-brand-near-black">
+                  {t('planGate.footprintRequired')}
+                </span>
+                <input
+                  type="number" min="1" step="0.1" value={manualFootprint}
+                  onChange={event => {
+                    setManualFootprint(event.target.value);
+                    update({ sqm: Number(event.target.value) || 0 });
+                  }}
+                  className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
+                  required
+                />
+              </label>
+            )}
+            {(!hasValidFloors || !hasValidFootprint || !data.projectName.trim()) && (
+              <p className="text-xs text-brand-mid-grey">{t('planGate.missingProjectDetails')}</p>
+            )}
+          </div>
+        )}
+
         {/* Summary grid */}
         <div className="mt-7 rounded-xl border border-brand-border-grey divide-y divide-brand-border-grey overflow-hidden">
           <SummaryRow icon={<MapPin className="size-3.5" />}    label="Location"
             value={[data.city, labels.country(data.country)].filter(Boolean).join(', ')} />
           <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
             value={`${labels.projectType(data.projectType)} · ${labels.buildingType(data.buildingType)}`} />
-          <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"
-            value={[
-              `${data.floors} floor${data.floors > 1 ? 's' : ''}`,
-              `${data.sqm} sqm`,
-              `${data.bedrooms} bed`,
-              `${data.bathrooms} bath`,
-            ].filter(Boolean).join(' · ')}
-          />
-          <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"
-            value={labels.roofType(data.roofType)} />
-          <SummaryRow icon={<Wrench className="size-3.5" />}    label="Finish"
-            value={labels.finishLevel(data.finishLevel)} />
+          {documentFlow ? (
+            <SummaryRow icon={<Layers className="size-3.5" />} label={t('wizard.stepFloors')}
+              value={hasExtractedFloors
+                ? `${data.floors} ${data.floors === 1 ? 'floor' : 'floors'}`
+                : t('planGate.floorCountMissing')} />
+          ) : (
+            <>
+              <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"
+                value={[
+                  `${data.floors} floor${data.floors > 1 ? 's' : ''}`,
+                  `${data.sqm} sqm`,
+                  `${data.bedrooms} bed`,
+                  `${data.bathrooms} bath`,
+                ].filter(Boolean).join(' · ')}
+              />
+              <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"
+                value={labels.roofType(data.roofType)} />
+              <SummaryRow icon={<Wrench className="size-3.5" />}    label="Finish"
+                value={labels.finishLevel(data.finishLevel)} />
+            </>
+          )}
         </div>
 
-        {/* Budget estimate with trade sections */}
-        <div className="mt-6">
-          <BudgetBreakdownCard />
-        </div>
+        {documentFlow
+          ? <DocumentBudgetBreakdown />
+          : <div className="mt-6"><BudgetBreakdownCard /></div>}
 
-        {/* Predicted build timeline */}
-        <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
+        {!documentFlow && <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
             <CalendarDays className="size-4 text-brand-mid-grey shrink-0" />
             <p className="text-sm font-semibold text-brand-near-black">{t('wizard.timelineTitle')}</p>
-          </div>
+          </div>}
 
           {(() => {
             const startDate = data.targetStartDate ? new Date(data.targetStartDate) : new Date();
@@ -294,5 +363,74 @@ export default function Step9Summary() {
 
       </div>
     </WizardShell>
+  );
+}
+
+function DocumentBudgetBreakdown() {
+  const t = useT();
+  const { documentExtraction } = useWizard();
+  const reading = documentExtraction?.bqReading ?? null;
+  const currency = reading?.currencyCode;
+  const floorPlans = documentExtraction?.floorPlans ?? [];
+  const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  return (
+    <div className="mt-6 space-y-4">
+      <section className="overflow-hidden rounded-xl border border-brand-border-grey">
+        <div className="border-b border-brand-off-white px-5 py-4">
+          <p className="text-sm font-semibold text-brand-near-black">{t('planGate.bq')}</p>
+          {reading ? (
+            <>
+              <p className="mt-1 text-2xl font-black tabular-nums text-brand-near-black">
+                {amount(reading.total)} {currency ?? ''}
+              </p>
+              <p className="mt-1 text-xs text-brand-mid-grey">
+                {currency ? reading.label : t('planGate.documentCurrencyUnknown')}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>
+          )}
+        </div>
+        {documentExtraction?.bqLineItems.length ? (
+          <div className="px-5 py-4">
+            <p className="mb-3 text-xs font-semibold text-brand-near-black">{t('planGate.lineItemsTitle')}</p>
+            <div className="space-y-2">
+              {documentExtraction.bqLineItems.map((item, index) => (
+                <div key={`${item.label}-${index}`} className="flex items-start justify-between gap-4 text-xs">
+                  <span className="text-brand-mid-grey">{item.label}</span>
+                  <span className="shrink-0 font-semibold tabular-nums text-brand-near-black">
+                    {amount(item.amount)}{currency ? ` ${currency}` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="px-5 py-4 text-xs text-brand-mid-grey">{t('planGate.noLineItems')}</p>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-brand-border-grey px-5 py-4">
+        <p className="text-xs font-semibold text-brand-near-black">{t('planGate.floorPlanFactsTitle')}</p>
+        <div className="mt-3 space-y-2">
+          {floorPlans.map(plan => (
+            <div key={plan.fileName} className="text-xs text-brand-mid-grey">
+              <p className="font-medium text-brand-near-black">{plan.fileName}</p>
+              <p>
+                {plan.facts.floors != null
+                  ? `${plan.facts.floors} floor${plan.facts.floors === 1 ? '' : 's'}`
+                  : t('planGate.floorCountMissing')}
+                {' · '}
+                {plan.facts.areaSqm != null
+                  ? `${amount(plan.facts.areaSqm)} m²`
+                  : t('planGate.areaMissing')}
+              </p>
+            </div>
+          ))}
+          {!floorPlans.length && <p>{t('planGate.areaMissing')}</p>}
+        </div>
+      </section>
+    </div>
   );
 }

@@ -52,9 +52,11 @@ export default function Step11ConfirmBudget() {
    * A saved draft wins over both: it is what this person last typed.
    */
   const estimate  = calculateBudget(data, constructionRate, cityRate).total;
+  const documentFlow = data.hasArchitecturePlan === true;
   const pricedFromBq = data.hasArchitecturePlan === true && data.bqTotalUsd != null;
-  const opening   = data.bqTotalUsd ?? estimate;
-  const [raw, setRaw]       = useState(confirmationDraft?.raw ?? String(Math.round(opening)));
+  const opening   = data.bqTotalUsd ?? (documentFlow ? null : estimate);
+  const [raw, setRaw]       = useState(confirmationDraft?.raw
+    ?? (opening == null ? '' : String(Math.round(opening))));
   const [file, setFile]     = useState<File | null>(null);
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -134,7 +136,13 @@ export default function Step11ConfirmBudget() {
       const ownerId = onBehalfOf?.userId ?? user.id;
 
       // 1. Create the project on the wizard's own estimate.
-      const budget  = calculateBudget(data, constructionRate, cityRate);
+      const shape = {
+        builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
+        floors: data.floors ?? 1,
+      };
+      const budget = documentFlow
+        ? decomposeBudget(finalBudget, shape)
+        : calculateBudget(data, constructionRate, cityRate);
       // Fixed tiers survive the skipped plan picker: a partner creates Self Verify,
       // while an admin creates Jalla Management. The override also wins over any stale
       // form selection. Paid plans chosen by clients still go through checkout below.
@@ -278,11 +286,15 @@ export default function Step11ConfirmBudget() {
               estimator's near-empty total beside it would be noise. */}
           <div className="rounded-xl bg-brand-off-white px-4 py-3 flex items-center justify-between">
             <span className="text-xs text-brand-mid-grey">
-              {t(pricedFromBq ? 'wizard.confirmBudget.fromBqLabel' : 'wizard.confirmBudget.estimateLabel')}
+              {t(documentFlow
+                ? pricedFromBq ? 'wizard.confirmBudget.fromBqLabel' : 'wizard.confirmBudget.unreadableBq'
+                : 'wizard.confirmBudget.estimateLabel')}
             </span>
-            <span className="text-sm font-semibold text-brand-near-black figure">
-              {f.money(pricedFromBq ? (data.bqTotalUsd ?? 0) : estimate)}
-            </span>
+            {opening != null && (
+              <span className="text-sm font-semibold text-brand-near-black figure">
+                {f.money(opening)}
+              </span>
+            )}
           </div>
 
           {/* Asked of everybody. A client with a half-built house is the commonest
@@ -363,7 +375,7 @@ export default function Step11ConfirmBudget() {
             <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.finalHint')}</p>
             {/* Only meaningful against a real estimate. On the BQ path there is none,
                 and "4000% above our estimate" would be alarming nonsense. */}
-            {!pricedFromBq && Math.abs(diffPct) >= 1 && (
+            {!documentFlow && Math.abs(diffPct) >= 1 && (
               <p className="text-xs text-brand-mid-grey">
                 {t('wizard.confirmBudget.difference', {
                   amount: f.money(Math.abs(diff)),

@@ -239,7 +239,7 @@ export function readBqLineItems(text: string): BqLineItem[] {
     let amount: number | null = null;
     for (const cell of row) {
       const parsed = parseAmount(cell);
-      if (parsed !== null && (amount === null || parsed > amount)) amount = parsed;
+      if (parsed !== null) amount = parsed;
     }
 
     if (amount === null) continue;
