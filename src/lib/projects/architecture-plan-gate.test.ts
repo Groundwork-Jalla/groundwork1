@@ -205,19 +205,11 @@ describe('nobody is asked for a bill of quantities twice', () => {
     expect(confirm.slice(Math.max(0, at - 900), at)).not.toMatch(/\{onBehalfOf && \(/);
   });
 
-  it('the BQ figure replaces the estimate only when there genuinely is one', () => {
-    // `pricedFromBq` needs BOTH: the YES answer and a figure we were confident
-    // enough to carry. YES with an unreadable BQ still shows the estimate, because
-    // the alternative is an empty box labelled as their bill of quantities.
-    expect(confirm).toMatch(
-      /pricedFromBq = data\.hasArchitecturePlan === true && data\.bqTotalUsd != null/);
+  it('the final budget still opens from BQ when available', () => {
+    // Budget confirmation moved to the summary step, but Step 11 still reads the
+    // same saved draft value and falls back to BQ before any estimate.
     expect(confirm).toMatch(/opening\s+= data\.bqTotalUsd \?\? \(documentFlow \? null : estimate\)/);
-  });
-
-  it('and the comparison against the estimate is suppressed on that path', () => {
-    // There is no estimate to compare against — the estimating questions were never
-    // asked — so "4000% above our estimate" would be alarming nonsense.
-    expect(confirm).toMatch(/!documentFlow && Math\.abs\(diffPct\) >= 1/);
+    expect(confirm).toMatch(/const raw = confirmationDraft\?\.raw/);
   });
 });
 

@@ -118,7 +118,8 @@ describe('contractor client project wizard', () => {
       raw: '45000', alreadyStarted: true, described: 'Roof is complete', stageOverride: 6, hadAttachment: true,
     };
     const html = renderToStaticMarkup(createElement(ManagedWizard));
-    expect(html).toContain('value="45,000"');
+    // Budget confirmation now lives on the project-at-a-glance summary step.
+    expect(html).not.toContain('id="final-budget"');
     expect(html).toMatch(/type="checkbox"[^>]*checked=""/);
     // The STAGE is what is restored now. The free-text description is gone: the stage
     // is chosen from our own list rather than typed and read back out of a sentence,
