@@ -7,6 +7,7 @@ interface StepCardProps {
   onClick: () => void;
   icon?: React.ReactNode;
   label: string;
+  badge?: string;
   description?: string;
   disabled?: boolean;
   className?: string;
@@ -17,6 +18,7 @@ export default function StepCard({
   onClick,
   icon,
   label,
+  badge,
   description,
   disabled = false,
   className,
@@ -55,7 +57,14 @@ export default function StepCard({
             {icon}
           </div>
         )}
-        <p className="font-semibold text-sm text-brand-near-black dark:text-white leading-tight">{label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-sm text-brand-near-black dark:text-white leading-tight">{label}</p>
+          {badge && (
+            <span className="rounded-full bg-brand-near-black px-2 py-0.5 text-[9px] font-bold text-white dark:bg-white dark:text-brand-near-black">
+              {badge}
+            </span>
+          )}
+        </div>
         {description && (
           <p className="mt-1 text-xs text-brand-mid-grey leading-relaxed">{description}</p>
         )}

@@ -22,15 +22,17 @@ function floorLabel(index: number) {
  * `offices` was added Aug 2026 and is absent from FloorRoom rows written before then —
  * hence the `?? 0` at every read.
  */
+const MAX_ROOMS_PER_FLOOR = 99;
+
 const ROOM_TYPES = [
-  { field: 'bedrooms',    labelKey: 'wizardFields.bedrooms',    subKey: 'wizard.rooms.bedroomsSub',    unitKey: 'wizard.rooms.unitBed',     max: 20 },
-  { field: 'bathrooms',   labelKey: 'wizardFields.bathrooms',   subKey: 'wizard.rooms.bathroomsSub',   unitKey: 'wizard.rooms.unitBath',    max: 20 },
-  { field: 'livingRooms', labelKey: 'wizardFields.livingAreas', subKey: 'wizard.rooms.livingSub',      unitKey: 'wizard.rooms.unitLiving',  max: 5  },
-  { field: 'kitchens',    labelKey: 'wizardFields.kitchens',    subKey: 'wizard.rooms.kitchensSub',    unitKey: 'wizard.rooms.unitKitchen', max: 5  },
-  { field: 'offices',     labelKey: 'wizardFields.offices',     subKey: 'wizard.rooms.officesSub',     unitKey: 'wizard.rooms.unitOffice',  max: 10 },
+  { field: 'bedrooms',    labelKey: 'wizardFields.bedrooms',    subKey: 'wizard.rooms.bedroomsSub',    unitKey: 'wizard.rooms.unitBed' },
+  { field: 'bathrooms',   labelKey: 'wizardFields.bathrooms',   subKey: 'wizard.rooms.bathroomsSub',   unitKey: 'wizard.rooms.unitBath' },
+  { field: 'livingRooms', labelKey: 'wizardFields.livingAreas', subKey: 'wizard.rooms.livingSub',      unitKey: 'wizard.rooms.unitLiving' },
+  { field: 'kitchens',    labelKey: 'wizardFields.kitchens',    subKey: 'wizard.rooms.kitchensSub',   unitKey: 'wizard.rooms.unitKitchen' },
+  { field: 'offices',     labelKey: 'wizardFields.offices',     subKey: 'wizard.rooms.officesSub',    unitKey: 'wizard.rooms.unitOffice' },
 ] as const satisfies readonly {
   field: keyof Omit<FloorRoom, 'floor'>;
-  labelKey: TKey; subKey: TKey; unitKey: TKey; max: number;
+  labelKey: TKey; subKey: TKey; unitKey: TKey;
 }[];
 
 const EMPTY_FLOOR = (i: number): FloorRoom =>
@@ -286,7 +288,7 @@ export default function Step5Rooms() {
                     value={current[rt.field] ?? 0}
                     onChange={v => handleRoomChange(activeFloor, rt.field, v)}
                     min={0}
-                    max={rt.max}
+                    max={MAX_ROOMS_PER_FLOOR}
                   />
                 ))}
               </div>

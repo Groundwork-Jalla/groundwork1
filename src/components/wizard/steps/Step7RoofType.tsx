@@ -259,19 +259,15 @@ export default function Step7RoofType() {
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {ROOF_FORMS.map(f => (
-            <div key={f.form} className="relative">
+            <div key={f.form}>
               <StepCard
                 selected={form === f.form}
                 onClick={() => chooseForm(f.form)}
                 icon={FORM_ICONS[f.form]}
                 label={t(f.labelKey)}
+                badge={f.form === 'pitched' ? t('wizard.mostPopular') : undefined}
                 description={t(f.descKey)}
               />
-              {f.form === 'pitched' && (
-                <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-brand-near-black px-2 py-0.5 text-[9px] font-bold text-white dark:bg-white dark:text-brand-near-black">
-                  {t('wizard.mostPopular')}
-                </span>
-              )}
             </div>
           ))}
         </div>

@@ -70,4 +70,21 @@ describe('returning to room entry', () => {
     h.effects.forEach(effect => effect());
     expect(h.update).toHaveBeenLastCalledWith({ previewActiveFloor: 0 });
   });
+
+  it('allows more than five rooms of every type on an individual floor', () => {
+    h.data = {
+      ...WIZARD_DEFAULT_DATA,
+      floors: 1,
+      floorRooms: [{
+        floor: 0, bedrooms: 6, bathrooms: 6, livingRooms: 6, kitchens: 6, offices: 6,
+      }],
+    };
+
+    const html = renderToStaticMarkup(createElement(Step5Rooms));
+    for (const room of ['bedrooms', 'bathrooms', 'livingAreas', 'kitchens', 'offices']) {
+      const increase = [...html.matchAll(/<button\b([^>]*)>/g)]
+        .find(([button]) => button.includes(`aria-label="Increase wizardFields.${room}"`));
+      expect(increase?.[1]).not.toContain('disabled=""');
+    }
+  });
 });
