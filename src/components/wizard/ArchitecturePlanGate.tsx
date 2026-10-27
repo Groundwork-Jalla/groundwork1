@@ -47,6 +47,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
 }) {
   const t = useT();
   const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
+  const [selectedHasPlan, setSelectedHasPlan] = useState<boolean | null>(null);
   const [floorPlans, setFloorPlans] = useState<File[]>([]);
   const [bq, setBq] = useState<File | null>(null);
   const [reading, setReading] = useState<BqReading | null>(null);
@@ -119,23 +120,38 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           <Choice
             id="plan-yes"
             title={t('planGate.yes')} body={t('planGate.yesBody')}
-            onClick={() => { setError(null); setSlide('upload'); }}
+            selected={selectedHasPlan === true}
+            onClick={() => { setError(null); setSelectedHasPlan(true); }}
           />
           <Choice
             id="plan-no"
             title={t('planGate.no')} body={t('planGate.noBody')}
-            onClick={() => onAnswered({ hasPlan: false })}
+            selected={selectedHasPlan === false}
+            onClick={() => { setError(null); setSelectedHasPlan(false); }}
           />
         </div>
 
-        {onCancel && (
-          <button
-            type="button" onClick={onCancel}
-            className="mt-7 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black"
+        <div className="mt-7 flex items-center gap-4">
+          {onCancel && (
+            <button
+              type="button" onClick={onCancel}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-mid-grey hover:text-brand-near-black"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />{backLabel ?? t('planGate.back')}
+            </button>
+          )}
+          <motion.button
+            type="button" whileTap={{ scale: 0.99 }}
+            disabled={selectedHasPlan === null}
+            onClick={() => {
+              if (selectedHasPlan === true) setSlide('upload');
+              else if (selectedHasPlan === false) onAnswered({ hasPlan: false });
+            }}
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
           >
-            <ArrowLeft className="size-3.5" aria-hidden />{backLabel ?? t('planGate.back')}
-          </button>
-        )}
+            {t('planGate.continue')}<ArrowRight className="size-4" aria-hidden />
+          </motion.button>
+        </div>
       </Slide>
     );
   }
@@ -266,13 +282,16 @@ function Slide({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Choice({ id, title, body, onClick }: {
-  id: string; title: string; body: string; onClick: () => void;
+function Choice({ id, title, body, selected, onClick }: {
+  id: string; title: string; body: string; selected: boolean; onClick: () => void;
 }) {
   return (
     <button
-      id={id} type="button" onClick={onClick}
-      className="group rounded-2xl border border-brand-border-grey bg-white p-5 text-left transition-colors hover:border-brand-near-black"
+      id={id} type="button" onClick={onClick} aria-pressed={selected}
+      className={cn(
+        'group rounded-2xl border border-brand-border-grey bg-white p-5 text-left transition-colors hover:border-brand-near-black',
+        selected && 'border-brand-near-black bg-brand-off-white',
+      )}
     >
       <span className="flex items-center justify-between gap-2">
         <span className="text-base font-semibold text-brand-near-black">{title}</span>

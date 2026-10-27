@@ -160,6 +160,12 @@ describe('the question itself', () => {
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
+  it('requires a selected answer and a Next action before advancing', () => {
+    expect(gate).toMatch(/selectedHasPlan === null/);
+    expect(gate).toMatch(/onClick=\{\(\) => \{\s*if \(selectedHasPlan === true\) setSlide\('upload'\);\s*else if \(selectedHasPlan === false\) onAnswered\(\{ hasPlan: false \}\);/);
+    expect(gate).toMatch(/aria-pressed=\{selected\}/);
+  });
+
   it('shows what it read, with the row it came from', () => {
     // A figure that becomes ten stage payments is not accepted unseen.
     expect(gate).toMatch(/reading\.label/);
