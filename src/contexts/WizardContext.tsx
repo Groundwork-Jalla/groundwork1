@@ -271,7 +271,8 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
         pendingDocuments: docs,
         setPendingDocuments: setDocs,
         documentExtraction, setDocumentExtraction,
-        ...(persistenceKey ? { confirmationDraft, updateConfirmationDraft, persistProgress: true } : {}),
+        confirmationDraft, updateConfirmationDraft,
+        ...(persistenceKey ? { persistProgress: true } : {}),
       }}
     >
       {children}

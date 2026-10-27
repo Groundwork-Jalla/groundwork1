@@ -160,8 +160,9 @@ describe('wizard draft lifecycle', () => {
     expect(renderProvider()).toContain('1:');
     h.effects.forEach(effect => effect());
     expect(h.current?.data).toEqual(WIZARD_DEFAULT_DATA);
-    expect(h.current?.confirmationDraft).toBeUndefined();
-    expect(h.current?.updateConfirmationDraft).toBeUndefined();
+    // In-memory only: the summary step needs it to hold the confirmed budget.
+    expect(h.current?.confirmationDraft).toBeNull();
+    expect(h.current?.updateConfirmationDraft).toBeTypeOf('function');
     expect(h.current?.persistProgress).toBeUndefined();
     expect(storage.getItem).not.toHaveBeenCalled();
     expect(storage.setItem).not.toHaveBeenCalled();
