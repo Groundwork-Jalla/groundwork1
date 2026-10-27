@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, BadgeCheck, ShieldCheck, Briefcase,
+  Plus,
   MapPin, Building2, ChevronRight, HardHat,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
@@ -12,21 +12,7 @@ import { formatUSDFull, projectBudget } from '@/lib/budget';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { atProjectLimit, countTowardLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
-
-const STARTER_LIMIT = SELF_VERIFY_PROJECT_LIMIT;
 const TOTAL_STAGES  = 10;
-
-// Tier is an identity, not a status, so it carries no hue — colour here is reserved
-// for state (active / on hold / complete), which is what a scan of this grid is for.
-const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
-  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
-  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
-  starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
-  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
-};
 
 const STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
   active:    { labelKey: 'common.active',    dot: 'bg-state-active',      badge: 'bg-brand-off-white text-state-active border border-state-active/30'    },
@@ -63,7 +49,6 @@ function SkeletonCard() {
 function ProjectCard({ project }: { project: ProjectRow }) {
   const labels = useDomainLabels();
   const t = useT();
-  const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
   const status = STATUS_META[project.status] ?? STATUS_META.active;
   const done   = completedStages(project);
   const pct    = Math.round((done / TOTAL_STAGES) * 100);
@@ -76,7 +61,6 @@ function ProjectCard({ project }: { project: ProjectRow }) {
     <Link to={`/projects/${project.id}`}
       className="group block rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${tier.color}`}>{tier.icon} {t(tier.labelKey)}</span>
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
           <span className={`size-1.5 rounded-full ${status.dot}`} />{t(status.labelKey)}
         </span>
@@ -122,10 +106,6 @@ export default function ProjectsIndex() {
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState('all');
 
-  // Counted the way migration 008's trigger counts: archived projects do not count.
-  const starterCount   = countTowardLimit(projects);
-  const atStarterLimit = atProjectLimit(projects);
-
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
 
   useEffect(() => {
@@ -147,27 +127,13 @@ export default function ProjectsIndex() {
             </p>
           )}
         </div>
-        {!isContractor && !atStarterLimit && (
+        {!isContractor && (
           <Link to="/projects/new"
             className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2 hover:bg-black transition-colors">
             <Plus className="size-4" /> {t('projects.newBuild')}
           </Link>
         )}
       </div>
-
-      {/* Starter limit banner */}
-      {!loading && !isContractor && starterCount > 0 && (
-        <div className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm ${
-          atStarterLimit
-            ? 'bg-brand-off-white border border-state-held/30 text-state-held'
-            : 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey'
-        }`}>
-          <span>
-            {t('projects.starterUsed', { used: starterCount, limit: STARTER_LIMIT })}
-            {atStarterLimit && ` ${t('projects.limitReached')}`}
-          </span>
-        </div>
-      )}
 
       {/* Filters */}
       {!loading && projects.length > 0 && (
@@ -216,7 +182,7 @@ export default function ProjectsIndex() {
                 <ProjectCard project={p} />
               </motion.div>
             ))}
-            {!isContractor && !atStarterLimit && (
+            {!isContractor && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: filtered.length * 0.06 }}>
                 <Link to="/projects/new"
                   className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-brand-border-grey bg-white/50 p-8 min-h-48 hover:border-brand-near-black hover:bg-white transition-all group h-full">
