@@ -4691,6 +4691,8 @@ export const fr: Mirror<EnDict> = {
     confirmBudget: {
       title:         "Confirmez l'étape du projet",
       subtitle:      "Sélectionnez l'étape actuelle de ce projet",
+      glanceTitle:   'Confirmez le budget du projet',
+      glanceSub:     "Si votre budget diffère de l'estimation, saisissez le budget réel.",
       fromBqLabel:   'D\u2019apr\u00e8s votre devis quantitatif',
       unreadableBq:  'Aucun montant vérifié n’a été extrait — saisissez le budget confirmé en USD',
       estimateLabel: 'Estimation Groundwork',

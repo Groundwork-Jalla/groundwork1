@@ -53,10 +53,10 @@ export default function Step11ConfirmBudget() {
    */
   const estimate  = calculateBudget(data, constructionRate, cityRate).total;
   const documentFlow = data.hasArchitecturePlan === true;
-  const pricedFromBq = data.hasArchitecturePlan === true && data.bqTotalUsd != null;
   const opening   = data.bqTotalUsd ?? (documentFlow ? null : estimate);
-  const [raw, setRaw]       = useState(confirmationDraft?.raw
-    ?? (opening == null ? '' : String(Math.round(opening))));
+  // The budget is confirmed on the summary screen; this step only reads it.
+  const raw = confirmationDraft?.raw
+    ?? (opening == null ? '' : String(Math.round(opening)));
   const [file, setFile]     = useState<File | null>(null);
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -265,9 +265,6 @@ export default function Step11ConfirmBudget() {
     }
   }
 
-  const diff    = finalBudget - estimate;
-  const diffPct = estimate > 0 ? (diff / estimate) * 100 : 0;
-
   return (
     <WizardShell canContinue={false} onContinue={() => {}}>
       <div className="pt-2">
@@ -279,24 +276,6 @@ export default function Step11ConfirmBudget() {
         </p>
 
         <div className="mt-7 space-y-4">
-          {/* Where the opening figure came from.
-              On the architecture-plan path that is the bill of quantities, not
-              Groundwork's estimate — the estimating questions were never asked, so
-              labelling the BQ figure "our estimate" would be false, and showing the
-              estimator's near-empty total beside it would be noise. */}
-          <div className="rounded-xl bg-brand-off-white px-4 py-3 flex items-center justify-between">
-            <span className="text-xs text-brand-mid-grey">
-              {t(documentFlow
-                ? pricedFromBq ? 'wizard.confirmBudget.fromBqLabel' : 'wizard.confirmBudget.unreadableBq'
-                : 'wizard.confirmBudget.estimateLabel')}
-            </span>
-            {opening != null && (
-              <span className="text-sm font-semibold text-brand-near-black figure">
-                {f.money(opening)}
-              </span>
-            )}
-          </div>
-
           {/* Asked of everybody. A client with a half-built house is the commonest
               reason somebody arrives here, and gating this on `onBehalfOf` meant the
               only people who could say so were staff and contractors. */}
@@ -353,40 +332,6 @@ export default function Step11ConfirmBudget() {
                 </div>
               )}
             </div>
-
-          {/* The figure that becomes the project budget */}
-          <div className="space-y-1.5">
-            <label htmlFor="final-budget" className="text-sm font-medium text-brand-near-black">
-              {t('wizard.confirmBudget.finalLabel')}
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
-              <input
-                id="final-budget"
-                inputMode="numeric"
-                // Grouping stays locale-neutral: this is an input mask and the parse
-                // strips [^0-9.], so a French decimal comma would be silently eaten.
-                value={raw === '0' ? '' : Number(raw.replace(/[^0-9.]/g, '') || 0).toLocaleString('en-US')}
-                onChange={e => setRaw(e.target.value.replace(/[^0-9.]/g, ''))}
-                placeholder="0"
-                className="w-full rounded-xl border border-brand-border-grey bg-white pl-9 pr-4 py-3 text-lg font-bold figure text-brand-near-black focus:outline-none focus:border-brand-near-black transition-colors"
-              />
-            </div>
-            <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.finalHint')}</p>
-            {/* Only meaningful against a real estimate. On the BQ path there is none,
-                and "4000% above our estimate" would be alarming nonsense. */}
-            {!documentFlow && Math.abs(diffPct) >= 1 && (
-              <p className="text-xs text-brand-mid-grey">
-                {t('wizard.confirmBudget.difference', {
-                  amount: f.money(Math.abs(diff)),
-                  pct: Math.abs(Math.round(diffPct)),
-                  direction: diff > 0
-                    ? t('wizard.confirmBudget.above')
-                    : t('wizard.confirmBudget.below'),
-                })}
-              </p>
-            )}
-          </div>
 
           {/* Optional supporting quote.
               Hidden in BOTH directions, for the same reason — nobody is asked twice:

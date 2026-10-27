@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Building2, Layers, Home, Wrench,
@@ -11,6 +11,7 @@ import {
   buildDurationDays, buildDurationMonths,
 } from '@/lib/budget';
 import { checkEstimate } from '@/lib/budget/sanity';
+import { calculateBudget } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -229,12 +230,52 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
   );
 }
 
+function BudgetConfirmField() {
+  const t = useT();
+  const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft } = useWizard();
+  const estimate = Math.round(data.bqTotalUsd
+    ?? (data.hasArchitecturePlan === true ? 0 : calculateBudget(data, constructionRate, cityRate).total));
+  const raw = confirmationDraft?.raw ?? '';
+
+  // Seed once; later edits are the person's own figure.
+  useEffect(() => {
+    if (!raw && estimate > 0) updateConfirmationDraft?.({ raw: String(estimate) });
+  }, [raw, estimate, updateConfirmationDraft]);
+
+  const amount = Number(raw.replace(/[^0-9.]/g, '') || 0);
+  return (
+    <div className="mt-5 rounded-xl border border-brand-border-grey px-5 py-4 space-y-1.5">
+      <label htmlFor="final-budget" className="text-sm font-semibold text-brand-near-black">
+        {t('wizard.confirmBudget.glanceTitle')}
+      </label>
+      <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.glanceSub')}</p>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
+        <input
+          id="final-budget"
+          inputMode="numeric"
+          value={amount > 0 ? amount.toLocaleString('en-US') : ''}
+          onChange={e => updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') })}
+          placeholder="0"
+          className="w-full rounded-xl border border-brand-border-grey bg-white pl-9 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"
+        />
+      </div>
+      {estimate > 0 && amount !== estimate && (
+        <button type="button" className="text-xs underline text-brand-mid-grey"
+          onClick={() => updateConfirmationDraft?.({ raw: String(estimate) })}>
+          {t('wizard.confirmBudget.estimateLabel')}: ${estimate.toLocaleString('en-US')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Page component ─────────────────────────────────────────
 
 export default function Step9Summary() {
   const labels = useDomainLabels();
   const t = useT();
-  const { data, update, documentExtraction } = useWizard();
+  const { data, update, documentExtraction, confirmationDraft } = useWizard();
   const documentFlow = data.hasArchitecturePlan === true;
   const hasExtractedFloors = documentExtraction?.floorPlans.some(plan => plan.facts.floors != null) ?? false;
   const hasExtractedFootprint = documentExtraction?.floorPlans
@@ -248,7 +289,8 @@ export default function Step9Summary() {
 
   return (
     <WizardShell
-      canContinue={validDateRange && (!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint))}
+      canContinue={validDateRange && (!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint
+        && Number((confirmationDraft?.raw ?? '').replace(/[^0-9.]/g, '') || 0) > 0))}
       continueLabel="Continue"
     >
       <div className="pt-2">
@@ -347,6 +389,8 @@ export default function Step9Summary() {
         {documentFlow
           ? <DocumentBudgetBreakdown />
           : <div className="mt-6"><BudgetBreakdownCard /></div>}
+
+        <BudgetConfirmField />
 
         <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
