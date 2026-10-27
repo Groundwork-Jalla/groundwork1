@@ -4778,7 +4778,7 @@ export const en = {
     // A build Groundwork joined halfway through (103). Admin-only: only the admin path can
     // record earlier stages as already built.
     joined: {
-      question:    'This build is already under way',
+      question:    'This project has already started',
       hint:        'Tick this when a contractor brings a client whose house is already up. The stages already built are recorded as done, with no payment and no verification.',
       describeLabel: 'What stage is it on? In the contractor\u2019s own words',
       describePlaceholder: 'e.g. the roof is on, starting the wiring',
@@ -4786,8 +4786,8 @@ export const en = {
       lowConfidence: 'not certain, please check',
       noMatch:     'That did not match a stage. Choose it below.',
       ambiguous:   'Several stages are mentioned ({stages}) and the wording does not say which one the build is on now. Choose the current stage below.',
-      stageLabel:  'Start tracking at',
-      stagePlaceholder: 'Choose the stage',
+      stageLabel:  'Select current project stage',
+      stagePlaceholder: 'Current project stage',
       effect:      '{n} earlier stage(s) will be marked as already built \u2014 no payment, no verification, no certificate. This client will be asked for {amount}, not the full build cost of {full}.',
     },
     confirmBudget: {
