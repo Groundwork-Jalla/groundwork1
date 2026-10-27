@@ -60,6 +60,7 @@ describe('the wizard files its two documents under categories that show', () => 
   });
 
   it('and the floor plan NOT as boq — two bills of quantities and no plan is worse', () => {
-    expect(plan).toMatch(/answer\.floorPlan, category: 'other'/);
+    expect(plan).toMatch(/for \(const floorPlan of answer\.floorPlans\)/);
+    expect(plan).toMatch(/out\.push\(\{ file: floorPlan, category: 'other' \}\)/);
   });
 });
