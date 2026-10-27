@@ -4812,7 +4812,7 @@ export const en = {
       quoteTooLarge: 'That file is larger than {mb} MB. Attach a smaller one, or add it from the project\'s Documents tab afterwards.',
       quoteBadType:  'That file type cannot be uploaded. Use a PDF, a Word document, an Excel or CSV spreadsheet, or an image.',
       quoteFailed:   'The build was created, but the attachment did not upload. Add it from the project\'s Documents tab.',
-      cta:           'Confirm stage & create project',
+      cta:           'Confirm stage & create budget',
       creating:      'Creating your project…',
       note:          'Stage 1 opens as soon as your project is created. You can revise the budget later from the Costing tab.',
     },
