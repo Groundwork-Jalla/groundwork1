@@ -57,8 +57,6 @@ export default [
     route("resources",           "routes/resources.tsx"),
     route("resources/:slug",     "routes/resources.detail.tsx"),
     route("contractors",         "routes/contractors.tsx"),
-    route("payments",            "routes/payments.tsx"),
-    route("upgrade",             "routes/upgrade.tsx"),
     // Every conversation in one place. `destinationFor` has pointed a project-less
     // thread here for a while; until now it was a dead link.
     route("messages",            "routes/messages.tsx"),

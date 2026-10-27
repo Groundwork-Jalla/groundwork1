@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
   CheckCircle2,
-  Lock,
   ChevronRight,
   X,
   Search,
@@ -15,8 +14,6 @@ import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
 import { createContractorInquiry, type BuildType } from '@/lib/supabase/inquiries';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { CONTRACTOR_DIRECTORY_REQUIRES_PLAN } from '@/lib/contractor-directory-access';
-import { getSubscription, isSubscriptionActive } from '@/lib/payments/subscription';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -589,11 +586,6 @@ function CardSkeleton() {
 
 export default function ContractorsPage() {
   const t = useT();
-  const { user } = useAuth();
-
-  // Canonical entitlement: profiles.subscription_tier, written only by the Stripe
-  // webhook. `undefined` while it resolves, so the gate neither flashes open nor shut.
-  const [entitled, setEntitled] = useState<boolean | undefined>(undefined);
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
@@ -602,23 +594,6 @@ export default function ContractorsPage() {
   const [profileTarget, setProfileTarget] = useState<Contractor | null>(null);
 
   useEffect(() => {
-    const uid = user?.id;
-    if (!CONTRACTOR_DIRECTORY_REQUIRES_PLAN) { setEntitled(true); return; }
-    if (!uid) { setEntitled(false); return; }
-    let cancelled = false;
-    void getSubscription(uid).then(sub => {
-      if (cancelled) return;
-      // past_due and unpaid still count — Stripe is retrying a card, and cutting off a
-      // paying customer mid-build is the wrong call. Same rule the webhook applies.
-      setEntitled(sub.tier !== 'self_verify' && isSubscriptionActive(sub.status));
-    });
-    return () => { cancelled = true; };
-  }, [user?.id]);
-
-  useEffect(() => {
-    // Not entitled yet, or still resolving: do not fetch. Hiding names in the render
-    // would still leave them in the network tab.
-    if (entitled !== true) { if (entitled === false) setFetchState('ready'); return; }
     supabase
       .from('contractors')
       // Explicit columns, never '*'. The browser roles hold SELECT on named columns only
@@ -637,14 +612,9 @@ export default function ContractorsPage() {
           setFetchState('ready');
         }
       });
-  }, [entitled]);
+  }, []);
 
   const visible = contractors.filter(c => matchesFilter(c, activeFilter) && matchesQuery(c, query));
-
-  // Plan gate — see lib/contractor-directory-access.ts. Nothing rendered until the tier is known, so an
-  // entitled subscriber never sees the paywall flash before their directory loads.
-  if (entitled === undefined) return null;
-  if (!entitled) return <ContractorsLocked />;
 
   return (
     <div className="bg-brand-off-white min-h-full">
@@ -798,46 +768,6 @@ export default function ContractorsPage() {
       </div>
 
       <BackToTop />
-    </div>
-  );
-}
-
-// ── The upgrade prompt shown in place of the directory ─────
-//
-// See lib/contractor-directory-access.ts. It deliberately borrows the page's own
-// surface and the Lock affordance already used by the plan gate above, so it reads as
-// the same product rather than a placeholder bolted on.
-
-function ContractorsLocked() {
-  const t = useT();
-  return (
-    <div className="bg-brand-off-white min-h-full dark:bg-transparent">
-      <div className="mx-auto flex min-h-[70vh] max-w-5xl items-center justify-center px-4 py-10 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 14, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          role="dialog"
-          aria-modal="false"
-          className="w-full max-w-md rounded-2xl border border-brand-border-grey bg-white p-8 text-center shadow-[0_8px_40px_rgba(0,0,0,0.10)] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
-        >
-          <span className="mx-auto mb-5 flex size-11 items-center justify-center rounded-full bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black">
-            <Lock className="size-5" />
-          </span>
-          <h1 className="text-lg font-bold text-brand-near-black dark:text-white">
-            {t('contractors.lockedTitle')}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
-            {t('contractors.lockedBody')}
-          </p>
-          <Link
-            to="/dashboard"
-            className="mt-6 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
-          >
-            {t('contractors.lockedBack')}
-          </Link>
-        </motion.div>
-      </div>
     </div>
   );
 }

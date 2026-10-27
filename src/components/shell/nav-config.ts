@@ -1,6 +1,6 @@
 import {
   Landmark, ArrowDownLeft, ArrowUpRight,
-  LayoutDashboard, FolderOpen, BookOpen, HardHat, CreditCard, Bell,
+  LayoutDashboard, FolderOpen, BookOpen, HardHat, Bell,
   Settings, FolderArchive, HelpCircle, ClipboardCheck, Users, Wallet,
   FileText, Mailbox, FilePen, Radio, Clapperboard, LifeBuoy, MessagesSquare,
   ListChecks, Camera, SearchCheck, ListTodo, UserRound, UserCog, Handshake,
@@ -42,7 +42,6 @@ export interface NavItem {
 export const CLIENT_NAV: NavItem[] = [
   { to: '/dashboard',     labelKey: 'nav.dashboard',                               icon: LayoutDashboard, exact: true },
   { to: '/projects',      labelKey: 'nav.myProjects', shortKey: 'nav.projects',    icon: FolderOpen },
-  { to: '/payments',      labelKey: 'nav.payments',                                icon: CreditCard },
   { to: '/contractors',   labelKey: 'nav.contractors',                             icon: HardHat },
   { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
   { to: '/messages',      labelKey: 'nav.messages',                                icon: MessagesSquare },
@@ -131,6 +130,5 @@ export function pageTitleKey(pathname: string, nav: NavItem[]): TKey {
     .find(item => (item.exact ? pathname === item.to : pathname.startsWith(item.to)));
 
   if (match) return match.labelKey;
-  if (pathname.startsWith('/upgrade')) return 'nav.upgradePlan';
   return 'nav.groundwork';
 }

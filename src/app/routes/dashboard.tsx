@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
 import {
-  Plus, BadgeCheck, ShieldCheck, Briefcase,
+  Plus,
   ChevronRight, HardHat,
   UserCircle, Check, Upload, MessageSquare, FolderArchive,
 } from 'lucide-react';
@@ -17,7 +17,6 @@ import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
-import { atProjectLimit, countTowardLimit, SELF_VERIFY_PROJECT_LIMIT } from '@/lib/plan-limits';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -46,20 +45,7 @@ const isActive   = (s: ProjectStage) => s.status === 'active' || s.status === 'p
 
 // ── Constants ──────────────────────────────────────────────
 
-const STARTER_LIMIT  = SELF_VERIFY_PROJECT_LIMIT;
 const TOTAL_STAGES   = 10;
-
-// Tier is an identity, not a status, so it does not get a hue. Colour on this
-// platform is reserved for state — active, held, overdue — and spending blue and
-// purple on plan names made the one signal that does mean something harder to see.
-const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode; color: string }> = {
-  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
-  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
-  starter:          { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3" />,  color: 'text-brand-mid-grey' },
-  pro:              { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3" />, color: 'text-brand-mid-grey' },
-  enterprise:       { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3" />,   color: 'text-brand-mid-grey' },
-};
 
 const PROJECT_STATUS_META: Record<string, { labelKey: TKey; dot: string; badge: string }> = {
   active:    { labelKey: 'common.active',   dot: 'bg-state-active',      badge: 'bg-brand-off-white text-state-active border border-state-active/30'    },
@@ -474,7 +460,6 @@ function OtherProjectRow({ project }: { project: ProjectRow }) {
   const t = useT();
   const { buildingType } = useDomainLabels();
   const { total } = projectBudget(project);
-  const tier   = TIER_META[project.tier] ?? TIER_META.self_verify;
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
 
   return (
@@ -497,9 +482,6 @@ function OtherProjectRow({ project }: { project: ProjectRow }) {
         <p className="text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
           {total > 0 ? fmtShort(total) : '—'}
         </p>
-        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${tier.color}`}>
-          {tier.icon}{t(tier.labelKey)}
-        </span>
       </div>
       <ChevronRight className="size-4 shrink-0 text-brand-border-grey" />
     </Link>
@@ -553,17 +535,7 @@ export default function Dashboard() {
     ?? 'there';
   const nameSet    = !!user?.user_metadata?.full_name;
 
-  // Same rule as the trigger and as /projects — every free-tier project counts, archived
-  // included (migration 053).
-  const usedSlots      = countTowardLimit(projects);
-  const atStarterLimit = atProjectLimit(projects);
-
-  // Archived projects come off the dashboard. They stayed in the grid until now, which
-  // is what the first beta tester read as "archiving does not free a plan slot" — the
-  // card sitting there looked like the slot sitting there. The slot line below answers
-  // the question the grid was being asked to answer.
   const visibleProjects = projects.filter(p => p.status !== 'archived');
-  const archivedCount   = projects.length - visibleProjects.length;
 
   const activeProject = visibleProjects
     .filter(p => p.status === 'active')
@@ -634,18 +606,9 @@ export default function Dashboard() {
           <p className="text-xs text-brand-mid-grey">{t(greetingKey())}</p>
           <h1 className="mt-1 text-2xl font-bold text-brand-near-black dark:text-white">{displayName}</h1>
         </div>
-        {/* Slots, stated. Without this the only way to learn whether archiving freed
-            one was to try to create a project and see — which is exactly what the first
-            beta tester did, and they drew the wrong conclusion. Shown only on the free
-            plan, where a cap exists, and only once something has loaded. */}
+        {/* Primary action kept in the header for quick project creation. */}
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {!isContractor && !loading && usedSlots > 0 && (
-            <p className="text-[11px] tabular-nums text-brand-mid-grey">
-              {t('dashboard.slotsUsed', { used: usedSlots, limit: STARTER_LIMIT })}
-              {archivedCount > 0 && ` · ${t('dashboard.slotsArchived', { count: archivedCount })}`}
-            </p>
-          )}
-          {!isContractor && !atStarterLimit && (
+          {!isContractor && (
             <Link to="/projects/new"
               className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
               <Plus className="size-4" /> {t('dashboard.newProject')}
@@ -713,7 +676,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {!loading && !isContractor && projects.length > 0 && !atStarterLimit && (
+      {!loading && !isContractor && projects.length > 0 && (
         <Link
           to="/projects/new"
           className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-border-grey py-4 text-sm font-semibold text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black"

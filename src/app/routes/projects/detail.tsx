@@ -28,7 +28,6 @@ import ContractorInvite          from '@/components/project/ContractorInvite';
 import { ShareProject }          from '@/components/project/ShareProject';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
-import ProjectPaymentsLedger    from '@/components/project/ProjectPaymentsLedger';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import RelatedGuides             from '@/components/project/RelatedGuides';
 import DangerZone                from '@/components/project/DangerZone';
@@ -52,7 +51,7 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
 
 // ── Tab bar ───────────────────────────────────────────────
 
-type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'documents' | 'messages';
+type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'documents' | 'messages';
 
 /**
  * `?tab=` to a Tab, or the default.
@@ -61,7 +60,7 @@ type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'payments' | 'docume
  * resolves to the overview rather than selecting a tab that renders nothing.
  */
 const ALL_TABS: Tab[] =
-  ['overview', 'stages', 'costing', 'timeline', 'payments', 'documents', 'messages'];
+  ['overview', 'stages', 'costing', 'timeline', 'documents', 'messages'];
 
 function tabFromUrl(value: string | null): Tab {
   return ALL_TABS.includes(value as Tab) ? (value as Tab) : 'overview';
@@ -72,7 +71,6 @@ const OWNER_TABS: { id: Tab; labelKey: TKey }[] = [
   { id: 'stages',     labelKey: 'project.tabs.stages'    },
   { id: 'costing',    labelKey: 'project.tabs.costing'   },
   { id: 'timeline',   labelKey: 'project.tabs.timeline'  },
-  { id: 'payments',   labelKey: 'project.tabs.payments'  },
   { id: 'documents',  labelKey: 'project.tabs.documents' },
   { id: 'messages',   labelKey: 'project.tabs.messages'  },
 ];
@@ -173,10 +171,6 @@ export default function ProjectDetail() {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  // Set by "Record payment" on a blocked stage: switch to Payments and open that stage's
-  // modal. The button does not carry its own modal — one confirm path for money.
-  const [payStageId, setPayStageId] = useState<string | null>(null);
-
   // ── Data fetching ──────────────────────────────────────
 
   const loadAll = useCallback(async () => {
@@ -524,7 +518,6 @@ export default function ProjectDetail() {
                 ownerName={
                   user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner'
                 }
-                onRecordPayment={stage => { setPayStageId(stage.id); setActiveTab('payments'); }}
                 onMarkSubstageComplete={handleMarkSubstageComplete}
                 onEvidenceUploaded={handleEvidenceUploaded}
                 onApproveStage={handleApproveStage}
@@ -551,17 +544,6 @@ export default function ProjectDetail() {
                 onGoToStages={() => setActiveTab('stages')}
               />
               <RelatedGuides tab="timeline" />
-            </div>
-          )}
-
-          {/* Tab: Payments */}
-          {activeTab === 'payments' && (
-            <div>
-              {/* The ledger (090) is the source. The previous screen computed
-                  `budget_usd − milestones marked paid` and called it an escrow balance;
-                  Groundwork holds no funds, so there was no balance to show. */}
-              <ProjectPaymentsLedger project={project} stages={stages} />
-              <RelatedGuides tab="payments" />
             </div>
           )}
 
