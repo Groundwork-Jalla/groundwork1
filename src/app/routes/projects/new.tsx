@@ -11,7 +11,6 @@ import Step2ProjectType    from '@/components/wizard/steps/Step2ProjectType';
 import Step3BuildingType   from '@/components/wizard/steps/Step3BuildingType';
 import Step4Floors         from '@/components/wizard/steps/Step4Floors';
 import Step5Rooms          from '@/components/wizard/steps/Step5Rooms';
-import Step6BoysQuarters   from '@/components/wizard/steps/Step6BoysQuarters';
 import Step7RoofType       from '@/components/wizard/steps/Step7RoofType';
 import Step8Details        from '@/components/wizard/steps/Step8Details';
 import Step9Summary        from '@/components/wizard/steps/Step9Summary';
@@ -26,7 +25,6 @@ const STEPS: React.ComponentType[] = [
   Step3BuildingType,
   Step4Floors,
   Step5Rooms,
-  Step6BoysQuarters,
   Step7RoofType,
   Step8Details,
   Step9Summary,

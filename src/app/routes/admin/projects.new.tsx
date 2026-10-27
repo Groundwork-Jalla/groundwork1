@@ -12,7 +12,6 @@ import Step2ProjectType    from '@/components/wizard/steps/Step2ProjectType';
 import Step3BuildingType   from '@/components/wizard/steps/Step3BuildingType';
 import Step4Floors         from '@/components/wizard/steps/Step4Floors';
 import Step5Rooms          from '@/components/wizard/steps/Step5Rooms';
-import Step6BoysQuarters   from '@/components/wizard/steps/Step6BoysQuarters';
 import Step7RoofType       from '@/components/wizard/steps/Step7RoofType';
 import Step8Details        from '@/components/wizard/steps/Step8Details';
 import Step9Summary        from '@/components/wizard/steps/Step9Summary';
@@ -41,13 +40,13 @@ import Step11ConfirmBudget from '@/components/wizard/steps/Step11ConfirmBudget';
 /** The client wizard's eleven steps, less the plan picker — the plan is already decided. */
 const STEPS: React.ComponentType[] = [
   Step1Country, Step2ProjectType, Step3BuildingType, Step4Floors, Step5Rooms,
-  Step6BoysQuarters, Step7RoofType, Step8Details, Step9Summary, Step11ConfirmBudget,
+  Step7RoofType, Step8Details, Step9Summary, Step11ConfirmBudget,
 ];
 
 export function ManagedWizard() {
   const { step, direction, goTo, onBehalfOf } = useWizard();
 
-  // Step 10 in the shared numbering is the plan picker. An admin creating a managed build
+  // Step 9 in the shared numbering is the plan picker. An admin creating a managed build
   // has already decided the plan, so it is skipped in the direction of travel rather than
   // renumbering every step's `goTo`, which BuildingPreview hard-codes. Direction matters:
   // a plain "if 10 then 11" traps Back — leaving 11 lands on 10, which bounces straight
@@ -60,13 +59,13 @@ export function ManagedWizard() {
     || (onBehalfOf?.by === 'partner' && onBehalfOf.tier === 'self_verify');
 
   useEffect(() => {
-    if (planDecided && step === 10) goTo(direction === 'back' ? 9 : 11);
+    if (planDecided && step === 9) goTo(direction === 'back' ? 8 : 10);
   }, [planDecided, step, direction, goTo]);
 
   // Render the destination during the skip frame, so nothing flashes blank.
-  const Component = step <= 9 ? STEPS[step - 1]
-    : step === 10 ? (planDecided && direction === 'back' ? Step9Summary
-                     : planDecided ? Step11ConfirmBudget : Step10PlanSelection)
+  const Component = step <= 8 ? STEPS[step - 1]
+    : step === 9 ? (planDecided && direction === 'back' ? Step9Summary
+                    : planDecided ? Step11ConfirmBudget : Step10PlanSelection)
     : Step11ConfirmBudget;
   // Same question, same moment, for a contractor or an admin setting a project up for
   // somebody else. One component, so the two cannot drift apart.

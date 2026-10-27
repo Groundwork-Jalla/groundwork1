@@ -243,7 +243,6 @@ export default function Step9Summary() {
               `${data.sqm} sqm`,
               `${data.bedrooms} bed`,
               `${data.bathrooms} bath`,
-              data.hasBoysQuarters ? 'Staff quarters' : null,
             ].filter(Boolean).join(' · ')}
           />
           <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"

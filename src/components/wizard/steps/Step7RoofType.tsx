@@ -252,9 +252,6 @@ export default function Step7RoofType() {
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           {t('wizard.s7Title')}
         </h1>
-        <p className="mt-2 text-sm text-brand-mid-grey leading-relaxed">
-          {t('wizard.s7Sub')}
-        </p>
 
         {/* Step A — form */}
         <p className="mt-7 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
@@ -262,14 +259,20 @@ export default function Step7RoofType() {
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           {ROOF_FORMS.map(f => (
-            <StepCard
-              key={f.form}
-              selected={form === f.form}
-              onClick={() => chooseForm(f.form)}
-              icon={FORM_ICONS[f.form]}
-              label={t(f.labelKey)}
-              description={t(f.descKey)}
-            />
+            <div key={f.form} className="relative">
+              <StepCard
+                selected={form === f.form}
+                onClick={() => chooseForm(f.form)}
+                icon={FORM_ICONS[f.form]}
+                label={t(f.labelKey)}
+                description={t(f.descKey)}
+              />
+              {f.form === 'pitched' && (
+                <span className="pointer-events-none absolute left-2 top-2 rounded-full bg-brand-near-black px-2 py-0.5 text-[9px] font-bold text-white dark:bg-white dark:text-brand-near-black">
+                  {t('wizard.mostPopular')}
+                </span>
+              )}
+            </div>
           ))}
         </div>
 

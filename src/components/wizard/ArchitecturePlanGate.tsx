@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 // they were never going to fill is asking twice.
 //
 // ── Why it sits outside the wizard rather than inside it ────────────────────────────
-// The wizard's eleven steps are hardcoded by number in the progress bar, the building
+// The wizard steps are hardcoded by number in the progress bar, the building
 // preview and the shell. Inserting steps at the front would renumber all of them.
 // Asking before it starts also matches what the branch actually is: a question about
 // which flow you belong in, not a step within one.

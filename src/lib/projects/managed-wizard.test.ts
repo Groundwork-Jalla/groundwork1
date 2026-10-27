@@ -6,7 +6,7 @@ import type { OnBehalfOf } from '@/contexts/WizardContext';
 import type { WizardConfirmationDraft } from './wizard-draft';
 
 const h = vi.hoisted(() => ({
-  step: 10,
+  step: 9,
   direction: 'forward',
   data: {} as WizardFormData,
   onBehalfOf: null as OnBehalfOf | null,
@@ -74,7 +74,6 @@ vi.mock('@/components/wizard/steps/Step2ProjectType', () => ({ default: () => nu
 vi.mock('@/components/wizard/steps/Step3BuildingType', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step4Floors', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step5Rooms', () => ({ default: () => null }));
-vi.mock('@/components/wizard/steps/Step6BoysQuarters', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step7RoofType', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step8Details', () => ({ default: () => null }));
 vi.mock('@/components/wizard/steps/Step9Summary', () => ({ default: () => 'project-summary' }));
@@ -85,7 +84,7 @@ import { ManagedWizard } from '@/app/routes/admin/projects.new';
 describe('contractor client project wizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    h.step = 10;
+    h.step = 9;
     h.direction = 'forward';
     h.data = { ...WIZARD_DEFAULT_DATA, projectName: 'Client home' };
     h.onBehalfOf = { userId: 'client-id', label: 'Client', tier: 'self_verify', by: 'partner' };

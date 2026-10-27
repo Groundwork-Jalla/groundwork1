@@ -585,37 +585,6 @@ function Windows({
   );
 }
 
-function BQAnnex({ visible, floors }: { visible: boolean; floors: number }) {
-  const fl    = clampFloors(floors);
-  const mainH = fl * FH;
-  const bqH   = Math.min(mainH * 0.55, 80);
-  const bqTop = GY - bqH;
-
-  return (
-    <AnimatePresence>
-      {visible && (
-        <motion.g
-          key="bq"
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 24 }}
-          transition={{ duration: 0.45, ease }}
-        >
-          {/* Connector */}
-          <line x1={BL + BW} y1={GY - 24} x2={BL + BW + 16} y2={GY - 24} stroke={D} strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 3" />
-          {/* BQ body */}
-          <rect x={BL + BW + 16} y={bqTop} width="58" height={bqH} rx="1" fill={D} fillOpacity="0.03" stroke={D} strokeWidth="1.5" strokeOpacity="0.5" />
-          {/* BQ windows */}
-          {[0, 1].map(i => (
-            <rect key={i} x={BL + BW + 24} y={bqTop + 8 + i * 26} width="20" height="16" rx="0.5" fill={D} fillOpacity="0.04" stroke={D} strokeWidth="1" strokeOpacity="0.4" />
-          ))}
-          <text x={BL + BW + 45} y={GY + 18} textAnchor="middle" fontSize="8" fill={D} fillOpacity="0.4" fontFamily="'Plus Jakarta Sans', sans-serif">BQ</text>
-        </motion.g>
-      )}
-    </AnimatePresence>
-  );
-}
-
 function Roof({ visible, roofType, floors }: { visible: boolean; roofType: RoofType | null; floors: number }) {
   const top = buildingTop(floors);
 
@@ -835,7 +804,7 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
   // one building, $144,769.23 on the left and $75,462.32 on the badge. Reported in beta
   // testing, 25 Aug 2026.
   const { constructionRate, cityRate } = useWizard();
-  const budget = step === 9
+  const budget = step === 8
     ? calculateBudgetDetail(data, constructionRate, cityRate).budget
     : null;
 
@@ -884,19 +853,16 @@ function StepBadges({ step, data }: { step: number; data: ReturnType<typeof useW
           <span className="font-semibold">{data.livingRooms}</span>
         </InfoBadge>
       )}
-      {step === 6 && data.hasBoysQuarters && (
-        <Badge key="bq" icon={<Home className="size-3.5" />} label="Staff Quarters" pos="tr" />
-      )}
-      {step === 7 && data.roofType && (
+      {step === 6 && data.roofType && (
         <Badge key="roof" icon={<Wrench className="size-3.5" />} label={labels.roofType(data.roofType)} pos="tr" />
       )}
-      {step === 8 && data.projectName && (
+      {step === 7 && data.projectName && (
         <Badge key="name" icon={<Building2 className="size-3.5" />} label={data.projectName} sub={data.city || undefined} pos="tr" />
       )}
-      {step === 9 && budget && (
+      {step === 8 && budget && (
         <Badge key="budget" icon={<DollarSign className="size-3.5" />} label={formatUSD(budget.total)} sub={t('buildPreview.estAbbrev')} pos="tr" />
       )}
-      {step === 9 && budget && (
+      {step === 8 && budget && (
         <Badge key="done" icon={<CheckCircle2 className="size-3.5" />} label={t('buildPreview.readyToBuild')} pos="bl" />
       )}
     </AnimatePresence>
@@ -929,14 +895,11 @@ function useStepHint(
     case 3: return t('buildPreview.hint.definingType');
     case 4: return tPlural('buildPreview.hint.storeys', data.floors, { count: data.floors });
     case 5: return t('buildPreview.hint.roomsPerFloor');
-    case 6: return t(data.hasBoysQuarters
-      ? 'buildPreview.hint.withAnnex'
-      : 'buildPreview.hint.mainOnly');
-    case 7: return data.roofType
+    case 6: return data.roofType
       ? labels.roofType(data.roofType)
       : t('buildPreview.hint.chooseRoof');
-    case 8: return data.projectName || t('buildPreview.hint.nameProject');
-    case 9: return t('buildPreview.hint.readyToBuild');
+    case 7: return data.projectName || t('buildPreview.hint.nameProject');
+    case 8: return t('buildPreview.hint.readyToBuild');
     default: return '';
   }
 }
@@ -990,23 +953,22 @@ export function BuildingPreview() {
   const stepHint = useStepHint(step, data, countryName);
 
   const isMapStep      = step === 1;
-  const isImageStep    = step === 2 || step === 3 || step === 7;
+  const isImageStep    = step === 2 || step === 3 || step === 6;
   const showCrane      = step >= 4 && step <= 5;
   const showFoundation = step >= 4;
   const totalRooms     = data.bedrooms + data.bathrooms + data.livingRooms + data.kitchens;
   const showBody       = step >= 4;
   const showWindows    = step >= 5;
-  const showBQ         = step >= 6 && data.hasBoysQuarters;
-  const showRoof       = step >= 8 && !!data.roofType;
-  const showSign       = step >= 8;
-  const showComplete   = step >= 9;
+  const showRoof       = step >= 7 && !!data.roofType;
+  const showSign       = step >= 7;
+  const showComplete   = step >= 8;
 
   // Which image key to show per step
   const imageKey = step === 2
     ? (data.projectType ?? null)
     : step === 3
       ? (data.buildingType ?? data.projectType ?? null)
-      : step === 7
+      : step === 6
         ? (data.roofType ?? null)
         : null;
 
@@ -1132,9 +1094,6 @@ export function BuildingPreview() {
                     activeFloor={data.previewActiveFloor ?? 0}
                   />
                 )}
-                <AnimatePresence>
-                  {showBQ && <BQAnnex visible={showBQ} floors={data.floors} />}
-                </AnimatePresence>
                 <Roof visible={showRoof} roofType={data.roofType} floors={data.floors} />
                 <Signpost visible={showSign} name={data.projectName} />
                 <Ground />

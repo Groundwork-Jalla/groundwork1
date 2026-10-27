@@ -13,7 +13,6 @@ const STEP_KEYS: TKey[] = [
   'wizard.stepBuilding',
   'wizard.stepFloors',
   'wizard.stepRooms',
-  'wizard.stepQuarters',
   'wizard.stepRoof',
   'wizard.stepDetails',
   'wizard.stepSummary',

@@ -91,8 +91,8 @@ interface WizardContextValue {
 // =========================================================
 const WizardContext = createContext<WizardContextValue | null>(null);
 
-// 11: …8 detail steps, 9 summary, 10 plan, 11 confirm budget (creates the project).
-export const TOTAL_STEPS = 11;
+// 10: five setup steps, roof, details, summary, plan, and budget confirmation.
+export const TOTAL_STEPS = 10;
 
 // =========================================================
 // Provider

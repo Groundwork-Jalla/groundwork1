@@ -106,9 +106,9 @@ describe('the question itself', () => {
     // said what they are building or where. After step 1 they are oriented, and the
     // answer decides whether the next eight questions are worth asking at all.
     expect(stepWrap).toMatch(/if \(step < 2 \|\| data\.hasArchitecturePlan !== null\) return <>\{children\}<\/>;/);
-    // And it is not a numbered step: the eleven are hard-coded in the progress bar and
+    // And it is not a numbered step: the ten are hard-coded in the progress bar and
     // the building preview, so inserting one would renumber all of them.
-    expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 11/);
+    expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 10/);
   });
 
   it('the answer is written into the wizard, so Back and forward does not re-ask', () => {

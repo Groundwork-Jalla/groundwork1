@@ -12,9 +12,9 @@ import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
 // the next eight questions are worth asking at all.
 //
 // ── Why it is not a numbered step ───────────────────────────────────────────────────
-// The eleven steps are hard-coded by number in the progress bar, the building preview
+// The wizard steps are hard-coded by number in the progress bar, the building preview
 // and both routers. Inserting one renumbers all of them. This intercepts the render
-// between step 1 and step 2 instead: the wizard still has eleven steps, and this is a
+// between step 1 and step 2 instead: the wizard steps stay numbered, and this is a
 // question asked on the way past.
 // =========================================================
 
