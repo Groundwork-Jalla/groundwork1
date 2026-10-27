@@ -14,7 +14,7 @@ import type { Lang } from '../i18n/types.js';
 // =========================================================
 
 export const CONTRACTOR_ROLES = [
-  'general_contractor', 'land_lawyer', 'structural_engineer', 'architect',
+  'general_contractor', 'project_manager', 'land_lawyer', 'structural_engineer', 'architect',
   'quantity_surveyor', 'land_surveyor', 'electrician', 'plumber', 'mason',
   'carpenter', 'roofing', 'interior_finishing', 'other',
 ] as const;

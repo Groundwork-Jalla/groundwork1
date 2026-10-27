@@ -4076,6 +4076,7 @@ export const fr: Mirror<EnDict> = {
       roleOther: 'Veuillez préciser votre rôle',
       role: {
         general_contractor: 'Entrepreneur général',
+        project_manager:    'Chef de projet',
         land_lawyer:        'Juriste foncier',
         structural_engineer:'Ingénieur structure',
         architect:          'Architecte',

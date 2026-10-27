@@ -846,9 +846,15 @@ describe('the question at the end, and the two ways out (118)', () => {
   });
 
   it('finishing shows the question, not an exit', () => {
-    expect(page).toMatch(/\{status\.complete\s*\?\s*\(\s*<AllDone/);
+    expect(page).toMatch(/\{at === 'almostThere'\s*\?\s*\(\s*<AllDone/);
     expect(page).toMatch(/haveClient/);
     expect(page).toMatch(/noClient/);
+  });
+
+  it('back from the final screen renders the selected previous panel', () => {
+    expect(page).toMatch(/onClick=\{\(\) => setAt\(order\[index - 1\]\)\}/);
+    expect(page).toMatch(/\{at === 'almostThere'\s*\?\s*\(\s*<AllDone/);
+    expect(page).toMatch(/\{at === 'contact'\s*&&/);
   });
 
   it('each answer goes where it should', () => {

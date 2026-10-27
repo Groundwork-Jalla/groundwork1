@@ -25,6 +25,10 @@ describe('only the regulated professions are asked', () => {
     expect(requiresLicence('general_contractor')).toBe(false);
   });
 
+  it('a project manager is not asked for a professional licence', () => {
+    expect(requiresLicence('project_manager')).toBe(false);
+  });
+
   it('and neither is a specialty somebody typed in themselves', () => {
     // We cannot know what "other" is, so we cannot demand a credential for it.
     expect(requiresLicence('other')).toBe(false);

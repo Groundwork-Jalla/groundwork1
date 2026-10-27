@@ -4146,6 +4146,7 @@ export const en = {
       roleOther: 'Please specify your role',
       role: {
         general_contractor: 'General Contractor',
+        project_manager:    'Project Manager',
         land_lawyer:        'Land Lawyer',
         structural_engineer:'Structural Engineer',
         architect:          'Architect',

@@ -130,7 +130,7 @@ export default function ContractorOnboarding() {
     <div className="mx-auto max-w-2xl p-6 sm:p-8">
       <Progress order={order} index={index} status={status} />
 
-      {status.complete
+      {at === 'almostThere'
         ? (
           <AllDone
             onAnswered={async intent => {
