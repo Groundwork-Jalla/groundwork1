@@ -33,8 +33,8 @@ const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
  * projects are created still awaiting tracking and show a banner instead.
  */
 export default function Step11ConfirmBudget() {
-  const { data, constructionRate, cityRate, reset, onBehalfOf,
-    confirmationDraft, updateConfirmationDraft, pendingDocuments } = useWizard();
+  const { data, constructionRate, cityRate, onBehalfOf,
+    clearDraft, confirmationDraft, updateConfirmationDraft, pendingDocuments } = useWizard();
   const { user }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
@@ -218,7 +218,7 @@ export default function Step11ConfirmBudget() {
         }
       }
 
-      reset();
+      clearDraft();
 
       // Neither an admin nor a partner goes to Stripe, and neither lands on the client's
       // own project page — that view assumes an owner. They go back to their own surface.

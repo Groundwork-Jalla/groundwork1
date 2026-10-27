@@ -41,7 +41,7 @@ const FEATURED: ProjectTier = 'jalla_verify';
 
 export default function Step10PlanSelection() {
   const t = useT();
-  const { data, update, reset, next, constructionRate, cityRate, onBehalfOf } = useWizard();
+  const { data, update, clearDraft, next, constructionRate, cityRate, onBehalfOf } = useWizard();
   const { user } = useAuth();
   const navigate = useNavigate();
   const tiers = useTierBilling();
@@ -83,7 +83,7 @@ export default function Step10PlanSelection() {
     try {
       const budget  = calculateBudget(data, constructionRate, cityRate);
       const project = await createProject(user.id, data, budget);
-      reset();
+      clearDraft();
       navigate(`${JALLA_MANAGEMENT_PATH}?project=${project.id}`);
     } catch (err) {
       setError(errorMessage(err, t('wizard.s10CreateFailed')));

@@ -74,6 +74,13 @@ interface WizardContextValue {
   back: () => void;
   goTo: (n: number) => void;
   reset: () => void;
+  /**
+   * Clear persisted wizard state without mutating the currently rendered step.
+   *
+   * Used right before leaving the wizard after successful project creation, so we do
+   * not briefly render step 1 while navigation is in flight.
+   */
+  clearDraft: () => void;
   /** Present when an admin or partner contractor creates the project for a client. */
   onBehalfOf: OnBehalfOf | null;
   /** Available only when this provider opts into saving a scoped contractor draft. */
@@ -252,6 +259,12 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
     onReset?.();
   }, [persistenceKey, onReset]);
 
+  const clearDraft = useCallback(() => {
+    draftCleared.current = true;
+    clearWizardDraft(persistenceKey);
+    onReset?.();
+  }, [persistenceKey, onReset]);
+
   const updateConfirmationDraft = useCallback((patch: Partial<WizardConfirmationDraft>) => {
     draftCleared.current = false;
     setConfirmationDraft(previous => ({
@@ -266,6 +279,7 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
         step, totalSteps, direction, data,
         constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
+        clearDraft,
         onBehalfOf,
         onChangeClient,
         pendingDocuments: docs,

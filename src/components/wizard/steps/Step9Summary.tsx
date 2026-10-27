@@ -237,19 +237,20 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
     ?? (data.hasArchitecturePlan === true ? 0 : calculateBudget(data, constructionRate, cityRate).total));
   const raw = confirmationDraft?.raw ?? '';
   const previousEstimate = useRef<number | null>(null);
+  const touchedByUser = useRef(false);
 
   // Keep the shown amount in sync with estimate changes unless the person has
   // deliberately overridden it with a custom figure.
   useEffect(() => {
     const numericRaw = Number(raw.replace(/[^0-9.]/g, '') || 0);
     const wasAutoFilled = previousEstimate.current != null && numericRaw === previousEstimate.current;
-    if (estimate > 0 && (!raw || wasAutoFilled)) {
+    if (estimate > 0 && !touchedByUser.current && (!raw || wasAutoFilled)) {
       updateConfirmationDraft?.({ raw: String(estimate) });
     }
     previousEstimate.current = estimate;
   }, [raw, estimate, updateConfirmationDraft]);
 
-  const amount = Number((raw || String(estimate)).replace(/[^0-9.]/g, '') || 0);
+  const amount = Number(raw.replace(/[^0-9.]/g, '') || 0);
   return (
     <div className="mt-5 rounded-xl border border-brand-border-grey px-5 py-4 space-y-1.5">
       <label htmlFor="final-budget" className="text-sm font-semibold text-brand-near-black">
@@ -261,15 +262,21 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
         <input
           id="final-budget"
           inputMode="numeric"
-          value={amount > 0 ? amount.toLocaleString('en-US') : ''}
-          onChange={e => updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') })}
+          value={raw}
+          onChange={e => {
+            touchedByUser.current = true;
+            updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') });
+          }}
           placeholder="0"
           className="w-full rounded-xl border border-brand-border-grey bg-white pl-9 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"
         />
       </div>
       {estimate > 0 && amount !== estimate && (
         <button type="button" className="text-xs underline text-brand-mid-grey"
-          onClick={() => updateConfirmationDraft?.({ raw: String(estimate) })}>
+          onClick={() => {
+            touchedByUser.current = false;
+            updateConfirmationDraft?.({ raw: String(estimate) });
+          }}>
           {t('wizard.confirmBudget.estimateLabel')}: ${estimate.toLocaleString('en-US')}
         </button>
       )}
