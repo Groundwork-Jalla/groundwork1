@@ -21,12 +21,6 @@ export default function Step1Country() {
       .filter((c): c is (typeof COUNTRIES)[number] => !!c),
     [],
   );
-  const others = useMemo(
-    () => COUNTRIES
-      .filter(c => !POPULAR_COUNTRY_CODES.includes(c.code))
-      .sort((a, b) => country(a.code).localeCompare(country(b.code))),
-    [country],
-  );
 
   // Match on the displayed name *and* the English one, so "Ivory Coast" typed by an
   // anglophone still finds Côte d'Ivoire while French is selected, and vice versa.
@@ -96,14 +90,14 @@ export default function Step1Country() {
           </motion.ul>
         )}
 
-        {/* Popular countries first (Cameroon on top), then the rest A–Z */}
+        {/* Featured countries (Cameroon first); search provides access to all countries. */}
         {!showSearch && (
           <div className="mt-6">
             <p className="text-xs font-medium text-brand-mid-grey uppercase tracking-widest mb-3">
               {t('wizard.mostPopular')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[...popular, ...others].map(c => (
+              {popular.map(c => (
                 <button
                   key={c.code}
                   type="button"
