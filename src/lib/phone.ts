@@ -13,12 +13,10 @@ import { isValidPhoneNumber as isValidInternationalPhoneNumber } from 'libphonen
  * This is not hypothetical for the WhatsApp work: every contractor already in the CRM
  * has an unmessageable number, and nothing about the GHL side of the setup fixes that.
  *
- * ── Deliberately not a phone-number library ──────────────────────────────────────────
- * `libphonenumber-js` is ~145 kB and knows every numbering plan on earth. What is
- * actually needed is: take a local number, know which country the person is in, and put
- * the right dial code on the front. The countries are the 24 in `src/lib/countries.ts`,
- * and the ambiguity a full library resolves — national trunk prefixes, area-code
- * validation — is handled below for the only case that matters here.
+ * ── Normalisation and validation are separate ────────────────────────────────────────
+ * Normalisation adds a selected country's dial code to familiar national formats.
+ * Submission validation uses libphonenumber metadata to reject numbers whose length or
+ * numbering range is not valid for the country code in the resulting E.164 number.
  *
  * ── It never invents a number ────────────────────────────────────────────────────────
  * Anything it cannot confidently normalise comes back unchanged. A wrong number in a CRM

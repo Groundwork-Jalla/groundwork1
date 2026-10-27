@@ -6,7 +6,7 @@ import { addPayoutDestination } from '@/lib/supabase/payout-destinations';
 import { banksFor, PAYOUT_COUNTRY_CODES } from '@/lib/payments/banks';
 import type { PayoutMethod } from '@/lib/payments/payout-destination';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
-import { DIAL_COUNTRIES, isE164 } from '@/lib/phone';
+import { DIAL_COUNTRIES, isValidPhone } from '@/lib/phone';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -60,7 +60,7 @@ export function PayoutDialog({ onSaved, onClose }: {
   function validate(): string | null {
     if (method === 'mobile_money') {
       if (!mobileNo.trim()) return t('contractorPayout.needMobile');
-      if (!isE164(mobileNo)) return t('contractorPayout.badMobile');
+      if (!isValidPhone(mobileNo)) return t('contractorPayout.badMobile');
     } else {
       if (!bankKey) return t('contractorPayout.needBank');
       if (!accountNumber.trim()) return t('contractorPayout.needAccount');

@@ -58,8 +58,8 @@ export function PhoneField({
     const trimmed = local.trim();
     if (!trimmed) { onChange(''); return; }
     // normalisePhone returns its input unchanged when it cannot place the number, so
-    // what goes up may not be E.164. The caller validates with isE164 — this field's
-    // job is to make the common case right, not to be the last line of defence.
+    // what goes up may not be E.164. The caller validates it before submission — this
+    // field's job is to make the common case right, not to be the last line of defence.
     onChange(normalisePhone(trimmed, iso) ?? '');
   };
 

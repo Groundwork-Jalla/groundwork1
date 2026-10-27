@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneField } from '@/components/ui/PhoneField';
-import { isE164 } from '@/lib/phone';
+import { isValidPhone } from '@/lib/phone';
 import { useT } from '@/lib/i18n';
 
 // =========================================================
@@ -176,7 +176,7 @@ export default function WorkNewClient() {
     setError(null);
     if (fullName.trim().length < 2) { setError(t('contractorClient.errName')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('contractorClient.errEmail')); return; }
-    if (!isE164(phone)) { setError(t('contractorClient.errPhone')); return; }
+    if (!isValidPhone(phone)) { setError(t('contractorClient.errPhone')); return; }
 
     const owner = contractorId;
     const operation = ++inviteOperation.current;
