@@ -9,7 +9,6 @@ import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { supabase } from '@/lib/supabase/client';
 import { createProject } from '@/lib/supabase/projects';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
-import { startJallaVerifyCheckout } from '@/lib/payments/subscription';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
@@ -226,29 +225,6 @@ export default function Step11ConfirmBudget() {
       if (onBehalfOf) {
         navigate(onBehalfOf.by === 'partner' ? '/work/projects' : '/admin/projects');
         return;
-      }
-
-      // A paid plan goes to Stripe, not straight to the project.
-      //
-      // Picking Jalla Verify used to CREATE a Jalla Verify project — no charge, no
-      // checkout, and the entitlements (unlimited projects, unlimited contractor
-      // invites) granted on the strength of a radio button. The database now clamps a
-      // new project to whatever the subscription actually grants (061), so this is the
-      // other half: send them to pay for what they chose.
-      //
-      // The project is created FIRST and on the free plan, deliberately. Their work is
-      // safe whatever happens at Stripe, and if they abandon checkout they keep the
-      // project rather than losing eleven steps of wizard. Payment then upgrades it
-      // through profiles.subscription_tier -> sync_projects_to_subscription (021).
-      if (data.tier === 'jalla_verify') {
-        try {
-          await startJallaVerifyCheckout(`/projects/${project.id}${attachmentFailed ? '?attachment=failed' : ''}`);
-          return;                       // the browser is leaving for Stripe
-        } catch {
-          // Checkout unreachable. The project exists and is usable on the free plan, so
-          // land them on it rather than stranding them on a dead wizard step; the
-          // upgrade prompt is waiting for them there.
-        }
       }
 
       navigate(`/projects/${project.id}${attachmentFailed ? '?attachment=failed' : ''}`);
