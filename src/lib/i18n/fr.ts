@@ -2485,6 +2485,7 @@ export const fr: Mirror<EnDict> = {
     missingProjectDetails: 'Saisissez le nom du projet et les dimensions requises qui n\u2019ont pas pu \u00eatre lues dans les documents.',
 
     choose:   'Choisir un fichier',
+    addMore:  'Ajouter',
     replace:  'Remplacer',
     remove:   'Retirer le fichier',
     continue: 'Continuer',

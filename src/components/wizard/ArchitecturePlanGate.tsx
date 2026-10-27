@@ -336,7 +336,11 @@ function Drop({ label, hint, file, files = [], multiple = false, kind, accept, b
           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black"
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <FileText className="size-3.5" aria-hidden />}
-          {selectedFiles.length ? t('planGate.replace') : t('planGate.choose')}
+          {multiple && selectedFiles.length
+            ? t('planGate.addMore')
+            : selectedFiles.length
+              ? t('planGate.replace')
+              : t('planGate.choose')}
         </button>
       </div>
       <input
@@ -359,7 +363,18 @@ function Drop({ label, hint, file, files = [], multiple = false, kind, accept, b
               return;
             }
           }
-          onPick(multiple ? pickedFiles : pickedFiles[0]);
+          if (multiple) {
+            const merged = [...selectedFiles, ...pickedFiles]
+              .filter((candidate, index, all) =>
+                index === all.findIndex(file =>
+                  file.name === candidate.name
+                  && file.size === candidate.size
+                  && file.lastModified === candidate.lastModified,
+                ));
+            onPick(merged);
+            return;
+          }
+          onPick(pickedFiles[0]);
         }}
       />
     </div>

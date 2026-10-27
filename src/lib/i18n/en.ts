@@ -2527,6 +2527,7 @@ export const en = {
     missingProjectDetails: 'Enter the project name and any required dimensions that were not readable from the documents before continuing.',
 
     choose:   'Choose file',
+    addMore:  'Add more',
     replace:  'Replace',
     remove:   'Remove file',
     continue: 'Continue',
