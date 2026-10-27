@@ -1,8 +1,8 @@
 import type { CountryOption } from '@/types/project';
 
 export const COUNTRIES: CountryOption[] = [
-  // Cameroon — primary recommended market
-  { code: 'CM', name: 'Cameroon',       flag: '🇨🇲', region: 'africa', rateStandard: 155, ratePremium: 270, rateLuxury: 440, recommended: true },
+  // Cameroon — primary launch market
+  { code: 'CM', name: 'Cameroon',       flag: '🇨🇲', region: 'africa', rateStandard: 155, ratePremium: 270, rateLuxury: 440 },
 
   // Nigeria & West Africa
   { code: 'NG', name: 'Nigeria',         flag: '🇳🇬', region: 'africa', rateStandard: 180, ratePremium: 320, rateLuxury: 520 },
@@ -47,8 +47,7 @@ export const POPULAR_COUNTRY_CODES = ['CM', 'NG', 'GH', 'KE', 'ZA', 'UG', 'TZ', 
  * The country every picker starts on.
  *
  * Cameroon is the launch corridor (US diaspora clients, Cameroonian contractors),
- * it is the only country with a calibrated take-off rate table, and it is already
- * the `recommended: true` row above. Several pickers had independently defaulted to
+ * it is the only country with a calibrated take-off rate table. Several pickers had independently defaulted to
  * Nigeria, which put first-time visitors on rates we have not calibrated.
  *
  * Import this rather than writing 'CM' — one place to change when a second corridor

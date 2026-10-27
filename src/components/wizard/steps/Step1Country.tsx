@@ -15,7 +15,9 @@ export default function Step1Country() {
   const { data, update, next } = useWizard();
   const [query, setQuery] = useState('');
 
-  const popular = COUNTRIES.filter(c => POPULAR_COUNTRY_CODES.includes(c.code));
+  const popular = POPULAR_COUNTRY_CODES
+    .map(code => COUNTRIES.find(c => c.code === code))
+    .filter((country): country is (typeof COUNTRIES)[number] => !!country);
 
   // Match on the displayed name *and* the English one, so "Ivory Coast" typed by an
   // anglophone still finds Côte d'Ivoire while French is selected, and vice versa.
@@ -89,7 +91,7 @@ export default function Step1Country() {
         {!showSearch && (
           <div className="mt-6">
             <p className="text-xs font-medium text-brand-mid-grey uppercase tracking-widest mb-3">
-              {t('wizard.popular')}
+              {t('wizard.mostPopular')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {popular.map(c => (
@@ -105,11 +107,6 @@ export default function Step1Country() {
                       : 'border-brand-border-grey hover:border-brand-dark-grey',
                   )}
                 >
-                  {c.recommended && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
-                      {t('wizard.mostPopular')}
-                    </span>
-                  )}
                   <span className="text-2xl leading-none">{c.flag}</span>
                   <span className="text-xs font-semibold text-brand-near-black text-center leading-tight">
                     {country(c.code)}
