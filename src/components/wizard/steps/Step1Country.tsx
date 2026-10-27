@@ -3,7 +3,7 @@ import { Info, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
 import { hasLocalBq } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -15,8 +15,16 @@ export default function Step1Country() {
   const { data, update, next } = useWizard();
   const [query, setQuery] = useState('');
 
-  const countries = useMemo(
-    () => [...COUNTRIES].sort((a, b) => country(a.code).localeCompare(country(b.code))),
+  const popular = useMemo(
+    () => POPULAR_COUNTRY_CODES
+      .map(code => COUNTRIES.find(c => c.code === code))
+      .filter((c): c is (typeof COUNTRIES)[number] => !!c),
+    [],
+  );
+  const others = useMemo(
+    () => COUNTRIES
+      .filter(c => !POPULAR_COUNTRY_CODES.includes(c.code))
+      .sort((a, b) => country(a.code).localeCompare(country(b.code))),
     [country],
   );
 
@@ -88,11 +96,14 @@ export default function Step1Country() {
           </motion.ul>
         )}
 
-        {/* Country grid (no preferred subset/order) */}
+        {/* Popular countries first (Cameroon on top), then the rest A–Z */}
         {!showSearch && (
           <div className="mt-6">
+            <p className="text-xs font-medium text-brand-mid-grey uppercase tracking-widest mb-3">
+              {t('wizard.mostPopular')}
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {countries.map(c => (
+              {[...popular, ...others].map(c => (
                 <button
                   key={c.code}
                   type="button"
