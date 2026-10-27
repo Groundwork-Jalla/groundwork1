@@ -265,7 +265,7 @@ export default function Step7RoofType() {
                 onClick={() => chooseForm(f.form)}
                 icon={FORM_ICONS[f.form]}
                 label={t(f.labelKey)}
-                badge={f.form === 'pitched' ? t('wizard.mostPopular') : undefined}
+                floatingBadge={f.form === 'pitched' ? t('wizard.mostPopular') : undefined}
                 description={t(f.descKey)}
               />
             </div>

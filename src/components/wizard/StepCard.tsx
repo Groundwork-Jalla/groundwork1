@@ -8,6 +8,8 @@ interface StepCardProps {
   icon?: React.ReactNode;
   label: string;
   badge?: string;
+  /** Pill straddling the top edge, centred — same treatment as the country picker. */
+  floatingBadge?: string;
   description?: string;
   disabled?: boolean;
   className?: string;
@@ -19,6 +21,7 @@ export default function StepCard({
   icon,
   label,
   badge,
+  floatingBadge,
   description,
   disabled = false,
   className,
@@ -39,6 +42,12 @@ export default function StepCard({
         className,
       )}
     >
+      {floatingBadge && (
+        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black text-[9px] font-semibold px-2 py-px rounded-full whitespace-nowrap tracking-wide">
+          {floatingBadge}
+        </span>
+      )}
+
       {/* Selected check mark */}
       {selected && (
         <motion.span
