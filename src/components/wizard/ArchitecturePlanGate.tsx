@@ -170,7 +170,13 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
         <Drop
           label={t('planGate.bq')} hint={t('planGate.bqHint')}
           file={bq} busy={scanning} kind="boq" accept={BOQ_ACCEPT_ATTR}
-          onPick={f => { setError(null); setBq(f); if (f) void inspect(f); else { setReading(null); setLineItems([]); } }}
+          onPick={selection => {
+            const file = Array.isArray(selection) ? selection[0] ?? null : selection;
+            setError(null);
+            setBq(file);
+            if (file) void inspect(file);
+            else { setReading(null); setLineItems([]); }
+          }}
           onError={setError}
         />
       </div>
