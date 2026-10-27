@@ -17,11 +17,7 @@ import { createSupportTicket } from '@/lib/supabase/support';
 import { Button } from '@/components/ui/button';
 import { hasPassword, requestEmailChange } from '@/lib/auth/account-security';
 import { cn } from '@/lib/utils';
-import { useTierBilling } from '@/lib/tier-labels';
-import { getSubscription, openBillingPortal, startJallaVerifyCheckout } from '@/lib/payments/subscription';
-import type { ProjectTier } from '@/types/project';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
-import { JALLA_MANAGEMENT_PATH } from '@/lib/jalla-management';
 import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
@@ -38,7 +34,7 @@ interface ProfileMeta {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 type UploadState = 'idle' | 'uploading' | 'done' | 'error';
-type ActiveTab = 'profile' | 'account' | 'team' | 'notifications' | 'subscription' | 'danger';
+type ActiveTab = 'profile' | 'account' | 'team' | 'notifications' | 'danger';
 
 interface NotifPrefs {
   stage_approvals: boolean;
@@ -222,13 +218,12 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const t = useT();
-  const tiers = useTierBilling();
 
   // `?tab=account` from the dashboard's security warning lands on the right tab.
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    requestedTab && ['profile', 'account', 'team', 'notifications', 'subscription', 'danger'].includes(requestedTab)
+    requestedTab && ['profile', 'account', 'team', 'notifications', 'danger'].includes(requestedTab)
       ? (requestedTab as ActiveTab) : 'profile',
   );
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -537,22 +532,11 @@ export default function ProfilePage() {
     { id: 'account',       labelKey: 'profile.tabs.account'       },
     { id: 'team',          labelKey: 'profile.tabs.team'          },
     { id: 'notifications', labelKey: 'profile.tabs.notifications' },
-    { id: 'subscription',  labelKey: 'profile.tabs.subscription'  },
     { id: 'danger',        labelKey: 'profile.tabs.danger'        },
   ];
 
   const inputClass =
     'flex h-10 w-full rounded-md border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-brand-dark-grey pl-9 pr-3 py-2 text-sm text-brand-near-black dark:text-white outline-none transition-colors placeholder:text-brand-mid-grey focus-visible:border-brand-near-black dark:focus-visible:border-white';
-
-  // Real entitlement, maintained by the Stripe webhook on profiles.subscription_tier.
-  // This used to read user?.user_metadata?.tier ?? 'free' — a field nothing ever writes.
-  const [tier, setTier] = useState<ProjectTier>('self_verify');
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-    getSubscription(user.id).then(s => { if (!cancelled) setTier(s.tier); }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [user?.id]);
 
   // ── Render ─────────────────────────────────────────────
   return (
@@ -1002,12 +986,11 @@ export default function ProfilePage() {
                 </p>
 
                 <div className="flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c] rounded-2xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-brand-dark-grey overflow-hidden">
-                  {(
+                  {                  (
                     [
                       { key: 'stage_approvals', label: 'Stage approvals', desc: 'When a stage is approved or rejected' },
                       { key: 'evidence',         label: 'Evidence uploaded', desc: 'When evidence is uploaded to your project' },
                       { key: 'messages',         label: 'New messages',       desc: 'When you receive a project message' },
-                      { key: 'payments',         label: 'Payment reminders',  desc: 'When a payment milestone is due' },
                       { key: 'announcements',    label: 'Groundwork announcements', desc: 'Product updates and new features' },
                     ] as const
                   ).map(({ key, label, desc }) => (
@@ -1027,96 +1010,6 @@ export default function ProfilePage() {
                 <p className="text-[11px] text-brand-mid-grey dark:text-brand-mid-grey mt-4 leading-relaxed">
                   {t('profile.notificationsServerSide')}
                 </p>
-              </motion.div>
-            )}
-
-            {/* ── Tab: Subscription ── */}
-            {activeTab === 'subscription' && (
-              <motion.div
-                key="subscription"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="mb-1 flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('profile.yourPlan')}</h2>
-                  <span className="inline-flex items-center text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                    {tiers[tier].name}
-                  </span>
-                </div>
-                <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mb-6">
-                  {t('profile.comparePlans')}
-                </p>
-
-                {/* Rendered from useTierBilling(), the canonical plan config.
-                    This block previously hardcoded three cards using a fifth set of tier
-                    names ("Jalla Verified", "Enterprise") compared against a tier read
-                    from user_metadata that defaulted to 'free' — none of which are real
-                    values. The DB uses self_verify | jalla_verify | jalla_management, so
-                    the comparisons never matched and every user saw "Self-Verify" as
-                    current, including anyone who had paid. */}
-                <div className="flex flex-col gap-4">
-                  {(['self_verify', 'jalla_verify', 'jalla_management'] as ProjectTier[]).map(id => {
-                    const plan      = tiers[id];
-                    const isCurrent = tier === id;
-                    return (
-                      <div key={id} className={cn(
-                        'rounded-2xl border-2 p-5',
-                        isCurrent
-                          ? 'border-brand-near-black dark:border-white'
-                          : 'border-brand-border-grey dark:border-[#2c2c2c]',
-                      )}>
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <p className="text-sm font-bold text-brand-near-black dark:text-white">{plan.name}</p>
-                            <p className="text-lg font-bold text-brand-near-black dark:text-white mt-0.5">
-                              {plan.price}{plan.period ?? ''}
-                            </p>
-                          </div>
-                          {isCurrent && (
-                            <span className="text-[11px] font-medium bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black rounded-full px-2.5 py-0.5">
-                              {t('profile.currentPlan')}
-                            </span>
-                          )}
-                        </div>
-                        <ul className="flex flex-col gap-1.5 mb-4">
-                          {plan.features.map(f => (
-                            <li key={f} className="flex items-center gap-2 text-xs text-brand-mid-grey dark:text-brand-mid-grey">
-                              <Check className="size-3 text-state-complete shrink-0" strokeWidth={3} />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-
-                        {isCurrent && id !== 'self_verify' ? (
-                          <button
-                            type="button"
-                            onClick={() => { openBillingPortal().catch(() => {}); }}
-                            className="text-xs font-semibold text-brand-near-black dark:text-white underline underline-offset-2 hover:opacity-70 transition-opacity"
-                          >
-                            {t('profile.manageBilling')}
-                          </button>
-                        ) : !isCurrent && id === 'jalla_verify' ? (
-                          <button
-                            type="button"
-                            onClick={() => { startJallaVerifyCheckout().catch(() => {}); }}
-                            className="text-xs font-semibold text-brand-near-black dark:text-white underline underline-offset-2 hover:opacity-70 transition-opacity"
-                          >
-                            {plan.cta}
-                          </button>
-                        ) : !isCurrent && id === 'jalla_management' ? (
-                          <a
-                            href={JALLA_MANAGEMENT_PATH}
-                            className="inline-flex items-center text-xs font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2 transition-colors"
-                          >
-                            {plan.cta} &rarr;
-                          </a>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
               </motion.div>
             )}
 
