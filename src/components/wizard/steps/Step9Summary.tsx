@@ -326,11 +326,12 @@ export default function Step9Summary() {
           ? <DocumentBudgetBreakdown />
           : <div className="mt-6"><BudgetBreakdownCard /></div>}
 
-        {!documentFlow && <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
+        {!documentFlow && (
+        <div className="mt-5 rounded-xl border border-brand-border-grey overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-brand-off-white bg-brand-off-white/50">
             <CalendarDays className="size-4 text-brand-mid-grey shrink-0" />
             <p className="text-sm font-semibold text-brand-near-black">{t('wizard.timelineTitle')}</p>
-          </div>}
+          </div>
 
           {(() => {
             const startDate = data.targetStartDate ? new Date(data.targetStartDate) : new Date();
@@ -360,6 +361,7 @@ export default function Step9Summary() {
             </p>
           </div>
         </div>
+        )}
 
       </div>
     </WizardShell>

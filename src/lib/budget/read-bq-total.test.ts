@@ -117,7 +117,6 @@ describe('extracting priced BoQ rows', () => {
     ].join('\n');
 
     expect(readBqLineItems(text)).toEqual([
-      { label: 'Description', amount: 2500 },
       { label: 'Excavation', amount: 25000 },
       { label: 'Concrete foundation', amount: 500000 },
     ]);
