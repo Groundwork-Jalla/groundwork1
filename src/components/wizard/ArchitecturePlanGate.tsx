@@ -7,7 +7,6 @@ import {
   isBoqFile, isFloorPlanFile,
 } from '@/lib/documents/accepted-files';
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
-import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { readPlanWithModel, mergeModelReading } from '@/lib/budget/model-plan-reading';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
@@ -290,32 +289,11 @@ export function ArchitecturePlanGate({
           {t(unreadable ? 'planGate.couldNotRead' : 'planGate.noTotalFound')}
         </p>
       )}
-      {floorPlans.length > 0 && !scanning && (
-        <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
-          {floorPlanFacts.map((facts, i) => (
-            <div key={`${floorPlans[i]?.name ?? 'plan'}-${i}`} className="mb-2 last:mb-0">
-              <p className="font-medium text-brand-near-black">{floorPlans[i]?.name}</p>
-              <p>{floorPlanSummary(facts, t)}</p>
-              {floorPlanEvidence(facts) && (
-                <p className="mt-1 truncate font-mono text-[10px]" title={floorPlanEvidence(facts) ?? undefined}>
-                  {floorPlanEvidence(facts)}
-                </p>
-              )}
-              {/* Under its own heading, never merged into the line above: that line is
-                  counted off the sheet, this one is a reading of the picture. */}
-              {modelReadingSummary(facts, t) && (
-                <div className="mt-2 border-t border-brand-border-grey/60 pt-2">
-                  <p className="font-medium text-brand-near-black">{t('planGate.modelReadTitle')}</p>
-                  <p>{modelReadingSummary(facts, t)}</p>
-                  {facts.model?.basis.dwellingUnits && (
-                    <p className="mt-1 text-[11px] italic">{facts.model.basis.dwellingUnits}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* The per-plan details — bedrooms, bathrooms, kitchens, living rooms — used to
+          be listed here as each drawing was read. Removed 29 October with the same
+          block on the summary: a CAD plan set repeats its rooms across sheets, so the
+          counts came out wrong often enough to mislead (15 bathrooms and no bedrooms
+          on a five-bed house). Nothing in `lib/budget` reads them. */}
       {bq && lineItems.length === 0 && !scanning && (
         <p className="mt-2 text-xs text-brand-mid-grey">
           {t('planGate.noLineItems')}

@@ -12,7 +12,6 @@ import {
 } from '@/lib/budget';
 import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
-import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useUsdRate } from '@/lib/budget/live-fx';
 import { getApproxFx } from '@/lib/budget/legacy';
