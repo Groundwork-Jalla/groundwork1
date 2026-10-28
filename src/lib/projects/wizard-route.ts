@@ -17,8 +17,16 @@
 // step numbers here at all, which is the point.
 // =========================================================
 
-/** The steps the document route visits, in order. Its last entry is the real last step. */
-export const DOCUMENT_ROUTE = [1, 2, 3, 8, 9] as const;
+/**
+ * The steps the document route visits, in order. Its last entry is the real last step.
+ *
+ * THREE screens: where you are building, the summary, the confirmation. Steps 2 and 3
+ * — what are you building, and what type — are gone from this route entirely, because
+ * somebody who hands over a floor plan and a bill has already answered them in more
+ * detail than a dropdown holds. `document-identity` reads the answers out of the
+ * documents instead; see the note there about why that is not optional.
+ */
+export const DOCUMENT_ROUTE = [1, 8, 9] as const;
 
 /** The steps this run visits, in order. */
 export function stepRoute(documentFlow: boolean, totalSteps: number): readonly number[] {

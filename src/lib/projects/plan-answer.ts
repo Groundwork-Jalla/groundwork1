@@ -1,5 +1,6 @@
 import type { WizardFormData } from '@/types/project';
 import { readWizardDraft } from './wizard-draft';
+import { readBuildingKind, projectNameFromDocuments } from './document-identity';
 import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 
 export interface PlanBudgetConversion {
@@ -59,8 +60,30 @@ export function planSeed(
         : null
     : null;
 
+  // What the two skipped questions used to collect, read instead of asked.
+  //
+  // `projects.project_type` is NOT NULL, so this is not a nicety: without it the
+  // document route reaches the final click and the insert is refused. Taken from
+  // everything we have that might name the building — the bill's own rows, the
+  // drawing's text, and both file names.
+  const documentText = [
+    ...(answer.bq ? [answer.bq.name] : []),
+    ...answer.floorPlans.map(file => file.name),
+    ...answer.lineItems.map(item => item.label),
+    answer.reading?.label ?? '',
+  ].join('\n');
+  const kind = readBuildingKind(documentText, facts);
+  const namedByDocuments = projectNameFromDocuments([
+    ...(answer.bq ? [answer.bq.name] : []),
+    ...answer.floorPlans.map(file => file.name),
+  ]);
+
   return {
     hasArchitecturePlan: true,
+    ...kind,
+    // Only as a starting point: the summary shows this in an editable box, so a name
+    // taken off a file name is a suggestion the person sees before anything is made.
+    ...(namedByDocuments ? { projectName: namedByDocuments } : {}),
     // A suggestion, not a decision: the confirm step shows it and it can be corrected
     // before anything is created. Only a reading we are confident in is carried
     // forward — a guess is left for the person to type, so a figure they never looked

@@ -2532,6 +2532,8 @@ export const en = {
     documentCurrencyUnknown: 'Currency not identified in the document',
     noDocumentTotal: 'No BoQ total was extracted',
     lineItemsTitle: 'Priced lines found in the BoQ',
+    showLines:  'Show the {n} priced lines',
+    hideLines:  'Hide the priced lines',
     floorPlanFactsTitle: 'Details found in the floor plans',
     floors: 'floors',
     bedrooms: 'bedrooms',

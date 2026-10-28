@@ -502,6 +502,13 @@ export default function Step9Summary() {
 
 function DocumentBudgetBreakdown() {
   const t = useT();
+  // Collapsed by default, as the estimate card beside it has always been.
+  //
+  // A bill of quantities is forty-odd priced lines. Printing all of them under the
+  // total turns the one screen somebody has to read before creating a project into a
+  // spreadsheet, and the total — the figure that becomes ten stage payments — scrolls
+  // off the top. The chevron is how you get the detail when you want it.
+  const [open, setOpen] = useState(false);
   const { documentExtraction } = useWizard();
   const reading = documentExtraction?.bqReading ?? null;
   const currency = reading?.currencyCode;
@@ -511,22 +518,42 @@ function DocumentBudgetBreakdown() {
   return (
     <div className="mt-6 space-y-4">
       <section className="overflow-hidden rounded-xl border border-brand-border-grey">
-        <div className="border-b border-brand-off-white px-5 py-4">
-          <p className="text-sm font-semibold text-brand-near-black">{t('planGate.bq')}</p>
-          {reading ? (
-            <>
-              <p className="mt-1 text-2xl font-black tabular-nums text-brand-near-black">
-                {amount(reading.total)} {currency ?? ''}
-              </p>
-              <p className="mt-1 text-xs text-brand-mid-grey">
-                {currency ? reading.label : t('planGate.documentCurrencyUnknown')}
-              </p>
-            </>
-          ) : (
-            <p className="mt-1 text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>
-          )}
-        </div>
-        {documentExtraction?.bqLineItems.length ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(value => !value)}
+          className="block w-full border-b border-brand-off-white px-5 py-4 text-left"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-brand-near-black">{t('planGate.bq')}</p>
+              {reading ? (
+                <>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-brand-near-black">
+                    {amount(reading.total)} {currency ?? ''}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-brand-mid-grey">
+                    {currency ? reading.label : t('planGate.documentCurrencyUnknown')}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>
+              )}
+              {!!documentExtraction?.bqLineItems.length && (
+                <p className="mt-2 text-xs text-brand-mid-grey">
+                  {open ? t('planGate.hideLines')
+                        : t('planGate.showLines', { n: documentExtraction.bqLineItems.length })}
+                </p>
+              )}
+            </div>
+            <ChevronDown
+              className={cn('mt-1 size-4 shrink-0 text-brand-mid-grey transition-transform',
+                open && 'rotate-180')}
+              aria-hidden
+            />
+          </div>
+        </button>
+        {open && (documentExtraction?.bqLineItems.length ? (
           <div className="px-5 py-4">
             <p className="mb-3 text-xs font-semibold text-brand-near-black">{t('planGate.lineItemsTitle')}</p>
             <div className="space-y-2">
@@ -542,7 +569,7 @@ function DocumentBudgetBreakdown() {
           </div>
         ) : (
           <p className="px-5 py-4 text-xs text-brand-mid-grey">{t('planGate.noLineItems')}</p>
-        )}
+        ))}
       </section>
 
       <section className="rounded-xl border border-brand-border-grey px-5 py-4">

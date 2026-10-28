@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useWizard } from '@/contexts/WizardContext';
 import { useT, type TKey } from '@/lib/i18n';
+import { stepRoute } from '@/lib/projects/wizard-route';
 
 /**
  * One key per wizard step, in order. This list had nine entries against eleven steps —
@@ -22,9 +23,10 @@ const STEP_KEYS: TKey[] = [
 export default function ProgressBar() {
   const t = useT();
   const { step, totalSteps, direction, data, goTo } = useWizard();
-  const routeSteps = data.hasArchitecturePlan === true
-    ? [1, 2, 3, 8, 9]
-    : Array.from({ length: totalSteps }, (_, i) => i + 1);
+  // The one list, from the module that also walks it. Kept in two places once, and
+  // they disagreed: this said five screens while the wizard clamped movement to five
+  // STEPS, which is how Continue on the summary sent people to step 5.
+  const routeSteps = stepRoute(data.hasArchitecturePlan === true, totalSteps);
   const progressIndex = routeSteps.indexOf(step);
   const summaryStep = routeSteps[Math.max(0, routeSteps.length - 2)] ?? step;
   const finalStep = routeSteps[routeSteps.length - 1] ?? step;

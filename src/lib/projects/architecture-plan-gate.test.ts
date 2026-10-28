@@ -48,7 +48,14 @@ describe('the answer carried into the wizard', () => {
     const answer = YES({
       reading: { total: 13_500_000, label: 'Grand Total', confidence: 'grand', currencyCode: 'USD' },
     });
-    expect(planSeed(answer)).toEqual({ hasArchitecturePlan: true, bqTotalUsd: 13_500_000 });
+    // The derived kind rides along now. Steps 2 and 3 are no longer on this route —
+    // somebody with a plan and a bill has answered them already — and
+    // `projects.project_type` is NOT NULL, so the seed must supply it or the insert
+    // is refused at the final click.
+    expect(planSeed(answer)).toEqual({
+      hasArchitecturePlan: true, bqTotalUsd: 13_500_000,
+      projectType: 'residential', buildingType: 'single_family',
+    });
   });
 
   it('converts an explicitly local-currency total to the stored USD amount', () => {
@@ -79,11 +86,27 @@ describe('the answer carried into the wizard', () => {
   });
 
   it('the seed only ever sets fields the question is about', () => {
+    // The list grew when steps 2 and 3 left this route: what those screens used to
+    // collect is now read from the documents here instead. It is still a closed list
+    // — the seed must not quietly reach into the rest of the form.
+    const allowed = [
+      'hasArchitecturePlan', 'bqTotalUsd',
+      'projectType', 'buildingType', 'projectName',
+      'floors', 'sqm', 'bedrooms', 'bathrooms', 'livingRooms', 'kitchens',
+    ];
     for (const answer of [{ hasPlan: false } as PlanAnswer, YES()]) {
       for (const key of Object.keys(planSeed(answer))) {
-        expect(['hasArchitecturePlan', 'bqTotalUsd']).toContain(key);
+        expect(allowed, `${key} is not a field this question answers`).toContain(key);
       }
     }
+  });
+
+  it('never leaves the project type null, whatever the documents said', () => {
+    // This is the one that stops the insert being refused. A bill that names nothing
+    // still has to produce a type, and the summary shows it before anyone commits.
+    const seed = planSeed(YES());
+    expect(seed.projectType).toBe('residential');
+    expect(seed.buildingType).toBe('single_family');
   });
 
   it('both fields exist on the default form data, so nothing is undefined', () => {

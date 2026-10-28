@@ -2490,6 +2490,8 @@ export const fr: Mirror<EnDict> = {
     documentCurrencyUnknown: 'Devise non identifi\u00e9e dans le document',
     noDocumentTotal: 'Aucun total du devis quantitatif n\u2019a \u00e9t\u00e9 extrait',
     lineItemsTitle: 'Lignes chiffr\u00e9es trouv\u00e9es dans le devis',
+    showLines:  'Afficher les {n} lignes chiffr\u00e9es',
+    hideLines:  'Masquer les lignes chiffr\u00e9es',
     floorPlanFactsTitle: 'D\u00e9tails trouv\u00e9s dans les plans',
     floors: 'niveaux',
     bedrooms: 'chambres',

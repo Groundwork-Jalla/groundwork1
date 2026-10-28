@@ -28,7 +28,7 @@ import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
  */
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
   const {
-    step, data, update, back, pendingDocuments, setPendingDocuments,
+    step, data, update, goTo, back, pendingDocuments, setPendingDocuments,
     setDocumentExtraction, constructionRate, planDocumentsSeen,
   } = useWizard();
 
@@ -68,17 +68,12 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
             facts: answer.floorPlanFacts[i] ?? NO_FLOOR_PLAN_FACTS,
           })),
         } : null);
-        // DELIBERATELY NO JUMP. This used to `goTo(8)`, straight from the plan
-        // question to the summary — which skipped the project type and the building
-        // type, the two questions the documents do NOT answer. `projects.project_type`
-        // is NOT NULL (migration 003), so every such project failed at the final
-        // insert with "null value in column project_type violates not-null
-        // constraint", after the person had filled in everything else.
-        //
-        // The route was always meant to be 1, 2, 3, then the summary — that is the
-        // list `ProgressBar` draws and the one `wizard-route` walks. Falling through
-        // renders step 2 next, because answering the question is what stops it being
-        // due. Steps 4 to 7 are still skipped, by the route itself.
+        // Straight to the summary. Steps 2 and 3 are not on this route: the
+        // documents answered them, and `planSeed` above has just written those
+        // answers into the wizard, so `project_type` is set before anything is
+        // created. Skipping them WITHOUT that was the bug — the insert reached the
+        // database with a null and was refused at the final click.
+        if (answer.hasPlan) goTo(8);
       }}
     />
   );

@@ -214,12 +214,19 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const routeSteps = stepRoute(documentFlow, TOTAL_STEPS);
   const totalSteps = routeSteps.length;
 
+  /**
+   * Carry anyone standing on a step this route does not visit onto one it does.
+   *
+   * Not a fixed 4-to-7 range any more: the document route skips 2 and 3 as well now
+   * that the documents answer those questions, and a hard-coded range would have left
+   * somebody who answered the plan question late stranded on "what are you building"
+   * with no way forward.
+   */
   useEffect(() => {
-    if (documentFlow && step >= 4 && step <= 7) {
-      setDirection('forward');
-      setStep(8);
-    }
-  }, [documentFlow, step]);
+    if (!documentFlow || routeSteps.includes(step)) return;
+    setDirection('forward');
+    setStep(clampToRoute(routeSteps, step));
+  }, [documentFlow, routeSteps, step]);
 
   useEffect(() => {
     if (draftCleared.current) return;
