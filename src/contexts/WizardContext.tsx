@@ -30,6 +30,7 @@ export type WizardDirection = 'forward' | 'back';
  * admin to set.
  */
 import type { ProjectTier } from '@/types/project';
+import { stepRoute, nextStep, prevStep, clampToRoute } from '@/lib/projects/wizard-route';
 
 export interface OnBehalfOf {
   userId: string;
@@ -111,6 +112,12 @@ const WizardContext = createContext<WizardContextValue | null>(null);
 // 9: five setup steps, roof, details, summary, and budget confirmation.
 export const TOTAL_STEPS = 9;
 
+/**
+ * The five-screen document route, the walk between steps, and why both exist, are in
+ * `@/lib/projects/wizard-route` — the arithmetic that trapped a contractor on step 8
+ * is pure and is tested there without React.
+ */
+
 // =========================================================
 // Provider
 // =========================================================
@@ -171,7 +178,9 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [rateLoading, setRateLoading]           = useState(false);
   const planDocumentsReady = docs.some(doc => doc.category === 'boq')
     && docs.some(doc => doc.category === 'other');
-  const totalSteps = data.hasArchitecturePlan === true && planDocumentsReady ? 5 : TOTAL_STEPS;
+  const routeSteps = stepRoute(
+    data.hasArchitecturePlan === true && planDocumentsReady, TOTAL_STEPS);
+  const totalSteps = routeSteps.length;
 
   useEffect(() => {
     if (data.hasArchitecturePlan === true && planDocumentsReady && step >= 4 && step <= 7) {
@@ -226,24 +235,22 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const next = useCallback(() => {
     draftCleared.current = false;
     setDirection('forward');
-    setStep(prev => data.hasArchitecturePlan === true && planDocumentsReady && prev === 3
-      ? 8
-      : Math.min(prev + 1, totalSteps));
-  }, [data.hasArchitecturePlan, planDocumentsReady, totalSteps]);
+    setStep(prev => nextStep(routeSteps, prev));
+  }, [routeSteps]);
 
   const back = useCallback(() => {
     draftCleared.current = false;
     setDirection('back');
-    setStep(prev => data.hasArchitecturePlan === true && planDocumentsReady && prev === 8
-      ? 3
-      : Math.max(prev - 1, 1));
-  }, [data.hasArchitecturePlan, planDocumentsReady]);
+    setStep(prev => prevStep(routeSteps, prev));
+  }, [routeSteps]);
 
   const goTo = useCallback((n: number) => {
     draftCleared.current = false;
     setDirection(n > step ? 'forward' : 'back');
-    setStep(Math.max(1, Math.min(n, totalSteps)));
-  }, [step, totalSteps]);
+    // Onto the route, never to a count. The old `Math.min(n, totalSteps)` turned the
+    // plan question's own `goTo(8)` into step 5.
+    setStep(clampToRoute(routeSteps, n));
+  }, [step, routeSteps]);
 
   const reset = useCallback(() => {
     // Clear before resetting state; the resulting effect must not save a blank draft
