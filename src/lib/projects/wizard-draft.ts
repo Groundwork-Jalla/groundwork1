@@ -15,6 +15,20 @@ export interface WizardDraft {
   direction: 'forward' | 'back';
   data: WizardFormData;
   confirmation?: WizardConfirmationDraft;
+  /**
+   * The floor plan and the bill of quantities were uploaded, and then a reload threw
+   * the Files away.
+   *
+   * The same problem as `hadAttachment` above, and the same answer — remember that it
+   * happened. Without it the wizard sees no documents, concludes the architecture-plan
+   * question was never answered, and draws that question over whatever step the person
+   * had reached. They refresh on the summary and land back on "Does your project have
+   * an architecture plan?", with the five-screen route collapsed back to nine.
+   *
+   * Reported by Ruth on 28 October: partners "have been complaining stylishly", and a
+   * contractor refreshed on a call and "it took him to the very beginning".
+   */
+  planDocumentsAttached?: boolean;
 }
 
 const PROJECT_TYPES = ['residential', 'commercial', 'industrial', 'mixed_use'];
@@ -110,8 +124,13 @@ function snapshot(value: unknown): WizardDraft | null {
   if (!data) return null;
   const savedConfirmation = value.confirmation === undefined ? undefined : confirmation(value.confirmation);
   if (savedConfirmation === null) return null;
+  // Absent in drafts written before this existed, which is a valid draft and not a
+  // reason to throw the whole thing away — undefined simply means "we do not know".
+  if (!(value.planDocumentsAttached === undefined
+     || typeof value.planDocumentsAttached === 'boolean')) return null;
   return { version: 1, step: value.step, direction: value.direction, data,
     ...(savedConfirmation ? { confirmation: savedConfirmation } : {}),
+    ...(value.planDocumentsAttached ? { planDocumentsAttached: true } : {}),
   };
 }
 
