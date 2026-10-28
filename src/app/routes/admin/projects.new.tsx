@@ -96,7 +96,11 @@ export default function AdminNewProject() {
   if (chosen) {
     return (
       <WizardProvider onBehalfOf={chosen}>
-        <ManagedWizard />
+        {/* The wizard is sized to the full viewport; inside the admin shell that pushes the page
+            past the fold by the height of the top bar, so fit it to what is left. */}
+        <div className="[&_.h-screen]:!h-[calc(100dvh-3.25rem)]">
+          <ManagedWizard />
+        </div>
       </WizardProvider>
     );
   }
