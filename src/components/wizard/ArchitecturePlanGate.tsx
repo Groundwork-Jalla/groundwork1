@@ -7,7 +7,8 @@ import {
   isBoqFile, isFloorPlanFile,
 } from '@/lib/documents/accepted-files';
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
-import { floorPlanSummary, floorPlanEvidence } from '@/lib/budget/floor-plan-summary';
+import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
+import { readPlanWithModel, mergeModelReading } from '@/lib/budget/model-plan-reading';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
 
@@ -57,18 +58,44 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [scanCount, setScanCount] = useState(0);
   const scanning = scanCount > 0;
   const [unreadable, setUnreadable] = useState(false);
+  // The second, slower read. Never gates Continue — see `inspectFloorPlans`.
+  const [looking, setLooking] = useState(false);
   // Read from a picture rather than from the file. Said plainly wherever the figure
   // appears: OCR confuses 8 with 3 and 1 with 7, and this number becomes ten payments.
   const [fromOcr, setFromOcr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Read the plans twice: off the text layer, then by looking at them.
+   *
+   * The two are deliberately not awaited together. The extractor is instant and local
+   * and its answer is what the budget is built from, so it goes on screen the moment
+   * it is ready. The model read is a network call that costs money and takes seconds,
+   * and it arrives afterwards to fill in what counting could not — above all how many
+   * separate dwellings the layout holds, which decides whether this is one build or
+   * three and which no string on a drawing ever states.
+   *
+   * `looking` is tracked apart from `scanCount` on purpose. Continue must not wait on
+   * it: the extractor has already produced everything the next step needs, and a
+   * model that is slow, unconfigured or down cannot be allowed to hold up a project.
+   */
   async function inspectFloorPlans(files: File[]) {
     setScanCount(count => count + 1);
+    let facts: FloorPlanFacts[];
     try {
-      const facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
+      facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
       setFloorPlanFacts(facts);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
+    }
+
+    setLooking(true);
+    try {
+      const readings = await Promise.all(files.map(file => readPlanWithModel(file)));
+      if (readings.every(reading => reading == null)) return;
+      setFloorPlanFacts(facts.map((fact, i) => mergeModelReading(fact, readings[i] ?? null)));
+    } finally {
+      setLooking(false);
     }
   }
 
@@ -229,6 +256,11 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.reading')}
         </p>
       )}
+      {looking && !scanning && (
+        <p role="status" className="mt-3 flex items-center gap-2 text-xs text-brand-mid-grey">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.lookingAtPlan')}
+        </p>
+      )}
       {bq && !reading && !scanning && (
         <p className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
           {t(unreadable ? 'planGate.couldNotRead' : 'planGate.noTotalFound')}
@@ -244,6 +276,17 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
                 <p className="mt-1 truncate font-mono text-[10px]" title={floorPlanEvidence(facts) ?? undefined}>
                   {floorPlanEvidence(facts)}
                 </p>
+              )}
+              {/* Under its own heading, never merged into the line above: that line is
+                  counted off the sheet, this one is a reading of the picture. */}
+              {modelReadingSummary(facts, t) && (
+                <div className="mt-2 border-t border-brand-border-grey/60 pt-2">
+                  <p className="font-medium text-brand-near-black">{t('planGate.modelReadTitle')}</p>
+                  <p>{modelReadingSummary(facts, t)}</p>
+                  {facts.model?.basis.dwellingUnits && (
+                    <p className="mt-1 text-[11px] italic">{facts.model.basis.dwellingUnits}</p>
+                  )}
+                </div>
               )}
             </div>
           ))}

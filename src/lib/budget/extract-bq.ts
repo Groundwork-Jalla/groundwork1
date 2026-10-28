@@ -1,4 +1,5 @@
 import { parseAmount, readBqLineItems, readBqTotal, type BqLineItem, type BqReading } from './read-bq-total';
+import type { ModelPlanReading } from './model-plan-reading';
 
 // =========================================================
 // Getting the rows out of a bill of quantities, whatever it arrived as.
@@ -295,6 +296,16 @@ export interface FloorPlanFacts {
    * budget. It says "ask for the other sheets", which is the honest reading.
    */
   staircase: boolean;
+  /**
+   * What a vision model made of the drawing, when one was asked and answered.
+   *
+   * Kept beside the extractor's reading rather than folded into it, because the two
+   * are different kinds of claim: everything above is counted or measured off the
+   * sheet, this is somebody looking at a picture. It is the only source for
+   * `dwellingUnits`, which nothing on a drawing states and which decides whether this
+   * is one build or three.
+   */
+  model?: ModelPlanReading | null;
   evidence: {
     floors: string[];
     areaSqm: string[];
@@ -319,6 +330,7 @@ export const NO_FLOOR_PLAN_FACTS: FloorPlanFacts = {
   floors: null, areaSqm: null, footprintSqm: null,
   bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
   staircase: false,
+  model: null,
   evidence: {
     floors: [], areaSqm: [], footprintSqm: [],
     bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [], staircase: [],

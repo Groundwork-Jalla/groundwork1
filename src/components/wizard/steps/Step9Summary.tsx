@@ -12,7 +12,7 @@ import {
 } from '@/lib/budget';
 import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
-import { floorPlanSummary, floorPlanEvidence } from '@/lib/budget/floor-plan-summary';
+import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -548,6 +548,14 @@ function DocumentBudgetBreakdown() {
             <div key={plan.fileName} className="text-xs text-brand-mid-grey">
               <p className="font-medium text-brand-near-black">{plan.fileName}</p>
               <p>{floorPlanSummary(plan.facts, t, amount)}</p>
+              {modelReadingSummary(plan.facts, t, amount) && (
+                <p className="mt-1">
+                  <span className="font-medium text-brand-near-black">
+                    {t('planGate.modelReadTitle')}:{' '}
+                  </span>
+                  {modelReadingSummary(plan.facts, t, amount)}
+                </p>
+              )}
               {floorPlanEvidence(plan.facts) && (
                 <p className="mt-1 truncate font-mono text-[10px]"
                    title={floorPlanEvidence(plan.facts) ?? undefined}>

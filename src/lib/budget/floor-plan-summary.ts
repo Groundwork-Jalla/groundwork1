@@ -58,3 +58,45 @@ export function floorPlanEvidence(facts: Pick<FloorPlanFacts, 'evidence'>): stri
   const ev = facts.evidence;
   return ev?.footprintSqm?.[0] ?? ev?.areaSqm?.[0] ?? ev?.floors?.[0] ?? null;
 }
+
+/**
+ * What the model made of the building, as one line — or null when none was asked.
+ *
+ * Kept apart from `floorPlanSummary` rather than appended to it, because the two are
+ * different kinds of claim and the screen should not blur them. Everything in that
+ * line was counted or measured off the sheet; everything in this one is a reading of
+ * a picture, and it is shown under a heading that says so.
+ */
+export function modelReadingSummary(
+  facts: Pick<FloorPlanFacts, 'model'>,
+  t: (key: TKey) => string,
+  format: (value: number) => string = value => String(value),
+): string | null {
+  const model = facts.model;
+  if (!model) return null;
+
+  const parts: string[] = [];
+  // First, because it is the one thing nothing else in the product can tell you, and
+  // the difference between one build schedule and three.
+  if (model.dwellingUnits != null) {
+    parts.push(`${model.dwellingUnits} ${t(model.dwellingUnits === 1
+      ? 'planGate.dwellingUnit' : 'planGate.dwellingUnits')}`);
+  }
+  if (model.buildingType) parts.push(t(BUILDING_TYPE_KEYS[model.buildingType]));
+  if (model.floors != null) parts.push(`${model.floors} ${t('planGate.floors')}`);
+  if (model.grossAreaSqm != null) parts.push(`${format(model.grossAreaSqm)} m²`);
+
+  return parts.length ? parts.join(' · ') : null;
+}
+
+/** Translated names for the building types the model may answer with. */
+const BUILDING_TYPE_KEYS = {
+  house:         'planGate.typeHouse',
+  duplex:        'planGate.typeDuplex',
+  apartment_block: 'planGate.typeApartmentBlock',
+  row_housing:   'planGate.typeRowHousing',
+  commercial:    'planGate.typeCommercial',
+  mixed_use:     'planGate.typeMixedUse',
+  institutional: 'planGate.typeInstitutional',
+  other:         'planGate.typeOther',
+} as const satisfies Record<string, TKey>;
