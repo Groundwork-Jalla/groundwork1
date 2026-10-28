@@ -3,6 +3,7 @@ import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
 import { trackEvent } from '@/lib/analytics';
 import type { WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
+import { DEFAULT_BUILDING_KIND } from '@/lib/projects/document-identity';
 
 // =========================================================
 // createProject
@@ -46,8 +47,22 @@ export async function createProject(
       name:                formData.projectName,
       country:             formData.country,
       city:                formData.city || null,
-      project_type:        formData.projectType,
-      building_type:       formData.buildingType,
+      // Never null, whatever route the wizard took to get here.
+      //
+      // Both columns are NOT NULL (003). The document route does not ask for them —
+      // `document-identity` reads them off the plan and the bill instead — but that
+      // happens ONCE, when the plan question is answered, and a draft saved under an
+      // older route can resume past it. On 29 October a resumed draft reached this
+      // insert with `building_type` null and was refused at the final click, after
+      // everything else had been filled in. The same thing had happened a day earlier
+      // with `project_type`.
+      //
+      // So the guarantee belongs here, at the one point every route passes through,
+      // exactly as `roof_type` below already does. The fallback is the commonest
+      // Groundwork project and it is shown in the Type row on the summary, so it is
+      // visible before anyone commits rather than written silently.
+      project_type:        formData.projectType  ?? DEFAULT_BUILDING_KIND.projectType,
+      building_type:       formData.buildingType ?? DEFAULT_BUILDING_KIND.buildingType,
       num_floors:          formData.floors,
       sqm:                 formData.sqm,
       finish_level:        formData.finishLevel,

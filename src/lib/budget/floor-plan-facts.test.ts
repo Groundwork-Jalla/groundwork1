@@ -181,3 +181,34 @@ describe('a storey count read off a bill of quantities', () => {
     expect(readStatedFloors('40 FLOORS').value).toBeNull();
   });
 });
+
+describe('an area is not guessed from a whole plan set', () => {
+  /**
+   * Vanessa's plan, read on the call of 28 October: 14 sheets, and the bounding box
+   * came out at 769.7 m² against a true 151.75 m² per floor. The design fee is
+   * 5,000 XAF per built m², so that single number moved roughly $10,000 inside the
+   * client's own bill of quantities.
+   *
+   * Nor can the stated figure be read in its place. `pdftotext` flattens the CAD
+   * title block: "TOTAL SURFACE" ends up twelve lines from its 151.75, while
+   * "AREA= 500 m2" — the PLOT, not the building — keeps its label and matches first.
+   */
+  const SHEET = ['21.25', '21.25', '10.30', '10.30'].join('\n');
+
+  it('derives from a single sheet, where the dimension chain is the building', () => {
+    expect(readFloorPlanFacts(SHEET, { pageCount: 1 }).footprintSqm).toBeCloseTo(218.88, 1);
+  });
+
+  it('claims nothing from a set of sheets', () => {
+    expect(readFloorPlanFacts(SHEET, { pageCount: 14 }).footprintSqm).toBeNull();
+  });
+
+  it('still takes a figure the set states outright', () => {
+    const stated = 'GROUND FLOOR AREA 151.75 m²\n' + SHEET;
+    expect(readFloorPlanFacts(stated, { pageCount: 14 }).footprintSqm).toBeCloseTo(151.75, 2);
+  });
+
+  it('assumes a single sheet when nobody said otherwise', () => {
+    expect(readFloorPlanFacts(SHEET).footprintSqm).toBeCloseTo(218.88, 1);
+  });
+});

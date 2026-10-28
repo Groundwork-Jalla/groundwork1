@@ -290,7 +290,7 @@ export const fr: Mirror<EnDict> = {
     },
   },
   wizardFields: {
-    projectNamePlaceholder: 'ex. Maison familiale à Douala',
+    projectNamePlaceholder: 'Saisissez le nom du projet',
     cityPlaceholder:        'ex. Bamenda',
     bedrooms:               'Chambres',
     bathrooms:              'Salles de bain',
@@ -2499,6 +2499,7 @@ export const fr: Mirror<EnDict> = {
     livingRooms: 'salons',
     kitchens: 'cuisines',
     projectNameRequired: 'Nom du projet',
+    projectNamePlaceholder: 'Nommez votre projet',
     footprintRequired: 'Emprise au sol (m\u00b2)',
     floorsRequired: 'Nombre de niveaux',
     floorsPlaceholder: 'ex. 2',
@@ -4701,7 +4702,7 @@ export const fr: Mirror<EnDict> = {
     s10CreateFailed: "Impossible de créer votre projet. Veuillez réessayer.",
     joined: {
       question:    'Ce chantier a d\u00e9j\u00e0 commenc\u00e9',
-      hint:        'Cochez cette case lorsqu\u2019un entrepreneur am\u00e8ne un client dont la maison est d\u00e9j\u00e0 sortie de terre. Les \u00e9tapes d\u00e9j\u00e0 construites sont enregistr\u00e9es comme faites, sans paiement ni v\u00e9rification.',
+      hint:        'Si le chantier a d\u00e9j\u00e0 commenc\u00e9, choisissez l\u2019\u00e9tape atteinte. Tout ce qui pr\u00e9c\u00e8de est enregistr\u00e9 comme d\u00e9j\u00e0 construit \u2014 sans paiement ni v\u00e9rification. Laissez l\u2019\u00e9tape\u00a01 si rien n\u2019est encore construit.',
       describeLabel: '\u00c0 quelle \u00e9tape en est-il\u00a0? Dans les mots de l\u2019entrepreneur',
       describePlaceholder: 'ex.\u00a0: la toiture est pos\u00e9e, on commence l\u2019\u00e9lectricit\u00e9',
       matched:     'Interpr\u00e9t\u00e9 comme l\u2019\u00e9tape {stage}\u00a0: {name} \u2014 d\u2019apr\u00e8s \u00ab\u00a0{phrase}\u00a0\u00bb',

@@ -287,7 +287,7 @@ export const en = {
     },
   },
   wizardFields: {
-    projectNamePlaceholder: 'e.g. Douala Family House',
+    projectNamePlaceholder: 'Enter project name',
     cityPlaceholder:        'e.g. Bamenda',
     bedrooms:               'Bedrooms',
     bathrooms:              'Bathrooms',
@@ -2541,6 +2541,7 @@ export const en = {
     livingRooms: 'living rooms',
     kitchens: 'kitchens',
     projectNameRequired: 'Project name',
+    projectNamePlaceholder: 'Name your project',
     footprintRequired: 'Ground-floor footprint (m²)',
     floorsRequired: 'Number of floors',
     floorsPlaceholder: 'e.g. 2',
@@ -4803,7 +4804,7 @@ export const en = {
     // record earlier stages as already built.
     joined: {
       question:    'This project has already started',
-      hint:        'Tick this when a contractor brings a client whose house is already up. The stages already built are recorded as done, with no payment and no verification.',
+      hint:        'If the build is already under way, choose the stage it has reached. Everything before it is recorded as already built \u2014 no payment and no verification. Leave it on stage 1 if nothing has been built yet.',
       describeLabel: 'What stage is it on? In the contractor\u2019s own words',
       describePlaceholder: 'e.g. the roof is on, starting the wiring',
       matched:     'Read as stage {stage}: {name} \u2014 from \u201c{phrase}\u201d',

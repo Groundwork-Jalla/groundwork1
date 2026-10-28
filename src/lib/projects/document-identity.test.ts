@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { readBuildingKind, DEFAULT_BUILDING_KIND } from './document-identity';
 import { NO_FLOOR_PLAN_FACTS, type FloorPlanFacts } from '@/lib/budget/extract-bq';
@@ -79,5 +81,37 @@ describe('the drawing can overrule the word', () => {
   it('and leaves a single-kitchen plan alone', () => {
     const oneHome = facts({ kitchens: 1, livingRooms: 1, bedrooms: 3 });
     expect(readBuildingKind('RESIDENTIAL', [oneHome]).buildingType).toBe('single_family');
+  });
+});
+
+describe('the columns that cannot be null', () => {
+  const ROOT = resolve(__dirname, '..', '..', '..');
+  const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
+
+  /**
+   * `projects.project_type` and `projects.building_type` are both NOT NULL (003), and
+   * the document route does not ask for either — they are read off the plan and the
+   * bill instead. But that reading happens ONCE, when the plan question is answered,
+   * and a draft saved under an older route can resume past it.
+   *
+   * Both failed in production, a day apart: `project_type` on 28 October and
+   * `building_type` on 29 October, each refused at the final click after everything
+   * else had been filled in. So the guarantee lives at the insert — the one point
+   * every route passes through — and not only at the seed.
+   */
+  it('are defaulted where the row is actually written', () => {
+    const insert = read('src/lib/supabase/projects.ts');
+    expect(insert).toMatch(/project_type:\s+formData\.projectType\s+\?\? DEFAULT_BUILDING_KIND\.projectType/);
+    expect(insert).toMatch(/building_type:\s+formData\.buildingType \?\? DEFAULT_BUILDING_KIND\.buildingType/);
+  });
+
+  it('and the roof, which the document route also skips', () => {
+    expect(read('src/lib/supabase/projects.ts'))
+      .toMatch(/roof_type:\s+formData\.roofType \?\? 'stone_coated'/);
+  });
+
+  it('the fallback is a real value for both columns, not an empty string', () => {
+    expect(DEFAULT_BUILDING_KIND.projectType).toBeTruthy();
+    expect(DEFAULT_BUILDING_KIND.buildingType).toBeTruthy();
   });
 });

@@ -337,17 +337,18 @@ export default function Step9Summary() {
 
         {documentFlow && (
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <label className="block sm:col-span-3">
-              <span className="mb-1 block text-xs font-medium text-brand-near-black">
-                {t('planGate.projectNameRequired')}
-              </span>
-              <input
-                value={data.projectName}
-                onChange={event => update({ projectName: event.target.value })}
-                className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
-                required
-              />
-            </label>
+            {/* The box and its placeholder, nothing else. The label above and the
+                paragraph below both said the same thing a third time, on a screen
+                whose job is to be read at a glance. The placeholder carries it, and
+                an aria-label keeps the field named for a screen reader. */}
+            <input
+              value={data.projectName}
+              onChange={event => update({ projectName: event.target.value })}
+              placeholder={t('planGate.projectNamePlaceholder')}
+              aria-label={t('planGate.projectNamePlaceholder')}
+              className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black sm:col-span-3"
+              required
+            />
             {!hasExtractedFootprint && (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-brand-near-black">
@@ -363,9 +364,6 @@ export default function Step9Summary() {
                   required
                 />
               </label>
-            )}
-            {(!hasValidFloors || !hasValidFootprint || !data.projectName.trim()) && (
-              <p className="text-xs text-brand-mid-grey sm:col-span-3">{t('planGate.missingProjectDetails')}</p>
             )}
           </div>
         )}
@@ -556,9 +554,14 @@ function DocumentBudgetBreakdown() {
                   {money.rate && (
                     <p className="mt-0.5 text-[11px] text-brand-mid-grey">{money.rate}</p>
                   )}
-                  <p className="mt-1 truncate text-xs text-brand-mid-grey">
-                    {currency ? reading.label : t('planGate.documentCurrencyUnknown')}
-                  </p>
+                  {/* The row the figure came from, and nothing else. "Currency not
+                      identified in the document" used to sit here when the bill did
+                      not name one — which told the reader about our parser rather
+                      than about their project, next to a figure already shown in
+                      their own currency. Removed 28 October. */}
+                  {currency && (
+                    <p className="mt-1 truncate text-xs text-brand-mid-grey">{reading.label}</p>
+                  )}
                 </>
               ) : (
                 <p className="mt-1 text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>

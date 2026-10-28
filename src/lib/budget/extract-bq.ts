@@ -55,7 +55,7 @@ async function fromSpreadsheet(file: File): Promise<string> {
  * in document order instead would put every number on its own line and lose which row
  * each belonged to.
  */
-async function fromPdf(file: File): Promise<{ text: string; ocr: boolean }> {
+async function fromPdf(file: File): Promise<{ text: string; ocr: boolean; pages: number }> {
   const pdfjs = await import('pdfjs-dist');
   // The worker is bundled beside the library; Vite resolves this to a real URL.
   pdfjs.GlobalWorkerOptions.workerSrc =
@@ -95,8 +95,8 @@ async function fromPdf(file: File): Promise<{ text: string; ocr: boolean }> {
   // the end of it; now the pages are rendered and read as pictures.
   const text = anyText ? pages.join('\n') : '';
   const out = text.trim()
-    ? { text, ocr: false }
-    : { text: await fromScannedPdf(doc as never), ocr: true };
+    ? { text, ocr: false, pages: doc.numPages }
+    : { text: await fromScannedPdf(doc as never), ocr: true, pages: doc.numPages };
 
   // Release the worker's copy of the document. `cleanup()` is the public surface in
   // pdfjs 6; a leaked document keeps its page data alive for the life of the tab.
@@ -537,7 +537,10 @@ export function readStatedFloors(text: string): { value: number | null; evidence
 }
 
 /** Extract what a floor plan states, and what counting its labels establishes. */
-export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
+export function readFloorPlanFacts(
+  text: string,
+  opts: { pageCount?: number } = {},
+): Omit<FloorPlanFacts, 'readable'> {
   const lines = text
     .split(/\r?\n/)
     .map(line => line.trim())
@@ -556,9 +559,24 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
   const statedFootprint = extractArea(lines, new RegExp(
     String.raw`\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
 
-  // Only derive when the drawing did not say it. A stated footprint is the architect's
-  // own figure and may account for things a bounding box cannot see.
-  const spans = statedFootprint.value == null ? overallSpans(text) : null;
+  /**
+   * Only derive from a SINGLE sheet, and only when nothing was stated.
+   *
+   * A one-page ground plan's outermost dimension chain is the building. A 14-page
+   * set is not: it carries site plans, sections and structural details, and the two
+   * largest repeated dimensions in it are no longer the envelope. Vanessa's plan
+   * measured 769.7 m² that way against a true 151.75 m² a floor — and because the
+   * design fee is 5,000 XAF per built m², that one number moved about $10,000 inside
+   * the client's own budget.
+   *
+   * Nor can the stated figure be read instead: `pdftotext` flattens the CAD title
+   * block, so "TOTAL SURFACE" lands twelve lines from its 151.75, while "AREA= 500
+   * m2" — the PLOT — keeps its label and would be matched in its place. Reading an
+   * area off a plan set is beyond what text extraction can do honestly, so on a set
+   * we claim nothing and the summary asks for it.
+   */
+  const singleSheet = opts.pageCount == null || opts.pageCount === 1;
+  const spans = statedFootprint.value == null && singleSheet ? overallSpans(text) : null;
   const derived = spans ? Math.round(spans.width * spans.depth * 100) / 100 : null;
   const derivedOk = derived != null
     && derived >= MIN_FOOTPRINT_SQM && derived <= MAX_FOOTPRINT_SQM;
@@ -604,7 +622,10 @@ export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts>
 
   try {
     const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
-    return { readable: !!out.text.trim(), ...readFloorPlanFacts(out.text) };
+    return {
+      readable: !!out.text.trim(),
+      ...readFloorPlanFacts(out.text, { pageCount: 'pages' in out ? out.pages : 1 }),
+    };
   } catch {
     return { ...NO_FLOOR_PLAN_FACTS };
   }

@@ -36,7 +36,7 @@ export default function Step11ConfirmBudget() {
   const { data, constructionRate, cityRate, onBehalfOf,
     clearDraft, confirmationDraft, updateConfirmationDraft, pendingDocuments,
     planDocumentsSeen } = useWizard();
-  const { user }  = useAuth();
+  const { user, isContractor }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
   const f         = useFormat();
@@ -241,10 +241,21 @@ export default function Step11ConfirmBudget() {
 
       clearDraft();
 
-      // Neither an admin nor a partner goes to Stripe, and neither lands on the client's
-      // own project page — that view assumes an owner. They go back to their own surface.
+      // Nobody who is not the owner lands on the owner's project page — that view
+      // assumes an owner, and a contractor dropped on it sees the client's own screen
+      // and is invited to invite a contractor to the build they just made.
+      //
+      // `onBehalfOf` is not the whole test. A contractor can reach this wizard without
+      // it — setting up a build of their own — and then fell through to the client
+      // page. Reported 29 October: "after contractors create a project, they see that
+      // project view as clients". Contractor standing is the real question, so it is
+      // the one asked.
       if (onBehalfOf) {
         navigate(onBehalfOf.by === 'partner' ? '/work/projects' : '/admin/projects');
+        return;
+      }
+      if (isContractor) {
+        navigate('/work/projects');
         return;
       }
 
@@ -295,9 +306,6 @@ export default function Step11ConfirmBudget() {
             <label className="block">
               <span className="block text-sm font-medium text-brand-near-black">
                 {t('wizard.joined.stageLabel')}
-              </span>
-              <span className="mt-0.5 block text-xs text-brand-mid-grey">
-                {t('wizard.joined.hint')}
               </span>
               {/* The stage is CHOSEN, never typed. It used to be a sentence a matcher
                   read a stage out of, which asks somebody to describe a thing we

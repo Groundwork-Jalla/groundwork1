@@ -98,9 +98,13 @@ const FILTERS: { id: string; labelKey: TKey }[] = [
 ];
 
 export default function ProjectsIndex() {
-  const { user } = useAuth();
+  const { user, isContractor } = useAuth();
   const { t, tPlural } = useLanguage();
-  const isContractor = user?.user_metadata?.role === 'contractor';
+  // From `user_roles` and accepted assignments, via AuthContext — NOT from
+  // `user_metadata.role`, which is set by the browser at signup and which migration
+  // 100 stopped writing. That check had been false for every contractor since, so a
+  // partner who created a project for their client opened it and saw the CLIENT's
+  // view, complete with an invitation to invite a contractor. Reported 29 October.
 
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading,  setLoading]  = useState(true);

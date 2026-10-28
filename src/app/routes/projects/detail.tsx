@@ -143,7 +143,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
-  const { user } = useAuth();
+  const { user, isContractor } = useAuth();
   const t        = useT();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
@@ -320,7 +320,11 @@ export default function ProjectDetail() {
     ? Math.round((stages.filter(s => s.status === 'complete').length / stages.length) * 100)
     : 0;
 
-  const isContractor = user?.user_metadata?.role === 'contractor';
+  // From `user_roles` and accepted assignments, via AuthContext — NOT from
+  // `user_metadata.role`, which is set by the browser at signup and which migration
+  // 100 stopped writing. That check had been false for every contractor since, so a
+  // partner who created a project for their client opened it and saw the CLIENT's
+  // view, complete with an invitation to invite a contractor. Reported 29 October.
   // Real ownership, from the row — not `user_metadata`, which the browser sets. Since 112
   // a project can be OPEN to somebody who does not own it (a family viewer), so "not a
   // contractor" no longer means "the owner".
