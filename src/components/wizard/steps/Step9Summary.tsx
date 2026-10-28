@@ -14,6 +14,7 @@ import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
 import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
 import { moneyPair } from '@/lib/budget/money-pair';
+import { useUsdRate } from '@/lib/budget/live-fx';
 import { getApproxFx } from '@/lib/budget/legacy';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -520,8 +521,11 @@ function DocumentBudgetBreakdown() {
   const currency = reading?.currencyCode;
   const floorPlans = documentExtraction?.floorPlans ?? [];
   const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  // The rate the budget engine itself divides by, so the two cannot disagree.
-  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(wizardData.country);
+  // Today's rate where it can be fetched, the stored one otherwise. The stored
+  // figure is a round 600 for Cameroon and the real rate is nearer 580, which on a
+  // 59 million franc bill is thousands of dollars of apparent budget.
+  const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(wizardData.country);
+  const fxRate = useUsdRate(currency, storedRate);
   const money = moneyPair(reading?.total ?? 0, currency, fxRate);
 
   return (
@@ -551,9 +555,6 @@ function DocumentBudgetBreakdown() {
                       </span>
                     )}
                   </p>
-                  {money.rate && (
-                    <p className="mt-0.5 text-[11px] text-brand-mid-grey">{money.rate}</p>
-                  )}
                   {/* The row the figure came from, and nothing else. "Currency not
                       identified in the document" used to sit here when the bill did
                       not name one — which told the reader about our parser rather

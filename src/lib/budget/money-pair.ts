@@ -17,7 +17,12 @@ export interface MoneyPair {
   local: string;
   /** The same money in dollars, or null when it already is dollars. */
   usd: string | null;
-  /** "600 XAF = $1" — shown so the conversion can be checked rather than believed. */
+  /**
+   * "600 XAF = $1". No longer shown — Philip, 29 October: "you do not need to show
+   * them what the $1 is, but ensure that the rate we are displaying is correct."
+   * Kept on the type because it is the one thing that makes a wrong conversion
+   * diagnosable, and a caller debugging one should not have to recompute it.
+   */
   rate: string | null;
 }
 
