@@ -178,21 +178,41 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [rateLoading, setRateLoading]           = useState(false);
   const planDocumentsReady = docs.some(doc => doc.category === 'boq')
     && docs.some(doc => doc.category === 'other');
-  const routeSteps = stepRoute(
-    data.hasArchitecturePlan === true && planDocumentsReady, TOTAL_STEPS);
+
+  /**
+   * The documents were uploaded at some point in this run, even if a reload has since
+   * thrown the Files away.
+   *
+   * Sticky on purpose, and restored from the draft. `planDocumentsReady` is about what
+   * is in memory RIGHT NOW, and after a refresh that is nothing — a File cannot be
+   * serialised. Deciding the route from that alone meant a refresh on the summary put
+   * the person back at the architecture-plan question with the five-screen route
+   * collapsed to nine. What they actually did has not changed; only what the tab can
+   * still hold has.
+   */
+  const [planDocumentsSeen, setPlanDocumentsSeen] = useState(saved?.planDocumentsAttached ?? false);
+  useEffect(() => {
+    if (planDocumentsReady) setPlanDocumentsSeen(true);
+  }, [planDocumentsReady]);
+
+  /** Files missing after a reload do not un-answer the question they answered. */
+  const documentFlow = data.hasArchitecturePlan === true
+    && (planDocumentsReady || planDocumentsSeen);
+  const routeSteps = stepRoute(documentFlow, TOTAL_STEPS);
   const totalSteps = routeSteps.length;
 
   useEffect(() => {
-    if (data.hasArchitecturePlan === true && planDocumentsReady && step >= 4 && step <= 7) {
+    if (documentFlow && step >= 4 && step <= 7) {
       setDirection('forward');
       setStep(8);
     }
-  }, [data.hasArchitecturePlan, planDocumentsReady, step]);
+  }, [documentFlow, step]);
 
   useEffect(() => {
     if (draftCleared.current) return;
     writeWizardDraft(persistenceKey, { version: 1, step, direction, data,
       ...(confirmationDraft ? { confirmation: confirmationDraft } : {}),
+      ...(planDocumentsSeen ? { planDocumentsAttached: true } : {}),
     });
   }, [persistenceKey, step, direction, data, confirmationDraft]);
 
