@@ -111,6 +111,32 @@ const NOT_THE_TOTAL = new RegExp(
     'retenue',                // retention
   ].join('|') + ')\\b');
 
+/** Column headings that identify a priced line total rather than its inputs. */
+const AMOUNT_COLUMN = /^(?:total)$|\b(?:amount|montant|line\s+total|total\s+(?:amount|cost|value|price)|extended\s+(?:amount|cost|price)|cost|value|price|prix|cout|somme|debours)\b/;
+const NOT_AMOUNT_COLUMN = /\b(?:qty|quantity|quantite|unit|unite|rate|unit\s+price|unit\s+cost|pu|vat|tva|tax|discount|percentage|percent)\b/;
+const TABLE_HEADER = /\b(?:item|description|designation|desc|qty|quantity|quantite|unit|unite|rate|code|no\.?)\b/;
+
+function findAmountColumn(row: string[]): number | null {
+  const names = row.map(cell => normalise(cell.trim()));
+  if (!names.some(name => TABLE_HEADER.test(name))) return null;
+
+  const candidates = names
+    .map((name, index) => ({ index, name }))
+    .filter(({ name }) => AMOUNT_COLUMN.test(name) && !NOT_AMOUNT_COLUMN.test(name));
+
+  if (!candidates.length) return null;
+
+  // Prefer an explicit amount/montant heading, then a line/extended total, then a
+  // generic total/cost/value heading. If two equally specific columns exist, the
+  // later one is usually the extended line amount rather than the unit rate.
+  const rank = (name: string): number =>
+    /\b(?:amount|montant)\b/.test(name) ? 0
+      : /\b(?:line\s+total|extended\s+(?:amount|cost|price)|total\s+(?:amount|cost|value|price))\b/.test(name) ? 1
+      : 2;
+  return candidates
+    .sort((a, b) => rank(a.name) - rank(b.name) || b.index - a.index)[0].index;
+}
+
 /** Pull a number out of a cell: "12,500,000.00", "XAF 12 500 000", "(1 234)". */
 export function parseAmount(cell: string): number | null {
   const raw = cell.trim();
@@ -228,19 +254,24 @@ export function readBqLineItems(text: string): BqLineItem[] {
   if (!text || !/\d/.test(text)) return [];
 
   const items: BqLineItem[] = [];
+  let amountColumn: number | null = null;
   for (const line of text.split(/\r?\n/)) {
     const raw = line.trim();
     if (!raw) continue;
 
+    const row = cells(raw);
+    const detectedColumn = findAmountColumn(row);
+    if (detectedColumn !== null) {
+      amountColumn = detectedColumn;
+      continue;
+    }
+
     const cleaned = normalise(raw);
     if (NOT_THE_TOTAL.test(cleaned) || GRAND_TOTAL.some(pattern => pattern.test(cleaned))) continue;
 
-    const row = cells(raw);
-    let amount: number | null = null;
-    for (const cell of row) {
-      const parsed = parseAmount(cell);
-      if (parsed !== null) amount = parsed;
-    }
+    const amount = amountColumn !== null
+      ? parseAmount(row[amountColumn] ?? '')
+      : lastAmount(row);
 
     if (amount === null) continue;
     const label = row
@@ -254,6 +285,15 @@ export function readBqLineItems(text: string): BqLineItem[] {
     items.push({ label, amount });
   }
   return items;
+}
+
+/** The last numeric cell is conventionally the extended amount in a BOQ row. */
+function lastAmount(row: string[]): number | null {
+  for (let i = row.length - 1; i >= 0; i--) {
+    const amount = parseAmount(row[i]);
+    if (amount !== null) return amount;
+  }
+  return null;
 }
 
 /**
@@ -271,14 +311,29 @@ export function readBqTotal(text: string): BqReading | null {
   /** Matched against the accent-stripped, lower-cased line; shown as written. */
   const normalised = lines.map(normalise);
 
-  /** The largest number on a row, which is where a BQ puts the amount. */
-  const rowAmount = (row: string[]): number | null => {
-    let best: number | null = null;
-    for (const c of row) {
-      const n = parseAmount(c);
-      if (n !== null && (best === null || n > best)) best = n;
+  /** Track each table's priced column, so quantity/rate cannot win by being larger. */
+  const amountColumns: Array<number | null> = [];
+  let amountColumn: number | null = null;
+  for (const line of lines) {
+    const row = cells(line);
+    const detectedColumn = findAmountColumn(row);
+    // Whitespace-separated OCR has no stable cell positions: description words
+    // shift the amount column from row to row. Use a detected index only for genuine
+    // table delimiters; plain OCR lines use their final numeric value instead.
+    if (detectedColumn !== null
+        && (line.includes('\t') || line.includes(';') || commaSeparates(line))) {
+      amountColumn = detectedColumn;
     }
-    return best;
+    amountColumns.push(amountColumn);
+  }
+
+  const rowAmount = (line: string, index: number, allowFallback = false): number | null => {
+    const row = cells(line);
+    const column = amountColumns[index];
+    const columnAmount = column !== null && row.length > column
+      ? parseAmount(row[column] ?? '')
+      : null;
+    return columnAmount ?? (column === null || allowFallback ? lastAmount(row) : null);
   };
 
   // ── First choice: a row that calls itself the grand total ──
@@ -286,7 +341,7 @@ export function readBqTotal(text: string): BqReading | null {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (!pattern.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
-      const amount = rowAmount(cells(line));
+      const amount = rowAmount(line, i, true);
       if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL) {
         return {
           total: amount, label: line.trim().slice(0, 120), confidence: 'grand',
@@ -304,7 +359,7 @@ export function readBqTotal(text: string): BqReading | null {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (NOT_THE_TOTAL.test(normalised[i])) continue;
-    const amount = rowAmount(cells(line));
+    const amount = rowAmount(line, i);
     if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL
         && (best === null || amount > best.total)) {
       best = { total: amount, label: line.trim().slice(0, 120) };

@@ -2993,8 +2993,8 @@ export const fr: Mirror<EnDict> = {
   contractors: {
     emptyVetting: 'L’équipe Jalla vérifie les professionnels. Revenez bientôt, ou',
     emptyJoinCta: 'inscrivez-vous comme entrepreneur',
-    lockedTitle: 'Les entrepreneurs font partie de Jalla Verify',
-    lockedBody:  'Les entrepreneurs vérifiés de votre région, leur historique et les demandes de devis sont disponibles avec Jalla Verify.',
+    lockedTitle: 'L’annuaire des entrepreneurs est contrôlé par les administrateurs',
+    lockedBody:  'Seuls les administrateurs peuvent actuellement déverrouiller et accorder l’accès à l’annuaire des entrepreneurs.',
     lockedBack:  'Retour au tableau de bord',
       searchPlaceholder: 'Rechercher par nom, métier, lieu ou spécialité…',
       viewProfile: 'Voir le profil',
@@ -4562,6 +4562,7 @@ export const fr: Mirror<EnDict> = {
     mapPlaceholder: "Choisissez un pays pour le voir sur la carte",
     s1Title: "Où allez-vous construire ?",
     s1Sub: "Nous adaptons les estimations de coûts et la couverture de vérification à votre région.",
+    allCountries: "Tous les pays",
     popular: "Courant",
     recommended: "Recommandé",
     change: "Modifier",

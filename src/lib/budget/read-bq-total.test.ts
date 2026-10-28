@@ -86,6 +86,27 @@ describe('finding the total', () => {
     expect(readBqTotal(bq)!.total).toBe(13_500_000);
   });
 
+  it('uses the priced amount column when a unit rate is larger than the line total', () => {
+    const bq = [
+      'Item\tDescription\tUnit\tQty\tRate\tAmount',
+      '1.1\tSpecialist work\titem\t0.1\t15000000\t1500000',
+      '1.2\tMaterials\titem\t1\t1200000\t1200000',
+    ].join('\n');
+    expect(readBqTotal(bq)?.total).toBe(1_500_000);
+    expect(readBqLineItems(bq)).toEqual([
+      { label: 'Specialist work item', amount: 1_500_000 },
+      { label: 'Materials item', amount: 1_200_000 },
+    ]);
+  });
+
+  it('recognises French quantity-surveyor amount headings', () => {
+    const bq = [
+      'Désignation;Unité;Quantité;Prix unitaire;Montant',
+      'Gros œuvre;m2;0,1;15 000 000;1 500 000',
+    ].join('\n');
+    expect(readBqTotal(bq)?.total).toBe(1_500_000);
+  });
+
   it('returns nothing for a file it cannot read, rather than inventing a figure', () => {
     expect(readBqTotal('')).toBeNull();
     expect(readBqTotal('Description\nSubstructure\nSuperstructure')).toBeNull();

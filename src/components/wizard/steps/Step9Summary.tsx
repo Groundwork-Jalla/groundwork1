@@ -233,8 +233,15 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; onConfirmed: (v: boolean) => void }) {
   const t = useT();
   const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft } = useWizard();
-  const estimate = Math.round(data.bqTotalUsd
-    ?? (data.hasArchitecturePlan === true ? 0 : calculateBudget(data, constructionRate, cityRate).total));
+  // Fall back to the calculated budget whichever flow this is.
+  //
+  // The document flow used to fall back to 0 when the bill of quantities could not be
+  // read. That is the one case where the person is most stuck: the field stays empty,
+  // the checkbox below is disabled on `amount <= 0`, and "Confirm budget" can never
+  // enable — while the summary panel beside it shows a perfectly good calculated figure.
+  // Reported from a live activation call as "I can't get past this stage".
+  const estimate = Math.round(
+    data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total);
   const raw = confirmationDraft?.raw ?? '';
   const previousEstimate = useRef<number | null>(null);
   const touchedByUser = useRef(false);
@@ -322,10 +329,8 @@ export default function Step9Summary() {
         </p>
 
         {documentFlow && (
-          <div className="mt-6 space-y-3 rounded-xl border border-brand-border-grey p-4">
-            <p className="text-sm font-semibold text-brand-near-black">{t('planGate.documentSummaryTitle')}</p>
-            <p className="text-xs leading-relaxed text-brand-mid-grey">{t('planGate.documentSummaryBody')}</p>
-            <label className="block">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <label className="block sm:col-span-3">
               <span className="mb-1 block text-xs font-medium text-brand-near-black">
                 {t('planGate.projectNameRequired')}
               </span>
@@ -369,7 +374,7 @@ export default function Step9Summary() {
               </label>
             )}
             {(!hasValidFloors || !hasValidFootprint || !data.projectName.trim()) && (
-              <p className="text-xs text-brand-mid-grey">{t('planGate.missingProjectDetails')}</p>
+              <p className="text-xs text-brand-mid-grey sm:col-span-3">{t('planGate.missingProjectDetails')}</p>
             )}
           </div>
         )}
@@ -543,13 +548,22 @@ function DocumentBudgetBreakdown() {
               <p className="font-medium text-brand-near-black">{plan.fileName}</p>
               <p>
                 {plan.facts.floors != null
-                  ? `${plan.facts.floors} floor${plan.facts.floors === 1 ? '' : 's'}`
+                  ? `${plan.facts.floors} ${t('planGate.floors')}`
                   : t('planGate.floorCountMissing')}
                 {' · '}
                 {plan.facts.areaSqm != null
                   ? `${amount(plan.facts.areaSqm)} m²`
                   : t('planGate.areaMissing')}
+                {plan.facts.bedrooms != null ? ` · ${plan.facts.bedrooms} ${t('planGate.bedrooms')}` : ''}
+                {plan.facts.bathrooms != null ? ` · ${plan.facts.bathrooms} ${t('planGate.bathrooms')}` : ''}
+                {plan.facts.livingRooms != null ? ` · ${plan.facts.livingRooms} ${t('planGate.livingRooms')}` : ''}
+                {plan.facts.kitchens != null ? ` · ${plan.facts.kitchens} ${t('planGate.kitchens')}` : ''}
               </p>
+              {!!(plan.facts.evidence?.floors?.length ?? 0) && (
+                <p className="mt-1 truncate font-mono text-[10px]" title={plan.facts.evidence?.floors?.[0]}>
+                  {plan.facts.evidence?.floors?.[0]}
+                </p>
+              )}
             </div>
           ))}
           {!floorPlans.length && <p>{t('planGate.areaMissing')}</p>}

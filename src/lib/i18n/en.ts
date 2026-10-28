@@ -3037,8 +3037,8 @@ export const en = {
   contractors: {
     emptyVetting: 'The Jalla team is vetting professionals. Check back soon, or',
     emptyJoinCta: 'sign up as a contractor',
-    lockedTitle: 'Contractors are part of Jalla Verify',
-    lockedBody:  'Verified contractors in your region, their track record, and quote requests are available with Jalla Verify.',
+    lockedTitle: 'Contractor directory is admin-controlled',
+    lockedBody:  'Only administrators can unlock and grant access to the contractor directory at this time.',
     lockedBack:  'Back to dashboard',
       searchPlaceholder: 'Search by name, trade, location, or specialty…',
       viewProfile: 'View profile',
@@ -4650,6 +4650,7 @@ export const en = {
     mapPlaceholder: "Select a country to see it on the map",
     s1Title: "Where will you be building?",
     s1Sub: "We tailor cost estimates and verification coverage to your region.",
+    allCountries: "All countries",
     popular: "Popular",
     recommended: "Recommended",
     change: "Change",

@@ -58,7 +58,7 @@ describe('self-verify users are told why they have no certificate', () => {
   });
 
   it('does not send them to the removed plan comparison screen', () => {
-    expect(page).toMatch(/\{allSelfVerify && \(/);
+    expect(page).toMatch(/\{projects\.length === 0 && \(/);
     expect(page).not.toMatch(/to="\/upgrade"/);
   });
 

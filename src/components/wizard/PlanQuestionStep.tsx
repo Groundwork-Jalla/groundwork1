@@ -27,7 +27,7 @@ import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
  */
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
   const {
-    step, data, update, back, pendingDocuments, setPendingDocuments,
+    step, data, update, goTo, back, pendingDocuments, setPendingDocuments,
     setDocumentExtraction, constructionRate,
   } = useWizard();
 
@@ -64,6 +64,7 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
             },
           })),
         } : null);
+        if (answer.hasPlan) goTo(8);
       }}
     />
   );

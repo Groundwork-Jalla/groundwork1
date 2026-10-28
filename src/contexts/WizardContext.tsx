@@ -158,8 +158,11 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   const [direction, setDirection] = useState<WizardDirection>(saved?.direction ?? 'forward');
   // Seed last: it is this run's answer to a question asked a moment ago, so it wins
   // over whatever a restored draft remembers.
+  //
+  // Fresh wizards start with no country selected, so step 1 reflects an explicit
+  // choice rather than a hidden default.
   const [data, setData]           = useState<WizardFormData>(
-    { ...(saved?.data ?? WIZARD_DEFAULT_DATA), ...(seed ?? {}) });
+    { ...(saved?.data ?? { ...WIZARD_DEFAULT_DATA, country: '' }), ...(seed ?? {}) });
   const [confirmationDraft, setConfirmationDraft] = useState<WizardConfirmationDraft | null>(saved?.confirmation ?? null);
   const draftCleared = useRef(false);
 
