@@ -221,7 +221,7 @@ function BudgetBreakdownCard() {
 
 // ── Summary row ────────────────────────────────────────────
 
-function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
       <span className="mt-0.5 text-brand-mid-grey shrink-0">{icon}</span>
@@ -346,22 +346,6 @@ export default function Step9Summary() {
                 required
               />
             </label>
-            {!hasExtractedFloors && (
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-brand-near-black">
-                  {t('planGate.floorsRequired')}
-                </span>
-                <input
-                  type="number" min="1" step="1" value={manualFloors}
-                  onChange={event => {
-                    setManualFloors(event.target.value);
-                    update({ floors: Number(event.target.value) || 1 });
-                  }}
-                  className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black"
-                  required
-                />
-              </label>
-            )}
             {!hasExtractedFootprint && (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-brand-near-black">
@@ -394,7 +378,28 @@ export default function Step9Summary() {
             <SummaryRow icon={<Layers className="size-3.5" />} label={t('wizard.stepFloors')}
               value={hasExtractedFloors
                 ? `${data.floors} ${data.floors === 1 ? 'floor' : 'floors'}`
-                : t('planGate.floorCountMissing')} />
+                /* Asked for in the row that admits it could not be read, rather than
+                   in a field further up the page. "Floor count not extracted" on its
+                   own reads as a dead end — the place that reports the gap should be
+                   the place you close it, and nothing continues until it is. */
+                : (
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="number" min="1" max="20" step="1" value={manualFloors}
+                      onChange={event => {
+                        setManualFloors(event.target.value);
+                        update({ floors: Number(event.target.value) || 1 });
+                      }}
+                      placeholder={t('planGate.floorsPlaceholder')}
+                      aria-label={t('planGate.floorsRequired')}
+                      className="w-24 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-sm tabular-nums text-brand-near-black"
+                      required
+                    />
+                    <span className="text-xs font-normal text-brand-mid-grey">
+                      {t('planGate.floorsNotRead')}
+                    </span>
+                  </span>
+                )} />
           ) : (
             <>
               <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"

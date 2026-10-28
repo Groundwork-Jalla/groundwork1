@@ -2501,6 +2501,8 @@ export const fr: Mirror<EnDict> = {
     projectNameRequired: 'Nom du projet',
     footprintRequired: 'Emprise au sol (m\u00b2)',
     floorsRequired: 'Nombre de niveaux',
+    floorsPlaceholder: 'ex. 2',
+    floorsNotRead: 'illisible dans vos documents \u2014 veuillez l\u2019indiquer',
     missingProjectDetails: 'Saisissez le nom du projet et les dimensions requises qui n\u2019ont pas pu \u00eatre lues dans les documents.',
 
     choose:   'Choisir un fichier',

@@ -2543,6 +2543,8 @@ export const en = {
     projectNameRequired: 'Project name',
     footprintRequired: 'Ground-floor footprint (m²)',
     floorsRequired: 'Number of floors',
+    floorsPlaceholder: 'e.g. 2',
+    floorsNotRead: 'we could not read this from your documents \u2014 please enter it',
     missingProjectDetails: 'Enter the project name and any required dimensions that were not readable from the documents before continuing.',
 
     choose:   'Choose file',
