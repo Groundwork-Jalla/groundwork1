@@ -44,10 +44,18 @@ describe('what it refuses to invent', () => {
     expect(moneyPair(1000, 'XAF', 0).usd).toBeNull();
   });
 
-  it('claims no conversion when the document named no currency', () => {
+  it('does not call an unknown currency dollars', () => {
+    // It used to print "$" for an empty code, so a franc bill that named no currency
+    // read as "$59,675,280" — the right digits, a symbol overstating them about a
+    // hundredfold. Callers resolve the project country's currency before reaching
+    // here; a bare figure is the honest answer when even that is unknown.
     const pair = moneyPair(1000, null, 600);
-    expect(pair.local).toBe('$1,000');
+    expect(pair.local).toBe('1,000');
     expect(pair.usd).toBeNull();
+  });
+
+  it('still writes dollars when the money really is dollars', () => {
+    expect(moneyPair(1000, 'USD', 1).local).toBe('$1,000');
   });
 });
 

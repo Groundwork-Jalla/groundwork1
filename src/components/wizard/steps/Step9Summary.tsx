@@ -233,9 +233,18 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
   );
 }
 
+/** "26687728" -> "26,687,728". Display only; the draft keeps the bare digits. */
+function grouped(value: string): string {
+  if (!value) return '';
+  const [whole, ...rest] = value.split('.');
+  const withCommas = (whole ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return rest.length ? `${withCommas}.${rest.join('.')}` : withCommas;
+}
+
 function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; onConfirmed: (v: boolean) => void }) {
   const t = useT();
-  const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft } = useWizard();
+  const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft,
+    documentExtraction } = useWizard();
   // Fall back to the calculated budget whichever flow this is.
   //
   // The document flow used to fall back to 0 when the bill of quantities could not be
@@ -250,15 +259,45 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
    * a bill quoted in francs. Philip, 29 October: "the confirmed project budget should
    * not show me in dollars, it should show me in the local currency for that country."
    *
-   * The STORED rate is used for this, not today's fetched one, and deliberately:
-   * `Step11ConfirmBudget` divides by the same stored rate to get the dollars it
-   * writes, so the figure round-trips exactly. A live rate here and a stored one
-   * there would quietly change the budget between two screens.
+   * Today's rate, and `Step11ConfirmBudget` divides by the same one — both call the
+   * hook below, which caches a single answer per tab. They must not differ: the
+   * dollars shown and the dollars stored would be two different numbers for the same
+   * money, which is exactly what the stored 600 was doing against a real 588.
    */
-  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
-  const currencyCode = constructionRate?.currency_code ?? getCurrencyCode(data.country);
-  const usdEstimate = data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total;
-  const estimate = Math.round(usdEstimate * (fxRate > 0 ? fxRate : 1));
+  const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+
+  /**
+   * The money this project is priced in — the BILL's currency first.
+   *
+   * `getCurrencyCode` knows 22 countries and answers 'USD' for every other one, and
+   * `construction_rates` carries the same 22. So a build anywhere else resolved to
+   * dollars: the bill card showed "26,687,728 XAF", read off the document, while the
+   * budget box beside it showed "$". Same money, two currencies, one screen — which
+   * is what turned up on a second account on 29 October.
+   *
+   * The bill says what it is priced in, and that is the project's currency whatever
+   * our 22-row table knows. The country is the fallback, not the authority.
+   */
+  const currencyCode = (documentExtraction?.bqReading?.currencyCode
+    ?? constructionRate?.currency_code
+    ?? getCurrencyCode(data.country)).toUpperCase();
+  const fxRate = useUsdRate(currencyCode, storedRate) ?? storedRate;
+  /**
+   * The bill's own figure, untouched, whenever there is one.
+   *
+   * NOT the dollars converted back. `planSeed` divides the bill by the stored rate to
+   * get `bqTotalUsd`, and multiplying that back by today's rate returned 26,184,405
+   * against a bill of 26,687,728 — half a million francs lost in a round trip through
+   * two different rates. The number on the document is the number to show.
+   *
+   * Only an estimated build, with no bill to read, is converted — and there the
+   * dollars are the original and the local figure is the derived one.
+   */
+  const billTotal = documentExtraction?.bqReading?.total ?? null;
+  const estimate = billTotal != null
+    ? Math.round(billTotal)
+    : Math.round((data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total)
+        * (fxRate > 0 ? fxRate : 1));
   const raw = confirmationDraft?.raw ?? '';
   const previousEstimate = useRef<number | null>(null);
   const touchedByUser = useRef(false);
@@ -288,7 +327,11 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
         <input
           id="final-budget"
           inputMode="numeric"
-          value={raw}
+          // Grouped for reading — 26,687,728, not 26687728. A construction budget here
+          // runs to eight digits and an ungrouped one cannot be checked at a glance
+          // against the bill it came from. Stored ungrouped: the separators are display
+          // only, and are stripped straight back out below.
+          value={grouped(raw)}
           onChange={e => {
             touchedByUser.current = true;
             updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') });
@@ -533,7 +576,18 @@ function DocumentBudgetBreakdown() {
   const [open, setOpen] = useState(false);
   const { documentExtraction } = useWizard();
   const reading = documentExtraction?.bqReading ?? null;
-  const currency = reading?.currencyCode;
+  /**
+   * What the bill is priced in: its own currency if it names one, otherwise the
+   * country's.
+   *
+   * A spreadsheet of bare numbers names nothing — Mrs Rose's bill is 59,675,280 with
+   * no marker anywhere in it — and with no fallback this read as "$59,675,280", which
+   * is a franc total wearing a dollar sign and roughly a hundred times the real
+   * figure. The build is in Cameroon; the bill is in XAF.
+   */
+  const currency = reading?.currencyCode
+    ?? constructionRate?.currency_code
+    ?? getCurrencyCode(wizardData.country);
   const floorPlans = documentExtraction?.floorPlans ?? [];
   const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
   // Today's rate where it can be fetched, the stored one otherwise. The stored
@@ -575,9 +629,10 @@ function DocumentBudgetBreakdown() {
                       not name one — which told the reader about our parser rather
                       than about their project, next to a figure already shown in
                       their own currency. Removed 28 October. */}
-                  {currency && (
-                    <p className="mt-1 truncate text-xs text-brand-mid-grey">{reading.label}</p>
-                  )}
+                  {/* The row the figure came from ("NET PAYABLE 26,687,728") used to sit
+                      here. Removed 29 October, with the same line on the upload step:
+                      the total is the point, and repeating it in the document's own
+                      words reads as a second, different number. */}
                 </>
               ) : (
                 <p className="mt-1 text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>

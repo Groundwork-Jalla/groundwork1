@@ -45,9 +45,16 @@ export function moneyPair(
 
   // Already dollars, or a currency we were given no rate for. Saying "≈ $x" from a
   // rate of 1 would be inventing a conversion that never happened.
+  //
+  // An UNKNOWN currency is not dollars. This used to print "$" whenever the code was
+  // empty, so a franc bill that named no currency came out as "$59,675,280" — the
+  // right digits with a symbol that overstates them about a hundredfold. With no code
+  // the figure goes out bare, which says only what we actually know.
   if (!code || code === 'USD' || !fxRate || fxRate <= 0 || fxRate === 1) {
     return {
-      local: code === 'USD' || !code ? `$${group(amount)}` : `${group(amount)} ${code}`,
+      local: code === 'USD' ? `$${group(amount)}`
+           : code ? `${group(amount)} ${code}`
+           : group(amount),
       usd: null,
       rate: null,
     };

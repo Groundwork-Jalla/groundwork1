@@ -18,7 +18,8 @@ import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/acce
 import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
-import { getApproxFx } from '@/lib/budget/legacy';
+import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
+import { useUsdRate } from '@/lib/budget/live-fx';
 
 const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
 
@@ -113,13 +114,23 @@ export default function Step11ConfirmBudget() {
   /**
    * The confirmed budget in DOLLARS, which is what `projects.budget_usd` stores.
    *
-   * The summary now asks for it in the money of the country being built in, so what
-   * `raw` carries is local currency. It is divided by the SAME stored rate the
-   * summary multiplied by — `construction_rates.approx_fx_rate`, not today's fetched
-   * one — so the figure round-trips exactly and the budget cannot shift between the
-   * two screens.
+   * The summary asks for it in the money of the country being built in, so `raw`
+   * carries local currency and this divides it back.
+   *
+   * TODAY'S rate, the same one the summary shows — not the stored 600. Using the
+   * stored rate here while the summary displayed the live one meant the dollars we
+   * showed and the dollars we saved disagreed: 26,687,728 XAF reads as $45,336 at
+   * 588.68 and was being stored as $44,479 at 600. Both components call the same
+   * hook, which caches one answer per tab, so the two cannot diverge.
+   *
+   * The local figure is the one the person confirmed and the one that round-trips
+   * exactly; the dollars are derived from it.
    */
-  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+  const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+  const currencyCode = constructionRate?.currency_code ?? getCurrencyCode(data.country);
+  // Never null in practice — the hook returns the stored rate until the live one
+  // lands — but a null here would divide the budget by nothing.
+  const fxRate = useUsdRate(currencyCode, storedRate) ?? storedRate;
   const localBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
   const finalBudget = fxRate > 0 ? localBudget / fxRate : localBudget;
 

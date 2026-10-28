@@ -2,6 +2,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 import { planDocuments, planSeed, planQuestionDue } from '@/lib/projects/plan-answer';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
+import { useUsdRate } from '@/lib/budget/live-fx';
 import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
 
 // =========================================================
@@ -32,6 +33,12 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
     setDocumentExtraction, constructionRate, planDocumentsSeen,
   } = useWizard();
 
+  // Today's rate, so the dollar figure beside the bill matches the one the summary
+  // shows a moment later. Falls back to the stored rate until the live one lands.
+  const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+  const liveRate = useUsdRate(
+    constructionRate?.currency_code ?? getCurrencyCode(data.country), storedRate) ?? storedRate;
+
   const uploadedPlanDocs = pendingDocuments?.some(doc => doc.category === 'other') ?? false;
   const uploadedBq = pendingDocuments?.some(doc => doc.category === 'boq') ?? false;
   // Whether this question is due is pure, and lives in `plan-answer` so the case that
@@ -52,7 +59,7 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
       // inside it now, and the only way out of a wizard is its own Back.
       onCancel={back}
       currencyCode={constructionRate?.currency_code ?? getCurrencyCode(data.country)}
-      fxRate={constructionRate?.approx_fx_rate ?? getApproxFx(data.country)}
+      fxRate={liveRate}
       onAnswered={(answer: PlanAnswer) => {
         update(planSeed(answer, {
           localCurrencyCode: constructionRate?.currency_code ?? getCurrencyCode(data.country),
