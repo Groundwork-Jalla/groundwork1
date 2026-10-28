@@ -85,7 +85,11 @@ describe('link 5–7 · the contractor keeps the project after creating it', () 
   });
 
   it('and the wizard takes that place on every partner-created project', () => {
-    expect(confirm).toMatch(/if \(onBehalfOf\?\.by === 'partner'\) \{\s*await takeOwnClientProject\(project\.id\);/);
+    // Widened 29 October: a contractor building for THEMSELVES takes their place
+    // too. Without it they held the contractor role and were still not the
+    // contractor on their own project — /work could not open it and the project page
+    // gave them the client's view.
+    expect(confirm).toMatch(/if \(onBehalfOf\?\.by === 'partner' \|\| \(!onBehalfOf && isContractor\)\) \{\s*await takeOwnClientProject\(project\.id\);/);
   });
 
   it('BEFORE tracking starts, not after', () => {
