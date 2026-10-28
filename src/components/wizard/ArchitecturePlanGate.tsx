@@ -198,9 +198,6 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
         <h1 className="text-2xl font-bold leading-snug text-brand-near-black sm:text-3xl">
           {t('planGate.uploadTitle')}
         </h1>
-        <p className="mt-2 max-w-lg text-sm leading-relaxed text-brand-mid-grey">
-          {t('planGate.uploadBody')}
-        </p>
       </div>
 
       <div className="space-y-3">
