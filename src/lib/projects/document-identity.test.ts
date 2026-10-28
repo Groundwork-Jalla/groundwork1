@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readBuildingKind, projectNameFromDocuments, DEFAULT_BUILDING_KIND } from './document-identity';
+import { readBuildingKind, DEFAULT_BUILDING_KIND } from './document-identity';
 import { NO_FLOOR_PLAN_FACTS, type FloorPlanFacts } from '@/lib/budget/extract-bq';
 
 /**
@@ -79,31 +79,5 @@ describe('the drawing can overrule the word', () => {
   it('and leaves a single-kitchen plan alone', () => {
     const oneHome = facts({ kitchens: 1, livingRooms: 1, bedrooms: 3 });
     expect(readBuildingKind('RESIDENTIAL', [oneHome]).buildingType).toBe('single_family');
-  });
-});
-
-describe('naming the project from its documents', () => {
-  it('uses the bill of quantities, which is the document that names the job', () => {
-    expect(projectNameFromDocuments(['CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS ROSE.xlsx']))
-      .toBe('CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS ROSE');
-  });
-
-  it('strips the upload timestamp, which is ours and not theirs', () => {
-    expect(projectNameFromDocuments(['1793093158420_Mr.NAS_G___1_Cost_Estimate_Limbe.pdf']))
-      .toBe('Mr.NAS G 1 Cost Estimate Limbe');
-  });
-
-  it('falls through to the next document when the first gives nothing', () => {
-    expect(projectNameFromDocuments(['a.pdf', 'Ground Plan Mr Nas.pdf']))
-      .toBe('Ground Plan Mr Nas');
-  });
-
-  it('returns nothing rather than a meaningless name', () => {
-    expect(projectNameFromDocuments([])).toBe('');
-    expect(projectNameFromDocuments(['x.pdf'])).toBe('');
-  });
-
-  it('does not run away with a very long file name', () => {
-    expect(projectNameFromDocuments([`${'A'.repeat(400)}.pdf`]).length).toBe(120);
   });
 });

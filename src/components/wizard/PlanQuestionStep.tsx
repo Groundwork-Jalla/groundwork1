@@ -51,6 +51,8 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
       // Back returns to the country step rather than leaving the wizard: they are
       // inside it now, and the only way out of a wizard is its own Back.
       onCancel={back}
+      currencyCode={constructionRate?.currency_code ?? getCurrencyCode(data.country)}
+      fxRate={constructionRate?.approx_fx_rate ?? getApproxFx(data.country)}
       onAnswered={(answer: PlanAnswer) => {
         update(planSeed(answer, {
           localCurrencyCode: constructionRate?.currency_code ?? getCurrencyCode(data.country),

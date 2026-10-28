@@ -91,24 +91,3 @@ export function readBuildingKind(text: string, floorPlanFacts: FloorPlanFacts[] 
   }
   return DEFAULT_BUILDING_KIND;
 }
-
-/**
- * A project name taken from the documents, as Philip asked: "whatever the name of the
- * bill of quantities is or whatever it is on the floor plan".
- *
- * The bill first — it is the document whose title names the job, where a drawing is
- * often called nothing more than "Ground Plan". Uploads carry a millisecond timestamp
- * in front of the name, which is ours and not theirs, so it comes off.
- */
-export function projectNameFromDocuments(fileNames: string[]): string {
-  for (const name of fileNames) {
-    const cleaned = name
-      .replace(/\.[A-Za-z0-9]{2,5}$/, '')        // extension
-      .replace(/^\d{8,}[_-]+/, '')               // our upload timestamp
-      .replace(/[_]+/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-    if (cleaned.length >= 3) return cleaned.slice(0, 120);
-  }
-  return '';
-}

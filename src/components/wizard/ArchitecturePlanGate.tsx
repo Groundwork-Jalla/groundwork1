@@ -8,6 +8,7 @@ import {
 } from '@/lib/documents/accepted-files';
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
 import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
+import { moneyPair } from '@/lib/budget/money-pair';
 import { readPlanWithModel, mergeModelReading } from '@/lib/budget/model-plan-reading';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
@@ -44,10 +45,15 @@ export type PlanAnswer =
       bqStatedFloors: number | null;
     };
 
-export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
+export function ArchitecturePlanGate({
+  onAnswered, onCancel, backLabel, currencyCode, fxRate,
+}: {
   onAnswered: (answer: PlanAnswer) => void;
   onCancel?: () => void;
   backLabel?: string;
+  /** The project country's currency and rate, so a bill can be shown in both. */
+  currencyCode?: string | null;
+  fxRate?: number | null;
 }) {
   const t = useT();
   const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
@@ -57,6 +63,9 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [reading, setReading] = useState<BqReading | null>(null);
   const [lineItems, setLineItems] = useState<BqLineItem[]>([]);
   const [bqStatedFloors, setBqStatedFloors] = useState<number | null>(null);
+  // The document's own currency wins over the country's: a bill priced in euros for a
+  // build in Cameroon says so, and guessing XAF would misstate it by a factor of 600.
+  const bqMoney = moneyPair(reading?.total ?? 0, reading?.currencyCode ?? currencyCode, fxRate);
   const [floorPlanFacts, setFloorPlanFacts] = useState<FloorPlanFacts[]>([]);
   const [scanCount, setScanCount] = useState(0);
   const scanning = scanCount > 0;
@@ -237,9 +246,22 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
               : reading.confidence === 'grand' ? 'planGate.readTotal'
               : 'planGate.guessedTotal')}
           </p>
-          <p className="mt-1 font-mono text-lg font-bold tabular-nums text-brand-near-black">
-            {reading.total.toLocaleString()}
+          {/* The bill's own currency first, dollars beside it, rate named — the same
+              pairing the summary uses, so the figure does not appear to change
+              between the two screens. */}
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <span className="font-mono text-lg font-bold tabular-nums text-brand-near-black">
+              {bqMoney.local}
+            </span>
+            {bqMoney.usd && (
+              <span className="font-mono text-xs font-semibold tabular-nums text-brand-mid-grey">
+                ≈ {bqMoney.usd}
+              </span>
+            )}
           </p>
+          {bqMoney.rate && (
+            <p className="font-mono text-[10px] text-brand-mid-grey">{bqMoney.rate}</p>
+          )}
           <p className="mt-1 truncate font-mono text-[11px] text-brand-mid-grey" title={reading.label}>
             {reading.label}
           </p>

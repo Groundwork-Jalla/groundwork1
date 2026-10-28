@@ -1,6 +1,6 @@
 import type { WizardFormData } from '@/types/project';
 import { readWizardDraft } from './wizard-draft';
-import { readBuildingKind, projectNameFromDocuments } from './document-identity';
+import { readBuildingKind } from './document-identity';
 import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 
 export interface PlanBudgetConversion {
@@ -73,17 +73,15 @@ export function planSeed(
     answer.reading?.label ?? '',
   ].join('\n');
   const kind = readBuildingKind(documentText, facts);
-  const namedByDocuments = projectNameFromDocuments([
-    ...(answer.bq ? [answer.bq.name] : []),
-    ...answer.floorPlans.map(file => file.name),
-  ]);
 
   return {
     hasArchitecturePlan: true,
     ...kind,
-    // Only as a starting point: the summary shows this in an editable box, so a name
-    // taken off a file name is a suggestion the person sees before anything is made.
-    ...(namedByDocuments ? { projectName: namedByDocuments } : {}),
+    // The name is NOT taken from the documents. A file is called whatever the
+    // quantity surveyor saved it as — "BOQ Sample", "Mr.NAS G 1 Cost Estimate Limbe"
+    // — and that is a file name, not a project. Left empty on purpose so the person
+    // types what they actually call this build; the summary will not continue until
+    // they do.
     // A suggestion, not a decision: the confirm step shows it and it can be corrected
     // before anything is created. Only a reading we are confident in is carried
     // forward — a guess is left for the person to type, so a figure they never looked

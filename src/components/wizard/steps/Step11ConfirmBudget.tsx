@@ -83,15 +83,22 @@ export default function Step11ConfirmBudget() {
   // proposed from that and the admin confirms or overrides it. Nothing is applied from the
   // guess alone — the consequence of being wrong is a real stage marked done that nobody
   // built, or a client billed again for a floor they paid for last year.
-  const [alreadyStarted, setAlreadyStarted] = useState(confirmationDraft?.alreadyStarted ?? false);
   const [stageOverride, setStageOverride] = useState<number | null>(confirmationDraft?.stageOverride ?? null);
+
+  /**
+   * The stage this build has reached. 1 means nothing built yet.
+   *
+   * No longer gated behind a checkbox, so there is no "undecided" state to refuse:
+   * the list always shows a stage and the default is the honest one.
+   */
+  const startStage = stageOverride ?? 1;
 
   useEffect(() => {
     updateConfirmationDraft?.({
-      raw, alreadyStarted, described: '', stageOverride,
+      raw, alreadyStarted: startStage > 1, described: '', stageOverride,
       hadAttachment: !!file || needsReattachment,
     });
-  }, [raw, alreadyStarted, stageOverride, file, needsReattachment, updateConfirmationDraft]);
+  }, [raw, startStage, stageOverride, file, needsReattachment, updateConfirmationDraft]);
 
   // The stage schedule's own names, by number. `useStageLabels` wants a stage ROW; here there
   // is no project yet, only a position on the scale.
@@ -100,7 +107,6 @@ export default function Step11ConfirmBudget() {
   // Chosen, not inferred. `stageFromDescription` read a stage out of a sentence and
   // the dropdown overrode it; now the dropdown IS the answer, so there is one source
   // and nothing to disagree with it.
-  const startStage = alreadyStarted ? stageOverride : 1;
 
   const finalBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
 
@@ -115,11 +121,7 @@ export default function Step11ConfirmBudget() {
     return joinedBudget(fullBreakdown, startStage);
   }, [startStage, finalBudget, data.sqm, data.floors]);
 
-  // Saying the build is under way means naming the stage. Until one is picked
-  // `startStage` is null and this refuses to continue — the answer decides which
-  // stages are recorded as already built and what the client is billed for.
-  const stageDecided = !alreadyStarted || (startStage !== null && startStage >= 1);
-  const canSubmit   = finalBudget > 0 && !busy && stageDecided;
+  const canSubmit = finalBudget > 0 && !busy;
 
   async function handleCreate() {
     if (!user || !canSubmit) return;
@@ -184,7 +186,12 @@ export default function Step11ConfirmBudget() {
         await takeOwnClientProject(project.id);
       }
 
-      if (onBehalfOf && joined) {
+      // Whoever is creating it. The stage someone picked decides which stages are
+      // recorded as already built, and that is just as true of a client setting up
+      // their own half-finished house as of a partner doing it for them. It used to
+      // be gated on `onBehalfOf`, so a client's choice was read, shown back to them,
+      // and then silently dropped — the project opened at stage 1 regardless.
+      if (joined) {
         // Joining a build in progress: the earlier stages are recorded as already built and
         // the client is billed only for what is left (103).
         // The note is the stage they CHOSE. It used to be whatever they typed; with
@@ -276,53 +283,40 @@ export default function Step11ConfirmBudget() {
         </p>
 
         <div className="mt-7 space-y-4">
-          {/* Asked of everybody. A client with a half-built house is the commonest
-              reason somebody arrives here, and gating this on `onBehalfOf` meant the
-              only people who could say so were staff and contractors. */}
+          {/* No checkbox. It asked the same question twice: tick a box to say the
+              build has started, then pick the stage it has reached — and picking a
+              stage IS saying it has started. Philip, 29 October: "that checkbox
+              there, let's remove it."
+
+              Stage 1 means nothing has been built, which is the default and the
+              commonest answer, so the list opens on it and anyone who is not joining
+              a build in progress simply continues. */}
           <div className="rounded-xl border border-brand-border-grey px-4 py-3">
-              <label className="flex items-start gap-2.5">
-                <input
-                  type="checkbox" checked={alreadyStarted}
-                  onChange={e => { setAlreadyStarted(e.target.checked); setStageOverride(null); }}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block text-sm font-medium text-brand-near-black">
-                    {t('wizard.joined.question')}
-                  </span>
-                  <span className="block text-xs text-brand-mid-grey">{t('wizard.joined.hint')}</span>
-                </span>
-              </label>
-
-              {alreadyStarted && (
-                <div className="mt-3 space-y-2.5 border-t border-brand-border-grey pt-3">
-                  {/* The stage is CHOSEN, never typed.
-                      It used to be a sentence that a matcher read a stage out of, with
-                      the dropdown as an override. That asks somebody to describe a
-                      thing we already have the list of, and then second-guesses them —
-                      and the answer decides which stages are marked already built and
-                      what the client is billed for. A list of our own stages is the
-                      only answer that cannot be misread. */}
-
-                  <label className="block">
-                    <span className="text-xs font-medium text-brand-near-black">{t('wizard.joined.stageLabel')}</span>
-                    <select
-                      value={startStage ?? ''}
-                      onChange={e => setStageOverride(e.target.value ? Number(e.target.value) : null)}
-                      className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
-                    >
-                      <option value="">{t('wizard.joined.stagePlaceholder')}</option>
-                      {/* The final stage is absent: a project cannot join at its own
-                          handover, and 103 refuses it. */}
-                      {STAGE_KEYS.slice(0, -1).map((_, i) => (
-                        <option key={i} value={i + 1}>{i + 1}. {stageLabel(i + 1)}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                </div>
-              )}
-            </div>
+            <label className="block">
+              <span className="block text-sm font-medium text-brand-near-black">
+                {t('wizard.joined.stageLabel')}
+              </span>
+              <span className="mt-0.5 block text-xs text-brand-mid-grey">
+                {t('wizard.joined.hint')}
+              </span>
+              {/* The stage is CHOSEN, never typed. It used to be a sentence a matcher
+                  read a stage out of, which asks somebody to describe a thing we
+                  already have the list of and then second-guesses them — and the
+                  answer decides which stages are recorded as already built and what
+                  the client is billed for. */}
+              <select
+                value={startStage}
+                onChange={e => setStageOverride(Number(e.target.value))}
+                className="mt-2 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm text-brand-near-black focus:border-brand-near-black focus:outline-none"
+              >
+                {/* The final stage is absent: a project cannot join at its own
+                    handover, and 103 refuses it. */}
+                {STAGE_KEYS.slice(0, -1).map((_, i) => (
+                  <option key={i} value={i + 1}>{i + 1}. {stageLabel(i + 1)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           {/* Optional supporting quote.
               Hidden in BOTH directions, for the same reason — nobody is asked twice:

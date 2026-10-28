@@ -13,6 +13,8 @@ import {
 import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
 import { floorPlanSummary, floorPlanEvidence, modelReadingSummary } from '@/lib/budget/floor-plan-summary';
+import { moneyPair } from '@/lib/budget/money-pair';
+import { getApproxFx } from '@/lib/budget/legacy';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -507,6 +509,7 @@ export default function Step9Summary() {
 
 function DocumentBudgetBreakdown() {
   const t = useT();
+  const { constructionRate, data: wizardData } = useWizard();
   // Collapsed by default, as the estimate card beside it has always been.
   //
   // A bill of quantities is forty-odd priced lines. Printing all of them under the
@@ -519,6 +522,9 @@ function DocumentBudgetBreakdown() {
   const currency = reading?.currencyCode;
   const floorPlans = documentExtraction?.floorPlans ?? [];
   const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  // The rate the budget engine itself divides by, so the two cannot disagree.
+  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(wizardData.country);
+  const money = moneyPair(reading?.total ?? 0, currency, fxRate);
 
   return (
     <div className="mt-6 space-y-4">
@@ -534,9 +540,22 @@ function DocumentBudgetBreakdown() {
               <p className="text-sm font-semibold text-brand-near-black">{t('planGate.bq')}</p>
               {reading ? (
                 <>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-brand-near-black">
-                    {amount(reading.total)} {currency ?? ''}
+                  {/* Local first, dollars beside it, rate named. The bill says one
+                      number and Groundwork stores another; showing them in separate
+                      cards with no stated rate was read as two different totals. */}
+                  <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="text-2xl font-black tabular-nums text-brand-near-black">
+                      {money.local}
+                    </span>
+                    {money.usd && (
+                      <span className="text-sm font-semibold tabular-nums text-brand-mid-grey">
+                        ≈ {money.usd}
+                      </span>
+                    )}
                   </p>
+                  {money.rate && (
+                    <p className="mt-0.5 text-[11px] text-brand-mid-grey">{money.rate}</p>
+                  )}
                   <p className="mt-1 truncate text-xs text-brand-mid-grey">
                     {currency ? reading.label : t('planGate.documentCurrencyUnknown')}
                   </p>
