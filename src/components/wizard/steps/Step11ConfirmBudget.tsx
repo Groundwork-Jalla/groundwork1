@@ -183,7 +183,13 @@ export default function Step11ConfirmBudget() {
       // A partner takes their place on the project FIRST: membership and primary standing
       // (109). Creating it does not do that, and the budget call below is gated on being
       // the client's partner — so doing this second would fail on a project they own.
-      if (onBehalfOf?.by === 'partner') {
+      //
+      // A contractor building for THEMSELVES needs it just as much. Creating a
+      // project does not put anyone on it — membership is one accepted
+      // `contractor_invites` row — so a contractor who skipped this held the
+      // contractor role and was still not the contractor on their own build: /work
+      // could not open it, and the project page handed them the client's view.
+      if (onBehalfOf?.by === 'partner' || (!onBehalfOf && isContractor)) {
         await takeOwnClientProject(project.id);
       }
 
