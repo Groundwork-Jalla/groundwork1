@@ -599,32 +599,15 @@ function DocumentBudgetBreakdown() {
         ))}
       </section>
 
-      <section className="rounded-xl border border-brand-border-grey px-5 py-4">
-        <p className="text-xs font-semibold text-brand-near-black">{t('planGate.floorPlanFactsTitle')}</p>
-        <div className="mt-3 space-y-2">
-          {floorPlans.map(plan => (
-            <div key={plan.fileName} className="text-xs text-brand-mid-grey">
-              <p className="font-medium text-brand-near-black">{plan.fileName}</p>
-              <p>{floorPlanSummary(plan.facts, t, amount)}</p>
-              {modelReadingSummary(plan.facts, t, amount) && (
-                <p className="mt-1">
-                  <span className="font-medium text-brand-near-black">
-                    {t('planGate.modelReadTitle')}:{' '}
-                  </span>
-                  {modelReadingSummary(plan.facts, t, amount)}
-                </p>
-              )}
-              {floorPlanEvidence(plan.facts) && (
-                <p className="mt-1 truncate font-mono text-[10px]"
-                   title={floorPlanEvidence(plan.facts) ?? undefined}>
-                  {floorPlanEvidence(plan.facts)}
-                </p>
-              )}
-            </div>
-          ))}
-          {!floorPlans.length && <p>{t('planGate.areaMissing')}</p>}
-        </div>
-      </section>
+      {/* "Details found in the floor plans" was here — bedrooms, bathrooms, living
+          rooms, kitchens, read off the drawing's text layer.
+          
+          Removed 29 October: it is wrong often enough not to be worth showing. On
+          Vanessa's plan it reported 15 bathrooms and no bedrooms against a true 5 and
+          5, because a CAD sheet labels a room once per drawing and a plan set repeats
+          the same rooms across sheets. None of it feeds the budget — nothing in
+          `lib/budget` reads a room count — so it was decoration that happened to be
+          inaccurate, which is the worst thing for a figure to be. */}
     </div>
   );
 }

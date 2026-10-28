@@ -308,7 +308,10 @@ export default function Step11ConfirmBudget() {
   }
 
   return (
-    <WizardShell canContinue={false} onContinue={() => {}}>
+    // No footer Continue here. This step has its own button — "Confirm stage &
+    // create project" — and a second, disabled one underneath it only invited
+    // people to press the wrong thing. Removed 29 October.
+    <WizardShell hideContinue canContinue={false} onContinue={() => {}}>
       <div className="pt-2">
         <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black leading-tight">
           {t('wizard.confirmBudget.title')}
