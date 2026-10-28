@@ -82,6 +82,9 @@ const GRAND_TOTAL = [
   /\btotal\s+(?:du\s+)?(?:projet|marche|devis)\b/,
   /\bcout\s+total\b/,
   /\brecapitulatif\s+general\b/,
+  // Some spreadsheets label their final summary row simply "TOTAL", while
+  // section rows say "TOTAL FOUNDATION", "TOTAL PAINTING", and so on.
+  /(?:^|\t)total(?:\t|$)/,
   // Lowest-priority real totals: the works figure before tax. Taken only when the
   // document carries no TTC or général line, because then it IS the total.
   /\btotal\s+h\.?t\.?\b/,
@@ -148,6 +151,17 @@ export function parseAmount(cell: string): number | null {
     .replace(/[()]/g, ' ')
     .trim();
   if (!/\d/.test(cleaned)) return null;
+
+  // Spreadsheet formulas can serialize an integral result as e.g.
+  // `880000.0000000001`. Treat only floating-point noise around a cent as noise;
+  // ordinary separators and meaningful decimal places continue through the parser.
+  const numericText = cleaned.replace(/\s/g, '');
+  if (/^\d+\.\d{3,}$/.test(numericText)) {
+    const numeric = Number(numericText);
+    const cents = Math.round(numeric * 100) / 100;
+    const tolerance = Number.EPSILON * Math.max(1, Math.abs(numeric)) * 2;
+    if (Number.isFinite(numeric) && Math.abs(numeric - cents) <= tolerance) return cents;
+  }
 
   // Which separator is the decimal point? The LAST one, if it leaves 1–2 digits after
   // it. "1.234.567,89" and "1,234,567.89" both resolve correctly this way, and

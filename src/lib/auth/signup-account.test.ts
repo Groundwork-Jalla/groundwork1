@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   signupAccountType, signupMetadata, signupGoesToPartnerDoor, CONTRACTOR_SIGNUP_PATH,
+  isExistingAccount,
 } from './signup-account';
 import { lookup } from '@/lib/i18n/translate';
 import { en } from '@/lib/i18n/en';
@@ -194,5 +195,45 @@ describe('the explainer is translated', () => {
     const body = String(lookup(en as never, 'auth.signup.contractorDoorBody')).toLowerCase();
     expect(body).not.toMatch(/approv|once we|wait/);
     expect(body, 'it should say the partner step is separate').toMatch(/partner/);
+  });
+});
+
+describe('an address that already has an account is not silence', () => {
+  // Supabase answers a repeat sign-up as success with no identities, so that the form
+  // cannot be used to discover who has an account. Both of our forms read that as
+  // "sent" and showed "check your email" for mail that is never sent. A contractor
+  // sat through two attempts and a call was ended over it on 28 October.
+  it('an empty identities array means the address is taken', () => {
+    expect(isExistingAccount({ identities: [] }, null)).toBe(true);
+  });
+
+  it('a real new account has an identity', () => {
+    expect(isExistingAccount({ identities: [{ id: 'x' }] }, null)).toBe(false);
+  });
+
+  it('a session means they are through, whatever identities says', () => {
+    // Confirmation disabled on the project: signUp returns a session and the page
+    // sends them to /auth/callback. That must never be read as "already registered".
+    expect(isExistingAccount({ identities: [] }, { access_token: 't' })).toBe(false);
+  });
+
+  it('says nothing when there is no user to judge', () => {
+    expect(isExistingAccount(null, null)).toBe(false);
+    expect(isExistingAccount(undefined, null)).toBe(false);
+  });
+
+  it('an absent identities field is not treated as taken', () => {
+    // Only an explicit empty array carries the meaning. A missing field is a shape we
+    // do not recognise, and guessing "taken" would block a genuine sign-up.
+    expect(isExistingAccount({}, null)).toBe(false);
+    expect(isExistingAccount({ identities: null }, null)).toBe(false);
+  });
+
+  it('both forms read it, so they cannot drift apart', () => {
+    for (const f of ['src/app/routes/auth/signup.tsx', 'src/components/auth/RoleSignup.tsx']) {
+      const src = readFileSync(resolve(ROOT, f), 'utf8');
+      expect(src, `${f} must refuse the dead end`).toMatch(/isExistingAccount\(data\.user, data\.session\)/);
+      expect(src, `${f} must say so`).toMatch(/auth\.signup\.alreadyRegistered/);
+    }
   });
 });

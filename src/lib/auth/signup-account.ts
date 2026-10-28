@@ -117,3 +117,33 @@ export const CONTRACTOR_SIGNUP_PATH = '/contractor-signup';
 export function signupGoesToPartnerDoor(params: URLSearchParams): boolean {
   return !params.get('invite') && params.get('role') === 'contractor';
 }
+
+/**
+ * Did this sign-up hit an address that already has an account?
+ *
+ * Supabase does not return an error for that case. It answers as though the sign-up
+ * worked, with a user carrying NO identities and no session, so that a stranger cannot
+ * use the sign-up form to discover who has an account. Our pages read that same shape
+ * as success and show "check your email" — so somebody who already had an account sat
+ * waiting for a confirmation that is never sent, tried again, and got the same screen.
+ *
+ * Reported live on 28 October: a contractor whose account was created on 22 October and
+ * confirmed fifteen seconds later signed up twice more and heard nothing, and a call was
+ * ended over it.
+ *
+ * Shared so the client form and the contractor form cannot drift: both read the same
+ * signal, because both produced the same dead end.
+ *
+ * Note this deliberately gives up Supabase's enumeration-hiding. Groundwork already
+ * tells an anonymous visitor which addresses exist — the password-reset and
+ * email-OTP screens both answer differently for a known address — so the silence
+ * bought nothing here and cost a real contractor an afternoon.
+ */
+export function isExistingAccount(
+  user: { identities?: unknown[] | null } | null | undefined,
+  session: unknown | null | undefined,
+): boolean {
+  if (session) return false;
+  if (!user) return false;
+  return Array.isArray(user.identities) && user.identities.length === 0;
+}

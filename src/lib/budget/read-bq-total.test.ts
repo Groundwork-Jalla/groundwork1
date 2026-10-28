@@ -18,6 +18,7 @@ describe('reading an amount out of a cell', () => {
     ['XAF 12 500 000', 12_500_000],
     ['1,234,567', 1_234_567],        // no decimals: not 1.234567
     ['$1,234.56', 1234.56],
+    ['880000.0000000001', 880_000],  // spreadsheet formula floating-point residue
     ['  450000  ', 450_000],
   ])('%s -> %s', (cell, want) => {
     expect(parseAmount(cell)).toBe(want);
@@ -105,6 +106,31 @@ describe('finding the total', () => {
       'Gros œuvre;m2;0,1;15 000 000;1 500 000',
     ].join('\n');
     expect(readBqTotal(bq)?.total).toBe(1_500_000);
+  });
+
+  it('uses a plain TOTAL summary row instead of a large section subtotal', () => {
+    const bq = [
+      'Art. No\tDescription\tUnit\tQuantity\tUnit Price\tTotal',
+      '1\tPRELIMINARY WORKS\t\t\t\t',
+      '101\tSite Installation\tFF\t1\t250000\t250000',
+      '2\tFOUNDATION\t\t\t\t',
+      '201\tExcavation\tm3\t49.7\t3000\t149100',
+      'TOTAL PREPARATORY WORKS\t\t\t\t\t550000',
+      'TOTAL FOUNDATION\t\t\t\t\t4619200',
+      'TOTAL GROUND FLOOR ELEVATION\t\t\t\t\t14119650',
+      'TOTAL FIRST FLOOR ELEVATION\t\t\t\t\t11674380',
+      'TOTAL ROOF STRUSS AND COVERING\t\t\t\t\t6006200',
+      'TOTAL WOOD AND METAL WORKS\t\t\t\t\t4187130',
+      'TOTAL ELECTRICITY\t\t\t\t\t2326600',
+      'TOTAL PLUMBING AND SANITARY FIXTURES\t\t\t\t\t6450000',
+      'TOTAL PAINTING\t\t\t\t\t9742120',
+      '\tTOTAL\t\t59675280',
+    ].join('\n');
+
+    const reading = readBqTotal(bq)!;
+    expect(reading.total).toBe(59_675_280);
+    expect(reading.confidence).toBe('grand');
+    expect(reading.label).toContain('TOTAL');
   });
 
   it('returns nothing for a file it cannot read, rather than inventing a figure', () => {

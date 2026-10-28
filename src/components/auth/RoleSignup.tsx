@@ -13,7 +13,7 @@ import { normalisePhone, isValidPhone } from '@/lib/phone';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
-import { signupMetadata, type SignupIntent } from '@/lib/auth/signup-account';
+import { signupMetadata, isExistingAccount, type SignupIntent } from '@/lib/auth/signup-account';
 import { getClaimPreview, rememberClaim, rememberContractorRegistration, registerContractorAccount } from '@/lib/supabase/contractor-claim';
 import { getVerifierInvitePreview, rememberVerifierClaim, rememberVerifierRegistration, registerVerifierAccount } from '@/lib/supabase/verifier-claim';
 import { useT, type TKey } from '@/lib/i18n';
@@ -252,6 +252,13 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
 
     // Instant sign-in path (email confirmation disabled on the project).
     if (data.session) { window.location.href = '/auth/callback'; return; }
+
+    // Already registered — see isExistingAccount. This is the path the Cambuild
+    // contractor was on: a confirmed account from 22 October, and two silent retries.
+    if (isExistingAccount(data.user, data.session)) {
+      setError(t('auth.signup.alreadyRegistered'));
+      return;
+    }
 
     rememberEmailRequest('signup', email.trim());
     setSubmitted(true);

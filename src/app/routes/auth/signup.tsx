@@ -14,7 +14,8 @@ import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
 import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
-import { signupAccountType, signupMetadata, signupGoesToPartnerDoor } from "@/lib/auth/signup-account";
+import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
+         isExistingAccount } from "@/lib/auth/signup-account";
 import RoleSignup from "@/components/auth/RoleSignup";
 import { PasswordField } from '@/components/ui/PasswordField';
 
@@ -139,6 +140,13 @@ export default function Signup() {
     // Instant sign-in path (email confirmation disabled)
     if (data.session) {
       window.location.href = "/auth/callback";
+      return;
+    }
+
+    // Already registered. Supabase reports this as a success with no identities, so
+    // without this the page says "check your email" for mail it will never send.
+    if (isExistingAccount(data.user, data.session)) {
+      setError(t('auth.signup.alreadyRegistered'));
       return;
     }
 

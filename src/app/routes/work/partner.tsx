@@ -342,6 +342,34 @@ export default function PartnerApplication() {
         role: prefill.specialty ?? '', operatesAs, city: '',
       });
       setState('pending');
+
+      /**
+       * The applicant's copy and the team alert — the same two emails the public form
+       * has always produced.
+       *
+       * This route sent neither. An in-app applicant heard nothing back, and nobody on
+       * the team was told unless the applicant happened to ask to be spoken to in French
+       * (the `needsVanessa` branch below, which is an in-app notification and not an
+       * email). Since the new funnel sends everybody through this page rather than the
+       * public form, that silence covered every English applicant — 46 applications
+       * were sitting undecided with nothing announcing their arrival.
+       *
+       * Only the id is sent. The endpoint derives both recipients and both bodies from
+       * the stored row, so it cannot be used to send mail to an arbitrary address.
+       *
+       * Fire-and-forget on purpose, exactly as the public form does it: the application
+       * is already saved, and a mail failure must never read to the applicant as a
+       * failed submission.
+       */
+      if (applicationId) {
+        void fetch('/api/contractor-application-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId }),
+          keepalive: true,
+        }).catch(() => { /* logged server-side; the applicant is already through */ });
+      }
+
       // They finished, so take them off the follow-up list. By user rather than by draft
       // id: starting on a phone and finishing on a laptop leaves a row this browser has
       // never heard of, and chasing somebody who already applied is worse than not

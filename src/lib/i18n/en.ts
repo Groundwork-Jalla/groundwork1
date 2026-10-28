@@ -4483,6 +4483,7 @@ export const en = {
     signup: {
       title:          'Sign up',
       titleContractor: 'Create your contractor account',
+      alreadyRegistered: 'That address already has a Groundwork account. Log in instead \u2014 or reset your password if you do not have it.',
       subtitleContractor: 'Sign up to manage your project.',
       accountType: 'I am signing up as a',
       homeowner: 'Client',

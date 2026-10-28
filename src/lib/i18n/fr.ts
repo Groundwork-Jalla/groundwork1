@@ -4404,6 +4404,7 @@ export const fr: Mirror<EnDict> = {
     signup: {
       title:          'Inscription',
       titleContractor: 'Créez votre compte entrepreneur',
+      alreadyRegistered: 'Cette adresse poss\u00e8de d\u00e9j\u00e0 un compte Groundwork. Connectez-vous \u2014 ou r\u00e9initialisez votre mot de passe si vous ne l\u2019avez plus.',
       subtitleContractor: 'Inscrivez-vous pour gérer votre projet.',
       accountType: 'Je souhaite créer un compte',
       homeowner: 'Client',

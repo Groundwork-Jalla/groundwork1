@@ -114,7 +114,29 @@ export default async function handler(req: any, res: any) {
   }
 
   const appUrl = siteUrl();
-  const lang: 'en' | 'fr' = app.lang === 'fr' ? 'fr' : 'en';
+
+  /**
+   * Which language the applicant's own copy is written in.
+   *
+   * `languages` wins over `lang`, and the order matters.
+   *
+   * The two forms fill these differently. The public form answers `lang` and leaves
+   * `languages` empty. The in-app application at /work/partner asks "What's your
+   * preferred language?" and stores the answer in `languages`, while `lang` is filled
+   * from the browser's locale and is NOT that answer: on the live system three in-app
+   * applications carry `lang='en'` with `languages=['fr']`. Reading `lang` first would
+   * send those applicants the English email despite them asking for French — and a
+   * French applicant is precisely the one Vanessa has to be called in for.
+   *
+   * So the explicit answer is preferred where there is one, and `lang` is the fallback
+   * for the public form, which has no `languages`. Resolved here rather than at the
+   * caller so the rows already written are read correctly too.
+   */
+  const declared = Array.isArray(app.languages) && typeof app.languages[0] === 'string'
+    && app.languages[0]
+    ? app.languages[0]
+    : (typeof app.lang === 'string' ? app.lang : '');
+  const lang: 'en' | 'fr' = declared === 'fr' ? 'fr' : 'en';
 
   async function send(to: string, subject: string, html: string) {
     const r = await fetch('https://api.resend.com/emails', {
