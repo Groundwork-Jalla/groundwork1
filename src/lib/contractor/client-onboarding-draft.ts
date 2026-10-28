@@ -16,6 +16,24 @@ export function clientProjectDraftKey(contractorId: string, clientId: string): s
   return `groundwork:client-project:v${VERSION}:${encodeURIComponent(contractorId)}:${encodeURIComponent(clientId)}`;
 }
 
+/**
+ * A client setting up their own project, and an admin doing it for one.
+ *
+ * These two wizards kept their answers in memory alone, so a refresh — or a phone
+ * backgrounding the tab long enough for the browser to discard it — threw away every
+ * answer and returned the person to the first question. Ruth, 28 October: "it needs
+ * to stop taking us to the beginning after refreshing".
+ *
+ * Scoped per owner, and per client as well when an admin is acting for someone, so
+ * one unfinished project can never surface inside another. Cleared on creation by the
+ * confirm step, the same as the contractor draft.
+ */
+export function ownProjectDraftKey(ownerId: string, onBehalfOfId?: string | null): string {
+  return onBehalfOfId
+    ? `groundwork:managed-project:v${VERSION}:${encodeURIComponent(ownerId)}:${encodeURIComponent(onBehalfOfId)}`
+    : `groundwork:own-project:v${VERSION}:${encodeURIComponent(ownerId)}`;
+}
+
 function browserStorage(): Storage | null {
   try {
     return typeof window === 'undefined' ? null : window.sessionStorage;

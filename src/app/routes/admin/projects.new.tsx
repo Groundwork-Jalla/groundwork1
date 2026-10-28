@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Search, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { WizardProvider, useWizard, type OnBehalfOf } from '@/contexts/WizardContext';
 import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
+import { ownProjectDraftKey } from '@/lib/contractor/client-onboarding-draft';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import Step1Country        from '@/components/wizard/steps/Step1Country';
@@ -52,7 +53,8 @@ export function ManagedWizard() {
 export default function AdminNewProject() {
   const t = useT();
   const navigate = useNavigate();
-  const { isAdmin, adminChecked } = useAuth();
+  const { isAdmin, adminChecked, session } = useAuth();
+  const adminId = session?.user.id;
   const [params] = useSearchParams();
 
   const [users, setUsers]     = useState<AdminUser[]>([]);
@@ -95,7 +97,12 @@ export default function AdminNewProject() {
 
   if (chosen) {
     return (
-      <WizardProvider onBehalfOf={chosen}>
+      // Keyed per admin AND per client, so switching between two people's projects
+      // cannot mix their answers, and a refresh keeps them.
+      <WizardProvider
+        onBehalfOf={chosen}
+        persistenceKey={adminId ? ownProjectDraftKey(adminId, chosen.userId) : undefined}
+      >
         {/* The wizard is sized to the full viewport; inside the admin shell that pushes the page
             past the fold by the height of the top bar, so fit it to what is left. */}
         <div className="[&_.h-screen]:!h-[calc(100dvh-3.25rem)]">

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
 import { WizardProvider, useWizard } from '@/contexts/WizardContext';
 import { PlanQuestionStep } from '@/components/wizard/PlanQuestionStep';
+import { ownProjectDraftKey } from '@/lib/contractor/client-onboarding-draft';
 import Step1Country        from '@/components/wizard/steps/Step1Country';
 import Step2ProjectType    from '@/components/wizard/steps/Step2ProjectType';
 import Step3BuildingType   from '@/components/wizard/steps/Step3BuildingType';
@@ -91,7 +92,9 @@ export default function NewProjectPage() {
   }
 
   return (
-    <WizardProvider>
+    // Keyed, so a refresh does not throw every answer away. Scoped to this account:
+    // nobody else's unfinished project can surface here.
+    <WizardProvider persistenceKey={userId ? ownProjectDraftKey(userId) : undefined}>
       <WizardRouter />
     </WizardProvider>
   );

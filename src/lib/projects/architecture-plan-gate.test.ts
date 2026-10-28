@@ -193,8 +193,16 @@ describe('the question itself', () => {
 describe('nobody is asked for a bill of quantities twice', () => {
   it('the final step hides the attachment box once the question has been answered', () => {
     // Either answer means we already know: NO, they have none; YES, they uploaded it
-    // when they said so. Only an unanswered question leaves the box up.
-    expect(confirm).toMatch(/\{data\.hasArchitecturePlan === null && \(/);
+    // when they said so. Only an unanswered question leaves the box up — or, since
+    // 28 October, a reload that threw the uploaded Files away.
+    expect(confirm).toMatch(/\{\(data\.hasArchitecturePlan === null \|\| planFilesLost\) && \(/);
+  });
+
+  it('but offers it again when a reload lost the documents', () => {
+    // The box is the last place anyone can say the plan and the bill are gone. Without
+    // it the project is created priced from a bill it does not hold, silently.
+    expect(confirm).toMatch(/const planFilesLost = data\.hasArchitecturePlan === true && planDocumentsSeen/);
+    expect(confirm).toMatch(/\(needsReattachment \|\| planFilesLost\) && !file/);
   });
 
   it('but keeps it when the question was never put', () => {
