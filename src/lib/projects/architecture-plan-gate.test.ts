@@ -130,7 +130,7 @@ describe('the question itself', () => {
     expect(stepWrap).toMatch(/if \(step < 2 \|\| \(data\.hasArchitecturePlan !== null && !needsPlanUpload\)\) return/);
     // And it is not a numbered step: the ten are hard-coded in the progress bar and
     // the building preview, so inserting one would renumber all of them.
-    expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 10/);
+    expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 9/);
   });
 
   it('the answer is written into the wizard, so Back and forward does not re-ask', () => {

@@ -259,28 +259,111 @@ export interface FloorPlanFacts {
   floors: number | null;
   areaSqm: number | null;
   footprintSqm: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  livingRooms: number | null;
+  kitchens: number | null;
+  evidence: {
+    floors: string[];
+    areaSqm: string[];
+    footprintSqm: string[];
+    bedrooms: string[];
+    bathrooms: string[];
+    livingRooms: string[];
+    kitchens: string[];
+  };
 }
 
-/** Extract only dimensions and floor counts explicitly written on a plan. */
-export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
-  const floorMatch = text.match(/\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i)
-    ?? text.match(/\b(\d{1,2})\s*(?:floors?|storeys?|levels?|etages?)\b/i);
-  const floors = floorMatch
-    ? Number(floorMatch[1] ?? floorMatch[2]) + (floorMatch[0].match(/(?:G|GF|ground\s*floor)\s*\+/i) ? 1 : 0)
-    : null;
+function cleanSnippet(line: string): string {
+  return line.replace(/\s+/g, ' ').trim();
+}
 
-  const areaMatch = text.match(
-    /\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i,
-  );
-  const areaSqm = areaMatch ? parseAmount(areaMatch[1]) : null;
-  const footprintMatch = text.match(
-    /\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i,
-  );
-  const footprintSqm = footprintMatch ? parseAmount(footprintMatch[1]) : null;
+function extractCount(lines: string[], patterns: RegExp[]): { value: number | null; evidence: string[] } {
+  const hits: number[] = [];
+  const evidence: string[] = [];
+  for (const line of lines) {
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (!match) continue;
+      const n = Number(match[1]);
+      if (!Number.isFinite(n) || n <= 0) continue;
+      hits.push(n);
+      evidence.push(cleanSnippet(line));
+      break;
+    }
+  }
+  return { value: hits.length ? Math.max(...hits) : null, evidence };
+}
+
+function extractArea(lines: string[], pattern: RegExp): { value: number | null; evidence: string[] } {
+  const parsed: number[] = [];
+  const evidence: string[] = [];
+  for (const line of lines) {
+    const match = line.match(pattern);
+    if (!match) continue;
+    const value = parseAmount(match[1]);
+    if (value == null || value <= 0) continue;
+    parsed.push(value);
+    evidence.push(cleanSnippet(line));
+  }
+  return { value: parsed.length ? Math.max(...parsed) : null, evidence };
+}
+
+/** Extract only explicit, written facts from a floor plan. */
+export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const floors = extractCount(lines, [
+    /\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i,
+    /\b(\d{1,2})\s*(?:floors?|storeys?|levels?|etages?)\b/i,
+    /\b(?:floors?|storeys?|levels?|etages?)\s*[:\-]?\s*(\d{1,2})\b/i,
+  ]);
+  const gPlusDetected = floors.evidence.some(line => /(?:G|GF|ground\s*floor)\s*\+\s*\d{1,2}/i.test(line));
+  const floorsValue = gPlusDetected
+    ? (floors.value == null ? null : floors.value + 1)
+    : floors.value;
+
+  const area = extractArea(lines,
+    /\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i);
+  const footprint = extractArea(lines,
+    /\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i);
+  const bedrooms = extractCount(lines, [
+    /\b(\d{1,2})\s*(?:bed(?:room)?s?|chambres?)\b/i,
+    /\b(?:bed(?:room)?s?|chambres?)\s*[:\-]?\s*(\d{1,2})\b/i,
+  ]);
+  const bathrooms = extractCount(lines, [
+    /\b(\d{1,2})\s*(?:bath(?:room)?s?|toilets?|wc|salles?\s*de\s*bains?)\b/i,
+    /\b(?:bath(?:room)?s?|toilets?|wc|salles?\s*de\s*bains?)\s*[:\-]?\s*(\d{1,2})\b/i,
+  ]);
+  const livingRooms = extractCount(lines, [
+    /\b(\d{1,2})\s*(?:living\s*rooms?|lounges?|salons?)\b/i,
+    /\b(?:living\s*rooms?|lounges?|salons?)\s*[:\-]?\s*(\d{1,2})\b/i,
+  ]);
+  const kitchens = extractCount(lines, [
+    /\b(\d{1,2})\s*(?:kitchens?|cuisines?)\b/i,
+    /\b(?:kitchens?|cuisines?)\s*[:\-]?\s*(\d{1,2})\b/i,
+  ]);
+
   return {
-    floors: floors != null && Number.isInteger(floors) && floors > 0 ? floors : null,
-    areaSqm: areaSqm != null && areaSqm > 0 ? areaSqm : null,
-    footprintSqm: footprintSqm != null && footprintSqm > 0 ? footprintSqm : null,
+    floors: floorsValue != null && Number.isInteger(floorsValue) && floorsValue > 0 ? floorsValue : null,
+    areaSqm: area.value != null && area.value > 0 ? area.value : null,
+    footprintSqm: footprint.value != null && footprint.value > 0 ? footprint.value : null,
+    bedrooms: bedrooms.value,
+    bathrooms: bathrooms.value,
+    livingRooms: livingRooms.value,
+    kitchens: kitchens.value,
+    evidence: {
+      floors: floors.evidence,
+      areaSqm: area.evidence,
+      footprintSqm: footprint.evidence,
+      bedrooms: bedrooms.evidence,
+      bathrooms: bathrooms.evidence,
+      livingRooms: livingRooms.evidence,
+      kitchens: kitchens.evidence,
+    },
   };
 }
 
@@ -288,12 +371,22 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
 export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts> {
   const isPdf = PDF.test(file.name);
   const isImage = IMAGE.test(file.name);
-  if (!isPdf && !isImage) return { readable: false, floors: null, areaSqm: null, footprintSqm: null };
+  if (!isPdf && !isImage) {
+    return {
+      readable: false, floors: null, areaSqm: null, footprintSqm: null,
+      bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
+      evidence: { floors: [], areaSqm: [], footprintSqm: [], bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [] },
+    };
+  }
 
   try {
     const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
     return { readable: !!out.text.trim(), ...readFloorPlanFacts(out.text) };
   } catch {
-    return { readable: false, floors: null, areaSqm: null, footprintSqm: null };
+    return {
+      readable: false, floors: null, areaSqm: null, footprintSqm: null,
+      bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
+      evidence: { floors: [], areaSqm: [], footprintSqm: [], bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [] },
+    };
   }
 }

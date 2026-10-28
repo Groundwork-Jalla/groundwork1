@@ -37,6 +37,18 @@ export function planSeed(
   const detectedFootprints = facts
     .map(fact => fact.footprintSqm)
     .filter((sqm): sqm is number => sqm != null);
+  const detectedBedrooms = facts
+    .map(fact => fact.bedrooms)
+    .filter((count): count is number => count != null);
+  const detectedBathrooms = facts
+    .map(fact => fact.bathrooms)
+    .filter((count): count is number => count != null);
+  const detectedLivingRooms = facts
+    .map(fact => fact.livingRooms)
+    .filter((count): count is number => count != null);
+  const detectedKitchens = facts
+    .map(fact => fact.kitchens)
+    .filter((count): count is number => count != null);
   const sourceReading = answer.reading;
   const totalUsd = sourceReading?.confidence === 'grand'
     ? sourceReading.currencyCode === 'USD'
@@ -55,6 +67,10 @@ export function planSeed(
     // at cannot become the stage payment schedule.
     ...(detectedFloors.length ? { floors: Math.max(...detectedFloors) } : {}),
     ...(detectedFootprints.length ? { sqm: detectedFootprints[0] } : {}),
+    ...(detectedBedrooms.length ? { bedrooms: Math.max(...detectedBedrooms) } : {}),
+    ...(detectedBathrooms.length ? { bathrooms: Math.max(...detectedBathrooms) } : {}),
+    ...(detectedLivingRooms.length ? { livingRooms: Math.max(...detectedLivingRooms) } : {}),
+    ...(detectedKitchens.length ? { kitchens: Math.max(...detectedKitchens) } : {}),
     bqTotalUsd: totalUsd,
   };
 }

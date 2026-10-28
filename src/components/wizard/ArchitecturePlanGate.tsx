@@ -231,10 +231,22 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       {floorPlans.length > 0 && !scanning && (
         <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
           {floorPlanFacts.map((facts, i) => (
-            <p key={`${floorPlans[i]?.name ?? 'plan'}-${i}`}>
-              {floorPlans[i]?.name}: {facts.floors ? `${facts.floors} floors` : t('planGate.floorCountMissing')}
-              {facts.areaSqm ? ` · ${facts.areaSqm} m² shown on plan` : ` · ${t('planGate.areaMissing')}`}
-            </p>
+            <div key={`${floorPlans[i]?.name ?? 'plan'}-${i}`} className="mb-2 last:mb-0">
+              <p className="font-medium text-brand-near-black">{floorPlans[i]?.name}</p>
+              <p>
+                {facts.floors ? `${facts.floors} ${t('planGate.floors')}` : t('planGate.floorCountMissing')}
+                {facts.areaSqm ? ` · ${facts.areaSqm} m²` : ` · ${t('planGate.areaMissing')}`}
+                {facts.bedrooms != null ? ` · ${facts.bedrooms} ${t('planGate.bedrooms')}` : ''}
+                {facts.bathrooms != null ? ` · ${facts.bathrooms} ${t('planGate.bathrooms')}` : ''}
+                {facts.livingRooms != null ? ` · ${facts.livingRooms} ${t('planGate.livingRooms')}` : ''}
+                {facts.kitchens != null ? ` · ${facts.kitchens} ${t('planGate.kitchens')}` : ''}
+              </p>
+              {!!(facts.evidence?.floors?.length ?? 0) && (
+                <p className="mt-1 truncate font-mono text-[10px]" title={facts.evidence?.floors?.[0]}>
+                  {facts.evidence?.floors?.[0]}
+                </p>
+              )}
+            </div>
           ))}
         </div>
       )}

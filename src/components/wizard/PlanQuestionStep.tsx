@@ -56,6 +56,11 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
             fileName: file.name,
             facts: answer.floorPlanFacts[i] ?? {
               readable: false, floors: null, areaSqm: null, footprintSqm: null,
+              bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
+              evidence: {
+                floors: [], areaSqm: [], footprintSqm: [],
+                bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [],
+              },
             },
           })),
         } : null);

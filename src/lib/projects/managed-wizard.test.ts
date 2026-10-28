@@ -23,7 +23,7 @@ vi.mock('@/contexts/WizardContext', () => ({
   WizardProvider: ({ children }: { children: ReactNode }) => children,
   useWizard: () => ({
     step: h.step, direction: h.direction, goTo: vi.fn(),
-    data: h.data, onBehalfOf: h.onBehalfOf, reset: vi.fn(),
+    data: h.data, onBehalfOf: h.onBehalfOf, reset: vi.fn(), clearDraft: vi.fn(),
     constructionRate: null, cityRate: null,
     ...(h.confirmationDraft ? { confirmationDraft: h.confirmationDraft } : {}),
   }),

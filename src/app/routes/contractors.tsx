@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
   CheckCircle2,
+  Lock,
   ChevronRight,
   X,
   Search,
@@ -586,6 +587,9 @@ function CardSkeleton() {
 
 export default function ContractorsPage() {
   const t = useT();
+  const { loading, session, isAdmin, adminChecked } = useAuth();
+  const accessResolved = !loading && (!!session ? adminChecked : true);
+  const canViewDirectory = !!session && isAdmin;
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [fetchState, setFetchState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [activeFilter, setActiveFilter] = useState<FilterKey>('All');
@@ -594,6 +598,11 @@ export default function ContractorsPage() {
   const [profileTarget, setProfileTarget] = useState<Contractor | null>(null);
 
   useEffect(() => {
+    if (!canViewDirectory) {
+      setFetchState('ready');
+      setContractors([]);
+      return;
+    }
     supabase
       .from('contractors')
       // Explicit columns, never '*'. The browser roles hold SELECT on named columns only
@@ -612,9 +621,12 @@ export default function ContractorsPage() {
           setFetchState('ready');
         }
       });
-  }, []);
+  }, [canViewDirectory]);
 
   const visible = contractors.filter(c => matchesFilter(c, activeFilter) && matchesQuery(c, query));
+
+  if (!accessResolved) return null;
+  if (!canViewDirectory) return <ContractorsLocked />;
 
   return (
     <div className="bg-brand-off-white min-h-full">
@@ -768,6 +780,40 @@ export default function ContractorsPage() {
       </div>
 
       <BackToTop />
+    </div>
+  );
+}
+
+function ContractorsLocked() {
+  const t = useT();
+  return (
+    <div className="bg-brand-off-white min-h-full dark:bg-transparent">
+      <div className="mx-auto flex min-h-[70vh] max-w-5xl items-center justify-center px-4 py-10 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          role="dialog"
+          aria-modal="false"
+          className="w-full max-w-md rounded-2xl border border-brand-border-grey bg-white p-8 text-center shadow-[0_8px_40px_rgba(0,0,0,0.10)] dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+        >
+          <span className="mx-auto mb-5 flex size-11 items-center justify-center rounded-full bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black">
+            <Lock className="size-5" />
+          </span>
+          <h1 className="text-lg font-bold text-brand-near-black dark:text-white">
+            {t('contractors.lockedTitle')}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
+            {t('contractors.lockedBody')}
+          </p>
+          <Link
+            to="/dashboard"
+            className="mt-6 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
+          >
+            {t('contractors.lockedBack')}
+          </Link>
+        </motion.div>
+      </div>
     </div>
   );
 }
