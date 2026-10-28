@@ -1,6 +1,6 @@
 import { useWizard } from '@/contexts/WizardContext';
 import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
-import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
+import { planDocuments, planSeed, planQuestionDue } from '@/lib/projects/plan-answer';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
 
@@ -29,13 +29,22 @@ import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
   const {
     step, data, update, goTo, back, pendingDocuments, setPendingDocuments,
-    setDocumentExtraction, constructionRate,
+    setDocumentExtraction, constructionRate, planDocumentsSeen,
   } = useWizard();
 
   const uploadedPlanDocs = pendingDocuments?.some(doc => doc.category === 'other') ?? false;
   const uploadedBq = pendingDocuments?.some(doc => doc.category === 'boq') ?? false;
-  const needsPlanUpload = data.hasArchitecturePlan === true && !(uploadedPlanDocs && uploadedBq);
-  if (step < 2 || (data.hasArchitecturePlan !== null && !needsPlanUpload)) return <>{children}</>;
+  // Whether this question is due is pure, and lives in `plan-answer` so the case that
+  // bit partners — a reload drops the Files, which must not un-answer the question —
+  // can be tested without a browser.
+  const due = planQuestionDue({
+    step,
+    hasPlan: data.hasArchitecturePlan,
+    hasPlanDoc: uploadedPlanDocs,
+    hasBqDoc: uploadedBq,
+    seen: planDocumentsSeen,
+  });
+  if (!due) return <>{children}</>;
 
   return (
     <ArchitecturePlanGate

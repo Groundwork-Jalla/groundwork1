@@ -65,6 +65,11 @@ export interface DocumentExtraction {
 interface WizardContextValue {
   step: number;
   totalSteps: number;
+  /**
+   * The plan and the bill were uploaded in this run, whether or not the Files are
+   * still in memory. A reload drops the Files and must not re-ask the question.
+   */
+  planDocumentsSeen: boolean;
   direction: WizardDirection;
   data: WizardFormData;
   constructionRate: ConstructionRate | null;
@@ -303,7 +308,7 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   return (
     <WizardContext.Provider
       value={{
-        step, totalSteps, direction, data,
+        step, totalSteps, planDocumentsSeen, direction, data,
         constructionRate, cityRate, rateLoading,
         update, next, back, goTo, reset,
         clearDraft,

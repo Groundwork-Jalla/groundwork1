@@ -105,3 +105,34 @@ export function planDocuments(answer: PlanAnswer | null): { file: File; category
 export function wizardAlreadyStarted(persistenceKey: string | undefined): boolean {
   return persistenceKey ? readWizardDraft(persistenceKey) != null : false;
 }
+
+/**
+ * Is the architecture-plan question due on this render?
+ *
+ * Pure, because the answer decides whether somebody sees the wizard they were filling
+ * in or the first question again, and that is worth being able to test without a
+ * browser.
+ *
+ * `seen` is the whole point. A File cannot go in sessionStorage, so a refresh always
+ * leaves `hasPlanDoc`/`hasBqDoc` false — and reading that as "they never uploaded
+ * anything" drew this question over whatever step they had reached. Somebody
+ * confirming their budget pressed refresh and was sent back to the very first
+ * question. Partners had been complaining about it for a while before 28 October,
+ * when a contractor did it on a call.
+ */
+export function planQuestionDue(state: {
+  step: number;
+  hasPlan: boolean | null;
+  hasPlanDoc: boolean;
+  hasBqDoc: boolean;
+  seen: boolean;
+}): boolean {
+  // Asked after the country step, never before: until then there is no context for it.
+  if (state.step < 2) return false;
+  // Never asked at all yet.
+  if (state.hasPlan === null) return true;
+  // Answered NO. Nothing to upload, nothing to ask again.
+  if (state.hasPlan === false) return false;
+  // Answered YES: due only while the documents are still genuinely outstanding.
+  return !(state.hasPlanDoc && state.hasBqDoc) && !state.seen;
+}

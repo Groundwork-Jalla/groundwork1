@@ -190,3 +190,39 @@ describe('wizard draft lifecycle', () => {
     expect(h.current?.data).toEqual(WIZARD_DEFAULT_DATA);
   });
 });
+
+describe('documents that a reload threw away', () => {
+  /**
+   * A File cannot go in sessionStorage, so a refresh always loses the floor plan and
+   * the bill. What must NOT be lost is the fact that they were uploaded: without it
+   * the wizard decides the architecture-plan question was never answered and draws it
+   * over whatever step the person had reached.
+   *
+   * Ruth, 28 October: partners "have been complaining stylishly", and a contractor
+   * refreshed while confirming his budget and "it took him to the very beginning".
+   */
+  it('remembers that the plan and the bill were attached', () => {
+    writeWizardDraft(key, { ...draft(), planDocumentsAttached: true });
+    expect(readWizardDraft(key)?.planDocumentsAttached).toBe(true);
+  });
+
+  it('a draft written before this existed is still a valid draft', () => {
+    // Undefined means "we do not know", which is the honest answer for an old draft
+    // and is not a reason to throw every other answer away.
+    writeWizardDraft(key, draft());
+    const restored = readWizardDraft(key);
+    expect(restored).not.toBeNull();
+    expect(restored?.planDocumentsAttached).toBeUndefined();
+    expect(restored?.data).toEqual(draft().data);
+  });
+
+  it('refuses a stored value that is not a boolean', () => {
+    entries.set(key, JSON.stringify({ ...draft(), planDocumentsAttached: 'yes' }));
+    expect(readWizardDraft(key)).toBeNull();
+  });
+
+  it('does not write the flag when nothing was attached', () => {
+    writeWizardDraft(key, { ...draft(), planDocumentsAttached: false });
+    expect(readWizardDraft(key)?.planDocumentsAttached).toBeUndefined();
+  });
+});

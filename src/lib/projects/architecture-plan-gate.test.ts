@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
-import { planSeed, planDocuments } from './plan-answer';
+import { planSeed, planDocuments, planQuestionDue } from './plan-answer';
 import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 
 /**
@@ -127,7 +127,12 @@ describe('the question itself', () => {
     // Asked in front of the whole thing it is a question with no context — nobody has
     // said what they are building or where. After step 1 they are oriented, and the
     // answer decides whether the next eight questions are worth asking at all.
-    expect(stepWrap).toMatch(/if \(step < 2 \|\| \(data\.hasArchitecturePlan !== null && !needsPlanUpload\)\) return/);
+    // The condition moved into `planQuestionDue` on 28 October so the reload case
+    // could be tested without a browser; the rule it encodes is unchanged, and is
+    // asserted directly rather than through its source text.
+    expect(planQuestionDue({ step: 1, hasPlan: null, hasPlanDoc: false, hasBqDoc: false, seen: false })).toBe(false);
+    expect(planQuestionDue({ step: 2, hasPlan: null, hasPlanDoc: false, hasBqDoc: false, seen: false })).toBe(true);
+    expect(stepWrap).toMatch(/if \(!due\) return/);
     // And it is not a numbered step: the ten are hard-coded in the progress bar and
     // the building preview, so inserting one would renumber all of them.
     expect(read('src/contexts/WizardContext.tsx')).toMatch(/TOTAL_STEPS = 9/);
@@ -233,5 +238,49 @@ describe('resuming', () => {
 
   it('and a draft saved before the question existed is tolerated, not discarded', () => {
     expect(read('src/lib/projects/wizard-draft.ts')).toMatch(/\? value\.hasArchitecturePlan : null/);
+  });
+});
+
+describe('refreshing does not send anybody back to the first question', () => {
+  /**
+   * A File cannot be put in sessionStorage. A reload therefore always leaves the
+   * wizard holding no floor plan and no bill — and reading that as "they never
+   * uploaded anything" drew this question over whatever step they had reached.
+   *
+   * Ruth, 28 October: "He just refreshed and it took him to the very beginning for
+   * start project", and partners "have been complaining stylishly" before that. He
+   * was on the budget confirmation at the time.
+   */
+  const state = (over: Partial<Parameters<typeof planQuestionDue>[0]> = {}) => ({
+    step: 8, hasPlan: true, hasPlanDoc: true, hasBqDoc: true, seen: true, ...over,
+  });
+
+  it('keeps somebody on their step when a reload dropped the files', () => {
+    expect(planQuestionDue(state({ hasPlanDoc: false, hasBqDoc: false }))).toBe(false);
+  });
+
+  it('even on the confirmation step, which is where he was', () => {
+    expect(planQuestionDue(state({ step: 9, hasPlanDoc: false, hasBqDoc: false }))).toBe(false);
+  });
+
+  it('but still asks the first time, before anything was uploaded', () => {
+    expect(planQuestionDue(state({ hasPlanDoc: false, hasBqDoc: false, seen: false }))).toBe(true);
+  });
+
+  it('and still asks when only one of the two was supplied', () => {
+    expect(planQuestionDue(state({ hasBqDoc: false, seen: false }))).toBe(true);
+    expect(planQuestionDue(state({ hasPlanDoc: false, seen: false }))).toBe(true);
+  });
+
+  it('never asks before the country step', () => {
+    expect(planQuestionDue(state({ step: 1, hasPlan: null }))).toBe(false);
+  });
+
+  it('asks an unanswered question from step 2 onwards', () => {
+    expect(planQuestionDue(state({ step: 2, hasPlan: null, hasPlanDoc: false, hasBqDoc: false, seen: false }))).toBe(true);
+  });
+
+  it('never re-asks somebody who said no', () => {
+    expect(planQuestionDue(state({ hasPlan: false, hasPlanDoc: false, hasBqDoc: false, seen: false }))).toBe(false);
   });
 });
