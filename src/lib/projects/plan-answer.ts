@@ -65,7 +65,12 @@ export function planSeed(
     // before anything is created. Only a reading we are confident in is carried
     // forward — a guess is left for the person to type, so a figure they never looked
     // at cannot become the stage payment schedule.
-    ...(detectedFloors.length ? { floors: Math.max(...detectedFloors) } : {}),
+    // The drawing first, then the bill. A ground plan with a staircase proves there
+    // is an upper floor without saying how many, and its bill usually names the
+    // building in its title — "Mr.NAS G + 1", "G+1 BUILDING FOR MRS ROSE". Leaving
+    // this blank made somebody type a number the documents had already stated.
+    ...(detectedFloors.length ? { floors: Math.max(...detectedFloors) }
+      : answer.bqStatedFloors ? { floors: answer.bqStatedFloors } : {}),
     ...(detectedFootprints.length ? { sqm: detectedFootprints[0] } : {}),
     ...(detectedBedrooms.length ? { bedrooms: Math.max(...detectedBedrooms) } : {}),
     ...(detectedBathrooms.length ? { bathrooms: Math.max(...detectedBathrooms) } : {}),

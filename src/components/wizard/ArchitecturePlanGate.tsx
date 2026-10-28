@@ -40,6 +40,8 @@ export type PlanAnswer =
       reading: BqReading | null;
       lineItems: BqLineItem[];
       floorPlanFacts: FloorPlanFacts[];
+      /** A storey count the bill of quantities states, when the drawing did not. */
+      bqStatedFloors: number | null;
     };
 
 export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
@@ -54,6 +56,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
   const [bq, setBq] = useState<File | null>(null);
   const [reading, setReading] = useState<BqReading | null>(null);
   const [lineItems, setLineItems] = useState<BqLineItem[]>([]);
+  const [bqStatedFloors, setBqStatedFloors] = useState<number | null>(null);
   const [floorPlanFacts, setFloorPlanFacts] = useState<FloorPlanFacts[]>([]);
   const [scanCount, setScanCount] = useState(0);
   const scanning = scanCount > 0;
@@ -116,6 +119,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
       const out = await extractBqTotal(file);
       setReading(out.reading);
       setLineItems(out.lineItems);
+      setBqStatedFloors(out.statedFloors);
       setFromOcr(out.ocr);
       // Told apart on purpose: a file we could not read at all (a scanned PDF) is a
       // different thing to say than a file we read but found no total in.
@@ -123,6 +127,7 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
     } catch {
       setReading(null);
       setLineItems([]);
+      setBqStatedFloors(null);
       setUnreadable(true);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
@@ -313,7 +318,9 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           // who cannot produce them belongs on the other branch, and the Back button
           // above is how they get there.
           disabled={!floorPlans.length || !bq || scanning}
-          onClick={() => onAnswered({ hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts })}
+          onClick={() => onAnswered({
+            hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
+          })}
           className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
           {scanning && <Loader2 className="size-4 animate-spin" aria-hidden />}

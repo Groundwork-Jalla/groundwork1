@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFloorPlanFacts } from './extract-bq';
+import { readFloorPlanFacts, readStatedFloors } from './extract-bq';
 import { MR_NAS_GROUND_PLAN } from './__fixtures__/floor-plans';
 
 /**
@@ -127,5 +127,57 @@ describe('French drawings', () => {
 
   it('reads a French staircase', () => {
     expect(readFloorPlanFacts('Escalier').staircase).toBe(true);
+  });
+});
+
+describe('a storey count read off a bill of quantities', () => {
+  /**
+   * A bill's title names the building — "Mr.NAS G + 1 Cost Estimate" — which is worth
+   * having, because a ground plan with a staircase proves there is an upper floor
+   * without ever saying how many.
+   *
+   * A bill is also a TABLE, and that is the trap. These three lines are verbatim from
+   * Mr Nas's estimate, and with an optional separator the reader found "1" and "3" in
+   * the money column beside the words "UPPER FLOOR", took the larger, added one for
+   * the real G+1, and prefilled a four-storey building. Storeys multiply the budget.
+   */
+  const MR_NAS_BQ = [
+    'BILL OF QUANTITIES AND COST ESTIMATES FOR THE CONSTRUCTION OF G +1 FOUNDATION',
+    '500:DECKING OF UPPER FLOOR\t1,013,000',
+    '550:WALL MASONARY OF UPPER FLOOR\t3,155,600',
+  ].join('\n');
+
+  it('reads two storeys, not four', () => {
+    expect(readStatedFloors(MR_NAS_BQ).value).toBe(2);
+  });
+
+  it('never takes a figure out of the money column', () => {
+    expect(readStatedFloors('550:WALL MASONARY OF UPPER FLOOR\t3,155,600').value).toBeNull();
+    expect(readStatedFloors('500:DECKING OF UPPER FLOOR\t1,013,000').value).toBeNull();
+  });
+
+  it('a G+ figure settles it alone, whatever else the document contains', () => {
+    expect(readStatedFloors('G +1\n9 FLOORS\n7 STOREYS').value).toBe(2);
+  });
+
+  it('still reads the plain statements when no G+ is given', () => {
+    expect(readStatedFloors('3 STOREYS').value).toBe(3);
+    expect(readStatedFloors('Floors: 2').value).toBe(2);
+    expect(readStatedFloors('Number of levels - 4').value).toBe(4);
+  });
+
+  it('reads the real titles of both bills on file', () => {
+    expect(readStatedFloors('Mr.NAS G + 1 Cost Estimate Limbe').value).toBe(2);
+    expect(readStatedFloors('CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS ROSE').value).toBe(2);
+    expect(readStatedFloors('CONSTRUCTION OF A G+2+TT GUEST HOUSE IN KRIBI').value).toBe(3);
+  });
+
+  it('says nothing about a bill that never names the building', () => {
+    expect(readStatedFloors('FOUNDATION\t2,966,628\nROOF\t681,200').value).toBeNull();
+  });
+
+  it('refuses a storey count no building has', () => {
+    expect(readStatedFloors('G+99').value).toBeNull();
+    expect(readStatedFloors('40 FLOORS').value).toBeNull();
   });
 });

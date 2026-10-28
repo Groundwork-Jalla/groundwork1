@@ -304,7 +304,11 @@ export default function Step9Summary() {
   const t = useT();
   const { data, update, documentExtraction } = useWizard();
   const documentFlow = data.hasArchitecturePlan === true;
-  const hasExtractedFloors = documentExtraction?.floorPlans.some(plan => plan.facts.floors != null) ?? false;
+  // The drawing OR the bill. A ground plan with a staircase never states its storey
+  // count; its bill names the building in the title — "Mr.NAS G + 1" — and that is
+  // just as much a figure read from the documents.
+  const hasExtractedFloors = (documentExtraction?.floorPlans.some(plan => plan.facts.floors != null) ?? false)
+    || documentExtraction?.bqStatedFloors != null;
   const hasExtractedFootprint = documentExtraction?.floorPlans
     .some(plan => plan.facts.footprintSqm != null) ?? false;
   const [manualFloors, setManualFloors] = useState(data.floors > 1 ? String(data.floors) : '');

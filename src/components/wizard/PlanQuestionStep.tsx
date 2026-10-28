@@ -28,7 +28,7 @@ import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
  */
 export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
   const {
-    step, data, update, goTo, back, pendingDocuments, setPendingDocuments,
+    step, data, update, back, pendingDocuments, setPendingDocuments,
     setDocumentExtraction, constructionRate, planDocumentsSeen,
   } = useWizard();
 
@@ -62,12 +62,23 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
         setDocumentExtraction(answer.hasPlan ? {
           bqReading: answer.reading,
           bqLineItems: answer.lineItems,
+          bqStatedFloors: answer.bqStatedFloors,
           floorPlans: answer.floorPlans.map((file, i) => ({
             fileName: file.name,
             facts: answer.floorPlanFacts[i] ?? NO_FLOOR_PLAN_FACTS,
           })),
         } : null);
-        if (answer.hasPlan) goTo(8);
+        // DELIBERATELY NO JUMP. This used to `goTo(8)`, straight from the plan
+        // question to the summary — which skipped the project type and the building
+        // type, the two questions the documents do NOT answer. `projects.project_type`
+        // is NOT NULL (migration 003), so every such project failed at the final
+        // insert with "null value in column project_type violates not-null
+        // constraint", after the person had filled in everything else.
+        //
+        // The route was always meant to be 1, 2, 3, then the summary — that is the
+        // list `ProgressBar` draws and the one `wizard-route` walks. Falling through
+        // renders step 2 next, because answering the question is what stops it being
+        // due. Steps 4 to 7 are still skipped, by the route itself.
       }}
     />
   );

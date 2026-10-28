@@ -60,6 +60,14 @@ export interface DocumentExtraction {
   bqReading: BqReading | null;
   bqLineItems: BqLineItem[];
   floorPlans: { fileName: string; facts: FloorPlanFacts }[];
+  /**
+   * A storey count the BILL states, when the drawing did not.
+   *
+   * Carried so the summary can say the figure came from the documents. Without it
+   * that row read "floor count not extracted" directly above a box this very figure
+   * had prefilled, which looks like two parts of the product disagreeing.
+   */
+  bqStatedFloors?: number | null;
 }
 
 interface WizardContextValue {

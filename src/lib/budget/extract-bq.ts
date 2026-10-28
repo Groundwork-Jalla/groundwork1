@@ -181,6 +181,14 @@ export type BqSource = 'spreadsheet' | 'pdf' | 'text' | 'image';
 export interface BqExtraction {
   reading: BqReading | null;
   lineItems: BqLineItem[];
+  /**
+   * A storey count the BILL states about the building, from its title or headings.
+   *
+   * "Mr.NAS G + 1 Cost Estimate", "CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS
+   * ROSE". A ground plan with a staircase cannot tell you how many floors there are;
+   * its bill usually says so in the first line.
+   */
+  statedFloors: number | null;
   source: BqSource;
   /** False when the file yielded no text at all — an empty sheet, or an unreadable scan. */
   readable: boolean;
@@ -234,18 +242,22 @@ export async function extractBqTotal(file: File): Promise<BqExtraction> {
     } else if (PLAIN.test(name)) {
       text = await file.text();
     } else {
-      return { reading: null, lineItems: [], source, readable: false, ocr: false };
+      return { reading: null, lineItems: [], statedFloors: null, source, readable: false, ocr: false };
     }
 
     // Nothing at all is a different answer from "text, but no total in it": one means
     // the file could not be read, the other that it holds no total to find.
-    if (!text.trim()) return { reading: null, lineItems: [], source, readable: false, ocr };
+    if (!text.trim()) return { reading: null, lineItems: [], statedFloors: null, source, readable: false, ocr };
 
-    return { reading: readBqTotal(text), lineItems: readBqLineItems(text), source, readable: true, ocr };
+    return {
+      reading: readBqTotal(text), lineItems: readBqLineItems(text),
+      statedFloors: readStatedFloors(text).value,
+      source, readable: true, ocr,
+    };
   } catch {
     // Corrupt, password-protected, or a format the library will not take. All the
     // same answer to the person: type the figure.
-    return { reading: null, lineItems: [], source, readable: false, ocr: false };
+    return { reading: null, lineItems: [], statedFloors: null, source, readable: false, ocr: false };
   }
 }
 
@@ -373,6 +385,29 @@ const STATED_COUNTS = {
 
 const STAIRCASE = /\b(?:stair\s*-?\s*case|stairs|escalier)\b/i;
 
+/**
+ * "G+1" — the way this market states a storey count, and the one to trust.
+ *
+ * Sought on its own and before anything else, because the alternatives below can be
+ * fooled by a table and this cannot.
+ */
+const G_PLUS = /\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i;
+
+/**
+ * "3 floors", "storeys: 2". Used only when no G+ figure is stated.
+ *
+ * The separator in the second pattern is MANDATORY, and neither may be followed by
+ * more digits. Both rules were bought on 28 October: a bill of quantities is a table,
+ * and with an optional separator "550: WALL MASONARY OF UPPER FLOOR   3,155,600" read
+ * as three storeys — the word "FLOOR" and then, across the column gap, the first
+ * digit of the money. Two such rows plus a real "G +1" produced a four-storey
+ * building out of a bungalow's bill, and storeys multiply the budget.
+ */
+const STATED_FLOORS = [
+  /\b(\d{1,2})\s*(?:floors?|storeys?|levels?|etages?)\b(?![\d,.])/i,
+  /\b(?:floors?|storeys?|levels?|etages?)\s*[:\-]\s*(\d{1,2})\b(?![\d,.])/i,
+] as const;
+
 /** A span in metres has to be a building's, not a doorway's or a city block's. */
 const MIN_SPAN_M = 2;
 const MAX_SPAN_M = 200;
@@ -471,6 +506,36 @@ function overallSpans(text: string): { width: number; depth: number } | null {
   return { width, depth };
 }
 
+/**
+ * A storey count a document states about itself — "G+1", "G + 2 + TT", "3 STOREYS".
+ *
+ * Deliberately ONLY the storey count, and deliberately usable on a bill of quantities
+ * as well as a drawing. A bill's title page almost always names the building: "Mr.NAS
+ * G + 1 Cost Estimate", "CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS ROSE". That is
+ * a stated fact and worth having, because a ground plan with a staircase proves there
+ * is an upper floor without ever saying how many.
+ *
+ * What must NOT be taken from a bill is the room counting. A drawing writes "Kitchen"
+ * once per kitchen; a bill writes it in every trade line that touches one, so counting
+ * labels there would invent rooms.
+ */
+export function readStatedFloors(text: string): { value: number | null; evidence: string[] } {
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const plausible = (n: number | null) =>
+    n != null && Number.isInteger(n) && n > 0 && n <= 20 ? n : null;
+
+  // A G+ figure settles it. Taken on its own, never combined with a count read
+  // elsewhere in the document: "G +1" plus a stray "3" off a money column is how a
+  // two-storey building became four.
+  const gPlus = extractCount(lines, [G_PLUS]);
+  if (gPlus.value != null) {
+    return { value: plausible(gPlus.value + 1), evidence: gPlus.evidence };
+  }
+
+  const stated = extractCount(lines, STATED_FLOORS);
+  return { value: plausible(stated.value), evidence: stated.evidence };
+}
+
 /** Extract what a floor plan states, and what counting its labels establishes. */
 export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
   const lines = text
@@ -478,15 +543,8 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
     .map(line => line.trim())
     .filter(Boolean);
 
-  const floors = extractCount(lines, [
-    /\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i,
-    /\b(\d{1,2})\s*(?:floors?|storeys?|levels?|etages?)\b/i,
-    /\b(?:floors?|storeys?|levels?|etages?)\s*[:\-]?\s*(\d{1,2})\b/i,
-  ]);
-  const gPlusDetected = floors.evidence.some(line => /(?:G|GF|ground\s*floor)\s*\+\s*\d{1,2}/i.test(line));
-  const floorsValue = gPlusDetected
-    ? (floors.value == null ? null : floors.value + 1)
-    : floors.value;
+  const floors = readStatedFloors(text);
+  const floorsValue = floors.value;
 
   // `(?![A-Za-z0-9])` rather than `\b` after the unit. A trailing `\b` asserts a
   // boundary, and "²" is not a word character — so "150 m²" needed a LETTER after it

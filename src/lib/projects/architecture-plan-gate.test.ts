@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
 import { planSeed, planDocuments, planQuestionDue } from './plan-answer';
+import { readStatedFloors, NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
 import type { PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 
 /**
@@ -28,6 +29,7 @@ const confirm    = strip(read('src/components/wizard/steps/Step11ConfirmBudget.t
 const YES = (over: Partial<Extract<PlanAnswer, { hasPlan: true }>> = {}): PlanAnswer =>
   ({
     hasPlan: true, floorPlans: [], bq: null, reading: null, lineItems: [], floorPlanFacts: [],
+    bqStatedFloors: null,
     ...over,
   });
 
@@ -290,5 +292,45 @@ describe('refreshing does not send anybody back to the first question', () => {
 
   it('never re-asks somebody who said no', () => {
     expect(planQuestionDue(state({ hasPlan: false, hasPlanDoc: false, hasBqDoc: false, seen: false }))).toBe(false);
+  });
+});
+
+describe('the summary comes prefilled from the documents', () => {
+  /**
+   * 28 October: "project at a glance contents should come prefilled if boq and floor
+   * plan were attached." It was asking for a floor count that both documents already
+   * stated — the drawing by its staircase (which proves an upper floor without
+   * saying how many) and the bill by its own title, "Mr.NAS G + 1 Cost Estimate".
+   */
+  it('takes the storey count the bill states when the drawing did not', () => {
+    expect(planSeed(YES({ bqStatedFloors: 2 })).floors).toBe(2);
+  });
+
+  it('but the drawing still wins where it says so itself', () => {
+    const facts = { ...NO_FLOOR_PLAN_FACTS, readable: true, floors: 3 };
+    expect(planSeed(YES({ floorPlanFacts: [facts], bqStatedFloors: 2 })).floors).toBe(3);
+  });
+
+  it('and claims nothing when neither document says', () => {
+    expect(planSeed(YES()).floors).toBeUndefined();
+  });
+
+  it('reads "G+1" as two storeys, counting the ground floor', () => {
+    expect(readStatedFloors('Mr.NAS G + 1 Cost Estimate Limbe').value).toBe(2);
+    expect(readStatedFloors('CONSTRUCTION ESTIMATE OF G+1 BUILDING FOR MRS ROSE').value).toBe(2);
+    expect(readStatedFloors('PROPOSED G+2+TT GUEST HOUSE').value).toBe(3);
+  });
+
+  it('reads a plainly stated count too', () => {
+    expect(readStatedFloors('3 STOREYS').value).toBe(3);
+    expect(readStatedFloors('Floors: 2').value).toBe(2);
+  });
+
+  it('says nothing when the document does not state one', () => {
+    expect(readStatedFloors('BILL OF QUANTITIES\nFOUNDATION\t2,966,628').value).toBeNull();
+  });
+
+  it('refuses a storey count no building has', () => {
+    expect(readStatedFloors('G+99').value).toBeNull();
   });
 });
