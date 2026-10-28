@@ -18,6 +18,7 @@ import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/acce
 import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
+import { getApproxFx } from '@/lib/budget/legacy';
 
 const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
 
@@ -109,7 +110,18 @@ export default function Step11ConfirmBudget() {
   // the dropdown overrode it; now the dropdown IS the answer, so there is one source
   // and nothing to disagree with it.
 
-  const finalBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
+  /**
+   * The confirmed budget in DOLLARS, which is what `projects.budget_usd` stores.
+   *
+   * The summary now asks for it in the money of the country being built in, so what
+   * `raw` carries is local currency. It is divided by the SAME stored rate the
+   * summary multiplied by — `construction_rates.approx_fx_rate`, not today's fetched
+   * one — so the figure round-trips exactly and the budget cannot shift between the
+   * two screens.
+   */
+  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+  const localBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
+  const finalBudget = fxRate > 0 ? localBudget / fxRate : localBudget;
 
   // What the client will actually be asked for. Recomputed from the confirmed total, so an
   // admin who edits the budget sees the joined figure follow.

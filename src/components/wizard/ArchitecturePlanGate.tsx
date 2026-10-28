@@ -235,9 +235,12 @@ export function ArchitecturePlanGate({
         />
       </div>
 
-      {/* What we think the BQ says. Shown with the row it came from, so it can be
-          checked at a glance — and it is confirmed again against the budget before
-          anything is created. */}
+      {/* The total and nothing else.
+          
+          It used to carry the row the figure came from ("NET PAYABLE 26,687,728") and
+          the rate ("600 XAF = $1"). Both were there so the reading could be checked —
+          but this screen's job is to say we read the bill, and the figure is confirmed
+          again on the summary before anything is created. Stripped 29 October. */}
       {reading && (
         <div className="mt-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3">
           <p className="text-xs font-semibold text-brand-near-black">
@@ -245,9 +248,7 @@ export function ArchitecturePlanGate({
               : reading.confidence === 'grand' ? 'planGate.readTotal'
               : 'planGate.guessedTotal')}
           </p>
-          {/* The bill's own currency first, dollars beside it, rate named — the same
-              pairing the summary uses, so the figure does not appear to change
-              between the two screens. */}
+          {/* The bill's own currency, dollars beside it. */}
           <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
             <span className="font-mono text-lg font-bold tabular-nums text-brand-near-black">
               {bqMoney.local}
@@ -257,12 +258,6 @@ export function ArchitecturePlanGate({
                 ≈ {bqMoney.usd}
               </span>
             )}
-          </p>
-          {bqMoney.rate && (
-            <p className="font-mono text-[10px] text-brand-mid-grey">{bqMoney.rate}</p>
-          )}
-          <p className="mt-1 truncate font-mono text-[11px] text-brand-mid-grey" title={reading.label}>
-            {reading.label}
           </p>
           {/* Only a scan gets a caution, because only a scan can misread a digit.
               A clean read needs no paragraph — the figure is confirmed again on the

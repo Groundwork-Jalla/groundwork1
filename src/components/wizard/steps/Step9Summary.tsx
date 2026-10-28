@@ -14,7 +14,7 @@ import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useUsdRate } from '@/lib/budget/live-fx';
-import { getApproxFx } from '@/lib/budget/legacy';
+import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -243,8 +243,22 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
   // the checkbox below is disabled on `amount <= 0`, and "Confirm budget" can never
   // enable — while the summary panel beside it shows a perfectly good calculated figure.
   // Reported from a live activation call as "I can't get past this stage".
-  const estimate = Math.round(
-    data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total);
+  /**
+   * The confirmed budget, in the money of the country being built in.
+   *
+   * Groundwork stores `budget_usd`, so this screen used to ask for dollars — beneath
+   * a bill quoted in francs. Philip, 29 October: "the confirmed project budget should
+   * not show me in dollars, it should show me in the local currency for that country."
+   *
+   * The STORED rate is used for this, not today's fetched one, and deliberately:
+   * `Step11ConfirmBudget` divides by the same stored rate to get the dollars it
+   * writes, so the figure round-trips exactly. A live rate here and a stored one
+   * there would quietly change the budget between two screens.
+   */
+  const fxRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
+  const currencyCode = constructionRate?.currency_code ?? getCurrencyCode(data.country);
+  const usdEstimate = data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total;
+  const estimate = Math.round(usdEstimate * (fxRate > 0 ? fxRate : 1));
   const raw = confirmationDraft?.raw ?? '';
   const previousEstimate = useRef<number | null>(null);
   const touchedByUser = useRef(false);
@@ -268,7 +282,9 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
       </label>
       <p className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.glanceSub')}</p>
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-brand-mid-grey">
+          {currencyCode}
+        </span>
         <input
           id="final-budget"
           inputMode="numeric"
@@ -278,7 +294,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
             updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') });
           }}
           placeholder="0"
-          className="w-full rounded-xl border border-brand-border-grey bg-white pl-9 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"
+          className="w-full rounded-xl border border-brand-border-grey bg-white pl-16 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"
         />
       </div>
       {estimate > 0 && amount !== estimate && (
@@ -287,7 +303,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
             touchedByUser.current = false;
             updateConfirmationDraft?.({ raw: String(estimate) });
           }}>
-          {t('wizard.confirmBudget.estimateLabel')}: ${estimate.toLocaleString('en-US')}
+          {t('wizard.confirmBudget.estimateLabel')}: {estimate.toLocaleString('en-US')} {currencyCode}
         </button>
       )}
       <label className="flex items-start gap-2.5 pt-2">

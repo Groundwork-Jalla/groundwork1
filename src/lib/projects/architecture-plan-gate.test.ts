@@ -196,10 +196,17 @@ describe('the question itself', () => {
     expect(gate).toMatch(/aria-pressed=\{selected\}/);
   });
 
-  it('shows what it read, with the row it came from', () => {
-    // A figure that becomes ten stage payments is not accepted unseen.
-    expect(gate).toMatch(/reading\.label/);
+  it('shows what it read, and only that', () => {
+    // A figure that becomes ten stage payments is not accepted unseen — but the
+    // upload step now shows the TOTAL and nothing else. The row it came from
+    // ("NET PAYABLE 26,687,728") and the rate ("600 XAF = $1") were stripped on
+    // 29 October: this screen says we read the bill, and the figure is confirmed
+    // again on the summary before anything is created.
     expect(gate).toMatch(/guessedTotal/);
+    expect(gate).toMatch(/bqMoney\.local/);
+    expect(gate).toMatch(/bqMoney\.usd/);
+    expect(gate).not.toMatch(/reading\.label/);
+    expect(gate).not.toMatch(/bqMoney\.rate/);
   });
 
   it('cautions about a scan and says nothing extra about a clean read', () => {
