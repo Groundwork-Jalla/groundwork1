@@ -34,7 +34,8 @@ const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
  */
 export default function Step11ConfirmBudget() {
   const { data, constructionRate, cityRate, onBehalfOf,
-    clearDraft, confirmationDraft, updateConfirmationDraft, pendingDocuments } = useWizard();
+    clearDraft, confirmationDraft, updateConfirmationDraft, pendingDocuments,
+    planDocumentsSeen } = useWizard();
   const { user }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
@@ -62,6 +63,19 @@ export default function Step11ConfirmBudget() {
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [needsReattachment] = useState(confirmationDraft?.hadAttachment === true);
+
+  /**
+   * They uploaded a plan and a bill, and a reload threw the Files away.
+   *
+   * The wizard no longer sends them back to the architecture-plan question over this
+   * — that is what put partners back at the very first screen — but the documents
+   * really are gone, and this is the last point at which anyone can say so. Without
+   * the box the project would be created priced from a bill it does not hold, and
+   * nobody would be told.
+   */
+  const planFilesLost = data.hasArchitecturePlan === true && planDocumentsSeen
+    && !((pendingDocuments ?? []).some(doc => doc.category === 'other')
+      && (pendingDocuments ?? []).some(doc => doc.category === 'boq'));
 
   // ── A build that was already under way (103) ──────────────────────────────────────
   // Admin-only, because only the admin path can mark stages as already built. A partner
@@ -318,13 +332,17 @@ export default function Step11ConfirmBudget() {
                         `pendingDocuments` waiting for this project to exist.
 
               `null` is the only case left: the question was never put, because the
-              draft predates it. Then the box stays, since we genuinely do not know. */}
-          {data.hasArchitecturePlan === null && (
+              draft predates it. Then the box stays, since we genuinely do not know.
+
+              And one more, added 28 October: YES, they uploaded both, and a RELOAD
+              threw the Files away. A File cannot be drafted, so this is the only
+              place left to ask for them again. */}
+          {(data.hasArchitecturePlan === null || planFilesLost) && (
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-brand-near-black">
               {t('wizard.confirmBudget.quoteLabel')} <span className="font-normal text-brand-mid-grey">{t('common.optional')}</span>
             </span>
-            {needsReattachment && !file && (
+            {(needsReattachment || planFilesLost) && !file && (
               <p role="status" className="text-xs text-brand-mid-grey">{t('wizard.confirmBudget.reattachFile')}</p>
             )}
             <button
