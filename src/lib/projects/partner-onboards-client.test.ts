@@ -245,9 +245,11 @@ describe('the wizard knows which of the two is driving it', () => {
     expect(step11).toMatch(/onBehalfOf\?\.by === 'partner'/);
   });
 
-  it('each driver lands back on their own surface', () => {
-    // A contractor sent to /admin/projects would hit a page they cannot open.
-    expect(step11).toMatch(/onBehalfOf\.by === 'partner' \? '\/work\/projects' : '\/admin\/projects'/);
+  it('each driver lands back on their own surface, on the project they just made', () => {
+    // A contractor sent to /admin/projects would hit a page they cannot open. And
+    // each lands on the PROJECT, not the list: somebody who has just built one wants
+    // to see it, which is what they said on 29 October.
+    expect(step11).toMatch(/onBehalfOf\.by === 'partner'\s*\n?\s*\? `\/work\/projects\/\$\{project\.id\}`\s*\n?\s*: `\/admin\/projects\/\$\{project\.id\}`/);
   });
 
   it('the admin path still declares itself, so neither is the default', () => {

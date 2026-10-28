@@ -137,7 +137,8 @@ describe('contractor client project wizard', () => {
         'project-id', expect.any(Object), 'client-id', 'Client home',
       );
       expect(h.checkout).not.toHaveBeenCalled();
-      expect(h.navigate).toHaveBeenCalledWith('/work/projects');
+      // The project itself, not the list (29 October).
+      expect(h.navigate).toHaveBeenCalledWith('/work/projects/project-id');
     },
   );
 });
