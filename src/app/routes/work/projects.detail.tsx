@@ -13,6 +13,7 @@ import { uploadDocument } from '@/lib/supabase/documents';
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
+import { ShareProject } from '@/components/project/ShareProject';
 import { cn } from '@/lib/utils';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 
@@ -178,6 +179,21 @@ export default function ContractorProjectDetail() {
 
       {tab === 'work' && (
         <>
+          {/* Invite the client to watch their own build.
+              
+              Only when the CONTRACTOR owns the project — which happens when they set it
+              up themselves rather than for a client who already has an account. In that
+              case the build is managed end to end by the contractor, and the client is
+              the person it is for: they should be able to follow it.
+              
+              `invite_project_viewer` (112) already allows exactly this and nothing more.
+              Its guard is "only the owner may share", and here the owner IS the
+              contractor, so no new permission is involved — the control was simply
+              never shown on this page. */}
+          {user?.id === project.user_id && (
+            <ShareProject projectId={project.id} />
+          )}
+
           {/* The stage ladder, read from the real lifecycle. No control to advance it:
               completing a stage is not the contractor's to do. */}
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
