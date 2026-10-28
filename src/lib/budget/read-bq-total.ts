@@ -68,6 +68,24 @@ function normalise(line: string): string {
  * "total ht" further down.
  */
 const GRAND_TOTAL = [
+  // ── What is actually payable ──
+  // Sought FIRST, for the same reason TTC is sought before HT: it is the figure the
+  // client pays and the contractor is owed.
+  //
+  // Mr Nas's estimate, Limbe, read on 28 October: the summary lists twelve trade
+  // sections, then "TOTAL 19,037,728" — which is their sum and is MATERIALS ONLY —
+  // then LABOUR 7,500,000, TRANSPORTATION 150,000, and "NET PAYABLE 26,687,728",
+  // written out in words underneath to leave no doubt. The bare-"total" pattern below
+  // matched the first of those, so Groundwork read the bill 7,650,000 light, 28.7%
+  // under, and said "We read this total from the document" while doing it. At
+  // `grand` confidence that figure carries into the budget and becomes the payment at
+  // every stage of the build.
+  /\bnet\s+payable\b/,
+  /\b(?:amount|total|sum)\s+payable\b/,
+  /\bnet\s+total\b/,
+  /\bnet\s+a\s+payer\b/,
+  /\bmontant\s+net\b/,
+  /\btotal\s+a\s+payer\b/,
   // ── English ──
   /\bgrand\s*total\b/,
   /\btotal\s+(?:project|contract|construction)\s+(?:cost|sum|amount|value)\b/,

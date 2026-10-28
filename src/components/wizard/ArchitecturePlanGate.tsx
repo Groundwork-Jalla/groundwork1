@@ -7,6 +7,7 @@ import {
   isBoqFile, isFloorPlanFile,
 } from '@/lib/documents/accepted-files';
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
+import { floorPlanSummary, floorPlanEvidence } from '@/lib/budget/floor-plan-summary';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
 
@@ -213,9 +214,14 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           <p className="mt-1 truncate font-mono text-[11px] text-brand-mid-grey" title={reading.label}>
             {reading.label}
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
-            {t(fromOcr ? 'planGate.checkScanned' : 'planGate.confirmLater')}
-          </p>
+          {/* Only a scan gets a caution, because only a scan can misread a digit.
+              A clean read needs no paragraph — the figure is confirmed again on the
+              summary step either way, so saying so here was noise. */}
+          {fromOcr && (
+            <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
+              {t('planGate.checkScanned')}
+            </p>
+          )}
         </div>
       )}
       {scanning && (
@@ -233,17 +239,10 @@ export function ArchitecturePlanGate({ onAnswered, onCancel, backLabel }: {
           {floorPlanFacts.map((facts, i) => (
             <div key={`${floorPlans[i]?.name ?? 'plan'}-${i}`} className="mb-2 last:mb-0">
               <p className="font-medium text-brand-near-black">{floorPlans[i]?.name}</p>
-              <p>
-                {facts.floors ? `${facts.floors} ${t('planGate.floors')}` : t('planGate.floorCountMissing')}
-                {facts.areaSqm ? ` · ${facts.areaSqm} m²` : ` · ${t('planGate.areaMissing')}`}
-                {facts.bedrooms != null ? ` · ${facts.bedrooms} ${t('planGate.bedrooms')}` : ''}
-                {facts.bathrooms != null ? ` · ${facts.bathrooms} ${t('planGate.bathrooms')}` : ''}
-                {facts.livingRooms != null ? ` · ${facts.livingRooms} ${t('planGate.livingRooms')}` : ''}
-                {facts.kitchens != null ? ` · ${facts.kitchens} ${t('planGate.kitchens')}` : ''}
-              </p>
-              {!!(facts.evidence?.floors?.length ?? 0) && (
-                <p className="mt-1 truncate font-mono text-[10px]" title={facts.evidence?.floors?.[0]}>
-                  {facts.evidence?.floors?.[0]}
+              <p>{floorPlanSummary(facts, t)}</p>
+              {floorPlanEvidence(facts) && (
+                <p className="mt-1 truncate font-mono text-[10px]" title={floorPlanEvidence(facts) ?? undefined}>
+                  {floorPlanEvidence(facts)}
                 </p>
               )}
             </div>

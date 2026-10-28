@@ -180,3 +180,61 @@ describe('which files it claims it can read', () => {
     expect(looksReadable('boq.pdf')).toBe(false);
   });
 });
+
+describe('a bill that separates materials from what is payable', () => {
+  /**
+   * Mr Nas, G+1, Limbe — a real estimate, read on 28 October.
+   *
+   * Its summary totals the trade sections and calls that "TOTAL". Labour and
+   * transport are added BELOW it, and the contract sum is "NET PAYABLE", spelled out
+   * in words underneath so a reader cannot mistake it. Reading the first of those
+   * understated the bill by 7,650,000 — 28.7% — at `grand` confidence, which is the
+   * confidence that carries a figure into the budget without anyone retyping it.
+   */
+  const MR_NAS = [
+    'SUMMARY',
+    '100: PRELIMINARY WORKS\t62,500',
+    '200: EARTH WORKS\t170,000',
+    '300: FOUNDATION\t2,966,628',
+    '400: WALL MASONARY\t3,569,300',
+    '500: DECKING OF UPPER FLOOR\t1,013,000',
+    '550: WALL MASONARY OF UPPER FLOOR\t3,155,600',
+    '600: ROOF\t681,200',
+    '700: METAL WORKS\t4,995,000',
+    '800: ELECTRICAL INSTALLATIONS\t418,600',
+    '850: SANITARY INSTALLATIONS\t1,012,000',
+    '900: PAINTING\t190,900',
+    '1000: EXTERNAL WORKS\t803,000',
+    'TOTAL\t19,037,728',
+    'LABOUR COST\t7,500,000',
+    'TRANSPORTATION\t150,000',
+    'NET PAYABLE\t26,687,728',
+  ].join('\n');
+
+  it('reads what the contractor is owed, not the materials subtotal', () => {
+    const reading = readBqTotal(MR_NAS);
+    expect(reading?.total).toBe(26687728);
+    expect(reading?.label).toMatch(/NET PAYABLE/i);
+  });
+
+  it('and is confident about it, because the document names the row', () => {
+    expect(readBqTotal(MR_NAS)?.confidence).toBe('grand');
+  });
+
+  it('the materials line alone is still the total when nothing follows it', () => {
+    // The bare-"total" rule is not being removed — a bill whose last word really is
+    // TOTAL still reads it. The payable line only wins where one exists.
+    const materialsOnly = MR_NAS.split('\nLABOUR COST')[0];
+    expect(readBqTotal(materialsOnly)?.total).toBe(19037728);
+  });
+
+  it.each([
+    ['NET PAYABLE\t26,687,728', 26687728],
+    ['TOTAL PAYABLE\t26,687,728', 26687728],
+    ['AMOUNT PAYABLE\t26,687,728', 26687728],
+    ['NET A PAYER\t26,687,728', 26687728],
+    ['MONTANT NET\t26,687,728', 26687728],
+  ])('%s wins over a bare TOTAL above it', (line, expected) => {
+    expect(readBqTotal(`TOTAL\t19,037,728\n${line}`)?.total).toBe(expected);
+  });
+});

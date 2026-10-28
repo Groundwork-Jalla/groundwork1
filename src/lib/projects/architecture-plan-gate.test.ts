@@ -169,8 +169,19 @@ describe('the question itself', () => {
   it('shows what it read, with the row it came from', () => {
     // A figure that becomes ten stage payments is not accepted unseen.
     expect(gate).toMatch(/reading\.label/);
-    expect(gate).toMatch(/confirmLater/);
     expect(gate).toMatch(/guessedTotal/);
+  });
+
+  it('cautions about a scan and says nothing extra about a clean read', () => {
+    // The clean-read paragraph promised the figure could be corrected later, which is
+    // true of every figure in the wizard and so told nobody anything. Dropped on
+    // 28 October. The OCR caution stays: only there can a digit actually be wrong.
+    expect(gate).toMatch(/\{fromOcr && \(/);
+    expect(gate).toContain("t('planGate.checkScanned')");
+    for (const f of ['src/components/wizard/ArchitecturePlanGate.tsx',
+                     'src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts']) {
+      expect(read(f), `${f} still carries the dropped line`).not.toMatch(/confirmLater/);
+    }
   });
 });
 

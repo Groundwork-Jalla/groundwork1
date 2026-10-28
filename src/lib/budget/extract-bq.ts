@@ -253,6 +253,31 @@ export function canExtract(filename: string): boolean {
   return SPREADSHEET.test(filename) || PLAIN.test(filename)
       || PDF.test(filename) || IMAGE.test(filename);
 }
+// =========================================================
+// Reading a floor plan.
+//
+// A drawing is not prose, and the first version of this read it as though it were.
+// It looked for "5 bedrooms" and "Floor area: 219 m²" — sentences no architect writes
+// on a plan. What a plan actually carries is a LABEL in each room ("Bed Room",
+// "Toilet", "Kitchen") and a CHAIN OF DIMENSIONS along each edge. Mr Nas's ground
+// plan has every one of those in a clean AutoCAD text layer, and still reported
+// "floor count not extracted · area not extracted", because none of it is a sentence.
+//
+// So a fact can now be established three ways, and they are not equal:
+//
+//   STATED   the drawing says it outright — "G+1", "GROSS FLOOR AREA 219 m²".
+//   COUNTED  we counted the labels. Describes THIS SHEET and nothing more.
+//   DERIVED  we multiplied two spans the drawing states.
+//
+// A stated figure always wins: it is a claim about the building, where a count is
+// only a description of one sheet. Everything carries its evidence, so a reading can
+// be checked against the drawing instead of trusted.
+//
+// WHAT THIS STILL CANNOT TELL YOU, and does not guess at. Mr Nas's plan is three
+// separate dwellings in one block — three sitting rooms, three kitchens, three
+// verandas, three front doors. Nothing in the text says so; you only know by looking
+// at the layout. Counting labels gives you the rooms, never the building.
+// =========================================================
 
 export interface FloorPlanFacts {
   readable: boolean;
@@ -263,6 +288,13 @@ export interface FloorPlanFacts {
   bathrooms: number | null;
   livingRooms: number | null;
   kitchens: number | null;
+  /**
+   * A staircase is drawn, so the building has a floor this sheet does not show.
+   * Deliberately NOT turned into `floors: 2` — a staircase proves there is an upper
+   * floor, never how many, and a guessed storey count multiplies through the whole
+   * budget. It says "ask for the other sheets", which is the honest reading.
+   */
+  staircase: boolean;
   evidence: {
     floors: string[];
     areaSqm: string[];
@@ -271,14 +303,75 @@ export interface FloorPlanFacts {
     bathrooms: string[];
     livingRooms: string[];
     kitchens: string[];
+    staircase: string[];
   };
 }
+
+/**
+ * Nothing read.
+ *
+ * Exported because callers need it too: `PlanQuestionStep` wrote its own copy of this
+ * literal as a fallback, and it silently went stale the moment a field was added —
+ * leaving `staircase` undefined on a shape that says it is a boolean.
+ */
+export const NO_FLOOR_PLAN_FACTS: FloorPlanFacts = {
+  readable: false,
+  floors: null, areaSqm: null, footprintSqm: null,
+  bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
+  staircase: false,
+  evidence: {
+    floors: [], areaSqm: [], footprintSqm: [],
+    bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [], staircase: [],
+  },
+};
+
+/**
+ * Room labels as a drawing writes them, which is not how a person says them.
+ *
+ * No trailing `\b`. A CAD label runs straight into its instance number — "Bed Room2",
+ * "M.Bed Room1" — and a word boundary after "room" refuses to match those, which on
+ * this one plan would miss four bedrooms out of five.
+ */
+const ROOM_LABELS = {
+  bedrooms:    /\b(?:m\.?\s*)?bed\s*-?\s*room|\bchambre/gi,
+  bathrooms:   /\b(?:bath\s*-?\s*room|toilet|wc\b|w\.c\.|salle\s*de\s*bain)/gi,
+  livingRooms: /\b(?:sitting|living)\s*-?\s*room|\b(?:lounge|parlou?r|salon|s[ée]jour)/gi,
+  kitchens:    /\b(?:kitchen|cuisine)/gi,
+} as const;
+
+/** Counts a drawing states about itself. These win over anything we counted. */
+const STATED_COUNTS = {
+  bedrooms: [
+    /\b(\d{1,2})\s*(?:bed(?:room)?s|chambres)\b/i,
+    /\b(?:bed(?:room)?s|chambres)\s*[:\-]\s*(\d{1,2})\b/i,
+  ],
+  bathrooms: [
+    /\b(\d{1,2})\s*(?:bath(?:room)?s|toilets|salles\s*de\s*bains)\b/i,
+    /\b(?:bath(?:room)?s|toilets|salles\s*de\s*bains)\s*[:\-]\s*(\d{1,2})\b/i,
+  ],
+  livingRooms: [
+    /\b(\d{1,2})\s*(?:living\s*rooms|sitting\s*rooms|lounges|salons)\b/i,
+    /\b(?:living\s*rooms|sitting\s*rooms|lounges|salons)\s*[:\-]\s*(\d{1,2})\b/i,
+  ],
+  kitchens: [
+    /\b(\d{1,2})\s*(?:kitchens|cuisines)\b/i,
+    /\b(?:kitchens|cuisines)\s*[:\-]\s*(\d{1,2})\b/i,
+  ],
+} as const;
+
+const STAIRCASE = /\b(?:stair\s*-?\s*case|stairs|escalier)\b/i;
+
+/** A span in metres has to be a building's, not a doorway's or a city block's. */
+const MIN_SPAN_M = 2;
+const MAX_SPAN_M = 200;
+const MIN_FOOTPRINT_SQM = 10;
+const MAX_FOOTPRINT_SQM = 20_000;
 
 function cleanSnippet(line: string): string {
   return line.replace(/\s+/g, ' ').trim();
 }
 
-function extractCount(lines: string[], patterns: RegExp[]): { value: number | null; evidence: string[] } {
+function extractCount(lines: string[], patterns: readonly RegExp[]): { value: number | null; evidence: string[] } {
   const hits: number[] = [];
   const evidence: string[] = [];
   for (const line of lines) {
@@ -309,7 +402,64 @@ function extractArea(lines: string[], pattern: RegExp): { value: number | null; 
   return { value: parsed.length ? Math.max(...parsed) : null, evidence };
 }
 
-/** Extract only explicit, written facts from a floor plan. */
+/** How many times a room label appears, with the distinct spellings as evidence. */
+function countLabels(text: string, pattern: RegExp): { value: number | null; evidence: string[] } {
+  // A fresh regex per call. These patterns are module-level constants carrying /g, and
+  // a shared one that kept its lastIndex would count the second plan of an upload
+  // differently from the first.
+  const matches = [...text.matchAll(new RegExp(pattern.source, pattern.flags))];
+  if (!matches.length) return { value: null, evidence: [] };
+  return {
+    value: matches.length,
+    // The distinct spellings, not one entry per hit. A "line" here is whatever shared
+    // a Y coordinate on the sheet, so quoting it would show unrelated rooms.
+    evidence: [...new Set(matches.map(match => cleanSnippet(match[0])))],
+  };
+}
+
+/** What a drawing states, falling back to what we counted. */
+function roomTally(
+  text: string, lines: string[], label: RegExp, stated: readonly RegExp[],
+): { value: number | null; evidence: string[] } {
+  const said = extractCount(lines, stated);
+  return said.value != null ? said : countLabels(text, label);
+}
+
+/** Every number on the sheet that could be a structural span, in metres. */
+function metreSpans(text: string): number[] {
+  const out: number[] = [];
+  // Split rather than match: a lookbehind would be the neat way to refuse "1.21.25",
+  // and Safari below 16.4 throws a SyntaxError on one while PARSING the module, which
+  // would take the whole wizard down rather than just this reading.
+  for (const token of text.split(/[^\d.]+/)) {
+    if (!/^\d{1,3}\.\d{2}$/.test(token)) continue;
+    const value = Number(token);
+    if (Number.isFinite(value) && value >= MIN_SPAN_M && value <= MAX_SPAN_M) out.push(value);
+  }
+  return out;
+}
+
+/**
+ * The building's overall width and depth, off the outer dimension chain.
+ *
+ * A plan dimensions both of each pair of opposite edges, so an overall span is
+ * written TWICE while an internal run is usually written once. Requiring the repeat
+ * is what stops one long internal measurement being read as the envelope. Of what
+ * repeats, the two largest are the width and the depth.
+ */
+function overallSpans(text: string): { width: number; depth: number } | null {
+  const counts = new Map<number, number>();
+  for (const value of metreSpans(text)) counts.set(value, (counts.get(value) ?? 0) + 1);
+  const repeated = [...counts.entries()]
+    .filter(([, seen]) => seen >= 2)
+    .map(([value]) => value)
+    .sort((a, b) => b - a);
+  const [width, depth] = repeated;
+  if (width == null || depth == null) return null;
+  return { width, depth };
+}
+
+/** Extract what a floor plan states, and what counting its labels establishes. */
 export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable'> {
   const lines = text
     .split(/\r?\n/)
@@ -326,67 +476,66 @@ export function readFloorPlanFacts(text: string): Omit<FloorPlanFacts, 'readable
     ? (floors.value == null ? null : floors.value + 1)
     : floors.value;
 
-  const area = extractArea(lines,
-    /\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i);
-  const footprint = extractArea(lines,
-    /\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)\s*(?:m²|m2|sqm)\b/i);
-  const bedrooms = extractCount(lines, [
-    /\b(\d{1,2})\s*(?:bed(?:room)?s?|chambres?)\b/i,
-    /\b(?:bed(?:room)?s?|chambres?)\s*[:\-]?\s*(\d{1,2})\b/i,
-  ]);
-  const bathrooms = extractCount(lines, [
-    /\b(\d{1,2})\s*(?:bath(?:room)?s?|toilets?|wc|salles?\s*de\s*bains?)\b/i,
-    /\b(?:bath(?:room)?s?|toilets?|wc|salles?\s*de\s*bains?)\s*[:\-]?\s*(\d{1,2})\b/i,
-  ]);
-  const livingRooms = extractCount(lines, [
-    /\b(\d{1,2})\s*(?:living\s*rooms?|lounges?|salons?)\b/i,
-    /\b(?:living\s*rooms?|lounges?|salons?)\s*[:\-]?\s*(\d{1,2})\b/i,
-  ]);
-  const kitchens = extractCount(lines, [
-    /\b(\d{1,2})\s*(?:kitchens?|cuisines?)\b/i,
-    /\b(?:kitchens?|cuisines?)\s*[:\-]?\s*(\d{1,2})\b/i,
-  ]);
+  // `(?![A-Za-z0-9])` rather than `\b` after the unit. A trailing `\b` asserts a
+  // boundary, and "²" is not a word character — so "150 m²" needed a LETTER after it
+  // to match, and the commonest spelling of the commonest unit never read at all.
+  // "150 m2" and "150 sqm" worked, which is why it went unnoticed.
+  const UNIT = String.raw`\s*(?:m²|m2|sqm)(?![A-Za-z0-9])`;
+  const area = extractArea(lines, new RegExp(
+    String.raw`\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
+  const statedFootprint = extractArea(lines, new RegExp(
+    String.raw`\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
+
+  // Only derive when the drawing did not say it. A stated footprint is the architect's
+  // own figure and may account for things a bounding box cannot see.
+  const spans = statedFootprint.value == null ? overallSpans(text) : null;
+  const derived = spans ? Math.round(spans.width * spans.depth * 100) / 100 : null;
+  const derivedOk = derived != null
+    && derived >= MIN_FOOTPRINT_SQM && derived <= MAX_FOOTPRINT_SQM;
+
+  const stair = text.match(STAIRCASE);
+
+  const bedrooms    = roomTally(text, lines, ROOM_LABELS.bedrooms,    STATED_COUNTS.bedrooms);
+  const bathrooms   = roomTally(text, lines, ROOM_LABELS.bathrooms,   STATED_COUNTS.bathrooms);
+  const livingRooms = roomTally(text, lines, ROOM_LABELS.livingRooms, STATED_COUNTS.livingRooms);
+  const kitchens    = roomTally(text, lines, ROOM_LABELS.kitchens,    STATED_COUNTS.kitchens);
 
   return {
     floors: floorsValue != null && Number.isInteger(floorsValue) && floorsValue > 0 ? floorsValue : null,
     areaSqm: area.value != null && area.value > 0 ? area.value : null,
-    footprintSqm: footprint.value != null && footprint.value > 0 ? footprint.value : null,
+    footprintSqm: statedFootprint.value ?? (derivedOk ? derived : null),
     bedrooms: bedrooms.value,
     bathrooms: bathrooms.value,
     livingRooms: livingRooms.value,
     kitchens: kitchens.value,
+    staircase: stair != null,
     evidence: {
       floors: floors.evidence,
       areaSqm: area.evidence,
-      footprintSqm: footprint.evidence,
+      // Language-neutral on purpose: "21.25 × 10.3 m" reads the same to everyone and
+      // shows the two numbers that were multiplied, so the derivation can be checked.
+      footprintSqm: statedFootprint.value != null
+        ? statedFootprint.evidence
+        : derivedOk && spans ? [`${spans.width} × ${spans.depth} m`] : [],
       bedrooms: bedrooms.evidence,
       bathrooms: bathrooms.evidence,
       livingRooms: livingRooms.evidence,
       kitchens: kitchens.evidence,
+      staircase: stair ? [cleanSnippet(stair[0])] : [],
     },
   };
 }
 
-/** Read a plan PDF or image and return only explicit, machine-readable annotations. */
+/** Read a plan PDF or image and return what it states, plus what its labels count to. */
 export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts> {
   const isPdf = PDF.test(file.name);
   const isImage = IMAGE.test(file.name);
-  if (!isPdf && !isImage) {
-    return {
-      readable: false, floors: null, areaSqm: null, footprintSqm: null,
-      bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
-      evidence: { floors: [], areaSqm: [], footprintSqm: [], bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [] },
-    };
-  }
+  if (!isPdf && !isImage) return { ...NO_FLOOR_PLAN_FACTS };
 
   try {
     const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
     return { readable: !!out.text.trim(), ...readFloorPlanFacts(out.text) };
   } catch {
-    return {
-      readable: false, floors: null, areaSqm: null, footprintSqm: null,
-      bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
-      evidence: { floors: [], areaSqm: [], footprintSqm: [], bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [] },
-    };
+    return { ...NO_FLOOR_PLAN_FACTS };
   }
 }

@@ -12,6 +12,7 @@ import {
 } from '@/lib/budget';
 import { checkEstimate } from '@/lib/budget/sanity';
 import { calculateBudget } from '@/lib/budget';
+import { floorPlanSummary, floorPlanEvidence } from '@/lib/budget/floor-plan-summary';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -546,22 +547,11 @@ function DocumentBudgetBreakdown() {
           {floorPlans.map(plan => (
             <div key={plan.fileName} className="text-xs text-brand-mid-grey">
               <p className="font-medium text-brand-near-black">{plan.fileName}</p>
-              <p>
-                {plan.facts.floors != null
-                  ? `${plan.facts.floors} ${t('planGate.floors')}`
-                  : t('planGate.floorCountMissing')}
-                {' · '}
-                {plan.facts.areaSqm != null
-                  ? `${amount(plan.facts.areaSqm)} m²`
-                  : t('planGate.areaMissing')}
-                {plan.facts.bedrooms != null ? ` · ${plan.facts.bedrooms} ${t('planGate.bedrooms')}` : ''}
-                {plan.facts.bathrooms != null ? ` · ${plan.facts.bathrooms} ${t('planGate.bathrooms')}` : ''}
-                {plan.facts.livingRooms != null ? ` · ${plan.facts.livingRooms} ${t('planGate.livingRooms')}` : ''}
-                {plan.facts.kitchens != null ? ` · ${plan.facts.kitchens} ${t('planGate.kitchens')}` : ''}
-              </p>
-              {!!(plan.facts.evidence?.floors?.length ?? 0) && (
-                <p className="mt-1 truncate font-mono text-[10px]" title={plan.facts.evidence?.floors?.[0]}>
-                  {plan.facts.evidence?.floors?.[0]}
+              <p>{floorPlanSummary(plan.facts, t, amount)}</p>
+              {floorPlanEvidence(plan.facts) && (
+                <p className="mt-1 truncate font-mono text-[10px]"
+                   title={floorPlanEvidence(plan.facts) ?? undefined}>
+                  {floorPlanEvidence(plan.facts)}
                 </p>
               )}
             </div>

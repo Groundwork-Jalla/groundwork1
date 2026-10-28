@@ -43,11 +43,34 @@ export const ACCEPTED_MIME_TYPES = [
 /** For an `<input type="file" accept="...">`. Extensions first — Safari prefers them. */
 export const FILE_ACCEPT_ATTR = [...ACCEPTED_EXTENSIONS, ...ACCEPTED_MIME_TYPES].join(',');
 
-const BOQ_EXTENSIONS = ['.xls', '.xlsx', '.csv'] as const;
+/**
+ * What a bill of quantities is allowed to arrive as.
+ *
+ * Spreadsheets only, until 28 October. That refused the shape this market most often
+ * sends: a quantity surveyor prepares in Excel and hands over the signed print, so the
+ * bill turns up as a PDF. `extract-bq` was built for exactly that — it has table line
+ * grouping written so a description and its amount stay on one row, and an OCR fallback
+ * for a print that was scanned — and the accept list on the upload step disagreed with
+ * the reader behind it.
+ *
+ * It also disagreed with the product's OTHER door: the costing box on the confirm step
+ * uses the general list, takes a PDF, and files it as `boq`. One of this project's two
+ * real bills came in that way. So this was never a decision about bills of quantities,
+ * only one screen out of step with the rest.
+ *
+ * `.ods` for the same reason — `isSpreadsheet` has always known it and this list did not.
+ *
+ * NOT images. The reader will OCR a photographed bill, and the scanned-PDF path already
+ * leans on that, but a phone photo as the FIRST-CLASS way to price a build is a product
+ * decision about a misread digit becoming a stage payment, not a list to widen quietly.
+ */
+const BOQ_EXTENSIONS = ['.xls', '.xlsx', '.ods', '.csv', '.pdf'] as const;
 const BOQ_MIME_TYPES = [
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.oasis.opendocument.spreadsheet',
   'text/csv',
+  'application/pdf',
 ] as const;
 const FLOOR_PLAN_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
 const FLOOR_PLAN_MIME_TYPES = [

@@ -2,6 +2,7 @@ import { useWizard } from '@/contexts/WizardContext';
 import { ArchitecturePlanGate, type PlanAnswer } from '@/components/wizard/ArchitecturePlanGate';
 import { planDocuments, planSeed } from '@/lib/projects/plan-answer';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
+import { NO_FLOOR_PLAN_FACTS } from '@/lib/budget/extract-bq';
 
 // =========================================================
 // "Does your project have an architecture plan?", asked straight after the country.
@@ -54,14 +55,7 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
           bqLineItems: answer.lineItems,
           floorPlans: answer.floorPlans.map((file, i) => ({
             fileName: file.name,
-            facts: answer.floorPlanFacts[i] ?? {
-              readable: false, floors: null, areaSqm: null, footprintSqm: null,
-              bedrooms: null, bathrooms: null, livingRooms: null, kitchens: null,
-              evidence: {
-                floors: [], areaSqm: [], footprintSqm: [],
-                bedrooms: [], bathrooms: [], livingRooms: [], kitchens: [],
-              },
-            },
+            facts: answer.floorPlanFacts[i] ?? NO_FLOOR_PLAN_FACTS,
           })),
         } : null);
         if (answer.hasPlan) goTo(8);

@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  ACCEPTED_MIME_TYPES, FILE_ACCEPT_ATTR, MAX_FILE_BYTES, MAX_FILE_MB,
-  fileProblem, isSpreadsheet,
+  ACCEPTED_MIME_TYPES, FILE_ACCEPT_ATTR, BOQ_ACCEPT_ATTR, MAX_FILE_BYTES, MAX_FILE_MB,
+  fileProblem, isSpreadsheet, isBoqFile,
 } from './accepted-files';
+import { canExtract } from '@/lib/budget/extract-bq';
 
 const f = (name: string, type = '', size = 1024) => ({ name, type, size });
 
@@ -122,5 +123,60 @@ describe('the screens use these rules', () => {
     expect(src).toMatch(/fileProblem\(file\)/);
     expect(src).not.toMatch(/25 MB/);
     expect(src).toMatch(/'boq'/);
+  });
+});
+
+describe('what the bill-of-quantities slot takes', () => {
+  /**
+   * Spreadsheets only, until 28 October, which refused the shape this market sends
+   * most: a quantity surveyor prepares in Excel and hands over the signed print.
+   * `extract-bq` reads a PDF bill — it has table line grouping for exactly that, and
+   * OCR behind it for a scan — so the slot was narrower than the reader behind it.
+   */
+  it.each(['boq.pdf', 'boq.xlsx', 'boq.xls', 'boq.csv', 'boq.ods'])('takes %s', name => {
+    expect(isBoqFile(f(name))).toBe(true);
+  });
+
+  it('takes a PDF by type alone, when the name has no extension', () => {
+    expect(isBoqFile(f('scan', 'application/pdf'))).toBe(true);
+  });
+
+  it('still refuses what is not a priced document', () => {
+    for (const n of ['photo.png', 'notes.docx', 'archive.zip']) {
+      expect(isBoqFile(f(n)), n).toBe(false);
+    }
+  });
+
+  /**
+   * THE RULE THIS FILE EXISTS FOR, in its second form.
+   *
+   * The module already checks that nothing it accepts would be refused by the bucket.
+   * This checks the other end: nothing the slot accepts may be a format the extractor
+   * cannot read. A file that uploads and then cannot be read is the same broken
+   * promise as one that fails to upload, and it is how the PDF gap opened.
+   */
+  it('every format the slot takes is one the extractor can read', () => {
+    for (const ext of ['.pdf', '.xlsx', '.xls', '.csv', '.ods']) {
+      expect(canExtract(`boq${ext}`), ext).toBe(true);
+    }
+  });
+
+  it('every type the slot takes is one the bucket grants', () => {
+    const types = BOQ_ACCEPT_ATTR.split(',').filter(part => part.includes('/'));
+    for (const type of types) expect(ACCEPTED_MIME_TYPES as readonly string[], type).toContain(type);
+  });
+
+  it('the two doors agree about a PDF', () => {
+    // The costing box on the confirm step uses the general list, has always taken a
+    // PDF, and files it as `boq` — one of the two real bills in this project came in
+    // that way. The upload step refusing the same file was one screen out of step.
+    expect(fileProblem(f('boq.pdf', 'application/pdf'))).toBeNull();
+    expect(isBoqFile(f('boq.pdf', 'application/pdf'))).toBe(true);
+  });
+
+  it('offers extensions as well as types, as Safari needs', () => {
+    expect(BOQ_ACCEPT_ATTR).toContain('.pdf');
+    expect(BOQ_ACCEPT_ATTR).toContain('.xlsx');
+    expect(BOQ_ACCEPT_ATTR).toContain('application/pdf');
   });
 });
