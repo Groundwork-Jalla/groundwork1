@@ -112,7 +112,9 @@ describe('contractor client project wizard', () => {
     const html = renderToStaticMarkup(createElement(ManagedWizard));
     // Budget confirmation now lives on the project-at-a-glance summary step.
     expect(html).not.toContain('id="final-budget"');
-    expect(html).toMatch(/type="checkbox"[^>]*checked=""/);
+    // No "this project has already started" checkbox any more — picking a stage IS
+    // saying it has started, and asking both was asking twice (29 October).
+    expect(html).not.toMatch(/type="checkbox"[^>]*checked=""/);
     // The STAGE is what is restored now. The free-text description is gone: the stage
     // is chosen from our own list rather than typed and read back out of a sentence,
     // because that answer decides which stages count as already built.

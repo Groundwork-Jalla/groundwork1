@@ -142,15 +142,23 @@ export const LABOR_PCT = 40;
  */
 export const PERMIT_PCT_OF_BUILD = 2.25;
 /**
- * Verification, per charged construction stage.
+ * Verification, per charged construction stage. NO LONGER CHARGED.
  *
- * This is the 50,000 XAF an independent professional is paid to go and confirm a stage is
- * genuinely finished before the milestone is released. It was called the *professional*
- * fee until 4 Sep 2026, which was a misnomer: Philip and Vanessa established that
- * verification is its own category and the professional fee is four named roles (below).
- * Same number, honest name, and now its own line on the client's breakdown.
+ * It was 50,000 XAF a stage — an independent professional paid to confirm a stage was
+ * genuinely finished before its milestone was released — and with seven charged
+ * stages that put 350,000 XAF, about $583, on every budget, plus its share of the
+ * contingency charged on everything above it.
+ *
+ * Philip removed it on 29 October: clients are no longer charged for verification and
+ * it no longer appears on the breakdown. The constant stays because it is the record
+ * of what the fee WAS, and because stored budgets and the `p_verification_fee`
+ * argument on `admin_start_project_at_stage` still carry the shape; what changed is
+ * that `flatFeeCents` now contributes zero, so nothing downstream charges for it.
  */
 export const VERIFICATION_FEE_XAF = 50_000;
+
+/** What a new estimate charges for verification: nothing. See above. */
+export const VERIFICATION_CHARGED = false;
 
 /** Design fee, per built m² (footprint × floors). Confirmed correct by Vanessa, 4 Sep. */
 export const DESIGN_RATE_XAF_PER_M2 = 5_000;
@@ -223,7 +231,12 @@ function flatFeeCents(builtAreaSqm: number, floors: number) {
     siteManager:       xafToCents(SITE_MANAGER_XAF_PER_MONTH * months),
     quantitySurveyor:  xafToCents(QUANTITY_SURVEYOR_XAF_PER_MONTH * months),
     contractLawyer:    xafToCents(CONTRACT_LAWYER_XAF),
-    verification:      xafToCents(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT),
+    // Zero since 29 October. Kept as a line rather than deleted so every downstream
+    // consumer — the breakdown, the milestones, the joined-project re-pricing, the
+    // database function's argument list — keeps its shape and simply adds nothing.
+    verification:      VERIFICATION_CHARGED
+      ? xafToCents(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT)
+      : 0,
   };
 }
 

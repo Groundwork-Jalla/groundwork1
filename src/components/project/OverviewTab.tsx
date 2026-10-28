@@ -250,14 +250,9 @@ function BudgetBreakdownModal({
         `${eq}  ${formatUSDFull(budget.professional)}`,
       ].join('\n'),
     },
-    {
-      icon: <ShieldCheck className="size-4 text-brand-mid-grey" />,
-      title: 'Add verification',
-      amount: budget.verification,
-      pct: null,
-      body: 'An independent professional visits the site and confirms each stage is genuinely finished before its payment is released. Charged per visit rather than per month, so it follows the number of stages and not the length of the build.',
-      formula: `${VERIFICATION_FEE_XAF.toLocaleString()} XAF  ×  ${CHARGED_STAGE_COUNT} stages  ${eq}  ${formatUSDFull(budget.verification)}`,
-    },
+    // The verification step was here. Removed 29 October with the fee itself — it is
+    // no longer charged, so there is nothing to explain, and a 0 line would raise the
+    // question rather than answer it.
     {
       icon: <Landmark className="size-4 text-brand-mid-grey" />,
       title: 'Add the building permit',

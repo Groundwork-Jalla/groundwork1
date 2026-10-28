@@ -240,7 +240,7 @@ describe('nobody is asked for a bill of quantities twice', () => {
     // It used to be a sentence a matcher read a stage out of. That asks somebody to
     // describe a thing we already have the list of and then second-guesses them — and
     // the answer decides which stages are billed as already built.
-    expect(confirm).toMatch(/const startStage = alreadyStarted \? stageOverride : 1;/);
+    expect(confirm).toMatch(/const startStage = stageOverride \?\? 1;/);
     expect(confirm).not.toMatch(/stageFromDescription\(/);
     expect(confirm).not.toMatch(/setDescribed\(/);
     expect(confirm).toMatch(/STAGE_KEYS\.slice\(0, -1\)\.map/);
@@ -249,9 +249,14 @@ describe('nobody is asked for a bill of quantities twice', () => {
   it('and a client can say their build is already under way', () => {
     // Gated on `onBehalfOf`, the only people who could say so were staff and
     // contractors — while a client with a half-built house is the commonest case.
-    const at = confirm.indexOf("t('wizard.joined.question')");
+    // Stronger than it was: the stage list is no longer behind a checkbox either, so
+    // there is nothing to gate on at all. It is simply always on the screen, and the
+    // default — stage 1, nothing built — is the honest answer for most people.
+    const at = confirm.indexOf("t('wizard.joined.stageLabel')");
     expect(at).toBeGreaterThan(-1);
     expect(confirm.slice(Math.max(0, at - 900), at)).not.toMatch(/\{onBehalfOf && \(/);
+    expect(confirm).not.toMatch(/alreadyStarted \? /);
+    expect(confirm).not.toContain("t('wizard.joined.question')");
   });
 
   it('the final budget still opens from BQ when available', () => {

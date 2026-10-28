@@ -94,12 +94,30 @@ describe('composeBudget', () => {
 
     // 5,000 × 240 ÷ 600 = $2,000.00
     expect(small.design).toBeCloseTo(DESIGN_RATE_XAF_PER_M2 * 240 / 600, 2);
-    // 50,000 × 7 ÷ 600 = $583.33 — the old "professional" fee, now honestly named.
-    expect(small.verification).toBeCloseTo(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT / 600, 2);
-
     // Identical on a budget 100× larger — that is what "flat" means.
     expect(large.design).toBe(small.design);
-    expect(large.verification).toBe(small.verification);
+  });
+
+  it('charges nothing for verification', () => {
+    // It used to be 50,000 × 7 ÷ 600 = $583.33 on every build, plus its share of the
+    // contingency charged on everything above it. Philip removed the fee on
+    // 29 October; clients are not charged for verification and it is not on the
+    // breakdown. The constants remain as the record of what it was.
+    expect(VERIFICATION_FEE_XAF * CHARGED_STAGE_COUNT / 600).toBeCloseTo(583.33, 2);
+    for (const build of [50_000, 5_000_000]) {
+      expect(composeBudget(build, SHAPE).verification, `build ${build}`).toBe(0);
+    }
+  });
+
+  it('and the saving reaches the client, contingency included', () => {
+    // Contingency is charged on everything above it, so dropping a fee has to drop
+    // the contingency with it — otherwise the client keeps paying a percentage of a
+    // line that no longer exists.
+    const budget = composeBudget(50_000, SHAPE);
+    const withoutVerification = budget.construction + budget.design
+      + budget.permit + budget.professional + budget.contingency;
+    expect(budget.verification).toBe(0);
+    expect(budget.total).toBeCloseTo(withoutVerification, 2);
   });
 
   it('bills the site manager and surveyor by the month, from the floor count', () => {
