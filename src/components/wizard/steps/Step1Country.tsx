@@ -3,7 +3,7 @@ import { Info, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, POPULAR_COUNTRY_CODES } from '@/lib/countries';
 import { hasLocalBq } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
@@ -14,9 +14,12 @@ export default function Step1Country() {
   const { country } = useDomainLabels();
   const { data, update, next } = useWizard();
   const [query, setQuery] = useState('');
-  const allCountries = useMemo(
-    () => [...COUNTRIES].sort((a, b) => country(a.code).localeCompare(country(b.code))),
-    [country],
+  // Only the eight launch-priority countries are listed; everything else is reached by search.
+  const popular = useMemo(
+    () => POPULAR_COUNTRY_CODES
+      .map(code => COUNTRIES.find(c => c.code === code))
+      .filter((c): c is (typeof COUNTRIES)[number] => !!c),
+    [],
   );
 
   // Match on the displayed name *and* the English one, so "Ivory Coast" typed by an
@@ -87,14 +90,14 @@ export default function Step1Country() {
           </motion.ul>
         )}
 
-        {/* Neutral list: no preferred countries. */}
+        {/* Popular countries, Cameroon first; the rest via search */}
         {!showSearch && (
           <div className="mt-6">
             <p className="text-xs font-medium text-brand-mid-grey uppercase tracking-widest mb-3">
-              {t('wizard.allCountries')}
+              {t('wizard.mostPopular')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {allCountries.map(c => (
+              {popular.map(c => (
                 <button
                   key={c.code}
                   type="button"
