@@ -9,6 +9,7 @@ import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { supabase } from '@/lib/supabase/client';
 import { createProject } from '@/lib/supabase/projects';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
+import { setClientIntent } from '@/lib/supabase/contractor-onboarding';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
@@ -251,11 +252,28 @@ export default function Step11ConfirmBudget() {
       // project view as clients". Contractor standing is the real question, so it is
       // the one asked.
       if (onBehalfOf) {
-        navigate(onBehalfOf.by === 'partner' ? '/work/projects' : '/admin/projects');
+        // The project itself, not the list. A partner who has just built one wants
+        // to see it; `takeOwnClientProject` above has already made them a member,
+        // so their own surface can open it.
+        navigate(onBehalfOf.by === 'partner'
+          ? `/work/projects/${project.id}`
+          : `/admin/projects/${project.id}`);
         return;
       }
       if (isContractor) {
-        navigate('/work/projects');
+        // Creating a project IS the answer to the last onboarding question, so record
+        // it. Without this the /work gate still reads `clientIntent` as null, decides
+        // onboarding is unfinished, and bounces the contractor from the project they
+        // just made back to "Step 6 of 6 — You're almost there". Reported 29 October.
+        //
+        // `no_client` because this is their OWN build: nobody was onboarded. It must
+        // not be `onboard_client`, which is what the partner funnel counts.
+        //
+        // Never fatal. The project exists; a failure here costs a redirect, not work.
+        try {
+          await setClientIntent('no_client');
+        } catch { /* the gate will ask again; the project is already made */ }
+        navigate(`/work/projects/${project.id}`);
         return;
       }
 

@@ -119,7 +119,4 @@ END $$;
 REVOKE ALL ON FUNCTION public.admin_start_project_at_stage(uuid, numeric, numeric, numeric, numeric, numeric, numeric, numeric, integer, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_start_project_at_stage(uuid, numeric, numeric, numeric, numeric, numeric, numeric, numeric, integer, text) TO authenticated;
 
-REVOKE ALL ON FUNCTION public.admin_start_project_at_stage(uuid, numeric, numeric, numeric, numeric, numeric, numeric, numeric, integer, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_start_project_at_stage(uuid, numeric, numeric, numeric, numeric, numeric, numeric, numeric, integer, text) TO authenticated;
-
 COMMIT;
