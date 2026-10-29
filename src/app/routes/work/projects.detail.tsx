@@ -561,9 +561,11 @@ function Figure({ label, pair, hint, tone }: {
         tone === 'complete' ? 'text-state-complete' : 'text-brand-near-black dark:text-white')}>
         {pair?.local ?? '—'}
       </p>
-      <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">
-        {pair?.usd ? `≈ ${pair.usd}` : ' '}
-      </p>
+      {/* The blank line keeps the three cards' baselines level when they sit in a
+          row. Stacked on a phone there is no row to level, so it goes. */}
+      {pair?.usd
+        ? <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">≈ {pair.usd}</p>
+        : <p className="mt-1 hidden font-mono text-[11px] sm:block">&nbsp;</p>}
       {hint && <p className="mt-1 text-xs text-brand-mid-grey">{hint}</p>}
     </div>
   );
