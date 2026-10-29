@@ -2814,8 +2814,39 @@ export const fr: Mirror<EnDict> = {
       not_allowed:              'Ceci ne vous appartient pas.',
     },
   },
+  contractorProfile: {
+    yourDetails:        'Vos informations',
+    businessName:       'Nom de l\u2019entreprise',
+    trade:              'M\u00e9tier',
+    phoneHint:          'L\u00e0 o\u00f9 les clients et Groundwork vous joignent.',
+    howTheAppBehaves:   'Comportement de l\u2019application',
+    darkMode:           'Mode sombre',
+    currencyFirst:      'Devise affich\u00e9e en premier',
+    currencyFirstHint:  'Celle qui vient en t\u00eate d\u2019un montant. L\u2019autre reste affich\u00e9e \u00e0 c\u00f4t\u00e9.',
+    localCurrency:      'Celle du chantier',
+    tellMeWhen:         'Pr\u00e9venez-moi quand',
+    notify: {
+      stageApproved:   'Une \u00e9tape est approuv\u00e9e',
+      paymentReleased: 'Un versement est d\u00e9clench\u00e9',
+      clientMessage:   'Un client envoie un message',
+      verifierChanges: 'Un v\u00e9rificateur demande des modifications',
+      news:            'Actualit\u00e9s Groundwork',
+    },
+    signingIn:            'Connexion',
+    signedInElsewhere:    'Autres appareils',
+    signedInElsewhereHint: 'Met fin \u00e0 toutes les sessions, y compris celle-ci.',
+    signOutEverywhere:    'Se d\u00e9connecter partout',
+    whatClientsSee:       'Ce que voient les clients',
+    whatClientsSeeBody:   'Votre nom, votre m\u00e9tier, vos ann\u00e9es d\u2019exp\u00e9rience, vos r\u00e9gions et votre badge v\u00e9rifi\u00e9. Ni votre e-mail, ni votre num\u00e9ro, ni ce que vous percevez sur d\u2019autres projets.',
+    leaving:              'Quitter',
+    closeAccount:         'Fermer mon compte',
+    closeAccountHint:     'Vos chantiers restent avec leurs clients.',
+    closeAccountHow:      'Contactez le support Groundwork',
+  },
+
   contractorPayout: {
     title:    'Coordonnées de paiement',
+    navLabel: 'Versements',
     subtitle: 'Là où Groundwork envoie vos paiements d’étape. Renseignez-les une fois : elles servent pour tous les projets qui vous sont attribués.',
     why:      'Les recueillir dès maintenant évite d’avoir à vous demander vos coordonnées par téléphone ou par message au moment d’un paiement.',
 
@@ -2880,6 +2911,9 @@ export const fr: Mirror<EnDict> = {
     step4:             'Le versement est déclenché',
     step4Hint:         'Vers le compte indiqué ci-dessus',
     notCustodian:      'Groundwork enregistre et encadre l’échéancier. Il ne détient pas votre argent.',
+    todaysRate:        'Taux du jour',
+    rateLine:          '{code} pour 1 $ · relevé ce matin',
+    paidInLocal:       'Vous êtes payé en {code}. Le montant en dollars n’est donné qu’à titre indicatif.',
   },
 
   verifier: {
@@ -3042,6 +3076,13 @@ export const fr: Mirror<EnDict> = {
 
   // ── Profil / paramètres ───────────────────────────────────
   profile: {
+    phoneNumber: 'Num\u00e9ro de t\u00e9l\u00e9phone',
+    saveFailed:  'Ces modifications n\u2019ont pas \u00e9t\u00e9 enregistr\u00e9es.',
+    fullName:    'Nom complet',
+    saveChanges: 'Enregistrer',
+    resetSent:   'Lien de r\u00e9initialisation envoy\u00e9',
+    change:      'Modifier',
+    language:    'Langue',
       phoneHelp:    'Groundwork peut utiliser ce num\u00e9ro pour vous joindre sur WhatsApp au sujet de votre projet. Indiquez l\u2019indicatif du pays, ou \u00e9crivez-le comme d\u2019habitude et nous l\u2019ajouterons.',
       phoneLegacy:  'Nous avons retrouv\u00e9 un num\u00e9ro saisi pr\u00e9c\u00e9demment. Enregistrez pour le confirmer \u2014 il ne nous parvient pas encore.',
       phoneInvalid: 'Ce num\u00e9ro ne semble pas joignable. V\u00e9rifiez les chiffres, ou ajoutez l\u2019indicatif du pays.',
@@ -5176,6 +5217,23 @@ export const fr: Mirror<EnDict> = {
   },
 
   partner: {
+    yourApplication:  'Votre candidature',
+    oneConversation:  'Un \u00e9change avec l\u2019\u00e9quipe Groundwork, puis vous \u00eates partenaire. Rien \u00e0 payer.',
+    whatYouToldUs:    'Ce que vous nous avez dit',
+    whatAPartnerGets: 'Ce qu\u2019un partenaire obtient',
+    gets1:     'Des clients sans entrepreneur',
+    gets1Body: 'Groundwork vous envoie du travail dans vos r\u00e9gions, d\u00e9j\u00e0 chiffr\u00e9.',
+    gets2:     'Des versements d\u2019\u00e9tape \u00e0 l\u2019approbation',
+    gets2Body: 'Plus besoin de relancer un client pour la tranche suivante en plein chantier.',
+    gets3:     'Un historique qui vous suit',
+    gets3Body: 'Chaque \u00e9tape approuv\u00e9e et chaque certificat restent sur votre profil.',
+    gets4:     'Apportez vos chantiers d\u00e9j\u00e0 commenc\u00e9s',
+    gets4Body: 'Les \u00e9tapes d\u00e9j\u00e0 faites sont enregistr\u00e9es telles quelles \u2014 votre client ne paie que le travail restant.',
+    yourCall:          'Votre appel',
+    bookingOpened:     'Agenda ouvert le {date}',
+    bookingLivesInCalendar: 'L\u2019horaire que vous choisissez se trouve dans l\u2019agenda de l\u2019\u00e9quipe Groundwork, pas ici. Choisissez ou modifiez un cr\u00e9neau ci-dessous.',
+    whoYouWillSpeakTo: '\u00c0 qui vous allez parler',
+    partnerTeam:       'Groundwork \u00b7 \u00e9quipe partenaires',
     track: {
       applied:   'Candidature envoy\u00e9e',
       qualified: 'Qualifi\u00e9',

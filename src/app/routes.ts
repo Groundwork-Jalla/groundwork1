@@ -98,6 +98,10 @@ export default [
     // Step four of the partner funnel, which had no door: the application existed
     // only on the public marketing page, so an onboarded contractor could not apply.
     route("work/partner",           "routes/work/partner.tsx"),
+    // The contractor's own profile. Separate from /profile, which renders in the
+    // CLIENT shell — opening that one dropped a contractor into another app's
+    // sidebar (30 Oct 2026).
+    route("work/profile",           "routes/work/profile.tsx"),
     // A partner contractor bringing their own client (109). The same wizard an admin
     // runs — what differs is who may run it, and for whom.
     route("work/clients/new",       "routes/work/clients.new.tsx"),

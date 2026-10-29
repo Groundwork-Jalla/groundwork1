@@ -23,8 +23,12 @@ const page = readFileSync(join(ROOT, 'src/app/routes/work/partner.tsx'), 'utf8')
 
 describe('the line follows the calendar, not the status', () => {
   it('picks its wording from whether a booking frame exists', () => {
-    expect(page).toMatch(/booking \? 'partner\.statusPendingBook'/);
-    expect(page).toMatch(/: 'partner\.statusPendingBody'/);
+    // 30 Oct 2026: the status card was replaced by the filed-application screen, and
+    // the line moved into its "Your call" panel. The RULE is unchanged — and it now
+    // has a second way to be broken, because the screen also knows `booking_shown_at`.
+    // Keying the wording off that stored date instead of off the frame would tell an
+    // applicant with no configured schedule to "pick a slot below" again.
+    expect(page).toMatch(/\{booking \? t\('partner\.bookingLivesInCalendar'\) : t\('partner\.statusPendingBody'\)\}/);
   });
 
   it('and the frame is only rendered when there is one', () => {
@@ -35,7 +39,7 @@ describe('the line follows the calendar, not the status', () => {
 
 describe('each wording is true of its own case', () => {
   it.each([['en', en], ['fr', fr]] as const)('%s: the booking line points downward', (_n, dict) => {
-    const book = String(lookup(dict as never, 'partner.statusPendingBook'));
+    const book = String(lookup(dict as never, 'partner.bookingLivesInCalendar'));
     expect(book.trim().length).toBeGreaterThan(0);
     expect(book).toMatch(/below|ci-dessous/i);
   });
@@ -49,9 +53,17 @@ describe('each wording is true of its own case', () => {
 
   it('the two are different strings', () => {
     for (const dict of [en, fr]) {
-      expect(String(lookup(dict as never, 'partner.statusPendingBook')))
+      expect(String(lookup(dict as never, 'partner.bookingLivesInCalendar')))
         .not.toBe(String(lookup(dict as never, 'partner.statusPendingBody')));
     }
+  });
+
+  it.each([['en', en], ['fr', fr]] as const)('%s: the opened-booking line is not a confirmed slot', (_n, dict) => {
+    // Migration 136: never report `booking_shown_at` as a booking. The copy may say
+    // the calendar was opened; it may not say a call is booked.
+    const line = String(lookup(dict as never, 'partner.bookingOpened'));
+    expect(line).toContain('{date}');
+    expect(line).not.toMatch(/\bbooked\b|r\u00e9serv\u00e9/i);
   });
 });
 

@@ -2869,8 +2869,39 @@ export const en = {
       not_allowed:              'That is not yours to open.',
     },
   },
+  contractorProfile: {
+    yourDetails:        'Your details',
+    businessName:       'Business name',
+    trade:              'Trade',
+    phoneHint:          'Where clients and Groundwork reach you.',
+    howTheAppBehaves:   'How the app behaves',
+    darkMode:           'Dark mode',
+    currencyFirst:      'Currency shown first',
+    currencyFirstHint:  'Which one leads on a figure. The other is still shown beside it.',
+    localCurrency:      'The build\u2019s own',
+    tellMeWhen:         'Tell me when',
+    notify: {
+      stageApproved:   'A stage is approved',
+      paymentReleased: 'A payment is released',
+      clientMessage:   'A client sends a message',
+      verifierChanges: 'A verifier asks for changes',
+      news:            'Groundwork news',
+    },
+    signingIn:            'Signing in',
+    signedInElsewhere:    'Other devices',
+    signedInElsewhereHint: 'Ends every session, including this one.',
+    signOutEverywhere:    'Sign out everywhere',
+    whatClientsSee:       'What clients see',
+    whatClientsSeeBody:   'Your name, trade, years in the trade, regions and verified badge. Not your email, your phone number, or what you are paid on other projects.',
+    leaving:              'Leaving',
+    closeAccount:         'Close my account',
+    closeAccountHint:     'Your builds stay with their clients.',
+    closeAccountHow:      'Ask Groundwork support',
+  },
+
   contractorPayout: {
     title:    'Payment details',
+    navLabel: 'Payouts',
     subtitle: 'Where Groundwork sends your stage payments. Give these once and they are used on every project you are assigned to.',
     why:      'Collecting this up front means nobody has to ask you for account details over the phone or a message when a payment is due.',
 
@@ -2938,6 +2969,9 @@ export const en = {
     step4:             'Payment is released',
     step4Hint:         'To the account you set above',
     notCustodian:      'Groundwork records and governs the schedule. It does not hold your money.',
+    todaysRate:        'Today\u2019s rate',
+    rateLine:          '{code} to $1 \u00b7 fetched this morning',
+    paidInLocal:       'You are paid in {code}. The dollar figure beside each amount is for reference only.',
   },
 
   verifier: {
@@ -3100,6 +3134,13 @@ export const en = {
 
   // ── Profile / settings ────────────────────────────────────
   profile: {
+    phoneNumber: 'Phone number',
+    saveFailed:  'Those changes did not save.',
+    fullName:    'Full name',
+    saveChanges: 'Save changes',
+    resetSent:   'Reset link sent',
+    change:      'Change',
+    language:    'Language',
       phoneHelp:    'Groundwork may use this number to reach you on WhatsApp about your project. Include your country code, or write it the way you normally would and we will add it.',
       phoneLegacy:  'We found a number you entered before. Save to confirm it \u2014 it is not reaching us yet.',
       phoneInvalid: 'That does not look like a phone number we can reach. Check the digits, or add your country code.',
@@ -5298,6 +5339,25 @@ export const en = {
     // we can honestly mark done — Groundwork can see somebody was sent to a calendar,
     // not that they picked a slot. So the step asks them to book, and only acceptance
     // moves it on.
+    // The filed-application screen (30 Oct 2026).
+    yourApplication:  'Your application',
+    oneConversation:  'One conversation with the Groundwork team, then you are a partner. Nothing to pay.',
+    whatYouToldUs:    'What you told us',
+    whatAPartnerGets: 'What a partner gets',
+    gets1:     'Clients who have no contractor',
+    gets1Body: 'Groundwork sends you work in the regions you cover, already costed.',
+    gets2:     'Stage payments that arrive on approval',
+    gets2Body: 'No chasing a client for the next tranche in the middle of a build.',
+    gets3:     'A record that travels with you',
+    gets3Body: 'Every approved stage and certificate stays on your profile.',
+    gets4:     'Bring your own half-built jobs',
+    gets4Body: 'Stages already finished are recorded as they are — your client is billed for the remaining work only.',
+    yourCall:          'Your call',
+    bookingOpened:     'Booking opened {date}',
+    // Deliberate wording: Groundwork does not hold the appointment. See migration 136.
+    bookingLivesInCalendar: 'The time you choose lives in the Groundwork team\u2019s calendar, not here. Pick or change a slot below.',
+    whoYouWillSpeakTo: 'Who you will speak to',
+    partnerTeam:       'Groundwork \u00b7 partner team',
     track: {
       applied:   'Applied',
       qualified: 'Qualified',

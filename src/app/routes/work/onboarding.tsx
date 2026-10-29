@@ -663,6 +663,13 @@ function PayoutPanel({ done, onAdded }: {
           step outstanding and the sequence then would not let you past the contact
           screen, so the escape hatch trapped people instead of freeing them. Payment
           details are needed before any project can pay out, so they are asked for here. */}
+      {/* Why we are asking, said where the asking happens (30 Oct 2026). It used to
+          sit on /work/payouts, which is a page somebody opens to check what they
+          were paid — months after the question occurred to them. */}
+      <p className="mb-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey dark:bg-[#141414]">
+        {t('contractorPayout.why')}
+      </p>
+
       <Button type="button" onClick={() => setOpen(true)}>
         {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
       </Button>

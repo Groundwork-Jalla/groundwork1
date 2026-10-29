@@ -157,13 +157,10 @@ export default function ContractorPayouts() {
         <PaymentsReceived payments={payments} projects={projects} />
 
         <div className="flex flex-col gap-4">
-          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-              {t('contractorPayout.whyWeAsk')}
-            </h2>
-            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPayout.why')}</p>
-          </section>
-
+          {/* "Why we ask for this" moved to the onboarding payout step (30 Oct 2026).
+              It answers a question somebody has while they are being asked for an
+              account number, not months later on a page they opened to check what
+              they were paid. */}
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
               {t('contractorPayout.howAStageGetsPaid')}
@@ -190,6 +187,8 @@ export default function ContractorPayouts() {
                 and moves the money, and nothing on this page may imply otherwise. */}
             <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPayout.notCustodian')}</p>
           </section>
+
+          <TodaysRate projects={projects} />
         </div>
       </div>
     </div>
@@ -511,6 +510,41 @@ function AddDestination({ ownerId, firstOne, onDone, onCancel }: {
           {t('common.cancel')}
         </button>
       </div>
+    </section>
+  );
+}
+
+/**
+ * What a dollar buys today, in the currency this contractor actually works in.
+ *
+ * The rate is fetched once per session and shared with every other figure on the
+ * surface (use-project-money.ts), so the number quoted here is the number the stage
+ * amounts were converted at — not a second opinion. The currency follows their
+ * builds; if they run projects in more than one country there is no single answer,
+ * so the card says nothing rather than picking one.
+ */
+function TodaysRate({ projects }: { projects: AssignedProject[] | null }) {
+  const t = useT();
+  const countries = new Set((projects ?? []).map(a => a.project.country).filter(Boolean));
+  const only = countries.size === 1 ? [...countries][0] : null;
+  const money = useProjectMoney(only);
+
+  if (projects === null || only === null || money.code === 'USD') return null;
+
+  return (
+    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+        {t('contractorPayout.todaysRate')}
+      </h2>
+      <p className="mt-1.5 font-mono text-xl font-semibold tabular-nums text-brand-near-black dark:text-white">
+        {money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+      </p>
+      <p className="mt-0.5 font-mono text-[11px] text-brand-mid-grey">
+        {t('contractorPayout.rateLine', { code: money.code })}
+      </p>
+      <p className="mt-2.5 text-xs text-brand-mid-grey">
+        {t('contractorPayout.paidInLocal', { code: money.code })}
+      </p>
     </section>
   );
 }

@@ -108,8 +108,17 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
     expect(read('src/components/shell/WorkShell.tsx')).toMatch(/to: '\/work\/partner'/);
   });
 
-  it('and a dashboard card, only for somebody who has not applied', () => {
-    expect(read('src/app/routes/work/index.tsx')).toMatch(/partnerState === 'none' && \(/);
+  it('and the sidebar, permanently — the dashboard card is gone', () => {
+    /**
+     * 30 Oct 2026: the dashboard card was removed. It is not on the approved
+     * dashboard, and it was a second door to a room the sidebar already signposts —
+     * "Partner programme" is a permanent entry, shown whatever their state.
+     *
+     * The rule that matters is unchanged and is asserted above: there is still a way
+     * in for somebody who has not applied. What went is the duplicate.
+     */
+    expect(read('src/app/routes/work/index.tsx')).not.toMatch(/partnerState/);
+    expect(read('src/components/shell/WorkShell.tsx')).toMatch(/to: '\/work\/partner'/);
   });
 
   it('and a third: the decision is asked inside onboarding itself', () => {

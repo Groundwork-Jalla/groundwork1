@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, Handshake, UserRound, Landmark, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Handshake, UserRound, Landmark } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
@@ -16,16 +16,21 @@ const links: PortalLink[] = [
   // They are gone rather than repointed. All three are PER PROJECT and are tabs on a
   // project, so three sidebar entries leading to the same project list would be the same
   // confusion with a different shape. Projects, above, is the way in.
-  { to: '/work/payouts', label: 'contractorPayout.title', icon: Landmark },
-  // Reachable after the dashboard banner has gone. §3.3 of the partner agreement puts
-  // a standing duty on contractors to keep licensing and insurance current, so the
-  // page they do that on cannot only exist while they are still unfinished.
-  { to: '/work/onboarding', label: 'contractorOnboarding.navLabel', icon: ShieldCheck },
+  { to: '/work/payouts', label: 'contractorPayout.navLabel', icon: Landmark },
+  // Verification is HIDDEN, 30 Oct 2026 — Favour: "hide verification for now". The
+  // route stays: /work/onboarding is still where an unfinished contractor is sent by
+  // the dashboard banner, and §3.3 of the partner agreement puts a standing duty on
+  // keeping licensing current. Only the sidebar entry goes, so restoring it is this
+  // one line rather than a rebuild.
+  //
   // Reachable at any time, not only right after onboarding: a contractor without a
   // diaspora project today may well have one next month, and the funnel should still
   // be open to them then.
   { to: '/work/partner', label: 'partner.navLabel', icon: Handshake },
-  { to: '/profile', label: 'nav.viewProfile', icon: UserRound },
+  // /work/profile, NOT /profile. The shared profile page renders inside the CLIENT
+  // shell, so a contractor who opened it was dropped into a sidebar of somebody
+  // else's app — Favour, 30 Oct: no button here may send them to another dashboard.
+  { to: '/work/profile', label: 'nav.viewProfile', icon: UserRound },
 ];
 
 export function WorkShell({ children, displayName, onLogout, navLocked, topBarActions }: {

@@ -115,6 +115,87 @@ export async function myApplicationSummary(
   };
 }
 
+/**
+ * Their application as they filled it in, for showing back to them.
+ *
+ * Read-only and deliberately so. Philip, 30 October: "they should not have room to
+ * change their answers. Once they have answered, they have answered." The applicant
+ * sees the record; staff hold the pen.
+ *
+ * `bookingShownAt` is the nearest fact Groundwork owns to "a call was booked" — see
+ * migration 136. The slot itself lives in Philip's Google Calendar, behind a
+ * cross-origin iframe, so this is WHEN THEY WERE SHOWN the calendar and must never be
+ * printed as a confirmed appointment.
+ */
+export interface PartnerApplicationDetail {
+  state: ApplicationState;
+  decisionReady: boolean;
+  language: string;
+  appliedAt: string | null;
+  bookingShownAt: string | null;
+  projectStatus: string | null;
+  projectStage: string | null;
+  projectStartWindow: string | null;
+  clientOnSiteDaily: boolean | null;
+  clientOffsiteReason: string | null;
+  clientOffsiteReasonOther: string | null;
+  willUseGroundwork: string | null;
+  yearsExperience: string | null;
+  operatesAs: string | null;
+  regions: string | null;
+  concurrentProjects: string | null;
+}
+
+const str = (v: unknown): string | null =>
+  typeof v === 'string' && v.trim() !== '' ? v : null;
+
+export async function myApplicationDetail(
+  userId: string,
+): Promise<PartnerApplicationDetail | null> {
+  const { data, error } = await supabase
+    .from('contractor_applications')
+    .select([
+      'status', 'created_at', 'booking_shown_at', 'languages',
+      'project_status', 'project_stage', 'project_start_window',
+      'client_on_site_daily', 'client_offsite_reason', 'client_offsite_reason_other',
+      'will_use_groundwork', 'years_experience', 'operates_as', 'regions',
+      'concurrent_projects', 'has_current_project', 'will_introduce',
+    ].join(', '))
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  // No row, or a column this deployment does not have yet: the caller falls back to
+  // the summary read rather than failing the page over a panel.
+  if (error || !data) return null;
+
+  const r = data as unknown as Record<string, unknown>;
+  const known: readonly string[] = ['pending', 'reviewing', 'accepted', 'rejected', 'disqualified'];
+  const status = String(r.status ?? '');
+  const langs = Array.isArray(r.languages) ? r.languages : [];
+
+  return {
+    state: known.includes(status) ? (status as ApplicationState) : 'none',
+    language: typeof langs[0] === 'string' ? langs[0] : 'en',
+    decisionReady: isDecisionReady({
+      hasCurrentProject: r.has_current_project === true,
+      willIntroduce:     r.will_introduce === true,
+      yearsExperience:   str(r.years_experience) ?? undefined,
+    }),
+    appliedAt:                str(r.created_at),
+    bookingShownAt:           str(r.booking_shown_at),
+    projectStatus:            str(r.project_status),
+    projectStage:             str(r.project_stage),
+    projectStartWindow:       str(r.project_start_window),
+    clientOnSiteDaily:        typeof r.client_on_site_daily === 'boolean' ? r.client_on_site_daily : null,
+    clientOffsiteReason:      str(r.client_offsite_reason),
+    clientOffsiteReasonOther: str(r.client_offsite_reason_other),
+    willUseGroundwork:        str(r.will_use_groundwork),
+    yearsExperience:          str(r.years_experience),
+    operatesAs:               str(r.operates_as),
+    regions:                  str(r.regions),
+    concurrentProjects:       str(r.concurrent_projects),
+  };
+}
+
 export interface PartnerAnswers {
   /**
    * Philip's branching questions (152).

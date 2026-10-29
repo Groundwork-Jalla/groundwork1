@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/format';
 import {
-  loadPartnerPrefill, myApplicationSummary, submitPartnerApplication,
-  type ApplicationState, type PartnerPrefill,
+  loadPartnerPrefill, myApplicationSummary, myApplicationDetail, submitPartnerApplication,
+  type ApplicationState, type PartnerPrefill, type PartnerApplicationDetail,
 } from '@/lib/supabase/partner-application';
 import {
   disqualifiedBy, qualifiesForCall,
@@ -101,6 +102,8 @@ export default function PartnerApplication() {
   const [stopped, setStopped] = useState<Disqualifier | null>(null);
   /** Whether their stored answers qualify. Kept so the funnel track can show it. */
   const [qualified, setQualified] = useState(false);
+  /** Their filed answers, for showing back to them. Null until read, or unreadable. */
+  const [detail, setDetail] = useState<PartnerApplicationDetail | null>(null);
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
   /** Current question and route history (some questions are conditional). */
@@ -141,6 +144,7 @@ export default function PartnerApplication() {
         // Their stored answer, not this page's empty state: somebody returning to a
         // pending application has not re-answered anything yet.
         setQualified(summary.decisionReady);
+        if (inQueue) void myApplicationDetail(user.id).then(d => { if (live) setDetail(d); }).catch(() => {});
         if (inQueue && summary.decisionReady) void openBooking(summary.language);
       })
       .catch(() => { if (live) setState('none'); });
@@ -216,61 +220,6 @@ export default function PartnerApplication() {
     </p>;
   }
 
-  // Already in the queue. Showing the form again would let somebody file twice and land
-  // in Ruth's review list as two people.
-  if (state !== 'none' && state !== 'rejected' && state !== 'disqualified') {
-    return (
-      <div className="max-w-3xl space-y-4">
-        <h1 className="text-xl font-semibold text-brand-near-black dark:text-white">{t('partner.title')}</h1>
-
-        <FunnelTrack state={state} qualified={qualified} hasBooking={booking !== 'unset' && booking !== null} />
-
-        <div className="flex items-start gap-3 rounded-2xl border border-brand-border-grey p-5 dark:border-[#2c2c2c]">
-          {state === 'accepted'
-            ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-state-complete" />
-            : <Clock className="mt-0.5 size-5 shrink-0 text-brand-mid-grey" />}
-          <div>
-            <p className="text-sm font-semibold text-brand-near-black dark:text-white">
-              {t(state === 'accepted' ? 'partner.statusAcceptedTitle' : 'partner.statusPendingTitle')}
-            </p>
-            {/* What this says has to match what is actually under it. The page used to
-                promise a call somebody would arrange, on a screen that was already
-                showing the calendar; correcting that for the qualifying case left the
-                opposite contradiction — "book below" to an applicant who does not
-                qualify and is shown no calendar at all. So the line follows the frame. */}
-            <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
-              {t(state === 'accepted' ? 'partner.statusAcceptedBody'
-                 : booking ? 'partner.statusPendingBook'
-                 : 'partner.statusPendingBody')}
-            </p>
-          </div>
-        </div>
-
-        {booking !== 'unset' && (
-          booking ? (
-            <div>
-              <h2 className="mb-1 text-sm font-semibold text-brand-near-black dark:text-white">
-                {t('partner.bookTitle')}
-              </h2>
-              <p className="mb-2 text-xs text-brand-mid-grey">{t('partner.bookBody')}</p>
-              <iframe
-                src={booking} title={t('partner.bookTitle')}
-                className="h-[600px] w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c]"
-              />
-            </div>
-          ) : (
-            // No schedule configured yet. Said plainly — an empty frame reads as broken,
-            // and this way the applicant still knows what happens next.
-            <p className="rounded-xl border border-brand-border-grey p-4 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">
-              {t('partner.bookUnavailable')}
-            </p>
-          )
-        )}
-        <Link to="/work" className="inline-block text-xs underline">{t('contractor.nav.dashboard')}</Link>
-      </div>
-    );
-  }
-
   /** Everything the rules look at, in one object so the form and the module agree. */
   const answers = {
     yearsExperience: years, projectStatus, clientOnSiteDaily,
@@ -278,7 +227,7 @@ export default function PartnerApplication() {
   };
   const ready = qualifiesForCall(answers);
 
-  /** One question per screen; answers reveal the next question without a Next button. */
+  /** One question per screen, each confirmed with Next. */
   const PAGES = 15;
 
   const complete = !!callLang && years && operatesAs && capacity && regions.trim()
@@ -295,6 +244,69 @@ export default function PartnerApplication() {
     if (previous === undefined) return;
     setPageStack(stack => stack.slice(0, -1));
     setPage(previous);
+  }
+
+  // ── Answer, then press Next ──────────────────────────────────────────────────
+  //
+  // Philip, 30 October: "after each question is answered, the next one has the next
+  // button that they can click to get to the next stage." Until now a tap on a chip
+  // jumped straight to the following question, which read as the form snatching the
+  // page away — and on the free-text questions the jump fired on BLUR, so clicking
+  // anywhere outside the box advanced it.
+  //
+  // Selection now only selects. These two decide whether Next is offered and where
+  // it goes, and they are the single place the branching lives.
+
+  /** Whether the question on screen has been answered. */
+  function isAnswered(at: number): boolean {
+    switch (at) {
+      case 0:  return callLang !== '';
+      case 1:  return years !== '';
+      case 2:  return operatesAs !== '';
+      case 3:  return regions.trim() !== '';
+      case 4:  return capacity !== '';
+      case 5:  return workedDiaspora !== null;
+      case 6:  return history.trim() !== '';
+      case 7:  return projectStatus !== null;
+      case 8:  return projectStatus === 'running' ? projectStage !== '' : startWindow !== '';
+      case 9:  return clientOnSiteDaily !== null;
+      case 10: return offsiteReason !== '';
+      case 11: return offsiteOther.trim() !== '';
+      case 12: return useGroundwork !== null;
+      case 13: return whyJoin.trim() !== '';
+      case 14: return differentiator.trim() !== '';
+      default: return false;
+    }
+  }
+
+  /**
+   * Where Next goes from here — or which rule ends the application.
+   *
+   * The three disqualifiers used to fire the moment a chip was tapped. They fire on
+   * Next instead, so an answer can be changed before it is committed; the rules
+   * themselves are unchanged and `stopHere` still writes the row.
+   */
+  function advance() {
+    switch (page) {
+      case 5:  return continueTo(workedDiaspora ? 6 : 7);
+      case 7:
+        if (projectStatus === 'none') {
+          return void stopHere('no_project', { projectStatus });
+        }
+        return continueTo(8);
+      case 9:
+        if (clientOnSiteDaily) {
+          return void stopHere('client_on_site_daily', { clientOnSiteDaily });
+        }
+        return continueTo(10);
+      case 10: return continueTo(offsiteReason === 'other' ? 11 : 12);
+      case 12:
+        if (useGroundwork === 'no') {
+          return void stopHere('not_using_groundwork', { willUseGroundwork: useGroundwork });
+        }
+        return continueTo(13);
+      default: return continueTo(page + 1);
+    }
   }
 
   /**
@@ -440,6 +452,13 @@ export default function PartnerApplication() {
    * one of them ends on a door that is still open: two of the three are a matter of
    * circumstance, and circumstance changes. The dashboard stays theirs either way.
    */
+
+  // Already in the queue. Showing the form again would let somebody file twice and land
+  // in Ruth's review list as two people.
+  if (state !== 'none' && state !== 'rejected' && state !== 'disqualified') {
+    return <ApplicationFiled state={state} qualified={qualified} detail={detail} booking={booking} />;
+  }
+
   if (stopped) {
     return (
       <div className="max-w-xl space-y-5">
@@ -488,7 +507,7 @@ export default function PartnerApplication() {
           <div className="flex gap-2">
             {LANGS.map(language => (
               <button key={language} type="button" className={chip(callLang === language)}
-                onClick={() => { setCallLang(language); continueTo(1); }}>
+                onClick={() => setCallLang(language)}>
                 {t(`partner.lang.${language}` as never)}
               </button>
             ))}
@@ -501,7 +520,7 @@ export default function PartnerApplication() {
           <div className="flex flex-wrap gap-2">
             {YEARS.map(value => (
               <button key={value} type="button" className={chip(years === value)}
-                onClick={() => { setYears(value); continueTo(2); }}>{value}</button>
+                onClick={() => setYears(value)}>{value}</button>
             ))}
           </div>
         </Row>
@@ -512,7 +531,7 @@ export default function PartnerApplication() {
           <div className="flex gap-2">
             {OPERATES.map(value => (
               <button key={value} type="button" className={chip(operatesAs === value)}
-                onClick={() => { setOperatesAs(value); continueTo(3); }}>
+                onClick={() => setOperatesAs(value)}>
                 {t(`partner.operates.${value}` as never)}
               </button>
             ))}
@@ -524,12 +543,7 @@ export default function PartnerApplication() {
         <Row label={t('partner.regions')}>
           <input value={regions} onChange={e => setRegions(e.target.value)} className={field}
             placeholder={t('partner.regionsPlaceholder')}
-            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(4); }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                e.preventDefault(); continueTo(4);
-              }
-            }} />
+            onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }} />
         </Row>
       )}
 
@@ -538,7 +552,7 @@ export default function PartnerApplication() {
           <div className="flex gap-2">
             {CAPACITY.map(value => (
               <button key={value} type="button" className={chip(capacity === value)}
-                onClick={() => { setCapacity(value); continueTo(5); }}>{value}</button>
+                onClick={() => setCapacity(value)}>{value}</button>
             ))}
           </div>
         </Row>
@@ -546,17 +560,13 @@ export default function PartnerApplication() {
 
       {page === 5 && (
         <YesNo label={t('partner.history')} value={workedDiaspora}
-          onChange={value => {
-            setWorkedDiaspora(value);
-            if (!value) { setHistory(''); continueTo(7); }
-            else continueTo(6);
-          }} chip={chip} />
+          onChange={value => { setWorkedDiaspora(value); if (!value) setHistory(''); }}
+          chip={chip} />
       )}
 
       {page === 6 && (
         <Row label={t('partner.historyDescribe')} hint={t('partner.historyHint')}>
-          <textarea rows={3} value={history} onChange={e => setHistory(e.target.value)} className={field}
-            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(7); }} />
+          <textarea rows={3} value={history} onChange={e => setHistory(e.target.value)} className={field} />
         </Row>
       )}
 
@@ -565,69 +575,52 @@ export default function PartnerApplication() {
           value={projectStatus} tKey="partner.projectStatusOpt" chip={chip}
           disabled={busy}
           onChange={value => {
-            const selected = value as ProjectStatus;
-            setProjectStatus(selected);
+            setProjectStatus(value as ProjectStatus);
             setProjectStage(''); setStartWindow('');
-            if (selected === 'none') void stopHere('no_project', { projectStatus: selected });
-            else continueTo(8);
           }} />
       )}
 
       {page === 8 && projectStatus === 'running' && (
         <Choice label={t('partner.projectStage')} options={PROJECT_STAGES}
           value={projectStage} tKey="partner.stageOpt" chip={chip}
-          onChange={value => { setProjectStage(value); continueTo(9); }} stacked />
+          onChange={setProjectStage} stacked />
       )}
       {page === 8 && projectStatus === 'starting' && (
         <Choice label={t('partner.startWindow')} options={START_WINDOWS}
           value={startWindow} tKey="partner.startOpt" chip={chip}
-          onChange={value => { setStartWindow(value); continueTo(9); }} stacked />
+          onChange={setStartWindow} stacked />
       )}
 
       {page === 9 && (
         <YesNo label={t('partner.clientOnSite')} value={clientOnSiteDaily}
           onChange={value => {
             setClientOnSiteDaily(value);
-            if (value) {
-              setOffsiteReason(''); setOffsiteOther('');
-              void stopHere('client_on_site_daily', { clientOnSiteDaily: value });
-            } else continueTo(10);
+            if (value) { setOffsiteReason(''); setOffsiteOther(''); }
           }} chip={chip} />
       )}
 
       {page === 10 && (
         <Choice label={t('partner.offsiteReason')} options={OFFSITE_REASONS}
           value={offsiteReason} tKey="partner.offsiteOpt" chip={chip}
-          onChange={value => {
-            setOffsiteReason(value);
-            if (value === 'other') continueTo(11);
-            else continueTo(12);
-          }} stacked />
+          onChange={setOffsiteReason} stacked />
       )}
 
       {page === 11 && (
         <Row label={t('partner.offsiteReason')}>
           <input value={offsiteOther} onChange={e => setOffsiteOther(e.target.value)}
-            className={field} placeholder={t('partner.offsiteOtherPlaceholder')}
-            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(12); }} />
+            className={field} placeholder={t('partner.offsiteOtherPlaceholder')} />
         </Row>
       )}
 
       {page === 12 && (
         <Choice label={t('partner.useGroundwork')} options={GROUNDWORK_USE}
           value={useGroundwork} tKey="partner.useOpt" chip={chip}
-          onChange={value => {
-            const selected = value as GroundworkUse;
-            setUseGroundwork(selected);
-            if (selected === 'no') void stopHere('not_using_groundwork', { willUseGroundwork: selected });
-            else continueTo(13);
-          }} stacked />
+          onChange={value => setUseGroundwork(value as GroundworkUse)} stacked />
       )}
 
       {page === 13 && (
         <Row label={t('partner.whyJoin')}>
-          <textarea rows={4} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field}
-            onBlur={e => { if (e.currentTarget.value.trim()) continueTo(14); }} />
+          <textarea rows={4} value={whyJoin} onChange={e => setWhyJoin(e.target.value)} className={field} />
         </Row>
       )}
 
@@ -652,9 +645,15 @@ export default function PartnerApplication() {
             {t('common.back')}
           </button>
         )}
-        {page === PAGES - 1 && (
+        {page < PAGES - 1 ? (
+          <button type="button" onClick={advance} disabled={busy || !isAnswered(page)}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {t('common.next')}
+          </button>
+        ) : (
           <button type="submit" disabled={busy || !complete}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
             {busy && <Loader2 className="size-4 animate-spin" />}
             {t('partner.submit')}
           </button>
@@ -749,22 +748,28 @@ function YesNo({ label, value, onChange, chip }: {
  * stays current until the application is accepted. Counting a booking we cannot
  * observe would put a number in the funnel that nothing backs up.
  */
-function FunnelTrack({ state, qualified, hasBooking }: {
+function FunnelTrack({ state, qualified, hasBooking, detail }: {
   state: ApplicationState; qualified: boolean; hasBooking: boolean;
+  detail?: PartnerApplicationDetail | null;
 }) {
   const t = useT();
   const accepted = state === 'accepted';
+  const applied = detail?.appliedAt ? formatDate(detail.appliedAt) : null;
 
-  const steps: { key: TKey; at: 'done' | 'now' | 'todo' }[] = [
-    { key: 'partner.track.applied',   at: 'done' },
-    { key: 'partner.track.qualified', at: qualified ? 'done' : accepted ? 'done' : 'now' },
-    { key: 'partner.track.book',      at: accepted ? 'done' : qualified && hasBooking ? 'now' : 'todo' },
-    { key: 'partner.track.call',      at: accepted ? 'done' : 'todo' },
-    { key: 'partner.track.partner',   at: accepted ? 'done' : 'todo' },
+  const steps: { key: TKey; at: 'done' | 'now' | 'todo'; on: string | null }[] = [
+    { key: 'partner.track.applied',   at: 'done', on: applied },
+    // Qualifying is recomputed from the answers rather than stamped, so the honest
+    // date is the day those answers were given — which is the day they applied.
+    { key: 'partner.track.qualified', at: qualified || accepted ? 'done' : 'now',
+      on: qualified || accepted ? applied : null },
+    { key: 'partner.track.book',      at: accepted ? 'done' : qualified && hasBooking ? 'now' : 'todo',
+      on: detail?.bookingShownAt ? formatDate(detail.bookingShownAt) : null },
+    { key: 'partner.track.call',      at: accepted ? 'done' : 'todo', on: null },
+    { key: 'partner.track.partner',   at: accepted ? 'done' : 'todo', on: null },
   ];
 
   return (
-    <ol className="flex min-w-0 rounded-2xl border border-brand-border-grey bg-white px-3 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+    <ol className="mt-4 flex min-w-0">
       {steps.map((step, i) => (
         <li key={step.key} className="relative min-w-0 flex-1 text-center"
             aria-current={step.at === 'now' ? 'step' : undefined}>
@@ -786,8 +791,189 @@ function FunnelTrack({ state, qualified, hasBooking }: {
               : 'text-brand-mid-grey')}>
             {t(step.key)}
           </span>
+          {/* A step with no date we own prints an em dash, not a guess. */}
+          <span className="mt-0.5 block break-words px-px text-[10px] text-brand-mid-grey">
+            {step.on ?? '—'}
+          </span>
         </li>
       ))}
     </ol>
+  );
+}
+
+/**
+ * The application, once it is filed.
+ *
+ * Philip's layout, 30 October: the funnel track with the date each step happened,
+ * then exactly what they told us, then what a partner gets — and the call on the
+ * right. No "change my answers": once they have answered, they have answered, and
+ * an edit after filing would put the applicant and Ruth's review list out of step.
+ *
+ * Every line is read from their own row. A field the row does not carry is left out
+ * rather than guessed at, which is why the list is built and then filtered.
+ */
+function ApplicationFiled({ state, qualified, detail, booking }: {
+  state: ApplicationState;
+  qualified: boolean;
+  detail: PartnerApplicationDetail | null;
+  booking: string | null | 'unset';
+}) {
+  const t = useT();
+  const accepted = state === 'accepted';
+
+  const told: { q: string; a: string }[] = [
+    { q: t('partner.projectStatus'),
+      a: detail?.projectStatus ? t(`partner.projectStatusOpt.${detail.projectStatus}` as TKey) : '' },
+    { q: t('partner.projectStage'),
+      a: detail?.projectStage ? t(`partner.stageOpt.${detail.projectStage}` as TKey) : '' },
+    { q: t('partner.startWindow'),
+      a: detail?.projectStartWindow ? t(`partner.startOpt.${detail.projectStartWindow}` as TKey) : '' },
+    { q: t('partner.clientOnSite'),
+      a: detail?.clientOnSiteDaily === null || detail?.clientOnSiteDaily === undefined ? ''
+         : detail.clientOnSiteDaily ? t('common.yes')
+         : detail.clientOffsiteReason === 'other' && detail.clientOffsiteReasonOther
+           ? `${t('common.no')} — ${detail.clientOffsiteReasonOther}`
+           : detail.clientOffsiteReason
+             ? `${t('common.no')} — ${t(`partner.offsiteOpt.${detail.clientOffsiteReason}` as TKey)}`
+             : t('common.no') },
+    { q: t('partner.useGroundwork'),
+      a: detail?.willUseGroundwork ? t(`partner.useOpt.${detail.willUseGroundwork}` as TKey) : '' },
+    { q: t('partner.years'),    a: detail?.yearsExperience ?? '' },
+    { q: t('partner.operatesAs'),
+      a: detail?.operatesAs ? t(`partner.operates.${detail.operatesAs}` as TKey) : '' },
+    { q: t('partner.regions'),  a: detail?.regions ?? '' },
+    { q: t('partner.capacity'), a: detail?.concurrentProjects ?? '' },
+  ].filter(row => row.a !== '');
+
+  return (
+    <div className="grid max-w-5xl items-start gap-5 lg:grid-cols-[3fr_2fr]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h1 className="text-lg font-bold tracking-tight text-brand-near-black dark:text-white">
+              {t('partner.yourApplication')}
+            </h1>
+            <span className={cn('flex items-center gap-1.5 text-xs font-semibold',
+              accepted ? 'text-state-complete' : 'text-state-held')}>
+              <span aria-hidden className={cn('size-1.5 rounded-full',
+                accepted ? 'bg-state-complete' : 'bg-state-held')} />
+              {t(accepted ? 'partner.statusAcceptedTitle' : 'partner.statusPendingTitle')}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-brand-mid-grey">{t('partner.oneConversation')}</p>
+          <FunnelTrack state={state} qualified={qualified} detail={detail}
+                       hasBooking={booking !== 'unset' && booking !== null} />
+        </section>
+
+        {told.length > 0 && (
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('partner.whatYouToldUs')}
+            </h2>
+            <dl className="mt-1">
+              {told.map(row => (
+                <div key={row.q}
+                     className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-0.5 border-t border-brand-border-grey py-2.5 first:border-t-0 dark:border-[#2c2c2c]">
+                  <dt className="min-w-0 text-xs text-brand-mid-grey">{row.q}</dt>
+                  <dd className="text-right text-xs font-semibold text-brand-near-black dark:text-white">{row.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('partner.whatAPartnerGets')}
+          </h2>
+          <ul className="mt-1">
+            {(['gets1', 'gets2', 'gets3', 'gets4'] as const).map((key, i) => (
+              <li key={key}
+                  className="flex gap-3 border-t border-brand-border-grey py-3 first:border-t-0 dark:border-[#2c2c2c]">
+                <span className="shrink-0 font-mono text-[11px] font-semibold text-brand-mid-grey">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-brand-near-black dark:text-white">
+                    {t(`partner.${key}` as TKey)}
+                  </span>
+                  <span className="block text-xs text-brand-mid-grey">
+                    {t(`partner.${key}Body` as TKey)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-4">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('partner.yourCall')}
+          </h2>
+
+          {/* A date we own, printed as what it is. Migration 136: `booking_shown_at`
+              is when they were SHOWN the calendar. The appointment itself lives in
+              the team's Google Calendar behind a cross-origin frame, so this is
+              never printed as a confirmed slot. */}
+          {detail?.bookingShownAt && (
+            <p className="mt-1.5 text-sm font-semibold text-brand-near-black dark:text-white">
+              {t('partner.bookingOpened', { date: formatDate(detail.bookingShownAt) })}
+            </p>
+          )}
+
+          {/* The line follows the FRAME, not the stored date — the rule
+              partner-status-copy.test.ts exists to hold. "Pick a slot below" on a
+              page with no calendar under it is the defect that rule was written
+              after, and a stored `booking_shown_at` must not reintroduce it. */}
+          <p className="mt-1 text-xs text-brand-mid-grey">
+            {booking ? t('partner.bookingLivesInCalendar') : t('partner.statusPendingBody')}
+          </p>
+
+          {booking !== 'unset' && (booking ? (
+            <iframe
+              src={booking} title={t('partner.bookTitle')}
+              className="mt-3 h-[560px] w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c]"
+            />
+          ) : (
+            // No schedule configured. Said plainly — an empty frame reads as broken.
+            <p className="mt-3 rounded-xl border border-brand-border-grey p-4 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">
+              {t('partner.bookUnavailable')}
+            </p>
+          ))}
+        </section>
+
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('partner.whoYouWillSpeakTo')}
+          </h2>
+          <Speaker initials="PH" name="Philip" role={t('partner.partnerTeam')} />
+          {/* A co-host sits on the SCHEDULE, not the booking — see partner-booking.ts.
+              She is on the French call, so she is named only on the French one. */}
+          {detail && needsVanessa(detail.language) && (
+            <Speaker initials="VG" name="Vanessa G." role={t('partner.partnerTeam')} />
+          )}
+        </section>
+
+        <Link to="/work" className="text-xs underline underline-offset-2 text-brand-mid-grey">
+          {t('contractor.nav.dashboard')}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Speaker({ initials, name, role }: { initials: string; name: string; role: string }) {
+  return (
+    <div className="mt-2 flex items-center gap-2.5 border-t border-brand-border-grey pt-2.5 first:border-t-0 dark:border-[#2c2c2c]">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-brand-border-grey text-[10px] font-bold text-brand-mid-grey dark:border-[#2c2c2c]">
+        {initials}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-xs font-semibold text-brand-near-black dark:text-white">{name}</span>
+        <span className="block text-[11px] text-brand-mid-grey">{role}</span>
+      </span>
+    </div>
   );
 }

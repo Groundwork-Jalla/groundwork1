@@ -8,17 +8,35 @@ const english = readFileSync(join(ROOT, 'src/lib/i18n/en.ts'), 'utf8');
 const french = readFileSync(join(ROOT, 'src/lib/i18n/fr.ts'), 'utf8');
 
 describe('partner application step flow', () => {
-  it('renders one question per screen and advances via selection', () => {
+  /**
+   * Philip, 30 October: "after each question is answered, the next one has the next
+   * button that they can click to get to the next stage."
+   *
+   * This replaces the opposite rule, which this file used to enforce — selecting an
+   * answer jumped straight on, and on the free-text questions it jumped on BLUR, so
+   * clicking anywhere outside the box advanced the form.
+   */
+  it('renders one question per screen and confirms each with Next', () => {
     expect(page).toContain('{page === 0 && (');
-    expect(page).toContain('continueTo(1)');
     expect(page).toContain("{page === 7 && (");
-    expect(page).toContain("if (selected === 'none')");
+    expect(page).toMatch(/common\.next/);
+    expect(page).toContain('onClick={advance}');
   });
 
-  it('shows a progress indicator and no extra next button flow', () => {
+  it('does not advance on selection or on blur', () => {
+    // A chip's onClick sets state and nothing else; no question re-advances itself.
+    expect(page).not.toMatch(/onClick=\{\(\) => \{[^}]*continueTo\(/);
+    expect(page).not.toMatch(/onBlur=\{e => \{ if \(e\.currentTarget\.value\.trim\(\)\) continueTo/);
+  });
+
+  it('offers Next only once the question on screen is answered', () => {
+    expect(page).toContain('disabled={busy || !isAnswered(page)}');
+    expect(page).toContain('function isAnswered(at: number): boolean {');
+  });
+
+  it('shows a progress indicator', () => {
     expect(page).toMatch(/role="progressbar"/);
     expect(page).toMatch(/aria-valuemax=\{PAGES\}/);
-    expect(page).not.toMatch(/common\.next/);
   });
 
   it('omits the extra form subtitle and account-details notice', () => {
@@ -46,7 +64,8 @@ describe('partner application step flow', () => {
 
   it('keeps a back button and a final submit button for the completed form', () => {
     expect(page).toContain("{pageStack.length > 0 && (");
-    expect(page).toContain("{page === PAGES - 1 && (");
+    // Next on every question but the last; the last one submits.
+    expect(page).toContain("{page < PAGES - 1 ? (");
     expect(page).toContain("type=\"submit\"");
   });
 

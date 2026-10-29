@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, Camera, Check, FolderPlus, Handshake, Landmark, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Camera, Check, FolderPlus, Landmark, Loader2, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments, fetchSubstages,
   type AssignedProject, type ReworkItem, type ContractorPayment,
@@ -48,8 +47,6 @@ export default function ContractorDashboard() {
   const query = params.get('q') ?? '';
 
   const [projects, setProjects] = useState<AssignedProject[] | null>(null);
-  /** Whether to invite them into the partner funnel. Null until we know. */
-  const [partnerState, setPartnerState] = useState<ApplicationState | null>(null);
   const [rework, setRework] = useState<ReworkItem[] | null>(null);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,15 +57,6 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
-
-  // Separately from everything else: a failure here costs one invitation card, and
-  // must not cost the dashboard.
-  useEffect(() => {
-    if (!user) return;
-    let live = true;
-    void myApplicationState(user.id).then(x => { if (live) setPartnerState(x); }).catch(() => {});
-    return () => { live = false; };
-  }, [user]);
 
   useEffect(() => {
     let alive = true;
@@ -289,21 +277,9 @@ export default function ContractorDashboard() {
               <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorDashboard.whyNoListBody')}</p>
             </section>
 
-            {/* The partner funnel's door. Shown only to those who have not applied:
-                once they are in the queue this is noise, and the sidebar entry is
-                there permanently for anyone who wants it later. */}
-            {partnerState === 'none' && (
-              <section className="rounded-2xl border border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
-                <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  <Handshake className="size-4" />{t('partner.inviteTitle')}
-                </h2>
-                <p className="mt-1 text-xs text-brand-mid-grey">{t('partner.inviteBody')}</p>
-                <Link to="/work/partner"
-                  className="mt-3 inline-block rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
-                  {t('partner.inviteCta')}
-                </Link>
-              </section>
-            )}
+            {/* The partner funnel's dashboard card is gone (30 Oct 2026): it is not on
+                the approved dashboard, and "Partner programme" is a permanent sidebar
+                entry, so the card was a second door to a room already signposted. */}
           </div>
         </div>
       </>}
