@@ -3064,6 +3064,8 @@ export const fr: Mirror<EnDict> = {
       statusDeclined:  'Refusé',
     },
     complete:            'Terminé',
+    liveBuilds: '{n} chantier(s) en cours',
+    verifiedContractor: 'Entrepreneur v\u00e9rifi\u00e9',
     accountDetails:      'Informations du compte',
     changesSave:         'Les modifications sont enregistrées sur votre compte',
     yourFullName:        'Votre nom complet',

@@ -3122,6 +3122,8 @@ export const en = {
       statusDeclined:  'Declined',
     },
     complete:            'Complete',
+    liveBuilds: '{n} live build(s)',
+    verifiedContractor: 'Verified contractor',
     accountDetails:      'Account details',
     changesSave:         'Changes save to your account',
     yourFullName:        'Your full name',

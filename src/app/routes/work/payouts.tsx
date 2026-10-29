@@ -304,8 +304,11 @@ function PaymentsReceived({ payments, projects }: {
                   <span className="block truncate text-xs font-semibold text-brand-near-black dark:text-white">
                     {p.note ?? names.get(p.projectId) ?? t('contractorPayments.milestone')}
                   </span>
+                  {/* The project name is the heading when the row has no note of its
+                      own, so repeating it underneath would print it twice. */}
                   <span className="block text-[11px] text-brand-mid-grey">
-                    {[names.get(p.projectId), formatDate(p.createdAt)].filter(Boolean).join(' · ')}
+                    {[p.note ? names.get(p.projectId) : null, formatDate(p.createdAt)]
+                      .filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">

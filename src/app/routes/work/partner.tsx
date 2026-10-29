@@ -196,6 +196,20 @@ export default function PartnerApplication() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftState, user?.id, prefill, state]);
 
+  /**
+   * Scroll the form back to the top as the questions advance.
+   *
+   * Declared HERE, above the early returns below, and not beside the `page` state it
+   * watches. It used to sit further down the component, after `if (state === null)`
+   * and `if (state !== 'none')` had already returned — so the first render (state
+   * still loading) ran fewer hooks than the second, and React threw "Rendered more
+   * hooks than during the previous render". That took out the whole page for anyone
+   * who had not applied yet, which is everybody the funnel is for.
+   */
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [page]);
+
   if (!user || state === null) {
     return <p role="status" className="flex items-center gap-2 py-10 text-sm text-brand-mid-grey">
       <Loader2 className="size-4 animate-spin" />{t('common.loading')}
@@ -266,9 +280,6 @@ export default function PartnerApplication() {
 
   /** One question per screen; answers reveal the next question without a Next button. */
   const PAGES = 15;
-  useEffect(() => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [page]);
 
   const complete = !!callLang && years && operatesAs && capacity && regions.trim()
     && whyJoin.trim() && differentiator.trim()

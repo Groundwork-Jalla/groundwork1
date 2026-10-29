@@ -9,6 +9,7 @@ import {
   Check,
   Loader2,
   Camera,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadClientContact, saveClientPhone, syncPhoneToCrm } from '@/lib/supabase/client-contact';
@@ -1144,7 +1145,7 @@ function ContractorBadges() {
       {verified === true && (
         <span className="inline-flex items-center gap-1 rounded-full border border-state-complete/35 px-2.5 py-0.5 text-[11px] font-semibold text-state-complete">
           <ShieldCheck className="size-3" aria-hidden />
-          {t('contractorOnboarding.verifiedTitle')}
+          {t('profile.verifiedContractor')}
         </span>
       )}
       {builds !== null && builds > 0 && (

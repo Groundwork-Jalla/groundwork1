@@ -159,40 +159,26 @@ export default function ContractorProjectDetail() {
         </>
       )}
 
-      {/* What a reviewer sent back sits above everything: it is the work. */}
-      {rework.length > 0 && (
-        <section className="rounded-2xl border border-state-held/40 bg-state-held/10 p-5">
-          <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-            {t('contractor.needsAction.title')}
-          </h2>
-          <ul className="mt-2 flex flex-col gap-3">
-            {rework.map(r => (
-              <li key={r.stageId}>
-                <p className="text-sm font-semibold text-brand-near-black dark:text-white">
-                  {t('contractor.needsAction.stage', { n: r.stageNumber })} · {r.stageName}
-                  <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-state-held">
-                    {t(r.decision === 'rejected'
-                      ? 'contractor.decision.rejected'
-                      : 'contractor.decision.needsMoreEvidence')}
-                  </span>
-                </p>
-                {r.findings && (
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-brand-near-black dark:text-white">{r.findings}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <nav className="flex gap-1 border-b border-brand-border-grey dark:border-[#2c2c2c]">
+      {/* What a reviewer sent back used to be repeated here, above the tabs, as
+          well as on the stage it is about — two copies of one truth, free to
+          disagree. It now lives only on its stage, inside the Work tab, and the tab
+          carries a dot so it is still findable from Money or Documents. */}
+      {/* Five tabs do not fit across 390px, and a clipped row would put People out
+          of reach on the phone the work is actually done on. The row scrolls; the
+          page does not. */}
+      <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-brand-border-grey px-1 [scrollbar-width:none] dark:border-[#2c2c2c] [&::-webkit-scrollbar]:hidden">
         {TABS.map(x => (
           <button key={x.id} type="button" onClick={() => setTab(x.id)}
-                  className={cn('-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                  className={cn('-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
                     tab === x.id
                       ? 'border-brand-near-black text-brand-near-black dark:border-white dark:text-white'
                       : 'border-transparent text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white')}>
             {t(x.key)}
+            {/* Not a count and not a second list: just "there is something on Work". */}
+            {x.id === 'work' && rework.length > 0 && (
+              <span aria-label={t('contractor.needsAction.title')}
+                    className="ml-1.5 inline-block size-1.5 rounded-full bg-state-alert align-middle" />
+            )}
           </button>
         ))}
       </nav>
