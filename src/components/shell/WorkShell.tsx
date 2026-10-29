@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
-import { LayoutDashboard, FolderOpen, ClipboardList, Handshake, UserRound, Landmark, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Handshake, UserRound, Landmark, ShieldCheck } from 'lucide-react';
 import { PortalShell, type PortalLink } from './PortalShell';
 
 const links: PortalLink[] = [
   { to: '/work', label: 'contractor.nav.dashboard', icon: LayoutDashboard },
   { to: '/work/projects', label: 'contractor.nav.projects', icon: FolderOpen, matchPrefix: true },
-  { to: '/work#action', label: 'contractor.needsAction.title', icon: ClipboardList },
+  // "Needs action" is gone (29 Oct 2026, approved with the redesign). The lit dot on a
+  // build's stage pipeline IS the work: a separate task list is a second copy of the
+  // same truth, and a second copy is free to disagree with the first. Everything that
+  // list pointed at — rework, an unfinished stage — is on the build it belongs to.
   // `#evidence`, `#documents` and `#payments` used to sit here, pointing at anchors on
   // the dashboard that do not exist: the browser found nothing to scroll to and left you
   // on a page that was not what you clicked — reported as "it takes me to an empty page".

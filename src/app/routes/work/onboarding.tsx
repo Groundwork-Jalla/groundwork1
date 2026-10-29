@@ -126,6 +126,14 @@ export default function ContractorOnboarding() {
     setAt(onward ?? (panelDone(at, next) ? ord[ord.length - 1] : at));
   };
 
+  // A contractor who has finished every step AND answered the last question is not
+  // "mid-wizard" — they are verified. Re-running the form at them is both wrong and,
+  // because §3.3 of the partner agreement puts a standing duty on keeping licensing
+  // current, useless: what they need here is the state of their verification.
+  if (status.complete && status.clientIntent !== null) {
+    return <VerificationStatus status={status} />;
+  }
+
   return (
     <div className="mx-auto max-w-2xl p-6 sm:p-8">
       <Progress order={order} index={index} status={status} />
@@ -718,5 +726,117 @@ function ContactPanel({ contacts, setContacts, onSaved }: {
       <Err>{local ?? err}</Err>
       <Next busy={busy} />
     </form>
+  );
+}
+
+// ── Verified: the state of your account, not a form ──────────────────────────────
+
+/**
+ * What Groundwork checked about this contractor, and what that does and does not mean.
+ *
+ * The approved Verification screen (29 Oct 2026). Every line is read from
+ * `contractor_onboarding_status` — nothing here is illustrative, and a fact the
+ * database does not carry is simply not claimed.
+ *
+ * The distinction at the bottom earns its space: contractors ask, repeatedly, why
+ * being "verified" does not let them sign off their own stages.
+ */
+function VerificationStatus({ status }: { status: OnboardingStatus }) {
+  const t = useT();
+
+  const checks: { key: TKey; done: boolean; detail: string }[] = [
+    { key: 'contractorOnboarding.check.agreements', done: status.steps.agreements,
+      detail: t('contractorOnboarding.check.agreementsDetail') },
+    { key: 'contractorOnboarding.check.identity', done: status.steps.identity,
+      detail: t('contractorOnboarding.check.identityDetail') },
+    { key: 'contractorOnboarding.check.professional', done: status.steps.professional,
+      detail: status.specialty
+        ? (status.specialty === 'other' && status.specialtyOther) || t(`contractorApply.form.role.${status.specialty}` as TKey)
+        : t('contractorOnboarding.check.professionalDetail') },
+    { key: 'contractorOnboarding.check.payout', done: status.steps.payout,
+      detail: t('contractorOnboarding.check.payoutDetail') },
+    { key: 'contractorOnboarding.check.emergency', done: status.steps.emergency,
+      detail: t('contractorOnboarding.check.emergencyDetail', { n: status.emergencyCount }) },
+  ];
+
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6 sm:p-8">
+      <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-state-success/30 bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] sm:gap-5 sm:p-6">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-state-success text-white">
+          <Check className="size-6" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold tracking-tight text-brand-near-black dark:text-white sm:text-xl">
+            {t('contractorOnboarding.verifiedTitle')}
+          </h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorOnboarding.verifiedBody')}</p>
+        </div>
+      </section>
+
+      <div className="grid items-start gap-5 lg:grid-cols-[3fr_2fr]">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorOnboarding.whatWasChecked')}
+          </h2>
+          <ul className="mt-1">
+            {checks.map(c => (
+              <li key={c.key}
+                  className="flex items-start gap-3 border-t border-brand-border-grey py-3 first:border-t-0 dark:border-[#2c2c2c]">
+                <span aria-hidden className={cn(
+                  'mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full',
+                  c.done
+                    ? 'bg-state-complete text-white'
+                    : 'border border-brand-border-grey text-brand-mid-grey dark:border-[#2c2c2c]',
+                )}>
+                  {c.done && <Check className="size-3 stroke-[3]" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-brand-near-black dark:text-white">{t(c.key)}</span>
+                  <span className="block text-xs text-brand-mid-grey">{c.detail}</span>
+                </span>
+                <span className={cn('shrink-0 text-[11px] font-semibold',
+                  c.done ? 'text-state-complete' : 'text-brand-mid-grey')}>
+                  {t(c.done ? 'contractorOnboarding.checkDone' : 'contractorOnboarding.checkOpen')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="flex flex-col gap-4">
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorOnboarding.unlocksTitle')}
+            </h2>
+            <ul className="mt-2 flex flex-col gap-2">
+              {(['unlock1', 'unlock2', 'unlock3', 'unlock4'] as const).map(k => (
+                <li key={k} className="flex gap-2.5 text-xs text-brand-near-black dark:text-white">
+                  <Check className="mt-0.5 size-3.5 shrink-0 stroke-[3] text-state-complete" aria-hidden />
+                  {t(`contractorOnboarding.${k}` as TKey)}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorOnboarding.notTheSameTitle')}
+            </h2>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorOnboarding.notTheSameBody')}</p>
+          </section>
+
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorOnboarding.changedTitle')}
+            </h2>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorOnboarding.changedBody')}</p>
+            <Link to="/work/payouts"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              <Landmark className="size-3.5" aria-hidden />{t('contractorPayout.title')}
+            </Link>
+          </section>
+        </div>
+      </div>
+    </div>
   );
 }

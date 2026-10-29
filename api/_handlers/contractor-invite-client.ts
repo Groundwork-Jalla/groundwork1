@@ -117,20 +117,30 @@ export async function handler(req: any, res: any): Promise<void> {
   const email    = str(req.body?.email, 254).toLowerCase();
   const fullName = str(req.body?.fullName, 120);
   /**
-   * The client's phone, in E.164, normalised in the browser by PhoneField.
+   * The client's phone, in E.164 — OPTIONAL, and deliberately so.
    *
-   * Required, and this is why: `profiles.phone` is the only thing WhatsApp delivery
-   * resolves a destination from. Without it `project-whatsapp` refuses with `no_phone`
-   * and the client can never be reached on the channel most of them actually read —
-   * they would get the Groundwork email and nothing else. Every other way of creating
-   * an account asks for a number; this one was the gap.
+   * It was required, because `profiles.phone` is the only thing WhatsApp delivery
+   * resolves a destination from and a client without one gets the email and nothing
+   * else. But it is the wrong person to ask. A contractor handing over their client's
+   * number is being asked to expose the relationship they are protecting, and some
+   * will decline — in which case the client never reaches Groundwork at all, which is
+   * worse than reaching it without a number. Favour, 29 October: "some of these
+   * contractors might feel insecure about revealing their client's number."
    *
-   * Checked here rather than trusted: the browser normalises, the server decides.
+   * The client supplies it themselves when they accept the invitation and set their
+   * password (`new-password`, which already asks and prefills it). That is both the
+   * right person to ask and the more accurate answer — the note there says as much:
+   * "it is their phone, and the contractor may have typed it from memory."
+   *
+   * Checked here rather than trusted when one IS given: the browser normalises, the
+   * server decides.
    */
   const phone = str(req.body?.phone, 20);
   if (!isValidEmail(email)) { res.status(400).json({ error: 'invalid_email' }); return; }
   if (fullName.length < 2)  { res.status(400).json({ error: 'name_required' }); return; }
-  if (!isValidPhone(phone)) { res.status(400).json({ error: 'invalid_phone' }); return; }
+  // Optional since 29 October. A number given here is still checked — a malformed one
+  // is worse than none, because `project-whatsapp` would try it and fail silently.
+  if (phone && !isValidPhone(phone)) { res.status(400).json({ error: 'invalid_phone' }); return; }
 
   // Inviting yourself would make you your own client and the CHECK in 109 refuses the
   // link anyway; saying so is friendlier than a constraint violation.

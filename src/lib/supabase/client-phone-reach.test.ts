@@ -25,26 +25,44 @@ const form    = strip(read('src/app/routes/work/clients.new.tsx'));
 const lib     = strip(read('src/lib/supabase/contractor-clients.ts'));
 const setPw   = strip(read('src/app/routes/auth/new-password.tsx'));
 
-describe('the contractor supplies it, so the channel works from the first message', () => {
-  it('the form asks for one, with the country picked rather than assumed', () => {
+describe('offered to the contractor, never demanded of them', () => {
+  /**
+   * The contractor may supply their client's number, and is not made to.
+   *
+   * It was required, on the reasoning that `profiles.phone` is the only thing
+   * WhatsApp delivery resolves from. But it asks a contractor to hand over the
+   * relationship they are protecting, and one who declines simply does not invite
+   * their client at all — which costs Groundwork the client entirely, not just a
+   * phone number. Changed 29 October.
+   *
+   * The client gives it themselves on `new-password` when they accept, which that
+   * screen already asks for and prefills. Better person, better number.
+   */
+  it('the form offers one, with the country picked rather than assumed', () => {
     // A diaspora client building at home often holds a foreign number; silently
     // prefixing +237 would store one that reaches nobody.
     expect(form).toMatch(/<PhoneField id="clientPhone"/);
-    expect(form).toMatch(/required/);
   });
 
-  it('and will not submit without a usable one', () => {
-    expect(form).toMatch(/if \(!isValidPhone\(phone\)\) \{ setError\(t\('contractorClient\.errPhone'\)\); return; \}/);
+  it('but does not hold the invitation back when it is blank', () => {
+    expect(form).not.toMatch(/<PhoneField id="clientPhone" required/);
+    expect(form).toMatch(/if \(phone && !isValidPhone\(phone\)\) \{ setError\(t\('contractorClient\.errPhone'\)\); return; \}/);
+  });
+
+  it('and still refuses a number that would reach nobody', () => {
+    // A wrong number is worse than none: delivery would try it and fail quietly.
+    expect(form).toMatch(/phone && !isValidPhone\(phone\)/);
   });
 
   it('it reaches the server', () => {
     expect(lib).toMatch(/JSON\.stringify\(\{ fullName, email, phone \}\)/);
   });
 
-  it('which checks it rather than trusting the browser', () => {
+  it('which checks what it was given rather than trusting the browser', () => {
     // normalisePhone returns its input unchanged when it cannot place a number, so
-    // "the field had something in it" is not "this reaches a handset".
-    expect(handler).toMatch(/if \(!isValidPhone\(phone\)\)\s*\{ res\.status\(400\)\.json\(\{ error: 'invalid_phone' \}\); return; \}/);
+    // "the field had something in it" is not "this reaches a handset". An ABSENT
+    // number is allowed through; a malformed one is not.
+    expect(handler).toMatch(/if \(phone && !isValidPhone\(phone\)\)\s*\{ res\.status\(400\)\.json\(\{ error: 'invalid_phone' \}\); return; \}/);
   });
 
   it('and stores it where delivery actually looks', () => {

@@ -205,10 +205,20 @@ describe('the contractor can reach, and make, a document', () => {
      * `#evidence`, `#documents` and `#payments` pointed at sections that do not exist,
      * so the browser had nothing to scroll to and left the contractor on a page that
      * was not what they clicked — reported as "it takes me to an empty page".
+     *
+     * As of the 29 Oct 2026 redesign the sidebar has NO anchor links at all: `#action`
+     * went with the "needs action" tab it opened. So the list is expected to be empty,
+     * and the rule below is what holds if one is ever added back.
      */
     const anchors = [...shell.matchAll(/to: '\/work#([a-z]+)'/g)].map(m => m[1]);
-    expect(anchors.length).toBeGreaterThan(0);
     for (const a of anchors) expect(dash, `#${a} has no section`).toMatch(new RegExp(`id="${a}"`));
+  });
+
+  it('and the needs-action tab it used to open is gone from the sidebar', () => {
+    // The lit dot on a build's pipeline is the work. A second list of the same truth
+    // is free to disagree with the first — see the comment in WorkShell.tsx.
+    expect(shell).not.toMatch(/contractor\.needsAction\.title/);
+    expect(shell).not.toMatch(/\/work#action/);
   });
 
   it('and the Documents tab can actually add one', () => {

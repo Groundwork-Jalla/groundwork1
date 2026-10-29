@@ -340,6 +340,8 @@ export const en = {
     none:         'Nobody else can see this build yet.',
     errEmail:     'That does not look like an email address.',
     errSelf:      'That is your own address \u2014 this project is already yours.',
+    errPhone:     'A phone number is needed, with its country code \u2014 it is how your client is reached on WhatsApp.',
+    errName:      'Your client\u2019s full name is needed.',
     errFailed:    'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
   admin: {
@@ -2261,10 +2263,110 @@ export const en = {
       stageOf:       '{n} of {total} stages complete',
       noStages:      'Stages not set up yet',
       nothingActive: 'No stage open for work',
+
+      // The redesigned list (29 Oct 2026). Filters count real rows; a filter that
+      // would match nothing still shows its 0 rather than disappearing, so the
+      // numbers add up to the total in front of you.
+      filterAll:         'Everything',
+      filterInProgress:  'In progress',
+      filterAwaiting:    'Awaiting verification',
+      filterHandedOver:  'Handed over',
+      noneInFilter:      'No builds in this view.',
+      colStage:          'Stage',
+      colActivity:       'Last activity',
+      colNextRelease:    'Next release',
+      stageNumber:       'Stage {n} · {name}',
+      handedOver:        'Handed over',
+      notStarted:        'Not started yet',
+      awaitingCheck:     'With a verifier',
+      nothingDue:        'Nothing due on this stage',
     },
   },
 
+  // ── Inside a project: Money and People (29 Oct 2026) ────────────────────────
+  // Money is OBSERVED here. Groundwork records and governs the schedule; a licensed
+  // payment provider holds and moves the money. Nothing on these screens may say or
+  // imply that Groundwork is holding a contractor's money.
+  contractorDocs: {
+    theBuild:     'The build · what it was costed from',
+    siteEvidence: 'Site evidence',
+    paperwork:    'Contracts, permits and receipts',
+  },
+
+  contractorWork: {
+    stageSummary: '{done} complete · {open} in progress · {left} to come',
+    items:        'items',
+    ticksItself:  'Each item ticks itself when you add a file to it. Nothing here is tapped by hand.',
+    sendsItself:  'The stage goes for verification on its own once every item carries evidence.',
+  },
+
+  contractorMoney: {
+    contractValue:      'Contract value',
+    releasedToYou:      'Released to you',
+    stillToCome:        'Still to come',
+    stagesReleased:     '{n} stage(s) approved',
+    stagesToCome:       '{n} stage(s) remaining',
+    stageByStage:       'Stage by stage',
+    rateToday:          'Rate {rate} {code} to $1, fetched today',
+    stateReleased:      'Released',
+    stateDue:           'Due on approval',
+    stateNotDue:        'Not yet due',
+    progressOfContract: 'Progress of the contract',
+    ofContract:         '{paid} of {total}',
+    recordedPayments:   'Recorded payments',
+  },
+
+  contractorPeople: {
+    onThisProject:    'On this project',
+    you:              'You',
+    youOwner:         'Contractor · you created this project, so you own it',
+    youAssigned:      'Contractor · assigned to this build',
+    nobodyInvited:    'Nobody else has been given access to this build yet.',
+    accepted:         'Accepted {date}',
+    invitedNotOpened: 'Invited {date} · not opened yet',
+    watching:         'Watching',
+    pending:          'Pending',
+    whoCanDoWhat:     'Who can do what',
+    colYou:           'You',
+    colClient:        'Client',
+    colVerifier:      'Verifier',
+    canSee:           'See the build and its stages',
+    canChat:          'Read and post in the chat',
+    canDoc:           'Upload a document',
+    canEvidence:      'Upload stage evidence',
+    canApprove:       'Approve a stage',
+    canRelease:       'Release a payment',
+    canInvite:        'Invite somebody else',
+    nobodyReleases:   'Nobody on this list can release a payment. That follows a verifier approving the stage, and it is not a button anybody here holds.',
+    inviteTitle:      'Invite your client',
+    notYoursToShare:  'Only the person who owns this project can invite somebody to it. On a build you were assigned to, that is the client.',
+  },
+
   contractorDashboard: {
+    // ── The redesigned dashboard (29 Oct 2026) ────────────────────────────────
+    // No task list and no "needs action" tab. The lit dot on a build's pipeline is
+    // the work; a verifier's findings live on the build they are about.
+    tileActiveBuilds:  'Active builds',
+    tileActiveHint:    '{n} with a stage open',
+    tileAwaiting:      'Awaiting verification',
+    tileAwaitingHint:  'Submitted, with a verifier',
+    tileReleased:      'Released to you',
+    tileReleasedCount: '{n} payment(s) recorded',
+    tileReleasedMixed: '{n} payment(s), in more than one currency',
+    yourBuilds:        'Your builds',
+    recentReleases:    'Recent releases',
+    allPayouts:        'All payouts',
+    noReleases:        'Nothing has been released to you yet.',
+    stageInProgress:   'Stage in progress',
+    noOpenStage:       'No stage is open for work on any of your builds.',
+    evidenceOf:        '{done} of {total} items',
+    noSubstages:       'This stage has no work items listed.',
+    dueOnApproval:     'Released when this stage is approved',
+    changesRequested:  'Changes requested',
+    whyNoListTitle:    'Why there is no task list',
+    whyNoListBody:     'The open dot on a pipeline is the work. A separate list of the same thing would be free to disagree with it, so anything asked of you sits on the build it belongs to.',
+    openProject:       'Open this build',
+    andMoreItems:      '{n} more item(s) on this stage',
     fileUnavailable: 'This file would not open. Try again, or ask whoever uploaded it to send it again.',
     search: 'Search assigned projects, stages or locations…',
     noResults: 'No assigned projects match your search.',
@@ -2289,7 +2391,14 @@ export const en = {
     notYours:          'This project is not assigned to you.',
     tabWork:           'Work',
     tabDocuments:      'Documents',
+    tabMoney:   'Money',
+    tabPeople:  'People',
     uploadDocument: 'Add a document (max {mb} MB)',
+    // The work item rows (29 Oct 2026). A checkbox here is an OUTPUT: it fills when a
+    // file lands against the item, and is never tapped.
+    evidenceCount:  '{count} file(s) on this item',
+    noEvidence:     'No evidence yet',
+    upload:         'Upload',
     tabPayments:       'Payments',
     tabMessages:       'Messages',
     pipeline:          'Construction pipeline',
@@ -2334,8 +2443,8 @@ export const en = {
     promptCta:   'Create project',
   },
   contractorClient: {
-    phone:       'Client\u2019s phone number',
-    phoneHint:   'How Groundwork reaches them on WhatsApp. Pick their country, then the number as they would dial it at home.',
+    phone:       'Client\u2019s phone number (optional)',
+    phoneHint:   'Only if you have it to hand \u2014 we will ask them for it when they accept. It is how Groundwork reaches them on WhatsApp.',
     errPhone:    'Enter a phone number we can reach them on, including the country.',
     promptTitle: 'Bringing a client of your own?',
     promptBody:  'Set up their account and build their estimate yourself. You stay the contractor on it.',
@@ -2637,6 +2746,33 @@ export const en = {
 
     progress:      '{done} of {total} done',
     allDone:       'Setup complete',
+    // The Verification status screen (29 Oct 2026), shown once onboarding is finished.
+    verifiedTitle:   'You are a verified contractor',
+    verifiedBody:    'Groundwork has checked who you are. Clients see this on your profile and on every build you run.',
+    whatWasChecked:  'What was checked',
+    checkDone:       'Done',
+    checkOpen:       'Outstanding',
+    check: {
+      agreements:         'Agreements',
+      agreementsDetail:   'Contractor agreement and privacy notice signed',
+      identity:           'Who you are',
+      identityDetail:     'Name, date of birth and address on file',
+      professional:       'Trade and experience',
+      professionalDetail: 'Your trade, as you gave it',
+      payout:             'Payment details',
+      payoutDetail:       'An account for Groundwork to pay into',
+      emergency:          'Emergency contact',
+      emergencyDetail:    '{n} contact(s) on file',
+    },
+    unlocksTitle: 'What this unlocks',
+    unlock1: 'Create as many builds as you need',
+    unlock2: 'Invite your clients to watch a build',
+    unlock3: 'Receive a stage payment once the stage is approved',
+    unlock4: 'Be offered work from clients with no contractor',
+    notTheSameTitle: 'Not the same thing',
+    notTheSameBody:  'Your verification says Groundwork has checked who you are. Stage verification is a separate check of the work itself, by somebody who did not build it. Being verified never lets you approve your own stages.',
+    changedTitle:    'Something changed?',
+    changedBody:     'Your payment details can be changed at any time, and a new account is checked before the first payment goes to it.',
     verifiedBadge: 'All steps done',
     stepDone:      'Done',
     saving:        'Saving\u2026',
@@ -2782,6 +2918,26 @@ export const en = {
     promptTitle: 'Add your payment details',
     promptBody:  'Stage payments cannot be sent until Groundwork has an account to send them to.',
     promptCta:   'Add them now',
+
+    // The redesigned Payouts page (29 Oct 2026).
+    whereYouGetPaid:   'Where you get paid',
+    received:          'Received so far',
+    dueNext:           'Due on the next approval',
+    dueNextHint:       'Across {n} open stage(s)',
+    acrossContracts:   'Still to come',
+    acrossContractsHint: 'Across {n} live contract(s)',
+    paymentsReceived:  'Payments received',
+    whyWeAsk:          'Why we ask for this',
+    howAStageGetsPaid: 'How a stage gets paid',
+    step1:             'You upload evidence',
+    step1Hint:         'Every item on the stage',
+    step2:             'A verifier checks it',
+    step2Hint:         'Somebody who did not build it',
+    step3:             'The stage is approved',
+    step3Hint:         'A certificate is issued',
+    step4:             'Payment is released',
+    step4Hint:         'To the account you set above',
+    notCustodian:      'Groundwork records and governs the schedule. It does not hold your money.',
   },
 
   verifier: {
@@ -5136,6 +5292,17 @@ export const en = {
   },
 
   partner: {
+    // The funnel, as the applicant sees it (29 Oct 2026). "Call booked" is NOT a step
+    // we can honestly mark done — Groundwork can see somebody was sent to a calendar,
+    // not that they picked a slot. So the step asks them to book, and only acceptance
+    // moves it on.
+    track: {
+      applied:   'Applied',
+      qualified: 'Qualified',
+      book:      'Book your call',
+      call:      'Call held',
+      partner:   'Partner',
+    },
     projectStatus: 'Do you have an active project about to start or already running?',
     projectStatusOpt: {
       running:  'I have a project already running',

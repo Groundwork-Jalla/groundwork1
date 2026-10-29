@@ -1,30 +1,40 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, Building2, ClipboardList, FolderOpen, FolderPlus, Handshake, Image, Landmark, Loader2, MapPin, Search, Wallet } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
+import { AlertTriangle, ArrowRight, Camera, Check, FolderPlus, Handshake, Landmark, Loader2, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
 import {
-  fetchAssignedProjects, fetchRework, fetchMyPayments,
+  fetchAssignedProjects, fetchRework, fetchMyPayments, fetchSubstages,
   type AssignedProject, type ReworkItem, type ContractorPayment,
 } from '@/lib/supabase/contractor-work';
+import type { ProjectSubstageRow } from '@/types/project';
 import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
 import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
          type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
+import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
+import { moneyPair } from '@/lib/budget/money-pair';
 import { useStageLabels } from '@/lib/stage-labels';
-import { useT, type TKey } from '@/lib/i18n';
-import { WorkOverview } from '@/components/contractor/WorkOverview';
+import { useT } from '@/lib/i18n';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 // =========================================================
 // The contractor's dashboard.
 //
-// Answers, in order: what am I assigned to, what is being asked of me now, which stage is
-// live, and what payment state names me. Every number is derived from rows this
-// contractor can actually read — there are no illustrative figures here, and a metric
-// that cannot be computed honestly is not shown at all.
+// Redesigned 29 Oct 2026, approved with the rest of the surface. It answers, in
+// order: where are my builds, what is being asked of me on the one that is live,
+// and what have I been paid.
 //
-// Three states are kept apart deliberately, because collapsing them is a lie:
+// WHAT WENT, AND WHY
+//
+// The "needs action" tab and the "current stage work" task list are both gone. The
+// lit dot on a build's pipeline is the work; a second list of the same truth is free
+// to disagree with the first, and two lists that disagree are worse than one.
+// Verifier findings are not lost — they ride on the build they are about, as a state
+// on its row and in full inside the project.
+//
+// Three states stay apart deliberately, because collapsing them is a lie:
 //   · unavailable — the source could not be read (older deployment, RLS refusal)
 //   · empty       — read fine, nothing there
 //   · zero        — a real count that happens to be 0
@@ -35,7 +45,6 @@ export default function ContractorDashboard() {
   const { user } = useAuth();
   const { stageLabel } = useStageLabels();
   const [params, setParams] = useSearchParams();
-  const location = useLocation();
   const query = params.get('q') ?? '';
 
   const [projects, setProjects] = useState<AssignedProject[] | null>(null);
@@ -106,8 +115,18 @@ export default function ContractorDashboard() {
 
   const firstName = ((user?.user_metadata?.full_name as string | undefined) ?? '').split(' ')[0];
 
-  const activeStages = useMemo(
+  /** Stage ids a verifier has sent back, so a build can say so on its own row. */
+  const reworkStages = useMemo(
+    () => new Set((rework ?? []).map(r => r.stageId)),
+    [rework],
+  );
+
+  const activeBuilds = useMemo(
     () => (projects ?? []).filter(a => a.activeStage !== null).length,
+    [projects],
+  );
+  const awaitingCheck = useMemo(
+    () => (projects ?? []).filter(a => a.stages.some(s => s.status === 'pending_review')).length,
     [projects],
   );
 
@@ -115,10 +134,8 @@ export default function ContractorDashboard() {
     [a.project.name, a.project.city, a.project.country, ...a.stages.map(stageLabel)]
       .join(' ').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
 
-  useEffect(() => {
-    if (!projects || !location.hash) return;
-    document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' });
-  }, [projects, location.hash]);
+  /** The build whose stage the rail expands: the first one with work open. */
+  const lead = visibleProjects.find(a => a.activeStage !== null) ?? null;
 
   if (projects === null) {
     return (
@@ -131,31 +148,15 @@ export default function ContractorDashboard() {
   return (
     <div className="flex flex-col gap-5 text-brand-near-black dark:text-white">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
-          {t('contractor.dashboard.title')}
-        </h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">
-          {firstName
-            ? t('contractor.dashboard.greeting', { name: firstName })
-            : t('contractor.dashboard.subtitle')}
-        </p></div>
-        <p className="hidden text-right text-xs text-brand-mid-grey xl:block">{formatDate(new Date().toISOString())}<br /><span className="mt-1 block">{t('contractorDashboard.actionHint')}</span></p>
-      </header>
-
-      {/* ── A project of their own ────────────────────────────────────────────────
-          Most contractors are not partners and have no client to bring. Until now the
-          dashboard offered them nothing to do: "onboard a client" answers a question
-          they have not got to yet, and pressing it tells them a client is needed first.
-
-          This is the same wizard at /projects/new that any signed-in user may run, so
-          nothing here is new capability — only a way in. The contractor OWNS what they
-          create (projects.user_id), which is correct: it is their own build, not a
-          client's project waiting for an owner. `created_by` stays null, which is what
-          keeps these out of the activated-project count — see isClientProject(). */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorOwnProject.promptTitle')}</p>
-          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorOwnProject.promptBody')}</p>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
+            {t('contractor.dashboard.title')}
+          </h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">
+            {firstName
+              ? t('contractor.dashboard.greeting', { name: firstName })
+              : t('contractor.dashboard.subtitle')}
+          </p>
         </div>
         <Link
           to="/projects/new"
@@ -163,13 +164,9 @@ export default function ContractorDashboard() {
         >
           <FolderPlus className="size-3.5" aria-hidden />{t('contractorOwnProject.promptCta')}
         </Link>
-      </div>
+      </header>
 
       {/* ── Finish setting up (116) ────────────────────────────────────────────────
-          One banner for the whole sequence, including payout. The separate "add your
-          payment details" prompt used to live here; it is now step 3 of six, and two
-          banners counting the same thing would be two things to dismiss.
-
           Shown only when we KNOW they are unfinished. Null means either the read failed
           or 116 is not applied, and nagging on a guess is worse than staying quiet. */}
       {onboarding && !onboarding.complete && (
@@ -228,7 +225,10 @@ export default function ContractorDashboard() {
 
       <div className="relative lg:hidden">
         <Search className="absolute left-3 top-3 size-4 text-brand-mid-grey" />
-        <input type="search" aria-label={t('contractorDashboard.search')} placeholder={t('contractorDashboard.search')} value={query} onChange={e => setParams(e.target.value ? { q: e.target.value } : {}, { replace: true })} className="w-full rounded-xl border border-brand-border-grey bg-[#ffffff] py-2.5 pl-10 pr-3 text-sm dark:border-[#444] dark:bg-[#1e1e1e]" />
+        <input type="search" aria-label={t('contractorDashboard.search')} placeholder={t('contractorDashboard.search')}
+               value={query}
+               onChange={e => setParams(e.target.value ? { q: e.target.value } : {}, { replace: true })}
+               className="w-full rounded-xl border border-brand-border-grey bg-white py-2.5 pl-10 pr-3 text-sm dark:border-[#444] dark:bg-[#1e1e1e]" />
       </div>
 
       {error && (
@@ -238,128 +238,74 @@ export default function ContractorDashboard() {
       )}
 
       {!error && <>
-      {/* ── KPIs. Only what the data supports. ─────────────────────────────────────── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={<FolderOpen className="size-4" />} label={t('contractor.kpi.assigned')} value={projects.length} />
-        <Kpi icon={<Image className="size-4" />}      label={t('contractor.kpi.activeStages')} value={activeStages} />
-        <Kpi icon={<AlertTriangle className="size-4" />} label={t('contractor.kpi.needsAction')} value={rework?.length ?? null}
-             tone={(rework?.length ?? 0) > 0 ? 'alert' : undefined} />
-        {/* Payment visibility is beneficiary-scoped (090). When the ledger cannot be read
-            the card says so rather than showing a 0 that would read as "nothing owed". */}
-        <Kpi icon={<Wallet className="size-4" />} label={t('contractor.kpi.payments')}
-             value={payments === null ? null : payments.available ? payments.rows.length : null}
-             unavailable={payments !== null && !payments.available}
-             hint={t('contractor.kpi.paymentsHint')} />
-      </div>
-
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[3fr_2fr]">
-      {/* ── My projects ───────────────────────────────────────────────────────────── */}
-      <section className="min-w-0 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-            {t('contractor.projects.title')}
-          </h2>
-          {projects.length > 0 && (
-            <Link to="/work/projects" className="text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
-              {t('common.viewAll')} →
-            </Link>
-          )}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Tile label={t('contractorDashboard.tileActiveBuilds')} value={projects.length}
+                dot="active" hint={t('contractorDashboard.tileActiveHint', { n: String(activeBuilds) })} />
+          <Tile label={t('contractorDashboard.tileAwaiting')} value={awaitingCheck}
+                dot="held" hint={t('contractorDashboard.tileAwaitingHint')} />
+          <ReleasedTile payments={payments} />
         </div>
 
-        {projects.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-brand-border-grey px-4 py-10 text-center">
-            <p className="text-sm font-medium text-brand-near-black dark:text-white">
-              {t('contractor.projects.emptyTitle')}
-            </p>
-            <p className="mt-1 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p>
-          </div>
-        ) : visibleProjects.length === 0 ? <p className="py-8 text-sm text-brand-mid-grey">{t('contractorDashboard.noResults')}</p> : (
-          <ul className="flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-            {visibleProjects.slice(0, 5).map(a => (
-              <li key={a.project.id}>
-                <ProjectRow assigned={a} stageLabel={stageLabel} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="min-w-0 rounded-2xl border border-brand-border-grey bg-[#ffffff] p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <h2 className="flex items-center gap-2 border-b border-brand-border-grey pb-4 text-sm font-semibold dark:border-[#2c2c2c]"><ClipboardList className="size-4 text-brand-mid-grey" />{t('contractorDashboard.tasks')}</h2>
-        {visibleProjects.every(a => !a.activeStage) ? <p className="py-8 text-xs text-brand-mid-grey">{t('contractorProject.noActiveStage')}</p> : <ul className="max-h-80 divide-y divide-brand-border-grey overflow-y-auto dark:divide-[#2c2c2c]">
-          {visibleProjects.filter(a => a.activeStage).map(a => <li key={a.project.id}>
-            <Link to={`/work/projects/${a.project.id}`} className="flex items-center gap-3 py-4">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand-border-grey text-xs font-semibold dark:border-[#444]">{a.activeStage!.stage_number}</span>
-              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{stageLabel(a.activeStage!)}</span><span className="mt-1 block truncate text-xs text-brand-mid-grey">{a.project.name}</span><span className="mt-1 block text-[10px] text-brand-mid-grey">{a.activeStage!.planned_end ? `${t('contractorDashboard.planned')}: ${formatDate(a.activeStage!.planned_end!)}` : t('contractorDashboard.noDate')}</span></span>
-              <span className="rounded-full bg-brand-off-white px-2.5 py-1 text-[10px] text-brand-mid-grey dark:bg-[#2c2c2c]">{t(`contractorStageStatus.${a.activeStage!.status}` as TKey)}</span>
-              <ArrowRight className="size-3 shrink-0 text-brand-mid-grey" />
-            </Link>
-          </li>)}
-        </ul>}
-      </section>
-      </div>
-      {/* The partner funnel's door on the dashboard.
-          Step four of the new sequence — signup, onboarding, APPLICATION, one call —
-          and it had no entrance for somebody already inside Groundwork. Shown only to
-          those who have not applied: once they are in the queue this becomes noise, and
-          the sidebar entry is there permanently for anyone who wants it later. */}
-      {partnerState === 'none' && (
-        <section className="rounded-2xl border border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
-                <Handshake className="size-4" />{t('partner.inviteTitle')}
-              </h2>
-              <p className="mt-0.5 text-xs text-brand-mid-grey">{t('partner.inviteBody')}</p>
-            </div>
-            <Link to="/work/partner"
-              className="shrink-0 rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
-              {t('partner.inviteCta')}
-            </Link>
-          </div>
-        </section>
-      )}
-
-      <WorkOverview projects={projects} payments={payments} />
-      {/* ── Needs action: real reviewer findings, nothing invented ─────────────────── */}
-      <section id="action" className="scroll-mt-24 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-          {t('contractor.needsAction.title')}
-        </h2>
-        <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractor.needsAction.subtitle')}</p>
-
-        {rework === null ? <p className="py-6 text-xs text-brand-mid-grey">{t('common.loading')}</p> : rework.length === 0 ? (
-          <p className="py-6 text-sm text-brand-mid-grey">{t('contractor.needsAction.empty')}</p>
-        ) : (
-          <ul className="mt-3 grid gap-3 lg:grid-cols-2">
-            {rework.map(item => (
-              <li key={`${item.stageId}:${item.decidedAt}`}
-                  className="rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-brand-near-black dark:text-white">
-                    {t('contractor.needsAction.stage', { n: item.stageNumber })} · {item.stageName}
-                  </p>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-state-held">
-                    {t(item.decision === 'rejected'
-                      ? 'contractor.decision.rejected'
-                      : 'contractor.decision.needsMoreEvidence')}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-brand-mid-grey">{item.projectName}</p>
-                {item.findings && (
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-brand-near-black dark:text-white">
-                    {item.findings}
-                  </p>
+        <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[3fr_2fr]">
+          <div className="flex min-w-0 flex-col gap-5">
+            <section className="min-w-0">
+              <div className="mb-2.5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">{t('contractorDashboard.yourBuilds')}</h2>
+                {projects.length > 0 && (
+                  <Link to="/work/projects" className="text-xs text-brand-mid-grey underline underline-offset-2 hover:text-brand-near-black dark:hover:text-white">
+                    {t('common.viewAll')}
+                  </Link>
                 )}
-                <Link to={`/work/projects/${item.projectId}`}
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-near-black underline underline-offset-4 dark:text-white">
-                  {t('contractor.needsAction.open')} <ArrowRight className="size-3" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
 
+              {projects.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-10 text-center">
+                  <p className="text-sm font-medium">{t('contractor.projects.emptyTitle')}</p>
+                  <p className="mt-1 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p>
+                </div>
+              ) : visibleProjects.length === 0 ? (
+                <p className="py-8 text-sm text-brand-mid-grey">{t('contractorDashboard.noResults')}</p>
+              ) : (
+                <ul className="flex flex-col gap-2.5">
+                  {visibleProjects.slice(0, 5).map(a => (
+                    <li key={a.project.id}>
+                      <BuildRow assigned={a} hasRework={a.stages.some(s => reworkStages.has(s.id))} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <RecentReleases payments={payments} projects={projects} />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-5">
+            <OpenStage lead={lead} />
+
+            <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+                {t('contractorDashboard.whyNoListTitle')}
+              </h2>
+              <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorDashboard.whyNoListBody')}</p>
+            </section>
+
+            {/* The partner funnel's door. Shown only to those who have not applied:
+                once they are in the queue this is noise, and the sidebar entry is
+                there permanently for anyone who wants it later. */}
+            {partnerState === 'none' && (
+              <section className="rounded-2xl border border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
+                  <Handshake className="size-4" />{t('partner.inviteTitle')}
+                </h2>
+                <p className="mt-1 text-xs text-brand-mid-grey">{t('partner.inviteBody')}</p>
+                <Link to="/work/partner"
+                  className="mt-3 inline-block rounded-xl bg-brand-near-black px-4 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
+                  {t('partner.inviteCta')}
+                </Link>
+              </section>
+            )}
+          </div>
+        </div>
       </>}
     </div>
   );
@@ -367,63 +313,306 @@ export default function ContractorDashboard() {
 
 // ── Pieces ─────────────────────────────────────────────────────────────────────────
 
-function Kpi({ icon, label, value, hint, tone, unavailable }: {
-  icon: React.ReactNode; label: string; value: number | null;
-  hint?: string; tone?: 'alert'; unavailable?: boolean;
+function Tile({ label, value, hint, dot }: {
+  label: string; value: number | null; hint?: string;
+  dot: 'active' | 'held' | 'complete' | 'locked';
 }) {
-  const t = useT();
   return (
-    <div className="relative rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-      <div className="flex items-center gap-3 text-brand-mid-grey">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-brand-border-grey dark:border-[#444]">{icon}</span>
-        <span className="text-xs font-medium">{label}</span>
-      </div>
-      <p className={cn('mt-2 text-3xl font-semibold tracking-tight tabular-nums',
-        tone === 'alert' ? 'text-state-held' : 'text-brand-near-black dark:text-white')}>
-        {/* A dash, not a zero: "could not read" and "none" are different facts. */}
-        {unavailable || value === null ? '—' : value}
+    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{label}</p>
+      {/* A dash, not a zero: "could not read" and "none" are different facts. */}
+      <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums tracking-tight">
+        {value === null ? '—' : value}
       </p>
-      {unavailable
-        ? <p className="mt-0.5 text-[11px] text-brand-mid-grey">{t('contractor.kpi.unavailable')}</p>
-        : hint && <p className="mt-0.5 text-[11px] text-brand-mid-grey">{hint}</p>}
+      {hint && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-mid-grey">
+          <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full',
+            dot === 'complete' && 'bg-state-complete',
+            dot === 'held'     && 'bg-state-held',
+            dot === 'locked'   && 'bg-brand-border-grey',
+            dot === 'active'   && 'bg-brand-near-black dark:bg-white',
+          )} />
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
 
-function ProjectRow({ assigned, stageLabel }: {
-  assigned: AssignedProject;
-  stageLabel: (s: { stage_key: string | null; name: string }) => string;
-}) {
+/**
+ * What has actually been released to this contractor.
+ *
+ * Payments carry their own currency, so a sum across two of them would be a number
+ * that means nothing. One currency gets a total; more than one gets the count and
+ * says so. An unreadable ledger (090: beneficiary-scoped) shows a dash, never a 0 —
+ * "we cannot see it" must not read as "nothing is owed".
+ */
+function ReleasedTile({ payments }: { payments: { rows: ContractorPayment[]; available: boolean } | null }) {
   const t = useT();
-  const { project, activeStage, completedStages, totalStages } = assigned;
-  const pct = totalStages > 0 ? Math.round((completedStages / totalStages) * 100) : 0;
+
+  if (payments === null || !payments.available) {
+    return <Tile label={t('contractorDashboard.tileReleased')} value={null} dot="locked"
+                 hint={t('contractor.kpi.unavailable')} />;
+  }
+
+  const rows = payments.rows;
+  const currencies = new Set(rows.map(r => r.currency.toUpperCase()));
+
+  if (rows.length === 0) {
+    return <Tile label={t('contractorDashboard.tileReleased')} value={0} dot="locked"
+                 hint={t('contractorDashboard.noReleases')} />;
+  }
+
+  if (currencies.size > 1) {
+    return <Tile label={t('contractorDashboard.tileReleased')} value={rows.length} dot="complete"
+                 hint={t('contractorDashboard.tileReleasedMixed', { n: String(rows.length) })} />;
+  }
+
+  const code = [...currencies][0];
+  const total = rows.reduce((sum, r) => sum + r.amount, 0);
+  return (
+    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">
+        {t('contractorDashboard.tileReleased')}
+      </p>
+      <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums tracking-tight text-state-complete">
+        {moneyPair(total, code, null).local}
+      </p>
+      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-mid-grey">
+        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-state-complete" />
+        {t('contractorDashboard.tileReleasedCount', { n: String(rows.length) })}
+      </p>
+    </div>
+  );
+}
+
+function BuildRow({ assigned, hasRework }: { assigned: AssignedProject; hasRework: boolean }) {
+  const t = useT();
+  const { stageLabel } = useStageLabels();
+  const money = useProjectMoney(assigned.project.country);
+  const { project, stages, activeStage } = assigned;
+
+  const awaiting = stages.some(s => s.status === 'pending_review');
+  const due = money.pair(activeStage?.payment_milestone_usd ?? null);
+
+  // A verifier's findings outrank everything else a row could say: that is the one
+  // thing on this build waiting on the contractor.
+  const state = hasRework
+    ? { label: t('contractorDashboard.changesRequested'), tone: 'alert' as const }
+    : awaiting
+      ? { label: t('contractor.projects.awaitingCheck'),  tone: 'held' as const }
+      : activeStage
+        ? { label: stageLabel(activeStage),               tone: 'active' as const }
+        : { label: t('contractor.projects.nothingActive'), tone: 'locked' as const };
 
   return (
     <Link to={`/work/projects/${project.id}`}
-          className="flex flex-wrap items-center gap-3 rounded-lg py-4 transition-colors hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]">
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-off-white dark:bg-[#2c2c2c]"><Building2 className="size-6 text-brand-mid-grey" /></span>
-      <div className="min-w-28 flex-1">
-        <p className="truncate text-sm font-semibold text-brand-near-black dark:text-white">{project.name}</p>
-        <p className="mt-1 flex items-center gap-1 truncate text-xs text-brand-mid-grey">
-          <MapPin className="size-3 shrink-0" />{[project.city, project.country].filter(Boolean).join(', ')}
+          className="block rounded-2xl border border-brand-border-grey bg-white px-4 pb-3.5 pt-3 transition-colors hover:border-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="min-w-0 truncate text-sm font-semibold">
+          {project.name}
+          <span className="ml-2 text-xs font-normal text-brand-mid-grey">
+            {[project.city, project.country].filter(Boolean).join(' · ')}
+          </span>
+        </p>
+        <p className={cn('flex shrink-0 items-center gap-1.5 text-xs font-semibold',
+          state.tone === 'alert'  && 'text-state-alert',
+          state.tone === 'held'   && 'text-state-held',
+          state.tone === 'locked' && 'text-brand-mid-grey',
+          state.tone === 'active' && 'text-brand-near-black dark:text-white',
+        )}>
+          <span aria-hidden className={cn('size-1.5 rounded-full',
+            state.tone === 'alert'  && 'bg-state-alert',
+            state.tone === 'held'   && 'bg-state-held',
+            state.tone === 'locked' && 'bg-brand-border-grey',
+            state.tone === 'active' && 'bg-brand-near-black dark:bg-white',
+          )} />
+          {state.label}
         </p>
       </div>
 
-      <div className="w-32">
+      <StagePipeline stages={stages} className="mb-3" />
+
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-t border-brand-border-grey pt-2.5 dark:border-[#2c2c2c]">
         <p className="text-xs text-brand-mid-grey">
-          {totalStages > 0
-            ? activeStage ? t('contractorDashboard.currentStage', { n: activeStage.stage_number, total: totalStages }) : t('contractor.projects.stageOf', { n: completedStages, total: totalStages })
+          {assigned.totalStages > 0
+            ? t('contractor.projects.stageOf', { n: assigned.completedStages, total: assigned.totalStages })
             : t('contractor.projects.noStages')}
         </p>
-        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-brand-off-white dark:bg-[#2c2c2c]">
-          <div className="h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${pct}%` }} />
-        </div>
+        {due && (
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractor.projects.colNextRelease')}
+            </p>
+            <p className="font-mono text-sm font-semibold tabular-nums">{due.local}</p>
+            {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
+          </div>
+        )}
       </div>
-
-      <span className="max-w-36 rounded-full bg-brand-off-white px-2.5 py-1 text-[11px] font-medium text-brand-near-black dark:bg-[#2c2c2c] dark:text-white">
-        {activeStage ? stageLabel(activeStage) : t('contractor.projects.nothingActive')}
-      </span>
-      <ArrowRight className="size-4 shrink-0 text-brand-mid-grey" />
     </Link>
+  );
+}
+
+/**
+ * The stage the contractor is standing in, with its work items.
+ *
+ * Each item ticks itself when a file lands against it — the checkbox here is an
+ * OUTPUT, never an input. The real submission happens inside the project, where the
+ * upload lives; this is the view of it, and the link through.
+ */
+function OpenStage({ lead }: { lead: AssignedProject | null }) {
+  const t = useT();
+  const { stageLabel, substageLabel } = useStageLabels();
+  const money = useProjectMoney(lead?.project.country);
+  const [substages, setSubstages] = useState<ProjectSubstageRow[] | null>(null);
+
+  const projectId = lead?.project.id ?? null;
+  const stageId = lead?.activeStage?.id ?? null;
+
+  useEffect(() => {
+    if (!projectId) { setSubstages(null); return; }
+    let alive = true;
+    fetchSubstages(projectId)
+      .then(rows => { if (alive) setSubstages(rows); })
+      .catch(() => { if (alive) setSubstages([]); });
+    return () => { alive = false; };
+  }, [projectId]);
+
+  if (!lead || !lead.activeStage) {
+    return (
+      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+          {t('contractorDashboard.stageInProgress')}
+        </h2>
+        <p className="mt-2 text-sm text-brand-mid-grey">{t('contractorDashboard.noOpenStage')}</p>
+      </section>
+    );
+  }
+
+  const stage = lead.activeStage;
+  const items = (substages ?? []).filter(s => s.stage_id === stageId);
+  const done = items.filter(s => s.status === 'complete').length;
+  const due = money.pair(stage.payment_milestone_usd);
+
+  return (
+    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+        {t('contractorDashboard.stageInProgress')}
+      </h2>
+
+      <div className="mt-2 flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-base font-bold tracking-tight">{stageLabel(stage)}</p>
+        {items.length > 0 && (
+          <span className="shrink-0 font-mono text-xs text-brand-mid-grey">{done} / {items.length}</span>
+        )}
+      </div>
+      <p className="mt-0.5 text-xs text-brand-mid-grey">
+        {lead.project.name} · {t('contractorDashboard.currentStage', { n: stage.stage_number, total: lead.totalStages })}
+      </p>
+
+      {substages === null ? (
+        <p className="py-6 text-xs text-brand-mid-grey">{t('common.loading')}</p>
+      ) : items.length === 0 ? (
+        <p className="py-6 text-xs text-brand-mid-grey">{t('contractorDashboard.noSubstages')}</p>
+      ) : (
+        <ul className="mt-3">
+          {/* A long stage (eleven items on a storey of blockwork) would push the rest
+              of the rail off the screen. The first six, then the way in. */}
+          {items.slice(0, 6).map(item => {
+            const complete = item.status === 'complete';
+            const count = item.evidence_urls?.length ?? 0;
+            return (
+              <li key={item.id} className="flex items-center gap-3 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+                <span aria-hidden className={cn(
+                  'flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  complete
+                    ? 'border-state-complete bg-state-complete text-white'
+                    : 'border-brand-border-grey dark:border-[#444]',
+                )}>
+                  {complete && <Check className="size-2.5 stroke-[3]" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={cn('block truncate text-xs',
+                    complete ? 'text-brand-mid-grey' : 'font-semibold')}>
+                    {substageLabel(item)}
+                  </span>
+                  <span className="block text-[11px] text-brand-mid-grey">
+                    {count > 0
+                      ? t('contractorProject.evidenceCount', { count })
+                      : t('contractorProject.noEvidence')}
+                  </span>
+                </span>
+                {!complete && (
+                  <Link
+                    to={`/work/projects/${lead.project.id}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black"
+                  >
+                    <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {due && (
+        <div className="mt-3 rounded-xl bg-brand-off-white px-3.5 py-3 dark:bg-[#141414]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorDashboard.dueOnApproval')}
+          </p>
+          <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{due.local}</p>
+          {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
+        </div>
+      )}
+
+      <Link to={`/work/projects/${lead.project.id}`}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4">
+        {items.length > 6
+          ? t('contractorDashboard.andMoreItems', { n: items.length - 6 })
+          : t('contractorDashboard.openProject')}
+        <ArrowRight className="size-3" aria-hidden />
+      </Link>
+    </section>
+  );
+}
+
+/** The last few releases, newest first. Real ledger rows or an honest empty state. */
+function RecentReleases({ payments, projects }: {
+  payments: { rows: ContractorPayment[]; available: boolean } | null;
+  projects: AssignedProject[];
+}) {
+  const t = useT();
+  const names = useMemo(
+    () => new Map(projects.map(a => [a.project.id, a.project.name])),
+    [projects],
+  );
+
+  if (payments === null || !payments.available || payments.rows.length === 0) return null;
+
+  return (
+    <section className="min-w-0">
+      <div className="mb-2.5 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{t('contractorDashboard.recentReleases')}</h2>
+        <Link to="/work/payouts" className="text-xs text-brand-mid-grey underline underline-offset-2 hover:text-brand-near-black dark:hover:text-white">
+          {t('contractorDashboard.allPayouts')}
+        </Link>
+      </div>
+      <ul className="rounded-2xl border border-brand-border-grey bg-white px-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        {payments.rows.slice(0, 3).map(row => (
+          <li key={row.id} className="flex items-center justify-between gap-3 border-b border-brand-border-grey py-3 last:border-b-0 dark:border-[#2c2c2c]">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold">
+                {names.get(row.projectId) ?? t('contractor.projects.title')}
+              </p>
+              <p className="text-[11px] text-brand-mid-grey">{formatDate(row.createdAt)}</p>
+            </div>
+            <p className="shrink-0 font-mono text-sm font-semibold tabular-nums">
+              {moneyPair(row.amount, row.currency, null).local}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · Documents — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .grp{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+        padding:6px 15px 10px; margin-bottom:11px }
+  .grp > .lbl{ padding-top:11px; margin-bottom:2px }
+  .doc .ic{ font-size:7.5px; letter-spacing:.04em }
+</style>
+</head>
+<body class="pc">
+<div class="app">
+  <aside class="side" data-nav="projects"></aside>
+  <div class="main">
+    <div class="phead" data-ptab="documents"></div>
+    <div class="work">
+      <section>
+        <div class="chips">
+          <div class="chip on">Everything <span class="n">14</span></div>
+          <div class="chip">Drawings <span class="n">2</span></div>
+          <div class="chip">Bill of quantities <span class="n">1</span></div>
+          <div class="chip">Site evidence <span class="n">8</span></div>
+          <div class="chip">Certificates <span class="n">3</span></div>
+        </div>
+
+        <div class="grp">
+          <div class="lbl">The build · filed when the project was created</div>
+          <div class="doc">
+            <div class="ic">PDF</div>
+            <div class="t"><b>Mr Nas Ground Plan.pdf</b><span>Floor plan · 4 sheets · 2.8 MB</span></div>
+            <div class="when">28 Oct</div>
+            <div class="mini ghost">Open</div>
+          </div>
+          <div class="doc">
+            <div class="ic">PDF</div>
+            <div class="t"><b>Cost Estimate Limbe.pdf</b><span>Bill of quantities · read as 38,821,000 XAF</span></div>
+            <div class="when">28 Oct</div>
+            <div class="mini ghost">Open</div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="lbl">Site evidence · filed under the stage it belongs to</div>
+          <div class="doc">
+            <div class="ic">6</div>
+            <div class="t"><b>Foundation</b><span>6 photos · approved 21 Oct</span></div>
+            <div class="when">21 Oct</div>
+            <span class="state complete"><span class="d complete"></span>Approved</span>
+          </div>
+          <div class="doc">
+            <div class="ic">5</div>
+            <div class="t"><b>Structure &amp; walls</b><span>5 photos across 2 of 4 items</span></div>
+            <div class="when">4 Nov</div>
+            <span class="state held"><span class="d held"></span>Open</span>
+          </div>
+          <div class="doc">
+            <div class="ic">3</div>
+            <div class="t"><b>Site preparation</b><span>3 photos · approved 6 Oct</span></div>
+            <div class="when">6 Oct</div>
+            <span class="state complete"><span class="d complete"></span>Approved</span>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="lbl">Certificates · issued by Groundwork, one per approved stage</div>
+          <div class="doc">
+            <div class="ic">CRT</div>
+            <div class="t"><b>Stage 4 · Foundation</b><span>Issued to Mr Nas · verifier Vanessa G.</span></div>
+            <div class="when">21 Oct</div>
+            <div class="mini ghost">Share</div>
+          </div>
+          <div class="doc">
+            <div class="ic">CRT</div>
+            <div class="t"><b>Stage 3 · Site preparation</b><span>Issued to Mr Nas · verifier Vanessa G.</span></div>
+            <div class="when">6 Oct</div>
+            <div class="mini ghost">Share</div>
+          </div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <div class="lbl">Add a document</div>
+          <div class="btn-full">Upload to this project</div>
+          <p style="font-size:11.5px; color:var(--ink35); margin-top:10px">
+            A photo added here sits on the project. A photo added against a stage item ticks
+            that item off — use <b style="color:var(--ink60); font-weight:600">Work</b> for those.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="lbl">Who can see these</div>
+          <div class="person" style="padding-top:0">
+            <div class="av">MN</div>
+            <div class="t"><b>Mr Nas</b><span>Client · can view and download</span></div>
+          </div>
+          <div class="person">
+            <div class="av">VG</div>
+            <div class="t"><b>Vanessa G.</b><span>Verifier · stage 5 evidence only</span></div>
+          </div>
+          <div class="person">
+            <div class="av">BO</div>
+            <div class="t"><b>You</b><span>Owner · everything</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="lbl">Nothing leaves Groundwork</div>
+          <p style="font-size:12px; color:var(--ink60)">
+            Files stay on the project and travel with it. There is no separate folder to keep in
+            step, and no document is sent over WhatsApp or email to be lost there.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

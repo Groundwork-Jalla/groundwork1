@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Partner programme — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .track{ background:var(--paper); border:1px solid var(--rule); border-radius:12px;
+          padding:18px 20px 16px; margin-bottom:14px }
+  .track .pipe{ margin:14px 2px 0 }
+  .track .step-l{ font-size:10.5px; margin-top:7px }
+  .track .dot{ width:22px; height:22px; font-size:10px }
+  .track .step::before{ top:10px }
+  .stepnote{ font-size:11.5px; color:var(--ink35); margin-top:4px }
+  .benefit{ display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--rule) }
+  .benefit:last-child{ border-bottom:0 }
+  .benefit .n{ font-family:var(--mono); font-size:11px; font-weight:600; color:var(--ink35);
+               flex:0 0 18px; padding-top:1px }
+  .benefit b{ font-size:12.5px; font-weight:600; display:block }
+  .benefit span{ font-size:11.5px; color:var(--ink60) }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop">
+    <div class="bar1">
+      <div class="ib back"><svg viewBox="0 0 24 24"><path d="m14.5 5-7 7 7 7"/></svg></div>
+      <div style="flex:1"><div class="ttl" style="font-size:19px">Partner programme</div></div>
+    </div>
+  </div>
+  <div class="feed">
+    <div class="track" style="padding:14px 15px 13px">
+      <div style="display:flex; align-items:baseline; justify-content:space-between">
+        <h2 style="font-family:var(--sans); font-size:15px; font-weight:800">Your application</h2>
+      </div>
+      <div class="state held" style="margin-top:5px; font-size:11.5px">
+        <span class="d held"></span> Call booked for Thursday</div>
+      <div class="pipe" style="margin:14px 2px 0"><div class="step done"><div class="dot">✓</div><div class="step-l" style="font-size:8.5px">Applied</div><div class="stepnote" style="font-size:9px">9 Oct</div></div><div class="step done"><div class="dot">✓</div><div class="step-l" style="font-size:8.5px">Qualified</div><div class="stepnote" style="font-size:9px">14 Oct</div></div><div class="step now"><div class="dot">3</div><div class="step-l" style="font-size:8.5px">Call booked</div><div class="stepnote" style="font-size:9px">Thu 6 Nov, 10:00</div></div><div class="step "><div class="dot">4</div><div class="step-l" style="font-size:8.5px">Call held</div><div class="stepnote" style="font-size:9px">—</div></div><div class="step "><div class="dot">5</div><div class="step-l" style="font-size:8.5px">Partner</div><div class="stepnote" style="font-size:9px">—</div></div></div>
+    </div>
+
+    <div class="card" style="padding:13px 15px">
+      <div class="lbl">Your call</div>
+      <div class="fig lg">Thu 6 Nov · 10:00</div>
+      <div class="usd" style="margin-top:4px">30 minutes · video or phone</div>
+      <p style="font-size:12px; color:var(--ink60); margin-top:10px">
+        We set up one of your live builds together on the call. Have your bill of quantities
+        to hand.
+      </p>
+      <div style="display:flex; gap:8px; margin-top:12px">
+        <div class="ghost" style="flex:1; justify-content:center">Reschedule</div>
+        <div class="ghost" style="flex:1; justify-content:center">Add to calendar</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:4px 15px 10px">
+      <div class="lbl" style="padding-top:12px">What a partner gets</div>
+      <div class="benefit"><div class="n">01</div>
+        <div><b>Clients who have no contractor</b><span>Work in your regions, already costed.</span></div></div>
+      <div class="benefit"><div class="n">02</div>
+        <div><b>Payments on approval</b><span>No chasing the next tranche mid-build.</span></div></div>
+      <div class="benefit"><div class="n">03</div>
+        <div><b>A record that travels</b><span>Approved stages stay on your profile.</span></div></div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="profile"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

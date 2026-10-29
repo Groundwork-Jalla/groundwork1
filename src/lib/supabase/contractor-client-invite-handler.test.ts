@@ -223,10 +223,22 @@ describe('contractor and account ownership gates', () => {
     // hands back whatever it was given when it cannot place a number, so "the field
     // had something in it" is not the same as "this reaches a handset".
     expect((await call({ ...GOOD, phone: '670000001' })).body).toEqual({ error: 'invalid_phone' });
-    expect((await call({ ...GOOD, phone: '' })).body).toEqual({ error: 'invalid_phone' });
     expect((await call({ ...GOOD, fullName: ' ' })).body).toEqual({ error: 'name_required' });
     expect(state.createUserCalls).toEqual([]);
     expect(state.invitations).toEqual([]);
+  });
+
+  it('but an absent phone is not invalid input — it is a question for the client', () => {
+    // Asking a contractor for their client's number asks them to expose the
+    // relationship they are protecting, and one who declines does not invite their
+    // client at all. `new-password` asks the client for it when they accept.
+    // Changed 29 October.
+    return call({ ...GOOD, phone: '' }).then(response => {
+      expect(response.body).not.toEqual({ error: 'invalid_phone' });
+      expect(response.statusCode).toBe(200);
+      expect(state.createUserCalls).toHaveLength(1);
+      expect(state.invitations).toHaveLength(1);
+    });
   });
 
   it('refuses inviting the caller, even when their email uses different casing', async () => {

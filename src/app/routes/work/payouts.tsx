@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import { Loader2, Plus, ShieldCheck, Clock, Ban, Star } from 'lucide-react';
+import { fetchAssignedProjects, fetchMyPayments,
+         type AssignedProject, type ContractorPayment } from '@/lib/supabase/contractor-work';
+import { moneyPair } from '@/lib/budget/money-pair';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
+import { formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
   fetchMyPayoutDestinations, addPayoutDestination,
   setDefaultPayoutDestination, retirePayoutDestination,
@@ -30,6 +37,10 @@ export default function ContractorPayouts() {
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** What has actually been released, and what the live contracts still carry. Read
+      separately: a failure in either must not cost the page its payment details. */
+  const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
+  const [projects, setProjects] = useState<AssignedProject[] | null>(null);
 
   async function reload() {
     try { setRows(await fetchMyPayoutDestinations()); }
@@ -37,6 +48,17 @@ export default function ContractorPayouts() {
   }
 
   useEffect(() => { void reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchMyPayments()
+      .then(p => { if (alive) setPayments(p); })
+      .catch(() => { if (alive) setPayments({ rows: [], available: false }); });
+    void fetchAssignedProjects()
+      .then(p => { if (alive) setProjects(p); })
+      .catch(() => { if (alive) setProjects([]); });
+    return () => { alive = false; };
+  }, []);
 
   const live = useMemo(() => (rows ?? []).filter(r => r.status !== 'retired'), [rows]);
   const retired = useMemo(() => (rows ?? []).filter(r => r.status === 'retired'), [rows]);
@@ -65,15 +87,17 @@ export default function ContractorPayouts() {
         <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorPayout.subtitle')}</p>
       </header>
 
-      <p className="rounded-xl bg-brand-off-white px-4 py-3 text-sm text-brand-mid-grey dark:bg-[#1e1e1e]">
-        {t('contractorPayout.why')}
-      </p>
+      <PayoutFigures payments={payments} projects={projects} />
 
       {error && (
         <p role="alert" className="rounded-xl border border-state-alert/30 bg-brand-off-white px-4 py-3 text-sm dark:bg-[#1e1e1e]">
           {error}
         </p>
       )}
+
+      <h2 className="-mb-2 text-sm font-semibold text-brand-near-black dark:text-white">
+        {t('contractorPayout.whereYouGetPaid')}
+      </h2>
 
       {live.length === 0 && !adding ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-12 text-center dark:border-[#2c2c2c]">
@@ -128,7 +152,171 @@ export default function ContractorPayouts() {
           </ul>
         </section>
       )}
+
+      <div className="grid items-start gap-5 lg:grid-cols-[3fr_2fr]">
+        <PaymentsReceived payments={payments} projects={projects} />
+
+        <div className="flex flex-col gap-4">
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorPayout.whyWeAsk')}
+            </h2>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPayout.why')}</p>
+          </section>
+
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorPayout.howAStageGetsPaid')}
+            </h2>
+            <ol className="mt-2.5 flex flex-col gap-2">
+              {([
+                ['contractorPayout.step1', 'contractorPayout.step1Hint'],
+                ['contractorPayout.step2', 'contractorPayout.step2Hint'],
+                ['contractorPayout.step3', 'contractorPayout.step3Hint'],
+                ['contractorPayout.step4', 'contractorPayout.step4Hint'],
+              ] as const).map(([key, hint], i) => (
+                <li key={key} className="flex gap-2.5">
+                  <span className="shrink-0 font-mono text-[11px] font-semibold text-brand-mid-grey">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold text-brand-near-black dark:text-white">{t(key)}</span>
+                    <span className="block text-[11px] text-brand-mid-grey">{t(hint)}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {/* Groundwork records and governs the schedule. A licensed provider holds
+                and moves the money, and nothing on this page may imply otherwise. */}
+            <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPayout.notCustodian')}</p>
+          </section>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/**
+ * Three figures, all from rows this contractor can actually read.
+ *
+ * "Received" is the ledger. "Due on the next approval" and "still to come" are the
+ * stage schedule across their live builds. Mixed currencies are never summed — the
+ * card says how many payments instead of inventing a total that means nothing.
+ */
+function PayoutFigures({ payments, projects }: {
+  payments: { rows: ContractorPayment[]; available: boolean } | null;
+  projects: AssignedProject[] | null;
+}) {
+  const t = useT();
+  // The schedule is stored in USD; show it in the currency of the builds themselves
+  // when they agree on one, which for a Cameroon-first contractor they will.
+  const countries = new Set((projects ?? []).map(a => a.project.country).filter(Boolean));
+  const money = useProjectMoney(countries.size === 1 ? [...countries][0] : null);
+
+  const openStages = (projects ?? []).flatMap(a => a.activeStage ? [a.activeStage] : []);
+  const dueNext = openStages.reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0);
+  const toCome = (projects ?? []).reduce((sum, a) => sum + a.stages
+    .filter(s => s.status !== 'complete')
+    .reduce((n, s) => n + (s.payment_milestone_usd ?? 0), 0), 0);
+
+  const received = (() => {
+    if (payments === null) return { value: null as string | null, hint: t('common.loading') };
+    if (!payments.available) return { value: null, hint: t('contractor.kpi.unavailable') };
+    if (payments.rows.length === 0) return { value: null, hint: t('contractorDashboard.noReleases') };
+    const codes = new Set(payments.rows.map(r => r.currency.toUpperCase()));
+    if (codes.size > 1) {
+      return { value: String(payments.rows.length),
+               hint: t('contractorDashboard.tileReleasedMixed', { n: String(payments.rows.length) }) };
+    }
+    const total = payments.rows.reduce((sum, r) => sum + r.amount, 0);
+    return { value: moneyPair(total, [...codes][0], null).local,
+             hint: t('contractorDashboard.tileReleasedCount', { n: String(payments.rows.length) }) };
+  })();
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <Figure label={t('contractorPayout.received')} value={received.value}
+              hint={received.hint} tone="complete" />
+      <Figure label={t('contractorPayout.dueNext')}
+              value={projects === null ? null : money.pair(dueNext)?.local ?? null}
+              sub={projects === null ? undefined : money.pair(dueNext)?.usd ?? undefined}
+              hint={t('contractorPayout.dueNextHint', { n: openStages.length })} />
+      <Figure label={t('contractorPayout.acrossContracts')}
+              value={projects === null ? null : money.pair(toCome)?.local ?? null}
+              sub={projects === null ? undefined : money.pair(toCome)?.usd ?? undefined}
+              hint={t('contractorPayout.acrossContractsHint', { n: (projects ?? []).length })} />
+    </div>
+  );
+}
+
+function Figure({ label, value, sub, hint, tone }: {
+  label: string; value: string | null; sub?: string; hint?: string; tone?: 'complete';
+}) {
+  return (
+    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{label}</p>
+      <p className={cn('mt-1.5 font-mono text-xl font-semibold tabular-nums tracking-tight',
+        tone === 'complete' && value ? 'text-state-complete' : 'text-brand-near-black dark:text-white')}>
+        {/* A dash, not a zero: "could not read" and "none" are different facts. */}
+        {value ?? '—'}
+      </p>
+      {sub && <p className="mt-0.5 font-mono text-[11px] text-brand-mid-grey">≈ {sub}</p>}
+      {hint && <p className="mt-1 text-xs text-brand-mid-grey">{hint}</p>}
+    </div>
+  );
+}
+
+/** Every release recorded against this contractor, newest first. */
+function PaymentsReceived({ payments, projects }: {
+  payments: { rows: ContractorPayment[]; available: boolean } | null;
+  projects: AssignedProject[] | null;
+}) {
+  const t = useT();
+  const names = useMemo(
+    () => new Map((projects ?? []).map(a => [a.project.id, a.project.name])),
+    [projects],
+  );
+
+  return (
+    <section>
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
+          {t('contractorPayout.paymentsReceived')}
+        </h2>
+        <Link to="/work/projects" className="text-xs text-brand-mid-grey underline underline-offset-2">
+          {t('contractor.projects.title')}
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-brand-border-grey bg-white px-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        {payments === null ? (
+          <p className="py-6 text-sm text-brand-mid-grey">{t('common.loading')}</p>
+        ) : !payments.available ? (
+          <p className="py-6 text-sm text-brand-mid-grey">{t('contractorPayments.unavailable')}</p>
+        ) : payments.rows.length === 0 ? (
+          <p className="py-6 text-sm text-brand-mid-grey">{t('contractorPayments.none')}</p>
+        ) : (
+          <ul>
+            {payments.rows.map(p => (
+              <li key={p.id}
+                  className="flex items-center justify-between gap-3 border-b border-brand-border-grey py-3 last:border-b-0 dark:border-[#2c2c2c]">
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold text-brand-near-black dark:text-white">
+                    {p.note ?? names.get(p.projectId) ?? t('contractorPayments.milestone')}
+                  </span>
+                  <span className="block text-[11px] text-brand-mid-grey">
+                    {[names.get(p.projectId), formatDate(p.createdAt)].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">
+                  {moneyPair(p.amount, p.currency, null).local}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 

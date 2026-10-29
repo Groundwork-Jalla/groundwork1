@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
+import { Check, CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import {
@@ -99,6 +99,8 @@ export default function PartnerApplication() {
    * it replaces the form entirely.
    */
   const [stopped, setStopped] = useState<Disqualifier | null>(null);
+  /** Whether their stored answers qualify. Kept so the funnel track can show it. */
+  const [qualified, setQualified] = useState(false);
   const [whyJoin, setWhyJoin] = useState('');
   const [differentiator, setDifferentiator] = useState('');
   /** Current question and route history (some questions are conditional). */
@@ -138,6 +140,7 @@ export default function PartnerApplication() {
                      || summary.state === 'accepted';
         // Their stored answer, not this page's empty state: somebody returning to a
         // pending application has not re-answered anything yet.
+        setQualified(summary.decisionReady);
         if (inQueue && summary.decisionReady) void openBooking(summary.language);
       })
       .catch(() => { if (live) setState('none'); });
@@ -203,8 +206,11 @@ export default function PartnerApplication() {
   // in Ruth's review list as two people.
   if (state !== 'none' && state !== 'rejected' && state !== 'disqualified') {
     return (
-      <div className="max-w-xl space-y-3">
+      <div className="max-w-3xl space-y-4">
         <h1 className="text-xl font-semibold text-brand-near-black dark:text-white">{t('partner.title')}</h1>
+
+        <FunnelTrack state={state} qualified={qualified} hasBooking={booking !== 'unset' && booking !== null} />
+
         <div className="flex items-start gap-3 rounded-2xl border border-brand-border-grey p-5 dark:border-[#2c2c2c]">
           {state === 'accepted'
             ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-state-complete" />
@@ -720,5 +726,57 @@ function YesNo({ label, value, onChange, chip }: {
         </label>
       </div>
     </div>
+  );
+}
+
+/**
+ * Where this application stands, as five steps.
+ *
+ * Every step's state is read from what the database actually says. In particular
+ * **"call booked" is never claimed**: Groundwork can see that somebody was sent to a
+ * calendar, not that they chose a slot — so the step is "book your call", and it
+ * stays current until the application is accepted. Counting a booking we cannot
+ * observe would put a number in the funnel that nothing backs up.
+ */
+function FunnelTrack({ state, qualified, hasBooking }: {
+  state: ApplicationState; qualified: boolean; hasBooking: boolean;
+}) {
+  const t = useT();
+  const accepted = state === 'accepted';
+
+  const steps: { key: TKey; at: 'done' | 'now' | 'todo' }[] = [
+    { key: 'partner.track.applied',   at: 'done' },
+    { key: 'partner.track.qualified', at: qualified ? 'done' : accepted ? 'done' : 'now' },
+    { key: 'partner.track.book',      at: accepted ? 'done' : qualified && hasBooking ? 'now' : 'todo' },
+    { key: 'partner.track.call',      at: accepted ? 'done' : 'todo' },
+    { key: 'partner.track.partner',   at: accepted ? 'done' : 'todo' },
+  ];
+
+  return (
+    <ol className="flex min-w-0 rounded-2xl border border-brand-border-grey bg-white px-3 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      {steps.map((step, i) => (
+        <li key={step.key} className="relative min-w-0 flex-1 text-center"
+            aria-current={step.at === 'now' ? 'step' : undefined}>
+          {i > 0 && (
+            <span aria-hidden className={cn('absolute -left-1/2 top-[9px] h-0.5 w-full',
+              step.at === 'todo' ? 'bg-brand-border-grey dark:bg-[#2c2c2c]' : 'bg-state-complete')} />
+          )}
+          <span className={cn(
+            'relative z-[1] mx-auto flex size-5 items-center justify-center rounded-full border-2 font-mono text-[10px] font-semibold',
+            step.at === 'done' && 'border-state-complete bg-state-complete text-white',
+            step.at === 'now'  && 'border-state-complete bg-white text-state-complete ring-[3px] ring-state-complete/15 dark:bg-[#1e1e1e]',
+            step.at === 'todo' && 'border-brand-border-grey bg-white text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]',
+          )}>
+            {step.at === 'done' ? <Check className="size-2.5 stroke-[3]" aria-hidden /> : i + 1}
+          </span>
+          <span className={cn('mt-1.5 block break-words px-px text-[10px] leading-tight',
+            step.at === 'now'
+              ? 'font-semibold text-brand-near-black dark:text-white'
+              : 'text-brand-mid-grey')}>
+            {t(step.key)}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · People — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .pcard{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+          padding:13px 14px; margin-bottom:11px; display:flex; gap:14px }
+  .pcard .av{ width:34px; height:34px; border-radius:50%; flex:0 0 34px; background:var(--canvas);
+              border:1px solid var(--rule); font-family:var(--sans); font-size:13px; font-weight:700;
+              color:var(--ink60); display:flex; align-items:center; justify-content:center }
+  .pcard .av.me{ background:var(--ink); color:#fff; border-color:var(--ink) }
+  .pcard .b{ flex:1; min-width:0 }
+  .pcard h3{ font-family:var(--sans); font-size:14.5px; font-weight:700; letter-spacing:-.2px }
+  .pcard .role{ font-size:11.5px; color:var(--ink35); margin-bottom:9px }
+  .can{ display:flex; flex-wrap:wrap; gap:6px }
+  .can span{ font-size:11px; border:1px solid var(--rule); border-radius:99px; padding:3px 9px;
+             color:var(--ink60) }
+  .can span.no{ color:var(--ink35); border-style:dashed; text-decoration:line-through }
+  .matrix{ width:100%; border-collapse:collapse; font-size:12px }
+  .matrix th{ text-align:left; font-size:9.5px; font-weight:700; letter-spacing:.08em;
+              text-transform:uppercase; color:var(--ink35); padding:0 0 8px }
+  .matrix th.c, .matrix td.c{ text-align:center; width:66px }
+  .matrix td{ padding:8px 0; border-top:1px solid var(--rule); color:var(--ink60) }
+  .matrix td.c b{ color:var(--complete); font-size:13px }
+  .matrix td.c i{ color:var(--locked); font-style:normal; font-size:13px }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop" data-mptab="work"></div>
+  <div class="feed">
+    <div class="sec-h"><h2>People</h2><span>You own this build</span></div>
+
+    <div class="pcard">
+      <div class="av me">BO</div>
+      <div class="b">
+        <h3>You</h3>
+        <div class="role">Contractor · owner</div>
+        <div class="can"><span>Upload evidence</span><span>Invite people</span><span class="no">Approve a stage</span></div>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <div class="av">MN</div>
+      <div class="b">
+        <h3>Mr Nas</h3>
+        <div class="role">Client · accepted 29 Oct</div>
+        <div class="can"><span>Watch</span><span>Chat</span><span>Upload documents</span><span class="no">Approve</span></div>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <div class="av">VG</div>
+      <div class="b">
+        <h3>Vanessa G.</h3>
+        <div class="role">Verifier · stage 5</div>
+        <div class="can"><span>See stage 5</span><span>Approve stage 5</span><span class="no">See your payouts</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px 15px">
+      <div class="lbl">Invite your client</div>
+      <p style="font-size:12px; color:var(--ink60); margin-bottom:11px">
+        They follow the build and ask questions. They change nothing. We never ask you for
+        their phone number.
+      </p>
+      <div class="btn-full">Send an invitation</div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="projects"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

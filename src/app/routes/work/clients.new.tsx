@@ -176,7 +176,10 @@ export default function WorkNewClient() {
     setError(null);
     if (fullName.trim().length < 2) { setError(t('contractorClient.errName')); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('contractorClient.errEmail')); return; }
-    if (!isValidPhone(phone)) { setError(t('contractorClient.errPhone')); return; }
+    // Optional: a contractor should not have to hand over their client's number to
+    // get them on the platform. The client gives it when they accept. Still refused
+    // if present and malformed — a wrong number is worse than no number.
+    if (phone && !isValidPhone(phone)) { setError(t('contractorClient.errPhone')); return; }
 
     const owner = contractorId;
     const operation = ++inviteOperation.current;
@@ -211,6 +214,12 @@ export default function WorkNewClient() {
         code === 'client_exists' ? t('contractorClient.errExists')
         : code === 'self_invite'  ? t('contractorClient.errSelf')
         : code === 'invalid_email' ? t('contractorClient.errEmail')
+        // The server also refuses a missing name or an unusable phone, and neither
+        // was mapped — both fell through to "the invitation was not sent", which
+        // names nothing the person can fix. Philip hit this live on 28 October:
+        // the invite "failed to send" and the reason was never shown.
+        : code === 'invalid_phone' ? t('contractorClient.errPhone')
+        : code === 'name_required' ? t('contractorClient.errName')
         : code === 'Not found'  ? t('contractorClient.errNotContractor')
         : t('contractorClient.errFailed'),
       );
@@ -349,7 +358,7 @@ export default function WorkNewClient() {
           {/* The country is picked, not assumed: a diaspora client building at home
               often holds a foreign number, and silently prefixing +237 would store
               one that reaches nobody. */}
-          <PhoneField id="clientPhone" required disabled={busy} value={phone} onChange={setPhone} />
+          <PhoneField id="clientPhone" disabled={busy} value={phone} onChange={setPhone} />
           <p className="text-xs text-brand-mid-grey">{t('contractorClient.phoneHint')}</p>
         </div>
 

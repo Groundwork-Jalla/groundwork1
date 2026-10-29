@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Payouts — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .method{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+           padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:13px }
+  .method.def{ border-color:var(--ink) }
+  .method .logo{ width:40px; height:40px; border-radius:9px; flex:0 0 40px; background:var(--canvas);
+                 border:1px solid var(--rule); display:flex; align-items:center; justify-content:center;
+                 font-family:var(--sans); font-size:11px; font-weight:800; color:var(--ink60) }
+  .method .t{ flex:1; min-width:0 }
+  .method .t b{ font-size:13.5px; font-weight:700; font-family:var(--sans); display:block }
+  .method .t span{ font-size:11.5px; color:var(--ink35) }
+  .method .tag{ font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+                border:1px solid var(--rule); border-radius:99px; padding:3px 9px; color:var(--ink60) }
+  .prow2{ display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid var(--rule) }
+  .prow2:last-child{ border-bottom:0 }
+  .prow2 .t{ flex:1; min-width:0 }
+  .prow2 .t b{ font-size:12.5px; font-weight:600; display:block }
+  .prow2 .t span{ font-size:11px; color:var(--ink35) }
+</style>
+</head>
+<body class="pc">
+<div class="app">
+  <aside class="side" data-nav="payouts"></aside>
+  <div class="main">
+    <header class="top">
+      <h1>Payouts</h1>
+      <span class="sp"></span>
+      <div class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6c0 4-1.5 5.5-1.5 5.5h15S18 13 18 9a6 6 0 0 0-6-6Z"/><path d="M10.2 18a2 2 0 0 0 3.6 0"/></svg></div>
+      <div class="icon-btn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg></div>
+      <div class="solid"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add payment details</div>
+    </header>
+    <div class="scroll">
+      <div class="split rail">
+        <section>
+          <div class="tiles" style="margin-bottom:16px">
+            <div class="tile">
+              <div class="lbl">Received this year</div>
+              <div class="fig xl" style="color:var(--complete)">18,420,000</div>
+              <div class="sub"><span class="d complete"></span> XAF · ≈&nbsp;$31,291</div>
+            </div>
+            <div class="tile">
+              <div class="lbl">Due on the next approval</div>
+              <div class="fig xl">6,356,000</div>
+              <div class="sub"><span class="d held"></span> Mr Nas · stage 5</div>
+            </div>
+            <div class="tile">
+              <div class="lbl">Across live contracts</div>
+              <div class="fig xl">20,401,000</div>
+              <div class="sub"><span class="d locked"></span> Still to come · ≈&nbsp;$34,654</div>
+            </div>
+          </div>
+
+          <div class="sec-h"><h2>Where you get paid</h2><span>Used on every project you are assigned to</span></div>
+
+          <div class="method def">
+            <div class="logo">MoMo</div>
+            <div class="t">
+              <b>MTN Mobile Money · ···· 44 17</b>
+              <span>Bob Ousmane · Cameroon · checked 14 Oct</span>
+            </div>
+            <span class="state complete"><span class="d complete"></span> Checked</span>
+            <span class="tag">Default</span>
+            <div class="mini ghost">Edit</div>
+          </div>
+
+          <div class="method">
+            <div class="logo">BANK</div>
+            <div class="t">
+              <b>Afriland First Bank · ···· 0 9 2 3</b>
+              <span>OUSMANE BOB · added 26 Oct</span>
+            </div>
+            <span class="state held"><span class="d held"></span> Awaiting check</span>
+            <div class="mini ghost">Use by default</div>
+          </div>
+
+          <p style="font-size:11.5px; color:var(--ink35); margin:2px 0 18px">
+            Groundwork checks new details before the first payment is sent to them.
+            You do not need to do anything.
+          </p>
+
+          <div class="sec-h"><h2>Payments received</h2><a>Download statement</a></div>
+          <div class="card tight">
+            <div class="prow2">
+              <div class="t"><b>Foundation · Mr Nas residence</b><span>Approved 21 Oct · MTN MoMo ···· 4417</span></div>
+              <div style="text-align:right"><div class="fig sm">4,780,000 XAF</div><div class="usd">≈ $8,120</div></div>
+            </div>
+            <div class="prow2">
+              <div class="t"><b>Site preparation · Mr Nas residence</b><span>Approved 6 Oct · MTN MoMo ···· 4417</span></div>
+              <div style="text-align:right"><div class="fig sm">1,940,000 XAF</div><div class="usd">≈ $3,296</div></div>
+            </div>
+            <div class="prow2">
+              <div class="t"><b>Land secured · Mr Nas residence</b><span>Approved 2 Sep · MTN MoMo ···· 4417</span></div>
+              <div style="text-align:right"><div class="fig sm">11,700,000 XAF</div><div class="usd">≈ $19,875</div></div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <div class="card">
+            <div class="lbl">Why we ask for this</div>
+            <p style="font-size:12px; color:var(--ink60)">
+              Collecting your details up front means nobody has to ask you for account
+              numbers over the phone or a message when a payment is due.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="lbl">A payment is released when</div>
+            <div class="kv"><span class="k">The stage is approved</span><span class="v"><small>By an independent verifier</small></span></div>
+            <div class="kv"><span class="k">Your details are checked</span><span class="v"><small>Once, not per payment</small></span></div>
+            <p style="font-size:11.5px; color:var(--ink35); margin-top:11px">
+              Groundwork records and governs the schedule. It does not hold your money.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="lbl">Today's rate</div>
+            <div class="fig lg">588.68</div>
+            <div class="usd" style="margin-top:4px">XAF to $1 · fetched this morning</div>
+            <p style="font-size:11.5px; color:var(--ink35); margin-top:10px">
+              You are paid in francs. The dollar figure beside each amount is for reference only.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

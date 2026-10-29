@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Payouts — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .method{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+           padding:12px 13px; margin-bottom:10px; display:flex; align-items:center; gap:13px }
+  .method.def{ border-color:var(--ink) }
+  .method .logo{ width:34px; height:34px; border-radius:8px; flex:0 0 34px; background:var(--canvas);
+                 border:1px solid var(--rule); display:flex; align-items:center; justify-content:center;
+                 font-family:var(--sans); font-size:11px; font-weight:800; color:var(--ink60) }
+  .method .t{ flex:1; min-width:0 }
+  .method .t b{ font-size:13.5px; font-weight:700; font-family:var(--sans); display:block }
+  .method .t span{ font-size:11.5px; color:var(--ink35) }
+  .method .tag{ font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+                border:1px solid var(--rule); border-radius:99px; padding:3px 9px; color:var(--ink60) }
+  .prow2{ display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid var(--rule) }
+  .prow2:last-child{ border-bottom:0 }
+  .prow2 .t{ flex:1; min-width:0 }
+  .prow2 .t b{ font-size:12.5px; font-weight:600; display:block }
+  .prow2 .t span{ font-size:11px; color:var(--ink35) }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop">
+    <div class="bar1">
+      <div style="flex:1"><div class="ttl" style="font-size:19px">Payouts</div></div>
+      <div class="ib"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+    </div>
+  </div>
+  <div class="feed">
+
+    <div class="card" style="padding:13px 15px">
+      <div class="lbl">Received this year</div>
+      <div class="fig xl" style="color:var(--complete)">18,420,000 XAF</div>
+      <div class="usd" style="margin-top:5px">≈ $31,291 · 3 payments</div>
+    </div>
+
+    <div class="sec-h"><h2>Where you get paid</h2></div>
+
+    <div class="method def">
+      <div class="logo">MoMo</div>
+      <div class="t"><b>MTN · ···· 44 17</b><span>Checked 14 Oct</span></div>
+      <span class="tag">Default</span>
+    </div>
+    <div class="method">
+      <div class="logo">BANK</div>
+      <div class="t"><b>Afriland · ···· 0923</b><span>Awaiting check</span></div>
+      <span class="d held"></span>
+    </div>
+
+    <div class="sec-h" style="margin-top:14px"><h2>Payments received</h2><a>All</a></div>
+    <div class="card tight">
+      <div class="prow2">
+        <div class="t"><b>Foundation</b><span>Mr Nas · 21 Oct</span></div>
+        <div style="text-align:right"><div class="fig sm">4,780,000</div><div class="usd">≈ $8,120</div></div>
+      </div>
+      <div class="prow2">
+        <div class="t"><b>Site preparation</b><span>Mr Nas · 6 Oct</span></div>
+        <div style="text-align:right"><div class="fig sm">1,940,000</div><div class="usd">≈ $3,296</div></div>
+      </div>
+      <div class="prow2">
+        <div class="t"><b>Land secured</b><span>Mr Nas · 2 Sep</span></div>
+        <div style="text-align:right"><div class="fig sm">11,700,000</div><div class="usd">≈ $19,875</div></div>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="payouts"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

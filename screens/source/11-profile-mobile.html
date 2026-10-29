@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Profile — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .hero{ display:flex; align-items:center; gap:18px; background:var(--paper);
+         border:1px solid var(--rule); border-radius:12px; padding:14px 15px; margin-bottom:14px }
+  .hero .big{ width:48px; height:48px; border-radius:50%; flex:0 0 48px; background:var(--ink);
+              color:#fff; font-family:var(--sans); font-size:17px; font-weight:800;
+              display:flex; align-items:center; justify-content:center }
+  .hero h2{ font-family:var(--sans); font-size:20px; font-weight:800; letter-spacing:-.5px }
+  .hero .line{ font-size:12.5px; color:var(--ink35); margin-top:3px }
+  .hero .badges{ display:flex; gap:7px; margin-top:9px }
+  .hero .badges span{ font-size:11px; font-weight:600; border:1px solid var(--rule);
+                      border-radius:99px; padding:3px 10px; color:var(--ink60) }
+  .hero .badges span.ok{ color:var(--complete); border-color:rgba(31,77,54,.35) }
+  .toggle{ width:38px; height:22px; border-radius:99px; background:var(--rule); flex:0 0 38px;
+           position:relative }
+  .toggle i{ position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+             background:var(--paper); box-shadow:0 1px 2px rgba(0,0,0,.2) }
+  .toggle.on{ background:var(--ink) }
+  .toggle.on i{ left:19px }
+  .seg{ display:flex; border:1px solid var(--rule); border-radius:8px; overflow:hidden; flex:0 0 auto }
+  .seg div{ font-size:11.5px; font-weight:600; padding:6px 12px; color:var(--ink60) }
+  .seg div.on{ background:var(--ink); color:#fff }
+  .danger{ color:var(--alert); font-weight:600 }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop">
+    <div class="bar1">
+      <div style="flex:1"><div class="ttl" style="font-size:19px">Profile</div></div>
+      <div class="ib"><svg viewBox="0 0 24 24"><path d="M11.5 4h-5a2.5 2.5 0 0 0-2.5 2.5v11A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5v-5"/><path d="M18.4 3.6a2 2 0 0 1 2.8 2.8L12.5 15l-3.6.7.7-3.6z"/></svg></div>
+    </div>
+  </div>
+  <div class="feed">
+    <div class="hero">
+      <div class="big">BO</div>
+      <div style="flex:1; min-width:0">
+        <h2 style="font-size:17px">Bob Ousmane</h2>
+        <div class="line" style="font-size:11.5px">Building contractor · Limbe</div>
+        <div class="badges"><span class="ok">Verified</span><span>3 live builds</span></div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:13px 15px">
+      <div class="lbl">Your details</div>
+      <div class="kv"><span class="k">Phone</span><span class="v">+237 6 70 00 44 17</span></div>
+      <div class="kv"><span class="k">Email</span><span class="v">bobs@mailinator.com</span></div>
+      <div class="kv"><span class="k">Business</span><span class="v">Ousmane &amp; Sons</span></div>
+      <div class="kv"><span class="k">Regions</span><span class="v">South-West, Littoral</span></div>
+    </div>
+
+    <div class="card" style="padding:13px 15px">
+      <div class="lbl">How the app behaves</div>
+      <div class="kv"><span class="k">Language</span>
+        <span class="v"><div class="seg"><div class="on">EN</div><div>FR</div></div></span></div>
+      <div class="kv"><span class="k">Dark mode</span><span class="v"><div class="toggle"><i></i></div></span></div>
+      <div class="kv"><span class="k">Notifications</span><span class="v"><div class="toggle on"><i></i></div></span></div>
+    </div>
+
+    <div class="card" style="padding:13px 15px">
+      <div class="kv" style="padding-top:0"><span class="k">Verification</span><span class="v"><span class="act">Open</span></span></div>
+      <div class="kv"><span class="k">Partner programme</span><span class="v"><span class="act">Open</span></span></div>
+      <div class="kv"><span class="k"><span class="danger">Sign out</span></span><span class="v"></span></div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="profile"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

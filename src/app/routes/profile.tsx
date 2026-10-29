@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { hasPassword, requestEmailChange } from '@/lib/auth/account-security';
 import { cn } from '@/lib/utils';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
+import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contractor-onboarding';
+import { fetchAssignedProjects } from '@/lib/supabase/contractor-work';
 import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
@@ -562,6 +564,7 @@ export default function ProfilePage() {
               <p className="text-sm text-brand-mid-grey dark:text-brand-mid-grey mt-0.5">
                 {user?.email}
               </p>
+              <ContractorBadges />
             </div>
           </div>
 
@@ -1099,6 +1102,56 @@ export default function ProfilePage() {
 
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * What a contractor's account actually says about them, beside their name.
+ *
+ * Part of the approved Profile screen (29 Oct 2026). Every badge is a fact read from
+ * the database: verified only when onboarding reports complete, and the build count
+ * is the number of projects this account can actually see. A read that fails shows
+ * no badge rather than a hopeful one — claiming "verified" on a guess is the one
+ * mistake this row must never make.
+ *
+ * Renders nothing for a non-contractor: `contractor_onboarding_status` is theirs.
+ */
+function ContractorBadges() {
+  const t = useT();
+  const [verified, setVerified] = useState<boolean | null>(null);
+  const [builds, setBuilds] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        if (!(await onboardingAvailable())) return;
+        const status = await fetchOnboardingStatus();
+        if (alive) setVerified(status.complete);
+      } catch { /* not a contractor, or the read was refused */ }
+    })();
+    void fetchAssignedProjects()
+      .then(rows => { if (alive) setBuilds(rows.length); })
+      .catch(() => { /* leave it unsaid */ });
+    return () => { alive = false; };
+  }, []);
+
+  if (verified === null && builds === null) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {verified === true && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-state-complete/35 px-2.5 py-0.5 text-[11px] font-semibold text-state-complete">
+          <ShieldCheck className="size-3" aria-hidden />
+          {t('contractorOnboarding.verifiedTitle')}
+        </span>
+      )}
+      {builds !== null && builds > 0 && (
+        <span className="inline-flex items-center rounded-full border border-brand-border-grey px-2.5 py-0.5 text-[11px] font-medium text-brand-mid-grey dark:border-[#2c2c2c]">
+          {t('profile.liveBuilds', { n: builds })}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · Messages — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .convo{ height:100% }
+  .work.msg{ grid-template-columns:316px 1fr }
+</style>
+</head>
+<body class="pc">
+<div class="app">
+  <aside class="side" data-nav="projects"></aside>
+  <div class="main">
+    <div class="phead" data-ptab="messages"></div>
+    <div class="work msg">
+      <section>
+        <div class="sec-h"><h2>On this project</h2><span>3 unread</span></div>
+        <div class="threads">
+          <div class="thread on">
+            <div class="ava" style="background:var(--canvas); color:var(--ink60); border:1px solid var(--rule)">MN</div>
+            <div class="t">
+              <b>Mr Nas <span class="unread"></span></b>
+              <p>Is the ring beam done? My brother passed by…</p>
+            </div>
+            <div class="when">11:04</div>
+          </div>
+          <div class="thread">
+            <div class="ava" style="background:var(--canvas); color:var(--ink60); border:1px solid var(--rule)">VG</div>
+            <div class="t">
+              <b>Vanessa G. · verifier</b>
+              <p>I will be in Limbe Thursday morning for stage 5.</p>
+            </div>
+            <div class="when">Yest</div>
+          </div>
+          <div class="thread">
+            <div class="ava" style="background:var(--ink); color:#fff">GW</div>
+            <div class="t">
+              <b>Groundwork support</b>
+              <p>Your payment details were checked. Nothing to do.</p>
+            </div>
+            <div class="when">14 Oct</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="lbl">Every conversation stays here</div>
+          <p style="font-size:12px; color:var(--ink60)">
+            Messages about a build belong to the build. Anyone added to the project later reads
+            the whole history, and nothing depends on one person's phone.
+          </p>
+        </div>
+      </section>
+
+      <section style="display:flex; min-height:0">
+        <div class="convo" style="flex:1">
+          <div class="convo-h">
+            <div class="ava" style="background:var(--canvas); color:var(--ink60); border:1px solid var(--rule)">MN</div>
+            <div style="flex:1">
+              <b style="font-size:13.5px; font-family:var(--sans)">Mr Nas</b>
+              <div style="font-size:11px; color:var(--ink35)">Client · invited to watch this build</div>
+            </div>
+            <div class="mini ghost">Project files</div>
+          </div>
+
+          <div class="convo-b">
+            <div class="daysep">Tuesday 4 November</div>
+
+            <div class="msg sys"><div class="b">You added 2 photos to <b>Ring beam poured</b> · stage 5</div></div>
+
+            <div class="msg them">
+              <div class="b">Is the ring beam done? My brother passed by the site on Sunday and said the columns were still open.</div>
+              <div class="m">11:04</div>
+            </div>
+
+            <div class="msg me">
+              <div class="b">Ring beam was poured Monday — the photos are on the stage. Columns go up this week, then curing. I will put both up as they happen.</div>
+              <div class="m">11:12 · read</div>
+            </div>
+
+            <div class="msg them">
+              <div class="b">Good. And the money for this stage?</div>
+              <div class="m">11:15</div>
+            </div>
+
+            <div class="msg me">
+              <div class="b">Nothing is released until Vanessa checks the stage. She is coming Thursday.</div>
+              <div class="m">11:18 · read</div>
+            </div>
+
+            <div class="msg sys"><div class="b">Vanessa G. was assigned to verify <b>stage 5 · Structure &amp; walls</b></div></div>
+          </div>
+
+          <div class="composer">
+            <div class="ib"><svg viewBox="0 0 24 24"><path d="M20 11.5 12.4 19a4.6 4.6 0 0 1-6.5-6.5l7.8-7.8a3 3 0 0 1 4.3 4.3l-7.8 7.8a1.5 1.5 0 0 1-2.1-2.1l7.1-7.1"/></svg></div>
+            <div class="ib"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="14" rx="3"/><path d="M8.5 6 10 3h4l1.5 3"/><circle cx="12" cy="13" r="3.6"/></svg></div>
+            <div class="fieldish">Write to Mr Nas…</div>
+            <div class="send"><svg viewBox="0 0 24 24"><path d="m4 12 16-7-7 16-2.2-6.8z"/></svg></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

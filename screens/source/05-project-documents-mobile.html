@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · Documents — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .grp{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+        padding:4px 13px 8px; margin-bottom:11px }
+  .grp > .lbl{ padding-top:11px; margin-bottom:2px }
+  .doc .ic{ font-size:7.5px; letter-spacing:.04em }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop" data-mptab="documents"></div>
+  <div class="feed">
+    <div class="chips">
+      <div class="chip on">All <span class="n">14</span></div>
+      <div class="chip">Drawings <span class="n">2</span></div>
+      <div class="chip">Evidence <span class="n">8</span></div>
+      <div class="chip">Certificates <span class="n">3</span></div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">The build</div>
+      <div class="doc">
+        <div class="ic">PDF</div>
+        <div class="t"><b>Mr Nas Ground Plan.pdf</b><span>Floor plan · 4 sheets</span></div>
+        <div class="when">28 Oct</div>
+      </div>
+      <div class="doc">
+        <div class="ic">PDF</div>
+        <div class="t"><b>Cost Estimate Limbe.pdf</b><span>Bill of quantities</span></div>
+        <div class="when">28 Oct</div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Site evidence, by stage</div>
+      <div class="doc">
+        <div class="ic">5</div>
+        <div class="t"><b>Structure &amp; walls</b><span>5 photos · 2 of 4 items</span></div>
+        <span class="state held"><span class="d held"></span>Open</span>
+      </div>
+      <div class="doc">
+        <div class="ic">6</div>
+        <div class="t"><b>Foundation</b><span>6 photos · approved</span></div>
+        <span class="state complete"><span class="d complete"></span>Done</span>
+      </div>
+      <div class="doc">
+        <div class="ic">3</div>
+        <div class="t"><b>Site preparation</b><span>3 photos · approved</span></div>
+        <span class="state complete"><span class="d complete"></span>Done</span>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="lbl">Certificates</div>
+      <div class="doc">
+        <div class="ic">CRT</div>
+        <div class="t"><b>Stage 4 · Foundation</b><span>Issued 21 Oct</span></div>
+        <div class="mini ghost">Share</div>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="projects"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

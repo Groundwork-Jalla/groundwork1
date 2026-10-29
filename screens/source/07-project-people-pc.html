@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · People — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .pcard{ background:var(--paper); border:1px solid var(--rule); border-radius:11px;
+          padding:15px 16px; margin-bottom:11px; display:flex; gap:14px }
+  .pcard .av{ width:40px; height:40px; border-radius:50%; flex:0 0 40px; background:var(--canvas);
+              border:1px solid var(--rule); font-family:var(--sans); font-size:13px; font-weight:700;
+              color:var(--ink60); display:flex; align-items:center; justify-content:center }
+  .pcard .av.me{ background:var(--ink); color:#fff; border-color:var(--ink) }
+  .pcard .b{ flex:1; min-width:0 }
+  .pcard h3{ font-family:var(--sans); font-size:14.5px; font-weight:700; letter-spacing:-.2px }
+  .pcard .role{ font-size:11.5px; color:var(--ink35); margin-bottom:9px }
+  .can{ display:flex; flex-wrap:wrap; gap:6px }
+  .can span{ font-size:11px; border:1px solid var(--rule); border-radius:99px; padding:3px 9px;
+             color:var(--ink60) }
+  .can span.no{ color:var(--ink35); border-style:dashed; text-decoration:line-through }
+  .matrix{ width:100%; border-collapse:collapse; font-size:12px }
+  .matrix th{ text-align:left; font-size:9.5px; font-weight:700; letter-spacing:.08em;
+              text-transform:uppercase; color:var(--ink35); padding:0 0 8px }
+  .matrix th.c, .matrix td.c{ text-align:center; width:66px }
+  .matrix td{ padding:8px 0; border-top:1px solid var(--rule); color:var(--ink60) }
+  .matrix td.c b{ color:var(--complete); font-size:13px }
+  .matrix td.c i{ color:var(--locked); font-style:normal; font-size:13px }
+</style>
+</head>
+<body class="pc">
+<div class="app">
+  <aside class="side" data-nav="projects"></aside>
+  <div class="main">
+    <div class="phead" data-ptab="people"></div>
+    <div class="work">
+      <section>
+        <div class="sec-h"><h2>On this project</h2><span>You own it · 2 others have access</span></div>
+
+        <div class="pcard">
+          <div class="av me">BO</div>
+          <div class="b">
+            <h3>Bob Ousmane · you</h3>
+            <div class="role">Contractor · created this project, so you own it</div>
+            <div class="can"><span class="">Upload evidence</span><span class="">Invite people</span><span class="">Edit the build</span><span class="no">Approve a stage</span></div>
+          </div>
+        </div>
+
+        <div class="pcard">
+          <div class="av">MN</div>
+          <div class="b">
+            <h3>Mr Nas</h3>
+            <div class="role">Client · invited 28 Oct, accepted 29 Oct · +237 6 •• •• 44 17</div>
+            <div class="can"><span class="">Watch the build</span><span class="">Comment and chat</span><span class="">Upload documents</span><span class="no">Approve a stage</span><span class="no">Release money</span></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:7px; align-items:flex-end">
+            <div class="mini ghost">Message</div>
+            <div class="mini ghost">Remove access</div>
+          </div>
+        </div>
+
+        <div class="pcard">
+          <div class="av">VG</div>
+          <div class="b">
+            <h3>Vanessa G.</h3>
+            <div class="role">Verifier · assigned by Groundwork to stage 5 · on site Thursday</div>
+            <div class="can"><span class="">See stage 5 evidence</span><span class="">Approve stage 5</span><span class="no">See your payouts</span><span class="">Message you</span></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:7px; align-items:flex-end">
+            <div class="mini ghost">Message</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:4px">
+          <div class="lbl">Who can do what</div>
+          <table class="matrix">
+            <tr><th></th><th class="c">You</th><th class="c">Client</th><th class="c">Verifier</th></tr>
+          <tr><td>See the build and its stages</td><td class="c"><b>✓</b></td><td class="c"><b>✓</b></td><td class="c"><b>✓</b></td></tr>
+          <tr><td>Read and post in the chat</td><td class="c"><b>✓</b></td><td class="c"><b>✓</b></td><td class="c"><b>✓</b></td></tr>
+          <tr><td>Upload a document</td><td class="c"><b>✓</b></td><td class="c"><b>✓</b></td><td class="c"><i>—</i></td></tr>
+          <tr><td>Upload stage evidence</td><td class="c"><b>✓</b></td><td class="c"><i>—</i></td><td class="c"><i>—</i></td></tr>
+          <tr><td>Approve a stage</td><td class="c"><i>—</i></td><td class="c"><i>—</i></td><td class="c"><b>✓</b></td></tr>
+          <tr><td>Release a payment</td><td class="c"><i>—</i></td><td class="c"><i>—</i></td><td class="c"><i>—</i></td></tr>
+          <tr><td>Invite somebody else</td><td class="c"><b>✓</b></td><td class="c"><i>—</i></td><td class="c"><i>—</i></td></tr>
+          </table>
+          <p style="font-size:11.5px; color:var(--ink35); margin-top:11px">
+            Nobody on this list can release a payment. That happens once a stage is approved,
+            and it is not a button anybody here holds.
+          </p>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <div class="lbl">Invite your client</div>
+          <p style="font-size:12px; color:var(--ink60); margin-bottom:12px">
+            Send a link and they can follow the build, ask questions and keep their own copy of
+            every document. They cannot change anything.
+          </p>
+          <div class="field">
+            <label>Their name</label>
+            <div class="input ph">For example, Mr Nas</div>
+          </div>
+          <div class="field">
+            <label>Their email</label>
+            <div class="input ph">name@example.com</div>
+            <div class="help">A phone number is optional. We do not ask you for your client's
+              number to send an invitation.</div>
+          </div>
+          <div class="btn-full">Send the invitation</div>
+        </div>
+
+        <div class="card">
+          <div class="lbl">Pending</div>
+          <div class="person" style="padding-top:0">
+            <div class="av">AT</div>
+            <div class="t"><b>a.tabi@example.com</b><span>Invited 27 Oct · not opened yet</span></div>
+            <span class="act">Resend</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Contractor Dashboard</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+
+  :root{
+    --ink:#0a0a0a; --ink60:#5a5a57; --ink30:#9a9a96;
+    --canvas:#f7f7f5; --line:#e4e4e0; --white:#fff;
+    --done:#1f4d36; --held:#8a6a2c;
+    /* app dark surfaces, as a contractor actually sees them */
+    --d-bg:#141414; --d-card:#1e1e1e; --d-inset:#1a1a1a; --d-line:#2c2c2c;
+    --d-ink:#fff; --d-ink60:#909090; --d-done:#4e9e78; --d-held:#c9a04e;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--white); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+    font-size:11px; line-height:1.5;
+  }
+  .sheet{ max-width:186mm; margin:0 auto; padding:0 0 10mm; }
+  .page-break{ break-before:page; }
+
+  h1{ font-size:26px; font-weight:800; letter-spacing:-.5px; margin:0 0 4px; }
+  h2{ font-size:14px; font-weight:800; letter-spacing:-.2px; margin:0 0 3px; }
+  .eyebrow{
+    font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink30); margin:0 0 10px;
+  }
+  .lede{ color:var(--ink60); max-width:62ch; margin:0 0 4px; }
+  .rule{ height:1px; background:var(--line); margin:14px 0; }
+
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .note{
+    background:var(--canvas); border:1px solid var(--line); border-radius:8px;
+    padding:9px 11px; color:var(--ink60);
+  }
+  .note b{ color:var(--ink); }
+
+  /* ---------- device frames ---------- */
+  .phone{
+    width:300px; border:8px solid #111; border-radius:26px; overflow:hidden;
+    background:var(--d-bg); color:var(--d-ink); flex:0 0 auto;
+  }
+  .screen{ padding:12px 11px 14px; }
+  .wide{
+    border:1px solid var(--d-line); border-radius:12px; overflow:hidden;
+    background:var(--d-bg); color:var(--d-ink);
+  }
+  .frames{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  .caption{ font-size:9.5px; color:var(--ink60); margin:7px 0 0; max-width:300px; }
+  .caption b{ color:var(--ink); }
+
+  /* ---------- in-app atoms (dark) ---------- */
+  .bar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .brand{ font-size:12px; font-weight:800; letter-spacing:-.2px; }
+  .brand span{ display:block; font-size:7.5px; color:var(--d-ink60); font-weight:500; letter-spacing:0; }
+  .avatar{ width:21px; height:21px; border-radius:50%; background:#3a3a3a; }
+
+  .card{
+    background:var(--d-card); border:1px solid var(--d-line);
+    border-radius:11px; padding:11px; margin-bottom:9px;
+  }
+  .card-h{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  .t-xs{ font-size:8.5px; color:var(--d-ink60); }
+  .t-lbl{ font-size:9px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--d-ink60); }
+  .t-name{ font-size:12.5px; font-weight:700; letter-spacing:-.1px; }
+  .money{ font-size:17px; font-weight:800; letter-spacing:-.4px; font-variant-numeric:tabular-nums; }
+  .money-sub{ font-size:9px; color:var(--d-ink60); font-variant-numeric:tabular-nums; }
+
+  /* horizontal pipeline */
+  .pipe{ display:flex; gap:0; align-items:flex-start; overflow:hidden; }
+  .step{ flex:1 1 0; min-width:0; text-align:center; position:relative; }
+  .step::before{
+    content:""; position:absolute; top:8px; left:-50%; width:100%; height:2px;
+    background:var(--d-line);
+  }
+  .step:first-child::before{ display:none; }
+  .step.done::before{ background:var(--d-done); }
+  .step.now::before{ background:var(--d-done); }
+  .dot{
+    position:relative; z-index:1; width:17px; height:17px; border-radius:50%; margin:0 auto 4px;
+    background:var(--d-inset); border:2px solid var(--d-line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:8px; font-weight:800; color:var(--d-ink60);
+  }
+  .step.done .dot{ background:var(--d-done); border-color:var(--d-done); color:#fff; }
+  .step.now  .dot{ background:var(--d-bg); border-color:var(--d-done); color:var(--d-done);
+                   box-shadow:0 0 0 3px rgba(78,158,120,.18); }
+  .step-l{ font-size:6.5px; line-height:1.3; color:var(--d-ink60); padding:0 1px;
+           overflow-wrap:anywhere; hyphens:none; }
+  .step.now .step-l{ color:var(--d-ink); font-weight:700; }
+
+  /* substage rows — the core action */
+  .sub{
+    display:flex; align-items:center; gap:8px; padding:8px 9px; border-radius:8px;
+    background:var(--d-inset); margin-bottom:6px;
+  }
+  .box{
+    width:15px; height:15px; border-radius:4px; flex:0 0 auto;
+    border:1.5px solid #4a4a4a; display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:transparent;
+  }
+  .box.on{ background:var(--d-done); border-color:var(--d-done); color:#fff; }
+  .sub-t{ flex:1; min-width:0; }
+  .sub-t div:first-child{ font-size:10.5px; font-weight:600; }
+  .sub-t div:last-child{ font-size:8px; color:var(--d-ink60); }
+  .sub.on .sub-t div:first-child{ color:var(--d-ink60); text-decoration:line-through; }
+  .up{
+    font-size:9px; font-weight:700; padding:5px 9px; border-radius:7px;
+    background:#fff; color:#0a0a0a; flex:0 0 auto;
+  }
+  .up.ghost{ background:transparent; color:var(--d-ink60); border:1px solid var(--d-line); }
+
+  .pill{
+    display:inline-block; font-size:7.5px; font-weight:800; letter-spacing:.06em;
+    text-transform:uppercase; padding:2px 6px; border-radius:99px; border:1px solid;
+  }
+  .pill.done{ color:var(--d-done); border-color:rgba(78,158,120,.4); background:rgba(78,158,120,.1); }
+  .pill.held{ color:var(--d-held); border-color:rgba(201,160,78,.4); background:rgba(201,160,78,.1); }
+
+  .tabs{ display:flex; gap:14px; border-bottom:1px solid var(--d-line); margin-bottom:10px; }
+  .tab{ font-size:10px; font-weight:600; color:var(--d-ink60); padding-bottom:6px; }
+  .tab.on{ color:var(--d-ink); border-bottom:2px solid #fff; }
+
+  .sheetup{
+    border-top:1px solid var(--d-line); background:var(--d-card);
+    border-radius:14px 14px 0 0; padding:12px 11px 14px; margin:0 -11px -14px;
+  }
+  .grab{ width:30px; height:3px; border-radius:99px; background:#3a3a3a; margin:0 auto 10px; }
+  .drop{
+    border:1.5px dashed #3f3f3f; border-radius:10px; padding:16px 10px; text-align:center;
+    color:var(--d-ink60); font-size:9.5px; margin-bottom:8px;
+  }
+  .btn-full{
+    display:block; text-align:center; background:#fff; color:#0a0a0a;
+    font-size:10.5px; font-weight:700; border-radius:9px; padding:9px; margin-top:3px;
+  }
+  .doc{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--d-line); }
+  .doc:last-child{ border-bottom:0; }
+  .doc-ic{ width:22px; height:22px; border-radius:5px; background:var(--d-inset); flex:0 0 auto; }
+  .bars{ display:flex; gap:3px; align-items:flex-end; height:28px; margin-top:6px; }
+  .bars i{ flex:1; background:var(--d-done); opacity:.8; border-radius:2px 2px 0 0; display:block; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<section class="sheet">
+  <p class="eyebrow">Groundwork · design proposal · 29 October 2026</p>
+  <h1>Contractor dashboard</h1>
+  <p class="lede">
+    Rebuilt around the one thing a contractor actually does on this platform: stand on a
+    site, on a phone, and prove a stage is finished. Everything else is arranged to stay
+    out of the way of that.
+  </p>
+
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="note">
+      <b>What changed and why.</b> The current screens are a list of tabs that each
+      answer a different question. This replaces them with one spine — the ten-stage
+      pipeline, horizontally, the same shape the client sees — and hangs the work off
+      the stage a contractor is standing in.
+    </div>
+    <div class="note">
+      <b>Evidence is the product.</b> A substage is not ticked by hand. It ticks when a
+      file lands against it. That removes the gap where work is done, the box is ticked,
+      and nothing was ever uploaded — which is the gap verification exists to close.
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <p class="eyebrow">1 · Home — every build at a glance</p>
+  <div class="frames">
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="bar">
+          <div class="brand">Groundwork<span>by Jalla · Contractor</span></div>
+          <div class="avatar"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div class="t-name">Mr Nas · G+1, Limbe</div>
+            <span class="pill held">Awaiting review</span>
+          </div>
+          <div class="pipe" style="margin:9px 0 8px">
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Land</div></div>
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Design</div></div>
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Prep</div></div>
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Found.</div></div>
+            <div class="step now"><div class="dot">5</div><div class="step-l">Walls</div></div>
+            <div class="step"><div class="dot">6</div><div class="step-l">Roof</div></div>
+            <div class="step"><div class="dot">7</div><div class="step-l">M&amp;E</div></div>
+            <div class="step"><div class="dot">8</div><div class="step-l">Finish</div></div>
+            <div class="step"><div class="dot">9</div><div class="step-l">Ext.</div></div>
+            <div class="step"><div class="dot">10</div><div class="step-l">Handover</div></div>
+          </div>
+          <div class="card-h" style="margin:0">
+            <div>
+              <div class="t-xs">Next release on this stage</div>
+              <div class="money">6,356,000 XAF</div>
+              <div class="money-sub">≈ $10,800 · 2 of 4 items uploaded</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div class="t-name">Mrs Rose · G+1, Buea</div>
+            <span class="pill done">On track</span>
+          </div>
+          <div class="pipe" style="margin:9px 0 8px">
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Land</div></div>
+            <div class="step done"><div class="dot">✓</div><div class="step-l">Design</div></div>
+            <div class="step now"><div class="dot">3</div><div class="step-l">Prep</div></div>
+            <div class="step"><div class="dot">4</div><div class="step-l">Found.</div></div>
+            <div class="step"><div class="dot">5</div><div class="step-l">Walls</div></div>
+            <div class="step"><div class="dot">6</div><div class="step-l">Roof</div></div>
+            <div class="step"><div class="dot">7</div><div class="step-l">M&amp;E</div></div>
+            <div class="step"><div class="dot">8</div><div class="step-l">Finish</div></div>
+            <div class="step"><div class="dot">9</div><div class="step-l">Ext.</div></div>
+            <div class="step"><div class="dot">10</div><div class="step-l">Handover</div></div>
+          </div>
+          <div class="t-xs">Next release on this stage</div>
+          <div class="money">2,120,000 XAF</div>
+          <div class="money-sub">≈ $3,601 · nothing uploaded yet</div>
+        </div>
+
+        <div class="btn-full">+ Create a project</div>
+      </div></div>
+      <p class="caption">
+        <b>No "needs action" tab.</b> The pipeline already says what needs doing — the
+        open dot is the work. A separate task list would be a second copy of the same
+        truth, free to disagree with it.
+      </p>
+    </div>
+
+    <div style="flex:1; min-width:250px">
+      <h2>Why the pipeline leads</h2>
+      <p class="lede" style="font-size:10.5px">
+        A contractor's first question is never "what tasks do I have" — it is "where is
+        this build and what releases next". The strip answers both in one glance, and it
+        is the same strip the client is looking at, so a phone call about progress starts
+        from a shared picture.
+      </p>
+      <div class="note" style="margin-top:10px">
+        <b>Money sits under the stage, not in a separate tab.</b> The figure that matters
+        is the one attached to the stage being worked, in the project's own currency with
+        the dollar equivalent beside it — the same pairing now used in the wizard.
+      </div>
+      <div class="note" style="margin-top:8px">
+        <b>Ten dots, always.</b> They never scroll or collapse. A contractor learns the
+        shape of a build once and reads every project the same way after that. Labels
+        are abbreviated to fit a phone: land secured, design completed, site
+        preparation, foundation, structure &amp; walls, roofing, electrical &amp;
+        plumbing, finishing, exterior work, final handover — the ten stages the
+        platform already runs on.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ PAGE 2 ============ -->
+<section class="sheet page-break">
+  <p class="eyebrow">2 · Inside a project — the stage you are standing in</p>
+
+  <div class="frames">
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="bar">
+          <div class="brand">Mr Nas · G+1<span>Limbe · stage 5 of 10</span></div>
+          <div class="avatar"></div>
+        </div>
+
+        <div class="pipe" style="margin:4px 0 12px">
+          <div class="step done"><div class="dot">✓</div><div class="step-l">Land</div></div>
+          <div class="step done"><div class="dot">✓</div><div class="step-l">Design</div></div>
+          <div class="step done"><div class="dot">✓</div><div class="step-l">Prep</div></div>
+          <div class="step done"><div class="dot">✓</div><div class="step-l">Found.</div></div>
+          <div class="step now"><div class="dot">5</div><div class="step-l">Walls</div></div>
+          <div class="step"><div class="dot">6</div><div class="step-l">Roof</div></div>
+          <div class="step"><div class="dot">7</div><div class="step-l">M&amp;E</div></div>
+          <div class="step"><div class="dot">8</div><div class="step-l">Finish</div></div>
+          <div class="step"><div class="dot">9</div><div class="step-l">Ext.</div></div>
+          <div class="step"><div class="dot">10</div><div class="step-l">Handover</div></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab on">Work</div>
+          <div class="tab">Money</div>
+          <div class="tab">Documents</div>
+          <div class="tab">Messages</div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div class="t-name">Structure &amp; walls</div>
+            <span class="pill held">2 of 4</span>
+          </div>
+
+          <div class="sub on">
+            <div class="box on">✓</div>
+            <div class="sub-t"><div>Blockwork to lintel</div><div>3 photos · 2 Nov</div></div>
+            <div class="up ghost">View</div>
+          </div>
+          <div class="sub on">
+            <div class="box on">✓</div>
+            <div class="sub-t"><div>Ring beam poured</div><div>2 photos · 4 Nov</div></div>
+            <div class="up ghost">View</div>
+          </div>
+          <div class="sub">
+            <div class="box"></div>
+            <div class="sub-t"><div>Columns cast</div><div>No evidence yet</div></div>
+            <div class="up">Upload</div>
+          </div>
+          <div class="sub">
+            <div class="box"></div>
+            <div class="sub-t"><div>Curing signed off</div><div>No evidence yet</div></div>
+            <div class="up">Upload</div>
+          </div>
+
+          <div class="t-xs" style="margin-top:9px">
+            All four complete → the stage goes for verification automatically.
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0">
+          <div class="t-xs">Released when this stage is approved</div>
+          <div class="money">6,356,000 XAF</div>
+          <div class="money-sub">≈ $10,800 at 588.68 XAF/$</div>
+        </div>
+      </div></div>
+      <p class="caption">
+        <b>The checkbox is an output, not an input.</b> It is not tappable. It fills when
+        a file lands, which is why the two states read so differently.
+      </p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div style="opacity:.32">
+          <div class="bar">
+            <div class="brand">Mr Nas · G+1<span>Limbe · stage 5 of 10</span></div>
+            <div class="avatar"></div>
+          </div>
+          <div class="card"><div class="t-name">Structure &amp; walls</div>
+            <div class="sub" style="margin-top:8px"><div class="box"></div>
+              <div class="sub-t"><div>Columns cast</div><div>No evidence yet</div></div></div>
+          </div>
+        </div>
+
+        <div class="sheetup">
+          <div class="grab"></div>
+          <div class="t-lbl" style="margin-bottom:2px">Columns cast</div>
+          <div class="t-xs" style="margin-bottom:10px">Structure &amp; walls · Mr Nas, Limbe</div>
+
+          <div class="drop">
+            <svg width="26" height="20" viewBox="0 0 26 20" fill="none" style="margin-bottom:6px">
+              <rect x="1" y="4.5" width="24" height="14.5" rx="3" stroke="#6e6e6e" stroke-width="1.4"/>
+              <path d="M9 4.5 10.6 1.4h4.8L17 4.5" stroke="#6e6e6e" stroke-width="1.4" stroke-linejoin="round"/>
+              <circle cx="13" cy="11.7" r="4.4" stroke="#4e9e78" stroke-width="1.6"/>
+            </svg>
+            <div style="color:#fff; font-weight:700; font-size:10px">Take a photo</div>
+            <div style="margin-top:2px">or choose from your phone</div>
+          </div>
+
+          <div class="sub" style="background:transparent; padding:5px 0">
+            <div class="doc-ic"></div>
+            <div class="sub-t"><div>IMG_4471.jpg</div><div>2.1 MB · uploading 60%</div></div>
+          </div>
+          <div style="height:3px; background:#2c2c2c; border-radius:99px; overflow:hidden">
+            <div style="width:60%; height:100%; background:var(--d-done)"></div>
+          </div>
+
+          <div class="btn-full" style="margin-top:11px">Submit evidence</div>
+          <div class="t-xs" style="text-align:center; margin-top:7px">
+            Ticks “Columns cast” and tells your client.
+          </div>
+        </div>
+      </div></div>
+      <p class="caption">
+        <b>Camera first.</b> This is used standing on a slab in daylight, one-handed.
+        The primary target is the full width of the sheet; nothing else competes with it.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>The upload rule</h2>
+  <p class="lede">
+    One file against one substage. The tick, the client's notification and the stage's
+    readiness for verification all follow from that single act, so there is no second
+    step to forget.
+  </p>
+  <div class="cols" style="margin-top:10px">
+    <div class="note">
+      <b>Offline is normal.</b> A site in Limbe loses signal. The upload queues, the
+      row shows it queued, and it sends when the phone has a bar again — the
+      contractor does not stand in the road holding their phone up.
+    </div>
+    <div class="note">
+      <b>Nothing here approves anything.</b> Uploading evidence is a claim, not a
+      decision. Verification and approval stay where they are, with the verifier.
+    </div>
+  </div>
+</section>
+
+<!-- ============ PAGE 3 ============ -->
+<section class="sheet page-break">
+  <p class="eyebrow">3 · Money and documents</p>
+
+  <div class="frames">
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="bar">
+          <div class="brand">Mr Nas · G+1<span>Money</span></div>
+          <div class="avatar"></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">Work</div><div class="tab on">Money</div>
+          <div class="tab">Documents</div><div class="tab">Messages</div>
+        </div>
+
+        <div class="card">
+          <div class="t-xs">Paid to you so far</div>
+          <div class="money" style="color:var(--d-done)">18,420,000 XAF</div>
+          <div class="money-sub">≈ $31,290 · 4 stages released</div>
+          <div class="bars">
+            <i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i>
+            <i style="height:70%"></i><i style="height:22%; opacity:.25"></i>
+            <i style="height:46%; opacity:.25"></i><i style="height:30%; opacity:.25"></i>
+            <i style="height:52%; opacity:.25"></i><i style="height:18%; opacity:.25"></i>
+            <i style="height:26%; opacity:.25"></i>
+          </div>
+          <div class="t-xs" style="margin-top:5px">Released · remaining, by stage</div>
+        </div>
+
+        <div class="card">
+          <div class="card-h" style="margin-bottom:6px">
+            <div class="t-lbl">Next release</div><span class="pill held">Awaiting verification</span>
+          </div>
+          <div class="sub">
+            <div class="sub-t"><div>5 · Structure &amp; walls</div><div>2 of 4 uploaded</div></div>
+            <div style="text-align:right">
+              <div style="font-size:11px; font-weight:800">6,356,000</div>
+              <div class="t-xs">≈ $10,800</div>
+            </div>
+          </div>
+          <div class="sub">
+            <div class="sub-t"><div>6 · Roofing</div><div>Locked until stage 5 clears</div></div>
+            <div style="text-align:right">
+              <div style="font-size:11px; font-weight:800; color:var(--d-ink60)">1,695,000</div>
+              <div class="t-xs">≈ $2,880</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0">
+          <div class="t-lbl" style="margin-bottom:5px">Paid into</div>
+          <div class="sub" style="margin:0">
+            <div class="doc-ic"></div>
+            <div class="sub-t"><div>MTN MoMo · •••• 4417</div><div>Verified</div></div>
+            <div class="up ghost">Change</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="caption">
+        <b>Every figure in the project's own currency</b>, dollars beside it, one rate
+        fetched that day. Never dollars alone — a contractor in Limbe is paid in francs.
+      </p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="bar">
+          <div class="brand">Mr Nas · G+1<span>Documents</span></div>
+          <div class="avatar"></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">Work</div><div class="tab">Money</div>
+          <div class="tab on">Documents</div><div class="tab">Messages</div>
+        </div>
+
+        <div class="card">
+          <div class="t-lbl" style="margin-bottom:4px">The build</div>
+          <div class="doc"><div class="doc-ic"></div>
+            <div class="sub-t"><div>Mr Nas Ground Plan.pdf</div><div>Floor plan · 28 Oct</div></div></div>
+          <div class="doc"><div class="doc-ic"></div>
+            <div class="sub-t"><div>Cost Estimate Limbe.pdf</div><div>Bill of quantities · 28 Oct</div></div></div>
+        </div>
+
+        <div class="card">
+          <div class="t-lbl" style="margin-bottom:4px">Evidence by stage</div>
+          <div class="doc"><div class="doc-ic"></div>
+            <div class="sub-t"><div>Foundation</div><div>6 photos · approved 21 Oct</div></div>
+            <span class="pill done">Approved</span></div>
+          <div class="doc"><div class="doc-ic"></div>
+            <div class="sub-t"><div>Structure &amp; walls</div><div>5 photos · in progress</div></div>
+            <span class="pill held">Open</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:0">
+          <div class="t-lbl" style="margin-bottom:4px">Certificates</div>
+          <div class="doc"><div class="doc-ic"></div>
+            <div class="sub-t"><div>Stage 4 · Foundation</div><div>Issued 21 Oct</div></div>
+            <div class="up ghost">Share</div></div>
+        </div>
+      </div></div>
+      <p class="caption">
+        <b>Filed by stage, not by upload date.</b> "Show me the foundation photos" is the
+        question people actually ask; a reverse-chronological list never answers it.
+      </p>
+    </div>
+
+    <div style="flex:1; min-width:215px">
+      <h2>Open questions</h2>
+      <p class="lede" style="font-size:10.5px">
+        Three things this proposal does not settle, flagged rather than hidden:
+      </p>
+      <div class="note" style="margin-top:9px">
+        <b>1 · Substages per stage.</b> The four shown are illustrative. The real list
+        comes from <code>project_substages</code>, and whether a contractor may add one
+        on site is undecided.
+      </div>
+      <div class="note" style="margin-top:8px">
+        <b>2 · Who sees Money.</b> Shown here as the contractor's own earnings. If an
+        invited client opens the same project they must not see this tab in these words.
+      </div>
+      <div class="note" style="margin-top:8px">
+        <b>3 · Desktop.</b> This is drawn for the phone, which is where the work happens.
+        The wide layout is the same spine with the stage list and its evidence side by
+        side — worth agreeing before it is built, not after.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { ArrowLeft, Check, FileText, Loader2, Lock, Upload } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Loader2, Lock, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
   type AssignedProject, type ReworkItem, type ContractorPayment,
 } from '@/lib/supabase/contractor-work';
-import type { ProjectSubstageRow, ProjectDocumentRow } from '@/types/project';
+import type { ProjectRow, ProjectSubstageRow, ProjectDocumentRow } from '@/types/project';
+import { fetchProjectViewers, type ProjectViewer } from '@/lib/supabase/project-viewers';
+import { StagePipeline } from '@/components/contractor/StagePipeline';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
+import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
+import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
 import { uploadDocument } from '@/lib/supabase/documents';
@@ -30,19 +35,24 @@ import { ProjectConversations } from '@/components/project/ProjectConversations'
 // governs what happens next.
 // =========================================================
 
-type Tab = 'work' | 'documents' | 'payments' | 'messages';
+type Tab = 'work' | 'money' | 'documents' | 'messages' | 'people';
 
 /** Validated: a stale or arbitrary `?tab=` opens the work tab, never a blank one. */
-const ALL_TABS: Tab[] = ['work', 'documents', 'payments', 'messages'];
+const ALL_TABS: Tab[] = ['work', 'money', 'documents', 'messages', 'people'];
 function tabFromUrl(value: string | null): Tab {
+  // `payments` was this tab's name until the 29 Oct 2026 redesign. Notification
+  // emails and bookmarks still carry it, so it keeps working rather than silently
+  // dropping somebody on the work tab.
+  if (value === 'payments') return 'money';
   return ALL_TABS.includes(value as Tab) ? (value as Tab) : 'work';
 }
 
 const TABS: { id: Tab; key: TKey }[] = [
   { id: 'work',      key: 'contractorProject.tabWork' },
+  { id: 'money',     key: 'contractorProject.tabMoney' },
   { id: 'documents', key: 'contractorProject.tabDocuments' },
-  { id: 'payments',  key: 'contractorProject.tabPayments' },
   { id: 'messages',  key: 'contractorProject.tabMessages' },
+  { id: 'people',    key: 'contractorProject.tabPeople' },
 ];
 
 export default function ContractorProjectDetail() {
@@ -139,6 +149,16 @@ export default function ContractorProjectDetail() {
         </p>
       </header>
 
+      {/* The spine, named. Same shape the client sees, so a phone call about progress
+          starts from one picture rather than two. Labels only where there is room —
+          on a phone the dots carry it and the stage name is spelled out below. */}
+      {stages.length > 0 && (
+        <>
+          <StagePipeline stages={stages} size="md" labels className="hidden sm:flex" />
+          <StagePipeline stages={stages} className="sm:hidden" />
+        </>
+      )}
+
       {/* What a reviewer sent back sits above everything: it is the work. */}
       {rework.length > 0 && (
         <section className="rounded-2xl border border-state-held/40 bg-state-held/10 p-5">
@@ -178,68 +198,10 @@ export default function ContractorProjectDetail() {
       </nav>
 
       {tab === 'work' && (
-        <>
-          {/* Invite the client to watch their own build.
-              
-              Only when the CONTRACTOR owns the project — which happens when they set it
-              up themselves rather than for a client who already has an account. In that
-              case the build is managed end to end by the contractor, and the client is
-              the person it is for: they should be able to follow it.
-              
-              `invite_project_viewer` (112) already allows exactly this and nothing more.
-              Its guard is "only the owner may share", and here the owner IS the
-              contractor, so no new permission is involved — the control was simply
-              never shown on this page. */}
-          {user?.id === project.user_id && (
-            <ShareProject projectId={project.id} />
-          )}
-
-          {/* The stage ladder, read from the real lifecycle. No control to advance it:
-              completing a stage is not the contractor's to do. */}
-          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <h2 className="mb-3 text-sm font-semibold text-brand-near-black dark:text-white">
-              {t('contractorProject.pipeline')}
-            </h2>
-            {stages.length === 0 ? (
-              <p className="text-sm text-brand-mid-grey">{t('contractor.projects.noStages')}</p>
-            ) : (
-              <ol className="flex flex-col gap-1.5">
-                {stages.map(s => (
-                  <li key={s.id} className={cn('flex items-center gap-3 rounded-lg px-3 py-2',
-                    s.id === activeStage?.id && 'bg-brand-off-white dark:bg-[#2c2c2c]')}>
-                    <span className={cn('flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
-                      s.status === 'complete' ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black'
-                      : s.id === activeStage?.id ? 'border-2 border-brand-near-black text-brand-near-black dark:border-white dark:text-white'
-                      : 'bg-brand-off-white text-brand-mid-grey dark:bg-[#2c2c2c]')}>
-                      {s.status === 'complete' ? <Check className="size-3" />
-                        : s.status === 'locked' ? <Lock className="size-3" />
-                        : s.stage_number}
-                    </span>
-                    <span className={cn('flex-1 text-sm',
-                      s.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
-                      {stageLabel(s)}
-                    </span>
-                    <span className="text-[11px] uppercase tracking-wide text-brand-mid-grey">
-                      {t(`contractorStageStatus.${s.status}` as TKey)}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-
-          {activeStage
-            ? <SubmitWork projectId={project.id} stage={activeStage} substages={activeSubstages}
-                          substageLabel={substageLabel} onSubmitted={load} />
-            : (
-              <section className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-10 text-center">
-                <p className="text-sm font-medium text-brand-near-black dark:text-white">
-                  {t('contractorProject.noActiveStage')}
-                </p>
-                <p className="mt-1 text-xs text-brand-mid-grey">{t('contractorProject.noActiveStageBody')}</p>
-              </section>
-            )}
-        </>
+        <WorkTab
+          assigned={assigned} substages={substages} rework={rework}
+          onSubmitted={load}
+        />
       )}
 
       {tab === 'documents' && (
@@ -293,57 +255,21 @@ export default function ContractorProjectDetail() {
           {documents.length === 0 ? (
             <p className="text-sm text-brand-mid-grey">{t('contractorProject.noDocuments')}</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-              {documents.map(d => (
-                <li key={d.id} className="flex items-center gap-3 py-2.5">
-                  <FileText className="size-4 shrink-0 text-brand-mid-grey" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-brand-near-black dark:text-white">
-                    {d.file_name}
-                  </span>
-                  <span className="shrink-0 text-[11px] text-brand-mid-grey tabular-nums">
-                    {d.file_size ? `${Math.round(d.file_size / 1024)} KB` : '—'}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            /* Filed by what a document IS, not by when it arrived. "Show me the
+               foundation photos" is the question people actually ask on a call, and
+               a reverse-chronological list never answers it. */
+            <DocumentGroups documents={documents} />
           )}
 
         </section>
       )}
 
-      {tab === 'payments' && (
-        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-          <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-            {t('contractorProject.tabPayments')}
-          </h2>
-          {/* Observation only. Groundwork records and governs; a licensed payment
-              provider holds and moves the money. No confirm/authorise/reconcile here. */}
-          <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorPayments.note')}</p>
+      {tab === 'money' && (
+        <MoneyTab assigned={assigned} payments={payments} />
+      )}
 
-          {payments === null ? (
-            <p className="py-6 text-sm text-brand-mid-grey">{t('common.loading')}</p>
-          ) : !payments.available ? (
-            <p className="py-6 text-sm text-brand-mid-grey">{t('contractorPayments.unavailable')}</p>
-          ) : payments.rows.length === 0 ? (
-            <p className="py-6 text-sm text-brand-mid-grey">{t('contractorPayments.none')}</p>
-          ) : (
-            <ul className="mt-2 flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-              {payments.rows.map(p => (
-                <li key={p.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                  <span className="min-w-0 flex-1 truncate text-sm text-brand-near-black dark:text-white">
-                    {p.note ?? t('contractorPayments.milestone')}
-                  </span>
-                  <span className="text-sm tabular-nums text-brand-near-black dark:text-white">
-                    {p.currency} {p.amount.toLocaleString()}
-                  </span>
-                  <span className="rounded-full bg-brand-off-white px-2.5 py-1 text-[11px] font-medium text-brand-near-black dark:bg-[#2c2c2c] dark:text-white">
-                    {p.state}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {tab === 'people' && (
+        <PeopleTab project={project} isOwner={user?.id === project.user_id} />
       )}
 
       {tab === 'messages' && (
@@ -411,32 +337,12 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
   }
 
   return (
-    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+    <section>
       <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorSubmit.title')}</h2>
       <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorSubmit.subtitle')}</p>
 
-      {substages.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1">
-          {substages.map(s => (
-            <li key={s.id} className="flex items-center gap-2 text-sm">
-              <span className={cn('flex size-4 items-center justify-center rounded border',
-                s.status === 'complete'
-                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
-                  : 'border-brand-border-grey')}>
-                {s.status === 'complete' && <Check className="size-2.5" />}
-              </span>
-              <span className={s.status === 'complete' ? 'text-brand-mid-grey line-through' : 'text-brand-near-black dark:text-white'}>
-                {substageLabel(s)}
-              </span>
-              {s.evidence_urls.length > 0 && (
-                <span className="text-[11px] text-brand-mid-grey">
-                  {t('contractorSubmit.photoCount', { n: s.evidence_urls.length })}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* The item list itself is rendered by WorkTab, above this form: repeating it
+          here would be two copies of the same checklist on one screen. */}
 
       {!open ? (
         <p className="mt-4 text-sm text-brand-mid-grey">{t('contractorSubmit.closed')}</p>
@@ -503,5 +409,562 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Money, stage by stage.
+ *
+ * Every figure in the project's own currency with the dollar beside it, at one rate
+ * fetched today — see use-project-money.ts. The ledger rows underneath are what has
+ * actually moved; the stage schedule above is what is due when.
+ *
+ * Observation only. Groundwork records and governs the schedule; a licensed payment
+ * provider holds and moves the money. There is no confirm, authorise or reconcile
+ * here, and nothing on this tab says Groundwork is holding anything.
+ */
+function MoneyTab({ assigned, payments }: {
+  assigned: AssignedProject;
+  payments: { rows: ContractorPayment[]; available: boolean } | null;
+}) {
+  const t = useT();
+  const { stageLabel } = useStageLabels();
+  const money = useProjectMoney(assigned.project.country);
+  const { stages } = assigned;
+
+  const released = stages.filter(s => s.status === 'complete');
+  const sum = (list: typeof stages) =>
+    list.reduce((total, s) => total + (s.payment_milestone_usd ?? 0), 0);
+
+  const contract = money.pair(sum(stages));
+  const paid     = money.pair(sum(released));
+  const toCome   = money.pair(sum(stages) - sum(released));
+  const pct = sum(stages) > 0 ? Math.round((sum(released) / sum(stages)) * 100) : 0;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Figure label={t('contractorMoney.contractValue')} pair={contract} />
+        <Figure label={t('contractorMoney.releasedToYou')} pair={paid} tone="complete"
+                hint={t('contractorMoney.stagesReleased', { n: released.length })} />
+        <Figure label={t('contractorMoney.stillToCome')} pair={toCome}
+                hint={t('contractorMoney.stagesToCome', { n: stages.length - released.length })} />
+      </div>
+
+      <section>
+        <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
+            {t('contractorMoney.stageByStage')}
+          </h2>
+          <p className="text-xs text-brand-mid-grey">
+            {t('contractorMoney.rateToday', { rate: money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 }), code: money.code })}
+          </p>
+        </div>
+
+        {stages.length === 0 ? (
+          <p className="text-sm text-brand-mid-grey">{t('contractor.projects.noStages')}</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {stages.map(s => {
+              const due = money.pair(s.payment_milestone_usd);
+              const state = s.status === 'complete'
+                ? { label: t('contractorMoney.stateReleased'), tone: 'complete' as const }
+                : s.status === 'active' || s.status === 'pending_review'
+                  ? { label: t('contractorMoney.stateDue'), tone: 'held' as const }
+                  : { label: t('contractorMoney.stateNotDue'), tone: 'locked' as const };
+              return (
+                <li key={s.id} className={cn(
+                  'flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-white px-4 py-2.5 dark:bg-[#1e1e1e]',
+                  state.tone === 'held'
+                    ? 'border-brand-near-black dark:border-white'
+                    : 'border-brand-border-grey dark:border-[#2c2c2c]',
+                )}>
+                  <span className={cn(
+                    'flex size-[21px] shrink-0 items-center justify-center rounded-full font-mono text-[9.5px] font-semibold',
+                    state.tone === 'complete' && 'bg-state-complete text-white',
+                    state.tone === 'held'     && 'border-2 border-state-complete text-state-complete',
+                    state.tone === 'locked'   && 'border border-brand-border-grey text-brand-mid-grey dark:border-[#2c2c2c]',
+                  )}>
+                    {s.status === 'complete' ? <Check className="size-2.5 stroke-[3]" /> : s.stage_number}
+                  </span>
+                  <span className="min-w-32 flex-1 truncate text-xs font-semibold text-brand-near-black dark:text-white">
+                    {stageLabel(s)}
+                  </span>
+                  <span className={cn('flex shrink-0 items-center gap-1.5 text-[11px]',
+                    state.tone === 'complete' && 'text-state-complete',
+                    state.tone === 'held'     && 'text-state-held',
+                    state.tone === 'locked'   && 'text-brand-mid-grey',
+                  )}>
+                    <span aria-hidden className={cn('size-1.5 rounded-full',
+                      state.tone === 'complete' && 'bg-state-complete',
+                      state.tone === 'held'     && 'bg-state-held',
+                      state.tone === 'locked'   && 'bg-brand-border-grey',
+                    )} />
+                    {state.label}
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className={cn('block font-mono text-xs font-semibold tabular-nums',
+                      state.tone === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
+                      {due?.local ?? '—'}
+                    </span>
+                    {due?.usd && <span className="block font-mono text-[10px] text-brand-mid-grey">≈ {due.usd}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorMoney.progressOfContract')}
+          </h2>
+          <p className="mt-1.5 font-mono text-xl font-semibold tabular-nums text-brand-near-black dark:text-white">{pct}%</p>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-brand-border-grey dark:bg-[#2c2c2c]">
+            <div className="h-full rounded-full bg-state-complete" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-brand-mid-grey">
+            {t('contractorMoney.ofContract', { paid: paid?.local ?? '—', total: contract?.local ?? '—' })}
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorMoney.recordedPayments')}
+          </h2>
+          {/* Three states apart: unreadable ledger, readable and empty, and rows. */}
+          {payments === null ? (
+            <p className="mt-3 text-sm text-brand-mid-grey">{t('common.loading')}</p>
+          ) : !payments.available ? (
+            <p className="mt-3 text-sm text-brand-mid-grey">{t('contractorPayments.unavailable')}</p>
+          ) : payments.rows.length === 0 ? (
+            <p className="mt-3 text-sm text-brand-mid-grey">{t('contractorPayments.none')}</p>
+          ) : (
+            <ul className="mt-2 flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+              {payments.rows.map(p => (
+                <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-brand-near-black dark:text-white">
+                      {p.note ?? t('contractorPayments.milestone')}
+                    </span>
+                    <span className="block text-[11px] text-brand-mid-grey">{formatDate(p.createdAt)}</span>
+                  </span>
+                  <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-brand-near-black dark:text-white">
+                    {moneyPair(p.amount, p.currency, null).local}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPayments.note')}</p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function Figure({ label, pair, hint, tone }: {
+  label: string; pair: MoneyPair | null; hint?: string; tone?: 'complete';
+}) {
+  return (
+    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{label}</p>
+      <p className={cn('mt-1.5 font-mono text-xl font-semibold tabular-nums tracking-tight',
+        tone === 'complete' ? 'text-state-complete' : 'text-brand-near-black dark:text-white')}>
+        {pair?.local ?? '—'}
+      </p>
+      <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">
+        {pair?.usd ? `≈ ${pair.usd}` : ' '}
+      </p>
+      {hint && <p className="mt-1 text-xs text-brand-mid-grey">{hint}</p>}
+    </div>
+  );
+}
+
+/**
+ * Who is on this build, and what each of them may do.
+ *
+ * The matrix is deliberately explicit about what nobody here can do: release a
+ * payment. That follows a verifier's approval, and it is not a button anyone on this
+ * page holds — stating it once stops the question being asked on every call.
+ */
+function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean }) {
+  const t = useT();
+  const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchProjectViewers(project.id)
+      .then(rows => { if (alive) setViewers(rows); })
+      .catch(() => { if (alive) setViewers([]); });
+    return () => { alive = false; };
+  }, [project.id]);
+
+  const CAN: { label: string; you: boolean; client: boolean; verifier: boolean }[] = [
+    { label: t('contractorPeople.canSee'),     you: true,  client: true,  verifier: true },
+    { label: t('contractorPeople.canChat'),    you: true,  client: true,  verifier: true },
+    { label: t('contractorPeople.canDoc'),     you: true,  client: true,  verifier: false },
+    { label: t('contractorPeople.canEvidence'),you: true,  client: false, verifier: false },
+    { label: t('contractorPeople.canApprove'), you: false, client: false, verifier: true },
+    { label: t('contractorPeople.canRelease'), you: false, client: false, verifier: false },
+    { label: t('contractorPeople.canInvite'),  you: isOwner, client: false, verifier: false },
+  ];
+
+  return (
+    <div className="grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorPeople.onThisProject')}
+          </h2>
+
+          <div className="mt-3 flex items-center gap-3 border-t border-brand-border-grey pt-3 dark:border-[#2c2c2c]">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-near-black text-xs font-bold text-white dark:bg-white dark:text-brand-near-black">
+              <UserRound className="size-4" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-brand-near-black dark:text-white">
+                {t('contractorPeople.you')}
+              </span>
+              <span className="block text-xs text-brand-mid-grey">
+                {isOwner ? t('contractorPeople.youOwner') : t('contractorPeople.youAssigned')}
+              </span>
+            </span>
+          </div>
+
+          {viewers === null ? (
+            <p className="py-4 text-xs text-brand-mid-grey">{t('common.loading')}</p>
+          ) : viewers.length === 0 ? (
+            <p className="border-t border-brand-border-grey py-4 text-xs text-brand-mid-grey dark:border-[#2c2c2c]">
+              {t('contractorPeople.nobodyInvited')}
+            </p>
+          ) : (
+            <ul>
+              {viewers.map(v => (
+                <li key={v.id} className="flex items-center gap-3 border-t border-brand-border-grey py-3 dark:border-[#2c2c2c]">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-brand-border-grey text-[11px] font-bold text-brand-mid-grey dark:border-[#2c2c2c]">
+                    {v.email.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-brand-near-black dark:text-white">{v.email}</span>
+                    <span className="block text-xs text-brand-mid-grey">
+                      {v.acceptedAt
+                        ? t('contractorPeople.accepted', { date: formatDate(v.acceptedAt) })
+                        : t('contractorPeople.invitedNotOpened', { date: formatDate(v.invitedAt) })}
+                    </span>
+                  </span>
+                  <span className={cn('shrink-0 text-[11px] font-semibold',
+                    v.acceptedAt ? 'text-state-complete' : 'text-state-held')}>
+                    {v.acceptedAt ? t('contractorPeople.watching') : t('contractorPeople.pending')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorPeople.whoCanDoWhat')}
+          </h2>
+          <table className="mt-3 w-full border-collapse text-xs">
+            <thead>
+              <tr className="text-[9.5px] font-bold uppercase tracking-wider text-brand-mid-grey">
+                <th className="pb-2 text-left" />
+                <th className="w-16 pb-2">{t('contractorPeople.colYou')}</th>
+                <th className="w-16 pb-2">{t('contractorPeople.colClient')}</th>
+                <th className="w-16 pb-2">{t('contractorPeople.colVerifier')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CAN.map(row => (
+                <tr key={row.label} className="border-t border-brand-border-grey dark:border-[#2c2c2c]">
+                  <td className="py-2 text-brand-mid-grey">{row.label}</td>
+                  {[row.you, row.client, row.verifier].map((yes, i) => (
+                    <td key={i} className="py-2 text-center">
+                      {yes
+                        ? <Check className="mx-auto size-3.5 stroke-[3] text-state-complete" aria-label="yes" />
+                        : <span className="text-brand-border-grey" aria-label="no">—</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyReleases')}</p>
+        </section>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-4">
+        {/* Invite the client to watch their own build.
+            
+            Only when the CONTRACTOR owns the project — which happens when they set it
+            up themselves rather than for a client who already has an account. In that
+            case the build is managed end to end by the contractor, and the client is
+            the person it is for: they should be able to follow it.
+            
+            `invite_project_viewer` (112) already allows exactly this and nothing more.
+            Its guard is "only the owner may share", and here the owner IS the
+            contractor, so no new permission is involved. */}
+        {isOwner ? (
+          <ShareProject projectId={project.id} />
+        ) : (
+          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorPeople.inviteTitle')}
+            </h2>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.notYoursToShare')}</p>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Work tab: the stages, with the one being worked opened up.
+ *
+ * The approved shape (29 Oct 2026). Finished and locked stages collapse to a line
+ * carrying their name, their state and their money; the open one expands into its
+ * work items and the form that submits evidence against them.
+ *
+ * A work item's tick is an OUTPUT, never an input. It fills when a file lands
+ * against the item — `submit_site_update` does that server side. Nothing here
+ * completes a stage or approves anything: that is not the contractor's to do.
+ */
+function WorkTab({ assigned, substages, rework, onSubmitted }: {
+  assigned: AssignedProject;
+  substages: ProjectSubstageRow[];
+  rework: ReworkItem[];
+  onSubmitted: () => Promise<void> | void;
+}) {
+  const t = useT();
+  const { stageLabel, substageLabel } = useStageLabels();
+  const money = useProjectMoney(assigned.project.country);
+  const { project, stages, activeStage } = assigned;
+
+  if (stages.length === 0) {
+    return (
+      <section className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-10 text-center">
+        <p className="text-sm font-medium text-brand-near-black dark:text-white">
+          {t('contractor.projects.noStages')}
+        </p>
+      </section>
+    );
+  }
+
+  const openItems = activeStage ? substages.filter(s => s.stage_id === activeStage.id) : [];
+  const doneItems = openItems.filter(s => s.status === 'complete').length;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
+          {t('contractorProject.pipeline')}
+        </h2>
+        <p className="text-xs text-brand-mid-grey">
+          {t('contractorWork.stageSummary', {
+            done: assigned.completedStages,
+            open: activeStage ? 1 : 0,
+            left: stages.length - assigned.completedStages - (activeStage ? 1 : 0),
+          })}
+        </p>
+      </div>
+
+      {stages.map(stage => {
+        const isOpen = stage.id === activeStage?.id;
+        const due = money.pair(stage.payment_milestone_usd);
+        const sent = rework.filter(r => r.stageId === stage.id);
+
+        if (!isOpen) {
+          return (
+            <section key={stage.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              <span className={cn(
+                'flex size-[22px] shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-semibold',
+                stage.status === 'complete'
+                  ? 'bg-state-complete text-white'
+                  : 'border border-brand-border-grey text-brand-mid-grey dark:border-[#2c2c2c]',
+              )}>
+                {stage.status === 'complete' ? <Check className="size-2.5 stroke-[3]" />
+                  : stage.status === 'locked' ? <Lock className="size-2.5" />
+                  : stage.stage_number}
+              </span>
+              <span className={cn('min-w-32 flex-1 truncate text-[13px] font-semibold',
+                stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white')}>
+                {stageLabel(stage)}
+              </span>
+              <span className="shrink-0 text-[11px] uppercase tracking-wide text-brand-mid-grey">
+                {t(`contractorStageStatus.${stage.status}` as TKey)}
+              </span>
+              <span className="shrink-0 text-right">
+                <span className={cn('block font-mono text-xs tabular-nums',
+                  stage.status === 'complete' ? 'text-brand-near-black dark:text-white' : 'text-brand-mid-grey')}>
+                  {due?.local ?? '—'}
+                </span>
+                {due?.usd && <span className="block font-mono text-[10px] text-brand-mid-grey">≈ {due.usd}</span>}
+              </span>
+            </section>
+          );
+        }
+
+        return (
+          <section key={stage.id}
+            className="rounded-2xl border-[1.5px] border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 border-state-complete font-mono text-[10px] font-semibold text-state-complete">
+                {stage.stage_number}
+              </span>
+              <h3 className="flex-1 text-base font-bold tracking-tight text-brand-near-black dark:text-white">
+                {stageLabel(stage)}
+              </h3>
+              {openItems.length > 0 && (
+                <span className="font-mono text-xs text-brand-mid-grey">
+                  {doneItems} / {openItems.length} {t('contractorWork.items')}
+                </span>
+              )}
+            </div>
+            <p className="ml-[34px] mt-1 text-xs text-brand-mid-grey">{t('contractorWork.ticksItself')}</p>
+
+            {/* What a verifier sent back belongs to the stage it is about, not to a
+                separate list somewhere else in the app. */}
+            {sent.length > 0 && (
+              <div className="mt-4 rounded-xl border border-state-held/40 bg-state-held/10 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-state-held">
+                  {t('contractor.needsAction.title')}
+                </p>
+                {sent.map(r => (
+                  <div key={`${r.stageId}:${r.decidedAt}`} className="mt-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-state-held">
+                      {t(r.decision === 'rejected'
+                        ? 'contractor.decision.rejected'
+                        : 'contractor.decision.needsMoreEvidence')}
+                    </p>
+                    {r.findings && (
+                      <p className="mt-0.5 whitespace-pre-wrap text-sm text-brand-near-black dark:text-white">
+                        {r.findings}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {openItems.length > 0 && (
+              <ul className="mt-3">
+                {openItems.map(item => {
+                  const complete = item.status === 'complete';
+                  const count = item.evidence_urls?.length ?? 0;
+                  return (
+                    <li key={item.id}
+                        className="flex items-center gap-3 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+                      <span aria-hidden className={cn(
+                        'flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                        complete
+                          ? 'border-state-complete bg-state-complete text-white'
+                          : 'border-brand-border-grey dark:border-[#444]',
+                      )}>
+                        {complete && <Check className="size-2.5 stroke-[3]" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={cn('block truncate text-[13px]',
+                          complete ? 'text-brand-mid-grey' : 'font-semibold text-brand-near-black dark:text-white')}>
+                          {substageLabel(item)}
+                        </span>
+                        <span className="block text-[11px] text-brand-mid-grey">
+                          {count > 0
+                            ? t('contractorProject.evidenceCount', { count })
+                            : t('contractorProject.noEvidence')}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            <div className="mt-4 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
+              <SubmitWork projectId={project.id} stage={stage} substages={openItems}
+                          substageLabel={substageLabel} onSubmitted={onSubmitted} />
+            </div>
+
+            {due && (
+              <div className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 dark:bg-[#141414]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">
+                  {t('contractorDashboard.dueOnApproval')}
+                </p>
+                <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
+                  {due.local}
+                </p>
+                {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
+                <p className="mt-1.5 text-xs text-brand-mid-grey">{t('contractorWork.sendsItself')}</p>
+              </div>
+            )}
+          </section>
+        );
+      })}
+
+      {!activeStage && (
+        <section className="mt-2 rounded-2xl border border-dashed border-brand-border-grey px-4 py-10 text-center">
+          <p className="text-sm font-medium text-brand-near-black dark:text-white">
+            {t('contractorProject.noActiveStage')}
+          </p>
+          <p className="mt-1 text-xs text-brand-mid-grey">{t('contractorProject.noActiveStageBody')}</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Project documents, grouped by what they are.
+ *
+ * Three groups, in the order a contractor needs them: what the build was costed
+ * from, what has been photographed on site, and the paperwork around it. Anything
+ * whose category is unknown lands in the last group rather than disappearing.
+ */
+function DocumentGroups({ documents }: { documents: ProjectDocumentRow[] }) {
+  const t = useT();
+
+  const GROUPS: { key: TKey; of: (d: ProjectDocumentRow) => boolean }[] = [
+    { key: 'contractorDocs.theBuild', of: d => d.category === 'boq' },
+    { key: 'contractorDocs.siteEvidence', of: d => d.category === 'site_photo' },
+    { key: 'contractorDocs.paperwork', of: d => d.category !== 'boq' && d.category !== 'site_photo' },
+  ];
+
+  return (
+    <div className="flex flex-col gap-5">
+      {GROUPS.map(group => {
+        const rows = documents.filter(group.of);
+        if (rows.length === 0) return null;
+        return (
+          <section key={group.key}>
+            <h3 className="mb-1 text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t(group.key)}
+            </h3>
+            <ul className="flex flex-col divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+              {rows.map(d => (
+                <li key={d.id} className="flex items-center gap-3 py-2.5">
+                  <FileText className="size-4 shrink-0 text-brand-mid-grey" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-brand-near-black dark:text-white">
+                      {d.file_name}
+                    </span>
+                    <span className="block text-[11px] text-brand-mid-grey">
+                      {formatDate(d.created_at)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-brand-mid-grey">
+                    {d.file_size ? `${Math.round(d.file_size / 1024)} KB` : '—'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
   );
 }

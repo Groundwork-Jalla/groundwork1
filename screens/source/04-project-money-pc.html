@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Project · Money — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .mrow{ display:flex; align-items:center; gap:12px; padding:9px 15px; background:var(--paper);
+         border:1px solid var(--rule); border-radius:10px; margin-bottom:6px }
+  .mrow .num{ width:21px; height:21px; border-radius:50%; flex:0 0 21px; display:flex;
+              align-items:center; justify-content:center; font-family:var(--mono); font-size:9.5px;
+              font-weight:600; background:var(--canvas); color:var(--ink35); border:1px solid var(--rule) }
+  .mrow.done .num{ background:var(--complete); color:#fff; border-color:var(--complete) }
+  .mrow.now .num{ border:2px solid var(--complete); color:var(--complete); background:var(--paper) }
+  .mrow.now{ border-color:var(--ink) }
+  .mrow .t{ flex:1; min-width:0 }
+  .mrow .t b{ font-size:12.5px; font-weight:600; display:block }
+  .mrow .t span{ font-size:11px; color:var(--ink35) }
+  .mrow .st{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink60);
+             flex:0 0 150px }
+  .mrow .amt{ text-align:right; flex:0 0 155px }
+</style>
+</head>
+<body class="pc">
+<div class="app">
+  <aside class="side" data-nav="projects"></aside>
+  <div class="main">
+    <div class="phead" data-ptab="money"></div>
+    <div class="work">
+      <section>
+        <div class="tiles" style="grid-template-columns:repeat(3,1fr); margin-bottom:14px">
+          <div class="tile">
+            <div class="lbl">Contract value</div>
+            <div class="fig xl">38,821,000</div>
+            <div class="sub"><span class="d active"></span> XAF · ≈&nbsp;$65,945</div>
+          </div>
+          <div class="tile">
+            <div class="lbl">Released to you</div>
+            <div class="fig xl" style="color:var(--complete)">18,420,000</div>
+            <div class="sub"><span class="d complete"></span> 4 stages · ≈&nbsp;$31,291</div>
+          </div>
+          <div class="tile">
+            <div class="lbl">Still to come</div>
+            <div class="fig xl">20,401,000</div>
+            <div class="sub"><span class="d locked"></span> 6 stages · ≈&nbsp;$34,654</div>
+          </div>
+        </div>
+
+        <div class="sec-h"><h2>Stage by stage</h2><span>Rate 588.68 XAF to $1, fetched today</span></div>
+        <div class="mrow done">
+          <div class="num">✓</div>
+          <div class="t"><b>Land secured</b><span>Approved 2 Sep</span></div>
+          <div class="st"><span class="d complete"></span>Released</div>
+          <div class="amt"><div class="fig sm">11,700,000 XAF</div><div class="usd">≈ $19,875</div></div>
+        </div>
+        <div class="mrow done">
+          <div class="num">✓</div>
+          <div class="t"><b>Design completed</b><span>Approved 14 Sep</span></div>
+          <div class="st"><span class="d complete"></span>Released</div>
+          <div class="amt"><div class="fig sm">0 XAF</div><div class="usd">Not billed on this build</div></div>
+        </div>
+        <div class="mrow done">
+          <div class="num">✓</div>
+          <div class="t"><b>Site preparation</b><span>Approved 6 Oct</span></div>
+          <div class="st"><span class="d complete"></span>Released</div>
+          <div class="amt"><div class="fig sm">1,940,000 XAF</div><div class="usd">≈ $3,296</div></div>
+        </div>
+        <div class="mrow done">
+          <div class="num">✓</div>
+          <div class="t"><b>Foundation</b><span>Approved 21 Oct</span></div>
+          <div class="st"><span class="d complete"></span>Released</div>
+          <div class="amt"><div class="fig sm">4,780,000 XAF</div><div class="usd">≈ $8,120</div></div>
+        </div>
+        <div class="mrow now">
+          <div class="num">5</div>
+          <div class="t"><b>Structure &amp; walls</b><span>2 of 4 evidence items uploaded</span></div>
+          <div class="st"><span class="d held"></span>Due on approval</div>
+          <div class="amt"><div class="fig sm">6,356,000 XAF</div><div class="usd">≈ $10,800</div></div>
+        </div>
+        <div class="mrow todo">
+          <div class="num">6</div>
+          <div class="t"><b>Roofing</b><span>Opens when stage 5 is approved</span></div>
+          <div class="st"><span class="d locked"></span>Not yet due</div>
+          <div class="amt" style="color:var(--ink35)"><div class="fig sm">1,695,000 XAF</div><div class="usd">≈ $2,880</div></div>
+        </div>
+        <div class="mrow todo">
+          <div class="num">7</div>
+          <div class="t"><b>Electrical &amp; plumbing</b><span>Opens when stage 6 is approved</span></div>
+          <div class="st"><span class="d locked"></span>Not yet due</div>
+          <div class="amt" style="color:var(--ink35)"><div class="fig sm">3,410,000 XAF</div><div class="usd">≈ $5,792</div></div>
+        </div>
+        <div class="mrow todo">
+          <div class="num">8</div>
+          <div class="t"><b>Finishing</b><span>Opens when stage 7 is approved</span></div>
+          <div class="st"><span class="d locked"></span>Not yet due</div>
+          <div class="amt" style="color:var(--ink35)"><div class="fig sm">5,220,000 XAF</div><div class="usd">≈ $8,867</div></div>
+        </div>
+        <div class="mrow todo">
+          <div class="num">9</div>
+          <div class="t"><b>Exterior work</b><span>Opens when stage 8 is approved</span></div>
+          <div class="st"><span class="d locked"></span>Not yet due</div>
+          <div class="amt" style="color:var(--ink35)"><div class="fig sm">2,180,000 XAF</div><div class="usd">≈ $3,703</div></div>
+        </div>
+        <div class="mrow todo">
+          <div class="num">10</div>
+          <div class="t"><b>Final handover</b><span>Opens when stage 9 is approved</span></div>
+          <div class="st"><span class="d locked"></span>Not yet due</div>
+          <div class="amt" style="color:var(--ink35)"><div class="fig sm">1,540,000 XAF</div><div class="usd">≈ $2,616</div></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card">
+          <div class="lbl">Progress of the contract</div>
+          <div class="fig lg">47%</div>
+          <div class="bar"><i style="width:47%"></i></div>
+          <div class="bar-l"><span>18,420,000 released</span><span>of 38,821,000</span></div>
+        </div>
+
+        <div class="card">
+          <div class="lbl">Paid into</div>
+          <div class="person" style="padding-top:0">
+            <div class="av">MM</div>
+            <div class="t"><b>MTN MoMo ···· 4417</b><span>Checked 14 Oct · used by default</span></div>
+            <span class="act">Change</span>
+          </div>
+          <p style="font-size:11.5px; color:var(--ink35); margin-top:10px">
+            Every project you are assigned to pays into this account unless you change it.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="lbl">How a stage gets paid</div>
+          <div class="kv"><span class="k">1 · You upload evidence</span><span class="v"><small>Every item on the stage</small></span></div>
+          <div class="kv"><span class="k">2 · A verifier checks it</span><span class="v"><small>Independent of you</small></span></div>
+          <div class="kv"><span class="k">3 · The stage is approved</span><span class="v"><small>Certificate issued</small></span></div>
+          <div class="kv"><span class="k">4 · Payment is released</span><span class="v"><small>To the account above</small></span></div>
+          <p style="font-size:11.5px; color:var(--ink35); margin-top:11px">
+            Groundwork records and governs the schedule. It does not hold your money.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

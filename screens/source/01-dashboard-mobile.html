@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dashboard — phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .mcard{ background:var(--paper); border:1px solid var(--rule); border-radius:12px;
+          padding:13px 14px; margin-bottom:10px }
+  .mcard.sel{ border-color:var(--ink) }
+  .mcard b.nm{ font-family:var(--sans); font-size:15px; font-weight:700; letter-spacing:-.3px; display:block }
+  .mcard .loc{ font-size:11.5px; color:var(--ink35) }
+  .mcard .pipe{ margin:11px 1px }
+  .mcard .f{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+             border-top:1px solid var(--rule); padding-top:10px }
+  .kpi{ flex:1; background:var(--paper); border:1px solid var(--rule); border-radius:11px; padding:10px 11px }
+  .kpi .lbl{ font-size:9.5px; margin-bottom:5px; line-height:1.2 }
+  .strip{ display:flex; gap:9px; margin-bottom:16px }
+</style>
+</head>
+<body class="mobile">
+<div class="wrap">
+  <div class="status"></div>
+  <div class="mtop">
+    <div class="bar1">
+      <div style="flex:1">
+        <div class="ttl">Groundwork</div>
+        <div class="sub">Bob Ousmane · verified contractor</div>
+      </div>
+      <div class="ib"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-6 6c0 4-1.5 5.5-1.5 5.5h15S18 13 18 9a6 6 0 0 0-6-6Z"/><path d="M10.2 18a2 2 0 0 0 3.6 0"/></svg></div>
+      <div class="ava" style="width:32px; height:32px; flex:0 0 32px; font-size:11.5px">BO</div>
+    </div>
+  </div>
+  <div class="feed">
+    <div class="strip">
+      <div class="kpi">
+        <div class="lbl">Active builds</div>
+        <div class="fig" style="font-size:17px">3</div>
+        <div class="sub" style="font-size:9.5px; color:var(--ink60); margin-top:5px; display:flex; align-items:center; gap:5px"><span class="d active"></span> 2 on site</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Awaiting<br>verification</div>
+        <div class="fig" style="font-size:17px">1</div>
+        <div class="sub" style="font-size:9.5px; color:var(--ink60); margin-top:5px; display:flex; align-items:center; gap:5px"><span class="d held"></span> Mr Nas</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Released<br>to you</div>
+        <div class="fig" style="font-size:17px">18.4M</div>
+        <div class="sub" style="font-size:9.5px; color:var(--ink60); margin-top:5px; display:flex; align-items:center; gap:5px"><span class="d complete"></span> XAF</div>
+      </div>
+    </div>
+
+    <div class="sec-h"><h2>Your builds</h2><a>See all 3</a></div>
+
+    <div class="mcard sel">
+      <b class="nm">Mr Nas residence</b>
+      <span class="loc">G+1 · Limbe · stage 5 of 10</span>
+      <div class="state held" style="margin-top:4px; font-size:11.5px"><span class="d held"></span> 2 of 4 evidence items</div>
+      <div class="pipe"><div class="step done"><div class="dot">✓</div></div><div class="step done"><div class="dot">✓</div></div><div class="step done"><div class="dot">✓</div></div><div class="step done"><div class="dot">✓</div></div><div class="step now"><div class="dot">5</div></div><div class="step "><div class="dot">6</div></div><div class="step "><div class="dot">7</div></div><div class="step "><div class="dot">8</div></div><div class="step "><div class="dot">9</div></div><div class="step "><div class="dot">10</div></div></div>
+      <div class="f">
+        <div><div style="font-size:12.5px; font-weight:600">Structure &amp; walls</div>
+             <div style="font-size:10.5px; color:var(--ink35)">Next release on this stage</div></div>
+        <div style="text-align:right"><div class="fig sm">6,356,000 XAF</div><div class="usd">≈ $10,800</div></div>
+      </div>
+      <div class="well" style="margin-top:11px">
+        <div class="t"><b>Columns cast</b><span>Photograph it to tick this off</span></div>
+        <div class="mini solid"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="14" rx="3"/><path d="M8.5 6 10 3h4l1.5 3"/><circle cx="12" cy="13" r="3.6"/></svg>Upload</div>
+      </div>
+    </div>
+
+    <div class="mcard">
+      <b class="nm">Mrs Rose duplex</b>
+      <span class="loc">G+1 · Buea · stage 3 of 10</span>
+      <div class="state locked" style="margin-top:4px; font-size:11.5px"><span class="d locked"></span> Nothing uploaded yet</div>
+      <div class="pipe"><div class="step done"><div class="dot">✓</div></div><div class="step done"><div class="dot">✓</div></div><div class="step now"><div class="dot">3</div></div><div class="step "><div class="dot">4</div></div><div class="step "><div class="dot">5</div></div><div class="step "><div class="dot">6</div></div><div class="step "><div class="dot">7</div></div><div class="step "><div class="dot">8</div></div><div class="step "><div class="dot">9</div></div><div class="step "><div class="dot">10</div></div></div>
+      <div class="f">
+        <div><div style="font-size:12.5px; font-weight:600">Site preparation</div>
+             <div style="font-size:10.5px; color:var(--ink35)">Next release on this stage</div></div>
+        <div style="text-align:right"><div class="fig sm">2,120,000 XAF</div><div class="usd">≈ $3,601</div></div>
+      </div>
+    </div>
+
+    <div class="mcard">
+      <b class="nm">Tabi family home</b>
+      <span class="loc">Bungalow · Bamenda · stage 2 of 10</span>
+      <div class="state complete" style="margin-top:4px; font-size:11.5px"><span class="d complete"></span> Land secured 19 Oct</div>
+      <div class="pipe"><div class="step done"><div class="dot">✓</div></div><div class="step now"><div class="dot">2</div></div><div class="step "><div class="dot">3</div></div><div class="step "><div class="dot">4</div></div><div class="step "><div class="dot">5</div></div><div class="step "><div class="dot">6</div></div><div class="step "><div class="dot">7</div></div><div class="step "><div class="dot">8</div></div><div class="step "><div class="dot">9</div></div><div class="step "><div class="dot">10</div></div></div>
+    </div>
+  </div>
+  <nav class="tabbar" data-tab="dashboard"></nav>
+  <div class="home-ind"></div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>
