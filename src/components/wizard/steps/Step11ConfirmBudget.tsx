@@ -16,6 +16,7 @@ import { joinedBudget } from '@/lib/budget/joined-project';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
 import { useFormat, useT, type TKey } from '@/lib/i18n';
+import { trackFunnel, currentProjectAttemptId, clearProjectAttempt } from '@/lib/analytics/funnel';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
@@ -270,6 +271,14 @@ export default function Step11ConfirmBudget() {
       }
 
       clearDraft();
+
+      // Project creation ENDS here — "the final confirm and create stage". Closing
+      // the same attempt id the wizard opened with, so a person who tried three times
+      // and finished once reads as one completed and two incomplete rather than as
+      // one of each.
+      const attempt = currentProjectAttemptId();
+      if (attempt) trackFunnel('project_creation', 'completed', attempt);
+      clearProjectAttempt();
 
       // Nobody who is not the owner lands on the owner's project page — that view
       // assumes an owner, and a contractor dropped on it sees the client's own screen

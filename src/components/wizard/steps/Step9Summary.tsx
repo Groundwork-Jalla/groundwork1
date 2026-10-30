@@ -379,10 +379,15 @@ export default function Step9Summary() {
   const hasValidFootprint = hasExtractedFootprint || Number(manualFootprint) > 0;
   const validDateRange = !data.targetStartDate || !data.targetEndDate
     || data.targetEndDate >= data.targetStartDate;
+  // Mandatory from 30 Oct 2026. Philip: "selecting a project start date must be made a
+  // mandatory requirement" — it is half of what makes a project QUALIFIED (169: a bill
+  // of quantities plus a start date within 60 days of creation), and a field nobody
+  // filled in is a metric nobody can report. The end date stays optional.
+  const hasStartDate = !!data.targetStartDate;
 
   return (
     <WizardShell
-      canContinue={validDateRange && budgetConfirmed
+      canContinue={hasStartDate && validDateRange && budgetConfirmed
         && (!documentFlow || (!!data.projectName.trim() && hasValidFloors && hasValidFootprint))}
       continueLabel={t('wizard.confirmBudget.glanceCta')}
     >
@@ -495,10 +500,12 @@ export default function Step9Summary() {
           <div className="grid gap-3 p-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-brand-near-black">
-                {t('wizard.targetStartDate')}
+                {t('wizard.targetStartDate')} <span aria-hidden className="text-state-alert">*</span>
               </span>
               <input
                 type="date"
+                required
+                aria-required="true"
                 value={data.targetStartDate}
                 max={data.targetEndDate || undefined}
                 onChange={event => update({ targetStartDate: event.target.value })}
@@ -518,6 +525,11 @@ export default function Step9Summary() {
               />
             </label>
           </div>
+          {!hasStartDate && (
+            <p className="px-4 pb-3 text-xs text-brand-mid-grey">
+              {t('wizard.startDateRequired')}
+            </p>
+          )}
           {!validDateRange && (
             <p role="alert" className="px-4 pb-3 text-xs text-state-alert">
               {t('wizard.timelineDateRangeError')}

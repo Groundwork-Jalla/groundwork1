@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { Check, CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT, type TKey } from '@/lib/i18n';
+import { trackFunnel } from '@/lib/analytics/funnel';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
@@ -137,7 +138,14 @@ export default function PartnerApplication() {
     setBooking(url);
     // Only when a real slot was shown. An unconfigured schedule is not a booking step
     // they reached — it is one we failed to offer, and counting it would hide that.
-    if (url) void markBookingShown();
+    if (url) {
+      void markBookingShown();
+      // The calendar was actually shown. The END of this sequence lives in Philip's
+      // calendar, not here — the widget is a cross-origin iframe, so Groundwork can
+      // see that a slot was offered and never that one was taken. That gap is the
+      // finding, and it is not papered over by recording a completion we cannot see.
+      trackFunnel('call_booking', 'started');
+    }
   }, []);
 
   useEffect(() => {
@@ -247,6 +255,13 @@ export default function PartnerApplication() {
     && projectStatus !== null && clientOnSiteDaily !== null && useGroundwork !== null;
 
   function continueTo(nextPage: number) {
+    // The partner application has BEGUN. Philip, 30 Oct 2026: it starts when they
+    // press Next on the partner page having chosen a language — which is this, on
+    // the first page. Recorded here and not inferred from the onboarding answer:
+    // reading "I have a project" as the start of an application is what made one
+    // click end one sequence and begin another. The RPC keeps the first occurrence,
+    // so calling it on every Next cannot inflate the count.
+    trackFunnel('partner_application', 'started');
     setPageStack(stack => [...stack, page]);
     setPage(nextPage);
   }
@@ -383,6 +398,12 @@ export default function PartnerApplication() {
         role: prefill.specialty ?? '', operatesAs, city: '',
       });
       setState('pending');
+
+      // The application is SENT, which is where this sequence ends. Philip was
+      // explicit that it is not the booking: "sending the application and booking a
+      // call are distinct steps — users could complete the application and drop off
+      // beforehand", and collapsing the two would hide exactly those people.
+      trackFunnel('partner_application', 'completed');
 
       /**
        * Open the calendar, and load what they just told us.

@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { trackFunnel } from '@/lib/analytics/funnel';
 
 // =========================================================
 // Sharing a build with the people who care about it (112).
@@ -119,6 +120,10 @@ export async function inviteProjectViewer(
     p_project: projectId, p_email: email, p_relationship: relationship ?? null,
   });
   if (error) fail(error.message);
+  // An invitation was SENT. Philip asked for "sent invitations along with their
+  // acceptance status", so the pair is the project: one invitation per project is
+  // the unit being followed up, and the acceptance below closes the same subject.
+  trackFunnel('client_invitation', 'started', projectId);
   return String(data);
 }
 
@@ -187,7 +192,14 @@ export async function getViewerInvitePreview(token: string): Promise<ViewerInvit
 export async function acceptProjectViewer(token: string): Promise<string> {
   const { data, error } = await supabase.rpc('accept_project_viewer', { p_token: token });
   if (error) fail(error.message);
-  return String(data);
+  const projectId = String(data);
+  // Accepted. This is the step that moves a project from qualified toward verified
+  // (169), which is why Philip wanted the acceptance tracked and not just the send.
+  //
+  // Recorded against the CLIENT, who is the person signed in here — so the pair is
+  // "this client was invited to this project and joined it", not the contractor's.
+  trackFunnel('client_invitation', 'completed', projectId);
+  return projectId;
 }
 
 /** The owner takes it back — or the viewer removes their own access. Immediate. */

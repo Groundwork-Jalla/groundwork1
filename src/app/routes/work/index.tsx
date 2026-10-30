@@ -161,11 +161,9 @@ export default function ContractorDashboard() {
           <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
             {t('contractor.dashboard.title')}
           </h1>
-          <p className="mt-1 text-sm text-brand-mid-grey">
-            {firstName
-              ? t('contractor.dashboard.greeting', { name: firstName })
-              : t('contractor.dashboard.subtitle')}
-          </p>
+          {/* The greeting line was here — "Your projects, {name}, and the work
+              Groundwork is waiting on". Deleted 30 Oct 2026 (Philip, recording 2):
+              the heading already says whose dashboard this is. */}
         </div>
         <Link
           to="/projects/new"
@@ -255,11 +253,11 @@ export default function ContractorDashboard() {
             list below the fold. */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Tile label={t('contractorDashboard.tileActiveBuilds')} value={projects.length}
-                dot="active" hint={t('contractorDashboard.tileActiveHint', { n: String(activeBuilds) })} />
+                dot="active" />
           {/* Verification is hidden until the feature is finished (30 Oct 2026), so
               neither the tile nor the filter may announce a stage nobody can act on. */}
-          <Tile label={t('contractorDashboard.tileNeedsYou')} value={needsYou}
-                dot="held" hint={t('contractorDashboard.tileNeedsYouHint')} />
+          <Tile label={t('contractorDashboard.tileActionItems')} value={needsYou}
+                dot="held" />
           <ReleasedTile payments={payments} />
         </div>
 
@@ -363,8 +361,7 @@ function ReleasedTile({ payments }: { payments: { rows: ContractorPayment[]; ava
   const currencies = new Set(rows.map(r => r.currency.toUpperCase()));
 
   if (rows.length === 0) {
-    return <Tile label={t('contractorDashboard.tileReleased')} value={0} dot="locked"
-                 hint={t('contractorDashboard.noReleases')} />;
+    return <Tile label={t('contractorDashboard.tileReleased')} value={0} dot="locked" />;
   }
 
   if (currencies.size > 1) {
@@ -382,10 +379,8 @@ function ReleasedTile({ payments }: { payments: { rows: ContractorPayment[]; ava
       <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums tracking-tight text-state-complete">
         {moneyPair(total, code, null).local}
       </p>
-      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-mid-grey">
-        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-state-complete" />
-        {t('contractorDashboard.tileReleasedCount', { n: String(rows.length) })}
-      </p>
+      {/* The "{n} payment(s) recorded" line went with the other tile subtexts,
+          30 Oct 2026: "this dashboard we make it super clean, super simple". */}
     </div>
   );
 }

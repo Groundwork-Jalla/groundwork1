@@ -11,6 +11,7 @@ import { PhoneField } from '@/components/ui/PhoneField';
 import { AgreementReader } from '@/components/contractor/AgreementReader';
 import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
+import { trackFunnel } from '@/lib/analytics/funnel';
 import { isValidPhone } from '@/lib/phone';
 import {
   CONTRACTOR_ROLES, requiresLicence, type ContractorRole,
@@ -156,6 +157,15 @@ export default function ContractorOnboarding() {
               await setPartnerInterest(wantsPartner);
               const next = await setClientIntent(wantsPartner ? 'onboard_client' : 'no_client');
               setStatus(next);
+              // Contractor onboarding ENDS here, and only here. Philip, 30 Oct 2026:
+              // it "concludes when users select either 'I have a project' or 'I don't
+              // have a project'". Both answers end it — saying no is a finished
+              // onboarding, not an abandoned one.
+              //
+              // This records the end of THIS sequence and nothing else. The partner
+              // application has its own start, on its own page; reading this same
+              // click as that start is the double count being removed.
+              trackFunnel('contractor_onboarding', 'completed');
               const destination = intent === 'onboard_client' ? '/work/partner'
                 : intent === 'create_project' ? '/projects/new'
                 : '/work';

@@ -26,7 +26,9 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
   links: PortalLink[];
   roleKey: TKey;
   searchKey: TKey;
-  scopeKey: TKey;
+  /** The line under Help in the sidebar. Optional: the contractor shell dropped
+   *  it 30 Oct 2026 (Philip) — "that's just completely unnecessary". */
+  scopeKey?: TKey;
   helpTo?: string;
   /**
    * Render the navigation but refuse to follow it.
@@ -93,7 +95,7 @@ export function PortalShell({ children, displayName, onLogout, home, links, tabs
         </nav>
         <div className="mt-auto pt-12">
           {helpTo && <Link to={helpTo!} onClick={() => setOpen(false)} className="flex items-center gap-3 border-t border-brand-border-grey pt-5 text-sm font-medium dark:border-[#2c2c2c]"><CircleHelp className="size-5" />{t('nav.help')}</Link>}
-          <p className="mt-3 text-xs leading-relaxed text-brand-mid-grey">{t(scopeKey)}</p>
+          {scopeKey && <p className="mt-3 text-xs leading-relaxed text-brand-mid-grey">{t(scopeKey)}</p>}
         </div>
       </aside>
       <main id="portal-content" className={cn('min-w-0 px-4 py-6 sm:px-6 md:ml-60 lg:px-8', tabs?.length && 'pb-28 md:pb-6')}>

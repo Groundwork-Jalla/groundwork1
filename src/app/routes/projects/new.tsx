@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { mustChangePassword, FORCED_PASSWORD_PATH } from '@/lib/auth/provisioned';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
+import { trackFunnel, projectAttemptId } from '@/lib/analytics/funnel';
 import { WizardProvider, useWizard } from '@/contexts/WizardContext';
 import { PlanQuestionStep } from '@/components/wizard/PlanQuestionStep';
 import { ownProjectDraftKey } from '@/lib/contractor/client-onboarding-draft';
@@ -54,6 +55,19 @@ export default function NewProjectPage() {
   useEffect(() => {
     if (!loading && !session) navigate('/auth/login', { replace: true });
   }, [loading, session, navigate]);
+
+  // Project creation has STARTED. Philip, 30 Oct 2026: it "begins when a user clicks
+  // the create a project or I have a project button and ends at the final confirm and
+  // create stage", and he called incomplete creations the gap nobody could see.
+  //
+  // No subject id: there is no project yet — that is the whole point. The completion
+  // carries the id, and a start without one is somebody who opened the wizard and
+  // walked away.
+  useEffect(() => {
+    if (!session) return;
+    const attempt = projectAttemptId();
+    if (attempt) trackFunnel('project_creation', 'started', attempt);
+  }, [session]);
 
   // This full-screen route sits outside the client shell, so it must enforce the
   // same password setup requirement before mounting any project creation state.

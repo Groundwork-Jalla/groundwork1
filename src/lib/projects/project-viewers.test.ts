@@ -131,10 +131,21 @@ describe('what the people involved are told', () => {
     expect(block).toMatch(/cannot change anything, approve anything or move any money/);
   });
 
-  it('the owner is told what they are handing over', () => {
+  it('the owner is told what the invitation is for', () => {
+    /**
+     * This used to require the sentence "They cannot approve work, move money or
+     * invite anybody". Philip rewrote the panel on 30 Oct 2026: the invitation now
+     * says what the client GETS — progress updates and one place for the
+     * conversation — rather than listing what they are denied.
+     *
+     * The limits are not softened, only unsaid here: they are enforced by 112's
+     * policies, which are FOR SELECT, and that is asserted elsewhere in this file.
+     * Copy is the wrong place to carry a permission guarantee anyway.
+     */
     const en = read('src/lib/i18n/en.ts');
     const block = en.slice(en.indexOf('  projectShare: {'), en.indexOf('\n  },', en.indexOf('  projectShare: {')));
-    expect(block).toMatch(/They cannot approve work, move money or invite anybody/);
+    expect(block).toMatch(/progress updates/i);
+    expect(block).toMatch(/one place/i);
   });
 
   it('the panel shows whether each person has actually opened it', () => {

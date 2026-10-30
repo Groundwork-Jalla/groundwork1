@@ -51,8 +51,25 @@ describe('the Money tab separates the schedule from the ledger', () => {
     expect(MONEY).toMatch(/toCome\s*=\s*money\.pair\(sum\(outstanding\)\)/);
   });
 
-  it('says plainly that approved is not paid', () => {
-    expect(MONEY).toMatch(/contractorMoney\.approvedNotPaid/);
+  it('counts only money that actually left, so it needs no footnote', () => {
+    /**
+     * The "approved is not the same as paid" line was deleted on 30 Oct 2026
+     * (Philip, recording 2). It was explaining a number that was wrong.
+     *
+     * `fetchMyPayments` took EVERY row in the 090 ledger: `direction = 'in'` is the
+     * CLIENT's money arriving and never reaches the contractor, and the `out` states
+     * run release_authorised -> initiated -> disbursed with a failed/reconciling
+     * recovery path. Authorised, failed and inbound rows were all being presented as
+     * money received — "it's recording these things as payments received, but there
+     * wasn't really any payments received".
+     *
+     * So the guarantee moved from a sentence under the figure to the query behind
+     * it, which is where it belongs.
+     */
+    const read = readFileSync('src/lib/supabase/contractor-work.ts', 'utf8');
+    const fn = read.slice(read.indexOf('export async function fetchMyPayments'));
+    expect(fn).toMatch(/\.eq\('direction', 'out'\)/);
+    expect(fn).toMatch(/\.eq\('state', 'disbursed'\)/);
   });
 });
 

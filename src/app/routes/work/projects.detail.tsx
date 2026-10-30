@@ -188,6 +188,7 @@ export default function ContractorProjectDetail() {
       {tab === 'work' && (
         <WorkTab
           assigned={assigned} substages={substages} rework={rework}
+          isOwner={user?.id === project.user_id}
           onSubmitted={load}
         />
       )}
@@ -362,7 +363,12 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
           {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
           {done && !error && <p role="status" className="text-xs text-state-complete">{t('contractorSubmit.sent')}</p>}
 
-          <button type="button" disabled={busy || (files.length === 0 && !description.trim())}
+          {/* A file is required, not merely one of file-or-note. Philip, 30 Oct 2026:
+              "a photo or a file must be added alongside a note before the submit
+              button should work." An item ticks itself when a file lands against it,
+              so a note-only update would tick an item with nothing to look at —
+              exactly the thing the checklist is supposed to make impossible. */}
+          <button type="button" disabled={busy || files.length === 0}
                   onClick={submit}
                   className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
@@ -537,9 +543,9 @@ function MoneyTab({ assigned, payments }: {
               total: contract?.local ?? '—',
             })}
           </p>
-          <p className="mt-1 text-[11px] text-brand-mid-grey">
-            {t('contractorMoney.approvedNotPaid', { n: approved.length })}
-          </p>
+          {/* The "approved is not the same as paid" footnote was here. Deleted
+              30 Oct 2026 (Philip, recording 2). The two figures are already
+              separate cards at the top of this tab. */}
         </section>
 
         <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -570,7 +576,7 @@ function MoneyTab({ assigned, payments }: {
               ))}
             </ul>
           )}
-          <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPayments.note')}</p>
+          {/* Footnote deleted 30 Oct 2026 (Philip, recording 2). */}
         </section>
       </div>
     </div>
@@ -754,10 +760,12 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * against the item — `submit_site_update` does that server side. Nothing here
  * completes a stage or approves anything: that is not the contractor's to do.
  */
-function WorkTab({ assigned, substages, rework, onSubmitted }: {
+function WorkTab({ assigned, substages, rework, isOwner, onSubmitted }: {
   assigned: AssignedProject;
   substages: ProjectSubstageRow[];
   rework: ReworkItem[];
+  /** Only the owner may invite; the rail offers it under the people list. */
+  isOwner: boolean;
   onSubmitted: () => Promise<void> | void;
 }) {
   const t = useT();
@@ -953,7 +961,7 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
       )}
     </div>
 
-    <WorkRail assigned={assigned} />
+    <WorkRail assigned={assigned} isOwner={isOwner} />
     </div>
   );
 }
@@ -966,7 +974,7 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
  * reported 30 Oct: "this is not how it is in the screen design." The verifier row
  * is not here, with the rest of verification.
  */
-function WorkRail({ assigned }: { assigned: AssignedProject }) {
+function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: boolean }) {
   const t = useT();
   const money = useProjectMoney(assigned.project.country);
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
@@ -1062,10 +1070,12 @@ function WorkRail({ assigned }: { assigned: AssignedProject }) {
         {viewers !== null && viewers.length === 0 && (
           <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
         )}
-        <Link to="?tab=people" className="mt-3 inline-block text-xs underline underline-offset-2 text-brand-mid-grey">
-          {t('contractorPeople.onThisProject')}
-        </Link>
+        {/* The "On this project" link was here. Removed 30 Oct 2026 (Philip): "that
+            link doesn't really do anything" — it pointed at the tab this panel is a
+            summary of. What belongs under the list is the way to add to it. */}
       </section>
+
+      {isOwner && <ShareProject projectId={project.id} />}
     </aside>
   );
 }
@@ -1227,27 +1237,9 @@ function DocumentsTab({ assigned, documents, isOwner }: {
       </div>
 
       <div className="flex min-w-0 flex-col gap-4">
-        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-            {t('contractorDocs.whoCanSee')}
-          </h2>
-          {/* The verifier row is hidden with the rest of verification (30 Oct 2026). */}
-          {viewers?.map(v => (
-            <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
-                    name={v.relationship?.trim() || v.email}
-                    role={t('contractorDocs.clientCanView')} />
-          ))}
-          <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
-                  name={t('contractorPeople.you')} role={t('contractorDocs.ownerEverything')} />
-          {viewers !== null && viewers.length === 0 && (
-            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
-          )}
-          {isOwner && (
-            <Link to="?tab=people" className="mt-3 inline-block text-xs underline underline-offset-2 text-brand-mid-grey">
-              {t('contractorPeople.inviteTitle')}
-            </Link>
-          )}
-        </section>
+        {/* "Who can see these" removed 30 Oct 2026 (Philip, recording 2): "not
+            needed at all on this document section". Who can see the project is
+            the People tab's subject, and it is one tab away. */}
 
         <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">

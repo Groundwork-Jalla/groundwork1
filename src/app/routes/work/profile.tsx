@@ -184,9 +184,9 @@ export default function ContractorProfile() {
                       hint={t('profile.emailCurrent')} />
             {editing
               ? <Field label={t('profile.phoneNumber')} value={phone} onChange={setPhone}
-                       hint={t('contractorProfile.phoneHint')} />
+                       />
               : <Readonly label={t('profile.phoneNumber')} value={phone || '—'}
-                          hint={t('contractorProfile.phoneHint')} />}
+                          />}
             {editing
               ? <Field label={t('contractorProfile.businessName')} value={business} onChange={setBusiness} />
               : <Readonly label={t('contractorProfile.businessName')} value={business || '—'} />}
@@ -216,11 +216,10 @@ export default function ContractorProfile() {
                       onChange={on => setTheme(on ? 'dark' : 'light')}
                       label={t('contractorProfile.darkMode')} />
             </Line>
-            <Line label={t('contractorProfile.currencyFirst')}
-                  hint={t('contractorProfile.currencyFirstHint')}>
-              <Segmented options={[['local', t('contractorProfile.localCurrency')], ['usd', 'USD']]}
-                         value={prefs.currencyFirst} onPick={v => void setCurrency(v as CurrencyFirst)} />
-            </Line>
+            {/* "Which currency is shown first" removed 30 Oct 2026 (Philip):
+                "this whole currency shown first thing is unnecessary". Every money
+                figure already shows the project's own currency with the dollar
+                beside it, so there was nothing for the choice to change. */}
           </section>
 
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -271,16 +270,10 @@ export default function ContractorProfile() {
             </Line>
           </section>
 
-          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <h2 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-              {t('contractorProfile.whatClientsSee')}
-            </h2>
-            <p className="text-xs text-brand-mid-grey">{t('contractorProfile.whatClientsSeeBody')}</p>
-            <button type="button"
-              className="mt-3 w-full rounded-lg border border-brand-border-grey px-4 py-2.5 text-sm font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-              {t('contractorProfile.seeMyPublicProfile')}
-            </button>
-          </section>
+          {/* "See my public profile" hidden 30 Oct 2026 (Philip): "let's go ahead
+              and just delete this for now — it becomes necessary at some point, but
+              for now it's just not". The button went nowhere: there is no public
+              profile page behind it yet. */}
 
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">

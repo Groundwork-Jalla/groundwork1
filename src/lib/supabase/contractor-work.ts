@@ -201,9 +201,26 @@ export interface ContractorPayment {
 }
 
 export async function fetchMyPayments(): Promise<{ rows: ContractorPayment[]; available: boolean }> {
+  // ── What counts as "released to you" ───────────────────────────────────────
+  //
+  // This read used to take EVERY row in the ledger. Philip, 30 Oct 2026: "it's
+  // recording these things as payments received, but there wasn't really any
+  // payments received — what's the basis of this record?"
+  //
+  // The basis was: nothing. `payments` (090) holds both directions and every state.
+  //   · `direction = 'in'`  is the CLIENT's money arriving. It never goes to the
+  //      contractor, and it was being counted as money they had received.
+  //   · `direction = 'out'` runs release_authorised → initiated → disbursed, with
+  //      initiated → failed → reconciling as the recovery path. Only `disbursed`
+  //      means the money left; authorised and failed rows were being counted too.
+  //
+  // So: outbound, and settled. Everything else is a schedule or an attempt, and the
+  // stage-by-stage table above is already where the schedule is shown.
   const { data, error } = await supabase
     .from('payments')
     .select('id, project_id, stage_id, direction, state, amount, currency, note, created_at')
+    .eq('direction', 'out')
+    .eq('state', 'disbursed')
     .order('created_at', { ascending: false });
   // A missing ledger is "not available", which the UI must distinguish from "none".
   if (error) return { rows: [], available: false };

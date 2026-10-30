@@ -251,7 +251,14 @@ describe('two calendars, and Vanessa co-hosts the French one', () => {
     // The widget is a cross-origin Google iframe, so a click inside it is invisible to
     // us. Marking only when a real URL came back keeps the counter honest: an
     // unconfigured schedule is a step we failed to offer, not one they reached.
-    expect(page).toMatch(/if \(url\) void markBookingShown\(\)/);
+    // Both the 136 counter and the 170 funnel event are inside the same `if (url)`,
+    // so neither can fire for a schedule that was never offered.
+    expect(page).toMatch(/if \(url\) \{/);
+    expect(page).toMatch(/void markBookingShown\(\)/);
+    expect(page).toMatch(/trackFunnel\('call_booking', 'started'\)/);
+    // And still no completion: 170 records the start of this sequence only, because
+    // the slot itself is taken inside a cross-origin iframe we cannot observe.
+    expect(page).not.toMatch(/trackFunnel\('call_booking', 'completed'\)/);
     const funnel = read('src/lib/admin/partner-funnel.ts');
     expect(funnel).toMatch(/NOT confirmed bookings/);
   });

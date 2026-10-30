@@ -80,21 +80,27 @@ export function ShareProject({ projectId }: { projectId: string }) {
       <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{t('projectShare.body')}</p>
 
       <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <div className="space-y-1.5">
-          <Label htmlFor="shareEmail" className="text-xs">{t('projectShare.email')}</Label>
-          <Input id="shareEmail" type="email" autoComplete="off" value={email}
-            onChange={e => setEmail(e.target.value)} />
-        </div>
+        {/* Name, then email address. 30 Oct 2026, Philip: "the question we should be
+            asking here is the client's name and client's email address — I don't
+            know what who they are is for." The column still stores a relationship
+            for older rows; new invitations put the client's name in it, which is
+            what the list and the invitation email both read. */}
         <div className="space-y-1.5">
           <Label htmlFor="shareRel" className="text-xs">{t('projectShare.relationship')}</Label>
           <Input id="shareRel" autoComplete="off" value={relationship}
             onChange={e => setRelationship(e.target.value)} />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="shareEmail" className="text-xs">{t('projectShare.email')}</Label>
+          <Input id="shareEmail" type="email" autoComplete="off" value={email}
+            onChange={e => setEmail(e.target.value)} />
+        </div>
         <Button type="submit" disabled={busy} className="h-9 text-xs">
           {busy ? <Loader2 className="size-4 animate-spin" /> : t('projectShare.invite')}
         </Button>
       </form>
-      <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('projectShare.relationshipHint')}</p>
+      {/* The "whatever helps you tell the list apart later" hint went with the
+          relabelled field, 30 Oct 2026. */}
 
       {sent  && <p className="mt-3 flex items-center gap-2 text-xs text-state-complete"><Check className="size-3.5" />{t('projectShare.sent', { email: sent })}</p>}
 
