@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, useT, type TKey } from '@/lib/i18n';
@@ -12,6 +13,7 @@ import {
   type CurrencyFirst, type NotifyKey, type NotifyPrefs,
 } from '@/lib/supabase/contractor-preferences';
 import { myApplicationState, myApplicationDetail, type ApplicationState } from '@/lib/supabase/partner-application';
+import { fetchMyDevices, type UserDevice } from '@/lib/supabase/user-devices';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +54,7 @@ export default function ContractorProfile() {
   const [editing, setEditing] = useState(false);
   const [partner, setPartner] = useState<ApplicationState | null>(null);
   const [regions, setRegions] = useState<string | null>(null);
+  const [devices, setDevices] = useState<UserDevice[] | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -69,6 +72,7 @@ export default function ContractorProfile() {
     void fetchAssignedProjects()
       .then(rows => { if (alive) setBuilds(rows.length); })
       .catch(() => {});
+    void fetchMyDevices().then(d => { if (alive) setDevices(d); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -245,15 +249,24 @@ export default function ContractorProfile() {
                     {t('profile.change')}
                   </button>}
             </Line>
-            {/* The design showed a device count. Supabase does not expose a contractor's
-                other sessions to the browser, and inventing "2 devices" would be a
-                number with nothing behind it. What IS true and useful is the ability
-                to end every session everywhere, so that is what this offers. */}
-            <Line label={t('contractorProfile.signedInElsewhere')}
+            {/* Real devices now (migration 168): the browser records its own on
+                sign-in, so this is a count with something behind it. Null means we
+                could not read the table — the row then says nothing rather than
+                claiming zero. Forgetting a device is not signing it out, and the
+                two actions are kept apart so neither can be mistaken for the other. */}
+            <Line label={t('contractorProfile.signedInOn')}
+                  hint={devices?.map(d => d.isThisOne
+                    ? t('contractorProfile.thisDevice', { label: d.label })
+                    : d.label).join(' · ')}>
+              <span className="text-sm font-semibold text-brand-near-black dark:text-white">
+                {devices === null ? '—' : t('contractorProfile.deviceCount', { n: devices.length })}
+              </span>
+            </Line>
+            <Line label={t('contractorProfile.signOutEverywhere')}
                   hint={t('contractorProfile.signedInElsewhereHint')}>
               <button type="button" onClick={() => void supabase.auth.signOut({ scope: 'global' })}
                 className="text-xs font-semibold underline underline-offset-2">
-                {t('contractorProfile.signOutEverywhere')}
+                {t('profile.signOut')}
               </button>
             </Line>
           </section>
@@ -278,6 +291,13 @@ export default function ContractorProfile() {
                 className="text-xs font-semibold text-state-alert underline underline-offset-2">
                 {t('profile.signOut')}
               </button>
+            </Line>
+            {/* On a phone the tab bar carries Dashboard/Projects/Payouts/Profile, so
+                Partner programme is reached from here — as the mobile design shows. */}
+            <Line label={t('partner.navLabel')}>
+              <Link to="/work/partner" className="text-xs font-semibold underline underline-offset-2">
+                {t('contractorProfile.open')}
+              </Link>
             </Line>
             <Line label={t('contractorProfile.closeAccount')}
                   hint={t('contractorProfile.closeAccountHint')}>

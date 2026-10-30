@@ -243,7 +243,10 @@ export default function ContractorDashboard() {
       )}
 
       {projects !== null && !error && <>
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* Three across at every width, as the designs show. The figures are
+            short enough to read at 360px and stacking them pushed the project
+            list below the fold. */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <Tile label={t('contractorDashboard.tileActiveBuilds')} value={projects.length}
                 dot="active" hint={t('contractorDashboard.tileActiveHint', { n: String(activeBuilds) })} />
           {/* Verification is hidden until the feature is finished (30 Oct 2026), so
@@ -316,15 +319,15 @@ function Tile({ label, value, hint, dot }: {
   dot: 'active' | 'held' | 'complete' | 'locked';
 }) {
   return (
-    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{label}</p>
+    <div className="min-w-0 rounded-2xl border border-brand-border-grey bg-white px-3 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] sm:px-4 sm:py-3.5">
+      <p className="text-[9px] font-bold uppercase leading-tight tracking-wider text-brand-mid-grey sm:text-[10px]">{label}</p>
       {/* A dash, not a zero: "could not read" and "none" are different facts. */}
-      <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums tracking-tight">
+      <p className="mt-1.5 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
         {value === null ? '—' : value}
       </p>
       {hint && (
-        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-mid-grey">
-          <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full',
+        <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-tight text-brand-mid-grey sm:text-xs">
+          <span aria-hidden className={cn('mt-1 size-1.5 shrink-0 rounded-full',
             dot === 'complete' && 'bg-state-complete',
             dot === 'held'     && 'bg-state-held',
             dot === 'locked'   && 'bg-brand-border-grey',

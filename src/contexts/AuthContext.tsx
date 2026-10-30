@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { rememberThisDevice } from '@/lib/supabase/user-devices';
 import type { Session, User } from "@supabase/supabase-js";
 import { holdsContractorAccess } from '@/lib/auth/roles';
 import { supabase } from "@/lib/supabase/client";
@@ -123,6 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => { cancelled = true; };
   }, [loading, session?.user?.id]);
+
+  // Note the device this account is signed in from (168), so Profile can show
+  // "signed in on N devices" from something real. Fire-and-forget: a failure here
+  // must never stand between somebody and their dashboard.
+  useEffect(() => {
+    const id = session?.user?.id;
+    if (!id) return;
+    void rememberThisDevice(id).catch(() => {});
+  }, [session?.user?.id]);
 
   async function signOut() {
     await supabase.auth.signOut();

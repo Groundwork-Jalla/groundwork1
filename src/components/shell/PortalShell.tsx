@@ -9,11 +9,20 @@ import { cn } from '@/lib/utils';
 
 export interface PortalLink { to: string; label: TKey; icon: LucideIcon; matchPrefix?: boolean }
 
-export function PortalShell({ children, displayName, onLogout, home, links, roleKey, searchKey, scopeKey, helpTo, navLocked, topBarActions }: {
+export function PortalShell({ children, displayName, onLogout, home, links, tabs, roleKey, searchKey, scopeKey, helpTo, navLocked, topBarActions }: {
   children: ReactNode;
   displayName: string;
   onLogout: () => void;
   home: string;
+  /**
+   * The four destinations that become a bottom tab bar on a phone.
+   *
+   * Every approved mobile screen has one (30 Oct 2026). A hamburger hides the
+   * whole product behind a tap, which on a site, one-handed, is a tap too many —
+   * so the places somebody actually goes sit under the thumb, and the drawer
+   * keeps the rest.
+   */
+  tabs?: string[];
   links: PortalLink[];
   roleKey: TKey;
   searchKey: TKey;
@@ -87,7 +96,39 @@ export function PortalShell({ children, displayName, onLogout, home, links, role
           <p className="mt-3 text-xs leading-relaxed text-brand-mid-grey">{t(scopeKey)}</p>
         </div>
       </aside>
-      <main id="portal-content" className="min-w-0 px-4 py-6 sm:px-6 md:ml-60 lg:px-8"><div className="mx-auto max-w-[1500px]">{children}</div></main>
+      <main id="portal-content" className={cn('min-w-0 px-4 py-6 sm:px-6 md:ml-60 lg:px-8', tabs?.length && 'pb-28 md:pb-6')}>
+        <div className="mx-auto max-w-[1500px]">{children}</div>
+      </main>
+
+      {/* The phone tab bar. Hidden from md up, where the sidebar is already there. */}
+      {tabs?.length ? (
+        <nav aria-label={t('nav.mainNavigation')}
+             className="fixed inset-x-0 bottom-0 z-30 flex border-t border-brand-border-grey bg-white px-2 pb-5 pt-2 md:hidden dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          {tabs.map(to => {
+            const link = links.find(l => l.to === to);
+            if (!link) return null;
+            const { icon: Icon, label, matchPrefix } = link;
+            const active = to === home
+              ? location.pathname === home
+              : matchPrefix ? location.pathname.startsWith(to) : location.pathname === to;
+            const body = (
+              <>
+                <Icon className="size-5" aria-hidden />
+                <span className="text-[10px] leading-none">{t(label)}</span>
+              </>
+            );
+            const cls = cn('flex flex-1 flex-col items-center gap-1.5 py-1.5',
+              active ? 'font-semibold text-brand-near-black dark:text-white' : 'text-brand-mid-grey');
+            // Inert while the surface is gated, exactly as the drawer behaves.
+            if (navLocked) return <span key={to} aria-disabled="true" className={cn(cls, 'opacity-40')}>{body}</span>;
+            return (
+              <Link key={to} to={to} aria-current={active ? 'page' : undefined} className={cls}>
+                {body}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
     </div>
   );
 }

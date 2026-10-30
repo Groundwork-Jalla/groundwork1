@@ -2192,7 +2192,7 @@ export const fr: Mirror<EnDict> = {
   contractor: {
     newProject: 'Nouveau projet',
     surface: { title: 'Groundwork · Entrepreneur' },
-    nav: { dashboard: 'Tableau de bord', projects: 'Projets' },
+    nav: { dashboard: 'Tableau de bord', projects: 'Projets', profile: 'Profil' },
     loadFailed: 'Vos travaux n\'ont pas pu être chargés. Actualisez la page, et signalez-le si cela persiste.',
     dashboard: {
       title:    'Tableau de bord entrepreneur',
@@ -2877,6 +2877,10 @@ export const fr: Mirror<EnDict> = {
       news:            'Actualit\u00e9s Groundwork',
     },
     signingIn:            'Connexion',
+    signedInOn:           'Connecté sur',
+    deviceCount:          '{n} appareil(s)',
+    thisDevice:           '{label} (celui-ci)',
+    open:                 'Ouvrir',
     signedInElsewhere:    'Autres appareils',
     signedInElsewhereHint: 'Met fin \u00e0 toutes les sessions, y compris celle-ci.',
     signOutEverywhere:    'Se d\u00e9connecter partout',

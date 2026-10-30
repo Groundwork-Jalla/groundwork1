@@ -22,6 +22,88 @@ interface FaqSection {
   items: FaqItem[];
 }
 
+/**
+ * Help is per role (Philip, 29 October).
+ *
+ * The list below this one was written for a client — "what countries do you
+ * support", "is my project data private". A contractor opening the same page got
+ * answers to questions they had not asked, and none to the ones they had.
+ *
+ * Every answer here describes what the product actually does today. Verification
+ * is deliberately not explained: it is hidden until the feature is finished, and
+ * documenting a screen nobody can reach would be worse than saying nothing.
+ */
+const CONTRACTOR_FAQ_SECTIONS: FaqSection[] = [
+  {
+    heading: 'Running a project',
+    items: [
+      {
+        q: 'How do I start a project?',
+        a: "Press 'New project' on your Dashboard or on the Projects page. The wizard asks where you are building and what you are building, and you can upload a floor plan and a bill of quantities — Groundwork reads the total from the bill rather than asking you to retype it.",
+      },
+      {
+        q: 'What are the ten stages?',
+        a: 'Land secured, design completed, site preparation, foundation, structure and walls, roofing, electrical and plumbing, finishing, exterior work, final handover. Every project runs on the same ten, so a client who has seen one build can read any other.',
+      },
+      {
+        q: 'My project is already half built. Can I still bring it?',
+        a: 'Yes. Say which stage you have reached when you set it up. The stages behind it are recorded as finished outside Groundwork: they carry no payment and no certificate, and your client is billed for the remaining work only.',
+      },
+    ],
+  },
+  {
+    heading: 'Updates and stages',
+    items: [
+      {
+        q: 'How do I show the work I have done?',
+        a: "Open the project, stay on the Work tab, and add a file against the item it belongs to. On a phone you can take the photo there and then — 'Take a photo' opens the camera; 'Choose a file' picks one you already have.",
+      },
+      {
+        q: 'Why can I not tick an item off myself?',
+        a: 'An item ticks itself when a file lands against it. That is the whole point: the tick means there is something to look at, so it can never say work is done when nothing was ever uploaded.',
+      },
+      {
+        q: 'What happens when every item has an update?',
+        a: 'The stage goes forward for approval on its own. You do not have to send it, and there is nothing further to press.',
+      },
+    ],
+  },
+  {
+    heading: 'Getting paid',
+    items: [
+      {
+        q: 'When am I paid?',
+        a: 'A stage is paid once it is approved. The amount for each stage is on the Money tab of the project, in the project’s own currency with the dollar figure beside it.',
+      },
+      {
+        q: 'Where do I set my account?',
+        a: "Payouts, in the sidebar. You can keep more than one account and choose which is used by default, and you can change them at any time. Groundwork checks new details before the first payment goes to them — you do not need to do anything while that happens.",
+      },
+      {
+        q: 'Does Groundwork hold my money?',
+        a: 'No. Groundwork records and governs the schedule — what is due, on which stage, and when it was approved. A licensed payment provider holds and moves the money itself.',
+      },
+    ],
+  },
+  {
+    heading: 'Your client',
+    items: [
+      {
+        q: 'Should I invite my client?',
+        a: "It is your decision. An invited client can follow the project, read the updates, ask questions in the chat and keep their own copy of every document. They cannot approve work, move money or invite anybody.",
+      },
+      {
+        q: 'Do you need my client’s phone number?',
+        a: 'No. An email address is enough, and the second field is optional — it is only there to help you tell people apart later.',
+      },
+      {
+        q: 'Where do messages live?',
+        a: 'Inside the project they are about, on the Messages tab. Anyone added to the project later reads the whole history, so nothing depends on one person’s phone.',
+      },
+    ],
+  },
+];
+
 const FAQ_SECTIONS: FaqSection[] = [
   {
     heading: 'Getting Started',
@@ -283,7 +365,7 @@ function ContactForm({ userEmail, userId }: { userEmail: string; userId: string 
 
 export default function HelpPage() {
   const t = useT();
-  const { user } = useAuth();
+  const { user, isContractor } = useAuth();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const contactRef = useRef<HTMLDivElement>(null);
 
@@ -295,10 +377,13 @@ export default function HelpPage() {
     contactRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // A contractor gets the contractor's questions. Anyone else keeps the client set.
+  const sections = isContractor ? CONTRACTOR_FAQ_SECTIONS : FAQ_SECTIONS;
+
   // Build a flat global index offset per section
   const sectionOffsets: number[] = [];
   let runningOffset = 0;
-  for (const section of FAQ_SECTIONS) {
+  for (const section of sections) {
     sectionOffsets.push(runningOffset);
     runningOffset += section.items.length;
   }
@@ -377,7 +462,7 @@ export default function HelpPage() {
           {t('help.faq')}
         </h2>
 
-        {FAQ_SECTIONS.map((section, sIdx) => {
+        {sections.map((section, sIdx) => {
           const offset = sectionOffsets[sIdx];
           return (
             <div key={section.heading}>

@@ -30,14 +30,17 @@ const links: PortalLink[] = [
   // /work/profile, NOT /profile. The shared profile page renders inside the CLIENT
   // shell, so a contractor who opened it was dropped into a sidebar of somebody
   // else's app — Favour, 30 Oct: no button here may send them to another dashboard.
-  { to: '/work/profile', label: 'nav.viewProfile', icon: UserRound },
+  { to: '/work/profile', label: 'contractor.nav.profile', icon: UserRound },
 ];
+
+/** The four that become the phone tab bar, in the order the designs show them. */
+const TABS = ['/work', '/work/projects', '/work/payouts', '/work/profile'];
 
 export function WorkShell({ children, displayName, onLogout, navLocked, topBarActions }: {
   children: ReactNode; displayName: string; onLogout: () => void; navLocked?: boolean;
   topBarActions?: ReactNode;
 }) {
-  return <PortalShell home="/work" links={links} displayName={displayName} onLogout={onLogout} navLocked={navLocked} topBarActions={topBarActions}
+  return <PortalShell home="/work" links={links} tabs={TABS} displayName={displayName} onLogout={onLogout} navLocked={navLocked} topBarActions={topBarActions}
     roleKey="contractor.surface.title" searchKey="contractorDashboard.search"
     scopeKey="contractor.dashboard.subtitle" helpTo="/help">{children}</PortalShell>;
 }

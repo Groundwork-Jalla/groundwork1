@@ -2230,7 +2230,7 @@ export const en = {
   contractor: {
     newProject: 'New project',
     surface: { title: 'Groundwork · Contractor' },
-    nav: { dashboard: 'Dashboard', projects: 'Projects' },
+    nav: { dashboard: 'Dashboard', projects: 'Projects', profile: 'Profile' },
     loadFailed: 'Your work could not be loaded. Refresh the page, and tell us if it keeps happening.',
     dashboard: {
       title:    'Contractor Dashboard',
@@ -2932,6 +2932,10 @@ export const en = {
       news:            'Groundwork news',
     },
     signingIn:            'Signing in',
+    signedInOn:           'Signed in on',
+    deviceCount:          '{n} device(s)',
+    thisDevice:           '{label} (this one)',
+    open:                 'Open',
     signedInElsewhere:    'Other devices',
     signedInElsewhereHint: 'Ends every session, including this one.',
     signOutEverywhere:    'Sign out everywhere',
