@@ -2,6 +2,7 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import { buildInviteHtml, inviteSubject } from "./src/lib/email/invite-html";
+import { buildShareHtml, shareSubject } from "./src/lib/email/share-html";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), ""); // no prefix — loads all vars incl. RESEND_API_KEY
@@ -132,6 +133,97 @@ export default defineConfig(({ mode }) => {
                 console.error("[invite] handler error:", err);
                 res.writeHead(500, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: String(err) }));
+              }
+            });
+          });
+        },
+      },
+      // ── Dev-only: serve /api/send-share-invite (112) ─────────────────────────
+      //
+      // Unlike the invite shim above, this one reads the row the way production does
+      // rather than trusting the body: dev has SUPABASE_SERVICE_ROLE_KEY, so there is
+      // no reason for the two to diverge, and a shim that takes the address from the
+      // caller is the open relay api/send-share-invite.ts exists to avoid.
+      {
+        name: "send-share-invite-dev",
+        apply: "serve" as const,
+        configureServer(server) {
+          server.middlewares.use("/api/events", (req: any, res: any, next: any) => {
+            const send = (code: number, body: unknown) => {
+              res.writeHead(code, { "Content-Type": "application/json" });
+              res.end(JSON.stringify(body));
+            };
+            // Mounted on the dispatcher path, so it must hand every OTHER action on,
+            // or this one shim silently becomes all of /api/events in dev. The action
+            // is read from the query because the body has not been consumed yet.
+            if (!String(req.url ?? "").includes("action=send-share-invite")) { next(); return; }
+            if (req.method !== "POST") { send(405, { error: "Method not allowed" }); return; }
+
+            const chunks: Buffer[] = [];
+            req.on("data", (c: Buffer) => chunks.push(c));
+            req.on("end", async () => {
+              try {
+                const { shareToken } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                if (typeof shareToken !== "string" || !shareToken) {
+                  send(400, { error: "Missing shareToken" }); return;
+                }
+
+                const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
+                const key = env.SUPABASE_SERVICE_ROLE_KEY;
+                if (!url || !key) {
+                  console.warn("\x1b[33m[share] no service key in .env — email skipped\x1b[0m");
+                  send(500, { error: "Server not configured" }); return;
+                }
+
+                const { createClient } = await import("@supabase/supabase-js");
+                const admin = createClient(url, key, {
+                  auth: { persistSession: false, autoRefreshToken: false },
+                });
+
+                const { data: viewer } = await admin
+                  .from("project_viewers")
+                  .select("email, relationship, project_id, invited_by, accepted_at, revoked_at")
+                  .eq("token", shareToken)
+                  .maybeSingle();
+                if (!viewer || viewer.revoked_at !== null || viewer.accepted_at !== null) {
+                  send(404, { error: "No open invitation for that token" }); return;
+                }
+
+                const [{ data: project }, { data: inviter }] = await Promise.all([
+                  admin.from("projects").select("name, country").eq("id", viewer.project_id).maybeSingle(),
+                  admin.from("profiles").select("full_name").eq("id", viewer.invited_by).maybeSingle(),
+                ]);
+
+                const lang = project?.country === "CM" ? "fr" : "en";
+                const inviterName = inviter?.full_name?.trim() || "Someone on Groundwork";
+                const projectName = project?.name?.trim() || "a Groundwork project";
+
+                const apiKey = env.RESEND_API_KEY;
+                if (!apiKey) {
+                  console.warn("\x1b[33m[share] RESEND_API_KEY not set in .env — email skipped\x1b[0m");
+                  send(500, { error: "Email service not configured" }); return;
+                }
+
+                const r = await fetch("https://api.resend.com/emails", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    from: "Groundwork by Jalla <noreply@mail.tryjalla.com>",
+                    to: [viewer.email],
+                    subject: shareSubject(lang, inviterName, projectName),
+                    html: buildShareHtml(lang, inviterName, projectName, viewer.relationship, shareToken),
+                  }),
+                });
+                if (r.ok) {
+                  console.log(`\x1b[32m[share] email sent \u2192 ${viewer.email}\x1b[0m`);
+                  send(200, { success: true });
+                } else {
+                  console.error("[share] Resend error:", await r.json().catch(() => ({})));
+                  send(502, { error: "Could not send the email" });
+                }
+              } catch (err) {
+                console.error("[share] handler error:", err);
+                send(500, { error: String(err) });
               }
             });
           });

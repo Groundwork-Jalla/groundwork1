@@ -326,6 +326,8 @@ export const en = {
     errFailed:    'That did not go through. Try again, and if it keeps failing, tell the person who invited you.',
   },
   projectShare: {
+    notEmailed:  'Added to the project, but we could not send the email to {email}. Send them this link yourself:',
+    copyLink:    'Copy link',
     title:        'Invite your client',
     body:         'Send a link and your client can follow the project, ask questions and keep their own copy of every document. They see the stages, the updates and what has been paid \u2014 and nothing else. They cannot approve work, move money or invite anybody.',
     email:        'Their email address',
@@ -6158,6 +6160,24 @@ export const en = {
       explain: 'Accepting sets up your contractor account on Groundwork \u2014 free, and yours to keep. You\'ll be able to upload progress evidence, submit take-offs and be paid on milestones, starting with this project. Already have an account? Accepting adds this project to it.',
       cta: 'Create your contractor account',
       ignore: 'If you weren\'t expecting this invite, you can safely ignore this email.',
+    },
+    // Somebody invited to FOLLOW a build (112) — not to work on it.
+    //
+    // A separate template from `invite` above, because the two promise opposite
+    // things. That one says "create your contractor account and get paid on
+    // milestones"; this one must say the reverse, plainly, to a person who has often
+    // never heard of Groundwork and is being asked to open a link about somebody
+    // else's house. `relation` is what the inviter typed in "Who they are" — it is
+    // how the recipient recognises that this is really about them.
+    share: {
+      subject: '{inviter} invited you to follow {project}',
+      heading: 'You have been invited to follow a build',
+      body: '<strong>{inviter}</strong> has invited you to follow the <strong>{project}</strong> project on Groundwork.',
+      bodyAs: '<strong>{inviter}</strong> has invited you to follow the <strong>{project}</strong> project on Groundwork, as <strong>{relation}</strong>.',
+      explain: 'You will see the stages as they are completed, the photos the builder uploads, what has been paid, and every document — and you can ask questions in the project. You cannot approve work, move money or invite anybody, and you never will be asked to.',
+      cta: 'Open the project',
+      newAccount: 'Opening the link creates your free Groundwork account if you do not already have one. The project is added to it straight away.',
+      ignore: 'If you were not expecting this, you can safely ignore this email.',
     },
     stageApproved: {
       subject: 'Stage Approved: {stage}',

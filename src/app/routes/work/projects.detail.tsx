@@ -711,7 +711,9 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyReleases')}</p>
+          {/* "Nobody on this list can release a payment" was here. Removed 30 Oct
+              2026 at Favour's request: it named the verifier, which is hidden on this
+              surface, and answered a question nobody on the People tab was asking. */}
         </section>
       </div>
 

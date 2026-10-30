@@ -295,12 +295,10 @@ export default function ContractorDashboard() {
           <div className="flex min-w-0 flex-col gap-5">
             <OpenStage lead={lead} />
 
-            <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-              <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-                {t('contractorDashboard.whyNoListTitle')}
-              </h2>
-              <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorDashboard.whyNoListBody')}</p>
-            </section>
+            {/* "Why there is no task list" was here. Removed 30 Oct 2026 at Favour's
+                request: it explained a decision we made rather than telling a
+                contractor anything about their own builds, and a dashboard is not
+                the place to argue for its own design. */}
 
             {/* The partner funnel's dashboard card is gone (30 Oct 2026): it is not on
                 the approved dashboard, and "Partner programme" is a permanent sidebar
@@ -475,7 +473,6 @@ function BuildRow({ assigned, client, hasRework }: {
 function OpenStage({ lead }: { lead: AssignedProject | null }) {
   const t = useT();
   const { stageLabel, substageLabel } = useStageLabels();
-  const money = useProjectMoney(lead?.project.country);
   const [substages, setSubstages] = useState<ProjectSubstageRow[] | null>(null);
 
   const projectId = lead?.project.id ?? null;
@@ -504,8 +501,6 @@ function OpenStage({ lead }: { lead: AssignedProject | null }) {
   const stage = lead.activeStage;
   const items = (substages ?? []).filter(s => s.stage_id === stageId);
   const done = items.filter(s => s.status === 'complete').length;
-  const open = items.length - done;
-  const due = money.pair(stage.payment_milestone_usd);
 
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -569,25 +564,10 @@ function OpenStage({ lead }: { lead: AssignedProject | null }) {
         </ul>
       )}
 
-      {due && (
-        <div className="mt-3 flex items-center gap-3 rounded-xl bg-brand-off-white px-3.5 py-3 dark:bg-[#141414]">
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-brand-near-black dark:text-white">
-              {t('contractorDashboard.onApproval', { amount: due.local })}
-            </span>
-            <span className="block font-mono text-[11px] text-brand-mid-grey">
-              {due.usd
-                ? t('contractorDashboard.atRate', { usd: due.usd, rate: money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 }), code: money.code })
-                : '\u00a0'}
-            </span>
-          </span>
-          {open > 0 && (
-            <span className="shrink-0 rounded-lg border border-dashed border-brand-border-grey px-2.5 py-1.5 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
-              {t('contractorDashboard.itemsLeft', { n: open })}
-            </span>
-          )}
-        </div>
-      )}
+      {/* The "<amount> on approval" strip and its "n left" pill were here. Removed
+          30 Oct 2026 at Favour's request — the third place the same on-approval
+          figure was being printed, after the Work tab and the People tab. What is
+          due per stage lives on the project's Money tab. */}
 
       {items.length > 6 && (
         <Link to={`/work/projects/${lead.project.id}`}

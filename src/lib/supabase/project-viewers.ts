@@ -122,6 +122,43 @@ export async function inviteProjectViewer(
   return String(data);
 }
 
+/**
+ * Actually put the invitation in their inbox.
+ *
+ * Separate from `inviteProjectViewer` because the two can fail independently and the
+ * caller has to tell them apart: the row existing means they are on the project and
+ * the link works; the email going out means they know about it. Saying "Invitation
+ * sent" for the first was the bug — the row was always written, the email was never
+ * sent at all, and nobody could see the difference.
+ *
+ * Resolves false rather than throwing: a send that failed must not lose the row, and
+ * the owner can copy the link instead.
+ */
+export async function sendShareInviteEmail(shareToken: string): Promise<boolean> {
+  try {
+    // Through the dispatcher, not an endpoint of its own: Vercel's Hobby plan allows
+    // 12 serverless functions and api/ is already at 11.
+    const r = await fetch('/api/events?action=send-share-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send-share-invite', shareToken }),
+    });
+    if (!r.ok) {
+      console.error('[share] email send failed:', await r.json().catch(() => ({})));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[share] email fetch error:', err);
+    return false;
+  }
+}
+
+/** The link itself, for when the email could not be sent or they want to paste it. */
+export function shareLinkFor(shareToken: string): string {
+  return `${window.location.origin}/share/${encodeURIComponent(shareToken)}`;
+}
+
 export interface ViewerInvitePreview {
   projectName: string;
   invitedByName: string;

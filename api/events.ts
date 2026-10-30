@@ -29,6 +29,7 @@ import { handler as contractorInviteClient } from './_handlers/contractor-invite
 import { handler as adminDeleteContractor } from './_handlers/admin-delete-contractor.js';
 import { handler as crmEmailSync } from './_handlers/crm-email-sync.js';
 import { handler as readFloorPlan } from './_handlers/read-floor-plan.js';
+import { handler as sendShareInvite } from './_handlers/send-share-invite.js';
 import { attachBody } from './_lib/body.js';
 
 /**
@@ -70,7 +71,7 @@ type Action =
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach'
-  | 'message-fanout' | 'read-floor-plan';
+  | 'message-fanout' | 'read-floor-plan' | 'send-share-invite';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -108,6 +109,9 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   // Reads an uploaded floor plan with a vision model. Costs money per call, so it
   // authenticates the caller rather than trusting the browser that asked.
   'read-floor-plan': readFloorPlan,
+  // Invites somebody to FOLLOW a build (112). The viewer token is the
+  // capability, so this needs no session — see the handler's header.
+  'send-share-invite': sendShareInvite,
 };
 
 export default async function handler(req: any, res: any) {

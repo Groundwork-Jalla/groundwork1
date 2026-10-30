@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Check, Loader2, Users, X } from 'lucide-react';
 import {
   fetchProjectViewers, inviteProjectViewer, revokeProjectViewer,
+  sendShareInviteEmail, shareLinkFor,
   ShareFailed, type ProjectViewer,
 } from '@/lib/supabase/project-viewers';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,9 @@ export function ShareProject({ projectId }: { projectId: string }) {
   const [relationship, setRelationship] = useState('');
   const [busy, setBusy]   = useState(false);
   const [sent, setSent]   = useState<string | null>(null);
+  // Set only when the row was written but the email did not go out. The invitation is
+  // real either way, so the owner is given the link rather than an apology.
+  const [fallback, setFallback] = useState<{ email: string; link: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -37,13 +41,20 @@ export function ShareProject({ projectId }: { projectId: string }) {
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
-    setError(null); setSent(null);
+    setError(null); setSent(null); setFallback(null);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError(t('projectShare.errEmail')); return; }
 
     setBusy(true);
     try {
-      await inviteProjectViewer(projectId, email.trim(), relationship.trim() || undefined);
-      setSent(email.trim());
+      const address = email.trim();
+      // Two steps that fail independently. The row is what grants access and what the
+      // link is keyed on; the email is how they find out. This panel used to do only
+      // the first and report the second, so everyone invited since 112 shipped was
+      // told mail had gone out when none ever had.
+      const token = await inviteProjectViewer(projectId, address, relationship.trim() || undefined);
+      const delivered = await sendShareInviteEmail(token);
+      if (delivered) setSent(address);
+      else setFallback({ email: address, link: shareLinkFor(token) });
       setEmail(''); setRelationship('');
       load();
     } catch (err) {
@@ -86,6 +97,23 @@ export function ShareProject({ projectId }: { projectId: string }) {
       <p className="mt-1.5 text-[11px] text-brand-mid-grey">{t('projectShare.relationshipHint')}</p>
 
       {sent  && <p className="mt-3 flex items-center gap-2 text-xs text-state-complete"><Check className="size-3.5" />{t('projectShare.sent', { email: sent })}</p>}
+
+      {/* They ARE invited — the row is written and the link works. Only the email did
+          not leave. Handing over the link is the useful thing to do here; "something
+          went wrong" would hide an invitation that already exists. */}
+      {fallback && (
+        <div className="mt-3 rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2.5 dark:border-[#2c2c2c] dark:bg-[#141414]">
+          <p className="text-xs text-brand-near-black dark:text-white">
+            {t('projectShare.notEmailed', { email: fallback.email })}
+          </p>
+          <p className="mt-1.5 break-all font-mono text-[11px] text-brand-mid-grey">{fallback.link}</p>
+          <button type="button" onClick={() => navigator.clipboard?.writeText(fallback.link)}
+            className="mt-1.5 text-[11px] font-semibold text-brand-near-black underline underline-offset-4 dark:text-white">
+            {t('projectShare.copyLink')}
+          </button>
+        </div>
+      )}
+
       {error && <p role="alert" className="mt-3 text-xs text-state-alert">{error}</p>}
 
       <ul className="mt-4 space-y-2">

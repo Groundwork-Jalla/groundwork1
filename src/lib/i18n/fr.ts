@@ -327,6 +327,8 @@ export const fr: Mirror<EnDict> = {
     errFailed:    'Cela n\u2019a pas abouti. R\u00e9essayez, et si cela persiste, pr\u00e9venez la personne qui vous a invit\u00e9.',
   },
   projectShare: {
+    notEmailed:  'Ajouté au chantier, mais nous n’avons pas pu envoyer l’e-mail à {email}. Transmettez-lui ce lien vous-même :',
+    copyLink:    'Copier le lien',
     title:        'Inviter votre client',
     body:         'Envoyez un lien : votre client peut suivre le projet, poser des questions et garder sa propre copie de chaque document. Il voit les étapes, les mises à jour et ce qui a été payé — et rien d’autre. Il ne peut ni valider des travaux, ni déplacer d’argent, ni inviter qui que ce soit.',
     email:        'Son adresse e-mail',
@@ -6024,6 +6026,16 @@ export const fr: Mirror<EnDict> = {
       explain: 'En acceptant, vous créez votre compte entrepreneur sur Groundwork — gratuit et qui vous appartient. Vous pourrez déposer les preuves d’avancement, soumettre vos métrés et être payé par jalon, à commencer par ce chantier. Déjà un compte ? Accepter y ajoute ce projet.',
       cta: 'Créer mon compte entrepreneur',
       ignore: 'Si vous n\'attendiez pas cette invitation, vous pouvez ignorer ce message.',
+    },
+    share: {
+      subject: '{inviter} vous invite à suivre {project}',
+      heading: 'Vous êtes invité à suivre un chantier',
+      body: '<strong>{inviter}</strong> vous invite à suivre le chantier <strong>{project}</strong> sur Groundwork.',
+      bodyAs: '<strong>{inviter}</strong> vous invite à suivre le chantier <strong>{project}</strong> sur Groundwork, en tant que <strong>{relation}</strong>.',
+      explain: 'Vous verrez les étapes au fur et à mesure, les photos déposées par le constructeur, ce qui a été payé et chaque document — et vous pourrez poser vos questions dans le projet. Vous ne pouvez ni valider des travaux, ni déplacer de l’argent, ni inviter quiconque, et on ne vous le demandera jamais.',
+      cta: 'Ouvrir le chantier',
+      newAccount: 'En ouvrant le lien, votre compte Groundwork gratuit est créé si vous n’en avez pas encore. Le chantier y est ajouté immédiatement.',
+      ignore: 'Si vous n’attendiez pas ce message, vous pouvez l’ignorer.',
     },
     stageApproved: {
       subject: 'Étape validée : {stage}',
