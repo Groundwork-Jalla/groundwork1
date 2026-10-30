@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
@@ -30,7 +31,34 @@ function timeAgo(iso: string): string {
  * and `inquiry_id` instead, so those notifications were a dead click — they marked
  * themselves read and stayed put. Each id the triggers write now has a page.
  */
-export function destinationFor(data: Record<string, unknown> | null | undefined): string | null {
+/**
+ * Who is reading this notification.
+ *
+ * Added 31 Oct 2026. The stamped `role` below was never enough: `notify_project_members`
+ * (013) inserts the SAME `data` for the owner and for every accepted contractor, and
+ * stamps no role at all. 123 added the stamp for message notifications only, so every
+ * other kind — "your project is now being tracked" among them — reached a contractor
+ * with no role and fell through to `/projects/<id>`, which is the CLIENT view.
+ *
+ * Reported by Philip, who opened a notification as a contractor and landed in the
+ * client app.
+ *
+ * The viewer's own role is the better answer in every case, because a notification row
+ * belongs to ONE person: whoever is reading it is the recipient. So this is preferred
+ * over the stamp, and the stamp is kept only as a fallback for a caller that has no
+ * viewer to hand. Fixing the trigger alone would not have helped the notifications
+ * already sitting in the table.
+ */
+export interface NotificationViewer {
+  isAdmin?: boolean;
+  isContractor?: boolean;
+  isVerifier?: boolean;
+}
+
+export function destinationFor(
+  data: Record<string, unknown> | null | undefined,
+  viewer?: NotificationViewer,
+): string | null {
   if (!data) return null;
   const s = (k: string) => (typeof data[k] === 'string' && data[k] ? (data[k] as string) : null);
   const application = s('application_id');
@@ -46,7 +74,10 @@ export function destinationFor(data: Record<string, unknown> | null | undefined)
     // And a MESSAGE notification opens the messages tab. Landing on the project
     // overview was the reported bug: somebody is told they have a message, presses
     // the thing that says so, and arrives at a page that does not show it.
-    const role = s('role');
+    // The viewer first, the stamp second. See NotificationViewer above.
+    const role = viewer?.isContractor ? 'contractor'
+      : viewer?.isVerifier ? 'verifier'
+      : s('role');
     const tab  = s('conversation_id') ? '?tab=messages' : '';
     if (role === 'contractor') return `/work/projects/${project}${tab}`;
     if (role === 'verifier')   return `/verifiers/projects/${project}${tab}`;
@@ -55,7 +86,15 @@ export function destinationFor(data: Record<string, unknown> | null | undefined)
   // A thread with no project — a WhatsApp or email chat, which belongs to the person
   // rather than to a build. 123 notifies on these too; without this they were a bell
   // that went nowhere when pressed.
-  if (s('conversation_id')) return '/messages';
+  // A conversation with no project. `/messages` lives under the CLIENT layout and
+  // there is no contractor equivalent, so a contractor is sent to their own dashboard
+  // instead: not ideal, but the rule is that no button puts a contractor in somebody
+  // else's app, and a thread with no build has nowhere else to be.
+  if (s('conversation_id')) {
+    if (viewer?.isContractor) return '/work';
+    if (viewer?.isVerifier)   return '/verifiers';
+    return '/messages';
+  }
   return null;
 }
 
@@ -67,10 +106,11 @@ function NotifItem({
   onRead: (id: string) => void;
 }) {
   const navigate = useNavigate();
+  const { isAdmin, isContractor, isVerifier } = useAuth();
 
   function handleClick() {
     if (!notif.read_at) onRead(notif.id);
-    const to = destinationFor(notif.data);
+    const to = destinationFor(notif.data, { isAdmin, isContractor, isVerifier });
     if (to) navigate(to);
   }
 

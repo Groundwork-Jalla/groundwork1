@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, Navigate } from 'react-router';
 import { Bell, CheckCheck, Building2, Upload, MessageSquare, BadgeCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
@@ -97,7 +97,7 @@ function splitByAttention(list: Notification[]): { fresh: Notification[]; earlie
 }
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
+  const { user, rolesChecked, isAdmin, isContractor, isVerifier } = useAuth();
   const navigate = useNavigate();
   const t = useT();
   const { tPlural } = useLanguage();
@@ -178,7 +178,10 @@ export default function NotificationsPage() {
   function openNotification(n: Notification) {
     void markOneRead(n);
     // Older rows pre-date `data` carrying the project; the column has always held it.
-    const to = destinationFor(n.data ?? (n.project_id ? { project_id: n.project_id } : null));
+    const to = destinationFor(
+      n.data ?? (n.project_id ? { project_id: n.project_id } : null),
+      { isAdmin, isContractor, isVerifier },
+    );
     if (to) navigate(to);
   }
 
@@ -237,6 +240,15 @@ export default function NotificationsPage() {
     </button>
     );
   };
+
+  // This page lives under the CLIENT layout, so rendering it for a contractor puts
+  // them inside somebody else's sidebar — the same defect /help had. Their own
+  // notifications are in the bell, which is on every screen of their surface.
+  //
+  // Waiting for `rolesChecked`: redirecting on a half-read role is how somebody lands
+  // on the wrong surface and has to navigate back.
+  if (rolesChecked && isContractor) return <Navigate to="/work" replace />;
+  if (rolesChecked && isVerifier)   return <Navigate to="/verifiers" replace />;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
