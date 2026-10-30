@@ -681,12 +681,10 @@ function PayoutPanel({ done, onAdded }: {
           step outstanding and the sequence then would not let you past the contact
           screen, so the escape hatch trapped people instead of freeing them. Payment
           details are needed before any project can pay out, so they are asked for here. */}
-      {/* Why we are asking, said where the asking happens (30 Oct 2026). It used to
-          sit on /work/payouts, which is a page somebody opens to check what they
-          were paid — months after the question occurred to them. */}
-      <p className="mb-2 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey dark:bg-[#141414]">
-        {t('contractorPayout.why')}
-      </p>
+      {/* "Collecting this up front means nobody has to ask you for account details…"
+          was here. Removed 31 Oct 2026 at Favour's request: the step is headed
+          Payment details and says where payments are sent, so justifying the question
+          only made the screen longer. */}
       {/* Ruth, 29 October: a contractor with several company accounts did not know
           which to give and wanted to skip. Philip kept the step mandatory and asked
           for this line instead — the block is that it feels permanent, not that it
