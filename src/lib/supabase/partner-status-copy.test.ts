@@ -28,7 +28,13 @@ describe('the line follows the calendar, not the status', () => {
     // has a second way to be broken, because the screen also knows `booking_shown_at`.
     // Keying the wording off that stored date instead of off the frame would tell an
     // applicant with no configured schedule to "pick a slot below" again.
-    expect(page).toMatch(/\{booking \? t\('partner\.bookingLivesInCalendar'\) : t\('partner\.statusPendingBody'\)\}/);
+    // 30 Oct 2026, Favour: "remove every unnecessary wording there". The line shown
+    // WITH a calendar is gone — the calendar is on screen and needed no caption. The
+    // rule survives in a stronger form: there is now no wording at all that can point
+    // downward at a calendar that is not there.
+    expect(page).toMatch(/\{!booking && \(/);
+    expect(page).toMatch(/t\('partner\.statusPendingBody'\)/);
+    expect(page).not.toMatch(/t\('partner\.bookingLivesInCalendar'\)/);
   });
 
   it('and the frame is only rendered when there is one', () => {
@@ -38,12 +44,6 @@ describe('the line follows the calendar, not the status', () => {
 });
 
 describe('each wording is true of its own case', () => {
-  it.each([['en', en], ['fr', fr]] as const)('%s: the booking line points downward', (_n, dict) => {
-    const book = String(lookup(dict as never, 'partner.bookingLivesInCalendar'));
-    expect(book.trim().length).toBeGreaterThan(0);
-    expect(book).toMatch(/below|ci-dessous/i);
-  });
-
   it.each([['en', en], ['fr', fr]] as const)('%s: the no-calendar line promises nothing on screen', (_n, dict) => {
     const body = String(lookup(dict as never, 'partner.statusPendingBody'));
     expect(body.trim().length).toBeGreaterThan(0);
@@ -51,19 +51,11 @@ describe('each wording is true of its own case', () => {
     expect(body, 'this line is shown when there is no calendar').not.toMatch(/below|ci-dessous/i);
   });
 
-  it('the two are different strings', () => {
-    for (const dict of [en, fr]) {
-      expect(String(lookup(dict as never, 'partner.bookingLivesInCalendar')))
-        .not.toBe(String(lookup(dict as never, 'partner.statusPendingBody')));
-    }
-  });
-
-  it.each([['en', en], ['fr', fr]] as const)('%s: the opened-booking line is not a confirmed slot', (_n, dict) => {
-    // Migration 136: never report `booking_shown_at` as a booking. The copy may say
-    // the calendar was opened; it may not say a call is booked.
-    const line = String(lookup(dict as never, 'partner.bookingOpened'));
-    expect(line).toContain('{date}');
-    expect(line).not.toMatch(/\bbooked\b|r\u00e9serv\u00e9/i);
+  it('never reports our own tracking date back to the applicant', () => {
+    // "Booking opened {date}" was removed 30 Oct 2026. It told them when WE showed
+    // them a calendar, which they had not asked and which 136 is careful to say is
+    // not a confirmed slot. The safest version of that rule is not to print it.
+    expect(page).not.toMatch(/partner\.bookingOpened/);
   });
 });
 

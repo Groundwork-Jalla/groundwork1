@@ -9,8 +9,8 @@ import {
 } from '@/lib/supabase/admin-contractor-records';
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/supabase/contractor-onboarding';
 import {
-  fetchPartnerFunnel, funnelStages, partnerFunnelAvailable, type PartnerFunnel,
-} from '@/lib/admin/partner-funnel';
+  fetchPipeline, pipelineAvailable, type PipelineRow, type PipelineStage,
+} from '@/lib/admin/partner-pipeline';
 import { bankName } from '@/lib/payments/banks';
 import { signCredentialUrl } from '@/lib/supabase/admin-applications';
 import { formatDate } from '@/lib/format';
@@ -38,6 +38,58 @@ import { cn } from '@/lib/utils';
 // and `admin_contractor_dossier` refuses every caller who is not an administrator.
 // =========================================================
 
+/**
+ * The cards above the list, and what each one selects.
+ *
+ * 30 Oct 2026. These used to be a CHAIN: contractor accounts → onboarding complete →
+ * partner applications → pre-qualified → sent to booking, each showing what it lost
+ * from the one before as −₉. Philip asked for the negatives to go and for "completed
+ * and incomplete as independent standing categories".
+ *
+ * The difference is not cosmetic. −50 is a gap between two numbers; "50 did not finish
+ * onboarding" is a set of people, and pressing it shows you who they are. Every card
+ * here counts a set, every count is positive, and every one of them filters the list
+ * below — "actionable filter cards", which is what was asked for.
+ *
+ * The pairs are deliberate and exhaustive: complete + incomplete = all contractors,
+ * applied + not applied = all contractors. A reader can add them up and check us.
+ */
+type CardKey =
+  | 'all' | 'onboarded' | 'notOnboarded' | 'ownClient'
+  | 'applied' | 'notApplied' | 'prequalified' | 'sentToBooking';
+
+/** Stages at or past pre-qualification. Membership, not rank: `disqualified` and
+ *  `rejected` sit at the front of the stage list and must not read as "further on". */
+const AT_OR_PAST_PREQUALIFIED: readonly PipelineStage[] = [
+  'prequalified', 'booking_shown', 'call_completed', 'reviewing', 'accepted',
+  'committed', 'agreement_signed', 'client_introduced', 'activated',
+];
+const AT_OR_PAST_BOOKING: readonly PipelineStage[] = [
+  'booking_shown', 'call_completed', 'reviewing', 'accepted',
+  'committed', 'agreement_signed', 'client_introduced', 'activated',
+];
+
+/** Does this contractor belong in that card? */
+function inCard(key: CardKey, r: ContractorRecordRow, p: PipelineRow | undefined): boolean {
+  switch (key) {
+    case 'all':           return true;
+    case 'onboarded':     return r.status.complete;
+    case 'notOnboarded':  return !r.status.complete;
+    case 'ownClient':     return r.clientIntent === 'onboard_client';
+    // Applying is having an application on file. NOT the onboarding answer: reading
+    // "I have a client" as an application is the double count Philip objected to.
+    case 'applied':       return !!p?.applicationId;
+    case 'notApplied':    return !p?.applicationId;
+    case 'prequalified':  return !!p && AT_OR_PAST_PREQUALIFIED.includes(p.stage);
+    case 'sentToBooking': return !!p && AT_OR_PAST_BOOKING.includes(p.stage);
+  }
+}
+
+const CARD_ORDER: CardKey[] = [
+  'all', 'onboarded', 'notOnboarded', 'ownClient',
+  'applied', 'notApplied', 'prequalified', 'sentToBooking',
+];
+
 export default function AdminContractorRecords() {
   const t = useT();
   const [rows, setRows] = useState<ContractorRecordRow[] | null>(null);
@@ -45,8 +97,10 @@ export default function AdminContractorRecords() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<string | null>(null);
-  /** null until loaded, false when 136 is not on this database yet. */
-  const [funnel, setFunnel] = useState<PartnerFunnel | null | false>(null);
+  /** Per-person application state, so a card can FILTER and not merely count. */
+  const [pipeline, setPipeline] = useState<Map<string, PipelineRow> | null>(null);
+  /** Which card is pressed. Null is everybody. */
+  const [filter, setFilter] = useState<CardKey | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -61,33 +115,46 @@ export default function AdminContractorRecords() {
 
   useEffect(() => { void load(); }, [load]);
 
-  // Separate from `load`: the funnel is a different RPC behind a different migration, and
-  // a database without 136 must still render the table rather than an error.
+  // Separate from `load`: the pipeline is a different RPC behind a different migration,
+  // and a database without it must still render the table rather than an error. An
+  // empty map means "no application data", which the cards read as nobody having
+  // applied — true, and better than a page that will not load.
   useEffect(() => {
     let alive = true;
     void (async () => {
       try {
-        if (!(await partnerFunnelAvailable())) { if (alive) setFunnel(false); return; }
-        const f = await fetchPartnerFunnel();
-        if (alive) setFunnel(f);
-      } catch { if (alive) setFunnel(false); }
+        if (!(await pipelineAvailable())) { if (alive) setPipeline(new Map()); return; }
+        const rows = await fetchPipeline();
+        if (alive) setPipeline(new Map(rows.map(r => [r.userId, r])));
+      } catch { if (alive) setPipeline(new Map()); }
     })();
     return () => { alive = false; };
   }, []);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q || !rows) return rows ?? [];
-    return rows.filter(r =>
+    let list = rows ?? [];
+    // The pressed card narrows the list; the search box narrows it again. Both, not
+    // either — "show me who has not onboarded, called Ngu" is the question staff
+    // actually ask.
+    if (filter && filter !== 'all') list = list.filter(r => inCard(filter, r, pipeline?.get(r.userId)));
+    if (q) list = list.filter(r =>
       [r.fullName, r.email, r.phone].some(v => (v ?? '').toLowerCase().includes(q)));
-  }, [rows, query]);
+    return list;
+  }, [rows, query, filter, pipeline]);
+
+  /** How many people each card holds, counted the same way the filter selects them. */
+  const counts = useMemo(() => {
+    const out = {} as Record<CardKey, number>;
+    for (const key of CARD_ORDER) {
+      out[key] = (rows ?? []).filter(r => inCard(key, r, pipeline?.get(r.userId))).length;
+    }
+    return out;
+  }, [rows, pipeline]);
 
   if (!rows) {
     return <div className="flex justify-center p-12"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
-
-  const done = rows.filter(r => r.status.complete).length;
-  const partners = rows.filter(r => r.clientIntent === 'onboard_client').length;
 
   return (
     <div className="p-6 sm:p-8">
@@ -109,14 +176,28 @@ export default function AdminContractorRecords() {
         <p role="alert" className="mb-6 rounded-xl border border-state-alert/30 bg-brand-off-white px-4 py-3 text-sm dark:bg-[#1e1e1e] dark:text-white">{error}</p>
       )}
 
-      {funnel && <FunnelStrip funnel={funnel} />}
-
-      {/* Counts of real rows, not illustrative figures. */}
-      <div className="mb-5 grid gap-3 sm:grid-cols-3">
-        <Stat label={t('adminContractorRecords.statTotal')} value={rows.length} />
-        <Stat label={t('adminContractorRecords.statComplete')} value={done} />
-        <Stat label={t('adminContractorRecords.statPartners')} value={partners} />
-      </div>
+      <section className="mb-5" aria-label={t('adminContractorRecords.funnelTitle')}>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
+          {t('adminContractorRecords.funnelTitle')}
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {CARD_ORDER.map(key => (
+            <FilterCard
+              key={key}
+              label={t(`adminContractorRecords.cards.${key}` as TKey)}
+              value={counts[key]}
+              active={filter === key || (key === 'all' && filter === null)}
+              onPick={() => setFilter(key === 'all' ? null : filter === key ? null : key)}
+            />
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
+          <Link to="/admin/partners" className="font-semibold text-brand-near-black underline underline-offset-2 dark:text-white">
+            {t('adminContractorRecords.funnelWorklist')}
+          </Link>{' '}
+          {t('adminContractorRecords.funnelBookingNote')}
+        </p>
+      </section>
 
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-2.5 size-4 text-brand-mid-grey" aria-hidden />
@@ -167,70 +248,36 @@ export default function AdminContractorRecords() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+/**
+ * One card. Pressing it filters the list; pressing it again clears the filter.
+ *
+ * A button, not a div with a click handler: these are controls, and staff reach this
+ * page with a keyboard as often as a mouse. `aria-pressed` is what tells a screen
+ * reader which slice of the list is currently on screen.
+ */
+function FilterCard({ label, value, active, onPick }: {
+  label: string; value: number; active: boolean; onPick: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+    <button
+      type="button" onClick={onPick} aria-pressed={active}
+      className={cn(
+        'rounded-xl border px-4 py-3 text-left transition-colors',
+        active
+          ? 'border-brand-near-black bg-brand-off-white dark:border-white dark:bg-[#2c2c2c]'
+          : 'border-brand-border-grey bg-white hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:border-[#555]',
+      )}
+    >
       <p className="text-xs text-brand-mid-grey">{label}</p>
       <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-near-black dark:text-white">{value}</p>
-    </div>
+    </button>
   );
 }
 
-/**
- * The partner funnel, in the order the flow runs.
- *
- * Outreach → contractor signup → contractor onboarding → partner application →
- * pre-qualification → the call with Philip. Each stage shows what it lost from the one
- * before it, because the count alone never says where to act.
- *
- * Two labels are load-bearing. "Sent to booking" is not confirmed bookings — Philip's
- * calendar holds those, and the widget is a cross-origin iframe, so this is the nearest
- * fact Groundwork owns. And the interested-but-not-applied line is the follow-up list:
- * somebody who said yes at onboarding and then stopped is the cheapest person to
- * recover, which is the one number here that names an action.
- */
-function FunnelStrip({ funnel }: { funnel: PartnerFunnel }) {
-  const t = useT();
-  const stages = funnelStages(funnel);
-  const gap = Math.max(0, funnel.partnerInterested - funnel.applications);
-
-  return (
-    <section className="mb-5" aria-label={t('adminContractorRecords.funnelTitle')}>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
-        {t('adminContractorRecords.funnelTitle')}
-      </h2>
-      <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {stages.map((stage, i) => (
-          <li
-            key={stage.key}
-            className="rounded-xl border border-brand-border-grey bg-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
-          >
-            <p className="text-xs text-brand-mid-grey">
-              {t(`adminContractorRecords.funnel.${stage.key}` as TKey)}
-            </p>
-            <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-near-black dark:text-white">
-              {stage.count}
-            </p>
-            {/* No drop on the first stage: there is nothing before it to have lost. */}
-            {i > 0 && stage.dropFromPrevious > 0 && (
-              <p className="mt-0.5 text-[11px] tabular-nums text-brand-mid-grey">
-                −{stage.dropFromPrevious}
-              </p>
-            )}
-          </li>
-        ))}
-      </ol>
-      <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
-        {/* The counts say where the funnel leaks; the pipeline says who to ring. */}
-        <Link to="/admin/partners" className="font-semibold text-brand-near-black underline underline-offset-2 dark:text-white">
-          {t('adminContractorRecords.funnelWorklist')}
-        </Link>{' '}
-        {t('adminContractorRecords.funnelBookingNote')}
-        {gap > 0 && <> {t('adminContractorRecords.funnelGap').replace('{n}', String(gap))}</>}
-      </p>
-    </section>
-  );
-}
+/* The chained FunnelStrip — five stages each showing −₉ lost from the one before —
+   was removed 30 Oct 2026. Philip: no negative numbers, and the cards must be
+   "actionable filter cards". `FilterCard` above replaced it; see the CardKey header
+   for why a set beats a gap. */
 
 /** Five pips, one per required step, so the table says where somebody stopped. */
 function Pips({ status }: { status: ContractorRecordRow['status'] }) {

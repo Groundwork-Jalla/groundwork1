@@ -2635,6 +2635,16 @@ export const en = {
     // The partner funnel (136). Stage names match Philip's own sequence so a number here
     // and a number in his update mean the same thing.
     funnelTitle: 'Partner funnel',
+    cards: {
+      all:           'All contractors',
+      onboarded:     'Onboarding complete',
+      notOnboarded:  'Onboarding not finished',
+      ownClient:     'Bringing their own client',
+      applied:       'Partner application filed',
+      notApplied:    'No application yet',
+      prequalified:  'Pre-qualified',
+      sentToBooking: 'Shown a call slot',
+    },
     funnelWorklist: 'Open the partner pipeline \u2014 who to chase, and by when.',
     funnel: {
       accounts:      'Contractor accounts',

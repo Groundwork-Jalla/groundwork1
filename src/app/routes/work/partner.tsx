@@ -1032,23 +1032,22 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
             {t('partner.yourCall')}
           </h2>
 
-          {/* A date we own, printed as what it is. Migration 136: `booking_shown_at`
-              is when they were SHOWN the calendar. The appointment itself lives in
-              the team's Google Calendar behind a cross-origin frame, so this is
-              never printed as a confirmed slot. */}
-          {detail?.bookingShownAt && (
-            <p className="mt-1.5 text-sm font-semibold text-brand-near-black dark:text-white">
-              {t('partner.bookingOpened', { date: formatDate(detail.bookingShownAt) })}
-            </p>
-          )}
+          {/* "Booking opened {date}" was here. Removed 30 Oct 2026 — it reported our
+              own tracking back to the applicant, who did not ask when we showed them
+              a calendar. */}
 
-          {/* The line follows the FRAME, not the stored date — the rule
-              partner-status-copy.test.ts exists to hold. "Pick a slot below" on a
-              page with no calendar under it is the defect that rule was written
-              after, and a stored `booking_shown_at` must not reintroduce it. */}
-          <p className="mt-1 text-xs text-brand-mid-grey">
-            {booking ? t('partner.bookingLivesInCalendar') : t('partner.statusPendingBody')}
-          </p>
+          {/* Only the NO-calendar case says anything now. When the calendar is on
+              screen it speaks for itself, and explaining that the appointment lives
+              in Google rather than here is our plumbing, not their business.
+
+              The rule partner-status-copy.test.ts was written to hold still stands,
+              and in a stronger form: the wording follows the FRAME, never the stored
+              `booking_shown_at`. "Pick a slot below" on a page with no calendar under
+              it is the defect it exists to prevent, and there is now no line at all
+              that can point at a calendar that is not there. */}
+          {!booking && (
+            <p className="mt-1 text-xs text-brand-mid-grey">{t('partner.statusPendingBody')}</p>
+          )}
 
           {booking !== 'unset' && (booking ? (
             <iframe
@@ -1073,11 +1072,9 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
           {detail && needsVanessa(detail.language) && (
             <Speaker initials="VG" name="Vanessa G." role={t('partner.partnerTeam')} />
           )}
-          {detail && (
-            <p className="mt-2.5 border-t border-brand-border-grey pt-2.5 text-[11px] text-brand-mid-grey dark:border-[#2c2c2c]">
-              {t(needsVanessa(detail.language) ? 'partner.callInFrench' : 'partner.callInEnglish')}
-            </p>
-          )}
+          {/* "The call is held in French, and Vanessa joins it" was here. Removed
+              30 Oct 2026 at Favour's request. The names above already say who will be
+              on the call; the sentence only explained why, which is ours to know. */}
         </section>
 
         <Link to="/work" className="text-xs underline underline-offset-2 text-brand-mid-grey">

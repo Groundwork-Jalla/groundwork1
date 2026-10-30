@@ -2576,6 +2576,16 @@ export const fr: Mirror<EnDict> = {
 
     // L'entonnoir partenaire (136). Les noms d'\u00e9tapes suivent la s\u00e9quence de Philip.
     funnelTitle: 'Entonnoir partenaire',
+    cards: {
+      all:           'Tous les entrepreneurs',
+      onboarded:     'Inscription terminée',
+      notOnboarded:  'Inscription inachevée',
+      ownClient:     'Amènent leur propre client',
+      applied:       'Candidature partenaire déposée',
+      notApplied:    'Pas encore de candidature',
+      prequalified:  'Pré-qualifiés',
+      sentToBooking: 'Créneau proposé',
+    },
     funnelWorklist: 'Ouvrir le pipeline partenaires \u2014 qui relancer, et pour quand.',
     funnel: {
       accounts:      'Comptes entrepreneurs',
