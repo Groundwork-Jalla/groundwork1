@@ -73,7 +73,8 @@ export default function ContractorProjects() {
   const FILTERS: { id: Filter; label: string; n: number }[] = [
     { id: 'all',        label: t('contractor.projects.filterAll'),        n: counts.all },
     { id: 'inProgress', label: t('contractor.projects.filterInProgress'), n: counts.inProgress },
-    { id: 'awaiting',   label: t('contractor.projects.filterAwaiting'),   n: counts.awaiting },
+    // "Awaiting verification" is hidden until the feature ships (30 Oct 2026). The
+    // filter and its `matches()` arm stay, so restoring it is this one line.
     { id: 'handedOver', label: t('contractor.projects.filterHandedOver'), n: counts.handedOver },
   ];
 
@@ -153,13 +154,13 @@ function ProjectRow({ assigned }: { assigned: AssignedProject }) {
   // yet" are different statements and only one of them is true here.
   const due = money.pair(activeStage?.payment_milestone_usd ?? null);
 
+  // `awaiting` is deliberately not a state a row may show while verification is
+  // hidden: it would name a step the contractor cannot see or act on.
   const state = isHandedOver(assigned)
     ? { label: t('contractor.projects.handedOver'),    tone: 'complete' as const }
-    : awaiting
-      ? { label: t('contractor.projects.awaitingCheck'), tone: 'held' as const }
-      : current === null
-        ? { label: t('contractor.projects.notStarted'),  tone: 'locked' as const }
-        : { label: stageLabel(activeStage!),             tone: 'active' as const };
+    : current === null
+      ? { label: t('contractor.projects.notStarted'),  tone: 'locked' as const }
+      : { label: stageLabel(activeStage!),             tone: 'active' as const };
 
   return (
     <Link
@@ -175,13 +176,11 @@ function ProjectRow({ assigned }: { assigned: AssignedProject }) {
         </p>
         <p className={cn('flex shrink-0 items-center gap-1.5 text-xs font-semibold',
           state.tone === 'complete' && 'text-state-complete',
-          state.tone === 'held'     && 'text-state-held',
           state.tone === 'locked'   && 'text-brand-mid-grey',
           state.tone === 'active'   && 'text-brand-near-black dark:text-white',
         )}>
           <span aria-hidden className={cn('size-1.5 rounded-full',
             state.tone === 'complete' && 'bg-state-complete',
-            state.tone === 'held'     && 'bg-state-held',
             state.tone === 'locked'   && 'bg-brand-border-grey',
             state.tone === 'active'   && 'bg-brand-near-black dark:bg-white',
           )} />

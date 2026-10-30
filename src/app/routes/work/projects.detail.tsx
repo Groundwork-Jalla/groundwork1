@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { ArrowLeft, Check, FileText, Loader2, Lock, Upload, UserRound } from 'lucide-react';
+import { ArrowLeft, Camera, Check, FileText, Loader2, Lock, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -322,6 +322,20 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
     }
   }
 
+  /** One check for both doors: nothing is queued that the upload would refuse. */
+  function addFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    const bad = picked.find(f => fileProblem(f));
+    if (bad) {
+      setError(t(fileProblem(bad) === 'size'
+        ? 'project.documents.tooLarge' : 'project.documents.badType', { mb: MAX_FILE_MB }));
+      return;
+    }
+    setError(null); setDone(false);
+    setFiles(prev => [...prev, ...picked]);
+  }
+
   return (
     <section>
       <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorSubmit.title')}</h2>
@@ -351,25 +365,30 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
                       className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-near-black/20 dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white" />
           </label>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-brand-mid-grey">
+          {/* Two ways in, because this is used on a slab in daylight (30 Oct 2026).
+              `capture="environment"` opens the rear camera straight away on a phone;
+              the second input is the ordinary picker for a file already taken, or
+              for a laptop, where `capture` is simply ignored. Both run the same
+              check before anything is uploaded. */}
+          <div>
+            <span className="mb-1.5 block text-xs font-medium text-brand-mid-grey">
               {t('contractorSubmit.files', { mb: MAX_FILE_MB })}
             </span>
-            <input type="file" multiple accept={FILE_ACCEPT_ATTR}
-                   onChange={e => {
-                     const picked = Array.from(e.target.files ?? []);
-                     e.target.value = '';
-                     const bad = picked.find(f => fileProblem(f));
-                     if (bad) {
-                       setError(t(fileProblem(bad) === 'size'
-                         ? 'project.documents.tooLarge' : 'project.documents.badType', { mb: MAX_FILE_MB }));
-                       return;
-                     }
-                     setError(null); setDone(false);
-                     setFiles(prev => [...prev, ...picked]);
-                   }}
-                   className="block w-full text-sm text-brand-mid-grey file:mr-3 file:rounded-lg file:border file:border-brand-border-grey file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-brand-near-black dark:file:bg-[#141414] dark:file:text-white" />
-          </label>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
+                <Camera className="size-3.5" aria-hidden />
+                {t('contractorSubmit.takePhoto')}
+                <input type="file" accept="image/*" capture="environment" className="sr-only"
+                       onChange={e => addFiles(e)} />
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+                <Upload className="size-3.5" aria-hidden />
+                {t('contractorSubmit.chooseFile')}
+                <input type="file" multiple accept={FILE_ACCEPT_ATTR} className="sr-only"
+                       onChange={e => addFiles(e)} />
+              </label>
+            </div>
+          </div>
 
           {files.length > 0 && (
             <ul className="flex flex-col gap-1">

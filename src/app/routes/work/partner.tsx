@@ -58,6 +58,18 @@ const OFFSITE_REASONS = [
 ] as const;
 const GROUNDWORK_USE = ['yes', 'maybe', 'no'] as const;
 
+/**
+ * Postgres 23505 against the one-live-application index.
+ *
+ * Matched on the SQLSTATE and the constraint name rather than on the message text,
+ * which is not ours and is not translated.
+ */
+function isDuplicateApplication(err: unknown): boolean {
+  const e = (err ?? {}) as { code?: unknown; message?: unknown };
+  const message = typeof e.message === 'string' ? e.message : '';
+  return e.code === '23505' || /one_per_account/.test(message);
+}
+
 export default function PartnerApplication() {
   const t = useT();
   const { user } = useAuth();
@@ -430,6 +442,29 @@ export default function PartnerApplication() {
         ).catch(() => {});
       }
     } catch (err) {
+      /**
+       * The one error a human must never be shown raw.
+       *
+       * `contractor_applications_one_per_account` (100) refuses a second live
+       * application. It fires when this tab's `state` is stale — another tab filed
+       * one, or the first submit succeeded and its response was lost — and Philip
+       * met it on a live call as the Postgres text itself:
+       *   duplicate key value violates unique constraint
+       *   "contractor_application_one_per_account" (23505)
+       *
+       * The row exists, which means the application went through. So this is not an
+       * error to report: re-read the state and the page becomes their filed
+       * application, which is where they were trying to get to anyway.
+       */
+      if (isDuplicateApplication(err)) {
+        const again = await myApplicationSummary(user.id).catch(() => null);
+        if (again && again.state !== 'none') {
+          setState(again.state);
+          setQualified(again.decisionReady);
+          void myApplicationDetail(user.id).then(setDetail).catch(() => {});
+          return;
+        }
+      }
       setError(errorMessage(err, t('common.somethingWrong')));
     } finally { setBusy(false); }
   }
@@ -488,9 +523,38 @@ export default function PartnerApplication() {
     <form ref={formRef} onSubmit={submit} className="max-w-xl space-y-5 scroll-mt-6">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold text-brand-near-black dark:text-white">
-          <ShieldCheck className="size-5" />{t('partner.title')}
+          <ShieldCheck className="size-5" />{t('partner.applyTitle')}
         </h1>
       </div>
+
+      {/* What they are applying FOR, before the fifteen questions (30 Oct 2026).
+          Shown on the first question only: once somebody is answering, repeating the
+          pitch under every question is noise. */}
+      {page === 0 && (
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('partner.whatAPartnerGets')}
+          </h2>
+          <ul className="mt-1">
+            {(['gets1', 'gets2', 'gets3', 'gets4'] as const).map((key, i) => (
+              <li key={key}
+                  className="flex gap-3 border-t border-brand-border-grey py-3 first:border-t-0 dark:border-[#2c2c2c]">
+                <span className="shrink-0 font-mono text-[11px] font-semibold text-brand-mid-grey">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-brand-near-black dark:text-white">
+                    {t(`partner.${key}` as TKey)}
+                  </span>
+                  <span className="block text-xs text-brand-mid-grey">
+                    {t(`partner.${key}Body` as TKey)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Where they are, so three pages read as progress rather than as more forms. */}
       <div className="flex gap-1" role="progressbar" aria-valuenow={page + 1} aria-valuemin={1} aria-valuemax={PAGES}>

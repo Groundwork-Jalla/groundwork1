@@ -15,7 +15,6 @@ import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT } from '@/lib/i18n';
-import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -113,9 +112,16 @@ export default function ContractorDashboard() {
     () => (projects ?? []).filter(a => a.activeStage !== null).length,
     [projects],
   );
-  const awaitingCheck = useMemo(
-    () => (projects ?? []).filter(a => a.stages.some(s => s.status === 'pending_review')).length,
-    [projects],
+  /**
+   * Projects with something outstanding on the contractor: a stage open for work, or
+   * a verifier's findings to answer. Not "awaiting verification" — that state is
+   * hidden until the feature ships, and a tile counting it would point at a screen
+   * with nothing on it.
+   */
+  const needsYou = useMemo(
+    () => (projects ?? []).filter(a =>
+      a.activeStage !== null || a.stages.some(s => reworkStages.has(s.id))).length,
+    [projects, reworkStages],
   );
 
   const visibleProjects = (projects ?? []).filter(a =>
@@ -229,8 +235,10 @@ export default function ContractorDashboard() {
         <div className="grid gap-3 sm:grid-cols-3">
           <Tile label={t('contractorDashboard.tileActiveBuilds')} value={projects.length}
                 dot="active" hint={t('contractorDashboard.tileActiveHint', { n: String(activeBuilds) })} />
-          <Tile label={t('contractorDashboard.tileAwaiting')} value={awaitingCheck}
-                dot="held" hint={t('contractorDashboard.tileAwaitingHint')} />
+          {/* Verification is hidden until the feature is finished (30 Oct 2026), so
+              neither the tile nor the filter may announce a stage nobody can act on. */}
+          <Tile label={t('contractorDashboard.tileNeedsYou')} value={needsYou}
+                dot="held" hint={t('contractorDashboard.tileNeedsYouHint')} />
           <ReleasedTile payments={payments} />
         </div>
 
@@ -264,7 +272,9 @@ export default function ContractorDashboard() {
               )}
             </section>
 
-            <RecentReleases payments={payments} projects={projects} />
+            {/* "Recent releases" removed 30 Oct 2026 on Favour's note: the dashboard
+                is active projects, what needs doing, and partner status. Payouts is
+                the page for what has been paid, and it has the full history. */}
           </div>
 
           <div className="flex min-w-0 flex-col gap-5">
@@ -553,42 +563,3 @@ function OpenStage({ lead }: { lead: AssignedProject | null }) {
   );
 }
 
-/** The last few releases, newest first. Real ledger rows or an honest empty state. */
-function RecentReleases({ payments, projects }: {
-  payments: { rows: ContractorPayment[]; available: boolean } | null;
-  projects: AssignedProject[];
-}) {
-  const t = useT();
-  const names = useMemo(
-    () => new Map(projects.map(a => [a.project.id, a.project.name])),
-    [projects],
-  );
-
-  if (payments === null || !payments.available || payments.rows.length === 0) return null;
-
-  return (
-    <section className="min-w-0">
-      <div className="mb-2.5 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">{t('contractorDashboard.recentReleases')}</h2>
-        <Link to="/work/payouts" className="text-xs text-brand-mid-grey underline underline-offset-2 hover:text-brand-near-black dark:hover:text-white">
-          {t('contractorDashboard.allPayouts')}
-        </Link>
-      </div>
-      <ul className="rounded-2xl border border-brand-border-grey bg-white px-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        {payments.rows.slice(0, 3).map(row => (
-          <li key={row.id} className="flex items-center justify-between gap-3 border-b border-brand-border-grey py-3 last:border-b-0 dark:border-[#2c2c2c]">
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold">
-                {names.get(row.projectId) ?? t('contractor.projects.title')}
-              </p>
-              <p className="text-[11px] text-brand-mid-grey">{formatDate(row.createdAt)}</p>
-            </div>
-            <p className="shrink-0 font-mono text-sm font-semibold tabular-nums">
-              {moneyPair(row.amount, row.currency, null).local}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
