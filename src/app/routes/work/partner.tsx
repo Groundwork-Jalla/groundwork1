@@ -71,6 +71,46 @@ function isDuplicateApplication(err: unknown): boolean {
   return e.code === '23505' || /one_per_account/.test(message);
 }
 
+/**
+ * What an applicant is allowed to be shown when a submit fails.
+ *
+ * `errorMessage` deliberately surfaces the raw PostgREST text — message, details, hint
+ * and code — because that is what makes a 400 debuggable. On this page it is the wrong
+ * audience: Ruth submitted on 31 Oct 2026 and was shown
+ *
+ *   new row for relation "contractor_applications" violates check constraint
+ *   "contractor_applications_role_other_required" (23514)
+ *
+ * which names a table, a constraint and a Postgres error class, and tells her nothing
+ * she can do. Philip had already met the 23505 version of this on a live call.
+ *
+ * So a database-level refusal becomes one plain sentence, and the raw error goes to the
+ * console where it is still there for whoever is debugging. Anything that is NOT a
+ * database constraint — a network failure, a thrown Error with a written message — is
+ * passed through as before, because those are usually worth reading.
+ */
+function applicantError(err: unknown, fallback: string, namedTrade: string): string {
+  const e = (err ?? {}) as { code?: unknown; message?: unknown };
+  const code = typeof e.code === 'string' ? e.code : '';
+  const message = typeof e.message === 'string' ? e.message : '';
+
+  // The one constraint an applicant can clear themselves. It only fires for somebody
+  // whose onboarding trade is "other" with nothing typed beside it — onboarding
+  // requires that today, so in practice only an older account reaches it. Telling
+  // them which field to fix beats a generic "try again" they cannot act on.
+  if (/role_other_required/.test(message)) {
+    console.error('[partner] application refused: role is "other" with no trade named', err);
+    return namedTrade;
+  }
+
+  // 23xxx is Postgres' integrity-constraint class: not null, foreign key, unique, check.
+  if (/^23\d\d\d$/.test(code)) {
+    console.error('[partner] application refused by the database:', err);
+    return fallback;
+  }
+  return errorMessage(err, fallback);
+}
+
 export default function PartnerApplication() {
   const t = useT();
   const { user } = useAuth();
@@ -372,7 +412,7 @@ export default function PartnerApplication() {
       clearPartnerDraftId(user.id);
       setStopped(reason);
     } catch (err) {
-      setError(errorMessage(err, t('common.somethingWrong')));
+      setError(applicantError(err, t('partner.submitFailed'), t('partner.tradeMissing')));
     } finally { setBusy(false); }
   }
 
@@ -503,7 +543,7 @@ export default function PartnerApplication() {
           return;
         }
       }
-      setError(errorMessage(err, t('common.somethingWrong')));
+      setError(applicantError(err, t('partner.submitFailed'), t('partner.tradeMissing')));
     } finally { setBusy(false); }
   }
 

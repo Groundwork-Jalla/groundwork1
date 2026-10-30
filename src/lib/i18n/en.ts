@@ -5501,6 +5501,8 @@ export const en = {
     ctaOpen:   'Open the programme',
   },
   partner: {
+    tradeMissing: 'Your trade is set to \u201cother\u201d but no trade is named. Add it under Profile, then send the application again.',
+    submitFailed: 'We could not file your application. Try again, and if it keeps failing tell the Groundwork team.',
     // The funnel, as the applicant sees it (29 Oct 2026). "Call booked" is NOT a step
     // we can honestly mark done — Groundwork can see somebody was sent to a calendar,
     // not that they picked a slot. So the step asks them to book, and only acceptance

@@ -284,6 +284,16 @@ export async function submitPartnerApplication(
     city: a.city,
     business_name: prefill.businessName,
     role: a.role,
+    // The trade a contractor typed when they picked "other" at onboarding.
+    //
+    // 081 requires it: `CHECK (role <> 'other' OR role_other IS NOT NULL)`, because
+    // `role` is merged into WhatsApp templates and an unanswered "other" reached a
+    // real contractor as the literal word "other". This insert carried `role` and
+    // never `role_other`, so every applicant whose trade was "other" was refused by
+    // the database — Ruth hit it live on 31 Oct 2026 and saw the raw constraint name.
+    //
+    // The value was already loaded in `prefill`; it simply was not passed on.
+    role_other: a.role === 'other' ? (prefill.specialtyOther?.trim() || null) : null,
     years_experience: a.yearsExperience,
     operates_as: a.operatesAs,
     languages: a.languages,

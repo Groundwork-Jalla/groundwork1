@@ -5372,6 +5372,8 @@ export const fr: Mirror<EnDict> = {
     ctaOpen:   'Ouvrir le programme',
   },
   partner: {
+    tradeMissing: 'Votre métier est défini sur « autre » sans précision. Ajoutez-le dans Profil, puis renvoyez votre candidature.',
+    submitFailed: 'Nous n’avons pas pu enregistrer votre candidature. Réessayez, et si cela persiste prévenez l’équipe Groundwork.',
     applyTitle:       'Candidater pour devenir partenaire certifi\u00e9',
     yourApplication:  'Votre candidature',
     oneConversation:  'Un \u00e9change avec l\u2019\u00e9quipe Groundwork, puis vous \u00eates partenaire. Rien \u00e0 payer.',
