@@ -932,18 +932,11 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
             )}
 
 
-            {due && (
-              <div className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 dark:bg-[#141414]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">
-                  {t('contractorDashboard.dueOnApproval')}
-                </p>
-                <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
-                  {due.local}
-                </p>
-                {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
-                <p className="mt-1.5 text-xs text-brand-mid-grey">{t('contractorWork.sendsItself')}</p>
-              </div>
-            )}
+            {/* "Released when this stage is approved" was here, with the stage figure
+                and a line about verification. Removed 30 Oct 2026 at Favour's request.
+                It said verification out loud on a surface where verification is
+                hidden, and it repeated a number the Money tab already carries — the
+                Work tab is for the work. */}
           </section>
         );
       })}

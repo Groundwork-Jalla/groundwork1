@@ -3466,7 +3466,7 @@ export const en = {
     running: {
       heading: "Running a project",
       q1: "How do I start a project?",
-      a1: "Press 'New project' on your Dashboard or on the Projects page. You choose whether it is a build you are running yourself or one for a client you are bringing. The wizard then asks where you are building and what you are building, and you can upload a floor plan and a bill of quantities — Groundwork reads the total from the bill rather than asking you to retype it.",
+      a1: "Press 'New project' on your Dashboard or on the Projects page. It asks where you are building and what you are building, and you can upload a floor plan and a bill of quantities — Groundwork reads the total from the bill rather than asking you to retype it. To set up a build for a client you are bringing, use Partner network instead: their account is created first, so the project has an owner.",
       q2: "What are the ten stages?",
       a2: "Land secured, design completed, site preparation, foundation, structure and walls, roofing, electrical and plumbing, finishing, exterior work, final handover. Every project runs on the same ten, so a client who has seen one build can read any other.",
       q3: "My project is already half built. Can I still bring it?",
