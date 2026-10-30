@@ -102,6 +102,10 @@ export default [
     // CLIENT shell — opening that one dropped a contractor into another app's
     // sidebar (30 Oct 2026).
     route("work/profile",           "routes/work/profile.tsx"),
+    // Help is per ROLE and per SHELL. `/help` sits under the client layout, so
+    // pointing a contractor at it put them inside the client sidebar — 30 Oct 2026:
+    // "on no account should a contractor account see a client dashboard view".
+    route("work/help",              "routes/work/help.tsx"),
     // A partner contractor bringing their own client (109). The same wizard an admin
     // runs — what differs is who may run it, and for whom.
     route("work/clients/new",       "routes/work/clients.new.tsx"),

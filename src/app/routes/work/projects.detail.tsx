@@ -880,7 +880,8 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
                   const count = item.evidence_urls?.length ?? 0;
                   return (
                     <li key={item.id}
-                        className="flex items-center gap-3 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+                        className="border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+                      <div className="flex items-center gap-3">
                       <span aria-hidden className={cn(
                         'flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
                         complete
@@ -910,25 +911,26 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
                           <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
                         </button>
                       )}
+                      </div>
+
+                      {/* Opened against the item it belongs to, so the camera and
+                          the file picker are under the thumb that pressed Upload —
+                          not at the bottom of a ten-item list. */}
+                      {uploadFor === item.id && (
+                        <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3.5 dark:bg-[#141414]">
+                          <SubmitWork projectId={project.id} stage={stage} substages={openItems}
+                                      fixedSubstageId={item.id}
+                                      substageLabel={substageLabel}
+                                      onCancel={() => setUploadFor(null)}
+                                      onSubmitted={async () => { setUploadFor(null); await onSubmitted(); }} />
+                        </div>
+                      )}
                     </li>
                   );
                 })}
               </ul>
             )}
 
-            {/* No standing form. The design has an Upload on each item, so the
-                form appears for the item that was pressed — which also removes
-                the "which item is this for?" dropdown, a question the button
-                has already answered. */}
-            {uploadFor !== null && (
-              <div className="mt-4 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
-                <SubmitWork projectId={project.id} stage={stage} substages={openItems}
-                            fixedSubstageId={uploadFor}
-                            substageLabel={substageLabel}
-                            onCancel={() => setUploadFor(null)}
-                            onSubmitted={async () => { setUploadFor(null); await onSubmitted(); }} />
-              </div>
-            )}
 
             {due && (
               <div className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 dark:bg-[#141414]">

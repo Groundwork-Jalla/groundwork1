@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import ProgressBar from './ProgressBar';
 import { BuildingPreview } from './BuildingPreview';
 import { useWizard } from '@/contexts/WizardContext';
+import { useHomePath } from '@/lib/auth/home-path';
 
 // =========================================================
 // Step transition variants
@@ -70,7 +71,24 @@ export default function WizardShell({
   const measure = wide ? 'max-w-3xl' : 'max-w-lg';
   const { step, totalSteps, direction, next, back, onBehalfOf, onChangeClient } = useWizard();
   const t = useT();
+  const home = useHomePath();
   const isFirst = step === 1;
+
+  // The way out of the wizard — the logo and Cancel both use it.
+  //
+  // 30 Oct 2026: they did not. Cancel was role-aware; the logo was hardcoded to
+  // `/dashboard`, so a contractor halfway through creating a project clicked the
+  // logo and landed in the CLIENT app — the redirect Philip reported twice.
+  // Two controls that leave the same screen cannot hold two opinions about where
+  // "out" is, so there is now one value.
+  //
+  // Creating for somebody else wins over the viewer's own role: an admin filing a
+  // project for a client belongs back in the list they started from. `home` is null
+  // until roles are read, and `/projects/new` is behind auth, so falling back to
+  // `/dashboard` only ever shows for the instant before the answer arrives.
+  const exitTo = onBehalfOf?.by === 'partner' ? '/work'
+    : onBehalfOf?.by === 'admin' ? '/admin/projects'
+    : home ?? '/dashboard';
 
   function handleContinue() {
     if (onContinue) { onContinue(); } else { next(); }
@@ -86,7 +104,7 @@ export default function WizardShell({
       <div className="flex flex-col flex-1 min-w-0 h-screen">
         {/* Header */}
         <header className="shrink-0 flex items-center justify-between px-6 sm:px-10 py-4 border-b border-brand-border-grey">
-          <GroundworkLogo linkTo="/dashboard" />
+          <GroundworkLogo linkTo={exitTo} />
           {/* Mobile progress bar */}
           <div className="flex-1 mx-6 md:hidden">
             <ProgressBar />
@@ -106,7 +124,7 @@ export default function WizardShell({
               </button>
             ) : (
               <Link
-                to={onBehalfOf?.by === 'partner' ? '/work' : onBehalfOf?.by === 'admin' ? '/admin/projects' : '/dashboard'}
+                to={exitTo}
                 className="text-sm text-brand-mid-grey hover:text-brand-near-black transition-colors"
               >
                 ← {t('common.cancel')}

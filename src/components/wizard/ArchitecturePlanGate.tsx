@@ -11,6 +11,10 @@ import { moneyPair } from '@/lib/budget/money-pair';
 import { readPlanWithModel, mergeModelReading } from '@/lib/budget/model-plan-reading';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
+import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useHomePath } from '@/lib/auth/home-path';
 
 // =========================================================
 // "Does your project have an architecture plan?"
@@ -323,15 +327,46 @@ export function ArchitecturePlanGate({
   );
 }
 
+/**
+ * The page this question is asked on.
+ *
+ * 30 Oct 2026. This used to be a bare `max-w-2xl` box. It is rendered INSTEAD of the
+ * step component, and the step component is what renders `WizardShell` — so on this
+ * one screen the whole frame vanished: no background below the content, no logo, no
+ * language or theme control, and no way out of the wizard except pressing Back twice.
+ * A contractor who opened it saw half a dark panel on a white page and reported that
+ * something weird had happened.
+ *
+ * It does not get the progress bar or the building preview. Those are per numbered
+ * step and this is deliberately not one — it is a question asked on the way past. It
+ * does get the frame, because every screen in the product has one.
+ */
 function Slide({ children }: { children: React.ReactNode }) {
+  // Where the logo goes. The wizard is reached from the contractor surface as well as
+  // the client one, and sending everybody to `/dashboard` is how a contractor ended up
+  // in the client view — the redirect Philip reported twice.
+  const home = useHomePath();
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="mx-auto w-full max-w-2xl px-6 py-10 sm:px-10 sm:py-14"
-    >
-      {children}
-    </motion.div>
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="flex shrink-0 items-center justify-between border-b border-brand-border-grey px-6 py-4 dark:border-[#2c2c2c] sm:px-10">
+        <GroundworkLogo linkTo={home ?? '/'} />
+        <div className="flex items-center gap-2">
+          <LanguageToggle compact />
+          <ThemeToggle compact />
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="mx-auto w-full max-w-2xl px-6 py-10 sm:px-10 sm:py-14"
+        >
+          {children}
+        </motion.div>
+      </main>
+    </div>
   );
 }
 

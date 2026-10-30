@@ -1,109 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  PlayCircle,
-  Mail,
-  ChevronDown,
-  MessageSquare,
-} from 'lucide-react';
+import { useRef } from 'react';
+import { Navigate } from 'react-router';
+import { PlayCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { createSupportTicket } from '@/lib/supabase/support';
 import { useT } from '@/lib/i18n';
+import { FaqList, ContactBox, type FaqSection } from '@/components/help/HelpPieces';
 
 // ── FAQ data ───────────────────────────────────────────────
 
-interface FaqItem {
-  q: string;
-  a: string;
-}
-
-interface FaqSection {
-  heading: string;
-  items: FaqItem[];
-}
-
-/**
- * Help is per role (Philip, 29 October).
+/*
+ * The contractor's questions used to live here, chosen by `isContractor`.
  *
- * The list below this one was written for a client — "what countries do you
- * support", "is my project data private". A contractor opening the same page got
- * answers to questions they had not asked, and none to the ones they had.
+ * They have moved to the dictionary and are rendered by `/work/help`, inside the
+ * contractor's own shell. Branching the list was never enough: this route sits under
+ * the CLIENT layout, so a contractor reading contractor answers was still looking at
+ * the client's sidebar. Favour, 30 Oct 2026 — "it must be tailored per role".
  *
- * Every answer here describes what the product actually does today. Verification
- * is deliberately not explained: it is hidden until the feature is finished, and
- * documenting a screen nobody can reach would be worse than saying nothing.
+ * This page now serves clients only, and sends a contractor to theirs.
  */
-const CONTRACTOR_FAQ_SECTIONS: FaqSection[] = [
-  {
-    heading: 'Running a project',
-    items: [
-      {
-        q: 'How do I start a project?',
-        a: "Press 'New project' on your Dashboard or on the Projects page. The wizard asks where you are building and what you are building, and you can upload a floor plan and a bill of quantities — Groundwork reads the total from the bill rather than asking you to retype it.",
-      },
-      {
-        q: 'What are the ten stages?',
-        a: 'Land secured, design completed, site preparation, foundation, structure and walls, roofing, electrical and plumbing, finishing, exterior work, final handover. Every project runs on the same ten, so a client who has seen one build can read any other.',
-      },
-      {
-        q: 'My project is already half built. Can I still bring it?',
-        a: 'Yes. Say which stage you have reached when you set it up. The stages behind it are recorded as finished outside Groundwork: they carry no payment and no certificate, and your client is billed for the remaining work only.',
-      },
-    ],
-  },
-  {
-    heading: 'Updates and stages',
-    items: [
-      {
-        q: 'How do I show the work I have done?',
-        a: "Open the project, stay on the Work tab, and add a file against the item it belongs to. On a phone you can take the photo there and then — 'Take a photo' opens the camera; 'Choose a file' picks one you already have.",
-      },
-      {
-        q: 'Why can I not tick an item off myself?',
-        a: 'An item ticks itself when a file lands against it. That is the whole point: the tick means there is something to look at, so it can never say work is done when nothing was ever uploaded.',
-      },
-      {
-        q: 'What happens when every item has an update?',
-        a: 'The stage goes forward for approval on its own. You do not have to send it, and there is nothing further to press.',
-      },
-    ],
-  },
-  {
-    heading: 'Getting paid',
-    items: [
-      {
-        q: 'When am I paid?',
-        a: 'A stage is paid once it is approved. The amount for each stage is on the Money tab of the project, in the project’s own currency with the dollar figure beside it.',
-      },
-      {
-        q: 'Where do I set my account?',
-        a: "Payouts, in the sidebar. You can keep more than one account and choose which is used by default, and you can change them at any time. Groundwork checks new details before the first payment goes to them — you do not need to do anything while that happens.",
-      },
-      {
-        q: 'Does Groundwork hold my money?',
-        a: 'No. Groundwork records and governs the schedule — what is due, on which stage, and when it was approved. A licensed payment provider holds and moves the money itself.',
-      },
-    ],
-  },
-  {
-    heading: 'Your client',
-    items: [
-      {
-        q: 'Should I invite my client?',
-        a: "It is your decision. An invited client can follow the project, read the updates, ask questions in the chat and keep their own copy of every document. They cannot approve work, move money or invite anybody.",
-      },
-      {
-        q: 'Do you need my client’s phone number?',
-        a: 'No. An email address is enough, and the second field is optional — it is only there to help you tell people apart later.',
-      },
-      {
-        q: 'Where do messages live?',
-        a: 'Inside the project they are about, on the Messages tab. Anyone added to the project later reads the whole history, so nothing depends on one person’s phone.',
-      },
-    ],
-  },
-];
-
 const FAQ_SECTIONS: FaqSection[] = [
   {
     heading: 'Getting Started',
@@ -182,211 +95,26 @@ const FAQ_SECTIONS: FaqSection[] = [
   },
 ];
 
-// ── Accordion item ─────────────────────────────────────────
-
-function FaqAccordion({
-  item,
-  index,
-  openIndex,
-  onToggle,
-}: {
-  item: FaqItem;
-  index: number;
-  openIndex: number | null;
-  onToggle: (i: number) => void;
-}) {
-  const isOpen = openIndex === index;
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => onToggle(index)}
-        className="flex items-center justify-between w-full text-left py-3.5 border-b border-brand-border-grey dark:border-[#2c2c2c]"
-      >
-        <span className="text-sm font-medium text-brand-near-black dark:text-white pr-4">
-          {item.q}
-        </span>
-        <motion.span
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="shrink-0"
-        >
-          <ChevronDown className="size-4 text-brand-mid-grey" />
-        </motion.span>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="answer"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <p className="text-sm text-brand-mid-grey leading-relaxed pb-4 pt-2">
-              {item.a}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Contact form ───────────────────────────────────────────
-
-type FormState = 'idle' | 'submitting' | 'success' | 'error';
-
-function ContactForm({ userEmail, userId }: { userEmail: string; userId: string | undefined }) {
-  const t = useT();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState(userEmail);
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [formState, setFormState] = useState<FormState>('idle');
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setFormState('submitting');
-    // This used to read "graceful degradation": a missing table counted as success, and
-    // the bare catch turned ANY failure into "Message sent." The table did not exist, so
-    // every message since launch was dropped and every sender was thanked for it. There
-    // is nothing graceful about telling someone you have their problem when you do not.
-    if (!userId) { setFormState('error'); return; }
-    try {
-      await createSupportTicket({ userId, name, email, subject, message });
-      setFormState('success');
-    } catch {
-      setFormState('error');
-    }
-  }
-
-  const inputCls =
-    'flex h-10 w-full rounded-md border border-brand-border-grey bg-white dark:bg-[#1c1c1c] dark:border-[#2c2c2c] px-3 py-2 text-sm text-brand-near-black dark:text-white outline-none transition-colors placeholder:text-brand-mid-grey focus-visible:border-brand-near-black dark:focus-visible:border-white';
-
-  if (formState === 'success') {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-brand-off-white dark:bg-[#222]">
-          <MessageSquare className="size-7 text-brand-near-black dark:text-white" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-brand-near-black dark:text-white mb-1">
-            {t('help.sent')}
-          </p>
-          <p className="text-xs text-brand-mid-grey leading-relaxed max-w-xs mx-auto">
-            {t('help.sentBody')}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-brand-near-black dark:text-white">
-            {t('help.name')}
-          </label>
-          <input
-            type="text"
-            required
-            placeholder={t('help.yourName')}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className={inputCls}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-brand-near-black dark:text-white">
-            {t('help.email')}
-          </label>
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className={inputCls}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-brand-near-black dark:text-white">
-          {t('help.subject')}
-        </label>
-        <input
-          type="text"
-          required
-          placeholder={t('help.subjectHint')}
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-          className={inputCls}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-brand-near-black dark:text-white">
-          {t('help.message')}
-        </label>
-        <textarea
-          required
-          rows={4}
-          placeholder={t('help.messageHint')}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          className={`${inputCls} h-auto min-h-[100px] resize-y`}
-        />
-      </div>
-
-      {formState === 'error' && (
-        <p className="text-xs text-state-alert">
-          {t('help.sendFailed')}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={formState === 'submitting'}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold px-5 py-2.5 transition-opacity hover:opacity-80 disabled:opacity-50"
-      >
-        {formState === 'submitting' ? 'Sending…' : 'Send message'}
-      </button>
-    </form>
-  );
-}
-
 // ── Main page ──────────────────────────────────────────────
 
 export default function HelpPage() {
   const t = useT();
-  const { user, isContractor } = useAuth();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { user, isContractor, rolesChecked } = useAuth();
   const contactRef = useRef<HTMLDivElement>(null);
-
-  function toggleFaq(globalIndex: number) {
-    setOpenFaq(prev => (prev === globalIndex ? null : globalIndex));
-  }
 
   function scrollToContact() {
     contactRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // A contractor gets the contractor's questions. Anyone else keeps the client set.
-  const sections = isContractor ? CONTRACTOR_FAQ_SECTIONS : FAQ_SECTIONS;
+  // A contractor never renders this page, because this page is the client shell.
+  // Typing /help is a way in as much as pressing a button is, so the redirect lives
+  // on the route rather than only on the button that used to point here.
+  //
+  // Waiting for `rolesChecked` matters: redirecting on a half-read role is how
+  // somebody lands on the wrong surface and has to navigate back.
+  if (rolesChecked && isContractor) return <Navigate to="/work/help" replace />;
 
-  // Build a flat global index offset per section
-  const sectionOffsets: number[] = [];
-  let runningOffset = 0;
-  for (const section of sections) {
-    sectionOffsets.push(runningOffset);
-    runningOffset += section.items.length;
-  }
+  const sections: FaqSection[] = FAQ_SECTIONS;
 
   const quickActions = [
     {
@@ -456,53 +184,9 @@ export default function HelpPage() {
         ))}
       </div>
 
-      {/* FAQ Accordion */}
-      <div>
-        <h2 className="text-lg font-bold text-brand-near-black dark:text-white mb-4">
-          {t('help.faq')}
-        </h2>
+      <FaqList sections={sections} />
 
-        {sections.map((section, sIdx) => {
-          const offset = sectionOffsets[sIdx];
-          return (
-            <div key={section.heading}>
-              <p className="text-xs font-semibold text-brand-mid-grey uppercase tracking-widest mt-8 mb-1">
-                {section.heading}
-              </p>
-              {section.items.map((item, iIdx) => {
-                const globalIdx = offset + iIdx;
-                return (
-                  <FaqAccordion
-                    key={globalIdx}
-                    item={item}
-                    index={globalIdx}
-                    openIndex={openFaq}
-                    onToggle={toggleFaq}
-                  />
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Contact form */}
-      <div
-        ref={contactRef}
-        id="contact-form"
-        className="rounded-2xl border border-brand-border-grey bg-white dark:bg-brand-dark-grey dark:border-[#2c2c2c] p-6"
-      >
-        <h2 className="text-lg font-bold text-brand-near-black dark:text-white mb-1">
-          {t('help.sendMessage')}
-        </h2>
-        <p className="text-xs text-brand-mid-grey mb-6">
-          {t('help.responseTime')}
-        </p>
-        <ContactForm
-          userEmail={user?.email ?? ''}
-          userId={user?.id}
-        />
-      </div>
+      <ContactBox innerRef={contactRef} userEmail={user?.email ?? ''} userId={user?.id} />
     </div>
   );
 }

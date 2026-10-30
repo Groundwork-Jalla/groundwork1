@@ -3445,6 +3445,60 @@ export const en = {
     watchVideos: "Watch videos",
     bookNow: "Book now",
     sendCta: "Send a message",
+    sending: "Sending…",
+  },
+
+  // ── Contractor help (/work/help) ──────────────────────────
+  // A second help page, in the contractor's own shell. Favour, 30 Oct 2026: a
+  // contractor must never be shown the client view by any button, and their help
+  // must answer contractor questions only. Unlike the client FAQ above — still
+  // hardcoded English — every string here is translated.
+  contractorHelp: {
+    subtitle:      "Answers about running a build on Groundwork, and a direct line to us.",
+    payoutsTitle:  "Your payouts",
+    payoutsDesc:   "Add or change the account a stage payment goes to.",
+    payoutsCta:    "Open Payouts",
+    partnerTitle:  "Partner programme",
+    partnerDesc:   "Bring your own clients and stay the contractor on their build.",
+    partnerCta:    "See the programme",
+    contactTitle:  "Still stuck?",
+    contactDesc:   "Tell us what went wrong and we will come back within 24 hours.",
+    running: {
+      heading: "Running a project",
+      q1: "How do I start a project?",
+      a1: "Press 'New project' on your Dashboard or on the Projects page. You choose whether it is a build you are running yourself or one for a client you are bringing. The wizard then asks where you are building and what you are building, and you can upload a floor plan and a bill of quantities — Groundwork reads the total from the bill rather than asking you to retype it.",
+      q2: "What are the ten stages?",
+      a2: "Land secured, design completed, site preparation, foundation, structure and walls, roofing, electrical and plumbing, finishing, exterior work, final handover. Every project runs on the same ten, so a client who has seen one build can read any other.",
+      q3: "My project is already half built. Can I still bring it?",
+      a3: "Yes. Say which stage you have reached when you set it up. The stages behind it are recorded as finished outside Groundwork: they carry no payment and no certificate, and your client is billed for the remaining work only.",
+    },
+    updates: {
+      heading: "Updates and stages",
+      q1: "How do I show the work I have done?",
+      a1: "Open the project, stay on the Work tab, and press Upload on the item the work belongs to. On a phone you can take the photo there and then — 'Take a photo' opens the camera; 'Choose a file' picks one you already have.",
+      q2: "Why can I not tick an item off myself?",
+      a2: "An item ticks itself when a file lands against it. That is the whole point: the tick means there is something to look at, so it can never say work is done when nothing was ever uploaded.",
+      q3: "What happens when every item has an update?",
+      a3: "The stage goes forward for approval on its own. You do not have to send it, and there is nothing further to press.",
+    },
+    paid: {
+      heading: "Getting paid",
+      q1: "When am I paid?",
+      a1: "A stage is paid once it is approved. The amount for each stage is on the Money tab of the project, in the project's own currency with the dollar figure beside it. Approved is not the same as paid — the Money tab shows each separately.",
+      q2: "Where do I set my account?",
+      a2: "Payouts, in the sidebar. You can keep more than one account and choose which is used by default, and you can change them at any time. Groundwork checks new details before the first payment goes to them — you do not need to do anything while that happens.",
+      q3: "Does Groundwork hold my money?",
+      a3: "No. Groundwork records and governs the schedule — what is due, on which stage, and when it was approved. A licensed payment provider holds and moves the money itself.",
+    },
+    client: {
+      heading: "Your client",
+      q1: "Should I invite my client?",
+      a1: "It is your decision. An invited client can follow the project, read the updates, ask questions in the chat and keep their own copy of every document. They cannot approve work, move money or invite anybody.",
+      q2: "Do you need my client's phone number?",
+      a2: "No. An email address is enough. The phone number is optional and only helps Groundwork reach them on WhatsApp — we ask them for it when they accept.",
+      q3: "Where do messages live?",
+      a3: "Inside the project they are about, on the Messages tab. Anyone added to the project later reads the whole history, so nothing depends on one person's phone.",
+    },
   },
 
   // ── Free planning tools ───────────────────────────────────

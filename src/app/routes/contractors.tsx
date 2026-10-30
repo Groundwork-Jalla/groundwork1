@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
 import BackToTop from '@/components/ui/BackToTop';
 import { useT, type TKey } from '@/lib/i18n';
+import { useHomePath } from '@/lib/auth/home-path';
 import { createContractorInquiry, type BuildType } from '@/lib/supabase/inquiries';
 import { useDomainLabels } from '@/lib/domain-labels';
 
@@ -785,6 +786,9 @@ export default function ContractorsPage() {
 }
 
 function ContractorsLocked() {
+  // Back goes to the reader's OWN surface. This card is the one thing on the client
+  // directory a non-client can land on, and it used to send everybody to /dashboard.
+  const home = useHomePath();
   const t = useT();
   return (
     <div className="bg-brand-off-white min-h-full dark:bg-transparent">
@@ -807,7 +811,7 @@ function ContractorsLocked() {
             {t('contractors.lockedBody')}
           </p>
           <Link
-            to="/dashboard"
+            to={home ?? '/dashboard'}
             className="mt-6 inline-block text-xs font-medium text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white"
           >
             {t('contractors.lockedBack')}

@@ -42,5 +42,5 @@ export function WorkShell({ children, displayName, onLogout, navLocked, topBarAc
 }) {
   return <PortalShell home="/work" links={links} tabs={TABS} displayName={displayName} onLogout={onLogout} navLocked={navLocked} topBarActions={topBarActions}
     roleKey="contractor.surface.title" searchKey="contractorDashboard.search"
-    scopeKey="contractor.dashboard.subtitle" helpTo="/help">{children}</PortalShell>;
+    scopeKey="contractor.dashboard.subtitle" helpTo="/work/help">{children}</PortalShell>;
 }
