@@ -54,6 +54,52 @@ export async function fetchProjectViewers(projectId: string): Promise<ProjectVie
   }));
 }
 
+/** Who a project is shared with, as a list row needs it. */
+export interface ViewerSummary {
+  /** What to call them: their relationship if given, else the email's local part. */
+  label: string;
+  accepted: boolean;
+}
+
+/**
+ * The client on each of several projects, in one query.
+ *
+ * The dashboard and the project list both name the client on every row — "client
+ * Mr Nas, invited". One `in` over the project ids RLS has already narrowed, rather
+ * than a round trip per row.
+ *
+ * Returns a map that is simply missing the projects nobody was invited to, so a
+ * caller distinguishes "no client" from "not loaded" by whether the map itself is
+ * null.
+ */
+export async function fetchViewerSummaries(
+  projectIds: string[],
+): Promise<Map<string, ViewerSummary>> {
+  const out = new Map<string, ViewerSummary>();
+  if (projectIds.length === 0) return out;
+
+  const { data, error } = await supabase
+    .from('project_viewers')
+    .select('project_id, email, relationship, accepted_at')
+    .in('project_id', projectIds)
+    .is('revoked_at', null)
+    .order('invited_at', { ascending: true });
+  // A deployment without 112 has no table. An absent panel beats a broken page.
+  if (error) return out;
+
+  for (const row of (data ?? []) as { project_id: string; email: string;
+                                      relationship: string | null; accepted_at: string | null }[]) {
+    // The FIRST invitation is the client; later ones are family the client added.
+    if (out.has(row.project_id)) continue;
+    const named = row.relationship?.trim();
+    out.set(row.project_id, {
+      label: named && named !== '' ? named : row.email.split('@')[0],
+      accepted: row.accepted_at !== null,
+    });
+  }
+  return out;
+}
+
 export class ShareFailed extends Error {
   constructor(public code: string) { super(code); }
 }

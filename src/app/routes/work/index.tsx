@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, Camera, Check, FolderPlus, Landmark, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Camera, Check, Landmark, Loader2, Plus, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments, fetchSubstages,
@@ -8,6 +8,7 @@ import {
 } from '@/lib/supabase/contractor-work';
 import type { ProjectSubstageRow } from '@/types/project';
 import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
+import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
 import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
          type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
 import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
@@ -15,6 +16,7 @@ import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT } from '@/lib/i18n';
+import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 // =========================================================
@@ -56,6 +58,8 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  /** The client named on each row. Empty map until read; absent key = nobody invited. */
+  const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
 
   useEffect(() => {
     let alive = true;
@@ -65,10 +69,15 @@ export default function ContractorDashboard() {
         if (!alive) return;
         setProjects(assigned);
         setError(null);
-        const [r, p] = await Promise.all([fetchRework(assigned), fetchMyPayments()]);
+        const [r, p, v] = await Promise.all([
+          fetchRework(assigned),
+          fetchMyPayments(),
+          fetchViewerSummaries(assigned.map(a => a.project.id)),
+        ]);
         if (!alive) return;
         setRework(r);
         setPayments(p);
+        setClients(v);
       } catch {
         if (alive) { setProjects([]); setError(t('contractor.loadFailed')); }
       }
@@ -131,13 +140,6 @@ export default function ContractorDashboard() {
   /** The build whose stage the rail expands: the first one with work open. */
   const lead = visibleProjects.find(a => a.activeStage !== null) ?? null;
 
-  if (projects === null) {
-    return (
-      <p className="flex items-center gap-2 py-16 text-sm text-brand-mid-grey">
-        <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
-      </p>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 text-brand-near-black dark:text-white">
@@ -156,7 +158,7 @@ export default function ContractorDashboard() {
           to="/projects/new"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
         >
-          <FolderPlus className="size-3.5" aria-hidden />{t('contractorOwnProject.promptCta')}
+          <Plus className="size-4" aria-hidden />{t('contractor.newProject')}
         </Link>
       </header>
 
@@ -231,7 +233,16 @@ export default function ContractorDashboard() {
         </p>
       )}
 
-      {!error && <>
+      {/* Only the data waits. The heading and "Create project" render immediately:
+          returning a bare spinner left a contractor on a slow connection with no
+          way to start a project at all. */}
+      {projects === null && !error && (
+        <p className="flex items-center gap-2 py-10 text-sm text-brand-mid-grey">
+          <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
+        </p>
+      )}
+
+      {projects !== null && !error && <>
         <div className="grid gap-3 sm:grid-cols-3">
           <Tile label={t('contractorDashboard.tileActiveBuilds')} value={projects.length}
                 dot="active" hint={t('contractorDashboard.tileActiveHint', { n: String(activeBuilds) })} />
@@ -246,10 +257,10 @@ export default function ContractorDashboard() {
           <div className="flex min-w-0 flex-col gap-5">
             <section className="min-w-0">
               <div className="mb-2.5 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">{t('contractorDashboard.yourBuilds')}</h2>
+                <h2 className="text-base font-bold tracking-tight">{t('contractorDashboard.yourBuilds')}</h2>
                 {projects.length > 0 && (
                   <Link to="/work/projects" className="text-xs text-brand-mid-grey underline underline-offset-2 hover:text-brand-near-black dark:hover:text-white">
-                    {t('common.viewAll')}
+                    {t('contractorDashboard.seeAll', { n: projects.length })}
                   </Link>
                 )}
               </div>
@@ -265,7 +276,8 @@ export default function ContractorDashboard() {
                 <ul className="flex flex-col gap-2.5">
                   {visibleProjects.slice(0, 5).map(a => (
                     <li key={a.project.id}>
-                      <BuildRow assigned={a} hasRework={a.stages.some(s => reworkStages.has(s.id))} />
+                      <BuildRow assigned={a} client={clients.get(a.project.id) ?? null}
+                                hasRework={a.stages.some(s => reworkStages.has(s.id))} />
                     </li>
                   ))}
                 </ul>
@@ -372,24 +384,23 @@ function ReleasedTile({ payments }: { payments: { rows: ContractorPayment[]; ava
   );
 }
 
-function BuildRow({ assigned, hasRework }: { assigned: AssignedProject; hasRework: boolean }) {
+function BuildRow({ assigned, client, hasRework }: {
+  assigned: AssignedProject; client: ViewerSummary | null; hasRework: boolean;
+}) {
   const t = useT();
   const { stageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project.country);
   const { project, stages, activeStage } = assigned;
 
-  const awaiting = stages.some(s => s.status === 'pending_review');
   const due = money.pair(activeStage?.payment_milestone_usd ?? null);
 
   // A verifier's findings outrank everything else a row could say: that is the one
   // thing on this build waiting on the contractor.
   const state = hasRework
     ? { label: t('contractorDashboard.changesRequested'), tone: 'alert' as const }
-    : awaiting
-      ? { label: t('contractor.projects.awaitingCheck'),  tone: 'held' as const }
-      : activeStage
-        ? { label: stageLabel(activeStage),               tone: 'active' as const }
-        : { label: t('contractor.projects.nothingActive'), tone: 'locked' as const };
+    : activeStage
+      ? { label: stageLabel(activeStage),                 tone: 'active' as const }
+      : { label: t('contractor.projects.nothingActive'),  tone: 'locked' as const };
 
   return (
     <Link to={`/work/projects/${project.id}`}
@@ -403,13 +414,11 @@ function BuildRow({ assigned, hasRework }: { assigned: AssignedProject; hasRewor
         </p>
         <p className={cn('flex shrink-0 items-center gap-1.5 text-xs font-semibold',
           state.tone === 'alert'  && 'text-state-alert',
-          state.tone === 'held'   && 'text-state-held',
           state.tone === 'locked' && 'text-brand-mid-grey',
           state.tone === 'active' && 'text-brand-near-black dark:text-white',
         )}>
           <span aria-hidden className={cn('size-1.5 rounded-full',
             state.tone === 'alert'  && 'bg-state-alert',
-            state.tone === 'held'   && 'bg-state-held',
             state.tone === 'locked' && 'bg-brand-border-grey',
             state.tone === 'active' && 'bg-brand-near-black dark:bg-white',
           )} />
@@ -419,18 +428,32 @@ function BuildRow({ assigned, hasRework }: { assigned: AssignedProject; hasRewor
 
       <StagePipeline stages={stages} className="mb-3" />
 
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-t border-brand-border-grey pt-2.5 dark:border-[#2c2c2c]">
-        <p className="text-xs text-brand-mid-grey">
-          {assigned.totalStages > 0
-            ? t('contractor.projects.stageOf', { n: assigned.completedStages, total: assigned.totalStages })
-            : t('contractor.projects.noStages')}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-t border-brand-border-grey pt-3 dark:border-[#2c2c2c]">
+        {/* The stage, in its own outlined pill, with when it started and who the
+            client is — the shape on the approved dashboard. */}
+        <span className="inline-flex flex-wrap items-baseline gap-x-2 rounded-lg border border-brand-border-grey px-3 py-1.5 dark:border-[#2c2c2c]">
+          <span className="text-xs font-semibold text-brand-near-black dark:text-white">
+            {activeStage
+              ? t('contractor.projects.stageNumber', { n: activeStage.stage_number, name: stageLabel(activeStage) })
+              : t('contractor.projects.notStarted')}
+          </span>
+          <span className="text-[11px] text-brand-mid-grey">
+            {[
+              project.created_at ? t('contractorDashboard.started', { date: formatDate(project.created_at) }) : null,
+              client
+                ? t(client.accepted ? 'contractorDashboard.clientAccepted' : 'contractorDashboard.clientInvited',
+                    { name: client.label })
+                : t('contractorDashboard.noClientInvited'),
+            ].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+
         {due && (
           <div className="text-right">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">
               {t('contractor.projects.colNextRelease')}
             </p>
-            <p className="font-mono text-sm font-semibold tabular-nums">{due.local}</p>
+            <p className="font-mono text-base font-semibold tabular-nums">{due.local}</p>
             {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
           </div>
         )}
@@ -478,6 +501,7 @@ function OpenStage({ lead }: { lead: AssignedProject | null }) {
   const stage = lead.activeStage;
   const items = (substages ?? []).filter(s => s.stage_id === stageId);
   const done = items.filter(s => s.status === 'complete').length;
+  const open = items.length - done;
   const due = money.pair(stage.payment_milestone_usd);
 
   return (
@@ -543,22 +567,32 @@ function OpenStage({ lead }: { lead: AssignedProject | null }) {
       )}
 
       {due && (
-        <div className="mt-3 rounded-xl bg-brand-off-white px-3.5 py-3 dark:bg-[#141414]">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">
-            {t('contractorDashboard.dueOnApproval')}
-          </p>
-          <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{due.local}</p>
-          {due.usd && <p className="font-mono text-[11px] text-brand-mid-grey">≈ {due.usd}</p>}
+        <div className="mt-3 flex items-center gap-3 rounded-xl bg-brand-off-white px-3.5 py-3 dark:bg-[#141414]">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-brand-near-black dark:text-white">
+              {t('contractorDashboard.onApproval', { amount: due.local })}
+            </span>
+            <span className="block font-mono text-[11px] text-brand-mid-grey">
+              {due.usd
+                ? t('contractorDashboard.atRate', { usd: due.usd, rate: money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 }), code: money.code })
+                : '\u00a0'}
+            </span>
+          </span>
+          {open > 0 && (
+            <span className="shrink-0 rounded-lg border border-dashed border-brand-border-grey px-2.5 py-1.5 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
+              {t('contractorDashboard.itemsLeft', { n: open })}
+            </span>
+          )}
         </div>
       )}
 
-      <Link to={`/work/projects/${lead.project.id}`}
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4">
-        {items.length > 6
-          ? t('contractorDashboard.andMoreItems', { n: items.length - 6 })
-          : t('contractorDashboard.openProject')}
-        <ArrowRight className="size-3" aria-hidden />
-      </Link>
+      {items.length > 6 && (
+        <Link to={`/work/projects/${lead.project.id}`}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4">
+          {t('contractorDashboard.andMoreItems', { n: items.length - 6 })}
+          <ArrowRight className="size-3" aria-hidden />
+        </Link>
+      )}
     </section>
   );
 }

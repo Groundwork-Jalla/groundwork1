@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { useHomePath } from '@/lib/auth/home-path';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
 import { useT, type TKey } from '@/lib/i18n';
 
@@ -52,12 +53,16 @@ const SOCIAL = [
 ];
 
 export function SiteFooter() {
+  // Signed in, the logo goes to that person's own surface — not the client app.
+  // Null while roles load, and `/` for a visitor.
+  const home = useHomePath() ?? '/';
+
   const t = useT();
 
   return (
     <footer className="border-t border-brand-border-grey px-4 py-4 sm:px-6 lg:px-10">
       <div className="mx-auto flex max-w-275 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <GroundworkLogo linkTo="/" />
+        <GroundworkLogo linkTo={home} />
 
         <div className="order-last flex w-full flex-wrap items-center gap-4 text-xs text-brand-mid-grey sm:order-0 sm:w-auto">
           {LINKS.map(({ to, labelKey }) => (

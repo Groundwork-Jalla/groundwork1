@@ -385,6 +385,23 @@ export default function PartnerApplication() {
       setState('pending');
 
       /**
+       * Open the calendar, and load what they just told us.
+       *
+       * Neither happened before: `openBooking` ran only in the mount effect, which
+       * had already decided — before they applied — that there was no application
+       * to book against. So pressing Submit filed the application and then showed a
+       * screen with no calendar on it. Philip, 29 October: "the next button fails to
+       * open a calendar for booking calls."
+       *
+       * `ready` is the same qualification rule the mount effect uses, so somebody
+       * who does not qualify still sees no calendar — which is correct, and is why
+       * the wording on that panel follows the frame rather than the state.
+       */
+      setQualified(ready);
+      if (ready) void openBooking(callLang);
+      void myApplicationDetail(user.id).then(setDetail).catch(() => {});
+
+      /**
        * The applicant's copy and the team alert — the same two emails the public form
        * has always produced.
        *

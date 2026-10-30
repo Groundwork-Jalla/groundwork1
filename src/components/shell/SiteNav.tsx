@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useHomePath } from '@/lib/auth/home-path';
 import { Link, NavLink } from 'react-router';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,10 @@ const LINKS: { to: string; labelKey: TKey }[] = [
 ];
 
 export function SiteNav() {
+  // Signed in, the logo goes to that person's own surface — not the client app.
+  // Null while roles load, and `/` for a visitor.
+  const home = useHomePath() ?? '/';
+
   const t = useT();
   const join = useJoinDestination();
 
@@ -39,8 +44,8 @@ export function SiteNav() {
         <div className="flex min-w-0 items-center gap-7">
           {/* The wordmark is the largest fixed element in the bar. One size down
               below sm buys the ~20px that keeps both CTAs on screen at 320px. */}
-          <span className="sm:hidden"><GroundworkLogo variant="light" size="lg" linkTo="/" /></span>
-          <span className="hidden sm:block"><GroundworkLogo variant="light" size="xl" linkTo="/" /></span>
+          <span className="sm:hidden"><GroundworkLogo variant="light" size="lg" linkTo={home} /></span>
+          <span className="hidden sm:block"><GroundworkLogo variant="light" size="xl" linkTo={home} /></span>
           <div className="hidden items-center gap-6 lg:flex">
             {LINKS.map(({ to, labelKey }) => (
               <NavLink

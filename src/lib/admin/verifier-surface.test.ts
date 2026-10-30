@@ -221,9 +221,26 @@ describe('the contractor can reach, and make, a document', () => {
     expect(shell).not.toMatch(/\/work#action/);
   });
 
-  it('and the Documents tab can actually add one', () => {
-    expect(work).toMatch(/uploadDocument\(project\.id, user\.id, f\)/);
-    expect(work).toMatch(/contractorProject\.uploadDocument/);
+  it('and the Documents tab no longer takes a loose upload', () => {
+    /**
+     * This used to assert the opposite, and was right to: the tab listed documents
+     * and offered no way to add one, while a sidebar link pointed nowhere.
+     *
+     * Philip, 29 October 2026, reversed the requirement — a document dropped in at
+     * random has no use, and the section is an organised collection of the
+     * project's files. A photo that proves work goes against the stage item it
+     * proves, on the Work tab, where it ticks that item off. 131's upload policy is
+     * untouched, so the capability is still there for the stage form.
+     */
+    expect(work).not.toMatch(/uploadDocument\(project\.id, user\.id, f\)/);
+    expect(work).not.toMatch(/contractorProject\.uploadDocument/);
+  });
+
+  it('and stage updates are still uploaded, from the Work tab', () => {
+    // The door that replaced it, including the live camera Philip asked for.
+    expect(work).toMatch(/capture="environment"/);
+    expect(work).toMatch(/contractorSubmit\.takePhoto/);
+    expect(work).toMatch(/contractorSubmit\.chooseFile/);
   });
 
   it('a rejected file says which rule it broke', () => {
@@ -231,11 +248,12 @@ describe('the contractor can reach, and make, a document', () => {
     expect(work).toMatch(/project\.documents\.badType/);
   });
 
-  it('and a partial failure keeps the files that did upload', () => {
-    // Sequential, not Promise.all: losing three good uploads to one bad one would be
-    // the worst version of this.
-    expect(work).toMatch(/for \(const f of picked\) added\.push\(await uploadDocument/);
-    expect(work).toMatch(/if \(added\.length\) setDocuments\(prev => \[\.\.\.added, \.\.\.prev\]\)/);
+  it('and a rejected file is refused before anything is sent', () => {
+    // The loose-upload path is gone, so its partial-failure handling went with it.
+    // What remains is the stage form, and the rule that matters there is unchanged:
+    // every file is checked before one byte is uploaded.
+    expect(work).toMatch(/const bad = picked\.find\(f => fileProblem\(f\)\)/);
+    expect(work).toMatch(/setFiles\(prev => \[\.\.\.prev, \.\.\.picked\]\)/);
   });
 });
 

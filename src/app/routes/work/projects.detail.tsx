@@ -14,7 +14,6 @@ import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/accepted-files';
-import { uploadDocument } from '@/lib/supabase/documents';
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
@@ -64,8 +63,6 @@ export default function ContractorProjectDetail() {
   const [assigned, setAssigned] = useState<AssignedProject | null | 'denied'>(null);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [documents, setDocuments] = useState<ProjectDocumentRow[]>([]);
-  const [docBusy, setDocBusy]   = useState(false);
-  const [docError, setDocError] = useState<string | null>(null);
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -117,10 +114,15 @@ export default function ContractorProjectDetail() {
   );
 
   if (assigned === null) {
+    // The way back renders immediately. A bare spinner on a slow site connection
+    // leaves somebody on a page with no heading and no way off it.
     return (
-      <p className="flex items-center gap-2 py-16 text-sm text-brand-mid-grey">
-        <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
-      </p>
+      <div className="flex flex-col gap-5">
+        <Back />
+        <p className="flex items-center gap-2 py-16 text-sm text-brand-mid-grey">
+          <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
+        </p>
+      </div>
     );
   }
 
@@ -191,63 +193,7 @@ export default function ContractorProjectDetail() {
       )}
 
       {tab === 'documents' && (
-        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-          <h2 className="mb-3 text-sm font-semibold text-brand-near-black dark:text-white">
-            {t('contractorProject.tabDocuments')}
-          </h2>
-
-          {/* The tab listed documents and offered no way to add one, while the sidebar
-              had a Documents link that went nowhere — so "upload a document" had no
-              door at all. 131 is the other half: the contractor was refused by RLS at
-              both the row and the bucket, so a button here would have failed silently. */}
-          <label className="mb-4 block">
-            <span className="mb-1 block text-xs font-medium text-brand-mid-grey">
-              {t('contractorProject.uploadDocument', { mb: MAX_FILE_MB })}
-            </span>
-            <input
-              type="file" multiple accept={FILE_ACCEPT_ATTR} disabled={docBusy || !user}
-              onChange={e => {
-                const picked = Array.from(e.target.files ?? []);
-                e.target.value = '';
-                if (picked.length === 0 || !user) return;
-                const bad = picked.find(f => fileProblem(f));
-                if (bad) {
-                  setDocError(t(fileProblem(bad) === 'size'
-                    ? 'project.documents.tooLarge' : 'project.documents.badType', { mb: MAX_FILE_MB }));
-                  return;
-                }
-                setDocError(null); setDocBusy(true);
-                // Sequential, not Promise.all: each upload inserts a row, and a partial
-                // failure should leave the ones that worked rather than racing them.
-                void (async () => {
-                  const added: ProjectDocumentRow[] = [];
-                  try {
-                    for (const f of picked) added.push(await uploadDocument(project.id, user.id, f));
-                    setDocuments(prev => [...added, ...prev]);
-                  } catch (err) {
-                    if (added.length) setDocuments(prev => [...added, ...prev]);
-                    setDocError(errorMessage(err, t('chat.attachment.uploadFailed')));
-                  } finally { setDocBusy(false); }
-                })();
-              }}
-              className="block w-full text-sm text-brand-mid-grey file:mr-3 file:rounded-lg file:border file:border-brand-border-grey file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-brand-near-black dark:file:bg-[#141414] dark:file:text-white"
-            />
-          </label>
-          {docBusy && <p role="status" className="mb-3 flex items-center gap-2 text-xs text-brand-mid-grey">
-            <Loader2 className="size-3.5 animate-spin" />{t('common.uploading')}
-          </p>}
-          {docError && <p role="alert" className="mb-3 text-xs text-state-alert">{docError}</p>}
-
-          {documents.length === 0 ? (
-            <p className="text-sm text-brand-mid-grey">{t('contractorProject.noDocuments')}</p>
-          ) : (
-            /* Filed by what a document IS, not by when it arrived. "Show me the
-               foundation photos" is the question people actually ask on a call, and
-               a reverse-chronological list never answers it. */
-            <DocumentGroups documents={documents} />
-          )}
-
-        </section>
+        <DocumentsTab assigned={assigned} documents={documents} isOwner={user?.id === project.user_id} />
       )}
 
       {tab === 'money' && (
@@ -609,14 +555,19 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
     return () => { alive = false; };
   }, [project.id]);
 
-  const CAN: { label: string; you: boolean; client: boolean; verifier: boolean }[] = [
-    { label: t('contractorPeople.canSee'),     you: true,  client: true,  verifier: true },
-    { label: t('contractorPeople.canChat'),    you: true,  client: true,  verifier: true },
-    { label: t('contractorPeople.canDoc'),     you: true,  client: true,  verifier: false },
-    { label: t('contractorPeople.canEvidence'),you: true,  client: false, verifier: false },
-    { label: t('contractorPeople.canApprove'), you: false, client: false, verifier: true },
-    { label: t('contractorPeople.canRelease'), you: false, client: false, verifier: false },
-    { label: t('contractorPeople.canInvite'),  you: isOwner, client: false, verifier: false },
+  /**
+   * Who can do what. The VERIFIER column is hidden with the rest of verification
+   * (30 Oct 2026) — a column for a role the contractor cannot see or contact only
+   * raises a question the product is not yet ready to answer. The rows are
+   * unchanged, so restoring the column is one field each.
+   */
+  const CAN: { label: string; you: boolean; client: boolean }[] = [
+    { label: t('contractorPeople.canSee'),     you: true,  client: true },
+    { label: t('contractorPeople.canChat'),    you: true,  client: true },
+    { label: t('contractorPeople.canDoc'),     you: true,  client: true },
+    { label: t('contractorPeople.canEvidence'),you: true,  client: false },
+    { label: t('contractorPeople.canRelease'), you: false, client: false },
+    { label: t('contractorPeople.canInvite'),  you: isOwner, client: false },
   ];
 
   return (
@@ -682,14 +633,13 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
                 <th className="pb-2 text-left" />
                 <th className="w-16 pb-2">{t('contractorPeople.colYou')}</th>
                 <th className="w-16 pb-2">{t('contractorPeople.colClient')}</th>
-                <th className="w-16 pb-2">{t('contractorPeople.colVerifier')}</th>
               </tr>
             </thead>
             <tbody>
               {CAN.map(row => (
                 <tr key={row.label} className="border-t border-brand-border-grey dark:border-[#2c2c2c]">
                   <td className="py-2 text-brand-mid-grey">{row.label}</td>
-                  {[row.you, row.client, row.verifier].map((yes, i) => (
+                  {[row.you, row.client].map((yes, i) => (
                     <td key={i} className="py-2 text-center">
                       {yes
                         ? <Check className="mx-auto size-3.5 stroke-[3] text-state-complete" aria-label="yes" />
@@ -972,6 +922,201 @@ function DocumentGroups({ documents }: { documents: ProjectDocumentRow[] }) {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Documents: an organised collection of the project's files.
+ *
+ * Philip, 29 October: a document dropped in at random has no use. So there is no
+ * upload here — a photo that proves work belongs against the stage item it proves,
+ * on the Work tab, where it ticks that item off. This tab is for finding things.
+ *
+ * Grouped by what a file IS, not by when it arrived: "show me the foundation
+ * photos" is the question people ask on a call, and a reverse-chronological list
+ * never answers it.
+ */
+function DocumentsTab({ assigned, documents, isOwner }: {
+  assigned: AssignedProject; documents: ProjectDocumentRow[]; isOwner: boolean;
+}) {
+  const t = useT();
+  const { stageLabel } = useStageLabels();
+  const [filter, setFilter] = useState<'all' | 'drawings' | 'boq' | 'site' | 'certificates'>('all');
+  const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchProjectViewers(assigned.project.id)
+      .then(rows => { if (alive) setViewers(rows); })
+      .catch(() => { if (alive) setViewers([]); });
+    return () => { alive = false; };
+  }, [assigned.project.id]);
+
+  const drawings = documents.filter(d => d.category !== 'boq' && d.category !== 'site_photo');
+  const boq = documents.filter(d => d.category === 'boq');
+  const sitePhotos = documents.filter(d => d.category === 'site_photo');
+  // One certificate per approved stage — that is how they are issued, so that is
+  // how they are counted. Nothing invented: an unapproved stage has none.
+  const certificates = assigned.stages.filter(st => st.status === 'complete');
+  /** The stages the group below lists, so the chip counts what is under it. */
+  const stagesWithUpdates = assigned.stages.filter(st =>
+    st.status === 'complete' || st.status === 'active' || st.status === 'pending_review');
+
+  const CHIPS = [
+    { id: 'all' as const,          label: t('contractorDocs.chipAll'),      n: documents.length + certificates.length },
+    { id: 'drawings' as const,     label: t('contractorDocs.chipDrawings'), n: drawings.length },
+    { id: 'boq' as const,          label: t('contractorDocs.chipBoq'),      n: boq.length },
+    { id: 'site' as const,         label: t('contractorDocs.chipSite'),     n: stagesWithUpdates.length },
+    { id: 'certificates' as const, label: t('contractorDocs.chipCerts'),    n: certificates.length },
+  ];
+
+  const show = (which: typeof filter) => filter === 'all' || filter === which;
+
+  return (
+    <div className="grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          {CHIPS.map(c => (
+            <button key={c.id} type="button" onClick={() => setFilter(c.id)} aria-pressed={filter === c.id}
+              className={cn('rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                filter === c.id
+                  ? 'border-brand-near-black bg-brand-near-black font-semibold text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                  : 'border-brand-border-grey bg-white text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]')}>
+              {c.label}
+              <span className={cn('ml-1.5 font-mono text-[10px] tabular-nums',
+                filter === c.id ? 'opacity-60' : 'text-brand-mid-grey')}>{c.n}</span>
+            </button>
+          ))}
+        </div>
+
+        {documents.length === 0 && certificates.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-12 text-center text-sm text-brand-mid-grey dark:border-[#2c2c2c]">
+            {t('contractorProject.noDocuments')}
+          </p>
+        )}
+
+        {(show('drawings') || show('boq')) && (drawings.length > 0 || boq.length > 0) && (
+          <Group title={t('contractorDocs.theBuild')}>
+            {[...boq, ...drawings].map(d => (
+              <FileRow key={d.id} kind="PDF" name={d.file_name}
+                       sub={[d.category === 'boq' ? t('contractorDocs.billOfQuantities') : t('contractorDocs.drawing'),
+                            d.file_size ? `${Math.round(d.file_size / 1024)} KB` : null].filter(Boolean).join(' · ')}
+                       when={formatDate(d.created_at)} />
+            ))}
+          </Group>
+        )}
+
+        {show('site') && (
+          <Group title={t('contractorDocs.siteUpdatesFiled')}>
+            {stagesWithUpdates.length === 0
+              ? <p className="py-3 text-xs text-brand-mid-grey">{t('contractorDocs.noSiteUpdates')}</p>
+              : stagesWithUpdates.map(st => (
+                    <FileRow key={st.id} kind={String(st.stage_number)} name={stageLabel(st)}
+                             sub={t(st.status === 'complete'
+                               ? 'contractorDocs.stageApproved' : 'contractorDocs.stageOpen')}
+                             when="" state={st.status === 'complete' ? 'done' : 'open'} />
+                ))}
+          </Group>
+        )}
+
+        {show('certificates') && certificates.length > 0 && (
+          <Group title={t('contractorDocs.certificatesIssued')}>
+            {certificates.map(st => (
+              <FileRow key={st.id} kind="CRT"
+                       name={t('contractorDocs.stageCertificate', { n: st.stage_number, name: stageLabel(st) })}
+                       sub={t('contractorDocs.issuedByGroundwork')} when="" action={t('contractorDocs.share')} />
+            ))}
+          </Group>
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-4">
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorDocs.whoCanSee')}
+          </h2>
+          {/* The verifier row is hidden with the rest of verification (30 Oct 2026). */}
+          {viewers?.map(v => (
+            <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
+                    name={v.relationship?.trim() || v.email}
+                    role={t('contractorDocs.clientCanView')} />
+          ))}
+          <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
+                  name={t('contractorPeople.you')} role={t('contractorDocs.ownerEverything')} />
+          {viewers !== null && viewers.length === 0 && (
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
+          )}
+          {isOwner && (
+            <Link to="?tab=people" className="mt-3 inline-block text-xs underline underline-offset-2 text-brand-mid-grey">
+              {t('contractorPeople.inviteTitle')}
+            </Link>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractorDocs.nothingLeaves')}
+          </h2>
+          <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorDocs.nothingLeavesBody')}</p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-brand-border-grey bg-white px-5 py-3 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h3 className="py-2 text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function FileRow({ kind, name, sub, when, action, state }: {
+  kind: string; name: string; sub: string; when: string;
+  action?: string; state?: 'done' | 'open';
+}) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-3 border-t border-brand-border-grey py-3 dark:border-[#2c2c2c]">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand-border-grey bg-brand-off-white font-mono text-[8px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
+        {kind}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold text-brand-near-black dark:text-white">{name}</span>
+        <span className="block text-[11px] text-brand-mid-grey">{sub}</span>
+      </span>
+      {when && <span className="shrink-0 font-mono text-[11px] text-brand-mid-grey">{when}</span>}
+      {state && (
+        <span className={cn('flex shrink-0 items-center gap-1.5 text-[11px] font-semibold',
+          state === 'done' ? 'text-state-complete' : 'text-state-held')}>
+          <span aria-hidden className={cn('size-1.5 rounded-full',
+            state === 'done' ? 'bg-state-complete' : 'bg-state-held')} />
+          {t(state === 'done' ? 'contractorDocs.approved' : 'contractorDocs.open')}
+        </span>
+      )}
+      {action && (
+        <span className="shrink-0 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
+          {action}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** One person in the "who can see these" rail. */
+function SeenBy({ initials, name, role }: { initials: string; name: string; role: string }) {
+  return (
+    <div className="flex items-center gap-2.5 border-t border-brand-border-grey py-2.5 first:border-t-0 dark:border-[#2c2c2c]">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-brand-border-grey text-[10px] font-bold text-brand-mid-grey dark:border-[#2c2c2c]">
+        {initials}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-xs font-semibold text-brand-near-black dark:text-white">{name}</span>
+        <span className="block text-[11px] text-brand-mid-grey">{role}</span>
+      </span>
     </div>
   );
 }

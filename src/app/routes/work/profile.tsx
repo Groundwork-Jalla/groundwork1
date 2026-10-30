@@ -11,6 +11,7 @@ import {
   NOTIFY_KEYS, readPreferences, savePreferences,
   type CurrencyFirst, type NotifyKey, type NotifyPrefs,
 } from '@/lib/supabase/contractor-preferences';
+import { myApplicationState, myApplicationDetail, type ApplicationState } from '@/lib/supabase/partner-application';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,10 @@ export default function ContractorProfile() {
   const [trade, setTrade] = useState<string | null>(null);
   const [builds, setBuilds] = useState<number | null>(null);
   const [resetSent, setResetSent] = useState(false);
+  /** The screen reads as a record; "Edit profile" turns the rows into fields. */
+  const [editing, setEditing] = useState(false);
+  const [partner, setPartner] = useState<ApplicationState | null>(null);
+  const [regions, setRegions] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -66,6 +71,17 @@ export default function ContractorProfile() {
       .catch(() => {});
     return () => { alive = false; };
   }, []);
+
+  // The partner badge and the regions row, both from their own records.
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    void myApplicationState(user.id).then(x => { if (alive) setPartner(x); }).catch(() => {});
+    void myApplicationDetail(user.id)
+      .then(d => { if (alive) setRegions(d?.regions ?? null); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user]);
 
   async function saveDetails() {
     setSaving(true); setError(null); setSaved(false);
@@ -133,6 +149,12 @@ export default function ContractorProfile() {
                     <ShieldCheck className="size-3" aria-hidden />{t('profile.verifiedContractor')}
                   </span>
                 )}
+                {partner !== null && partner !== 'none' && (
+                  <span className="inline-flex items-center rounded-full border border-brand-border-grey px-2.5 py-0.5 text-[11px] font-medium text-brand-mid-grey dark:border-[#2c2c2c]">
+                    {t(partner === 'accepted'
+                      ? 'contractorProfile.badgePartner' : 'contractorProfile.badgeApplied')}
+                  </span>
+                )}
                 {builds !== null && builds > 0 && (
                   <span className="inline-flex items-center rounded-full border border-brand-border-grey px-2.5 py-0.5 text-[11px] font-medium text-brand-mid-grey dark:border-[#2c2c2c]">
                     {t('profile.liveBuilds', { n: builds })}
@@ -140,29 +162,41 @@ export default function ContractorProfile() {
                 )}
               </div>
             </div>
+            <button type="button" onClick={() => setEditing(e => !e)}
+              className="shrink-0 rounded-lg border border-brand-border-grey px-3.5 py-2 text-sm font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              {t(editing ? 'common.cancel' : 'contractorProfile.editProfile')}
+            </button>
           </section>
 
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
               {t('contractorProfile.yourDetails')}
             </h2>
-            <Field label={t('profile.fullName')} value={fullName} onChange={setFullName} />
+            {editing
+              ? <Field label={t('profile.fullName')} value={fullName} onChange={setFullName} />
+              : <Readonly label={t('profile.fullName')} value={fullName || '—'} />}
             {/* Email is how they sign in, so it is not editable from here. */}
             <Readonly label={t('profile.emailAddress')} value={user?.email ?? '—'}
                       hint={t('profile.emailCurrent')} />
-            <Field label={t('profile.phoneNumber')} value={phone} onChange={setPhone}
-                   hint={t('contractorProfile.phoneHint')} />
-            <Field label={t('contractorProfile.businessName')} value={business} onChange={setBusiness} />
+            {editing
+              ? <Field label={t('profile.phoneNumber')} value={phone} onChange={setPhone}
+                       hint={t('contractorProfile.phoneHint')} />
+              : <Readonly label={t('profile.phoneNumber')} value={phone || '—'}
+                          hint={t('contractorProfile.phoneHint')} />}
+            {editing
+              ? <Field label={t('contractorProfile.businessName')} value={business} onChange={setBusiness} />
+              : <Readonly label={t('contractorProfile.businessName')} value={business || '—'} />}
             <Readonly label={t('contractorProfile.trade')} value={trade ? tradeLabel(t, trade) : '—'} />
+            <Readonly label={t('contractorProfile.regionsYouWorkIn')} value={regions || '—'} />
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            {editing && <div className="mt-4 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void saveDetails()} disabled={saving}
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-near-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-brand-near-black">
                 {saving && <Loader2 className="size-4 animate-spin" />}{t('profile.saveChanges')}
               </button>
               {saved && <span role="status" className="text-xs text-state-complete">{t('common.saved')}</span>}
               {error && <span role="alert" className="text-xs text-state-alert">{error}</span>}
-            </div>
+            </div>}
           </section>
 
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -229,6 +263,10 @@ export default function ContractorProfile() {
               {t('contractorProfile.whatClientsSee')}
             </h2>
             <p className="text-xs text-brand-mid-grey">{t('contractorProfile.whatClientsSeeBody')}</p>
+            <button type="button"
+              className="mt-3 w-full rounded-lg border border-brand-border-grey px-4 py-2.5 text-sm font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+              {t('contractorProfile.seeMyPublicProfile')}
+            </button>
           </section>
 
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

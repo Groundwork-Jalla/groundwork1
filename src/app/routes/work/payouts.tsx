@@ -80,11 +80,17 @@ export default function ContractorPayouts() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header>
-        <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
-          {t('contractorPayout.title')}
-        </h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorPayout.subtitle')}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
+            {t('contractorPayout.navLabel')}
+          </h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractorPayout.subtitle')}</p>
+        </div>
+        <button type="button" onClick={() => setAdding(true)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          <Plus className="size-4" aria-hidden />{t('contractorPayout.addTitle')}
+        </button>
       </header>
 
       <PayoutFigures payments={payments} projects={projects} />
@@ -95,9 +101,12 @@ export default function ContractorPayouts() {
         </p>
       )}
 
-      <h2 className="-mb-2 text-sm font-semibold text-brand-near-black dark:text-white">
-        {t('contractorPayout.whereYouGetPaid')}
-      </h2>
+      <div className="-mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-bold tracking-tight text-brand-near-black dark:text-white">
+          {t('contractorPayout.whereYouGetPaid')}
+        </h2>
+        <p className="text-xs text-brand-mid-grey">{t('contractorPayout.usedEverywhere')}</p>
+      </div>
 
       {live.length === 0 && !adding ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-12 text-center dark:border-[#2c2c2c]">
@@ -163,29 +172,29 @@ export default function ContractorPayouts() {
               they were paid. */}
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-              {t('contractorPayout.howAStageGetsPaid')}
+              {t('contractorPayout.releasedWhen')}
             </h2>
-            <ol className="mt-2.5 flex flex-col gap-2">
-              {([
-                ['contractorPayout.step1', 'contractorPayout.step1Hint'],
-                ['contractorPayout.step2', 'contractorPayout.step2Hint'],
-                ['contractorPayout.step3', 'contractorPayout.step3Hint'],
-                ['contractorPayout.step4', 'contractorPayout.step4Hint'],
-              ] as const).map(([key, hint], i) => (
-                <li key={key} className="flex gap-2.5">
-                  <span className="shrink-0 font-mono text-[11px] font-semibold text-brand-mid-grey">
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-xs font-semibold text-brand-near-black dark:text-white">{t(key)}</span>
-                    <span className="block text-[11px] text-brand-mid-grey">{t(hint)}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+              <span className="text-[13px] font-semibold text-brand-near-black dark:text-white">
+                {t('contractorPayout.stepApproved')}
+              </span>
+              {/* "By an independent verifier" removed 30 Oct 2026 — Favour pointed at
+                  it as "the number 2 field". It goes with the rest of verification
+                  being hidden. The row still states WHAT happens; it no longer
+                  names who, because naming the wrong actor would be worse than
+                  naming none. */}
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
+              <span className="text-[13px] font-semibold text-brand-near-black dark:text-white">
+                {t('contractorPayout.stepChecked')}
+              </span>
+              <span className="shrink-0 text-right text-[11px] text-brand-mid-grey">
+                {t('contractorPayout.stepCheckedWhen')}
+              </span>
+            </div>
             {/* Groundwork records and governs the schedule. A licensed provider holds
                 and moves the money, and nothing on this page may imply otherwise. */}
-            <p className="mt-3 text-xs text-brand-mid-grey">{t('contractorPayout.notCustodian')}</p>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPayout.notCustodian')}</p>
           </section>
 
           <TodaysRate projects={projects} />
@@ -228,13 +237,16 @@ function PayoutFigures({ payments, projects }: {
                hint: t('contractorDashboard.tileReleasedMixed', { n: String(payments.rows.length) }) };
     }
     const total = payments.rows.reduce((sum, r) => sum + r.amount, 0);
-    return { value: moneyPair(total, [...codes][0], null).local,
-             hint: t('contractorDashboard.tileReleasedCount', { n: String(payments.rows.length) }) };
+    const code = [...codes][0];
+    const pair = moneyPair(total, code, code === 'USD' ? null : money.rate);
+    return { value: pair.local,
+             hint: pair.usd ? `${code} · ≈ ${pair.usd}`
+                            : t('contractorDashboard.tileReleasedCount', { n: String(payments.rows.length) }) };
   })();
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <Figure label={t('contractorPayout.received')} value={received.value}
+      <Figure label={t('contractorPayout.receivedThisYear')} value={received.value}
               hint={received.hint} tone="complete" />
       <Figure label={t('contractorPayout.dueNext')}
               value={projects === null ? null : money.pair(dueNext)?.local ?? null}
@@ -282,9 +294,13 @@ function PaymentsReceived({ payments, projects }: {
         <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
           {t('contractorPayout.paymentsReceived')}
         </h2>
-        <Link to="/work/projects" className="text-xs text-brand-mid-grey underline underline-offset-2">
-          {t('contractor.projects.title')}
-        </Link>
+        {/* A real statement, built from the rows already on screen — a link that
+            downloads nothing is worse than no link. */}
+        <button type="button" disabled={!payments?.available || payments.rows.length === 0}
+          onClick={() => downloadStatement(payments?.rows ?? [], names)}
+          className="text-xs text-brand-mid-grey underline underline-offset-2 disabled:opacity-40">
+          {t('contractorPayout.downloadStatement')}
+        </button>
       </div>
 
       <div className="rounded-2xl border border-brand-border-grey bg-white px-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -547,4 +563,31 @@ function TodaysRate({ projects }: { projects: AssignedProject[] | null }) {
       </p>
     </section>
   );
+}
+
+/**
+ * The payments received, as a CSV the contractor can keep or send on.
+ *
+ * Built in the browser from rows already loaded: no endpoint, nothing re-fetched,
+ * and nothing leaves Groundwork that was not already on the screen.
+ */
+function downloadStatement(rows: ContractorPayment[], names: Map<string, string>) {
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const csv = [
+    ['Date', 'Project', 'Note', 'Amount', 'Currency'].join(','),
+    ...rows.map(r => [
+      esc(r.createdAt.slice(0, 10)),
+      esc(names.get(r.projectId) ?? ''),
+      esc(r.note ?? ''),
+      String(r.amount),
+      esc(r.currency),
+    ].join(',')),
+  ].join('\n');
+
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `groundwork-payments-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

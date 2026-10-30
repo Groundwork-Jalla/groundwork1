@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { fetchAssignedProjects, type AssignedProject } from '@/lib/supabase/contractor-work';
+import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
 import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -41,11 +42,18 @@ export default function ContractorProjects() {
   const [projects, setProjects] = useState<AssignedProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  /** The client named on each row, as the screen shows one. */
+  const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
 
   useEffect(() => {
     let alive = true;
     fetchAssignedProjects()
-      .then(p => { if (alive) setProjects(p); })
+      .then(async p => {
+        if (!alive) return;
+        setProjects(p);
+        const v = await fetchViewerSummaries(p.map(a => a.project.id)).catch(() => new Map());
+        if (alive) setClients(v);
+      })
       .catch(() => { if (alive) { setProjects([]); setError(t('contractor.loadFailed')); } });
     return () => { alive = false; };
   }, [t]);
@@ -60,15 +68,7 @@ export default function ContractorProjects() {
     };
   }, [projects]);
 
-  if (projects === null) {
-    return (
-      <p className="flex items-center gap-2 py-16 text-sm text-brand-mid-grey">
-        <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
-      </p>
-    );
-  }
-
-  const visible = projects.filter(a => matches(a, filter));
+  const visible = (projects ?? []).filter(a => matches(a, filter));
 
   const FILTERS: { id: Filter; label: string; n: number }[] = [
     { id: 'all',        label: t('contractor.projects.filterAll'),        n: counts.all },
@@ -80,11 +80,21 @@ export default function ContractorProjects() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
-          {t('contractor.projects.title')}
-        </h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">{t('contractor.projects.subtitle')}</p>
+      {/* "New project" belongs HERE as well as on the dashboard. It is on the
+          approved Projects screen and was missed in the first build — a contractor
+          who went to Projects to start one found no way to do it, which stopped a
+          partner mid-onboarding call on 30 Oct. */}
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-near-black dark:text-white">
+            {t('contractor.projects.title')}
+          </h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('contractor.projects.subtitle')}</p>
+        </div>
+        <Link to="/projects/new"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          <Plus className="size-4" aria-hidden />{t('contractorOwnProject.promptCta')}
+        </Link>
       </header>
 
       {error && (
@@ -93,12 +103,23 @@ export default function ContractorProjects() {
         </p>
       )}
 
-      {projects.length === 0 ? (
+      {/* The chrome is rendered before the data arrives. It used to return a bare
+          spinner, so on a slow connection a contractor saw a page with no heading
+          and — worse — no way to start a project. */}
+      {projects === null ? (
+        <p className="flex items-center gap-2 py-16 text-sm text-brand-mid-grey">
+          <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
+        </p>
+      ) : projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-14 text-center">
           <p className="text-sm font-medium text-brand-near-black dark:text-white">
             {t('contractor.projects.emptyTitle')}
           </p>
           <p className="mt-1 text-xs text-brand-mid-grey">{t('contractor.projects.emptyBody')}</p>
+          <Link to="/projects/new"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+            <Plus className="size-4" aria-hidden />{t('contractorOwnProject.promptCta')}
+          </Link>
         </div>
       ) : (
         <>
@@ -131,7 +152,11 @@ export default function ContractorProjects() {
             </p>
           ) : (
             <ul className="flex flex-col gap-2.5">
-              {visible.map(a => <li key={a.project.id}><ProjectRow assigned={a} /></li>)}
+              {visible.map(a => (
+                <li key={a.project.id}>
+                  <ProjectRow assigned={a} client={clients.get(a.project.id) ?? null} />
+                </li>
+              ))}
             </ul>
           )}
         </>
@@ -140,7 +165,9 @@ export default function ContractorProjects() {
   );
 }
 
-function ProjectRow({ assigned }: { assigned: AssignedProject }) {
+function ProjectRow({ assigned, client }: {
+  assigned: AssignedProject; client: ViewerSummary | null;
+}) {
   const t = useT();
   const { stageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project.country);
@@ -198,6 +225,12 @@ function ProjectRow({ assigned }: { assigned: AssignedProject }) {
               : assigned.totalStages > 0
                 ? t('contractor.projects.stageOf', { n: assigned.completedStages, total: assigned.totalStages })
                 : t('contractor.projects.noStages')}
+          </Column>
+          <Column label={t('contractor.projects.colClient')}>
+            {client
+              ? t(client.accepted ? 'contractor.projects.clientAccepted' : 'contractor.projects.clientInvited',
+                  { name: client.label })
+              : t('contractor.projects.notInvited')}
           </Column>
           <Column label={t('contractor.projects.colActivity')}>
             {formatDate(project.updated_at)}

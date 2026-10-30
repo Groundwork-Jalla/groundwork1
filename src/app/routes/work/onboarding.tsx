@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import {
-  ArrowLeft, ArrowRight, Check, FileText, Landmark, Loader2, Lock,
+  ArrowLeft, ArrowRight, Check, FileText, FolderPlus, Landmark, Loader2, Lock,
   Phone, ShieldCheck, UserPlus, UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -666,9 +666,14 @@ function PayoutPanel({ done, onAdded }: {
       {/* Why we are asking, said where the asking happens (30 Oct 2026). It used to
           sit on /work/payouts, which is a page somebody opens to check what they
           were paid — months after the question occurred to them. */}
-      <p className="mb-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey dark:bg-[#141414]">
+      <p className="mb-2 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey dark:bg-[#141414]">
         {t('contractorPayout.why')}
       </p>
+      {/* Ruth, 29 October: a contractor with several company accounts did not know
+          which to give and wanted to skip. Philip kept the step mandatory and asked
+          for this line instead — the block is that it feels permanent, not that it
+          is early. */}
+      <p className="mb-4 text-xs text-brand-mid-grey">{t('contractorPayout.canChangeLater')}</p>
 
       <Button type="button" onClick={() => setOpen(true)}>
         {done ? t('contractorOnboarding.payoutReview') : t('contractorOnboarding.payoutCta')}
@@ -811,6 +816,20 @@ function VerificationStatus({ status }: { status: OnboardingStatus }) {
         </section>
 
         <div className="flex flex-col gap-4">
+          {/* The way on. A contractor who had just finished onboarding was left on
+              this page with nothing to press — reported 30 Oct from a live partner
+              call: "the new interface isn't providing an option to create projects". */}
+          <section className="rounded-2xl border border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+              {t('contractorOwnProject.promptTitle')}
+            </h2>
+            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorOwnProject.promptBody')}</p>
+            <Link to="/projects/new"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-brand-near-black">
+              <FolderPlus className="size-4" aria-hidden />{t('contractorOwnProject.promptCta')}
+            </Link>
+          </section>
+
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
               {t('contractorOnboarding.unlocksTitle')}
