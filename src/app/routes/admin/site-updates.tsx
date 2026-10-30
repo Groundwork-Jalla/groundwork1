@@ -7,6 +7,7 @@ import { formatDateTime, formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
 import { useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { FilterTiles, tileCounts, applyTile, type TileSpec } from '@/components/admin/FilterTiles';
 
 // =========================================================
 // /admin/site-updates — what has happened on site, everywhere (01 §3).
@@ -27,6 +28,7 @@ export default function AdminSiteUpdates() {
   const reporterFilter = params.get('reporter');
 
   const [rows, setRows] = useState<SiteUpdateFeedRow[] | null>(null);
+  const [tile, setTile] = useState<string | null>(null);
   const [available, setAvailable] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +58,28 @@ export default function AdminSiteUpdates() {
     return [...seen].map(([id, name]) => ({ id, name }));
   }, [rows]);
 
-  const shown = (rows ?? []).filter(r =>
+  /**
+   * Tiles over the feed, from what a site update actually carries.
+   *
+   * Recency and whether there is anything to look at — the two questions somebody
+   * scanning this page is asking. There is no "update type" column, so there is no
+   * type tile: a control that cannot answer is worse than no control.
+   */
+  const tiles = useMemo<TileSpec<SiteUpdateFeedRow>[]>(() => {
+    const since = (days: number) => Date.now() - days * 864e5;
+    const at = (r: SiteUpdateFeedRow) => new Date(r.submittedAt).getTime();
+    return [
+      { key: 'all',       label: t('admin.tiles.allUpdates'), match: () => true },
+      { key: 'withFiles', label: t('admin.tiles.withFiles'),  tone: 'good',
+        match: r => r.evidencePaths.length > 0 },
+      { key: 'last7',     label: t('admin.tiles.last7'),      match: r => at(r) >= since(7) },
+      { key: 'last30',    label: t('admin.tiles.last30'),     match: r => at(r) >= since(30) },
+    ];
+  }, [t]);
+
+  const counts = useMemo(() => tileCounts(tiles, rows ?? []), [tiles, rows]);
+
+  const shown = applyTile(tiles, rows ?? [], tile).filter(r =>
     (!projectFilter || r.projectId === projectFilter) && (!reporterFilter || r.submittedBy === reporterFilter));
 
   return (
@@ -75,6 +98,11 @@ export default function AdminSiteUpdates() {
           </div>
         )}
       </header>
+
+      {rows !== null && rows.length > 0 && (
+        <FilterTiles tiles={tiles} counts={counts} active={tile} onPick={setTile}
+                     label={t('admin.siteUpdates.title')} />
+      )}
 
       {rows === null ? (
         <p className="flex items-center gap-2 text-xs text-brand-mid-grey"><Loader2 className="size-3.5 animate-spin" />{t('common.loading')}</p>

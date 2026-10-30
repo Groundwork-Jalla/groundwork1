@@ -347,6 +347,20 @@ export const en = {
     errFailed:    'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
   admin: {
+    tiles: {
+      all:       'All projects',
+      active:    'Active',
+      onHold:    'On hold',
+      completed: 'Completed',
+      qualified: 'Qualified',
+      verified:  'Verified',
+      general:   'General',
+      archived:  'Archived',
+      allUpdates:   'All updates',
+      withFiles:    'With photos or files',
+      last7:        'Last 7 days',
+      last30:       'Last 30 days',
+    },
 
     placeholder: {
       body:     'This section is part of the Groundwork admin but its page is not built yet. Nothing here is invented: when it ships, everything on it will come from your Supabase and GoHighLevel data.',

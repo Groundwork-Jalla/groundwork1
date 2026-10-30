@@ -348,6 +348,20 @@ export const fr: Mirror<EnDict> = {
     errFailed:    'L\u2019invitation n\u2019a pas \u00e9t\u00e9 envoy\u00e9e. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
   admin: {
+    tiles: {
+      all:       'Tous les projets',
+      active:    'Actifs',
+      onHold:    'En pause',
+      completed: 'Terminés',
+      qualified: 'Qualifiés',
+      verified:  'Vérifiés',
+      general:   'Généraux',
+      archived:  'Archivés',
+      allUpdates:   'Toutes les mises à jour',
+      withFiles:    'Avec photos ou fichiers',
+      last7:        '7 derniers jours',
+      last30:       '30 derniers jours',
+    },
 
     placeholder: {
       body:     'Cette section fait partie de l\u2019administration Groundwork mais sa page n\u2019est pas encore construite. Rien ici n\u2019est invent\u00e9\u00a0: \u00e0 sa livraison, tout proviendra de vos donn\u00e9es Supabase et GoHighLevel.',

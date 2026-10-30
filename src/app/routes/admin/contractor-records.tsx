@@ -16,6 +16,7 @@ import { signCredentialUrl } from '@/lib/supabase/admin-applications';
 import { formatDate } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { FilterTiles, tileCounts, applyTile, type TileSpec } from '@/components/admin/FilterTiles';
 
 // =========================================================
 // /admin/contractors/records — what each contractor actually filled in.
@@ -131,26 +132,31 @@ export default function AdminContractorRecords() {
     return () => { alive = false; };
   }, []);
 
+  const tiles = useMemo<TileSpec<ContractorRecordRow>[]>(
+    () => CARD_ORDER.map(key => ({
+      key,
+      label: t(`adminContractorRecords.cards.${key}` as TKey),
+      // `inCard` stays the single definition of who belongs in a card; the tile only
+      // carries the label and closes over the pipeline lookup.
+      match: (r: ContractorRecordRow) => inCard(key, r, pipeline?.get(r.userId)),
+    })),
+    [t, pipeline],
+  );
+
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = rows ?? [];
-    // The pressed card narrows the list; the search box narrows it again. Both, not
+    // The pressed tile narrows the list; the search box narrows it again. Both, not
     // either — "show me who has not onboarded, called Ngu" is the question staff
     // actually ask.
-    if (filter && filter !== 'all') list = list.filter(r => inCard(filter, r, pipeline?.get(r.userId)));
+    list = applyTile(tiles, list, filter);
     if (q) list = list.filter(r =>
       [r.fullName, r.email, r.phone].some(v => (v ?? '').toLowerCase().includes(q)));
     return list;
   }, [rows, query, filter, pipeline]);
 
-  /** How many people each card holds, counted the same way the filter selects them. */
-  const counts = useMemo(() => {
-    const out = {} as Record<CardKey, number>;
-    for (const key of CARD_ORDER) {
-      out[key] = (rows ?? []).filter(r => inCard(key, r, pipeline?.get(r.userId))).length;
-    }
-    return out;
-  }, [rows, pipeline]);
+  /** Counted by the same predicates that filter, so a card can never overstate. */
+  const counts = useMemo(() => tileCounts(tiles, rows ?? []), [tiles, rows]);
 
   if (!rows) {
     return <div className="flex justify-center p-12"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
@@ -180,17 +186,9 @@ export default function AdminContractorRecords() {
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mid-grey">
           {t('adminContractorRecords.funnelTitle')}
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {CARD_ORDER.map(key => (
-            <FilterCard
-              key={key}
-              label={t(`adminContractorRecords.cards.${key}` as TKey)}
-              value={counts[key]}
-              active={filter === key || (key === 'all' && filter === null)}
-              onPick={() => setFilter(key === 'all' ? null : filter === key ? null : key)}
-            />
-          ))}
-        </div>
+        <FilterTiles tiles={tiles} counts={counts} active={filter}
+                     onPick={key => setFilter(key as CardKey | null)}
+                     label={t('adminContractorRecords.funnelTitle')} />
         <p className="mt-2 text-[11px] leading-relaxed text-brand-mid-grey">
           <Link to="/admin/partners" className="font-semibold text-brand-near-black underline underline-offset-2 dark:text-white">
             {t('adminContractorRecords.funnelWorklist')}
@@ -245,32 +243,6 @@ export default function AdminContractorRecords() {
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * One card. Pressing it filters the list; pressing it again clears the filter.
- *
- * A button, not a div with a click handler: these are controls, and staff reach this
- * page with a keyboard as often as a mouse. `aria-pressed` is what tells a screen
- * reader which slice of the list is currently on screen.
- */
-function FilterCard({ label, value, active, onPick }: {
-  label: string; value: number; active: boolean; onPick: () => void;
-}) {
-  return (
-    <button
-      type="button" onClick={onPick} aria-pressed={active}
-      className={cn(
-        'rounded-xl border px-4 py-3 text-left transition-colors',
-        active
-          ? 'border-brand-near-black bg-brand-off-white dark:border-white dark:bg-[#2c2c2c]'
-          : 'border-brand-border-grey bg-white hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:border-[#555]',
-      )}
-    >
-      <p className="text-xs text-brand-mid-grey">{label}</p>
-      <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-near-black dark:text-white">{value}</p>
-    </button>
   );
 }
 

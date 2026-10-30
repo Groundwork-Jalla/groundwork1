@@ -11,6 +11,8 @@ import { errorMessage } from '@/lib/errors';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { projectHealth, type ActivityStamps, type HealthBand } from '@/lib/admin/health';
 import { matchesStatusFilter, parseHealthFilter, parseStatusFilter } from '@/lib/admin/project-filters';
+import { FilterTiles, tileCounts, applyTile, type TileSpec } from '@/components/admin/FilterTiles';
+import { fetchBusinessStatuses, type BusinessStatus } from '@/lib/supabase/admin-project-status';
 import { workspaceHref } from '@/lib/admin/workspace-params';
 import { FilterBanner } from '@/components/admin/FilterBanner';
 import { useT, type TKey } from '@/lib/i18n';
@@ -86,6 +88,11 @@ export default function AdminProjects() {
     setAssignTarget(null);
   }
   const [projects, setProjects] = useState<AdminProject[]>([]);
+  /** Which tile is pressed. Null is every project. */
+  const [tile, setTile] = useState<string | null>(null);
+  /** general | qualified | verified per project (169). Empty until — and unless — that
+   *  migration is applied, which is why the tiles built on it are conditional. */
+  const [business, setBusiness] = useState<Map<string, BusinessStatus>>(new Map());
   const [loading, setLoading]   = useState(true);
 
   // ── Filters, from the URL ─────────────────────────────────────────────────────────
@@ -155,6 +162,14 @@ export default function AdminProjects() {
       setDeleting(false);
     }
   }
+
+  // Its own read, behind its own migration: a database without 169 must still show the
+  // project list. An empty map hides the business tiles rather than failing the page.
+  useEffect(() => {
+    let alive = true;
+    void fetchBusinessStatuses().then(m => { if (alive) setBusiness(m); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -228,11 +243,45 @@ export default function AdminProjects() {
   }, []);
 
   // Filters compose: the URL's condition first, then whatever is typed in the box.
+  /**
+   * The tiles above the table.
+   *
+   * Lifecycle first — what an admin asks for most — then the business statuses Philip
+   * specified: "total projects, qualified projects, verified projects". Those three
+   * only appear once 169 is applied, because a tile reading 0 for every project would
+   * say something false about the fleet rather than nothing about the migration.
+   *
+   * Every count is a set of rows in this table, so pressing a tile that says 12 always
+   * produces 12 rows.
+   */
+  const tiles = useMemo<TileSpec<AdminProject>[]>(() => {
+    const base: TileSpec<AdminProject>[] = [
+      { key: 'all',       label: t('admin.tiles.all'),       match: () => true },
+      { key: 'active',    label: t('admin.tiles.active'),    match: p => p.status === 'active' },
+      { key: 'onHold',    label: t('admin.tiles.onHold'),    match: p => p.status === 'on_hold', tone: 'warn' },
+      { key: 'completed', label: t('admin.tiles.completed'), match: p => p.status === 'completed', tone: 'good' },
+    ];
+    if (business.size === 0) return base;
+    return [
+      ...base,
+      { key: 'qualified', label: t('admin.tiles.qualified'), tone: 'good',
+        match: p => business.get(p.id) === 'qualified' },
+      { key: 'verified',  label: t('admin.tiles.verified'),  tone: 'good',
+        match: p => business.get(p.id) === 'verified' },
+      { key: 'general',   label: t('admin.tiles.general'),
+        match: p => (business.get(p.id) ?? 'general') === 'general' },
+      { key: 'archived',  label: t('admin.tiles.archived'),
+        match: p => p.status === 'archived' },
+    ];
+  }, [t, business]);
+
+  const counts = useMemo(() => tileCounts(tiles, projects), [tiles, projects]);
+
   const inFilter = useMemo(
-    () => projects.filter(p =>
+    () => applyTile(tiles, projects, tile).filter(p =>
       (!statusFilter || matchesStatusFilter(p.status, statusFilter)) &&
       (!healthFilter || p.health === healthFilter)),
-    [projects, statusFilter, healthFilter],
+    [tiles, tile, projects, statusFilter, healthFilter],
   );
 
   const filtered = useMemo(() => {
@@ -276,6 +325,11 @@ export default function AdminProjects() {
         </div>
         </div>
       </div>
+
+      {!loading && (
+        <FilterTiles tiles={tiles} counts={counts} active={tile} onPick={setTile}
+                     label={t('admin.allProjects')} />
+      )}
 
       {filterLabel && !loading && (
         <FilterBanner label={filterLabel} shown={inFilter.length} total={projects.length} onClear={clearFilters} />
