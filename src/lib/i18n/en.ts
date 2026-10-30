@@ -2311,6 +2311,7 @@ export const en = {
     stageCertificate:    'Stage {n} · {name}',
     issuedByGroundwork:  'Issued by Groundwork',
     share:               'Share',
+    view:                'View',
     whoCanSee:           'Who can see these',
     clientCanView:       'Client · can view and download',
     ownerEverything:     'Owner · everything',
@@ -2321,6 +2322,11 @@ export const en = {
   },
 
   contractorWork: {
+    stages:       'Stages',
+    thisBuild:    'This build',
+    where:        'Where',
+    stagesDone:   'Stages',
+    peopleOnThis: 'People on this project',
     stageSummary: '{done} complete · {open} in progress · {left} to come',
     items:        'items',
     ticksItself:  'Each item ticks itself when you add a file to it. Nothing here is tapped by hand.',
@@ -2329,9 +2335,13 @@ export const en = {
 
   contractorMoney: {
     contractValue:      'Contract value',
+    signedOff:          '{amount} signed off',
+    ofContractPct:      '{pct}% of contract',
     releasedToYou:      'Released to you',
     stillToCome:        'Still to come',
     stagesReleased:     '{n} stage(s) approved',
+    paymentsRecorded:   '{n} payment(s) recorded',
+    approvedNotPaid:    '{n} stage(s) signed off. Approved is not the same as paid \u2014 what has actually reached you is above.',
     stagesToCome:       '{n} stage(s) remaining',
     stageByStage:       'Stage by stage',
     rateToday:          'Rate {rate} {code} to $1, fetched today',
@@ -2462,6 +2472,7 @@ export const en = {
     wholeStage: 'The stage as a whole',
     notes:      'Notes',
     files:      'Photos, video or documents — up to {mb} MB each',
+    forItem:    'Add an update for “{name}”',
     takePhoto:  'Take a photo',
     chooseFile: 'Choose a file',
     cta:        'Submit work',
@@ -5410,6 +5421,11 @@ export const en = {
     gets3Body: 'Lower platform fees than a contractor outside the programme.',
     gets4:     'A say in what gets built next',
     gets4Body: 'Partners help shape the product, and bring their own half-built jobs across as they are.',
+    trailReviewing:    'We are reading your application',
+    trailBookNow:      'Book your call',
+    trailChooseTime:   'Choose a time for your call',
+    callInEnglish:     'The call is held in English.',
+    callInFrench:      'The call is held in French, and Vanessa joins it.',
     yourCall:          'Your call',
     bookingOpened:     'Booking opened {date}',
     // Deliberate wording: Groundwork does not hold the appointment. See migration 136.

@@ -901,6 +901,23 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
 }) {
   const t = useT();
   const accepted = state === 'accepted';
+  const hasCalendar = booking !== 'unset' && booking !== null;
+
+  /**
+   * Where this application actually stands, in one line.
+   *
+   * It used to read "we have your application" whatever had happened since,
+   * which is why Favour asked for the call trail to "accurately display the
+   * booking status". It now follows the same facts the track below it does —
+   * and still never claims a call is BOOKED, because the slot lives in the
+   * team's calendar and not here (migration 136).
+   */
+  const trailStatus: TKey =
+    accepted                      ? 'partner.statusAcceptedTitle'
+    : !qualified                  ? 'partner.trailReviewing'
+    : detail?.bookingShownAt      ? 'partner.trailChooseTime'
+    : hasCalendar                 ? 'partner.trailBookNow'
+    :                               'partner.statusPendingTitle';
 
   const told: { q: string; a: string }[] = [
     { q: t('partner.projectStatus'),
@@ -938,7 +955,7 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
               accepted ? 'text-state-complete' : 'text-state-held')}>
               <span aria-hidden className={cn('size-1.5 rounded-full',
                 accepted ? 'bg-state-complete' : 'bg-state-held')} />
-              {t(accepted ? 'partner.statusAcceptedTitle' : 'partner.statusPendingTitle')}
+              {t(trailStatus)}
             </span>
           </div>
           <p className="mt-1 text-xs text-brand-mid-grey">{t('partner.oneConversation')}</p>
@@ -1034,6 +1051,11 @@ function ApplicationFiled({ state, qualified, detail, booking }: {
               She is on the French call, so she is named only on the French one. */}
           {detail && needsVanessa(detail.language) && (
             <Speaker initials="VG" name="Vanessa G." role={t('partner.partnerTeam')} />
+          )}
+          {detail && (
+            <p className="mt-2.5 border-t border-brand-border-grey pt-2.5 text-[11px] text-brand-mid-grey dark:border-[#2c2c2c]">
+              {t(needsVanessa(detail.language) ? 'partner.callInFrench' : 'partner.callInEnglish')}
+            </p>
           )}
         </section>
 

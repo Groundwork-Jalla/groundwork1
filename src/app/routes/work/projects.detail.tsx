@@ -228,16 +228,19 @@ function Back() {
  * see contractor-work.ts for why that order matters. The file is checked here first, so a
  * refusal arrives before anything is uploaded rather than after.
  */
-function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }: {
+function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabel, onSubmitted, onCancel }: {
   projectId: string;
   stage: { id: string; status: string };
   substages: ProjectSubstageRow[];
+  /** The item the Upload button named. The picker is not shown when this is set. */
+  fixedSubstageId?: string;
   substageLabel: (s: Pick<ProjectSubstageRow, 'substage_key' | 'name'>) => string;
   onSubmitted: () => Promise<void> | void;
+  onCancel?: () => void;
 }) {
   const t = useT();
   const [files, setFiles] = useState<File[]>([]);
-  const [substageId, setSubstageId] = useState<string>('');
+  const [substageId, setSubstageId] = useState<string>(fixedSubstageId ?? '');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -284,7 +287,15 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
 
   return (
     <section>
-      <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('contractorSubmit.title')}</h2>
+      <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
+        {fixedSubstageId
+          ? t('contractorSubmit.forItem', {
+              name: substages.find(x => x.id === fixedSubstageId)
+                ? substageLabel(substages.find(x => x.id === fixedSubstageId)!)
+                : '',
+            })
+          : t('contractorSubmit.title')}
+      </h2>
       <p className="mt-0.5 text-xs text-brand-mid-grey">{t('contractorSubmit.subtitle')}</p>
 
       {/* The item list itself is rendered by WorkTab, above this form: repeating it
@@ -294,7 +305,7 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
         <p className="mt-4 text-sm text-brand-mid-grey">{t('contractorSubmit.closed')}</p>
       ) : (
         <div className="mt-4 flex flex-col gap-3">
-          {substages.length > 0 && (
+          {substages.length > 0 && !fixedSubstageId && (
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-brand-mid-grey">{t('contractorSubmit.whichItem')}</span>
               <select value={substageId} onChange={e => setSubstageId(e.target.value)}
@@ -357,6 +368,12 @@ function SubmitWork({ projectId, stage, substages, substageLabel, onSubmitted }:
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
             {busy ? t('contractorSubmit.sending') : t('contractorSubmit.cta')}
           </button>
+          {onCancel && (
+            <button type="button" onClick={onCancel}
+              className="w-fit text-xs font-semibold text-brand-mid-grey underline underline-offset-2">
+              {t('common.cancel')}
+            </button>
+          )}
         </div>
       )}
     </section>
@@ -383,23 +400,61 @@ function MoneyTab({ assigned, payments }: {
   const money = useProjectMoney(assigned.project.country);
   const { stages } = assigned;
 
-  const released = stages.filter(s => s.status === 'complete');
+  /**
+   * Three facts, kept apart (30 Oct 2026).
+   *
+   * This card used to call the SCHEDULE "released to you": it summed the
+   * milestones of every stage marked complete and printed the total under
+   * "Released to you". Two things were wrong with that.
+   *
+   * First, approved is not paid. A stage approved this morning and not yet paid
+   * was counted as money the contractor had received.
+   *
+   * Second, `pre_existing` stages are complete but were "never approved, verified
+   * or funded by us" (103) — they are work finished before the build joined
+   * Groundwork, and they carry a zeroed milestone. Counting them made the tile
+   * read "0 XAF · 4 stages approved", which is two true numbers that together say
+   * something false.
+   *
+   * So: the contract and what is still to come come from the SCHEDULE, which is
+   * what Groundwork governs. What was released comes from the LEDGER, which is
+   * the only record of money that actually moved — and shows a dash, never a
+   * zero, when the ledger cannot be read.
+   */
   const sum = (list: typeof stages) =>
     list.reduce((total, s) => total + (s.payment_milestone_usd ?? 0), 0);
 
+  /** Finished THROUGH Groundwork — what was there before we arrived is not ours. */
+  const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
+  const outstanding = stages.filter(s => s.status !== 'complete');
+
   const contract = money.pair(sum(stages));
-  const paid     = money.pair(sum(released));
-  const toCome   = money.pair(sum(stages) - sum(released));
-  const pct = sum(stages) > 0 ? Math.round((sum(released) / sum(stages)) * 100) : 0;
+  const toCome   = money.pair(sum(outstanding));
+
+  /** What the ledger says reached this contractor on this project. */
+  const ledger = payments?.available ? payments.rows : null;
+  const ledgerCodes = new Set((ledger ?? []).map(r => r.currency.toUpperCase()));
+  const releasedLabel = ledger === null ? null
+    : ledger.length === 0 ? money.pair(0)?.local ?? null
+    : ledgerCodes.size === 1
+      ? moneyPair(ledger.reduce((n, r) => n + r.amount, 0), [...ledgerCodes][0], null).local
+      // More than one currency: a sum would be a number that means nothing.
+      : null;
+
+  // Progress is against the SCHEDULE and is labelled as such — it is how much of
+  // the contracted work has been signed off, not how much has been paid.
+  const pct = sum(stages) > 0 ? Math.round((sum(approved) / sum(stages)) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-3 sm:grid-cols-3">
         <Figure label={t('contractorMoney.contractValue')} pair={contract} />
-        <Figure label={t('contractorMoney.releasedToYou')} pair={paid} tone="complete"
-                hint={t('contractorMoney.stagesReleased', { n: released.length })} />
+        <FigureText label={t('contractorMoney.releasedToYou')} value={releasedLabel} tone="complete"
+                    hint={ledger === null
+                      ? t('contractorPayments.unavailable')
+                      : t('contractorMoney.paymentsRecorded', { n: ledger.length })} />
         <Figure label={t('contractorMoney.stillToCome')} pair={toCome}
-                hint={t('contractorMoney.stagesToCome', { n: stages.length - released.length })} />
+                hint={t('contractorMoney.stagesToCome', { n: outstanding.length })} />
       </div>
 
       <section>
@@ -477,7 +532,13 @@ function MoneyTab({ assigned, payments }: {
             <div className="h-full rounded-full bg-state-complete" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-xs text-brand-mid-grey">
-            {t('contractorMoney.ofContract', { paid: paid?.local ?? '—', total: contract?.local ?? '—' })}
+            {t('contractorMoney.ofContract', {
+              paid: money.pair(sum(approved))?.local ?? '—',
+              total: contract?.local ?? '—',
+            })}
+          </p>
+          <p className="mt-1 text-[11px] text-brand-mid-grey">
+            {t('contractorMoney.approvedNotPaid', { n: approved.length })}
           </p>
         </section>
 
@@ -701,6 +762,8 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
   const { stageLabel, substageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project.country);
   const { project, stages, activeStage } = assigned;
+  /** The item whose Upload was pressed; null means no form is open. */
+  const [uploadFor, setUploadFor] = useState<string | null>(null);
 
   if (stages.length === 0) {
     return (
@@ -716,10 +779,11 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
   const doneItems = openItems.filter(s => s.status === 'complete').length;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid items-start gap-5 xl:grid-cols-[1fr_326px]">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
-          {t('contractorProject.pipeline')}
+        <h2 className="text-base font-bold tracking-tight text-brand-near-black dark:text-white">
+          {t('contractorWork.stages')}
         </h2>
         <p className="text-xs text-brand-mid-grey">
           {t('contractorWork.stageSummary', {
@@ -836,16 +900,35 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
                             : t('contractorProject.noEvidence')}
                         </span>
                       </span>
+                      {complete ? (
+                        <span className="shrink-0 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
+                          {t('contractorDocs.view')}
+                        </span>
+                      ) : (
+                        <button type="button" onClick={() => setUploadFor(item.id)}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black">
+                          <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
+                        </button>
+                      )}
                     </li>
                   );
                 })}
               </ul>
             )}
 
-            <div className="mt-4 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
-              <SubmitWork projectId={project.id} stage={stage} substages={openItems}
-                          substageLabel={substageLabel} onSubmitted={onSubmitted} />
-            </div>
+            {/* No standing form. The design has an Upload on each item, so the
+                form appears for the item that was pressed — which also removes
+                the "which item is this for?" dropdown, a question the button
+                has already answered. */}
+            {uploadFor !== null && (
+              <div className="mt-4 border-t border-brand-border-grey pt-4 dark:border-[#2c2c2c]">
+                <SubmitWork projectId={project.id} stage={stage} substages={openItems}
+                            fixedSubstageId={uploadFor}
+                            substageLabel={substageLabel}
+                            onCancel={() => setUploadFor(null)}
+                            onSubmitted={async () => { setUploadFor(null); await onSubmitted(); }} />
+              </div>
+            )}
 
             {due && (
               <div className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 dark:bg-[#141414]">
@@ -872,6 +955,121 @@ function WorkTab({ assigned, substages, rework, onSubmitted }: {
         </section>
       )}
     </div>
+
+    <WorkRail assigned={assigned} />
+    </div>
+  );
+}
+
+/**
+ * The right-hand rail on the Work tab: next release, the build's own facts, and
+ * who is on it.
+ *
+ * It was dropped when the tab was refactored and the page went full width —
+ * reported 30 Oct: "this is not how it is in the screen design." The verifier row
+ * is not here, with the rest of verification.
+ */
+function WorkRail({ assigned }: { assigned: AssignedProject }) {
+  const t = useT();
+  const money = useProjectMoney(assigned.project.country);
+  const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
+  const { project, stages, activeStage } = assigned;
+
+  useEffect(() => {
+    let alive = true;
+    fetchProjectViewers(project.id)
+      .then(rows => { if (alive) setViewers(rows); })
+      .catch(() => { if (alive) setViewers([]); });
+    return () => { alive = false; };
+  }, [project.id]);
+
+  const sum = (list: typeof stages) =>
+    list.reduce((n, s) => n + (s.payment_milestone_usd ?? 0), 0);
+  const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
+  const contract = money.pair(sum(stages));
+  const signedOff = money.pair(sum(approved));
+  const pct = sum(stages) > 0 ? Math.round((sum(approved) / sum(stages)) * 100) : 0;
+  const due = money.pair(activeStage?.payment_milestone_usd ?? null);
+
+  return (
+    <aside className="flex min-w-0 flex-col gap-4">
+      {due && (
+        <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+            {t('contractor.projects.colNextRelease')}
+          </h2>
+          <p className="mt-1.5 font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
+            {due.local}
+          </p>
+          {due.usd && (
+            <p className="font-mono text-[11px] text-brand-mid-grey">
+              {t('contractorDashboard.atRate', {
+                usd: due.usd,
+                rate: money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 }),
+                code: money.code,
+              })}
+            </p>
+          )}
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-brand-border-grey dark:bg-[#2c2c2c]">
+            <div className="h-full rounded-full bg-state-complete" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-2 flex justify-between text-[11px] text-brand-mid-grey">
+            <span>{t('contractorMoney.signedOff', { amount: signedOff?.local ?? '—' })}</span>
+            <span>{t('contractorMoney.ofContractPct', { pct })}</span>
+          </p>
+        </section>
+      )}
+
+      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+          {t('contractorWork.thisBuild')}
+        </h2>
+        <div className="kv mt-1">
+          <div className="flex items-start justify-between gap-3 border-t border-brand-border-grey py-2.5 text-xs dark:border-[#2c2c2c]">
+            <span className="text-brand-mid-grey">{t('contractorMoney.contractValue')}</span>
+            <span className="text-right">
+              <span className="block font-mono font-semibold tabular-nums text-brand-near-black dark:text-white">
+                {contract?.local ?? '—'}
+              </span>
+              {contract?.usd && <span className="block font-mono text-[10px] text-brand-mid-grey">≈ {contract.usd}</span>}
+            </span>
+          </div>
+          {[project.city, project.country].filter(Boolean).length > 0 && (
+            <div className="flex items-start justify-between gap-3 border-t border-brand-border-grey py-2.5 text-xs dark:border-[#2c2c2c]">
+              <span className="text-brand-mid-grey">{t('contractorWork.where')}</span>
+              <span className="text-right font-semibold text-brand-near-black dark:text-white">
+                {[project.city, project.country].filter(Boolean).join(', ')}
+              </span>
+            </div>
+          )}
+          <div className="flex items-start justify-between gap-3 border-t border-brand-border-grey py-2.5 text-xs dark:border-[#2c2c2c]">
+            <span className="text-brand-mid-grey">{t('contractorWork.stagesDone')}</span>
+            <span className="text-right font-semibold text-brand-near-black dark:text-white">
+              {t('contractor.projects.stageOf', { n: assigned.completedStages, total: assigned.totalStages })}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+          {t('contractorWork.peopleOnThis')}
+        </h2>
+        <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
+                name={t('contractorPeople.you')} role={t('contractorPeople.youOwner')} />
+        {viewers?.map(v => (
+          <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
+                  name={v.relationship?.trim() || v.email}
+                  role={t(v.acceptedAt ? 'contractorDocs.clientCanView' : 'contractorPeople.pending')} />
+        ))}
+        {viewers !== null && viewers.length === 0 && (
+          <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
+        )}
+        <Link to="?tab=people" className="mt-3 inline-block text-xs underline underline-offset-2 text-brand-mid-grey">
+          {t('contractorPeople.onThisProject')}
+        </Link>
+      </section>
+    </aside>
   );
 }
 
@@ -1117,6 +1315,23 @@ function SeenBy({ initials, name, role }: { initials: string; name: string; role
         <span className="block truncate text-xs font-semibold text-brand-near-black dark:text-white">{name}</span>
         <span className="block text-[11px] text-brand-mid-grey">{role}</span>
       </span>
+    </div>
+  );
+}
+
+/** A figure that is already a string — the ledger's own currency, not a conversion. */
+function FigureText({ label, value, hint, tone }: {
+  label: string; value: string | null; hint?: string; tone?: 'complete';
+}) {
+  return (
+    <div className="rounded-2xl border border-brand-border-grey bg-white px-4 py-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-brand-mid-grey">{label}</p>
+      <p className={cn('mt-1.5 font-mono text-xl font-semibold tabular-nums tracking-tight',
+        tone === 'complete' && value ? 'text-state-complete' : 'text-brand-near-black dark:text-white')}>
+        {/* A dash, not a zero: an unreadable ledger has not told us nothing moved. */}
+        {value ?? '—'}
+      </p>
+      {hint && <p className="mt-1 text-xs text-brand-mid-grey">{hint}</p>}
     </div>
   );
 }
