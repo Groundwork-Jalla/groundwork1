@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { AlertTriangle, ArrowRight, Camera, Check, Landmark, Loader2, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Camera, Check, Handshake, Landmark, Loader2, Plus, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchAssignedProjects, fetchRework, fetchMyPayments, fetchSubstages,
@@ -11,6 +11,7 @@ import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
 import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
 import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
          type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
+import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
 import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { moneyPair } from '@/lib/budget/money-pair';
@@ -58,6 +59,7 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const [partnerState, setPartnerState] = useState<ApplicationState | null>(null);
   /** The client named on each row. Empty map until read; absent key = nobody invited. */
   const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
 
@@ -99,6 +101,19 @@ export default function ContractorDashboard() {
     return () => { alive = false; };
   }, []);
 
+  // Certified partner application (30 Oct 2026, from the working session: "integrate a
+  // certified partner application widget"). Its own read for the same reason as the two
+  // above — a contractor's builds must not disappear because the partner table did not
+  // answer. `null` means not known yet, and the card stays off the page until it is.
+  useEffect(() => {
+    if (!user?.id) return;
+    let alive = true;
+    myApplicationState(user.id)
+      .then(st => { if (alive) setPartnerState(st); })
+      .catch(() => { /* unknown is not "has not applied" — show nothing */ });
+    return () => { alive = false; };
+  }, [user?.id]);
+
   // Separate from the work read: payment details are not work, and a failure in one must
   // not blank the other.
   useEffect(() => {
@@ -137,8 +152,6 @@ export default function ContractorDashboard() {
     [a.project.name, a.project.city, a.project.country, ...a.stages.map(stageLabel)]
       .join(' ').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
 
-  /** The build whose stage the rail expands: the first one with work open. */
-  const lead = visibleProjects.find(a => a.activeStage !== null) ?? null;
 
 
   return (
@@ -186,16 +199,10 @@ export default function ContractorDashboard() {
               {t('contractorOnboarding.bannerCta')}<ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
-          {/* Six pips, so the distance left is visible without opening the page. */}
-          <div className="mt-3 flex gap-1.5" aria-hidden>
-            {ONBOARDING_STEPS.map(k => (
-              <span
-                key={k}
-                className={cn('h-1 flex-1 rounded-full',
-                  onboarding.steps[k] ? 'bg-state-success' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')}
-              />
-            ))}
-          </div>
+          {/* The six progress pips were here. Removed 30 Oct 2026 — "remove
+              unnecessary progress trackers". The line above already says how many
+              steps are left in words, and a bar that repeats it in colour is the
+              same fact drawn twice. */}
         </div>
       )}
 
@@ -256,7 +263,17 @@ export default function ContractorDashboard() {
           <ReleasedTile payments={payments} />
         </div>
 
-        <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[3fr_2fr]">
+        {/* Between the tiles and the builds, where Favour asked for it: what the
+            three figures above are worth is partly decided by whether this person
+            is a certified partner, and somebody who has not applied should meet
+            the invitation before they scroll into their project list. */}
+        <PartnerCard state={partnerState} />
+
+        {/* One column. The right-hand rail held "Stage in progress", removed
+            30 Oct 2026 at Favour's request — the open dot on each build's
+            pipeline already says where that build is, and the card repeated it
+            for whichever build happened to be first. */}
+        <div className="grid min-w-0 items-start gap-5">
           <div className="flex min-w-0 flex-col gap-5">
             <section className="min-w-0">
               <div className="mb-2.5 flex items-center justify-between">
@@ -292,18 +309,6 @@ export default function ContractorDashboard() {
                 the page for what has been paid, and it has the full history. */}
           </div>
 
-          <div className="flex min-w-0 flex-col gap-5">
-            <OpenStage lead={lead} />
-
-            {/* "Why there is no task list" was here. Removed 30 Oct 2026 at Favour's
-                request: it explained a decision we made rather than telling a
-                contractor anything about their own builds, and a dashboard is not
-                the place to argue for its own design. */}
-
-            {/* The partner funnel's dashboard card is gone (30 Oct 2026): it is not on
-                the approved dashboard, and "Partner programme" is a permanent sidebar
-                entry, so the card was a second door to a room already signposted. */}
-          </div>
         </div>
       </>}
     </div>
@@ -463,120 +468,98 @@ function BuildRow({ assigned, client, hasRework }: {
   );
 }
 
+
 /**
- * The stage the contractor is standing in, with its work items.
+ * Where their certified-partner application stands — or an invitation to start one.
  *
- * Each item ticks itself when a file lands against it — the checkbox here is an
- * OUTPUT, never an input. The real submission happens inside the project, where the
- * upload lives; this is the view of it, and the link through.
+ * Favour, 30 Oct 2026: "let's have the partner network thing there showing their
+ * progress, and if they have not, let's have a button asking them to join".
+ *
+ * So it is one band with two faces. Applied: the four steps, with the ones behind
+ * them filled, so the distance left is readable without opening the page. Not
+ * applied: what the programme is worth and one button.
+ *
+ * The steps are the funnel's own, from `partner.track` — the same five words
+ * /work/partner uses, minus "Call held", which Groundwork cannot honestly mark: we
+ * can see somebody was sent to a calendar, never that they attended. Acceptance is
+ * what moves them on.
+ *
+ * `null` is "not known yet" and renders nothing. A band that flickers "Apply to
+ * become a partner" at somebody who already is one is worse than one that waits.
  */
-function OpenStage({ lead }: { lead: AssignedProject | null }) {
+function PartnerCard({ state }: { state: ApplicationState | null }) {
   const t = useT();
-  const { stageLabel, substageLabel } = useStageLabels();
-  const [substages, setSubstages] = useState<ProjectSubstageRow[] | null>(null);
+  if (state === null) return null;
 
-  const projectId = lead?.project.id ?? null;
-  const stageId = lead?.activeStage?.id ?? null;
+  // Not shown to a rejected or disqualified applicant. They are not invited to read
+  // about it on their dashboard every morning; the page is there if they look.
+  if (state === 'rejected' || state === 'disqualified') return null;
 
-  useEffect(() => {
-    if (!projectId) { setSubstages(null); return; }
-    let alive = true;
-    fetchSubstages(projectId)
-      .then(rows => { if (alive) setSubstages(rows); })
-      .catch(() => { if (alive) setSubstages([]); });
-    return () => { alive = false; };
-  }, [projectId]);
-
-  if (!lead || !lead.activeStage) {
+  if (state === 'none') {
     return (
-      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-          {t('contractorDashboard.stageInProgress')}
-        </h2>
-        <p className="mt-2 text-sm text-brand-mid-grey">{t('contractorDashboard.noOpenStage')}</p>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+            <Handshake className="size-4 shrink-0" aria-hidden />
+            {t('contractorPartnerCard.title')}
+          </h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
+            {t('contractorPartnerCard.none')}
+          </p>
+        </div>
+        <Link to="/work/partner"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black">
+          {t('contractorPartnerCard.ctaApply')}<ArrowRight className="size-3.5" aria-hidden />
+        </Link>
       </section>
     );
   }
 
-  const stage = lead.activeStage;
-  const items = (substages ?? []).filter(s => s.stage_id === stageId);
-  const done = items.filter(s => s.status === 'complete').length;
+  // How far along they are. `accepted` fills every step; the two in-flight states
+  // differ by one, which is the whole reason they are separate states.
+  const reached = state === 'accepted' ? 4 : state === 'reviewing' ? 2 : 1;
+  const steps = [
+    t('partner.track.applied'),
+    t('partner.track.qualified'),
+    t('partner.track.book'),
+    t('partner.track.partner'),
+  ];
+  const body = state === 'accepted'  ? t('contractorPartnerCard.accepted')
+             : state === 'reviewing' ? t('contractorPartnerCard.reviewing')
+             : t('contractorPartnerCard.pending');
 
   return (
-    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-      <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-        {t('contractorDashboard.stageInProgress')}
-      </h2>
-
-      <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate text-base font-bold tracking-tight">{stageLabel(stage)}</p>
-        {items.length > 0 && (
-          <span className="shrink-0 font-mono text-xs text-brand-mid-grey">{done} / {items.length}</span>
-        )}
-      </div>
-      <p className="mt-0.5 text-xs text-brand-mid-grey">
-        {lead.project.name} · {t('contractorDashboard.currentStage', { n: stage.stage_number, total: lead.totalStages })}
-      </p>
-
-      {substages === null ? (
-        <p className="py-6 text-xs text-brand-mid-grey">{t('common.loading')}</p>
-      ) : items.length === 0 ? (
-        <p className="py-6 text-xs text-brand-mid-grey">{t('contractorDashboard.noSubstages')}</p>
-      ) : (
-        <ul className="mt-3">
-          {/* A long stage (eleven items on a storey of blockwork) would push the rest
-              of the rail off the screen. The first six, then the way in. */}
-          {items.slice(0, 6).map(item => {
-            const complete = item.status === 'complete';
-            const count = item.evidence_urls?.length ?? 0;
-            return (
-              <li key={item.id} className="flex items-center gap-3 border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
-                <span aria-hidden className={cn(
-                  'flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                  complete
-                    ? 'border-state-complete bg-state-complete text-white'
-                    : 'border-brand-border-grey dark:border-[#444]',
-                )}>
-                  {complete && <Check className="size-2.5 stroke-[3]" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className={cn('block truncate text-xs',
-                    complete ? 'text-brand-mid-grey' : 'font-semibold')}>
-                    {substageLabel(item)}
-                  </span>
-                  <span className="block text-[11px] text-brand-mid-grey">
-                    {count > 0
-                      ? t('contractorProject.evidenceCount', { count })
-                      : t('contractorProject.noEvidence')}
-                  </span>
-                </span>
-                {!complete && (
-                  <Link
-                    to={`/work/projects/${lead.project.id}`}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black"
-                  >
-                    <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {/* The "<amount> on approval" strip and its "n left" pill were here. Removed
-          30 Oct 2026 at Favour's request — the third place the same on-approval
-          figure was being printed, after the Work tab and the People tab. What is
-          due per stage lives on the project's Money tab. */}
-
-      {items.length > 6 && (
-        <Link to={`/work/projects/${lead.project.id}`}
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-4">
-          {t('contractorDashboard.andMoreItems', { n: items.length - 6 })}
-          <ArrowRight className="size-3" aria-hidden />
+    <section className="rounded-2xl border border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+            <Handshake className="size-4 shrink-0" aria-hidden />
+            {t('contractorPartnerCard.title')}
+          </h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{body}</p>
+        </div>
+        <Link to="/work/partner"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-brand-border-grey px-3.5 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
+          {state === 'accepted' ? t('contractorPartnerCard.ctaOpen') : t('contractorPartnerCard.ctaTrack')}
+          <ArrowRight className="size-3.5" aria-hidden />
         </Link>
-      )}
+      </div>
+
+      <ol className="mt-3.5 grid grid-cols-4 gap-2">
+        {steps.map((label, i) => {
+          const done = i < reached;
+          return (
+            <li key={label} className="min-w-0">
+              <span className={cn('block h-1 rounded-full',
+                done ? 'bg-state-complete' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')} />
+              <span className={cn('mt-1.5 block truncate text-[11px]',
+                done ? 'font-semibold text-brand-near-black dark:text-white' : 'text-brand-mid-grey')}>
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
-

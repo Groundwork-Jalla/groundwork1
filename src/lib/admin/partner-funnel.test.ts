@@ -108,16 +108,29 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
     expect(read('src/components/shell/WorkShell.tsx')).toMatch(/to: '\/work\/partner'/);
   });
 
-  it('and the sidebar, permanently — the dashboard card is gone', () => {
+  it('and the dashboard band, which states where they are', () => {
     /**
-     * 30 Oct 2026: the dashboard card was removed. It is not on the approved
-     * dashboard, and it was a second door to a room the sidebar already signposts —
-     * "Partner programme" is a permanent entry, shown whatever their state.
+     * Twice revised, so the current rule is stated in full.
      *
-     * The rule that matters is unchanged and is asserted above: there is still a way
-     * in for somebody who has not applied. What went is the duplicate.
+     * 30 Oct, morning: the dashboard card was removed as a second door to a room the
+     * sidebar already signposts. 30 Oct, working session: Favour asked for it back,
+     * and for more than a door — "let's have the partner network thing there showing
+     * their progress, and if they have not, let's have a button asking them to join".
+     *
+     * The duplication objection stands and is answered by WHAT the band shows: the
+     * sidebar is a way in, and this says where they already are. A contractor who has
+     * applied should not have to open a page to learn nothing has moved.
+     *
+     * The rule that has never changed, asserted above too: there is a way in for
+     * somebody who has not applied.
      */
-    expect(read('src/app/routes/work/index.tsx')).not.toMatch(/partnerState/);
+    const dash = read('src/app/routes/work/index.tsx');
+    expect(dash).toMatch(/<PartnerCard state=\{partnerState\} \/>/);
+    // Both faces: the four-step track, and the invitation for somebody with none.
+    expect(dash).toMatch(/partner\.track\.applied/);
+    expect(dash).toMatch(/contractorPartnerCard\.ctaApply/);
+    // It never speaks before it knows — see the component's header.
+    expect(dash).toMatch(/if \(state === null\) return null;/);
     expect(read('src/components/shell/WorkShell.tsx')).toMatch(/to: '\/work\/partner'/);
   });
 

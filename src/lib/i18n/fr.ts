@@ -5335,6 +5335,16 @@ export const fr: Mirror<EnDict> = {
     emptyBody:  'Une conversation s’ouvre dès que vous avez un chantier en cours.',
   },
 
+  contractorPartnerCard: {
+    title:     'Partenaire certifié',
+    none:      'Accès à vie gratuit, priorité sur les appels d’offres et un plan tarifaire réduit. Un seul entretien avec l’équipe, rien à payer.',
+    pending:   'Votre candidature est enregistrée. Nous la lisons et revenons vers vous pour votre entretien.',
+    reviewing: 'Nous lisons votre candidature en ce moment. L’étape suivante est un entretien avec l’équipe.',
+    accepted:  'Vous êtes partenaire certifié. Vous pouvez amener vos propres clients sur Groundwork et rester l’entrepreneur de leur chantier.',
+    ctaApply:  'Devenir partenaire',
+    ctaTrack:  'Voir ma candidature',
+    ctaOpen:   'Ouvrir le programme',
+  },
   partner: {
     applyTitle:       'Candidater pour devenir partenaire certifi\u00e9',
     yourApplication:  'Votre candidature',

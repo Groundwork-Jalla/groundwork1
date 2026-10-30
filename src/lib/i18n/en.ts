@@ -5458,6 +5458,17 @@ export const en = {
     emptyBody:  'A conversation opens once you have a project under way.',
   },
 
+  // The dashboard's certified-partner card (30 Oct 2026 working session).
+  contractorPartnerCard: {
+    title:     'Certified partner',
+    none:      'Free lifetime access, preference when projects are bid, and a lower pay plan. One conversation with the team, nothing to pay.',
+    pending:   'Your application is in. We will read it and come back to you about your call.',
+    reviewing: 'We are reading your application now. The next step is a call with the team.',
+    accepted:  'You are a certified partner. You can bring your own clients onto Groundwork and stay the contractor on their build.',
+    ctaApply:  'Apply to become a partner',
+    ctaTrack:  'See your application',
+    ctaOpen:   'Open the programme',
+  },
   partner: {
     // The funnel, as the applicant sees it (29 Oct 2026). "Call booked" is NOT a step
     // we can honestly mark done — Groundwork can see somebody was sent to a calendar,
