@@ -90,3 +90,40 @@ export async function getCertificate(id: string) {
   if (error) throw error;
   return data;
 }
+
+// =========================================================
+// What has actually been issued on a project.
+//
+// 31 Oct 2026. The contractor's Documents tab listed a certificate for every approved
+// stage and put a "Share" label beside it that was a `<span>` — no link, no handler.
+// Philip: "I can't view any of these documents here." Two separate faults: the label
+// was not a control, and the list was derived from STAGES rather than from
+// certificates that exist, so a stage approved before certificates were issued showed
+// a row with nothing behind it.
+//
+// This returns what was really issued, keyed by stage, so the tab can offer a button
+// only where there is a file to open.
+// =========================================================
+
+export interface IssuedCertificate {
+  id: string;
+  stageId: string;
+  pdfUrl: string | null;
+}
+
+export async function fetchProjectCertificates(projectId: string): Promise<Map<string, IssuedCertificate>> {
+  const out = new Map<string, IssuedCertificate>();
+  const { data, error } = await supabase
+    .from('certificates')
+    .select('id, stage_id, pdf_url')
+    .eq('project_id', projectId);
+  // A project with no certificates, or a deployment without the table, is an empty
+  // map: the tab then shows the stages with no button, which is the truth.
+  if (error) return out;
+  for (const row of (data ?? []) as { id: string; stage_id: string; pdf_url: string | null }[]) {
+    if (row.stage_id) out.set(String(row.stage_id), {
+      id: String(row.id), stageId: String(row.stage_id), pdfUrl: row.pdf_url ?? null,
+    });
+  }
+  return out;
+}

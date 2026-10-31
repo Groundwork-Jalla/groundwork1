@@ -2309,6 +2309,11 @@ export const en = {
   // payment provider holds and moves the money. Nothing on these screens may say or
   // imply that Groundwork is holding a contractor's money.
   contractorDocs: {
+    download:            'Download',
+    cannotPreview:       'This kind of file cannot be shown here. Download it to open it.',
+    search:              'Search documents',
+    noMatch:             'No document matches \u201c{q}\u201d.',
+    openFailed:          'That file could not be opened. Try again in a moment.',
     chipAll:             'Project documents',
     chipDrawings:        'Drawings',
     chipBoq:             'Bill of quantities',
@@ -6269,6 +6274,10 @@ export const en = {
   },
 
   cert: {
+    stageOfTotal:  'Stage {n} of {total}',
+    builtBy:       'Built by',
+    scanToVerify:  'Scan to verify',
+    certificateId: 'Certificate ID',
     brandSub: 'by Jalla  ·  Verified Construction Management',
     title: 'CERTIFICATE OF STAGE COMPLETION',
     certifies: 'This is to certify that',

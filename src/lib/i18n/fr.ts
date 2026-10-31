@@ -2264,6 +2264,11 @@ export const fr: Mirror<EnDict> = {
   },
 
   contractorDocs: {
+    download:            'Télécharger',
+    cannotPreview:       'Ce type de fichier ne peut pas s’afficher ici. Téléchargez-le pour l’ouvrir.',
+    search:              'Rechercher un document',
+    noMatch:             'Aucun document ne correspond à « {q} ».',
+    openFailed:          'Ce fichier n’a pas pu être ouvert. Réessayez dans un instant.',
     chipAll:             'Documents du projet',
     chipDrawings:        'Plans',
     chipBoq:             'Devis quantitatif',
@@ -6121,6 +6126,10 @@ export const fr: Mirror<EnDict> = {
   },
 
   cert: {
+    stageOfTotal:  'Étape {n} sur {total}',
+    builtBy:       'Réalisé par',
+    scanToVerify:  'Scanner pour vérifier',
+    certificateId: 'Identifiant du certificat',
     brandSub: 'par Jalla  ·  Pilotage de chantier vérifié',
     title: 'CERTIFICAT D\'ACHÈVEMENT D\'ÉTAPE',
     certifies: 'Il est certifié que',
