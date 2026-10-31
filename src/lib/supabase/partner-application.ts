@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { qualifiesForCall } from '@/lib/contractor/partner-qualification';
 import type {
   Disqualifier, GroundworkUse, ProjectStatus,
 } from '@/lib/contractor/partner-qualification';
@@ -85,12 +86,42 @@ export async function myApplicationState(userId: string): Promise<ApplicationSta
  * rather than stored as a verdict, so staff and applicant can never be looking at two
  * different rules.
  */
+/**
+ * Is this applicant ready for a call?
+ *
+ * 31 Oct 2026. This used to run `isDecisionReady` — has a project, WILL INTRODUCE it,
+ * five years on the tools. The form stopped asking "will you introduce it" when 153
+ * rewrote it, so `will_introduce` has been null on every application since, and the
+ * answer was therefore **false for everybody, always**.
+ *
+ * What that broke, all of it silently:
+ *   · the track said "we are reading your application" to people who had already
+ *     been offered a calendar;
+ *   · a qualified applicant who closed the tab and came back was never shown their
+ *     calendar again, because the page asks this before re-opening it;
+ *   · the admin funnel's `prequalified` count could only ever be zero.
+ *
+ * `qualifiesForCall` is the rule the form itself runs when it decides whether to show
+ * the calendar, so applicant, track and staff now read the same one. The three columns
+ * it needs have been stored all along.
+ */
+function readyFromRow(r: Record<string, unknown>): boolean {
+  return qualifiesForCall({
+    projectStatus:     (typeof r.project_status === 'string' ? r.project_status : null) as ProjectStatus | null,
+    clientOnSiteDaily: typeof r.client_on_site_daily === 'boolean' ? r.client_on_site_daily : null,
+    willUseGroundwork: (typeof r.will_use_groundwork === 'string' ? r.will_use_groundwork : null) as GroundworkUse | null,
+    yearsExperience:   typeof r.years_experience === 'string' ? r.years_experience : null,
+  });
+}
+
 export async function myApplicationSummary(
   userId: string,
 ): Promise<{ state: ApplicationState; decisionReady: boolean; language: string }> {
   const { data, error } = await supabase
     .from('contractor_applications')
-    .select('status, has_current_project, will_introduce, years_experience, languages')
+    // The three columns `qualifiesForCall` reads must be fetched, or readyFromRow
+    // silently answers false for everybody — which is the bug it exists to fix.
+    .select('status, years_experience, languages, project_status, client_on_site_daily, will_use_groundwork')
     .eq('user_id', userId)
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error || !data) return { state: 'none', decisionReady: false, language: 'en' };
@@ -107,11 +138,7 @@ export async function myApplicationSummary(
   return {
     state: known.includes(s) ? (s as ApplicationState) : 'none',
     language,
-    decisionReady: isDecisionReady({
-      hasCurrentProject: r.has_current_project === true,
-      willIntroduce:     r.will_introduce === true,
-      yearsExperience:   typeof r.years_experience === 'string' ? r.years_experience : undefined,
-    }),
+    decisionReady: readyFromRow(r),
   };
 }
 
@@ -175,11 +202,7 @@ export async function myApplicationDetail(
   return {
     state: known.includes(status) ? (status as ApplicationState) : 'none',
     language: typeof langs[0] === 'string' ? langs[0] : 'en',
-    decisionReady: isDecisionReady({
-      hasCurrentProject: r.has_current_project === true,
-      willIntroduce:     r.will_introduce === true,
-      yearsExperience:   str(r.years_experience) ?? undefined,
-    }),
+    decisionReady: readyFromRow(r),
     appliedAt:                str(r.created_at),
     bookingShownAt:           str(r.booking_shown_at),
     projectStatus:            str(r.project_status),

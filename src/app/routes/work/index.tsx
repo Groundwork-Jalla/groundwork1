@@ -18,7 +18,7 @@ import { StagePipeline, currentStageNumber } from '@/components/contractor/Stage
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useStageLabels } from '@/lib/stage-labels';
-import { useT } from '@/lib/i18n';
+import { useT, type TKey } from '@/lib/i18n';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,14 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
-  const [partner, setPartner] = useState<PartnerApplicationDetail | null>(null);
+  /**
+   * null = not read yet. 'none' = read, and they have never applied.
+   *
+   * These are different and the card treats them differently: unknown shows nothing,
+   * never-applied shows the invitation. Collapsing them hid the invitation from every
+   * contractor who had not applied — which is almost all of them.
+   */
+  const [partner, setPartner] = useState<PartnerApplicationDetail | 'none' | null>(null);
   /** The client named on each row. Empty map until read; absent key = nobody invited. */
   const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
 
@@ -114,7 +121,7 @@ export default function ContractorDashboard() {
     // they qualified and whether a slot was ever shown. Reading the status alone is
     // what made the dashboard and /work/partner disagree — see partner-track.ts.
     myApplicationDetail(user.id)
-      .then(d => { if (alive) setPartner(d); })
+      .then(d => { if (alive) setPartner(d ?? 'none'); })
       .catch(() => { /* unknown is not "has not applied" — show nothing */ });
     return () => { alive = false; };
   }, [user?.id]);
@@ -487,11 +494,13 @@ function BuildRow({ assigned, client, hasRework }: {
  * `null` is "we do not know yet" and renders nothing. A band that flickers "Apply to
  * become a partner" at somebody who already is one is worse than one that waits.
  */
-function PartnerCard({ detail }: { detail: PartnerApplicationDetail | null }) {
+function PartnerCard({ detail }: { detail: PartnerApplicationDetail | 'none' | null }) {
   const t = useT();
+  // Not read yet. Saying nothing beats flickering "Apply to become a partner" at
+  // somebody who already is one.
   if (detail === null) return null;
 
-  const state = detail.state;
+  const state: ApplicationState = detail === 'none' ? 'none' : detail.state;
 
   // Not shown to a rejected or disqualified applicant. They are not invited to read
   // about it on their dashboard every morning; the page is there if they look.
@@ -517,11 +526,13 @@ function PartnerCard({ detail }: { detail: PartnerApplicationDetail | null }) {
     );
   }
 
+  // Past the `state === 'none'` branch above, so there is a real application here.
+  const filed = detail as PartnerApplicationDetail;
   const steps: TrackStep[] = partnerTrack({
     state,
-    decisionReady:  detail.decisionReady,
-    appliedAt:      detail.appliedAt,
-    bookingShownAt: detail.bookingShownAt,
+    decisionReady:  filed.decisionReady,
+    appliedAt:      filed.appliedAt,
+    bookingShownAt: filed.bookingShownAt,
   }).filter(s => s.key !== 'call');
 
   const LABEL: Record<string, TKey> = {

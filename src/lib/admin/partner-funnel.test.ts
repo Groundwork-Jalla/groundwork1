@@ -125,12 +125,16 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
      * somebody who has not applied.
      */
     const dash = read('src/app/routes/work/index.tsx');
-    expect(dash).toMatch(/<PartnerCard state=\{partnerState\} \/>/);
+    expect(dash).toMatch(/<PartnerCard detail=\{partner\} \/>/);
     // Both faces: the four-step track, and the invitation for somebody with none.
     expect(dash).toMatch(/partner\.track\.applied/);
     expect(dash).toMatch(/contractorPartnerCard\.ctaApply/);
     // It never speaks before it knows — see the component's header.
-    expect(dash).toMatch(/if \(state === null\) return null;/);
+    expect(dash).toMatch(/if \(detail === null\) return null;/);
+    // 31 Oct 2026: the steps are read from the application's own facts through the
+    // shared `partnerTrack`, not guessed from its staff status. partner-track.test.ts
+    // holds that rule; this only checks the card still goes through it.
+    expect(dash).toMatch(/partnerTrack\(\{/);
     expect(read('src/components/shell/WorkShell.tsx')).toMatch(/to: '\/work\/partner'/);
   });
 

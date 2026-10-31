@@ -91,8 +91,26 @@ describe('a returning applicant gets the calendar they asked for', () => {
   });
 
   it('the stored language is actually fetched', () => {
+    // Asserted as a guarantee, not as one exact SELECT string. 31 Oct 2026 the same
+    // query had to gain three columns so readiness could be recomputed from the rule
+    // the form actually uses, and pinning the literal made that read like a
+    // regression when the language was never at risk.
     const lib = read('src/lib/supabase/partner-application.ts');
-    expect(lib).toMatch(/\.select\('status, has_current_project, will_introduce, years_experience, languages'\)/);
+    const summary = lib.slice(lib.indexOf('export async function myApplicationSummary'));
+    const select = /\.select\('([^']+)'\)/.exec(summary)?.[1] ?? '';
+    expect(select).toContain('languages');
     expect(lib).toMatch(/language,/);
+  });
+
+  it('and so is everything the readiness rule reads', () => {
+    // `qualifiesForCall` answers false for every column it cannot see, so a column
+    // missing from this SELECT silently disqualifies everybody — which is exactly
+    // what `will_introduce` did before it was dropped.
+    const lib = read('src/lib/supabase/partner-application.ts');
+    const summary = lib.slice(lib.indexOf('export async function myApplicationSummary'));
+    const select = /\.select\('([^']+)'\)/.exec(summary)?.[1] ?? '';
+    for (const col of ['project_status', 'client_on_site_daily', 'will_use_groundwork']) {
+      expect(select, `readyFromRow needs ${col}`).toContain(col);
+    }
   });
 });

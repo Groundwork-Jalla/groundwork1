@@ -4,6 +4,7 @@ import { Check, CheckCircle2, Clock, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useT, type TKey } from '@/lib/i18n';
 import { trackFunnel } from '@/lib/analytics/funnel';
+import { partnerTrack } from '@/lib/contractor/partner-track';
 import { errorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
@@ -895,20 +896,26 @@ function FunnelTrack({ state, qualified, hasBooking, detail }: {
   detail?: PartnerApplicationDetail | null;
 }) {
   const t = useT();
-  const accepted = state === 'accepted';
-  const applied = detail?.appliedAt ? formatDate(detail.appliedAt) : null;
 
-  const steps: { key: TKey; at: 'done' | 'now' | 'todo'; on: string | null }[] = [
-    { key: 'partner.track.applied',   at: 'done', on: applied },
-    // Qualifying is recomputed from the answers rather than stamped, so the honest
-    // date is the day those answers were given — which is the day they applied.
-    { key: 'partner.track.qualified', at: qualified || accepted ? 'done' : 'now',
-      on: qualified || accepted ? applied : null },
-    { key: 'partner.track.book',      at: accepted ? 'done' : qualified && hasBooking ? 'now' : 'todo',
-      on: detail?.bookingShownAt ? formatDate(detail.bookingShownAt) : null },
-    { key: 'partner.track.call',      at: accepted ? 'done' : 'todo', on: null },
-    { key: 'partner.track.partner',   at: accepted ? 'done' : 'todo', on: null },
-  ];
+  // One derivation, shared with the dashboard card (partner-track.ts). These two used
+  // to decide the steps separately and could disagree about the same application:
+  // the card read the status alone, so "Qualified" lit up when staff moved the row to
+  // `reviewing` rather than when the applicant actually qualified.
+  //
+  // `hasBooking` is no longer part of the rule. Whether a calendar happens to be
+  // rendered right now is a property of this page, not of the application; the
+  // tracked fact is `booking_shown_at`.
+  void hasBooking;
+  const steps = partnerTrack({
+    state,
+    decisionReady:  qualified,
+    appliedAt:      detail?.appliedAt ?? null,
+    bookingShownAt: detail?.bookingShownAt ?? null,
+  }).map(step => ({
+    key: `partner.track.${step.key}` as TKey,
+    at: step.at,
+    on: step.on ? formatDate(step.on) : null,
+  }));
 
   return (
     <ol className="mt-4 flex min-w-0">
