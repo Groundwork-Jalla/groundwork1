@@ -11,7 +11,9 @@ import { fetchMyPayoutDestinations } from '@/lib/supabase/payout-destinations';
 import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
 import { fetchOnboardingStatus, onboardingAvailable, ONBOARDING_STEPS,
          type OnboardingStatus } from '@/lib/supabase/contractor-onboarding';
-import { myApplicationState, type ApplicationState } from '@/lib/supabase/partner-application';
+import { myApplicationDetail, type ApplicationState,
+         type PartnerApplicationDetail } from '@/lib/supabase/partner-application';
+import { partnerTrack, type TrackStep } from '@/lib/contractor/partner-track';
 import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { moneyPair } from '@/lib/budget/money-pair';
@@ -59,7 +61,7 @@ export default function ContractorDashboard() {
   // migration is not applied — in both cases the banner stays away rather than
   // nagging somebody about steps this database cannot yet record.
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
-  const [partnerState, setPartnerState] = useState<ApplicationState | null>(null);
+  const [partner, setPartner] = useState<PartnerApplicationDetail | null>(null);
   /** The client named on each row. Empty map until read; absent key = nobody invited. */
   const [clients, setClients] = useState<Map<string, ViewerSummary>>(new Map());
 
@@ -108,8 +110,11 @@ export default function ContractorDashboard() {
   useEffect(() => {
     if (!user?.id) return;
     let alive = true;
-    myApplicationState(user.id)
-      .then(st => { if (alive) setPartnerState(st); })
+    // The DETAIL, not just the status: the track needs when they applied, whether
+    // they qualified and whether a slot was ever shown. Reading the status alone is
+    // what made the dashboard and /work/partner disagree — see partner-track.ts.
+    myApplicationDetail(user.id)
+      .then(d => { if (alive) setPartner(d); })
       .catch(() => { /* unknown is not "has not applied" — show nothing */ });
     return () => { alive = false; };
   }, [user?.id]);
@@ -265,7 +270,7 @@ export default function ContractorDashboard() {
             three figures above are worth is partly decided by whether this person
             is a certified partner, and somebody who has not applied should meet
             the invitation before they scroll into their project list. */}
-        <PartnerCard state={partnerState} />
+        <PartnerCard detail={partner} />
 
         {/* One column. The right-hand rail held "Stage in progress", removed
             30 Oct 2026 at Favour's request — the open dot on each build's
@@ -468,23 +473,25 @@ function BuildRow({ assigned, client, hasRework }: {
  * Where their certified-partner application stands — or an invitation to start one.
  *
  * Favour, 30 Oct 2026: "let's have the partner network thing there showing their
- * progress, and if they have not, let's have a button asking them to join".
+ * progress, and if they have not, let's have a button asking them to join."
  *
- * So it is one band with two faces. Applied: the four steps, with the ones behind
- * them filled, so the distance left is readable without opening the page. Not
- * applied: what the programme is worth and one button.
+ * The steps come from `partnerTrack`, the same function `/work/partner` uses, so the
+ * card and the page can never disagree about the same application. This card used to
+ * derive them from the application's status alone, which meant "Qualified" lit up
+ * when somebody in the office moved the row to `reviewing` and "Book your call" could
+ * never light up at all.
  *
- * The steps are the funnel's own, from `partner.track` — the same five words
- * /work/partner uses, minus "Call held", which Groundwork cannot honestly mark: we
- * can see somebody was sent to a calendar, never that they attended. Acceptance is
- * what moves them on.
+ * `call` is dropped here: four steps, as the approved dashboard shows, and the call
+ * is the one step nobody can act on from a dashboard.
  *
- * `null` is "not known yet" and renders nothing. A band that flickers "Apply to
+ * `null` is "we do not know yet" and renders nothing. A band that flickers "Apply to
  * become a partner" at somebody who already is one is worse than one that waits.
  */
-function PartnerCard({ state }: { state: ApplicationState | null }) {
+function PartnerCard({ detail }: { detail: PartnerApplicationDetail | null }) {
   const t = useT();
-  if (state === null) return null;
+  if (detail === null) return null;
+
+  const state = detail.state;
 
   // Not shown to a rejected or disqualified applicant. They are not invited to read
   // about it on their dashboard every morning; the page is there if they look.
@@ -510,18 +517,26 @@ function PartnerCard({ state }: { state: ApplicationState | null }) {
     );
   }
 
-  // How far along they are. `accepted` fills every step; the two in-flight states
-  // differ by one, which is the whole reason they are separate states.
-  const reached = state === 'accepted' ? 4 : state === 'reviewing' ? 2 : 1;
-  const steps = [
-    t('partner.track.applied'),
-    t('partner.track.qualified'),
-    t('partner.track.book'),
-    t('partner.track.partner'),
-  ];
-  const body = state === 'accepted'  ? t('contractorPartnerCard.accepted')
-             : state === 'reviewing' ? t('contractorPartnerCard.reviewing')
-             : t('contractorPartnerCard.pending');
+  const steps: TrackStep[] = partnerTrack({
+    state,
+    decisionReady:  detail.decisionReady,
+    appliedAt:      detail.appliedAt,
+    bookingShownAt: detail.bookingShownAt,
+  }).filter(s => s.key !== 'call');
+
+  const LABEL: Record<string, TKey> = {
+    applied:   'partner.track.applied',
+    qualified: 'partner.track.qualified',
+    book:      'partner.track.book',
+    partner:   'partner.track.partner',
+  };
+
+  // The sentence follows the same facts as the bar beneath it, so the two cannot say
+  // different things about the same application.
+  const current = steps.find(s => s.at === 'now');
+  const body = state === 'accepted' ? t('contractorPartnerCard.accepted')
+    : current?.key === 'book'       ? t('contractorPartnerCard.book')
+    : t('contractorPartnerCard.reviewing');
 
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -541,19 +556,19 @@ function PartnerCard({ state }: { state: ApplicationState | null }) {
       </div>
 
       <ol className="mt-3.5 grid grid-cols-4 gap-2">
-        {steps.map((label, i) => {
-          const done = i < reached;
-          return (
-            <li key={label} className="min-w-0">
-              <span className={cn('block h-1 rounded-full',
-                done ? 'bg-state-complete' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')} />
-              <span className={cn('mt-1.5 block truncate text-[11px]',
-                done ? 'font-semibold text-brand-near-black dark:text-white' : 'text-brand-mid-grey')}>
-                {label}
-              </span>
-            </li>
-          );
-        })}
+        {steps.map(step => (
+          <li key={step.key} className="min-w-0" aria-current={step.at === 'now' ? 'step' : undefined}>
+            <span className={cn('block h-1 rounded-full',
+              step.at === 'done' ? 'bg-state-complete'
+                : step.at === 'now' ? 'bg-brand-near-black dark:bg-white'
+                : 'bg-brand-border-grey dark:bg-[#2c2c2c]')} />
+            <span className={cn('mt-1.5 block truncate text-[11px]',
+              step.at === 'todo' ? 'text-brand-mid-grey'
+                : 'font-semibold text-brand-near-black dark:text-white')}>
+              {t(LABEL[step.key])}
+            </span>
+          </li>
+        ))}
       </ol>
     </section>
   );

@@ -5496,6 +5496,7 @@ export const en = {
 
   // The dashboard's certified-partner card (30 Oct 2026 working session).
   contractorPartnerCard: {
+    book:      'You qualified. The next step is a call with the team \u2014 pick a time that suits you.',
     title:     'Certified partner',
     none:      'Free lifetime access, preference when projects are bid, and a lower pay plan. One conversation with the team, nothing to pay.',
     pending:   'Your application is in. We will read it and come back to you about your call.',

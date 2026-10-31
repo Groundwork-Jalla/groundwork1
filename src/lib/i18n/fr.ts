@@ -5367,6 +5367,7 @@ export const fr: Mirror<EnDict> = {
   },
 
   contractorPartnerCard: {
+    book:      'Vous êtes qualifié. L’étape suivante est un entretien avec l’équipe — choisissez un créneau.',
     title:     'Partenaire certifié',
     none:      'Accès à vie gratuit, priorité sur les appels d’offres et un plan tarifaire réduit. Un seul entretien avec l’équipe, rien à payer.',
     pending:   'Votre candidature est enregistrée. Nous la lisons et revenons vers vous pour votre entretien.',
