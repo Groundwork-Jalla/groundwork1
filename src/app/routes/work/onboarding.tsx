@@ -12,6 +12,7 @@ import { AgreementReader } from '@/components/contractor/AgreementReader';
 import { PayoutDialog } from '@/components/contractor/PayoutDialog';
 import { useT, type TKey } from '@/lib/i18n';
 import { trackFunnel } from '@/lib/analytics/funnel';
+import { trackLifecycle } from '@/lib/analytics/lifecycle';
 import { isValidPhone } from '@/lib/phone';
 import {
   CONTRACTOR_ROLES, requiresLicence, type ContractorRole,
@@ -185,6 +186,31 @@ export default function ContractorOnboarding() {
               // application has its own start, on its own page; reading this same
               // click as that start is the double count being removed.
               trackFunnel('contractor_onboarding', 'completed');
+
+              /**
+               * And tell the CRM, which is a different statement to a different system.
+               *
+               * The funnel line above is how many people got here; this one starts
+               * CS05 and ends the Day 1/3/7 onboarding reminders (Communication Flow
+               * §5.1). Philip, 2 Nov 2026: "If someone completes onboarding, they
+               * shouldn't keep receiving emails of completing onboarding."
+               */
+              trackLifecycle('contractor_onboarding_completed');
+
+              /**
+               * "I don't have a project" is the opt-out, not a dead end.
+               *
+               * Philip, 2 Nov 2026: "we don't want to be bombarding them with email
+               * reminders to create a project when they don't have a project... we need
+               * to have a way for people to opt out of that sequence." §9.3 rule 7
+               * makes that a suppression, and the answer is already recorded here — it
+               * simply never left the database. Nothing new is asked of the contractor;
+               * the choice they already made now reaches the system that emails them.
+               */
+              if (intent !== 'onboard_client' && intent !== 'create_project') {
+                trackLifecycle('no_active_project_selected');
+              }
+
               const destination = intent === 'onboard_client' ? '/work/partner'
                 : intent === 'create_project' ? '/projects/new'
                 : '/work';

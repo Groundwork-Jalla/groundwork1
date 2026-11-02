@@ -50,6 +50,18 @@ const SOURCE: Record<GhlEvent, string> = {
   project_created:      'groundwork:building',
   // Not a lifecycle moment and never tagged: it is a correction to an existing contact.
   email_changed:        '',
+
+  // ── Activation lifecycle (Communication Flow v1.0, §9.1) ────────────────────────
+  // Each is a stage somebody can be stuck at, which is exactly what a reminder sequence
+  // needs to enter on. The tag is the entry condition; the matching exit event is what
+  // §9.3 rule 3 cancels the pending sends on.
+  contractor_onboarding_completed: 'groundwork:onboarded',
+  client_invited:                  'groundwork:client-invited',
+  contractor_invited:              'groundwork:contractor-invited',
+  invitation_accepted:             'groundwork:invitation-accepted',
+  project_membership_active:       'groundwork:connected',
+  contractor_support_requested:    'groundwork:needs-contractor',
+  no_active_project_selected:      'groundwork:no-project',
 };
 
 /**
@@ -62,6 +74,10 @@ const SOURCE: Record<GhlEvent, string> = {
  */
 const HOMEOWNER_EVENTS: ReadonlySet<GhlEvent> = new Set([
   'user_signup', 'project_created', 'subscription_changed',
+  // A client invited to somebody else's build is a homeowner, and the contractor who
+  // sent that invitation is not — so `client_invited` sits here and `contractor_invited`
+  // does not. Both name the person the email is ABOUT to be sent to.
+  'client_invited', 'contractor_support_requested',
 ]);
 
 /**
@@ -77,7 +93,19 @@ const HOMEOWNER_EVENTS: ReadonlySet<GhlEvent> = new Set([
  * `groundwork_project_created`) and stays the machine-readable version. This is the
  * human-readable one, for the column you actually scan down.
  */
-export function partyFor(event: GhlEvent): 'Contractor' | 'Homeowner' {
+export function partyFor(
+  event: GhlEvent,
+  /**
+   * Stated by the caller where the event alone cannot say.
+   *
+   * `invitation_accepted` and `project_membership_active` happen to a contractor on one
+   * track and to a client on the other (Communication Flow §6 vs §8). Deriving the party
+   * from the event would mislabel half of them, and the party drives both the tag and
+   * the column somebody scans — so these two call sites say which it is.
+   */
+  override?: 'Contractor' | 'Homeowner' | null,
+): 'Contractor' | 'Homeowner' {
+  if (override) return override;
   return HOMEOWNER_EVENTS.has(event) ? 'Homeowner' : 'Contractor';
 }
 

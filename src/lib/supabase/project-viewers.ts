@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { trackFunnel } from '@/lib/analytics/funnel';
+import { trackLifecycle } from '@/lib/analytics/lifecycle';
 
 // =========================================================
 // Sharing a build with the people who care about it (112).
@@ -199,6 +200,19 @@ export async function acceptProjectViewer(token: string): Promise<string> {
   // Recorded against the CLIENT, who is the person signed in here — so the pair is
   // "this client was invited to this project and joined it", not the contractor's.
   trackFunnel('client_invitation', 'completed', projectId);
+
+  /**
+   * And close the reminder track.
+   *
+   * Communication Flow §8.1: accepting ends IV02/03/04 to the client and IV06/IV07 to
+   * the contractor, and opens IV05 and IV08. Both events are sent because they mean
+   * different things — `invitation_accepted` is the exit condition the pending
+   * reminders are cancelled on (§9.3 rule 3), `project_membership_active` is the entry
+   * condition for "connected", which is the outcome the whole document exists to reach.
+   */
+  trackLifecycle('invitation_accepted', projectId);
+  trackLifecycle('project_membership_active', projectId);
+
   return projectId;
 }
 

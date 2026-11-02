@@ -46,7 +46,33 @@ export type GhlEvent =
    * deliverEmailChange: the CRM keys contacts on email, so this is the one event that
    * must address the contact by id or it creates a stranger.
    */
-  | 'email_changed';
+  | 'email_changed'
+  /**
+   * ── The activation lifecycle (Communication Flow v1.0, §9.1) ────────────────────
+   *
+   * Philip, 2 Nov 2026, on where the reminder sequences live: "let's not do that on
+   * there. Let's just use go high level." That decision is only workable if GHL is told
+   * when each milestone happens — a workflow builder cannot infer `onboarding completed`
+   * from a contact record. These are those milestones, one per row of §9.1.
+   *
+   * Signup is deliberately NOT split into `contractor_signed_up` / `client_signed_up`.
+   * §9.2 asks for `user_role` and `entry_source` as routing FIELDS, and a field is what
+   * a GHL filter wants: forking the event would instead fork the outbox, the retry
+   * allow-list, the pipeline lanes and the backfill, for a distinction the workflow can
+   * already read off the contact.
+   */
+  | 'contractor_onboarding_completed'
+  | 'client_invited'
+  | 'contractor_invited'
+  | 'invitation_accepted'
+  | 'project_membership_active'
+  | 'contractor_support_requested'
+  /**
+   * The opt-out. Philip: "we don't want to be bombarding them with email reminders to
+   * create a project when they don't have a project." §9.3 rule 7 turns this into a
+   * suppression, so it has to reach GHL as its own event rather than a silent field.
+   */
+  | 'no_active_project_selected';
 
 export interface GhlContact {
   email: string;
@@ -79,6 +105,14 @@ export interface GhlForwardOptions {
    * not free, and no tier tag is applied rather than a wrong one.
    */
   tier?: string | null;
+  /**
+   * Which side of the build this contact is on, where the event cannot say.
+   *
+   * Only `invitation_accepted` and `project_membership_active` need it: both occur on
+   * the contractor track and on the client track, and `partyFor` would otherwise label
+   * every one of them Contractor.
+   */
+  party?: 'Contractor' | 'Homeowner' | null;
 }
 
 export interface GhlForwardResult {
@@ -306,8 +340,9 @@ async function deliverViaApi(
     customFields: {
       ...fields,
       lang: contact.lang === 'fr' ? 'fr' : 'en',
-      // 'Contractor' for application_decision, 'Homeowner' for signup/project/billing.
-      groundwork_party: partyFor(event),
+      // 'Contractor' for application_decision, 'Homeowner' for signup/project/billing,
+      // and whatever the caller states for the two events that happen on both tracks.
+      groundwork_party: partyFor(event, opts.party),
     },
     source: `groundwork_${event}`,
   });

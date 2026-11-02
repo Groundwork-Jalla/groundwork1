@@ -23,6 +23,8 @@
 import { buildShareHtml, shareSubject } from '../../src/lib/email/share-html.js';
 import { resolveRecipientLang } from '../../src/lib/i18n/translate.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
+import { forwardToGhl } from '../ghl/_forward.js';
+import { routingFields } from '../ghl/_routing-fields.js';
 import { senderFor } from '../../src/lib/email/senders.js';
 
 // `other` rather than a new EmailKind: this is not a contractor invitation, and
@@ -119,7 +121,55 @@ export async function handler(req: any, res: any) {
     // send — see the header of ghl/_email-log.ts.
     const noted = await logEmailToCrm({ to: viewer.email, subject, html, kind: 'other' });
 
-    res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface });
+    /**
+     * ── The client is now a contact, and the IV track can begin ──────────────────────
+     *
+     * Communication Flow v1.0 §8: `client_invited_by_contractor` opens IV01 to the
+     * client and CS13 to the contractor, and the Day 1/3/7 reminders hang off it. Until
+     * this call existed the CRM never heard that an invitation had been sent, so none
+     * of those sequences had anything to start on.
+     *
+     * The contact is the INVITEE, who very likely has no account yet — GHL upserts on
+     * email, which is exactly right here: they become a contact at the moment somebody
+     * asks them to join, not at the moment they accept.
+     *
+     * Awaited before responding, like the note above: Vercel freezes the instance when
+     * the handler returns and a floating promise never lands. It cannot fail the send;
+     * the email has already gone out and the invitation stands whatever the CRM says.
+     */
+    let crmEvent = false;
+    try {
+      const fwd = await forwardToGhl('client_invited', {
+        email: viewer.email,
+        // No name to give: an invitation is sent to an address, and inventing one from
+        // the local part would write "Ada.Okafor" into a field a human reads.
+        lang,
+        country: project?.country ?? null,
+      }, {
+        ...routingFields({
+          userRole:         'client',
+          entrySource:      'client_invitation',
+          projectId:        viewer.project_id,
+          projectName:      project?.name ?? null,
+          inviterUserId:    viewer.invited_by,
+          inviterName,
+          inviterRole:      'contractor',
+          invitationStatus: 'sent',
+          activationStage:  'awaiting_invitation_response',
+          stageEnteredAt:   new Date(),
+        }),
+      }, {
+        // Per invitation, not per person: re-inviting the same address to a SECOND
+        // build is a new invitation with its own reminder clock. The token is unique
+        // per row (112) and is already what the link is keyed on.
+        dedupeKey: `client_invited:${shareToken}`,
+      });
+      crmEvent = fwd.ok;
+    } catch (e) {
+      console.error('[share] could not tell the CRM about the invitation:', e);
+    }
+
+    res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface, crmEvent });
   } catch (err) {
     console.error('[share] send failed:', err);
     res.status(500).json({ error: 'Failed to send email' });

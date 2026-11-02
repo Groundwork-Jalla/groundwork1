@@ -21,6 +21,7 @@ import { handler as conversationDeliver } from './_handlers/conversation-deliver
 import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as messageFanout } from './_handlers/message-fanout.js';
+import { handler as crmLifecycle } from './_handlers/crm-lifecycle.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
@@ -71,7 +72,7 @@ type Action =
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach'
-  | 'message-fanout' | 'read-floor-plan' | 'send-share-invite';
+  | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -112,6 +113,10 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   // Invites somebody to FOLLOW a build (112). The viewer token is the
   // capability, so this needs no session — see the handler's header.
   'send-share-invite': sendShareInvite,
+  // The activation milestones a signed-in person reaches about themselves
+  // (Communication Flow §9.1). One action rather than five handlers: the Hobby plan
+  // caps this project at twelve functions and every one of them is spoken for.
+  'crm-lifecycle': crmLifecycle,
 };
 
 export default async function handler(req: any, res: any) {

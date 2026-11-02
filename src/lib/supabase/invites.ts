@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { trackLifecycle } from '@/lib/analytics/lifecycle';
 import { resolveRecipientLang } from '@/lib/i18n/translate';
 import type { ContractorInviteRow } from '@/types/project';
 
@@ -168,6 +169,19 @@ export async function acceptInvite(token: string): Promise<string> {
   await supabase.auth.updateUser({
     data: { role: 'contractor', onboarding_complete: true },
   });
+
+  /**
+   * Communication Flow §6.1: accepting ends CI02/03/04 to the contractor and
+   * CI10/CI11 to the client, and opens either CI05 (onboarding still owed) or CI09
+   * (already onboarded, straight onto the build).
+   *
+   * Which of those two the contractor gets is decided in GoHighLevel off
+   * `onboarding_status`, not here — the endpoint reads that from the database on every
+   * call, so a contractor who onboarded months ago is never asked to do it again
+   * (§9.3 rule 4).
+   */
+  trackLifecycle('invitation_accepted', projectId as string);
+  trackLifecycle('project_membership_active', projectId as string);
 
   return projectId as string;
 }

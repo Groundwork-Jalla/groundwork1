@@ -17,6 +17,8 @@
 import { buildInviteHtml, inviteSubject } from '../src/lib/email/invite-html.js';
 import { resolveRecipientLang } from '../src/lib/i18n/translate.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
+import { forwardToGhl } from './ghl/_forward.js';
+import { routingFields } from './ghl/_routing-fields.js';
 import { senderFor } from '../src/lib/email/senders.js';
 
 const FROM = senderFor('contractor_invite');
@@ -119,7 +121,47 @@ export default async function handler(req: any, res: any) {
       to: invite.email, subject, html, kind: 'contractor_invite',
     });
 
-    res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface });
+    /**
+     * ── The contractor invitation track can now start ────────────────────────────────
+     *
+     * Communication Flow v1.0 §6: `contractor_invited_by_client` opens CI01 and its
+     * Day 1/3/7 reminders, and CI10/CI11 back to the client when it stays unaccepted.
+     * The note above records what was said; this records that it HAPPENED, which is a
+     * different thing and the only one a workflow can trigger on.
+     *
+     * Party comes from the event (`contractor_invited` is not a homeowner event), so
+     * no override is needed — unlike acceptance, which occurs on both tracks.
+     */
+    let crmEvent = false;
+    try {
+      const fwd = await forwardToGhl('contractor_invited', {
+        email: invite.email,
+        lang,
+        country: project?.country ?? null,
+      }, {
+        ...routingFields({
+          userRole:         'contractor',
+          entrySource:      'contractor_invitation',
+          projectId:        invite.project_id,
+          projectName:      project?.name ?? null,
+          inviterUserId:    invite.invited_by,
+          inviterName,
+          inviterRole:      'client',
+          invitationStatus: 'sent',
+          activationStage:  'awaiting_invitation_response',
+          stageEnteredAt:   new Date(),
+        }),
+      }, {
+        // Per invitation: the same contractor invited to a second build starts a second
+        // reminder clock, and the token is unique per row.
+        dedupeKey: `contractor_invited:${inviteToken}`,
+      });
+      crmEvent = fwd.ok;
+    } catch (e) {
+      console.error('[invite] could not tell the CRM about the invitation:', e);
+    }
+
+    res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface, crmEvent });
   } catch (err) {
     console.error('[invite] send failed:', err);
     res.status(500).json({ error: 'Failed to send email' });
