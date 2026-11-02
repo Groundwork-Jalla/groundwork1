@@ -77,6 +77,25 @@ export default function ContractorOnboarding() {
 
   useEffect(() => { void load(); }, [load]);
 
+  /**
+   * Contractor onboarding has STARTED.
+   *
+   * Agreed 30 Oct 2026: the sequence begins at sign-up and ends when they choose "I
+   * have a project" / "I don't". Only the END was ever wired, so production showed 4
+   * completions against 0 starts — and "incomplete onboarding", the number Philip
+   * actually asked for, could never be counted at all.
+   *
+   * Recorded here rather than on the sign-up form because `record_funnel_event`
+   * stamps `auth.uid()`: an anonymous visitor filling in the form has no identity to
+   * record against. This page is the first authenticated moment, and a new contractor
+   * is sent straight to it, so it is the same instant in practice.
+   *
+   * The RPC keeps the first occurrence, so re-opening onboarding cannot inflate it.
+   */
+  useEffect(() => {
+    if (user?.id) trackFunnel('contractor_onboarding', 'started');
+  }, [user?.id]);
+
   useEffect(() => {
     void fetchOnboardingRecord()
       .then(r => {

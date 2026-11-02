@@ -2309,6 +2309,10 @@ export const en = {
   // payment provider holds and moves the money. Nothing on these screens may say or
   // imply that Groundwork is holding a contractor's money.
   contractorDocs: {
+    sortBy:              'Sort documents',
+    sortNewest:          'Newest first',
+    sortOldest:          'Oldest first',
+    sortName:            'Name A\u2013Z',
     download:            'Download',
     cannotPreview:       'This kind of file cannot be shown here. Download it to open it.',
     search:              'Search documents',
@@ -2611,7 +2615,7 @@ export const en = {
       reviewing:         'In review',
       accepted:          'Accepted',
       rejected:          'Rejected',
-      disqualified:      'Stopped by the form',
+      disqualified:      'Answer ended the application',
       committed:         'Committed',
       agreement_signed:  'Agreement signed',
       client_introduced: 'Client introduced',
@@ -2666,13 +2670,13 @@ export const en = {
     },
     funnelWorklist: 'Open the partner pipeline \u2014 who to chase, and by when.',
     funnel: {
-      accounts:      'Contractor accounts',
+      accounts:      'Sign-ups',
       onboarded:     'Onboarding complete',
-      applications:  'Partner applications',
+      applications:  'Completed applications',
       prequalified:  'Pre-qualified',
-      sentToBooking: 'Sent to booking',
+      sentToBooking: 'Shown a call slot',
     },
-    funnelBookingNote: 'Sent to booking counts applicants who reached the booking step and were shown a slot. Confirmed calls are in Philip\u2019s calendar.',
+    funnelBookingNote: 'A slot being shown is not a call booked \u2014 confirmed calls live in the team calendar, which Groundwork cannot read.',
     funnelGap: '{n} said yes to partnering at onboarding but have not filed an application yet.',
     secPersonal:   'Personal',
     secBusiness:   'Licence and business',

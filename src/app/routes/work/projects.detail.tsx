@@ -1001,6 +1001,36 @@ function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: b
 
   return (
     <aside className="flex min-w-0 flex-col gap-4">
+      {/* Order fixed 2 Nov 2026. Philip, 30 Oct, verbatim: "first thing on that
+          sidebar should be invite the client. Second thing should be people on this
+          project, and then the next release and the build can come in any order
+          after those first two."
+
+          It had been built the exact other way round. I put the invite UNDER the
+          people list, reasoning that what belongs beneath a list is the way to add
+          to it. That is tidy and it is not the point: getting a client onto the
+          build is what this screen is for, so it goes first. */}
+      {isOwner && <ShareProject projectId={project.id} />}
+
+      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
+          {t('contractorWork.peopleOnThis')}
+        </h2>
+        <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
+                name={t('contractorPeople.you')} role={t('contractorPeople.youOwner')} />
+        {viewers?.map(v => (
+          <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
+                  name={v.relationship?.trim() || v.email}
+                  role={t(v.acceptedAt ? 'contractorDocs.clientCanView' : 'contractorPeople.pending')} />
+        ))}
+        {viewers !== null && viewers.length === 0 && (
+          <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
+        )}
+        {/* The "On this project" link was here. Removed 30 Oct 2026 (Philip): "that
+            link doesn't really do anything" — it pointed at the tab this panel is a
+            summary of. What belongs under the list is the way to add to it. */}
+      </section>
+
       {due && (
         <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
@@ -1058,27 +1088,6 @@ function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: b
           </div>
         </div>
       </section>
-
-      <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-        <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-          {t('contractorWork.peopleOnThis')}
-        </h2>
-        <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
-                name={t('contractorPeople.you')} role={t('contractorPeople.youOwner')} />
-        {viewers?.map(v => (
-          <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
-                  name={v.relationship?.trim() || v.email}
-                  role={t(v.acceptedAt ? 'contractorDocs.clientCanView' : 'contractorPeople.pending')} />
-        ))}
-        {viewers !== null && viewers.length === 0 && (
-          <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>
-        )}
-        {/* The "On this project" link was here. Removed 30 Oct 2026 (Philip): "that
-            link doesn't really do anything" — it pointed at the tab this panel is a
-            summary of. What belongs under the list is the way to add to it. */}
-      </section>
-
-      {isOwner && <ShareProject projectId={project.id} />}
     </aside>
   );
 }
@@ -1154,6 +1163,13 @@ function DocumentsTab({ assigned, documents, isOwner }: {
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
   /** Search across file names. Philip asked to be able to "search through documents". */
   const [query, setQuery] = useState('');
+  /**
+   * Philip listed three things this tab had to do: "filter through documents, search
+   * through documents, organize documents." Filter is the chips, search is the box,
+   * and this is the third — newest first by default, because the thing somebody
+   * uploaded this morning is the thing they came looking for.
+   */
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'name'>('newest');
   /** Which file is being opened, so its own button shows it and the others stay live. */
   const [opening, setOpening] = useState<string | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
@@ -1207,7 +1223,12 @@ function DocumentsTab({ assigned, documents, isOwner }: {
   // names further down, so typing "roof" finds the roofing certificate too.
   const q = query.trim().toLowerCase();
   const hit = (text: string) => !q || text.toLowerCase().includes(q);
-  const inScope = documents.filter(d => hit(d.file_name));
+  const order = (a: ProjectDocumentRow, b: ProjectDocumentRow) =>
+    sort === 'name'   ? a.file_name.localeCompare(b.file_name)
+    : sort === 'oldest' ? a.created_at.localeCompare(b.created_at)
+    :                     b.created_at.localeCompare(a.created_at);
+
+  const inScope = documents.filter(d => hit(d.file_name)).sort(order);
 
   const drawings = inScope.filter(d => d.category !== 'boq' && d.category !== 'site_photo');
   const boq = inScope.filter(d => d.category === 'boq');
@@ -1235,13 +1256,29 @@ function DocumentsTab({ assigned, documents, isOwner }: {
   return (
     <div className="grid items-start gap-5 xl:grid-cols-[3fr_2fr]">
       <div className="flex min-w-0 flex-col gap-4">
-        <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand-mid-grey" aria-hidden />
           <input
             type="search" value={query} onChange={e => setQuery(e.target.value)}
             aria-label={t('contractorDocs.search')} placeholder={t('contractorDocs.search')}
             className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-base sm:text-sm dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
           />
+        </div>
+
+        {/* A native select: three options do not earn a custom control, and this one
+            is reachable by keyboard and by a screen reader without any work. */}
+        <label className="shrink-0">
+          <span className="sr-only">{t('contractorDocs.sortBy')}</span>
+          <select
+            value={sort} onChange={e => setSort(e.target.value as typeof sort)}
+            className="rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
+          >
+            <option value="newest">{t('contractorDocs.sortNewest')}</option>
+            <option value="oldest">{t('contractorDocs.sortOldest')}</option>
+            <option value="name">{t('contractorDocs.sortName')}</option>
+          </select>
+        </label>
         </div>
 
         {openError && (

@@ -18,6 +18,16 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => readFileSync(p, 'utf8');
 
 describe('the three sequences are independent', () => {
+  it('onboarding records a start, so "incomplete" can be counted', () => {
+    /**
+     * Only the END was wired at first. Production then showed 4 completions against
+     * 0 starts, and "incomplete onboarding" — the number Philip asked for by name —
+     * could not be computed at all. A sequence with one end is not a sequence.
+     */
+    const onboarding = read('src/app/routes/work/onboarding.tsx');
+    expect(onboarding).toMatch(/trackFunnel\('contractor_onboarding', 'started'\)/);
+  });
+
   it('onboarding ends on the project question, and claims nothing else', () => {
     const onboarding = read('src/app/routes/work/onboarding.tsx');
     expect(onboarding).toMatch(/trackFunnel\('contractor_onboarding', 'completed'\)/);
