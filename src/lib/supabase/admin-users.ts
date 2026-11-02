@@ -72,7 +72,11 @@ export async function deleteUser(userId: string): Promise<number> {
 }
 
 /** id → { name, email }, for screens that show a project's owner. */
-export async function ownerLookup(): Promise<Map<string, { name: string; email: string }>> {
+export async function ownerLookup(): Promise<Map<string, { name: string; email: string; roles: string }>> {
   const users = await listAdminUsers();
-  return new Map(users.map(u => [u.id, { name: u.fullName, email: u.email }]));
+  // Roles come through now (2 Nov 2026). They were already loaded and then dropped
+  // here, so a project's owner was a name with no indication of WHAT they are. Philip
+  // hit that on the Projects list: an August client account that had since been given
+  // the contractor role read as two different people.
+  return new Map(users.map(u => [u.id, { name: u.fullName, email: u.email, roles: u.roles }]));
 }

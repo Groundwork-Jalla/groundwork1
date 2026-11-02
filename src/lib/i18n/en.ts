@@ -346,6 +346,12 @@ export const en = {
     errName:      'Your client\u2019s full name is needed.',
     errFailed:    'The invitation was not sent. Try again, and if it keeps failing, tell Favour.',
   },
+  adminRole: {
+    admin:      'Admin',
+    verifier:   'Verifier',
+    contractor: 'Contractor',
+    client:     'Client',
+  },
   admin: {
     tiles: {
       all:       'All projects',

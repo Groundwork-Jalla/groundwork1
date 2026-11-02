@@ -12,6 +12,7 @@ import { useDomainLabels } from '@/lib/domain-labels';
 import { projectHealth, type ActivityStamps, type HealthBand } from '@/lib/admin/health';
 import { matchesStatusFilter, parseHealthFilter, parseStatusFilter } from '@/lib/admin/project-filters';
 import { FilterTiles, tileCounts, applyTile, type TileSpec } from '@/components/admin/FilterTiles';
+import { RoleBadge } from '@/components/admin/RoleBadge';
 import { fetchBusinessStatuses, type BusinessStatus } from '@/lib/supabase/admin-project-status';
 import { workspaceHref } from '@/lib/admin/workspace-params';
 import { FilterBanner } from '@/components/admin/FilterBanner';
@@ -22,6 +23,8 @@ interface AdminProject {
   name: string;
   ownerEmail: string;
   ownerName: string;
+  /** Comma-joined roles, so the list says WHAT the owner is, not only who. */
+  ownerRoles: string;
   tier: string;
   status: string;
   currentStage: number;
@@ -222,6 +225,7 @@ export default function AdminProjects() {
             name:         p.name as string,
             ownerEmail:   profile?.email ?? '',
             ownerName:    profile?.name ?? '',
+            ownerRoles:   profile?.roles ?? '',
             tier:         p.tier as string,
             status:       p.status as string,
             currentStage: p.current_stage as number,
@@ -358,7 +362,12 @@ export default function AdminProjects() {
                     <Link to={workspaceHref(p.id)} className="underline-offset-2 hover:underline">{p.name}</Link>
                   </td>
                   <td className="px-4 py-3 text-brand-mid-grey max-w-[160px] truncate">
-                    <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <span title={p.ownerEmail}>{p.ownerName || p.ownerEmail}</span>
+                      {/* What the owner IS. A contractor who built for themselves owns
+                          their project, and without this the column could not say so. */}
+                      <RoleBadge roles={p.ownerRoles} />
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-brand-mid-grey">{labels.tier(p.tier)}</td>
                   <td className="px-4 py-3">

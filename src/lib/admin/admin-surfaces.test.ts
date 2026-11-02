@@ -60,9 +60,19 @@ describe('Clients is a view, not a record', () => {
     expect(lib).not.toMatch(/from\('clients'\)|\.insert\(|\.update\(|\.rpc\(/);
   });
 
-  it('staff and verifiers are excluded by ROLE, never by guesswork', () => {
-    expect(lib).toContain("r === 'admin' || r === 'verifier'");
-    expect(lib).toContain('users.filter(u => !isStaff(u))');
+  it('every other actor is excluded by ROLE, never by guesswork', () => {
+    /**
+     * Contractors joined admins and verifiers on 2 Nov 2026. Until then this filter
+     * let them through, so all 62 of them were listed as clients as well — 54 with no
+     * project against their name. Philip read the result as a duplicate account:
+     * "he's appearing as both the client and the contractor". There was no duplicate.
+     *
+     * The rule is one actor list per person. A contractor who builds for themselves
+     * still owns that project, and it still appears under Projects with them named as
+     * its owner — but they are MANAGED under Contractors.
+     */
+    expect(lib).toContain("r === 'admin' || r === 'verifier' || r === 'contractor'");
+    expect(lib).toContain('users.filter(u => !isOtherActor(u))');
   });
 
   it('support tickets go through their own module — the one that throws', () => {

@@ -45,7 +45,25 @@ export interface ClientRow {
 
 const s = (v: unknown) => (typeof v === 'string' ? v : '');
 const sn = (v: unknown) => (typeof v === 'string' && v ? v : null);
-const isStaff = (u: AdminUser) => u.roles.split(',').map(r => r.trim()).some(r => r === 'admin' || r === 'verifier');
+/**
+ * Who does NOT belong in the client directory.
+ *
+ * 2 Nov 2026. This excluded admins and verifiers and said so in a comment — the
+ * contractor case was never considered, so every contractor was listed as a client
+ * too. 62 of them, of whom 54 own no project at all and appeared as clients with
+ * nothing against their name, padding the count.
+ *
+ * Philip saw the result and read it as a duplicate account: "he's appearing as both
+ * the client and the contractor". There was no duplicate. One person, one account,
+ * holding the contractor role — listed twice because this filter let them through.
+ *
+ * A contractor who builds for themselves IS the owner of that project, so the
+ * temptation is to leave them in. The rule says otherwise: /admin manages each ACTOR
+ * once, and a person who holds the contractor role is managed under Contractors.
+ * Their project still appears under Projects, with them as its owner.
+ */
+const isOtherActor = (u: AdminUser) =>
+  u.roles.split(',').map(r => r.trim()).some(r => r === 'admin' || r === 'verifier' || r === 'contractor');
 
 export interface ClientDirectory {
   rows: ClientRow[];
@@ -110,9 +128,9 @@ export async function listClients(): Promise<ClientDirectory> {
     }
   }
 
-  // A client is someone Groundwork builds for: not staff, and not a verifier. Someone
-  // with no project yet is still a client — they signed up to build.
-  const rows = users.filter(u => !isStaff(u)).map(u => ({
+  // A client is someone Groundwork builds FOR, and holds no other role. Someone with
+  // no project yet is still a client — they signed up to build.
+  const rows = users.filter(u => !isOtherActor(u)).map(u => ({
     id: u.id,
     name: u.fullName,
     email: u.email,

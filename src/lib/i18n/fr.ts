@@ -347,6 +347,12 @@ export const fr: Mirror<EnDict> = {
     errName:      'Le nom complet de votre client est requis.',
     errFailed:    'L\u2019invitation n\u2019a pas \u00e9t\u00e9 envoy\u00e9e. R\u00e9essayez, et si cela persiste, pr\u00e9venez Favour.',
   },
+  adminRole: {
+    admin:      'Admin',
+    verifier:   'Vérificateur',
+    contractor: 'Entrepreneur',
+    client:     'Client',
+  },
   admin: {
     tiles: {
       all:       'Tous les projets',

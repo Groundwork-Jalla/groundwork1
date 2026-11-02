@@ -44,13 +44,28 @@ describe('staff are not clients', () => {
     expect(isStaffAccount(' homeowner , admin ')).toBe(true);
   });
 
-  it('the two rules are literally the same expression', () => {
-    // If one is ever loosened, this fails rather than the picker quietly disagreeing
-    // with the Clients page about who Groundwork builds for.
-    const clients = code('src/lib/supabase/admin-clients.ts');
-    const expr = /roles\.split\(','\)\.map\(r => r\.trim\(\)\)\.some\(r => r === 'admin' \|\| r === 'verifier'\)/;
-    expect(clients).toMatch(expr);
-    expect(code('src/lib/supabase/jalla-projects.ts')).toMatch(expr);
+  it('the picker excludes STAFF, and deliberately not contractors', () => {
+    /**
+     * These two rules were once the same expression, with a test demanding they stay
+     * identical so the picker could not disagree with the Clients page about who
+     * Groundwork builds for. On 2 Nov 2026 they stopped being the same thing, and the
+     * difference is the point rather than drift:
+     *
+     *   admin-clients   decides who belongs in the CLIENT DIRECTORY. One actor list
+     *                   per person, so a contractor is excluded and managed under
+     *                   Contractors instead.
+     *   jalla-projects  decides whose PROJECTS are staff-owned and should be kept out
+     *                   of the picker. A contractor who owns a build is a real owner
+     *                   with a real project that can be messaged, so excluding them
+     *                   here would hide live work.
+     *
+     * So this asserts the picker still excludes staff and still does NOT exclude
+     * contractors. If somebody copies the Clients rule over, this fails.
+     */
+    const staffExpr = /roles\.split\(','\)\.map\(r => r\.trim\(\)\)\.some\(r => r === 'admin' \|\| r === 'verifier'\)/;
+    const picker = code('src/lib/supabase/jalla-projects.ts');
+    expect(picker).toMatch(staffExpr);
+    expect(picker).not.toMatch(/'contractor'/);
   });
 
   it('a staff-owned project never re-enters through the unnamed-owner path', () => {
