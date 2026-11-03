@@ -22,7 +22,18 @@ import { useT } from '@/lib/i18n';
 // to look after?" — the answer is nothing.
 // =========================================================
 
-export function ShareProject({ projectId }: { projectId: string }) {
+/**
+ * `asClient` distinguishes the two surfaces this is rendered on.
+ *
+ * On the contractor's own project page the person being invited IS the client the
+ * build is for, and since 174 that is who signs off each stage. On the client's page
+ * it is their family, who watch and nothing more (112). Same component, same table,
+ * two different people — so the caller states which, rather than this guessing from
+ * the signed-in role.
+ */
+export function ShareProject(
+  { projectId, asClient = false }: { projectId: string; asClient?: boolean },
+) {
   const t = useT();
   const [rows, setRows] = useState<ProjectViewer[] | null>(null);
   const [email, setEmail]               = useState('');
@@ -51,7 +62,8 @@ export function ShareProject({ projectId }: { projectId: string }) {
       // link is keyed on; the email is how they find out. This panel used to do only
       // the first and report the second, so everyone invited since 112 shipped was
       // told mail had gone out when none ever had.
-      const token = await inviteProjectViewer(projectId, address, relationship.trim() || undefined);
+      const token = await inviteProjectViewer(
+        projectId, address, relationship.trim() || undefined, asClient);
       const delivered = await sendShareInviteEmail(token);
       if (delivered) setSent(address);
       else setFallback({ email: address, link: shareLinkFor(token) });
@@ -75,9 +87,15 @@ export function ShareProject({ projectId }: { projectId: string }) {
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
-        <Users className="size-4 shrink-0" aria-hidden />{t('projectShare.title')}
+        <Users className="size-4 shrink-0" aria-hidden />
+        {t(asClient ? 'projectShare.title' : 'projectShare.familyTitle')}
       </h3>
-      <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{t('projectShare.body')}</p>
+      {/* Two voices, because these are two different invitations. Telling a homeowner
+          on their own project page to "invite your client" is the copy this component
+          shipped with, and it was only ever right on the contractor's surface. */}
+      <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
+        {t(asClient ? 'projectShare.body' : 'projectShare.familyBody')}
+      </p>
 
       <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         {/* Name, then email address. 30 Oct 2026, Philip: "the question we should be
@@ -124,7 +142,7 @@ export function ShareProject({ projectId }: { projectId: string }) {
 
       <ul className="mt-4 space-y-2">
         {rows === null ? null
-          : rows.length === 0 ? <li className="text-xs text-brand-mid-grey">{t('projectShare.none')}</li>
+          : rows.length === 0 ? <li className="text-xs text-brand-mid-grey">{t(asClient ? 'projectShare.none' : 'projectShare.familyNone')}</li>
           : rows.map(v => (
             <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-border-grey px-3 py-2 dark:border-[#2c2c2c]">
               <div className="min-w-0">

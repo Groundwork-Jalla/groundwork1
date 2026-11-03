@@ -113,12 +113,21 @@ function fail(message: string): never {
   throw new ShareFailed(known ?? 'failed');
 }
 
-/** Invite somebody to watch. Owner only — the server refuses anybody else. */
+/**
+ * Invite somebody to watch. Owner only — the server refuses anybody else.
+ *
+ * `isClient` says which of the two kinds of invitation this is. 112 built the table for
+ * family; 166 reused it for the client of a contractor-run build, and 174 made that
+ * distinction load-bearing: only the client may approve a stage, and a sibling must
+ * never be able to unlock a payment. Default false, so the family case — the original
+ * one — stays what it was and a new caller cannot grant approval by forgetting.
+ */
 export async function inviteProjectViewer(
-  projectId: string, email: string, relationship?: string,
+  projectId: string, email: string, relationship?: string, isClient = false,
 ): Promise<string> {
   const { data, error } = await supabase.rpc('invite_project_viewer', {
     p_project: projectId, p_email: email, p_relationship: relationship ?? null,
+    p_is_client: isClient,
   });
   if (error) fail(error.message);
   // An invitation was SENT. Philip asked for "sent invitations along with their

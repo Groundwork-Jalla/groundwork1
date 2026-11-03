@@ -72,7 +72,24 @@ export default function Login() {
       localStorage.removeItem("pendingInvite");
       try {
         const projectId = await acceptInvite(token);
-        navigate(`/projects/${projectId}`, { replace: true });
+        /**
+         * The CONTRACTOR's surface, not the client's.
+         *
+         * This line read `/projects/${projectId}` — the owner's view — so a contractor
+         * who accepted their invitation by signing in landed on the client page for
+         * somebody else's build. `invite.tsx` and `callback.tsx` have always sent them
+         * to /work; this third copy of the same three lines was missed, which is why
+         * the bug only appeared on one of the three ways in. Philip, 2 Nov 2026,
+         * testing contractor invitations: links "incorrectly redirected users to
+         * client views".
+         *
+         * A full page load rather than `navigate`, for the same reason callback.tsx
+         * does it: AuthContext resolved `isContractor` when the session was
+         * established, which was BEFORE `acceptInvite` granted the role. A client-side
+         * navigation keeps that stale answer and `/work` bounces straight back to
+         * `/dashboard` — landing them on the client dashboard by a second route.
+         */
+        window.location.href = `/work/projects/${projectId}`;
         return;
       } catch {
         // Invite may be invalid or already used — fall through to normal routing

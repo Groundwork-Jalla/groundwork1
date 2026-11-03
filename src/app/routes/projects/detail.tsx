@@ -29,8 +29,6 @@ import { ShareProject }          from '@/components/project/ShareProject';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
-import RelatedGuides             from '@/components/project/RelatedGuides';
-import DangerZone                from '@/components/project/DangerZone';
 import type {
   ProjectRow, ProjectStageRow, ProjectSubstageRow,
   FinishLevel, ProjectTier, PaymentStatus,
@@ -527,7 +525,6 @@ export default function ProjectDetail() {
                 onApproveStage={handleApproveStage}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
-              <RelatedGuides tab="stages" currentStage={activeStageNum} />
             </div>
           )}
 
@@ -535,7 +532,6 @@ export default function ProjectDetail() {
           {activeTab === 'costing' && (
             <div>
               <BudgetView project={project} stages={stages} />
-              <RelatedGuides tab="costing" />
             </div>
           )}
 
@@ -547,7 +543,6 @@ export default function ProjectDetail() {
                 stages={stages}
                 onGoToStages={() => setActiveTab('stages')}
               />
-              <RelatedGuides tab="timeline" />
             </div>
           )}
 
@@ -560,7 +555,6 @@ export default function ProjectDetail() {
                 tier={project.tier}
               />
 
-              <RelatedGuides tab="documents" />
             </div>
           )}
 
@@ -571,18 +565,14 @@ export default function ProjectDetail() {
                 projectId={project.id}
                 projectName={project.name}
               />
-              <RelatedGuides tab="messages" />
             </div>
           )}
 
-          {/*
-            Owner only, and outside the tab switch so it sits at the foot of the page
-            wherever you are — a destructive action buried in one tab is a destructive
-            action people cannot find when they need it.
-          */}
-          {!isContractor && (
-            <DangerZone project={project} onChanged={loadAll} />
-          )}
+          {/* "Manage this project" and its Archive button lived here. Philip, 2 Nov
+              2026: remove extraneous elements "to keep the focus strictly on moving
+              through the project". Archiving is not a step in a build, and a
+              destructive action at the foot of the page a client reads every day is
+              the one thing on it they can do by accident. */}
           </>
 
         </motion.div>

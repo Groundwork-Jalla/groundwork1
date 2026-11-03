@@ -65,18 +65,33 @@ describe('no client screen shows a Self Verify owner a wait that does not exist'
     expect(timeline).toContain('<StatusPill status={stage.status} tier={project.tier} />');
   });
 
-  it('the overview stage row forks', () => {
-    expect(overview).toContain("isSelfVerify(tier) ? 'project.overview.statusYourApproval' : 'project.overview.statusReview'");
-    expect(overview).toContain('tier={project.tier}');
+  it('the overview no longer states a stage status at all, so it cannot state a wrong one', () => {
+    /**
+     * This used to assert that the Overview's per-stage row forked on the tier, so a
+     * Self Verify owner was never told they were waiting on Jalla. Philip, 2 Nov 2026,
+     * had the whole block removed as redundant — the Stages tab renders the same list
+     * and is where somebody goes to act on it.
+     *
+     * The protection is not weaker: the fork is still asserted on StageTracker and on
+     * the timeline above. What changed is that the Overview is no longer a third place
+     * that has to get it right.
+     */
+    expect(overview).not.toContain('project.overview.statusReview');
+    expect(overview).not.toContain('project.overview.statusYourApproval');
   });
 
   it('no client component decides this with a hand-written tier comparison', () => {
     // Fourteen copies of `tier === 'self_verify' || tier === 'starter'` is how one of
     // them eventually forgets `starter`. One predicate, imported.
-    for (const [name, body] of [['StageTracker', tracker], ['TimelineTab', timeline], ['OverviewTab', overview]] as const) {
+    // The components that DO fork on the tier must do it through the predicate.
+    for (const [name, body] of [['StageTracker', tracker], ['TimelineTab', timeline]] as const) {
       expect(body, `${name} must import the predicate`).toContain("from '@/lib/tier'");
       expect(body, `${name} must not re-derive the tier check`).not.toContain("=== 'starter'");
     }
+    // OverviewTab no longer forks at all (2 Nov 2026). It is held to the second half
+    // only: if it ever starts caring about the tier again, it does so through the
+    // predicate rather than by growing a fifteenth copy of the comparison.
+    expect(overview, 'OverviewTab must not re-derive the tier check').not.toContain("=== 'starter'");
   });
 });
 
@@ -87,7 +102,6 @@ describe('the strings exist in both languages', () => {
     'project.timeline.legendYourApproval',
     'project.timeline.selfVerified',
     'project.timeline.jallaVerified',
-    'project.overview.statusYourApproval',
   ];
 
   it.each(keys)('%s is translated', key => {

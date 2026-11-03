@@ -738,7 +738,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
             Its guard is "only the owner may share", and here the owner IS the
             contractor, so no new permission is involved. */}
         {isOwner ? (
-          <ShareProject projectId={project.id} />
+          <ShareProject projectId={project.id} asClient />
         ) : (
           <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
@@ -1010,7 +1010,7 @@ function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: b
           people list, reasoning that what belongs beneath a list is the way to add
           to it. That is tidy and it is not the point: getting a client onto the
           build is what this screen is for, so it goes first. */}
-      {isOwner && <ShareProject projectId={project.id} />}
+      {isOwner && <ShareProject projectId={project.id} asClient />}
 
       <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
