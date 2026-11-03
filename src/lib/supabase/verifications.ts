@@ -117,6 +117,14 @@ export interface ApproveStageResult {
   nextStageId: string | null;
   nextStageNumber: number | null;
   verificationId: string | null;
+  /**
+   * The next stage is waiting on money, so the client is asked for the receipt.
+   *
+   * Favour, 3 Nov 2026: "once they click approve stage, the next thing that should show
+   * is upload payment receipt." The screen cannot work this out for itself without a
+   * second round trip, and the database has just done it, so it says so (175).
+   */
+  awaitingPayment: boolean;
 }
 
 /**
@@ -137,5 +145,40 @@ export async function approveStageRpc(stageId: string): Promise<ApproveStageResu
     nextStageId:     (r.next_stage_id as string | null) ?? null,
     nextStageNumber: r.next_stage_number == null ? null : Number(r.next_stage_number),
     verificationId:  (r.verification_id as string | null) ?? null,
+    awaitingPayment: r.awaiting_payment === true,
   };
+}
+
+// =========================================================
+// The receipt handshake (175)
+//
+// Groundwork processes no payment. The client pays the contractor directly and attaches
+// the proof; the contractor says it arrived; the stage opens. Three acts, three people,
+// and the middle one is why the last cannot be faked:
+//
+//   client   → submitStagePaymentReceipt   state becomes receipt_submitted
+//   contractor → confirmStagePayment       state becomes funded, and the stage opens
+//
+// Neither can do the other's half. A contractor confirming with no receipt is refused
+// with `no_receipt`, and a client confirming their own payment with `not_contractor`.
+// =========================================================
+
+/** The client attaches proof they paid. Does NOT open the stage. */
+export async function submitStagePaymentReceipt(stageId: string, path: string): Promise<void> {
+  const { error } = await supabase.rpc('submit_stage_payment_receipt', {
+    p_stage: stageId, p_path: path,
+  });
+  if (error) throw error;
+}
+
+/** The contractor confirms the money arrived. This is what opens the stage. */
+export async function confirmStagePayment(
+  stageId: string, note?: string,
+): Promise<{ opened: boolean; tranches: number }> {
+  const { data, error } = await supabase.rpc('confirm_stage_payment', {
+    p_stage: stageId, p_note: note ?? null,
+  });
+  if (error) throw error;
+  const r = (data ?? {}) as Record<string, unknown>;
+  return { opened: r.opened === true, tranches: Number(r.tranches_confirmed ?? 0) };
 }

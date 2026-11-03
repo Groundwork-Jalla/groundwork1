@@ -1385,6 +1385,7 @@ export const fr: Mirror<EnDict> = {
         tier_changed:               'a changé la formule',
         client_provisioned:         'a créé un compte client',
         // 090 — le registre. `payment.<state>` suit les noms d\u2019\u00e9tat du registre.
+        funding_receipt_submitted:  'a t\u00e9l\u00e9vers\u00e9 un re\u00e7u de paiement',
         funding_received:           'a confirm\u00e9 la r\u00e9ception des fonds',
         payment_release_authorised: 'a autoris\u00e9 un d\u00e9caissement',
         payment_initiated:          'un d\u00e9caissement a \u00e9t\u00e9 lanc\u00e9',

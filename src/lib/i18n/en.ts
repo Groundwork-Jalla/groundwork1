@@ -1394,6 +1394,7 @@ export const en = {
         tier_changed:               'changed the plan',
         client_provisioned:         'created a client account',
         // 090 — the ledger. `payment.<state>` follows the ledger's own state names.
+        funding_receipt_submitted:  'uploaded a payment receipt',
         funding_received:           'confirmed funding received',
         payment_release_authorised: 'authorised a release',
         payment_initiated:          'a disbursement was initiated',
