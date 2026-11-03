@@ -148,6 +148,10 @@ export default function Step11ConfirmBudget() {
 
   const canSubmit = finalBudget > 0 && !busy;
 
+  // A retry after a later step failed must reuse the project already inserted, or every
+  // attempt leaves another copy on the client's dashboard.
+  const createdProject = useRef<Awaited<ReturnType<typeof createProject>> | null>(null);
+
   async function handleCreate() {
     if (!user || !canSubmit) return;
     setError(null);
@@ -188,8 +192,9 @@ export default function Step11ConfirmBudget() {
       // Fixed tiers survive the skipped plan picker: a partner creates Self Verify,
       // while an admin creates Jalla Management. The override also wins over any stale
       // form selection. Paid plans chosen by clients still go through checkout below.
-      const project = await createProject(ownerId, data, budget,
-        onBehalfOf?.tier ? { tier: onBehalfOf.tier } : {});
+      const project = createdProject.current
+        ?? await createProject(ownerId, data, budget, onBehalfOf?.tier ? { tier: onBehalfOf.tier } : {});
+      createdProject.current = project;
 
       // 2. Confirm the final figure. This re-derives every stage milestone from it and
       //    activates stage 1, so the project opens ready to work rather than gated.
