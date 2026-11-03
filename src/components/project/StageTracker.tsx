@@ -8,6 +8,8 @@ import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/p
 import { formatUSD } from '@/lib/budget';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
+import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import type { StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 
 // Lazy-loaded so the certificate HTML is not bundled into the main chunk
@@ -139,6 +141,10 @@ interface StageDetailProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  projectId: string;
+  /** The incoming tranche on THIS stage, if one is owed (175). */
+  payment?: StagePayment;
+  onPaymentChanged: () => void | Promise<void>;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -155,6 +161,9 @@ function StageDetail({
   tier,
   userId,
   isContractor,
+  projectId,
+  payment,
+  onPaymentChanged,
   onMarkSubstageComplete,
   onEvidenceUploaded,
   onApproveStage,
@@ -224,9 +233,25 @@ function StageDetail({
       </div>
 
       {stage.status === 'locked' ? (
-        <p className="text-sm text-brand-mid-grey">
-          {t('project.stages.lockedBody')}
-        </p>
+        <>
+          <p className="text-sm text-brand-mid-grey">
+            {t('project.stages.lockedBody')}
+          </p>
+          {/*
+            A locked stage is exactly where the money conversation belongs. The client
+            has just approved the stage before it, so this one is shut for one reason
+            and one only — it has not been paid for — and the thing to do about that
+            is the thing to show here. Renders nothing when nothing is owed (175).
+          */}
+          <StagePaymentGate
+            projectId={projectId}
+            stageId={stage.id}
+            stageNumber={stage.stage_number}
+            payment={payment}
+            isContractor={!!isContractor}
+            onChanged={onPaymentChanged}
+          />
+        </>
       ) : (
         <>
           <div className="divide-y divide-brand-border-grey/60">
