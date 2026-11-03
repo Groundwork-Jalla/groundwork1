@@ -256,3 +256,20 @@ describe('a lot total with words between TOTAL and HT', () => {
     expect(readBqTotal('TOTAL GENERAL\t99999999999999999')).toBeNull();
   });
 });
+
+describe('French bills of quantities', () => {
+  const head = 'N°\tDésignation\tU\tQté\tPU\tMontant\n1\tMaçonnerie\tm2\t10\t5000\t50 000\n';
+  it.each([
+    ['TOTAL GENERAL HT\t\t\t\t\t4 500 000\nTVA 19,25%\t\t\t\t\t866 250\nTOTAL GENERAL TTC\t\t\t\t\t5 366 250 FCFA', 5366250],
+    ['TOTAL HT\t\t\t\t\t3 000 000\nTVA\t\t\t\t\t577 500\nMONTANT TTC\t\t\t\t\t3 577 500', 3577500],
+    ['TOTAL DE L\'OFFRE\t\t\t\t\t7 000 000', 7000000],
+    ['SOMME TOTALE\t\t\t\t\t1 200 000', 1200000],
+    ['TOTAL GENERAL\t\t\t\t\t12.345.678', 12345678],
+    ['TOTAL GENERAL HT\t\t\t\t\t1\u202f200\u00a0000', 1200000],
+    ['TOTAL HORS TAXES\t\t\t\t\t8 250 000,00', 8250000],
+  ])('%s', (rows, expected) => {
+    const out = readBqTotal(head + rows);
+    expect(out?.total).toBe(expected);
+    expect(out?.confidence).toBe('grand');
+  });
+});

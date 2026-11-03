@@ -80,6 +80,9 @@ const GRAND_TOTAL = [
   // under, and said "We read this total from the document" while doing it. At
   // `grand` confidence that figure carries into the budget and becomes the payment at
   // every stage of the build.
+  // French tax-inclusive rows, before any "total general" so that a HT row listed
+  // above its TTC row does not win. TTC is what the client pays.
+  /\b(?:total|montant)\s+(?:general\s+)?(?:de\s+l\W?(?:offre|operation)\s+)?(?:ttc|t\.t\.c\.?)(?:\s|$)/,
   /\bnet\s+payable\b/,
   /\b(?:amount|total|sum)\s+payable\b/,
   /\bnet\s+total\b/,
@@ -96,6 +99,10 @@ const GRAND_TOTAL = [
   /\btotal\s+general\b/,
   /\btotal\s+ttc\b/,
   /\bmontant\s+total\b/,
+  /\b(?:total|montant)\s+(?:de\s+)?l\W?(?:offre|operation)\b/,
+  /\bsomme\s+totale\b/,
+  /\btotal\s+des\s+(?:lots|travaux)\b/,
+  /\bmontant\s+(?:ht|hors\s+taxes?)\b/,
   /\btotal\s+global\b/,
   /\btotal\s+(?:du\s+)?(?:projet|marche|devis)\b/,
   /\bcout\s+total\b/,
