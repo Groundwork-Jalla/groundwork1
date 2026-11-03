@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(__dirname, '..', '..', '..');
 import * as XLSX from 'xlsx';
 import { readBqTotal } from './read-bq-total';
-import { canExtract } from './extract-bq';
+import { canExtract, readStatedFloors, readFloorPlanFacts } from './extract-bq';
 
 /**
  * Reading a real bill of quantities, in the formats they actually arrive in.
@@ -270,5 +270,34 @@ describe('a bill of quantities written in French', () => {
   it('and OCR is asked for both languages, not just English', () => {
     const src = readFileSync(join(ROOT, 'src/lib/budget/extract-bq.ts'), 'utf8');
     expect(src).toMatch(/recognize\(source, 'eng\+fra'\)/);
+  });
+});
+
+describe('French storey and area wording', () => {
+  it.each([
+    ['DEVIS ESTIMATIF VILLA R+1', 2],
+    ["BATIMENT R+2 A USAGE D'HABITATION", 3],
+    ['Bâtiment R + 1 Mr Nana', 2],
+    ['RDC + 2', 3],
+    ['Rez-de-chaussée + 1', 2],
+  ])('%s', (text, floors) => {
+    expect(readStatedFloors(text).value).toBe(floors);
+  });
+
+  it('does not take a count from a money column after R+', () => {
+    expect(readStatedFloors('LOT R+1 250 000').value).toBe(2);
+    expect(readStatedFloors('R+1,5').value).toBeNull();
+  });
+
+  it.each([
+    ['Surface habitable : 180 m²', 180],
+    ['SURFACE BATIE: 190 m²', 190],
+    ['Surface hors oeuvre 210 m²', 210],
+  ])('%s', (text, area) => {
+    expect(readFloorPlanFacts(text, { pageCount: 1 }).areaSqm).toBe(area);
+  });
+
+  it('never reads the plot as the building', () => {
+    expect(readFloorPlanFacts('Surface du terrain 500 m²', { pageCount: 1 }).areaSqm).toBeNull();
   });
 });

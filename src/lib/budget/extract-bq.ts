@@ -394,6 +394,13 @@ const STAIRCASE = /\b(?:stair\s*-?\s*case|stairs|escalier)\b/i;
 const G_PLUS = /\b(?:G|GF|ground\s*floor)\s*\+\s*(\d{1,2})\b/i;
 
 /**
+ * The French equivalent: "R+1" is a rez-de-chaussée plus one upper floor, so the same
+ * two storeys as "G+1". Also "RDC + 2". Not followed by digits, commas or dots, so a
+ * money column cannot supply the count.
+ */
+const R_PLUS = /\b(?:R|RDC|rez[\s-]?de[\s-]?chauss[ée]e)\s*\+\s*(\d{1,2})\b(?![\d,.])/i;
+
+/**
  * "3 floors", "storeys: 2". Used only when no G+ figure is stated.
  *
  * The separator in the second pattern is MANDATORY, and neither may be followed by
@@ -527,7 +534,7 @@ export function readStatedFloors(text: string): { value: number | null; evidence
   // A G+ figure settles it. Taken on its own, never combined with a count read
   // elsewhere in the document: "G +1" plus a stray "3" off a money column is how a
   // two-storey building became four.
-  const gPlus = extractCount(lines, [G_PLUS]);
+  const gPlus = extractCount(lines, [G_PLUS, R_PLUS]);
   if (gPlus.value != null) {
     return { value: plausible(gPlus.value + 1), evidence: gPlus.evidence };
   }
@@ -555,7 +562,7 @@ export function readFloorPlanFacts(
   // "150 m2" and "150 sqm" worked, which is why it went unnoticed.
   const UNIT = String.raw`\s*(?:m²|m2|sqm)(?![A-Za-z0-9])`;
   const area = extractArea(lines, new RegExp(
-    String.raw`\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie)\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
+    String.raw`\b(?:gross\s*floor\s*area|built[- ]?up\s*area|floor\s*area|area|superficie|surface\s*(?:habitable|b[aâ]tie|construite|utile|de\s*plancher|hors\s*(?:oe|œ)uvre))\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
   const statedFootprint = extractArea(lines, new RegExp(
     String.raw`\b(?:ground\s*floor\s*(?:footprint|area)|footprint|emprise\s*au\s*sol)\b[^0-9]{0,24}([\d][\d\s.,]*)` + UNIT, 'i'));
 

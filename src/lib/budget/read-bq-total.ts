@@ -142,7 +142,7 @@ const NOT_THE_TOTAL = new RegExp(
 /** Column headings that identify a priced line total rather than its inputs. */
 const AMOUNT_COLUMN = /^(?:total)$|\b(?:amount|montant|line\s+total|total\s+(?:amount|cost|value|price)|extended\s+(?:amount|cost|price)|cost|value|price|prix|cout|somme|debours)\b/;
 const NOT_AMOUNT_COLUMN = /\b(?:qty|quantity|quantite|unit|unite|rate|unit\s+price|unit\s+cost|pu|vat|tva|tax|discount|percentage|percent)\b/;
-const TABLE_HEADER = /\b(?:item|description|designation|desc|qty|quantity|quantite|unit|unite|rate|code|no\.?)\b/;
+const TABLE_HEADER = /\b(?:item|description|designation|desc|libelle|article|art|qty|qte|quantity|quantite|unit|unite|rate|code|no\.?)\b/;
 
 function findAmountColumn(row: string[]): number | null {
   const names = row.map(cell => normalise(cell.trim()));
