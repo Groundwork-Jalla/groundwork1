@@ -182,3 +182,80 @@ export async function confirmStagePayment(
   const r = (data ?? {}) as Record<string, unknown>;
   return { opened: r.opened === true, tranches: Number(r.tranches_confirmed ?? 0) };
 }
+
+// =========================================================
+// What each stage is waiting on, money-wise (175, readable since 176)
+// =========================================================
+
+export type StagePaymentState = 'expected' | 'receipt_submitted' | 'funded' | 'reconciled';
+
+export interface StagePayment {
+  id: string;
+  stageId: string;
+  state: StagePaymentState;
+  amount: number;
+  /** The client's proof. A storage path in the `evidence` bucket, not a URL. */
+  receiptPath: string | null;
+  receiptUploadedAt: string | null;
+}
+
+/**
+ * The incoming tranches on a project, by stage.
+ *
+ * One query for the whole project rather than one per stage: the stage list renders ten
+ * of them and a request each would make opening a build ten round trips slower for a
+ * table that is never more than a handful of rows.
+ *
+ * Returns an empty map rather than throwing. A stage with no incoming row owes nothing
+ * — `payments.amount` is CHECKed > 0, so a free stage has no row at all — and that is
+ * indistinguishable here from a project whose ledger has not been written yet. Neither
+ * is an error, and neither should stop a build rendering.
+ */
+export async function fetchStagePayments(projectId: string): Promise<Map<string, StagePayment>> {
+  const out = new Map<string, StagePayment>();
+  const { data, error } = await supabase
+    .from('payments')
+    .select('id, stage_id, state, amount, receipt_path, receipt_uploaded_at')
+    .eq('project_id', projectId)
+    .eq('direction', 'in');
+
+  if (error || !data) return out;
+
+  for (const row of data as Record<string, unknown>[]) {
+    const stageId = row.stage_id as string | null;
+    if (!stageId) continue;
+    out.set(stageId, {
+      id:                String(row.id),
+      stageId,
+      state:             row.state as StagePaymentState,
+      amount:            Number(row.amount ?? 0),
+      receiptPath:       (row.receipt_path as string | null) ?? null,
+      receiptUploadedAt: (row.receipt_uploaded_at as string | null) ?? null,
+    });
+  }
+  return out;
+}
+
+/** The client's receipt, as something a contractor can actually open. */
+export async function signReceiptUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('evidence').createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
+/**
+ * Put the receipt in the bucket, then record it.
+ *
+ * The same bucket and the same shape as site evidence (contractor-work.ts): it is
+ * already member-readable (092) and member-writable (131), and `project_member()`
+ * includes the invited client — so this needs no new storage policy.
+ */
+export async function uploadStagePaymentReceipt(
+  projectId: string, stageId: string, file: File,
+): Promise<void> {
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${projectId}/receipts/${Date.now()}_${safe}`;
+  const { error } = await supabase.storage.from('evidence').upload(path, file, { upsert: false });
+  if (error) throw error;
+  await submitStagePaymentReceipt(stageId, path);
+}
