@@ -305,7 +305,8 @@ export function readBqLineItems(text: string): BqLineItem[] {
       ? parseAmount(row[amountColumn] ?? '')
       : lastAmount(row);
 
-    if (amount === null) continue;
+    // Sheet numbers (0.1, 0.2) and fused digits are not priced work.
+    if (amount === null || amount < 1 || amount > MAX_PLAUSIBLE_TOTAL) continue;
     const label = row
       .filter(cell => parseAmount(cell) === null)
       .join(' ')
