@@ -5826,7 +5826,6 @@ export const fr: Mirror<EnDict> = {
       unlockAmount:    '{amount} pour {stage}',
       unlockAllPaid:   'Toutes les \u00e9tapes sont r\u00e9gl\u00e9es. Rien n\u2019est d\u00fb pour le moment.',
       unlockHowTo:     'Payez votre entrepreneur directement, puis t\u00e9l\u00e9versez le re\u00e7u. Il le confirme, et l\u2019\u00e9tape suivante s\u2019ouvre.',
-      unlockUpload:    'T\u00e9l\u00e9verser le re\u00e7u de paiement',
       catConstructionDesc: 'Matériaux, main-d\'œuvre et tous les corps de métier',
       catDesignDesc:       'Plans architecturaux et structurels',
       catProfessionalDesc: 'Conducteur de travaux, métreur, avocat, chef de projet',

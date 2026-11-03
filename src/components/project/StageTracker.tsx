@@ -332,10 +332,14 @@ export interface StageTrackerProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  projectId: string;
   projectName: string;
   projectCountry: string;
   projectCity: string | null;
   ownerName: string;
+  /** Incoming tranches keyed by stage id (175). */
+  payments?: Map<string, StagePayment>;
+  onPaymentChanged: () => void | Promise<void>;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
@@ -372,6 +376,9 @@ export function StageTracker({
   tier,
   userId,
   isContractor,
+  projectId,
+  payments,
+  onPaymentChanged,
   projectName,
   projectCountry,
   projectCity,
@@ -486,6 +493,9 @@ export function StageTracker({
                 tier={tier}
                 userId={userId}
                 isContractor={isContractor}
+                projectId={projectId}
+                payment={payments?.get(selectedStage.id)}
+                onPaymentChanged={onPaymentChanged}
                 onMarkSubstageComplete={onMarkSubstageComplete}
                 onEvidenceUploaded={onEvidenceUploaded}
                 onApproveStage={onApproveStage}

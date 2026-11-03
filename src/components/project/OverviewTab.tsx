@@ -467,11 +467,10 @@ interface OverviewTabProps {
   substages: ProjectSubstageRow[];
   budget: BudgetBreakdown;
   onViewCosting: () => void;
-  onViewStage: () => void;
 }
 
 export default function OverviewTab({
-  project, stages, substages, budget, onViewCosting, onViewStage,
+  project, stages, substages, budget, onViewCosting,
 }: OverviewTabProps) {
   const { stageLabel } = useStageLabels();
   const labels = useDomainLabels();
@@ -596,13 +595,6 @@ export default function OverviewTab({
                 <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
                   {t('project.overview.unlockHowTo')}
                 </p>
-                <button
-                  type="button"
-                  onClick={onViewStage}
-                  className="mt-4 w-full rounded-xl bg-brand-near-black py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-brand-near-black"
-                >
-                  {t('project.overview.unlockUpload')}
-                </button>
               </>
             ) : (
               <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">

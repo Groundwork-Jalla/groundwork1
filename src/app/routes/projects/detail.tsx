@@ -20,6 +20,7 @@ import {
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { StageTracker }          from '@/components/project/StageTracker';
+import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
 import DocumentVault             from '@/components/project/DocumentVault';
@@ -147,6 +148,7 @@ export default function ProjectDetail() {
   const [project,   setProject]   = useState<ProjectRow | null>(null);
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
+  const [payments,  setPayments]  = useState<Map<string, StagePayment>>(new Map());
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   /**
@@ -175,15 +177,17 @@ export default function ProjectDetail() {
     if (!id) return;
     try {
       // The document count went with the delete confirmation it was counting for (053).
-      const [p, s, sub] = await Promise.all([
+      const [p, s, sub, pay] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
+        fetchStagePayments(id),
       ]);
       if (!p) { setError(t('project.notFound')); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
+      setPayments(pay);
     } catch {
       setError(t('project.loadFailed'));
     }
@@ -491,7 +495,6 @@ export default function ProjectDetail() {
               substages={substages}
               budget={budget}
               onViewCosting={() => setActiveTab('costing')}
-              onViewStage={() => setActiveTab('stages')}
             />
           )}
 
@@ -514,6 +517,9 @@ export default function ProjectDetail() {
                 tier={project.tier}
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
+                projectId={project.id}
+                payments={payments}
+                onPaymentChanged={loadAll}
                 projectName={project.name}
                 projectCountry={project.country}
                 projectCity={project.city ?? null}

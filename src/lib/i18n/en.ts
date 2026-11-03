@@ -5965,7 +5965,6 @@ export const en = {
       unlockAmount:    '{amount} for {stage}',
       unlockAllPaid:   'Every stage so far is paid for. Nothing is owed right now.',
       unlockHowTo:     'Pay your contractor directly, then upload the receipt. They confirm it, and the next stage opens.',
-      unlockUpload:    'Upload payment receipt',
       catConstructionDesc: 'Materials, labor and every trade on site',
       catDesignDesc:       'Architectural and structural drawings',
       catProfessionalDesc: 'Site manager, quantity surveyor, lawyer, project manager',
