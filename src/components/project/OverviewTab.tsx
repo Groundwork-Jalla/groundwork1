@@ -383,17 +383,65 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
   );
 }
 
-// ── Stage status icon ─────────────────────────────────────
+// ── Cost breakdown ────────────────────────────────────────
 
-function StageIcon({ status }: { status: string }) {
-  if (status === 'complete')       return <CheckCircle2 className="size-3.5 text-brand-near-black dark:text-white shrink-0" />;
-  if (status === 'active')         return <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.6, repeat: Infinity }} className="size-3.5 rounded-full border-2 border-brand-near-black dark:border-white bg-transparent shrink-0 inline-block" />;
-  if (status === 'pending_review') return <AlertCircle className="size-3.5 text-state-held shrink-0" />;
-  return <Lock className="size-3 text-brand-border-grey shrink-0" />;
+function CostBreakdownCard({ budget, paid, paidTotal, outstanding }: {
+  budget: BudgetBreakdown;
+  paid: BudgetBreakdown;
+  paidTotal: number;
+  outstanding: number;
+}) {
+  const t = useT();
+  const total = budget.total;
+  const paidPct = total > 0 ? Math.min(Math.round((paidTotal / total) * 100), 100) : 0;
+
+  const rows = [
+    { label: t('project.overview.costConstruction'), planned: budget.construction, paid: paid.construction },
+    { label: t('project.overview.costDesign'),       planned: budget.design,       paid: paid.design },
+    { label: t('project.overview.costProfessional'), planned: budget.professional, paid: paid.professional },
+    { label: t('project.overview.costPermit'),       planned: budget.permit,       paid: paid.permit },
+    { label: t('project.overview.costVerification'), planned: budget.verification, paid: paid.verification },
+    { label: t('project.overview.costContingency'),  planned: budget.contingency,  paid: paid.contingency },
+  ].filter(r => r.planned > 0);
+
+  return (
+    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
+      <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.costTitle')}</p>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {[
+          { label: t('project.overview.costPlanned'), value: formatUSDFull(total), cls: '' },
+          { label: t('project.overview.costPaid'), value: formatUSDFull(paidTotal), cls: 'text-state-complete' },
+          { label: outstanding > 0 ? t('project.overview.costOutstanding') : t('project.overview.costUnder'), value: formatUSDFull(outstanding), cls: 'text-state-held' },
+        ].map(c => (
+          <div key={c.label} className="rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-2 py-2 text-center">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-brand-mid-grey">{c.label}</p>
+            <p className={cn('text-sm font-bold tabular-nums', c.cls || 'text-brand-near-black dark:text-white')}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
+        <div className="h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${paidPct}%` }} />
+      </div>
+      <p className="mt-1.5 text-center text-[10px] text-brand-mid-grey">{t('project.overview.costFunded', { pct: paidPct })}</p>
+
+      <div className="mt-4 space-y-2.5">
+        {rows.map(r => (
+          <div key={r.label} className="flex items-center gap-3">
+            <span className="w-28 shrink-0 text-[11px] text-brand-mid-grey">{r.label}</span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
+              <div className="h-full rounded-full bg-state-complete" style={{ width: `${Math.min(Math.round((r.paid / r.planned) * 100), 100)}%` }} />
+            </div>
+            <span className="w-28 shrink-0 text-right text-[11px] font-medium tabular-nums text-brand-near-black dark:text-white">
+              {formatUSDFull(r.planned)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
-
-// ── Latest from Site ──────────────────────────────────────
-// Returns null if no evidence images exist — no placeholder.
 
 const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
 
@@ -609,6 +657,13 @@ export default function OverviewTab({
               </p>
             )}
           </div>
+
+          <CostBreakdownCard
+            budget={budget}
+            paid={decomposeBudget(paidTotal, { builtAreaSqm: Number(project.sqm) * project.num_floors, floors: project.num_floors })}
+            paidTotal={paidTotal}
+            outstanding={outstanding}
+          />
 
           {/* The latest on the stage in play, with a way into it. */}
           {activeStage && (

@@ -251,20 +251,12 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
 
       {/* Bar track */}
       <div className="relative h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-        {isComplete && (
+        {(isComplete || isActive || isReview) && (
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{ originX: 0, backgroundColor: barColor }}
-            className="absolute inset-0 rounded-full"
-          />
-        )}
-        {(isActive || isReview) && (
-          <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            style={{ backgroundColor: barColor }}
             className="absolute inset-0 rounded-full"
           />
         )}
@@ -283,12 +275,6 @@ function TimelineDot({ status }: { status: StageStatus }) {
   if (status === 'active') {
     return (
       <span className="relative flex size-3 shrink-0 items-center justify-center">
-        <motion.span
-          animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute inline-flex size-3 rounded-full"
-          style={{ backgroundColor: '#3b82f6' }}
-        />
         <span className="relative inline-flex size-3 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
       </span>
     );

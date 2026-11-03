@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, Loader2, Lock } from 'lucide-react';
+import { Check, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
@@ -53,7 +53,6 @@ function StageCircle({
           ring,
         )}
       >
-        <span className="absolute size-8 rounded-full bg-brand-near-black opacity-25 animate-ping" />
         <span className="relative text-[11px] font-bold text-white tabular-nums">{number}</span>
       </span>
     );
@@ -269,17 +268,6 @@ function StageDetail({
               />
             ))}
           </div>
-
-          {stage.status === 'active' && !stagePaid && !isContractor && (
-            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white dark:border-state-held/40 dark:bg-state-held/30 px-3 py-2.5">
-              <Lock className="size-3.5 shrink-0 text-state-held mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-state-held dark:text-state-held leading-snug">
-                  {t('project.stages.paymentRequiredNoAction')}
-                </p>
-              </div>
-            </div>
-          )}
 
           {showApproveButton && (
             <ApproveButton
