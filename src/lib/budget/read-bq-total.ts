@@ -374,13 +374,33 @@ export function readBqTotal(text: string): BqReading | null {
       const line = lines[i];
       if (!pattern.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
       const amount = rowAmount(line, i, true);
-      if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL) {
+      if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL) {
         return {
           total: amount, label: line.trim().slice(0, 120), confidence: 'grand',
           currencyCode: detectCurrencyCode(line) ?? detectCurrencyCode(text),
         };
       }
     }
+  }
+
+  // ── A lot total with words between "TOTAL" and "HT" ──
+  //
+  // "TOTAL LOT I INSTALLATIONS ... GROS ŒUVRE HT 1,714,737,411" sits beside "TOTAL II
+  // GROS ŒUVRE ELEVATIONS HT" and "TOTAL III ETANCHEITE HT", which are its sections.
+  // None of the patterns above allow words between TOTAL and HT, so this row was
+  // skipped and a stray figure from a quantities sheet was read instead. Of the rows
+  // that open with TOTAL and close with HT/TTC, the largest is the whole.
+  let lotTotal: { total: number; label: string } | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*total\b.*\b(?:h\.?t\.?|ttc)\s*(?:\t|$)/.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
+    const amount = rowAmount(lines[i], i, true);
+    if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL
+        && (lotTotal === null || amount > lotTotal.total)) {
+      lotTotal = { total: amount, label: lines[i].replace(/\t+/g, '  ').trim().slice(0, 120) };
+    }
+  }
+  if (lotTotal) {
+    return { ...lotTotal, confidence: 'grand', currencyCode: detectCurrencyCode(text) };
   }
 
   // ── Otherwise: the largest figure that is not an excluded row ──
@@ -392,7 +412,7 @@ export function readBqTotal(text: string): BqReading | null {
     const line = lines[i];
     if (NOT_THE_TOTAL.test(normalised[i])) continue;
     const amount = rowAmount(line, i);
-    if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL
+    if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL
         && (best === null || amount > best.total)) {
       best = { total: amount, label: line.trim().slice(0, 120) };
     }
@@ -415,6 +435,9 @@ export function readBqTotal(text: string): BqReading | null {
  * which is the safe failure.
  */
 const MIN_PLAUSIBLE_TOTAL = 1000;
+
+/** Above this, digits from separate cells were fused into one number; the person types it. */
+const MAX_PLAUSIBLE_TOTAL = 1e12;
 
 /** File types `readBqTotal` can actually read. Anything else: the person types it. */
 export const READABLE_BQ_TYPES = ['.csv', '.tsv', '.txt'] as const;

@@ -38,6 +38,15 @@ export function planSeed(
   const detectedFootprints = facts
     .map(fact => fact.footprintSqm)
     .filter((sqm): sqm is number => sqm != null);
+  // A drawing often states only the GROSS area. The wizard's `sqm` is per floor, so
+  // that is divided by the storey count, and only when the count is known.
+  const floorsForArea = detectedFloors.length ? Math.max(...detectedFloors) : answer.bqStatedFloors ?? null;
+  const derivedFootprints = detectedFootprints.length || !floorsForArea
+    ? []
+    : facts
+        .map(fact => fact.areaSqm)
+        .filter((area): area is number => area != null && area > 0)
+        .map(area => Math.round((area / floorsForArea) * 100) / 100);
   const detectedBedrooms = facts
     .map(fact => fact.bedrooms)
     .filter((count): count is number => count != null);
@@ -92,7 +101,8 @@ export function planSeed(
     // this blank made somebody type a number the documents had already stated.
     ...(detectedFloors.length ? { floors: Math.max(...detectedFloors) }
       : answer.bqStatedFloors ? { floors: answer.bqStatedFloors } : {}),
-    ...(detectedFootprints.length ? { sqm: detectedFootprints[0] } : {}),
+    ...(detectedFootprints.length ? { sqm: detectedFootprints[0] }
+      : derivedFootprints.length ? { sqm: derivedFootprints[0] } : {}),
     ...(detectedBedrooms.length ? { bedrooms: Math.max(...detectedBedrooms) } : {}),
     ...(detectedBathrooms.length ? { bathrooms: Math.max(...detectedBathrooms) } : {}),
     ...(detectedLivingRooms.length ? { livingRooms: Math.max(...detectedLivingRooms) } : {}),

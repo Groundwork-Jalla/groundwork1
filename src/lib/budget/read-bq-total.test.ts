@@ -238,3 +238,21 @@ describe('a bill that separates materials from what is payable', () => {
     expect(readBqTotal(`TOTAL\t19,037,728\n${line}`)?.total).toBe(expected);
   });
 });
+
+describe('a lot total with words between TOTAL and HT', () => {
+  it('takes the whole lot, not its sections or a stray quantities figure', () => {
+    const text = [
+      'TOTAUX\t\t47.989026\t145.235664',
+      '\tTOTAL  III  ETANCHEITE HT\t\t\t\t127866000',
+      '\tTOTAL  II  GROS ŒUVRE ELEVATIONS HT\t\t\t\t1076188951',
+      'TOTAL  LOT  I  INSTALLATIONS GENERALES DE CHANTIER TERRASSEMENTS ET GROS ŒUVRE  HT\t\t\t\t\t1714737411',
+    ].join('\n');
+    const out = readBqTotal(text);
+    expect(out?.total).toBe(1714737411);
+    expect(out?.confidence).toBe('grand');
+  });
+
+  it('refuses a figure too large to be a real total', () => {
+    expect(readBqTotal('TOTAL GENERAL\t99999999999999999')).toBeNull();
+  });
+});

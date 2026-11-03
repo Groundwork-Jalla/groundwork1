@@ -108,7 +108,7 @@ describe('the Documents view is documents only', () => {
   });
 
   it('and the central page has no Evidence tab', () => {
-    expect(docsPage).toMatch(/type Tab = 'documents' \| 'certificates';/);
+    expect(docsPage).toMatch(/type Tab = 'all' \| 'documents' \| 'certificates';/);
     expect(docsPage).not.toMatch(/tab === 'evidence'/);
   });
 
@@ -134,11 +134,12 @@ describe('documents can be found without scrolling', () => {
 
   it('"nothing matches" and "nothing here" are different messages', () => {
     // Showing the wrong one sends somebody looking for a bug that is not there.
-    expect(docsPage).toMatch(/docs\.length === 0 \? t\('documents\.noDocuments'\) : t\('documents\.noMatches'\)/);
+    expect(docsPage).toMatch(/q \|\| projectId \? t\('documents\.noMatches'\)/);
+    expect(docsPage).toMatch(/t\('documents\.noDocuments'\)/);
   });
 
   it('and a document opens in the viewer, not as a download', () => {
-    expect(docsPage).toMatch(/<EvidenceLightbox/);
+    expect(docsPage).toMatch(/<DocumentViewer/);
     expect(docsPage).not.toMatch(/window\.open/);
   });
 });
