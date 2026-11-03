@@ -495,6 +495,7 @@ export default function ProjectDetail() {
               substages={substages}
               budget={budget}
               onViewCosting={() => setActiveTab('costing')}
+              onViewStage={() => setActiveTab('stages')}
             />
           )}
 

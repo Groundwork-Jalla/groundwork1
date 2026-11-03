@@ -467,10 +467,11 @@ interface OverviewTabProps {
   substages: ProjectSubstageRow[];
   budget: BudgetBreakdown;
   onViewCosting: () => void;
+  onViewStage: () => void;
 }
 
 export default function OverviewTab({
-  project, stages, substages, budget, onViewCosting,
+  project, stages, substages, budget, onViewCosting, onViewStage,
 }: OverviewTabProps) {
   const { stageLabel } = useStageLabels();
   const labels = useDomainLabels();
@@ -487,6 +488,12 @@ export default function OverviewTab({
 
   const activeStage = sortedStages.find(s => s.status === 'active' || s.status === 'pending_review');
   const nextStage   = sortedStages.find(s => s.status !== 'complete');
+
+  // What is happening on the stage in play right now. The overview names it and sends
+  // the reader into the stage to act, rather than hosting the action itself.
+  const activeSubs     = activeStage ? substages.filter(sub => sub.stage_id === activeStage.id) : [];
+  const awaitingReview = activeSubs.filter(sub => sub.status === 'pending_review').length;
+  const activeDone     = activeSubs.filter(sub => sub.status === 'complete').length;
 
   /**
    * The one figure this page now leads with: what is owed to open the next stage.
@@ -602,6 +609,27 @@ export default function OverviewTab({
               </p>
             )}
           </div>
+
+          {/* The latest on the stage in play, with a way into it. */}
+          {activeStage && (
+            <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
+              <p className="text-sm font-medium text-brand-near-black dark:text-white">
+                {t('project.overview.latestTitle')}
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
+                {awaitingReview > 0
+                  ? t('project.overview.latestReview', { count: awaitingReview, stage: stageLabel(activeStage) })
+                  : t('project.overview.latestProgress', { done: activeDone, total: activeSubs.length, stage: stageLabel(activeStage) })}
+              </p>
+              <button
+                type="button"
+                onClick={onViewStage}
+                className="mt-4 w-full rounded-xl border border-brand-border-grey py-2.5 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#2c2c2c]"
+              >
+                {awaitingReview > 0 ? t('project.overview.latestReviewCta') : t('project.overview.latestOpenCta')}
+              </button>
+            </div>
+          )}
 
           {/* How far along, as a summary and nothing more. The ten circles, the
               per-stage substage list and the "how is this calculated" modal all lived

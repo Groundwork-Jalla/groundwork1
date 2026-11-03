@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useLanguage, useT } from '@/lib/i18n';
 import { PARTNER_AGREEMENT } from '@/lib/legal/partner-agreement';
 import { ACCEPTANCE_STATEMENT, CONTRACTOR_TOS } from '@/lib/legal/contractor-tos';
+import { CONTRACTOR_TOS_FR, TOS_FR_NOTICE, ACCEPTANCE_STATEMENT_FR } from '@/lib/legal/contractor-tos.fr';
 import { TERMS } from '@/lib/legal/content';
 import type { AgreementDocument } from '@/lib/supabase/contractor-onboarding';
 import { cn } from '@/lib/utils';
@@ -31,11 +32,14 @@ type Block = ['h2' | 'clause' | 'p', string];
  * /terms page — that one is the client's contract and a contractor is not that person.
  * `TERMS` is still imported for the public page and deliberately not read here.
  *
- * Neither document is translated. Both state that the English version controls, so a
- * French rendering beside an English signature would be a second text nobody signed.
+ * Only the contractor Terms have a French rendering, and it is a courtesy translation:
+ * §27 says the English version controls, and the signature below is still given against
+ * the English statement. The reader says so above the French text. The partner agreement
+ * stays English.
  */
-function blocksFor(doc: AgreementDocument, _lang: 'en' | 'fr'): Block[] {
-  return doc === 'partner_agreement' ? PARTNER_AGREEMENT : [...CONTRACTOR_TOS];
+function blocksFor(doc: AgreementDocument, lang: 'en' | 'fr'): Block[] {
+  if (doc === 'partner_agreement') return PARTNER_AGREEMENT;
+  return lang === 'fr' ? [...CONTRACTOR_TOS_FR] : [...CONTRACTOR_TOS];
 }
 
 export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
@@ -53,6 +57,7 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
   const scroller = useRef<HTMLDivElement>(null);
 
   const blocks = blocksFor(doc, lang);
+  const translated = doc === 'terms_of_service' && lang === 'fr';
 
   /**
    * Have they reached the end?
@@ -117,6 +122,11 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
           className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7"
         >
           <div className="mx-auto flex max-w-[68ch] flex-col gap-3.5">
+            {translated && (
+              <p className="rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
+                {TOS_FR_NOTICE}
+              </p>
+            )}
             {blocks.map(([kind, text], i) => {
               if (kind === 'h2') {
                 return (
@@ -166,9 +176,14 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
               type="checkbox" className="mt-0.5" disabled={!readToEnd || busy}
               checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
             />
-            {doc === 'terms_of_service'
-              ? ACCEPTANCE_STATEMENT
-              : t('contractorOnboarding.confirmRead')}
+            {doc === 'terms_of_service' ? (
+              <span>
+                {ACCEPTANCE_STATEMENT}
+                {translated && (
+                  <span className="mt-1 block text-brand-mid-grey">{ACCEPTANCE_STATEMENT_FR}</span>
+                )}
+              </span>
+            ) : t('contractorOnboarding.confirmRead')}
           </label>
 
           <div className="flex flex-wrap items-end gap-3">
