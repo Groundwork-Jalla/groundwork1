@@ -11,6 +11,10 @@
       "destination": "/api/events?action=swychr-poll"
     },
     {
+      "source": "/api/lifecycle-run",
+      "destination": "/api/events?action=lifecycle-run"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
@@ -19,6 +23,10 @@
     {
       "path": "/api/swychr-poll",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/lifecycle-run",
+      "schedule": "0 * * * *"
     }
   ]
 }

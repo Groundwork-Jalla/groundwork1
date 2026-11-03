@@ -93,6 +93,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: '/admin/applications',       labelKey: 'nav.applications',       icon: FileText,       section: 'nav.sectionAcquisition' },
   { to: '/admin/drafts',             labelKey: 'nav.startedApplications', icon: FilePen },
   { to: '/admin/waitlist',           labelKey: 'nav.waitlist',           icon: Mailbox },
+  { to: '/admin/sequences',          labelKey: 'nav.sequences',          icon: Mailbox },
   { to: '/admin/inquiries',          labelKey: 'nav.quoteRequests',      icon: FileQuestion },
   { to: '/admin/crm',                labelKey: 'nav.crm',                icon: Radio },
 

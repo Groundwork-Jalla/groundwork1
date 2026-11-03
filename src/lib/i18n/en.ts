@@ -4145,6 +4145,7 @@ export const en = {
     admin:          'Admin',
     applications:   'Applications',
     waitlist:       'Waitlist',
+    sequences:      'Sequences',
     drafts:         'Started applications',
     requests:       'Agent Requests',
     support:        'Support',

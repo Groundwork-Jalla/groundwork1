@@ -164,6 +164,7 @@ export default [
     route("admin/crm",              "routes/admin/crm.tsx"),
     route("admin/integrations",     "routes/admin/integrations.tsx"),
     route("admin/waitlist",         "routes/admin/waitlist.tsx"),
+    route("admin/sequences",        "routes/admin/sequences.tsx"),
     route("admin/drafts",           "routes/admin/drafts.tsx"),
     route("admin/requests",         "routes/admin/requests.tsx"),
     route("admin/inbox",            "routes/admin/inbox.tsx"),

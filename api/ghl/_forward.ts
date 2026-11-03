@@ -4,6 +4,8 @@ import { ghlSettings } from './_config.js';
 import { normalisePhone } from './_phone.js';
 import { tagsFor, stageFor, partyFor } from './_pipeline.js';
 import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
+import { enrollForEvent } from '../_lib/lifecycle.js';
+import { getSupabaseAdmin } from '../_lib/stripe.js';
 
 /**
  * One way in to GoHighLevel.
@@ -224,6 +226,13 @@ export async function forwardToGhl(
   if (!EMAIL_RE.test(email)) {
     console.warn(`[ghl] "${event}" has no usable email — not forwarded`);
     return { ok: false, reason: 'no_email' };
+  }
+
+  // Our own sequences, independent of whether GoHighLevel accepts the event.
+  try {
+    await enrollForEvent(getSupabaseAdmin(), event, { ...contact, email }, fields);
+  } catch (e) {
+    console.error('[lifecycle] hook failed:', e instanceof Error ? e.message : e);
   }
 
   const dedupeKey = opts.dedupeKey ?? `${event}:${email}`;

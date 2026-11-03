@@ -4067,6 +4067,7 @@ export const fr: Mirror<EnDict> = {
     admin:          'Administration',
     applications:   'Candidatures',
     waitlist:       'Liste d\'attente',
+    sequences:      'Séquences',
     drafts:         'Candidatures commencées',
     requests:       'Demandes aux agents',
     support:        'Assistance',
