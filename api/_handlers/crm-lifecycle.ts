@@ -116,7 +116,7 @@ export async function handler(req: any, res: any) {
   const onboarded = clientIntent !== null;
 
   // ── Verify the claim ───────────────────────────────────────────────────────────────
-  const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : null;
+  let projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : null;
   let projectName: string | null = null;
   let inviterUserId: string | null = null;
   let inviterName: string | null = null;
@@ -127,6 +127,23 @@ export async function handler(req: any, res: any) {
     // and a contractor pulled into it mid-onboarding would be asked to create a project
     // while still being asked to finish signing up.
     if (!onboarded) { res.status(200).json({ ok: false, reason: 'onboarding_incomplete' }); return; }
+
+    // A contractor who came in through a client's invitation is finishing onboarding to
+    // JOIN that project, so they get "you've joined" (CI09), never "create your first
+    // project" (CS05). The invitation is read off the record, not the request.
+    const { data: invite } = await admin
+      .from('contractor_invites')
+      .select('project_id, invited_by, projects(name)')
+      .ilike('email', email).in('status', ['pending', 'accepted'])
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (invite) {
+      projectId = String(invite.project_id);
+      projectName = ((invite as any).projects?.name as string | null) ?? null;
+      inviterUserId = String(invite.invited_by);
+      const { data: inv } = await admin
+        .from('profiles').select('full_name').eq('id', inviterUserId).maybeSingle();
+      inviterName = (inv?.full_name as string | null) ?? null;
+    }
   }
 
   if (event === 'invitation_accepted' || event === 'project_membership_active') {

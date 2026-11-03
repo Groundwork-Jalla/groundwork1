@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { forwardToGhl } from '../ghl/_forward.js';
+import { routingFields } from '../ghl/_routing-fields.js';
 
 /**
  * Project created → GoHighLevel.
@@ -71,6 +72,9 @@ export async function handler(req: any, res: any) {
   // project that is the wrong person. A profile with no email simply is not forwarded.
   const email = (profile?.email as string | null) ?? '';
 
+  const { data: ownerRoles } = await admin.from('user_roles').select('role').eq('user_id', project.user_id as string);
+  const ownerRole = (ownerRoles ?? []).some(r => r.role === 'contractor') ? 'contractor' : 'client';
+
   const result = await forwardToGhl('project_created', {
     email,
     fullName: profile?.full_name as string | null,
@@ -81,6 +85,7 @@ export async function handler(req: any, res: any) {
     // outbox, and an admin creating a project for a client must not stamp the client's
     // record with the admin's id (06 §17, found while designing the linkage backfill).
     user_id:      project.user_id as string,
+    ...routingFields({ userRole: ownerRole }),
     project_id:   project.id as string,
     project_name: (project.name as string | null) ?? '',
     project_tier: (project.tier as string | null) ?? '',

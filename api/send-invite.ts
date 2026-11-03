@@ -151,6 +151,7 @@ export default async function handler(req: any, res: any) {
           activationStage:  'awaiting_invitation_response',
           stageEnteredAt:   new Date(),
         }),
+        invite_path: `/invite/${inviteToken}`,
       }, {
         // Per invitation: the same contractor invited to a second build starts a second
         // reminder clock, and the token is unique per row.

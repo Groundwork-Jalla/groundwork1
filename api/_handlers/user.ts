@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { forwardToGhl } from '../ghl/_forward.js';
+import { routingFields } from '../ghl/_routing-fields.js';
 
 /**
  * Homeowner / client → GoHighLevel.
@@ -92,6 +93,13 @@ export async function handler(req: any, res: any) {
   // back to the token's own address covers any row written before that landed.
   const email = (profile.email as string | null) ?? user.email ?? '';
 
+  // Routing fields (Communication Flow §9.2): without them a lifecycle sequence cannot
+  // tell a contractor's signup from a client's. An invitee's generic welcome is
+  // suppressed by the sequence itself, so every signup here reads as independent.
+  const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', user.id);
+  const signupRoles = new Set((roleRows ?? []).map(r => String(r.role)));
+  const signupRole = signupRoles.has('contractor') ? 'contractor' : 'client';
+
   const result = await forwardToGhl('user_signup', {
     email,
     fullName: profile.full_name as string | null,
@@ -102,6 +110,7 @@ export async function handler(req: any, res: any) {
     phone:    (profile.phone as string | null) ?? null,
   }, {
     user_id: user.id,
+    ...routingFields({ userRole: signupRole, entrySource: 'independent_signup' }),
   }, {
     // One row per person: signing in on a new browser should not re-announce them.
     dedupeKey: `user_signup:${user.id}`,

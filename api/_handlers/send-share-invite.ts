@@ -158,6 +158,7 @@ export async function handler(req: any, res: any) {
           activationStage:  'awaiting_invitation_response',
           stageEnteredAt:   new Date(),
         }),
+        invite_path: `/share/${shareToken}`,
       }, {
         // Per invitation, not per person: re-inviting the same address to a SECOND
         // build is a new invitation with its own reminder clock. The token is unique

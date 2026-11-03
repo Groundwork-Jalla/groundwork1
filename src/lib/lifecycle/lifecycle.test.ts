@@ -1,9 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { render, pickLang, copyFor, audienceMatches, nextDue, enrollForEvent, runDue } from '../../../api/_lib/lifecycle';
+import { render, pickLang, copyFor, audienceMatches, matchesFields, ctaPath, followupPriority, nextDue, enrollForEvent, runDue } from '../../../api/_lib/lifecycle';
 
 describe('lifecycle helpers', () => {
   it('renders tags and blanks unknown ones', () => {
     expect(render('Hi {{first_name}} {{nope}}!', { email: 'a@b.co', fullName: 'Ada Obi' })).toBe('Hi Ada !');
+  });
+  it('fills project and party names, and says "there" when the first name is unknown', () => {
+    const ctx = { project_name: 'Villa 7', client_name: 'ada@x.co', contractor_name: 'Chidi Eze' };
+    expect(render('Hi {{first_name}}, {{project_name}} {{contractor_first_name}} {{client_first_name}}', { email: 'a@b.co' }, ctx))
+      .toBe('Hi there, Villa 7 Chidi there');
+  });
+  it('matches pinned routing fields', () => {
+    expect(matchesFields({ entry_source: 'independent_signup' }, { entry_source: 'independent_signup' })).toBe(true);
+    expect(matchesFields({ entry_source: 'independent_signup' }, {})).toBe(false);
+    expect(matchesFields({}, {})).toBe(true);
+  });
+  it('deep-links to the unfinished screen by role', () => {
+    expect(ctaPath('onboarding', {})).toBe('/work/onboarding');
+    expect(ctaPath('open_project', { project_id: 'p1', recipient_role: 'contractor' })).toBe('/work/projects/p1');
+    expect(ctaPath('open_project', { project_id: 'p1', recipient_role: 'client' })).toBe('/projects/p1');
+    expect(ctaPath('invitation', { invite_path: '/invite/t' })).toBe('/invite/t');
+  });
+  it('flags project-linked and referred people as high priority', () => {
+    expect(followupPriority({ project_id: 'p' })).toBe('high');
+    expect(followupPriority({ entry_source: 'referral' })).toBe('high');
+    expect(followupPriority({})).toBe('normal');
   });
   it('picks French only for fr*', () => {
     expect(pickLang('fr-CM')).toBe('fr');
@@ -11,11 +32,11 @@ describe('lifecycle helpers', () => {
   });
   it('falls back to English copy when French is empty', () => {
     const step: any = { subject_en: 'S', subject_fr: '', body_en: 'B {{first_name}}', body_fr: '' };
-    expect(copyFor(step, 'fr', { email: 'a@b.co', fullName: 'Ada' })).toEqual({ subject: 'S', body: 'B Ada' });
+    expect(copyFor(step, 'fr', { email: 'a@b.co', fullName: 'Ada' })).toEqual({ subject: 'S', body: 'B Ada', cta: '' });
   });
-  it('matches audience, treating an unknown role as a match', () => {
+  it('matches audience, and never sends an audience-specific sequence to an unknown role', () => {
     expect(audienceMatches('client', 'contractor')).toBe(false);
-    expect(audienceMatches('client', null)).toBe(true);
+    expect(audienceMatches('client', null)).toBe(false);
     expect(audienceMatches('any', 'client')).toBe(true);
   });
   it('schedules the next step, then the Day-7 follow-up, then ends', () => {
@@ -89,6 +110,50 @@ describe('enrollForEvent', () => {
     const mk = () => fakeSvc({ lifecycle_sequences: [seq({ audience: 'client' })], lifecycle_sequence_steps: [step], lifecycle_enrollments: [] });
     expect((await enrollForEvent(mk(), 'user_signup', { email: 'a@b.co' }, { user_role: 'contractor' })).enrolled).toBe(0);
     expect((await enrollForEvent(mk(), 'user_signup', { email: 'a@b.co' }, { user_role: 'client', client_intent: 'no_client' })).enrolled).toBe(0);
+  });
+});
+
+describe('journey routing', () => {
+  const mkSeq = (o: any) => ({ enabled: true, exit_events: [], audience: 'any', recipient: 'self', match: {}, skip_if_active_in: [], followup_after_days: 7, ...o });
+  const step = (k: string) => ({ sequence_key: k, position: 1, delay_hours: 72 });
+
+  it('enrols the inviter, not the invitee, and ends it when the invitee joins', async () => {
+    const svc = fakeSvc({
+      lifecycle_sequences: [
+        mkSeq({ key: 'pending', trigger_event: 'client_invited', exit_events: ['invitation_accepted'], recipient: 'inviter', audience: 'contractor', match: { inviter_role: 'contractor' } }),
+      ],
+      lifecycle_sequence_steps: [step('pending')], lifecycle_enrollments: [], followup_queue: [],
+      profiles: [{ id: 'u1', email: 'Pro@Co.com', full_name: 'Chidi Eze', preferred_lang: 'fr' }],
+    });
+    const f = { user_role: 'client', inviter_user_id: 'u1', inviter_role: 'contractor', project_id: 'p1', project_name: 'Villa' };
+    expect((await enrollForEvent(svc, 'client_invited', { email: 'Ada@x.co' }, f)).enrolled).toBe(1);
+    const row = svc.tables.lifecycle_enrollments[0];
+    expect(row).toMatchObject({ email: 'pro@co.com', subject_email: 'ada@x.co', lang: 'fr', ref: 'p1:ada@x.co' });
+    expect(row.context).toMatchObject({ client_name: 'Ada@x.co', contractor_name: 'Chidi Eze', project_name: 'Villa' });
+    expect((await enrollForEvent(svc, 'invitation_accepted', { email: 'ada@x.co' }, f)).exited).toBe(1);
+    expect(svc.tables.lifecycle_enrollments[0].status).toBe('exited');
+  });
+  it("ends the project owner's reminders when the project's invitation goes out", async () => {
+    const svc = fakeSvc({
+      lifecycle_sequences: [mkSeq({ key: 'invite', trigger_event: 'project_created', exit_events: ['client_invited'] })],
+      lifecycle_sequence_steps: [step('invite')],
+      lifecycle_enrollments: [{ id: 'e1', sequence_key: 'invite', email: 'pro@co.com', ref: 'p1', status: 'active' },
+                              { id: 'e2', sequence_key: 'invite', email: 'pro@co.com', ref: 'p2', status: 'active' }],
+      followup_queue: [], profiles: [{ id: 'u1', email: 'pro@co.com' }],
+    });
+    await enrollForEvent(svc, 'client_invited', { email: 'ada@x.co' }, { inviter_user_id: 'u1', project_id: 'p1' });
+    expect(svc.tables.lifecycle_enrollments.map((r: any) => r.status)).toEqual(['exited', 'active']);
+  });
+  it('skips the generic welcome for someone already being invited, and keeps a second project separate', async () => {
+    const svc = fakeSvc({
+      lifecycle_sequences: [mkSeq({ key: 'welcome', trigger_event: 'user_signup', skip_if_active_in: ['invited'] }),
+                            mkSeq({ key: 'proj', trigger_event: 'project_created' })],
+      lifecycle_sequence_steps: [step('welcome'), step('proj')],
+      lifecycle_enrollments: [{ id: 'e1', sequence_key: 'invited', email: 'a@b.co', status: 'active' }], followup_queue: [],
+    });
+    expect((await enrollForEvent(svc, 'user_signup', { email: 'a@b.co' })).enrolled).toBe(0);
+    expect((await enrollForEvent(svc, 'project_created', { email: 'a@b.co' }, { project_id: 'p1' })).enrolled).toBe(1);
+    expect((await enrollForEvent(svc, 'project_created', { email: 'a@b.co' }, { project_id: 'p2' })).enrolled).toBe(1);
   });
 });
 
