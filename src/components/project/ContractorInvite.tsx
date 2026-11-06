@@ -1,21 +1,41 @@
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, UserPlus, X, Check } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Check, HardHat, Loader2, X } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
-import { useFormat, useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { isValidEmail } from '@/lib/email/is-valid-email';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  fetchInvites,
-  inviteContractor,
-  revokeInvite,
-} from '@/lib/supabase/invites';
+import { fetchInvites, inviteContractor, revokeInvite } from '@/lib/supabase/invites';
 import type { ContractorInviteRow } from '@/types/project';
+
+// =========================================================
+// The owner invites the contractor who is building this.
+//
+// Favour, 7 Nov 2026: "the contractor invite side should look like the share this
+// build section. they should both have the same ui."
+//
+// It did not. Share This Build is a card with the form already open — a label, a box,
+// a button, and the list of people underneath. Contractor Access was a bare heading
+// with an "Invite Contractor" button that toggled a form into view, over an
+// illustrated empty state the width of the page. Two panels doing the same job on the
+// same screen, one of them asking to be clicked before it would show you anything.
+//
+// This is the Share This Build shell, with the contractor's own rules inside it.
+//
+// ── Where the two still differ, and why ────────────────────────────────────────────
+//
+// · No Name field. `contractor_invites` has nowhere to put one (project, email, role,
+//   status, token). Share This Build stores the client's name in `relationship`.
+//   Inventing a box whose contents are dropped on submit is worse than not asking.
+// · A plan cap. Self Verify allows one contractor per project, so the form is replaced
+//   by a line saying so rather than left to fail on submit.
+// · Removing is confirmed. A revoked contractor loses access to a build they may be
+//   standing on; a family viewer loses a page they were reading.
+// =========================================================
 
 interface ContractorInviteProps {
   projectId: string;
@@ -24,366 +44,160 @@ interface ContractorInviteProps {
   projectTier: string;
 }
 
-// Dates are rendered through useFormat() so they follow the active language.
-
-type StatusBadgeProps = { status: ContractorInviteRow['status'] };
-
-function StatusBadge({ status }: StatusBadgeProps) {
-  const styles: Record<ContractorInviteRow['status'], string> = {
-    pending: 'text-state-held bg-brand-off-white',
-    accepted: 'text-state-complete bg-brand-off-white',
-    rejected: 'text-brand-mid-grey bg-brand-light-grey',
-  };
-  const labels: Record<ContractorInviteRow['status'], string> = {
-    pending: 'Pending',
-    accepted: 'Accepted',
-    rejected: 'Rejected',
-  };
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-        styles[status],
-      )}
-    >
-      {labels[status]}
-      {status === 'accepted' && <Check className="size-3 shrink-0" aria-hidden="true" />}
-    </span>
-  );
-}
-
-function InviteSkeleton() {
-  return (
-    <div className="flex flex-col gap-3 py-2" aria-hidden="true">
-      {[0, 1].map((i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3"
-        >
-          <div className="flex flex-col gap-1.5">
-            <div className="h-3.5 w-44 animate-pulse rounded bg-brand-light-grey" />
-            <div className="h-2.5 w-24 animate-pulse rounded bg-brand-light-grey" />
-          </div>
-          <div className="h-5 w-16 animate-pulse rounded-full bg-brand-light-grey" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function ContractorInvite({ projectId, userId, projectName, projectTier }: ContractorInviteProps) {
+export function ContractorInvite({
+  projectId, userId, projectName, projectTier,
+}: ContractorInviteProps) {
   const t = useT();
-  const f = useFormat();
   const { user } = useAuth();
   const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
 
-  const [invites, setInvites] = useState<ContractorInviteRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Form state
-  const [showForm, setShowForm] = useState(false);
+  const [rows, setRows]   = useState<ContractorInviteRow[] | null>(null);
   const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [emailWarning, setEmailWarning] = useState('');
+  const [busy, setBusy]   = useState(false);
+  const [sent, setSent]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  /**
+   * Set only when the invite row was written but the email did not go out.
+   *
+   * The invitation is real either way — the row is what grants access and what the
+   * link is keyed on — so the owner is handed the address rather than an apology.
+   * Same reasoning as ShareProject's fallback.
+   */
+  const [notEmailed, setNotEmailed] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<ContractorInviteRow | null>(null);
+  const [removing, setRemoving] = useState(false);
 
-  // Revoke modal state
-  const [revokeTarget, setRevokeTarget] = useState<ContractorInviteRow | null>(null);
-  const [revoking, setRevoking] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchInvites(projectId)
-      .then((rows) => {
-        if (!cancelled) setInvites(rows);
-      })
-      .catch(() => {
-        // silently fail — list stays empty
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(() => {
+    fetchInvites(projectId).then(setRows).catch(() => setRows([]));
   }, [projectId]);
+  useEffect(() => { load(); }, [load]);
 
-  function handleToggleForm() {
-    setShowForm((prev) => !prev);
-    setEmail('');
-    setEmailError('');
-    setSubmitError('');
-    setEmailWarning('');
-  }
+  const live = (rows ?? []).filter(r => r.status === 'pending' || r.status === 'accepted');
+  const atCap = (projectTier === 'self_verify' || projectTier === 'starter') && live.length >= 1;
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function invite(e: React.FormEvent) {
     e.preventDefault();
-    setEmailError('');
-    setSubmitError('');
+    setError(null); setSent(null); setNotEmailed(null);
 
-    const trimmed = email.trim();
-    if (!isValidEmail(trimmed)) {
-      setEmailError('Please enter a valid email address.');
-      return;
-    }
+    const address = email.trim();
+    if (!isValidEmail(address)) { setError(t('inviteUi.errEmail')); return; }
 
-    // Optimistic insert
-    const optimistic: ContractorInviteRow = {
-      id: `optimistic-${Date.now()}`,
-      project_id: projectId,
-      invited_by: userId,
-      email: trimmed.toLowerCase(),
-      role: 'contractor',
-      status: 'pending',
-      // A new invite is never the one that gets paid; an admin names that (101).
-      is_primary: false,
-      accepted_at: null,
-      created_at: new Date().toISOString(),
-      token: '',
-      contractor_user_id: null,
-    };
-
-    setInvites((prev) => [optimistic, ...prev]);
-    setSubmitting(true);
-
+    setBusy(true);
     try {
-      const { invite, emailSent } = await inviteContractor(projectId, userId, trimmed, projectName, inviterName);
-      setInvites((prev) =>
-        prev.map((inv) => (inv.id === optimistic.id ? invite : inv)),
-      );
+      const { emailSent } = await inviteContractor(
+        projectId, userId, address, projectName, inviterName);
+      if (emailSent) setSent(address); else setNotEmailed(address);
       setEmail('');
-      setShowForm(false);
-      if (!emailSent) {
-        setEmailWarning(
-          `Invite created, but the notification email to ${trimmed} couldn't be sent. Share this project's invite link with them directly.`,
-        );
-      }
+      load();
     } catch (err) {
-      // Roll back optimistic insert
-      setInvites((prev) => prev.filter((inv) => inv.id !== optimistic.id));
-      setSubmitError(
-        errorMessage(err, 'Failed to send invite. Please try again.'),
-      );
+      setError(errorMessage(err, t('inviteUi.errFailed')));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   }
 
-  async function handleRevoke() {
-    if (!revokeTarget) return;
-    setRevoking(true);
+  async function remove() {
+    if (!removeTarget) return;
+    setRemoving(true);
     try {
-      await revokeInvite(revokeTarget.id);
-      setInvites((prev) => prev.filter((inv) => inv.id !== revokeTarget.id));
-      setRevokeTarget(null);
+      await revokeInvite(removeTarget.id);
+      setRemoveTarget(null);
+      load();
     } catch {
-      // Keep modal open; parent can retry
+      setError(t('inviteUi.errFailed'));
     } finally {
-      setRevoking(false);
+      setRemoving(false);
     }
   }
 
-  const isStarterAtLimit = (projectTier === 'self_verify' || projectTier === 'starter') && invites.filter(
-    (inv) => inv.status === 'pending' || inv.status === 'accepted',
-  ).length >= 1;
+  function statusLabel(status: ContractorInviteRow['status']): string {
+    return t(status === 'accepted' ? 'inviteUi.accepted'
+           : status === 'rejected' ? 'inviteUi.rejected'
+           : 'inviteUi.pending');
+  }
 
   return (
-    <section className="w-full font-sans">
-      {/* Section header */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <h2 className="text-sm font-medium text-brand-near-black">
-          Contractor Access
-        </h2>
-        {isStarterAtLimit ? (
-          <span className="text-xs text-brand-mid-grey">
-            1 contractor limit on Self Verify
-          </span>
-        ) : (
-          <Button
-            type="button"
-            variant={showForm ? 'outline' : 'default'}
-            size="sm"
-            onClick={handleToggleForm}
-            className="shrink-0"
-          >
-            {showForm ? 'Cancel' : 'Invite Contractor'}
+    <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
+        <HardHat className="size-4 shrink-0" aria-hidden />
+        {t('inviteUi.title')}
+      </h3>
+      <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
+        {t('inviteUi.body')}
+      </p>
+
+      {atCap ? (
+        /* Said instead of the form, not beside it. A box you may not submit is a
+           worse answer than a sentence explaining why there is no box. */
+        <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2.5 text-xs leading-relaxed text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
+          {t('inviteUi.capReached')}{' '}
+          <span className="text-brand-near-black dark:text-white">{t('project.invite.capUpgrade')}</span>
+        </p>
+      ) : (
+        <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="space-y-1.5">
+            <Label htmlFor="contractorEmail" className="text-xs">{t('inviteUi.email')}</Label>
+            <Input
+              id="contractorEmail" type="email" autoComplete="off"
+              placeholder={t('inviteUi.emailPlaceholder')}
+              value={email} onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={busy} className="h-9 text-xs">
+            {busy ? <Loader2 className="size-4 animate-spin" /> : t('inviteUi.invite')}
           </Button>
-        )}
-      </div>
+        </form>
+      )}
 
-      {/* Email delivery warning */}
-      <AnimatePresence>
-        {emailWarning && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-state-held/30 bg-brand-off-white px-3.5 py-3">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-state-held" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-state-held leading-relaxed">{emailWarning}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEmailWarning('')}
-                className="shrink-0 text-state-held hover:text-state-held transition-colors"
-                aria-label={t('a11y.dismiss')}
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Starter limit notice */}
-      {isStarterAtLimit && (
-        <p className="text-xs text-brand-mid-grey mb-4 leading-relaxed">
-          {t('project.invite.capNotice')}{' '}
-          <span className="text-brand-near-black">{t('project.invite.capUpgrade')}</span>
+      {sent && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-state-complete">
+          <Check className="size-3.5" aria-hidden />{t('inviteUi.sent', { email: sent })}
         </p>
       )}
 
-      {/* Invite form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            key="invite-form"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="mb-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-4 flex flex-col gap-3"
-            >
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="contractor-email"
-                  className="text-xs font-medium text-brand-near-black"
-                >
-                  Email address
-                </label>
-                <input
-                  id="contractor-email"
-                  type="email"
-                  autoComplete="off"
-                  placeholder={t('inviteUi.emailPlaceholder')}
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) setEmailError('');
-                  }}
-                  disabled={submitting}
-                  className={cn(
-                    'w-full rounded-lg border bg-white px-3 py-2 text-sm text-brand-near-black placeholder:text-brand-mid-grey',
-                    'outline-none focus:ring-2 focus:ring-brand-near-black/20 transition-shadow',
-                    emailError
-                      ? 'border-state-alert focus:ring-state-alert'
-                      : 'border-brand-border-grey',
-                    submitting && 'opacity-60 cursor-not-allowed',
-                  )}
-                />
-                {emailError && (
-                  <p className="text-xs text-state-alert mt-0.5">{emailError}</p>
-                )}
-              </div>
-
-              {submitError && (
-                <p className="text-xs text-state-alert">{submitError}</p>
-              )}
-
-              <Button
-                type="submit"
-                size="sm"
-                disabled={submitting}
-                className="self-end"
-              >
-                {submitting ? 'Sending…' : 'Send Invite'}
-              </Button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Invite list */}
-      {loading ? (
-        <InviteSkeleton />
-      ) : invites.length === 0 ? (
-        <EmptyState
-          icon={<UserPlus size={28} strokeWidth={1.5} />}
-          title={t('inviteUi.noneTitle')}
-          description="Invite a contractor to give them scoped access to upload evidence and message on this project."
-        />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          <AnimatePresence initial={false}>
-            {invites.map((invite) => (
-              <motion.li
-                key={invite.id}
-                layout
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: 12 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="flex items-center justify-between gap-3 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3"
-              >
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span
-                    className="text-sm font-medium text-brand-near-black truncate"
-                    title={invite.email}
-                  >
-                    {invite.email}
-                  </span>
-                  <span className="text-xs text-brand-mid-grey">
-                    Sent {f.date(invite.created_at)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <StatusBadge status={invite.status} />
-                  {invite.status === 'pending' && (
-                    <button
-                      type="button"
-                      aria-label={`Revoke invite for ${invite.email}`}
-                      onClick={() => setRevokeTarget(invite)}
-                      className={cn(
-                        'flex items-center justify-center rounded-full p-1 text-brand-mid-grey',
-                        'hover:bg-brand-light-grey hover:text-brand-near-black transition-colors',
-                      )}
-                    >
-                      <X size={14} strokeWidth={2} />
-                    </button>
-                  )}
-                </div>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
+      {notEmailed && (
+        <div className="mt-3 rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2.5 dark:border-[#2c2c2c] dark:bg-[#141414]">
+          <p className="text-xs text-brand-near-black dark:text-white">
+            {t('inviteUi.notEmailed', { email: notEmailed })}
+          </p>
+        </div>
       )}
 
-      {/* Revoke confirm modal */}
+      {error && <p role="alert" className="mt-3 text-xs text-state-alert">{error}</p>}
+
+      <ul className="mt-4 space-y-2">
+        {rows === null ? null
+          : rows.length === 0 ? <li className="text-xs text-brand-mid-grey">{t('inviteUi.none')}</li>
+          : rows.map(inv => (
+            <li key={inv.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-border-grey px-3 py-2 dark:border-[#2c2c2c]">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-brand-near-black dark:text-white">
+                  {inv.email}
+                </p>
+                <p className="text-[11px] text-brand-mid-grey">{statusLabel(inv.status)}</p>
+              </div>
+              {inv.status === 'pending' && (
+                <button type="button" onClick={() => setRemoveTarget(inv)}
+                  aria-label={`${t('inviteUi.remove')} ${inv.email}`}
+                  className="inline-flex shrink-0 items-center gap-1 text-[11px] text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white">
+                  <X className="size-3" aria-hidden />{t('inviteUi.remove')}
+                </button>
+              )}
+            </li>
+          ))}
+      </ul>
+
       <ConfirmModal
-        open={revokeTarget !== null}
+        open={removeTarget !== null}
         title={t('inviteUi.removeTitle')}
-        description={`Remove invite for ${revokeTarget?.email ?? ''}? They will no longer be able to accept.`}
-        confirmLabel="Remove"
-        cancelLabel="Keep"
+        description={t('inviteUi.removeBody', { email: removeTarget?.email ?? '' })}
+        confirmLabel={t('inviteUi.remove')}
+        cancelLabel={t('common.cancel')}
         destructive
-        loading={revoking}
-        onConfirm={handleRevoke}
-        onCancel={() => {
-          if (!revoking) setRevokeTarget(null);
-        }}
+        loading={removing}
+        onConfirm={remove}
+        onCancel={() => { if (!removing) setRemoveTarget(null); }}
       />
     </section>
   );
