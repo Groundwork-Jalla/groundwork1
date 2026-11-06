@@ -74,6 +74,11 @@ function looksLikeSeveralDwellings(facts: FloorPlanFacts[]): boolean {
  * file names. Anything that might name the building.
  */
 export function readBuildingKind(text: string, floorPlanFacts: FloorPlanFacts[] = []): Kind {
+  // What the drawing itself shows outranks what the files are called: a floor plan of an
+  // office saved as "plan.pdf" has no keyword, and used to fall through to a family home.
+  const drawn = kindFromDrawing(floorPlanFacts, text);
+  if (drawn) return drawn;
+
   for (const rule of RULES) {
     if (rule.pattern.test(text)) {
       // A plan with three kitchens and three sitting rooms is a block of flats even
@@ -90,4 +95,23 @@ export function readBuildingKind(text: string, floorPlanFacts: FloorPlanFacts[] 
     return { projectType: 'residential', buildingType: 'multi_family' };
   }
   return DEFAULT_BUILDING_KIND;
+}
+
+/** The vision reading when it names a non-residential use, else workplace labels with no bedrooms. */
+function kindFromDrawing(facts: FloorPlanFacts[], text: string): Kind | null {
+  for (const fact of facts) {
+    switch (fact.model?.buildingType) {
+      case 'commercial': {
+        // The picture says "not a home"; the words, when there are any, say which kind.
+        const named = RULES.find(r => r.kind.projectType !== 'residential' && r.pattern.test(text));
+        return named?.kind ?? { projectType: 'commercial', buildingType: 'office' };
+      }
+      case 'institutional': return { projectType: 'commercial', buildingType: 'office' };
+      case 'mixed_use': return { projectType: 'mixed_use', buildingType: 'mixed_residential_commercial' };
+    }
+  }
+  const offices = facts.reduce((n, f) => n + (f.officeRooms ?? 0), 0);
+  const bedrooms = facts.reduce((n, f) => n + (f.bedrooms ?? 0), 0);
+  if (offices >= 2 && bedrooms === 0) return { projectType: 'commercial', buildingType: 'office' };
+  return null;
 }

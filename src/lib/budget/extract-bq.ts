@@ -309,6 +309,12 @@ export interface FloorPlanFacts {
    */
   staircase: boolean;
   /**
+   * Rooms labelled as workspace — offices, open space, reception, meeting rooms. A
+   * drawing that names these and no bedrooms is not a house, whatever the file is
+   * called. Optional so older saved readings still type-check.
+   */
+  officeRooms?: number;
+  /**
    * What a vision model made of the drawing, when one was asked and answered.
    *
    * Kept beside the extractor's reading rather than folded into it, because the two
@@ -362,6 +368,9 @@ const ROOM_LABELS = {
   livingRooms: /\b(?:sitting|living)\s*-?\s*room|\b(?:lounge|parlou?r|salon|s[ée]jour)/gi,
   kitchens:    /\b(?:kitchen|cuisine)/gi,
 } as const;
+
+/** Labels that only appear on a workplace drawing. */
+const OFFICE_LABELS = /\b(?:offices?|bureaux?|open\s*-?\s*space|reception|r[ée]ception|meeting\s*room|conference|board\s*room|salle\s*de\s*r[ée]union|secr[ée]tariat|secretary|director|directeur|server\s*room)/gi;
 
 /** Counts a drawing states about itself. These win over anything we counted. */
 const STATED_COUNTS = {
@@ -604,6 +613,7 @@ export function readFloorPlanFacts(
     livingRooms: livingRooms.value,
     kitchens: kitchens.value,
     staircase: stair != null,
+    officeRooms: (text.match(OFFICE_LABELS) ?? []).length,
     evidence: {
       floors: floors.evidence,
       areaSqm: area.evidence,

@@ -35,6 +35,21 @@ describe('what the documents say is being built', () => {
     expect(readBuildingKind(text)).toEqual({ projectType, buildingType });
   });
 
+  it('reads an office from its room labels even when the file name says nothing', () => {
+    expect(readBuildingKind('plan.pdf', [facts({ officeRooms: 6, bedrooms: 0 })]))
+      .toEqual({ projectType: 'commercial', buildingType: 'office' });
+    expect(readBuildingKind('plan.pdf', [facts({ officeRooms: 6, bedrooms: 3 })]))
+      .toEqual({ projectType: 'residential', buildingType: 'single_family' });
+  });
+
+  it('trusts the vision reading when it says the building is not a home', () => {
+    const model: any = { buildingType: 'commercial' };
+    expect(readBuildingKind('plan.pdf', [facts({ model })]))
+      .toEqual({ projectType: 'commercial', buildingType: 'office' });
+    expect(readBuildingKind('PROPOSED SHOP', [facts({ model })]))
+      .toEqual({ projectType: 'commercial', buildingType: 'retail' });
+  });
+
   it('reads a guest house as a guest house, not as a house', () => {
     // "GUEST HOUSE" contains "house". Rule order is the only thing stopping every
     // guest house in Kribi becoming somebody's family home.
