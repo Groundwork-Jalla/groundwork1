@@ -22,6 +22,8 @@ import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShareProject } from '@/components/project/ShareProject';
+import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import { cn } from '@/lib/utils';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 
@@ -69,6 +71,9 @@ export default function ContractorProjectDetail() {
   const [documents, setDocuments] = useState<ProjectDocumentRow[]>([]);
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
+  /** Incoming tranches per stage (175). Distinct from `payments` above, which is
+   *  this contractor's own OUTGOING ledger — opposite direction, opposite person. */
+  const [stagePayments, setStagePayments] = useState<Map<string, StagePayment>>(new Map());
   const [searchParams, setSearchParams] = useSearchParams();
   /**
    * The open tab, taken from `?tab=` when there is one.
@@ -96,16 +101,18 @@ export default function ContractorProjectDetail() {
     const a = await fetchAssignedProject(projectId).catch(() => null);
     if (!a) { setAssigned('denied'); return; }
     setAssigned(a);
-    const [subs, docs, rw, pay] = await Promise.all([
+    const [subs, docs, rw, pay, stagePay] = await Promise.all([
       fetchSubstages(projectId).catch(() => []),
       fetchProjectDocuments(projectId).catch(() => []),
       fetchRework([a]).catch(() => []),
       fetchMyPayments().catch(() => ({ rows: [], available: false })),
+      fetchStagePayments(projectId).catch(() => new Map<string, StagePayment>()),
     ]);
     setSubstages(subs);
     setDocuments(docs);
     setRework(rw);
     setPayments({ ...pay, rows: pay.rows.filter(r => r.projectId === projectId) });
+    setStagePayments(stagePay);
   }, [projectId]);
 
   useEffect(() => { void load(); }, [load]);
@@ -193,6 +200,7 @@ export default function ContractorProjectDetail() {
         <WorkTab
           assigned={assigned} substages={substages} rework={rework}
           isOwner={user?.id === project.user_id}
+          stagePayments={stagePayments}
           onSubmitted={load}
         />
       )}
@@ -764,12 +772,14 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * against the item — `submit_site_update` does that server side. Nothing here
  * completes a stage or approves anything: that is not the contractor's to do.
  */
-function WorkTab({ assigned, substages, rework, isOwner, onSubmitted }: {
+function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmitted }: {
   assigned: AssignedProject;
   substages: ProjectSubstageRow[];
   rework: ReworkItem[];
   /** Only the owner may invite; the rail offers it under the people list. */
   isOwner: boolean;
+  /** Incoming tranches per stage, so a locked stage can show the client's receipt (175). */
+  stagePayments: Map<string, StagePayment>;
   onSubmitted: () => Promise<void> | void;
 }) {
   const t = useT();
@@ -814,9 +824,22 @@ function WorkTab({ assigned, substages, rework, isOwner, onSubmitted }: {
         const sent = rework.filter(r => r.stageId === stage.id);
 
         if (!isOpen) {
-          return (
-            <section key={stage.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+          /*
+           * A locked stage is where the contractor's half of the receipt handshake
+           * lives (175). The client has approved the stage before this one and paid
+           * for this one; what is left is for the contractor to open the receipt,
+           * check the money arrived, and confirm — which is what unlocks it.
+           *
+           * On the row rather than in a separate queue, because "which stage is this
+           * about" is the first thing anybody confirming a payment needs to know, and
+           * a list of receipts somewhere else makes that a lookup.
+           */
+          const tranche = stagePayments.get(stage.id);
+          const showGate = stage.status === 'locked' && !!tranche;
+
+          const row = (
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <span className={cn(
                 'flex size-[22px] shrink-0 items-center justify-center rounded-full font-mono text-[10px] font-semibold',
                 stage.status === 'complete'
@@ -841,6 +864,23 @@ function WorkTab({ assigned, substages, rework, isOwner, onSubmitted }: {
                 </span>
                 {due?.usd && <span className="block font-mono text-[10px] text-brand-mid-grey">≈ {due.usd}</span>}
               </span>
+            </div>
+          );
+
+          return (
+            <section key={stage.id}
+              className="rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+              {row}
+              {showGate && (
+                <StagePaymentGate
+                  projectId={stage.project_id}
+                  stageId={stage.id}
+                  stageNumber={stage.stage_number}
+                  payment={tranche}
+                  isContractor
+                  onChanged={onSubmitted}
+                />
+              )}
             </section>
           );
         }

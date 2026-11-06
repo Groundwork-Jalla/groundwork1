@@ -5,17 +5,26 @@ import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { FinishLevel, WizardFormData } from '@/types/project';
+import type { WizardFormData } from '@/types/project';
 import { BASELINE_CITY, CITY_RATES, CM_CITY_CODES, hasFloorRooms } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
-const FINISH_LEVELS: { value: FinishLevel; label: string; description: string }[] = [
-  { value: 'standard', label: 'Standard',  description: 'Good quality, practical finishes'     },
-  { value: 'premium',  label: 'Premium',   description: 'High-spec fittings and materials'     },
-  { value: 'luxury',   label: 'Luxury',    description: 'Bespoke finishes, premium everything' },
-];
+/*
+ * The Standard / Premium / Luxury picker was here. Removed 7 Nov 2026 at Favour's
+ * request.
+ *
+ * `finishLevel` itself stays: it is a column on `projects`, it multiplies the rate in
+ * the budget engine, and `WIZARD_DEFAULT_DATA` sets it to 'standard' — which is what
+ * every project created from here on will carry. The engine already reads
+ * `data.finishLevel ?? 'standard'` at every site, so nothing downstream changes.
+ *
+ * Deliberately not ripped out of the schema or the engine: the three labels were also
+ * never translated (they were hard-coded English next to a translated heading), and if
+ * the question comes back it comes back as a product decision, not as a migration to
+ * re-add a column. Nothing now writes anything but 'standard'.
+ */
 
 // ── Footprint estimation ───────────────────────────────────────
 //
@@ -393,32 +402,6 @@ export default function Step8Details() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* Finish level */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-brand-near-black">
-              {t('wizard.finishLevel')}
-            </Label>
-            <div className="grid grid-cols-3 gap-2">
-              {FINISH_LEVELS.map(fl => (
-                <button
-                  key={fl.value}
-                  type="button"
-                  onClick={() => update({ finishLevel: fl.value })}
-                  className={cn(
-                    'flex flex-col items-center gap-1 rounded-xl border-2 py-3 px-2 transition-all duration-150',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-2',
-                    data.finishLevel === fl.value
-                      ? 'border-brand-near-black bg-brand-off-white'
-                      : 'border-brand-border-grey hover:border-brand-dark-grey',
-                  )}
-                >
-                  <span className="text-sm font-semibold text-brand-near-black">{fl.label}</span>
-                  <span className="text-[10px] text-brand-mid-grey text-center leading-tight">{fl.description}</span>
-                </button>
-              ))}
-            </div>
           </div>
 
         </div>

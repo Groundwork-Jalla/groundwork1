@@ -110,8 +110,25 @@ function kindFromDrawing(facts: FloorPlanFacts[], text: string): Kind | null {
       case 'mixed_use': return { projectType: 'mixed_use', buildingType: 'mixed_residential_commercial' };
     }
   }
-  const offices = facts.reduce((n, f) => n + (f.officeRooms ?? 0), 0);
+  const offices  = facts.reduce((n, f) => n + (f.officeRooms ?? 0), 0);
   const bedrooms = facts.reduce((n, f) => n + (f.bedrooms ?? 0), 0);
+  const kitchens = facts.reduce((n, f) => n + (f.kitchens ?? 0), 0);
+
   if (offices >= 2 && bedrooms === 0) return { projectType: 'commercial', buildingType: 'office' };
+
+  /**
+   * The model said, in as many words, that this layout houses nobody.
+   *
+   * `dwellingUnits` could not be zero before 7 Nov 2026 — the schema floored it at 1,
+   * so the model had to claim a dwelling even for an office block, and the claim then
+   * read as evidence of a house. Now that zero is sayable it is worth listening to,
+   * but only alongside the rooms: a sheet showing bedrooms is a home whatever the
+   * count says, and a drawing with neither bedrooms nor a kitchen is not.
+   */
+  const saysNoDwellings = facts.some(f => f.model?.dwellingUnits === 0);
+  if (saysNoDwellings && bedrooms === 0 && kitchens === 0) {
+    return { projectType: 'commercial', buildingType: 'office' };
+  }
+
   return null;
 }

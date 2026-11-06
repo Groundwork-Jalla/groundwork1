@@ -175,7 +175,11 @@ describe('who may ask', () => {
 
   it('the cron calls a plain path that rewrites onto the one action', () => {
     const vercel = JSON.parse(src('vercel.json'));
-    expect(vercel.crons).toEqual([{ path: '/api/swychr-poll', schedule: '*/5 * * * *' }]);
+    // `toContainEqual`, not `toEqual`: this test is about THIS cron's shape, and
+    // pinning the whole array made it fail the day a second, unrelated cron was added
+    // (the lifecycle runner, 6c57d7c). How many crons exist is the next test's job —
+    // it is the one that knows the plan's limit.
+    expect(vercel.crons).toContainEqual({ path: '/api/swychr-poll', schedule: '*/5 * * * *' });
     expect(vercel.rewrites).toContainEqual({ source: '/api/swychr-poll', destination: '/api/events?action=swychr-poll' });
   });
 

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  MapPin, Building2, Layers, Home, Wrench,
-  ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
+  MapPin, Building2, Layers, Home, ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
@@ -479,8 +478,9 @@ export default function Step9Summary() {
               />
               <SummaryRow icon={<Home className="size-3.5" />}      label="Roof"
                 value={labels.roofType(data.roofType)} />
-              <SummaryRow icon={<Wrench className="size-3.5" />}    label="Finish"
-                value={labels.finishLevel(data.finishLevel)} />
+              {/* The Finish row went with the picker (7 Nov 2026). A summary exists to
+                  show somebody back what they chose, and nobody chooses this any
+                  more — every project is 'standard'. */}
             </>
           )}
         </div>

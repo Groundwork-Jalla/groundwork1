@@ -45,6 +45,15 @@ export interface ModelPlanReading {
     bathrooms: number | null;
     kitchens: number | null;
     livingRooms: number | null;
+    /**
+     * Workspace of every sort — private offices, open-plan desk areas, reception,
+     * meeting rooms.
+     *
+     * Added 7 Nov 2026. Until then the schema could only describe a home, so an
+     * office plan came back as a house with zero bedrooms and was filed Residential ·
+     * Single Family. A caller reported it on their own drawing the same day.
+     */
+    offices: number | null;
   };
   confidence: 'high' | 'medium' | 'low';
   basis: { dwellingUnits: string; floors: string; buildingType: string };
@@ -149,6 +158,14 @@ export function mergeModelReading(
     bathrooms: facts.bathrooms ?? model.rooms.bathrooms,
     livingRooms: facts.livingRooms ?? model.rooms.livingRooms,
     kitchens: facts.kitchens ?? model.rooms.kitchens,
+    /*
+     * The extractor's count first, then the model's. `officeRooms` is read off the
+     * sheet's text layer by a regex (extract-bq.ts), which finds nothing at all on an
+     * uploaded photograph or a flattened PDF — exactly the case where the picture is
+     * the only evidence there is. Without this line the office rule in
+     * document-identity.ts had no input and could never fire.
+     */
+    officeRooms: facts.officeRooms ?? model.rooms.offices ?? undefined,
     model,
   };
 }
@@ -218,6 +235,7 @@ function asReading(value: unknown): ModelPlanReading | null {
       bathrooms:   count(raw.rooms?.bathrooms),
       kitchens:    count(raw.rooms?.kitchens),
       livingRooms: count(raw.rooms?.livingRooms),
+      offices:     count(raw.rooms?.offices),
     },
     confidence: raw.confidence === 'high' || raw.confidence === 'low'
       ? raw.confidence : 'medium',

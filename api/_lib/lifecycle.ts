@@ -1,5 +1,6 @@
 import { sendWhatsApp } from './whatsapp-send.js';
 import { senderFor } from '../../src/lib/email/senders.js';
+import { logEmailToCrm } from '../ghl/_email-log.js';
 
 // =========================================================
 // Lifecycle sequences — the engine.
@@ -250,7 +251,23 @@ async function sendEmail(to: string, subject: string, html: string, text: string
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: senderFor('other'), to, subject, text, html }),
   });
-  return res.ok ? { ok: true as const } : { ok: false as const, error: `resend_${res.status}` };
+  if (!res.ok) return { ok: false as const, error: `resend_${res.status}` };
+
+  /**
+   * On the contact, so whoever picks up the phone can see what we already said.
+   *
+   * These are the Day 1 / Day 3 / Day 7 nudges, which means they are most of what a
+   * stalled person has ever heard from Groundwork — and a human following up after
+   * day seven is the whole point of the sequence ending. Reaching for the phone
+   * without knowing which three emails already went out is how the follow-up repeats
+   * the automation word for word.
+   *
+   * Awaited, not floated: Vercel freezes the instance the moment the handler responds,
+   * so `void logEmailToCrm(...)` is suspended mid-flight and the note never lands. It
+   * cannot throw and cannot fail the send — see the header of ghl/_email-log.ts.
+   */
+  await logEmailToCrm({ to, subject, html, kind: 'other' });
+  return { ok: true as const };
 }
 
 const siteBase = () => (process.env.PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');

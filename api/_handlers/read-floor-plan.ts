@@ -41,11 +41,14 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const SYSTEM = `You are reading architectural floor plans for a construction project-management platform in Cameroon.
 
-Report only what the drawing shows. The platform already extracts labels and dimensions from the sheet's text layer by itself, so what it needs from you is the judgement that counting cannot provide: how many separate dwelling units the layout contains, how many storeys the set describes, and what kind of building this is.
+Report only what the drawing shows. The platform already extracts labels and dimensions from the sheet's text layer by itself, so what it needs from you is the judgement that counting cannot provide: what kind of building this is, how many separate dwelling units the layout contains, and how many storeys the set describes.
 
 Rules:
+- DECIDE WHAT KIND OF BUILDING THIS IS FIRST, and do not assume a home. Most plans you see are houses; plenty are not. A layout of repeated similar rooms off a corridor, with a reception, open-plan workspace, meeting rooms or WCs but NO bedrooms and NO kitchen, is 'commercial' — not a house with the bedrooms left unlabelled. A school, clinic or place of worship is 'institutional'. Shops below and flats above is 'mixed_use'.
+- A building with no bedrooms and no kitchen is not a dwelling. Say so: set buildingType to the non-residential kind you see and dwellingUnits to 0.
 - A unit is a self-contained dwelling: its own entrance, its own living room and kitchen. A block of three identical flats is 3 units, not 1 house.
 - Count storeys from the SET of sheets you are given. A ground plan with a staircase proves an upper floor exists but not how many; say what you were shown and set floors to null if the set does not settle it.
+- Count rooms by what they are labelled or unmistakably are. 'offices' covers workspace of every sort — private offices, open-plan desk areas, reception, meeting and conference rooms.
 - Use null wherever the drawing does not tell you. A null is a useful answer; a guess is not.
 - "basis" must quote or name what on the drawing made you say it, in a few words.
 - Measurements are metres and square metres.`;
@@ -69,10 +72,19 @@ const SCHEMA = {
     },
     buildingType: {
       type: ['string', 'null'],
+      description:
+        'What this building is FOR. house / duplex / apartment_block / row_housing are '
+        + 'dwellings. commercial is any workplace or trading space — offices, shops, a '
+        + 'warehouse. institutional is a school, clinic, church or public building. '
+        + 'mixed_use is dwellings above non-residential. Null only when the sheets '
+        + 'genuinely do not say; do not fall back on house.',
       enum: ['house', 'duplex', 'apartment_block', 'row_housing', 'commercial',
              'mixed_use', 'institutional', 'other', null],
     },
-    dwellingUnits: { type: ['integer', 'null'], minimum: 1 },
+    // Zero is a real and important answer: an office block contains no dwellings, and
+    // a floor of `minimum: 1` forced the model to claim at least one, which read as a
+    // house. Reported 7 Nov 2026 — a caller's office plan came back Residential.
+    dwellingUnits: { type: ['integer', 'null'], minimum: 0 },
     floors: {
       type: ['integer', 'null'], minimum: 1,
       description: 'Storeys including the ground floor. Null if the sheets do not settle it.',
@@ -81,12 +93,20 @@ const SCHEMA = {
     rooms: {
       type: 'object',
       additionalProperties: false,
-      required: ['bedrooms', 'bathrooms', 'kitchens', 'livingRooms'],
+      required: ['bedrooms', 'bathrooms', 'kitchens', 'livingRooms', 'offices'],
       properties: {
         bedrooms:    { type: ['integer', 'null'], minimum: 0 },
         bathrooms:   { type: ['integer', 'null'], minimum: 0 },
         kitchens:    { type: ['integer', 'null'], minimum: 0 },
         livingRooms: { type: ['integer', 'null'], minimum: 0 },
+        /*
+         * Workspace of every sort. Without this the schema could only describe a
+         * home: `additionalProperties` is false, so an office plan had to come back
+         * as a house with zero bedrooms, and the one rule that would have caught it
+         * — offices >= 2 and no bedrooms, in document-identity.ts — could never fire,
+         * because nothing ever filled `officeRooms` for an uploaded image.
+         */
+        offices:     { type: ['integer', 'null'], minimum: 0 },
       },
     },
     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },

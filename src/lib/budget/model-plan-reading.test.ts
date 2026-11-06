@@ -28,7 +28,7 @@ const reading = (over: Partial<ModelPlanReading> = {}): ModelPlanReading => ({
   dwellingUnits: 3,
   floors: 2,
   grossAreaSqm: 437.75,
-  rooms: { bedrooms: 5, bathrooms: 5, kitchens: 3, livingRooms: 3 },
+  rooms: { bedrooms: 5, bathrooms: 5, kitchens: 3, livingRooms: 3, offices: 0 },
   confidence: 'high',
   basis: {
     dwellingUnits: 'three sitting rooms, three kitchens, three separate entrances',
@@ -47,7 +47,7 @@ describe('the model fills holes and overrules nothing', () => {
   it('never replaces a room count we got off the labels', () => {
     const merged = mergeModelReading(
       facts({ bedrooms: 5, kitchens: 3 }),
-      reading({ rooms: { bedrooms: 9, bathrooms: 9, kitchens: 9, livingRooms: 9 } }));
+      reading({ rooms: { bedrooms: 9, bathrooms: 9, kitchens: 9, livingRooms: 9, offices: 0 } }));
     expect(merged.bedrooms).toBe(5);
     expect(merged.kitchens).toBe(3);
   });
@@ -92,7 +92,7 @@ describe("on Mr Nas's real ground plan", () => {
 
   it('the counted rooms survive the merge intact', () => {
     const merged = mergeModelReading(extracted, reading({
-      rooms: { bedrooms: 2, bathrooms: 2, kitchens: 1, livingRooms: 1 },
+      rooms: { bedrooms: 2, bathrooms: 2, kitchens: 1, livingRooms: 1, offices: 0 },
     }));
     expect(merged.bedrooms).toBe(5);
     expect(merged.bathrooms).toBe(5);
