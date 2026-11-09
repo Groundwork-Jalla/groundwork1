@@ -3991,6 +3991,7 @@ export const en = {
     report: "Report",
     site_photo: "Site Photo",
     boq: "Bill of Quantities",
+    floor_plan: "Floor Plan",
     other: "Other",
   },
   // ── Country names (data: src/lib/countries.ts) ──────────────

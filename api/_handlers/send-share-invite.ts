@@ -23,6 +23,7 @@
 import { buildShareHtml, shareSubject } from '../../src/lib/email/share-html.js';
 import { resolveRecipientLang } from '../../src/lib/i18n/translate.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
+import { sendViaResend } from '../_lib/resend-send.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { routingFields } from '../ghl/_routing-fields.js';
 import { senderFor } from '../../src/lib/email/senders.js';
@@ -78,7 +79,7 @@ export async function handler(req: any, res: any) {
 
     const [{ data: project }, { data: inviter }, { data: existing }] = await Promise.all([
       admin.from('projects').select('name, country').eq('id', viewer.project_id).maybeSingle(),
-      admin.from('profiles').select('full_name').eq('id', viewer.invited_by).maybeSingle(),
+      admin.from('profiles').select('full_name, preferred_lang').eq('id', viewer.invited_by).maybeSingle(),
       // Their own stored preference, if they already have an account. Matched
       // case-insensitively: an address typed `Ada@Example.com` must find the profile
       // stored as `ada@example.com`.
@@ -87,9 +88,18 @@ export async function handler(req: any, res: any) {
 
     // Read from the RECIPIENT: what they chose, then the project's build country, then
     // English. Never the inviter's language — see share-html.ts.
+    /*
+     * The inviter's own language, between the recipient's and the build country.
+     *
+     * Philip, 3 Nov 2026: "why is it sending me in French when I'm English." He
+     * invited from an English account to an address with no profile, about a
+     * Cameroon build — so the country decided it. Where the house is says nothing
+     * about the language two people use with each other; the person writing does.
+     */
     const lang = resolveRecipientLang(
       existing?.[0]?.preferred_lang ?? null,
       project?.country ?? null,
+      inviter?.preferred_lang ?? null,
     );
 
     // The inviter is a person here, not a company, so the fallback is deliberately not
@@ -100,21 +110,38 @@ export async function handler(req: any, res: any) {
     const subject = shareSubject(lang, inviterName, projectName);
     const html = buildShareHtml(lang, inviterName, projectName, viewer.relationship, shareToken);
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from: FROM, to: [viewer.email], subject, html }),
-    });
+    const sent = await sendViaResend({ from: FROM, to: viewer.email, subject, html });
 
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      console.error('[share] Resend rejected the message:', response.status, body);
+    if (!sent.ok) {
+      // Stays short of `sent`, so it reads as still owed rather than quietly fine.
+      await admin.from('project_viewers').update({
+        email_status:   sent.retryable ? 'queued' : 'failed',
+        email_error:    sent.error ?? 'unknown',
+        email_attempts: sent.attempts,
+      }).eq('token', shareToken);
+      console.error('[share] Resend refused the message:', sent.error);
       res.status(502).json({ error: 'Could not send the email' });
       return;
     }
+
+    /*
+     * Record what the provider said, on the invitation itself.
+     *
+     * Until 178 the only trace of a send was `console.error` in the browser that
+     * asked for it. `email_message_id` is the handle a delivery receipt arrives
+     * quoting (see _handlers/email-receipt.ts) — without it, "did it arrive?" has no
+     * answer for any invitation ever sent.
+     *
+     * Awaited, not floated: Vercel freezes the instance the moment the handler
+     * responds, and a suspended promise never writes anything.
+     */
+    await admin.from('project_viewers').update({
+      email_message_id: sent.messageId ?? null,
+      email_status:     'sent',
+      email_sent_at:    new Date().toISOString(),
+      email_error:      null,
+      email_attempts:   sent.attempts,
+    }).eq('token', shareToken);
 
     // Awaited before responding: Vercel freezes the instance when the handler returns,
     // so a floating promise never reaches the note. It cannot throw and cannot fail the

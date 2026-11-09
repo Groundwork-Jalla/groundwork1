@@ -487,7 +487,10 @@ export interface ProjectSubstageRow {
 // Phase 3 tables
 // -------------------------------------------------------
 /** `boq` is a client-supplied bill of quantities or costing. CHECK lives in 096. */
-export type DocumentCategory = 'contract' | 'permit' | 'receipt' | 'invoice' | 'report' | 'site_photo' | 'boq' | 'other';
+// `floor_plan` added 9 Nov 2026 (migration 179). Mirrors the CHECK on
+// project_documents.category — a value missing here is a value the app cannot file,
+// and a value missing there is an insert the database refuses.
+export type DocumentCategory = 'contract' | 'permit' | 'receipt' | 'invoice' | 'report' | 'site_photo' | 'boq' | 'floor_plan' | 'other';
 
 export interface ProjectDocumentRow {
   id: string;

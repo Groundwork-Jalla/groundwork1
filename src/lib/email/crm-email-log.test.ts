@@ -33,6 +33,17 @@ const API = join(ROOT, 'api');
 const INTERNAL_ONLY = new Set(['api/agent-dispatch.ts']);
 
 /**
+ * The shared transport, not an endpoint.
+ *
+ * `_lib/resend-send.ts` is the one place that talks to Resend and retries a 429 (178).
+ * It is handed a `to`, a subject and a body by a caller that has already decided what
+ * this email is; it has no contact, no CRM vocabulary and no business writing a note.
+ * The guarantee this file protects is unchanged — it now lands on the callers, which
+ * is where it was always meant to be, and the check below follows them there.
+ */
+const TRANSPORT = new Set(['api/_lib/resend-send.ts']);
+
+/**
  * Sends a message that is *already* on the contact's timeline.
  *
  * `conversation-delivery.ts` is the reply path: somebody types into the Conversations
@@ -86,8 +97,11 @@ const files = tsFiles(API).map(path => {
 
 describe('CRM email log', () => {
   it('is called by every endpoint that emails a person', () => {
+    // Raw fetch OR the shared transport: centralising the call must not be a way to
+    // slip out of this check, which is exactly what would have happened here.
     const senders = files.filter(f =>
-      f.src.includes('https://api.resend.com/emails')
+      (f.src.includes('https://api.resend.com/emails') || f.code.includes('sendViaResend('))
+      && !TRANSPORT.has(f.path)
       && !INTERNAL_ONLY.has(f.path)
       && !ALREADY_ON_THE_THREAD.has(f.path)
       && !CARRIES_A_SECRET.has(f.path));

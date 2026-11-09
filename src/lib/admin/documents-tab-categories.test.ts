@@ -59,8 +59,15 @@ describe('the wizard files its two documents under categories that show', () => 
     expect(plan).toMatch(/answer\.bq, category: 'boq'/);
   });
 
-  it('and the floor plan NOT as boq — two bills of quantities and no plan is worse', () => {
+  it('and the floor plan as floor_plan — not boq, and no longer `other` either', () => {
+    /**
+     * Filing both as 'boq' would show two bills of quantities and no plan. Filing the
+     * plan as 'other' — which it was until 179 — avoided that but left the platform
+     * unable to answer "has this project uploaded a floor plan", which is half the
+     * shared definition of a qualified project.
+     */
     expect(plan).toMatch(/for \(const file of answer\.floorPlans\)/);
-    expect(plan).toMatch(/category: 'other'/);
+    expect(plan).toMatch(/category: 'floor_plan'/);
+    expect(plan).not.toMatch(/answer\.floorPlans\) out\.push\(\{ file, category: 'other' \}\)/);
   });
 });

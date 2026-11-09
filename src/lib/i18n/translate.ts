@@ -96,12 +96,31 @@ export function translator(lang: Lang) {
  *
  * Cameroon is officially bilingual, so this stays a default: the moment someone uses
  * the toggle, their explicit choice is stored and wins from then on.
+ *
+ * ── Why the INVITER outranks the build country ──────────────────────────────────
+ *
+ * Philip, 3 Nov 2026, testing a client invitation: "why is it sending me in French
+ * when I'm English... my account is English." He invited from an English account, to
+ * an address with no Groundwork profile, about a build in Cameroon — so there was no
+ * `preferred_lang` to read and the country decided it.
+ *
+ * The country is the wrong signal for a stranger. It describes where the house is,
+ * not what language two people use with each other. The person DOING the inviting is
+ * a far better one: a contractor working in English is inviting a client they speak
+ * English with, and they chose that language explicitly.
+ *
+ * So: what the recipient chose, then what the person writing to them chose, then the
+ * build country, then English. The invitee's own preference still wins the moment
+ * they have one — nothing here lets a sender override a stated choice.
  */
 export function resolveRecipientLang(
   preferredLang: string | null | undefined,
   countryCode?: string | null,
+  /** The sender's own stored choice. Used only when the recipient has none. */
+  inviterLang?: string | null,
 ): Lang {
   if (preferredLang === 'en' || preferredLang === 'fr') return preferredLang;
+  if (inviterLang === 'en' || inviterLang === 'fr') return inviterLang;
   if (countryCode && FRENCH_DEFAULT_COUNTRIES.includes(countryCode.toUpperCase())) return 'fr';
   return 'en';
 }

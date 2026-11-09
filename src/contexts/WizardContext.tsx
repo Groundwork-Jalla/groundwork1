@@ -7,6 +7,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
+import type { DocCategory } from '@/lib/projects/plan-answer';
 import type { WizardFormData, ConstructionRate, CityRate } from '@/types/project';
 import { WIZARD_DEFAULT_DATA } from '@/types/project';
 import { getCityRate, getConstructionRate } from '@/lib/supabase/construction-rates';
@@ -104,7 +105,7 @@ interface WizardContextValue {
   /** Leave this client's wizard while preserving its draft for later. */
   onChangeClient?: () => void;
   /** Floor plan and bill of quantities, awaiting a project to attach them to. */
-  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+  pendingDocuments?: { file: File; category: DocCategory }[];
   /**
    * Set when the architecture-plan question is answered mid-wizard.
    *
@@ -112,7 +113,7 @@ interface WizardContextValue {
    * into the saved draft stores `{}` and the file is silently lost. They live for as
    * long as this tab's wizard does, which is exactly until the project exists.
    */
-  setPendingDocuments?: (docs: { file: File; category: 'other' | 'boq' }[]) => void;
+  setPendingDocuments?: (docs: { file: File; category: DocCategory }[]) => void;
   documentExtraction: DocumentExtraction | null;
   setDocumentExtraction: (extraction: DocumentExtraction | null) => void;
 }
@@ -154,7 +155,7 @@ export function WizardProvider({
    * be serialised into the saved draft, and they are uploaded only once a project id
    * exists to attach them to.
    */
-  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+  pendingDocuments?: { file: File; category: DocCategory }[];
 }) {
   // A different actor/client key must get a fresh state instance, even if the route
   // keeps the provider mounted while switching the client being worked on.
@@ -168,10 +169,10 @@ function WizardStateProvider({ children, onBehalfOf, persistenceKey, onReset, on
   persistenceKey?: string; onReset?: () => void;
   onChangeClient?: () => void;
   seed?: Partial<WizardFormData>;
-  pendingDocuments?: { file: File; category: 'other' | 'boq' }[];
+  pendingDocuments?: { file: File; category: DocCategory }[];
 }) {
   const [saved] = useState(() => readWizardDraft(persistenceKey));
-  const [docs, setDocs] = useState<{ file: File; category: 'other' | 'boq' }[]>(
+  const [docs, setDocs] = useState<{ file: File; category: DocCategory }[]>(
     () => pendingDocuments ?? []);
   const [documentExtraction, setDocumentExtraction] = useState<DocumentExtraction | null>(null);
   const [step, setStep]           = useState(saved?.step ?? 1);

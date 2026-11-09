@@ -23,6 +23,7 @@ import { handler as crmEmailTest } from './_handlers/crm-email-test.js';
 import { handler as crmChatMirror } from './_handlers/project-message.js';
 import { handler as messageFanout } from './_handlers/message-fanout.js';
 import { handler as crmLifecycle } from './_handlers/crm-lifecycle.js';
+import { handler as emailReceipt } from './_handlers/email-receipt.js';
 import { handler as certPurge } from './_handlers/certificate-purge.js';
 import { handler as mfaEmail } from './_handlers/mfa-email.js';
 import { handler as adminProvisionUser } from './_handlers/admin-provision-user.js';
@@ -62,7 +63,8 @@ import { attachBody } from './_lib/body.js';
  * ── Body ─────────────────────────────────────────────────────────────────────────────
  * Vercel's body parser is off for this function (Phase 6.2 A.0): a signed webhook can
  * only be verified against the exact bytes that were signed. `attachBody` reads them once
- * and sets `req.rawBody` for the one action that needs it (`crm-inbound`) and `req.body`
+ * and sets `req.rawBody` for the actions that verify a signature (`crm-inbound`,
+ * `email-receipt`) and `req.body`
  * parsed exactly as before for everyone else. See `_lib/body.ts`.
  */
 
@@ -73,7 +75,7 @@ type Action =
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
-  | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle';
+  | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -119,6 +121,9 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   // (Communication Flow §9.1). One action rather than five handlers: the Hobby plan
   // caps this project at twelve functions and every one of them is spoken for.
   'crm-lifecycle': crmLifecycle,
+  // Resend reporting what became of a message (178). Signed with Svix headers and
+  // verified against the raw bytes, like crm-inbound.
+  'email-receipt': emailReceipt,
 };
 
 export default async function handler(req: any, res: any) {

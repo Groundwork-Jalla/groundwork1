@@ -23,6 +23,14 @@
 
 export interface SendResult {
   ok: boolean;
+  /**
+   * Resend's id for the message.
+   *
+   * The only handle on it afterwards: a delivery receipt arrives quoting this and
+   * nothing else, so a send that does not keep it can never be told whether it
+   * arrived (178).
+   */
+  messageId?: string;
   /** Present when it did not send. Short enough to store on the row. */
   error?: string;
   /** True when another attempt later is worth making. */
@@ -78,7 +86,10 @@ export async function sendViaResend(input: SendInput): Promise<SendResult> {
         }),
       });
 
-      if (res.ok) return { ok: true, attempts };
+      if (res.ok) {
+        const body = await res.json().catch(() => ({})) as { id?: string };
+        return { ok: true, attempts, messageId: typeof body.id === 'string' ? body.id : undefined };
+      }
 
       // The body carries Resend's own reason — "domain is not verified", "invalid
       // `to`" — which is the only thing that makes a stored error actionable.

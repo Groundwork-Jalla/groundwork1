@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { rememberThisDevice } from '@/lib/supabase/user-devices';
 import type { Session, User } from "@supabase/supabase-js";
-import { holdsContractorAccess } from '@/lib/auth/roles';
+import { readContractorAccess, readVerifierRole } from '@/lib/auth/roles';
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
@@ -110,16 +110,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!uid) { setIsVerifier(false); setIsContractor(false); setRolesChecked(true); return; }
 
     setRolesChecked(false);
+
+    /**
+     * `rolesChecked` means "we have a real answer", not "we tried".
+     *
+     * This is the fix for contractors landing on the client dashboard with no idea
+     * what they clicked (9 Nov 2026). They clicked nothing: a role read failed, the
+     * failure read as `false`, this flag went true anyway, and `work/_layout.tsx`
+     * sent them to `/dashboard` with `replace: true`.
+     *
+     * Now a failed read leaves the flag DOWN. Every gate already waits on it — look
+     * at the `resolved && !allowed` lines — so an unanswered question parks the
+     * person where they are instead of demoting them. Being wrong in that direction
+     * costs one extra request; being wrong in the other costs a contractor their
+     * account, silently.
+     */
+    let attempt = 0;
+    const ATTEMPTS = 4;
+
     (async () => {
-      const [verifier, contractor] = await Promise.all([
-        supabase.from('user_roles').select('role').eq('user_id', uid).eq('role', 'verifier').limit(1)
-          .then(({ data, error }) => !error && (data?.length ?? 0) > 0),
-        holdsContractorAccess(uid),
-      ]);
-      if (cancelled) return;
-      setIsVerifier(verifier);
-      setIsContractor(contractor);
-      setRolesChecked(true);
+      while (!cancelled && attempt < ATTEMPTS) {
+        const [verifier, contractor] = await Promise.all([
+          readVerifierRole(uid),
+          readContractorAccess(uid),
+        ]);
+        if (cancelled) return;
+
+        // Whatever DID answer is applied immediately. A verifier read that succeeded
+        // should not sit behind a contractor read that is still failing.
+        if (verifier.ok)   setIsVerifier(verifier.held);
+        if (contractor.ok) setIsContractor(contractor.held);
+
+        if (verifier.ok && contractor.ok) { setRolesChecked(true); return; }
+
+        attempt++;
+        if (attempt >= ATTEMPTS) {
+          // Out of tries. The flag stays down, so no gate acts on a guess; the
+          // surfaces render and their own reads decide what the person can do.
+          console.error('[auth] could not resolve roles:',
+            !verifier.ok ? verifier.error : '', !contractor.ok ? contractor.error : '');
+          return;
+        }
+        await new Promise(r => setTimeout(r, 400 * 2 ** (attempt - 1)));
+      }
     })();
 
     return () => { cancelled = true; };

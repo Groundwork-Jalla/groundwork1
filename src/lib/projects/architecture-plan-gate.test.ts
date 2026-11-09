@@ -118,13 +118,15 @@ describe('the answer carried into the wizard', () => {
 describe('the documents', () => {
   it('file the floor plan as a drawing and the BQ as a costing', () => {
     // Filing both as 'boq' would show two bills of quantities and no plan in the
-    // Documents tab.
+    // Documents tab. `floor_plan` since 179: `other` kept them apart on screen but
+    // left a plan indistinguishable from any attachment, so "has a floor plan" — half
+    // of what makes a project qualified — could not be asked.
     const plan = new File(['x'], 'plan.pdf');
     const upperPlan = new File(['z'], 'upper-floor.pdf');
     const bq   = new File(['y'], 'boq.csv');
     expect(planDocuments(YES({ floorPlans: [plan, upperPlan], bq }))).toEqual([
-      { file: plan, category: 'other' },
-      { file: upperPlan, category: 'other' },
+      { file: plan, category: 'floor_plan' },
+      { file: upperPlan, category: 'floor_plan' },
       { file: bq,   category: 'boq' },
     ]);
   });

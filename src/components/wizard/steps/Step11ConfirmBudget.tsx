@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { calculateBudget, decomposeBudget } from '@/lib/budget';
 import { supabase } from '@/lib/supabase/client';
 import { createProject } from '@/lib/supabase/projects';
+import type { DocCategory } from '@/lib/projects/plan-answer';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
 import { setClientIntent } from '@/lib/supabase/contractor-onboarding';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
@@ -78,7 +79,7 @@ export default function Step11ConfirmBudget() {
    * nobody would be told.
    */
   const planFilesLost = data.hasArchitecturePlan === true && planDocumentsSeen
-    && !((pendingDocuments ?? []).some(doc => doc.category === 'other')
+    && !((pendingDocuments ?? []).some(doc => doc.category === 'floor_plan')
       && (pendingDocuments ?? []).some(doc => doc.category === 'boq'));
 
   // ── A build that was already under way (103) ──────────────────────────────────────
@@ -255,7 +256,7 @@ export default function Step11ConfirmBudget() {
       //    no project to attach them to until now, and losing the project because a
       //    file failed would be the worse outcome. The person is told either way.
       let attachmentFailed = false;
-      const toUpload: { file: File; category: 'other' | 'boq' }[] = [
+      const toUpload: { file: File; category: DocCategory }[] = [
         ...(pendingDocuments ?? []),
         ...(file ? [{ file, category: 'boq' as const }] : []),
       ];

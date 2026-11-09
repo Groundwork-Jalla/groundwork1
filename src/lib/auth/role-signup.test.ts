@@ -470,12 +470,20 @@ describe('both kinds of contractor reach the same place', () => {
    */
 
   it('standing is the role OR an accepted assignment, never only the role', () => {
+    /**
+     * The rule moved into `readContractorAccess` on 9 Nov 2026, which is the same
+     * function with one more thing to say: whether it got an answer at all.
+     * `holdsContractorAccess` is now the boolean wrapper over it. The invariant is
+     * unchanged and is asserted where it now lives.
+     */
     const roles = read('src/lib/auth/roles.ts');
-    const fn = roles.slice(roles.indexOf('export async function holdsContractorAccess'));
-    const body = fn.slice(0, fn.indexOf('\n}'));
+    const fn = roles.slice(roles.indexOf('export async function readContractorAccess'));
+    const body = fn.slice(0, fn.indexOf('\n}\n'));
     expect(body).toMatch(/eq\('role', 'contractor'\)/);
-    expect(body).toMatch(/holdsContractorAssignment\(userId\)/);
-    expect(body).toMatch(/\|\| assignment/);
+    expect(body).toMatch(/readContractorAssignment\(userId\)/);
+    // Either one on its own is enough, even when the other read failed.
+    expect(body).toMatch(/if \(role\.ok && role\.held\) return \{ ok: true, held: true \};/);
+    expect(body).toMatch(/if \(assignment\.ok && assignment\.held\) return \{ ok: true, held: true \};/);
   });
 
   it('every decider uses that one function — no second opinion anywhere', () => {
@@ -486,7 +494,10 @@ describe('both kinds of contractor reach the same place', () => {
       'src/app/routes/auth/new-password.tsx',
     ]) {
       const code = strip(read(f));
-      expect(code, `${f} must ask holdsContractorAccess`).toMatch(/holdsContractorAccess\(/);
+      // Either form of the one decider: the boolean wrapper for a landing choice, or
+      // the error-aware reader for a gate that must not act on a guess (9 Nov 2026).
+      expect(code, `${f} must ask the shared decider`)
+        .toMatch(/holdsContractorAccess\(|readContractorAccess\(/);
       // Asking user_roles for 'contractor' here would be the second opinion that leaves
       // an invited contractor locked out of their own dashboard.
       expect(code, `${f} must not decide contractor standing itself`)

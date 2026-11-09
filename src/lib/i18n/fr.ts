@@ -3910,6 +3910,7 @@ export const fr: Mirror<EnDict> = {
     report: "Rapport",
     site_photo: "Photo de chantier",
     boq: 'Devis quantitatif',
+    floor_plan: "Plan",
     other: "Autre",
   },
   // ── Country names (data: src/lib/countries.ts) ──────────────

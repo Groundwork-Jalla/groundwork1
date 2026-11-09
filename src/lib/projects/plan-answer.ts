@@ -111,13 +111,24 @@ export function planSeed(
   };
 }
 
+/**
+ * What the wizard can file at project creation.
+ *
+ * `floor_plan` exists as of 179. Until then a drawing went in as `other`, which is
+ * why "the contractor has uploaded their bill of quantities and floor plan" — the
+ * shared definition of a qualified project — could not be answered by the platform
+ * at all: a plan was indistinguishable from any other attachment.
+ */
+export type DocCategory = 'floor_plan' | 'boq' | 'other';
+
 /** The documents to upload once the project exists, in the order they were asked for. */
-export function planDocuments(answer: PlanAnswer | null): { file: File; category: 'other' | 'boq' }[] {
+export function planDocuments(answer: PlanAnswer | null): { file: File; category: DocCategory }[] {
   if (!answer?.hasPlan) return [];
-  const out: { file: File; category: 'other' | 'boq' }[] = [];
-  // The floor plan is a drawing, not a costing, so it is not filed as 'boq' — the
-  // Documents tab would then show two bills of quantities and no plan.
-  for (const file of answer.floorPlans) out.push({ file, category: 'other' });
+  const out: { file: File; category: DocCategory }[] = [];
+  // A drawing, not a costing. Filed as 'boq' the Documents tab would show two bills
+  // of quantities and no plan; filed as 'other' — which it was until 179 — nothing
+  // downstream can tell it is a plan.
+  for (const file of answer.floorPlans) out.push({ file, category: 'floor_plan' });
   if (answer.bq) out.push({ file: answer.bq, category: 'boq' });
   return out;
 }
