@@ -3,10 +3,10 @@ import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
-  MapPin, Building2, ChevronRight, HardHat,
+  MapPin, Building2, ChevronRight, HardHat, Eye,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
-import { fetchProjects }         from '@/lib/supabase/projects';
+import { fetchClientProjects }   from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull, projectBudget } from '@/lib/budget';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
@@ -46,7 +46,7 @@ function SkeletonCard() {
   );
 }
 
-function ProjectCard({ project }: { project: ProjectRow }) {
+function ProjectCard({ project, shared }: { project: ProjectRow; shared: boolean }) {
   const labels = useDomainLabels();
   const t = useT();
   const status = STATUS_META[project.status] ?? STATUS_META.active;
@@ -64,6 +64,14 @@ function ProjectCard({ project }: { project: ProjectRow }) {
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
           <span className={`size-1.5 rounded-full ${status.dot}`} />{t(status.labelKey)}
         </span>
+        {/* Whose build it is. A client on a contractor-run project (166) has cards they
+            can open and cards they can act on, and the card is where that is decided —
+            the figures below are the same either way. */}
+        {shared && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-border-grey bg-brand-off-white px-2.5 py-0.5 text-[10px] font-semibold text-brand-mid-grey">
+            <Eye className="size-3" aria-hidden="true" />{t('dashboard.shared.badge')}
+          </span>
+        )}
       </div>
       <h3 className="text-base font-bold text-brand-near-black leading-snug truncate mb-1">{project.name}</h3>
       <div className="flex items-center gap-2 text-xs text-brand-mid-grey mb-4 flex-wrap">
@@ -106,17 +114,43 @@ export default function ProjectsIndex() {
   // partner who created a project for their client opened it and saw the CLIENT's
   // view, complete with an invitation to invite a contractor. Reported 29 October.
 
-  const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState('all');
+  const [projects,   setProjects]   = useState<ProjectRow[]>([]);
+  // The ids of the builds somebody else owns (112, 166). Kept beside the list rather
+  // than folded into it: `ProjectRow` is the database row and this is not a column.
+  const [sharedIds,  setSharedIds]  = useState<Set<string>>(() => new Set());
+  const [ownedCount, setOwnedCount] = useState(0);
+  const [loading,    setLoading]    = useState(true);
+  const [filter,     setFilter]     = useState('all');
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
 
   useEffect(() => {
     if (!user) return;
-    const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
-    loader.then(setProjects).catch(() => {}).finally(() => setLoading(false));
+    let live = true;
+
+    // A client has builds by two routes — created, and invited onto. This page asked
+    // only for the first until 9 Nov 2026, so a client whose contractor set the build
+    // up (166) opened "My Builds" and was told they had none.
+    const loader = isContractor
+      ? fetchContractorProjects(user.id).then(rows => ({ all: rows, shared: [], owned: rows }))
+      : fetchClientProjects(user.id);
+
+    loader
+      .then(({ all, shared, owned }) => {
+        if (!live) return;
+        setProjects(all);
+        setSharedIds(new Set(shared.map(p => p.id)));
+        setOwnedCount(owned.length);
+      })
+      .catch(() => {})
+      .finally(() => { if (live) setLoading(false); });
+
+    return () => { live = false; };
   }, [user, isContractor]);
+
+  // Every build on this page belongs to somebody else, so there is nothing here to
+  // create one with. See the dashboard for the reasoning — it is the same test.
+  const viewerOnly = !isContractor && !loading && ownedCount === 0 && projects.length > 0;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
@@ -131,7 +165,7 @@ export default function ProjectsIndex() {
             </p>
           )}
         </div>
-        {!isContractor && (
+        {!isContractor && !viewerOnly && (
           <Link to="/projects/new"
             className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2 hover:bg-black transition-colors">
             <Plus className="size-4" /> {t('projects.newBuild')}
@@ -183,10 +217,10 @@ export default function ProjectsIndex() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((p, i) => (
               <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                <ProjectCard project={p} />
+                <ProjectCard project={p} shared={sharedIds.has(p.id)} />
               </motion.div>
             ))}
-            {!isContractor && (
+            {!isContractor && !viewerOnly && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: filtered.length * 0.06 }}>
                 <Link to="/projects/new"
                   className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-brand-border-grey bg-white/50 p-8 min-h-48 hover:border-brand-near-black hover:bg-white transition-all group h-full">

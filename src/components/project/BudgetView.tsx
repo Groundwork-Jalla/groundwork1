@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Layers, ChevronRight, TriangleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
-import { BUDGET_SLICES, formatUSD, formatUSDFull, projectBudget, sliceShares } from '@/lib/budget';
+import { BUDGET_SLICES, projectBudget, sliceShares } from '@/lib/budget';
+import { useMoney, useProjectMoneyContext } from '@/lib/budget/project-money-context';
 import { sliceDerivation, type SliceDerivation } from '@/lib/budget/derivation';
 import { checkEstimate } from '@/lib/budget/sanity';
 import { resolveCityRate } from '@/lib/budget/model';
@@ -112,6 +113,9 @@ function OverviewBar({
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
+  // Every figure on this page is shown in the project's currency — 9 Nov 2026.
+  // See project-money-context.tsx: the conversion is a rendering decision only.
+  const money = useMoney();
   const [open, setOpen] = useState(false);
   const color = SLICE_SHADES[index % SLICE_SHADES.length];
 
@@ -147,7 +151,7 @@ function OverviewBar({
           />
         </span>
         <span className="w-20 shrink-0 text-right text-xs font-medium tabular-nums text-brand-near-black dark:text-white">
-          {formatUSD(amount)}
+          {money(amount)}
         </span>
         <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-brand-mid-grey">
           {pct}%
@@ -174,7 +178,7 @@ function OverviewBar({
                       <span className="min-w-0 text-brand-mid-grey">{t(row.labelKey, row.params)}</span>
                       {row.amount != null && (
                         <span className="w-20 shrink-0 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
-                          {formatUSDFull(row.amount)}
+                          {money(row.amount)}
                         </span>
                       )}
                     </div>
@@ -202,7 +206,7 @@ function OverviewBar({
                       <span className="flex shrink-0 items-baseline gap-2">
                         <span className="text-brand-border-grey tabular-nums">{stage.budget_pct}%</span>
                         <span className="w-16 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
-                          {formatUSD(amount * ((stage.budget_pct ?? 0) / 100))}
+                          {money(amount * ((stage.budget_pct ?? 0) / 100))}
                         </span>
                       </span>
                     </div>
@@ -223,6 +227,7 @@ function OverviewBar({
 
 function StageBar({ stage }: { stage: ProjectStageRow }) {
   const { stageLabel } = useStageLabels();
+  const money = useMoney();
   const isComplete = stage.status === 'complete';
   const isActive   = stage.status === 'active';
   const isReview   = stage.status === 'pending_review';
@@ -244,7 +249,7 @@ function StageBar({ stage }: { stage: ProjectStageRow }) {
           <StatusBadge status={stage.status} />
         </div>
         <span className="shrink-0 text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-          {formatUSDFull(stage.payment_milestone_usd ?? 0)}{' '}
+          {money(stage.payment_milestone_usd ?? 0)}{' '}
           <span className="text-[10px]">({stage.budget_pct}%)</span>
         </span>
       </div>
@@ -297,6 +302,7 @@ function MetricBox({
   value: number;
   dimmed?: boolean;
 }) {
+  const money = useMoney();
   return (
     <div className="rounded-xl border border-brand-border-grey p-4 flex flex-col gap-1">
       <span className="text-xs text-brand-mid-grey">{label}</span>
@@ -306,7 +312,7 @@ function MetricBox({
           dimmed ? 'text-brand-mid-grey' : 'text-brand-near-black',
         )}
       >
-        {value > 0 ? formatUSDFull(value) : '—'}
+        {value > 0 ? money(value) : '—'}
       </span>
     </div>
   );
@@ -374,6 +380,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
   floorRooms: FloorRoom[] | null;
 }) {
   const t = useT();
+  const money = useMoney();
   const floors = computeFloorCosts(total, numFloors, floorRooms);
   if (floors.length === 0) return null;
 
@@ -409,7 +416,7 @@ function FloorBreakdownSection({ total, numFloors, floorRooms }: {
                 </div>
               </div>
               <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-xs font-bold text-brand-near-black dark:text-white tabular-nums">{formatUSDFull(fc.amount)}</span>
+                <span className="text-xs font-bold text-brand-near-black dark:text-white tabular-nums">{money(fc.amount)}</span>
                 <span className="text-[10px] text-brand-mid-grey tabular-nums">{fc.pct}%</span>
               </div>
             </div>
@@ -449,6 +456,10 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   const { stageLabel } = useStageLabels();
   const { lang } = useLanguage();
   const t = useT();
+  const money = useMoney();
+  // The same currency and rate the page is rendering with, so the downloaded report
+  // cannot disagree with the screen it came from.
+  const fx = useProjectMoneyContext();
   const [exporting, setExporting] = useState(false);
   // The country rate row, for its rule-of-thumb reference figure. Same pattern as
   // ProjectPayments and TakeoffComparison; a failure leaves it null, which switches the
@@ -465,7 +476,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   async function handleExportPDF() {
     setExporting(true);
     try {
-      await exportBudgetPDF(project, stages, lang);
+      await exportBudgetPDF(project, stages, lang, fx ? { code: fx.code, rate: fx.rate } : undefined);
     } finally {
       setExporting(false);
     }
@@ -529,7 +540,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
 
         <div className="mb-5">
           <span className="text-3xl font-black text-brand-near-black tabular-nums">
-            {formatUSDFull(budget.total)}
+            {money(budget.total)}
           </span>
         </div>
 
@@ -638,7 +649,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     {isComplete ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#22c55e' }}>
-                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          {money(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.releasedLabel')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
@@ -649,7 +660,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : isActive ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#3b82f6' }}>
-                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          {money(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.heldInProgress')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
@@ -657,7 +668,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : isReview ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
-                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          {money(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.awaitingApproval')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
@@ -665,7 +676,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : (
                       <>
                         <p className="text-sm font-medium tabular-nums text-brand-mid-grey leading-none">
-                          {formatUSDFull(stage.payment_milestone_usd ?? 0)}
+                          {money(stage.payment_milestone_usd ?? 0)}
                           <span className="text-xs font-normal ml-1.5">{t('project.costing.lockedLabel')}</span>
                         </p>
                         <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stageLabel(stage)}</p>

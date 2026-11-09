@@ -106,9 +106,24 @@ describe('no surface turns a zero milestone into money that moved', () => {
     expect(dash).toContain('payment_status, pre_existing');
   });
 
-  it('the project Overview excludes them from the paid total', () => {
+  it('the project Overview excludes them from both the paid total and the outstanding', () => {
+    const overview = code('src/components/project/OverviewTab.tsx');
+    // 9 Nov 2026: paid and outstanding are now summed from the obligations themselves
+    // rather than derived as `total - paid`, so pre_existing has to be filtered out
+    // ONCE, ahead of both sides, instead of on the paid side only.
+    expect(overview).toContain('const billableStages = sortedStages.filter(s => !s.pre_existing)');
+    expect(overview).toContain('billableStages.filter(stageIsPaid)');
+    expect(overview).toContain('billableStages.filter(s => !stageIsPaid(s))');
+    // And the legacy projection is still honoured for projects that predate the ledger.
+    expect(overview).toContain("return s.payment_status === 'paid';");
+  });
+
+  it('a funded tranche, not the legacy projection, is what counts as paid', () => {
+    // `project_stages.payment_status` is 090's projection; the ledger's state is what
+    // the money did. A stage whose tranche is funded but whose projection was never
+    // written back must not keep reading as owing.
     expect(code('src/components/project/OverviewTab.tsx'))
-      .toContain("filter(s => !s.pre_existing && s.payment_status === 'paid')");
+      .toContain("return tranche.state === 'funded' || tranche.state === 'reconciled';");
   });
 
   it('a pre-existing stage unlocks no payment-gated affordance', () => {

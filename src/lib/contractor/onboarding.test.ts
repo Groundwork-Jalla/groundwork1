@@ -185,14 +185,27 @@ describe('the agreement cannot be forged', () => {
     expect(routes).toMatch(/route\("partner-agreement",\s*"routes\/partner-agreement\.tsx"\)/);
   });
 
-  it('accepting waits on reaching the end of the text', () => {
-    // Not a legal requirement — the difference between a signature and a reflex.
-    expect(reader).toMatch(/const atEnd = el\.scrollTop \+ el\.clientHeight >= el\.scrollHeight - 24/);
-    expect(reader).toMatch(/disabled=\{!readToEnd \|\| busy\}/);
-    // A document too short to scroll must still be acceptable, or it is a dead end that
-    // looks like a broken page.
-    expect(reader).toMatch(/const fits = el\.scrollHeight <= el\.clientHeight \+ 4/);
-    expect(reader).toMatch(/if \(fits \|\| atEnd\) setReadToEnd\(true\)/);
+  it('no longer withholds acceptance until the reader reaches the end', () => {
+    // Philip, 9 Nov 2026: the forced scroll was costing sign-ups, and it was never what
+    // made the signature binding. What does is recorded server-side — accept_agreement
+    // (116) writes the signer, the version the DATABASE chose, the typed name and a
+    // timestamped activity row. This test is the guard against the gate coming back by
+    // reflex rather than by decision.
+    expect(reader).not.toMatch(/readToEnd/);
+    expect(reader).not.toMatch(/scrollHeight|scrollTop|onScroll/);
+  });
+
+  it('but the document is still rendered above the signature', () => {
+    // The point of the reader survives the gate's removal: acceptance is given in front
+    // of the text, not through a link that opened it somewhere else.
+    expect(reader).toMatch(/blocks\.map\(\(\[kind, text\], i\)/);
+    expect(reader).toMatch(/overflow-y-auto/);
+  });
+
+  it('and changing the document or the language clears the signature', () => {
+    // The text under the signature has been replaced, so a carried-over tick would be
+    // consent to something nobody read.
+    expect(reader).toMatch(/setConfirmed\(false\); setName\(''\); \}, \[doc, lang\]/);
   });
 
   it('the signature is typed, never prefilled from the profile', () => {

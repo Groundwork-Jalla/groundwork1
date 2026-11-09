@@ -39,12 +39,23 @@ export interface NavItem {
 /** Client app. The first five also become the mobile tab bar. */
 // Order is Favour's, set 19 Aug 2026: the money and the people move up, reference
 // material moves down. Roughly how often an owner mid-build needs each one.
+//
+// ── Contractors and Messages left this list on 9 Nov 2026 ─────────────────────────
+// Philip, reviewing the client journey: take contractor access and messaging out of the
+// client menu. A client's job here is to follow their own build, and two of the nine
+// doors led away from it — one into a directory of people they have not hired, one into
+// a chat surface whose useful half already lives on the project itself, as the Messages
+// tab beside the stages it is about.
+//
+// The ROUTES are deliberately left registered. /contractors and /messages are typeable
+// URLs that older emails, notification links and bookmarks already point at, and a 404
+// is a worse answer than a page nobody is being sent to any more. This removes the
+// signposting, not the destination; if the pages themselves are to go, that is a
+// separate decision with its own redirects.
 export const CLIENT_NAV: NavItem[] = [
   { to: '/dashboard',     labelKey: 'nav.dashboard',                               icon: LayoutDashboard, exact: true },
   { to: '/projects',      labelKey: 'nav.myProjects', shortKey: 'nav.projects',    icon: FolderOpen },
-  { to: '/contractors',   labelKey: 'nav.contractors',                             icon: HardHat },
   { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
-  { to: '/messages',      labelKey: 'nav.messages',                                icon: MessagesSquare },
   { to: '/notifications', labelKey: 'nav.notifications',                           icon: Bell },
   { to: '/resources',     labelKey: 'nav.resources',                               icon: BookOpen },
   { to: '/profile',       labelKey: 'nav.settings',                                icon: Settings, exact: true },

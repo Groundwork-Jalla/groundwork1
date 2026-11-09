@@ -9,7 +9,7 @@ import {
 } from '@/lib/payments/client-view';
 import type { ProjectRow, ProjectStageRow, ProjectFeeRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
-import { formatUSD } from '@/lib/budget';
+import { useMoney } from '@/lib/budget/project-money-context';
 import { formatDate } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -68,6 +68,8 @@ export default function ProjectPaymentsLedger({ project, stages }: {
   project: ProjectRow;
   stages: ProjectStageRow[];
 }) {
+  // Figures are stored in USD; the client pays in the project's currency (9 Nov 2026).
+  const money = useMoney();
   const t = useT();
   const { stageLabel } = useStageLabels();
 
@@ -168,10 +170,10 @@ export default function ProjectPaymentsLedger({ project, stages }: {
 
       {/* ── The four figures ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card label={t('project.pay.cardFunding')}   value={formatUSD(sums.funded)}    note={t('project.pay.cardFundingNote')} tone="complete" />
-        <Card label={t('project.pay.cardPaid')}      value={formatUSD(sums.disbursed)} note={t('project.pay.cardPaidNote')}    tone="complete" />
-        <Card label={t('project.pay.cardApproved')}  value={formatUSD(sums.approved)}  note={t('project.pay.cardApprovedNote')} tone="held" />
-        <Card label={t('project.pay.cardAvailable')} value={formatUSD(sums.available)} note={t('project.pay.cardAvailableNote')} tone="neutral" />
+        <Card label={t('project.pay.cardFunding')}   value={money(sums.funded)}    note={t('project.pay.cardFundingNote')} tone="complete" />
+        <Card label={t('project.pay.cardPaid')}      value={money(sums.disbursed)} note={t('project.pay.cardPaidNote')}    tone="complete" />
+        <Card label={t('project.pay.cardApproved')}  value={money(sums.approved)}  note={t('project.pay.cardApprovedNote')} tone="held" />
+        <Card label={t('project.pay.cardAvailable')} value={money(sums.available)} note={t('project.pay.cardAvailableNote')} tone="neutral" />
       </div>
 
       {/* ── What to pay next ────────────────────────────────────────────── */}
@@ -190,10 +192,10 @@ export default function ProjectPaymentsLedger({ project, stages }: {
             </p>
             <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3 border-t border-brand-border-grey/60 pt-3">
               <span className="text-sm text-brand-mid-grey">{t('project.pay.amountRequired')}</span>
-              <span className="text-2xl font-black tabular-nums text-brand-near-black">{formatUSD(next.amount)}</span>
+              <span className="text-2xl font-black tabular-nums text-brand-near-black">{money(next.amount)}</span>
             </div>
             <p className={cn('mt-1 text-sm font-semibold', TONE.awaiting)}>{t('project.pay.fundingAwaiting')}</p>
-            <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.pay.nextExplain', { amount: formatUSD(next.amount) })}</p>
+            <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.pay.nextExplain', { amount: money(next.amount) })}</p>
             {reported ? (
               <p className="mt-4 flex items-center gap-2 text-sm text-state-complete">
                 <CheckCircle2 className="size-4 shrink-0" />{t('project.pay.reportedThanks')}
@@ -270,7 +272,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-near-black">
-                    {(s.payment_milestone_usd ?? 0) > 0 ? formatUSD(s.payment_milestone_usd!) : '—'}
+                    {(s.payment_milestone_usd ?? 0) > 0 ? money(s.payment_milestone_usd!) : '—'}
                   </span>
                   <span className={cn('hidden w-40 shrink-0 text-xs lg:block', TONE[f])}>{t(FUNDING_KEY[f])}</span>
                   <span className={cn('hidden w-40 shrink-0 text-xs lg:block', TONE[r])}>{t(RELEASE_KEY[r])}</span>
@@ -286,7 +288,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                       <Fact label={t('project.pay.detailRelease')} value={t('project.pay.releaseNone')} tone={TONE.none} />
                     ) : rr.map(row => (
                       <div key={row.id}>
-                        <Fact label={t('project.pay.detailRelease')} value={`${formatUSD(row.amount)} · ${t(RELEASE_KEY[releaseLabel([row])])}`} tone={TONE[releaseLabel([row])]} />
+                        <Fact label={t('project.pay.detailRelease')} value={`${money(row.amount)} · ${t(RELEASE_KEY[releaseLabel([row])])}`} tone={TONE[releaseLabel([row])]} />
                         {row.authorisedAt && <Fact label={t('project.pay.detailApprovedOn')} value={formatDate(row.authorisedAt)} />}
                         {row.settledAt && <Fact label={t('project.pay.detailPaidOn')} value={formatDate(row.settledAt)} />}
                       </div>
@@ -316,7 +318,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-brand-near-black">{t(`project.pay.event.${item.kind}` as TKey)}</span>
                   <span className="block text-xs text-brand-mid-grey">
-                    {stageName(item.stageId)} · {formatUSD(item.amount)}
+                    {stageName(item.stageId)} · {money(item.amount)}
                     {item.at && <> · {formatDate(item.at)}</>}
                   </span>
                 </span>
@@ -334,7 +336,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
             {fees.map(f => (
               <div key={f.id} className="flex items-baseline justify-between gap-4 px-5 py-3">
                 <dt className="text-brand-mid-grey">{t(`project.pay.fee.${f.kind}` as TKey)}</dt>
-                <dd className="font-semibold tabular-nums text-brand-near-black">{formatUSD(f.amount_usd)}</dd>
+                <dd className="font-semibold tabular-nums text-brand-near-black">{money(f.amount_usd)}</dd>
               </div>
             ))}
           </dl>

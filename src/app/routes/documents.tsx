@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Search } from 'lucide-react';
 import { useAuth }       from '@/contexts/AuthContext';
 import { supabase }      from '@/lib/supabase/client';
-import { fetchProjects } from '@/lib/supabase/projects';
+import { fetchClientProjects } from '@/lib/supabase/projects';
 import type { ProjectRow } from '@/types/project';
 import { useT } from '@/lib/i18n';
 import { DocumentViewer } from '@/components/project/DocumentViewer';
@@ -82,7 +82,10 @@ export default function DocumentsPage() {
   useEffect(() => {
     if (!user) return;
 
-    fetchProjects(user.id).then(async (projs) => {
+    // Owned AND shared. The certificates and documents below are filtered by project
+    // id, and RLS has always returned both to a viewer (112) — this page simply never
+    // asked for the shared ones, so an invited client's vault was empty.
+    fetchClientProjects(user.id).then(async ({ all: projs }) => {
       setProjects(projs);
 
       if (projs.length === 0) {

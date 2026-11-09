@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Wallet, TrendingUp, CheckCircle2, Download, X, Plus, Lightbulb } from 'lucide-react';
+import { MapPin, Wallet, TrendingUp, CheckCircle2, Download, X, Plus, Lightbulb, Eye } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
-import { fetchProjects }         from '@/lib/supabase/projects';
+import { fetchClientProjects }   from '@/lib/supabase/projects';
 import { fetchContractorProjects } from '@/lib/supabase/invites';
 import { formatUSDFull }         from '@/lib/budget';
 import type { ProjectRow }       from '@/types/project';
@@ -256,10 +256,30 @@ export default function PaymentsPage() {
   const dismissToast = useRef<(() => void) | null>(null);
   dismissToast.current = () => setToast(null);
 
+  const [sharedIds, setSharedIds] = useState<Set<string>>(() => new Set());
+
   useEffect(() => {
     if (!user) return;
-    const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
-    loader.then(setProjects).catch(() => {}).finally(() => setLoading(false));
+    let live = true;
+
+    // A client invited onto somebody else's build (112, 166) is paying for it and had
+    // no page on which to see what it costs. The figures here are read-only for
+    // everyone; what they must not get is the "Record a payment" action, which is
+    // handled per row below.
+    const loader = isContractor
+      ? fetchContractorProjects(user.id).then(rows => ({ all: rows, shared: [] }))
+      : fetchClientProjects(user.id);
+
+    loader
+      .then(({ all, shared }) => {
+        if (!live) return;
+        setProjects(all);
+        setSharedIds(new Set(shared.map(p => p.id)));
+      })
+      .catch(() => {})
+      .finally(() => { if (live) setLoading(false); });
+
+    return () => { live = false; };
   }, [user, isContractor]);
 
   const totalBudget = projects.reduce((s, p) => s + (p.budget_usd ?? 0), 0);
@@ -367,6 +387,12 @@ export default function PaymentsPage() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="min-w-0">
                           <Link to={`/projects/${p.id}`} className="text-sm font-semibold text-brand-near-black dark:text-white hover:underline underline-offset-2">{p.name}</Link>
+                          {/* Somebody else's build (112, 166). The budget below is the
+                              build's, not this person's to move — and they can now at
+                              least see what it is. */}
+                          {sharedIds.has(p.id) && (
+                            <Eye className="ml-1.5 inline size-3 text-brand-mid-grey" aria-label={t('dashboard.shared.badge')} />
+                          )}
                           {loc && (
                             <p className="text-xs text-brand-mid-grey dark:text-brand-mid-grey mt-0.5 flex items-center gap-1">
                               <MapPin className="size-3 shrink-0" />{loc}

@@ -5,7 +5,8 @@ import {
   TrendingUp, TrendingDown, Info, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { decomposeBudget, formatUSDFull } from '@/lib/budget';
+import { decomposeBudget } from '@/lib/budget';
+import { useMoney } from '@/lib/budget/project-money-context';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { startProjectTracking } from '@/lib/supabase/tracking';
 import { useT } from '@/lib/i18n';
@@ -17,6 +18,8 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
   userId: string;
   onStarted: () => void;
 }) {
+  // Shown in the project's own currency — see project-money-context.tsx.
+  const money = useMoney();
   const t = useT();
   const estimate = project.budget_usd ?? 0;
 
@@ -102,7 +105,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.gate.estimateSub')}</p>
             </div>
             <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white shrink-0">
-              {estimate > 0 ? formatUSDFull(estimate) : '—'}
+              {estimate > 0 ? money(estimate) : '—'}
             </p>
           </div>
 
@@ -134,11 +137,11 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] px-4 py-3">
                   <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.compareEst')}</p>
-                  <p className="text-base font-bold tabular-nums text-brand-mid-grey mt-1 line-through">{formatUSDFull(estimate)}</p>
+                  <p className="text-base font-bold tabular-nums text-brand-mid-grey mt-1 line-through">{money(estimate)}</p>
                 </div>
                 <div className="rounded-xl border-2 border-brand-near-black dark:border-white px-4 py-3">
                   <p className="text-[10px] font-semibold text-brand-near-black dark:text-white uppercase tracking-wide">{t('project.gate.compareFinal')}</p>
-                  <p className="text-base font-bold tabular-nums text-brand-near-black dark:text-white mt-1">{formatUSDFull(finalBudget)}</p>
+                  <p className="text-base font-bold tabular-nums text-brand-near-black dark:text-white mt-1">{money(finalBudget)}</p>
                 </div>
               </div>
               <div className={cn(
@@ -148,7 +151,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               )}>
                 {up ? <TrendingUp className="size-3.5 shrink-0" /> : <TrendingDown className="size-3.5 shrink-0" />}
                 {up ? t('project.gate.higherBy') : t('project.gate.lowerBy')}{' '}
-                <span className="font-bold tabular-nums">{formatUSDFull(Math.abs(diff))}</span>
+                <span className="font-bold tabular-nums">{money(Math.abs(diff))}</span>
                 <span className="tabular-nums">({up ? '+' : '−'}{Math.abs(diffPct).toFixed(1)}%)</span>
               </div>
             </motion.div>

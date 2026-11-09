@@ -6,6 +6,7 @@ import Stepper from '../Stepper';
 import { useWizard } from '@/contexts/WizardContext';
 import { cn } from '@/lib/utils';
 import type { FloorRoom } from '@/types/project';
+import { emptyFloor, floorTotals, resizeFloors } from '@/lib/projects/floors';
 import { useLanguage, type TKey } from '@/lib/i18n';
 
 function floorLabel(index: number) {
@@ -35,30 +36,13 @@ const ROOM_TYPES = [
   labelKey: TKey; subKey: TKey; unitKey: TKey;
 }[];
 
-const EMPTY_FLOOR = (i: number): FloorRoom =>
-  ({ floor: i, bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0, offices: 0 });
+// `emptyFloor`, the resize and the cross-floor totals moved to lib/projects/floors.ts
+// on 9 Nov 2026, when the summary gained its own floor-count field. Two copies of this
+// is how `bedrooms` stops agreeing with the sum of the floors.
+const EMPTY_FLOOR = emptyFloor;
 
-function initFloors(count: number, existing: FloorRoom[]): FloorRoom[] {
-  return Array.from({ length: count }, (_, i) => {
-    const found = existing.find(f => f.floor === i);
-    // Spread over the empty floor so a row saved before `offices` existed gains it as 0
-    // rather than undefined, which would render the stepper blank and NaN the totals.
-    return found ? { ...EMPTY_FLOOR(i), ...found } : EMPTY_FLOOR(i);
-  });
-}
-
-function computeTotals(floors: FloorRoom[]) {
-  return floors.reduce(
-    (acc, f) => ({
-      bedrooms:    acc.bedrooms    + f.bedrooms,
-      bathrooms:   acc.bathrooms   + f.bathrooms,
-      livingRooms: acc.livingRooms + f.livingRooms,
-      kitchens:    acc.kitchens    + f.kitchens,
-      offices:     acc.offices     + (f.offices ?? 0),
-    }),
-    { bedrooms: 0, bathrooms: 0, livingRooms: 0, kitchens: 0, offices: 0 },
-  );
-}
+const initFloors = resizeFloors;
+const computeTotals = floorTotals;
 
 /** Rooms on one floor. Drives the gate, the segment state and the empty-floor notice. */
 const roomsOn = (f: FloorRoom) =>

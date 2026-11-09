@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
+import { floorCountPatch } from '@/lib/projects/floors';
 import { useT, type TKey } from '@/lib/i18n';
 
 /**
@@ -49,9 +50,11 @@ export default function Step4Floors() {
   const { data, update, next } = useWizard();
 
   function setFloors(n: number) {
-    const clamped = Math.max(1, Math.min(20, n));
-    // Reset floorRooms so Step5 re-initialises tabs for the new count
-    update({ floors: clamped, floorRooms: [] });
+    // Resizes rather than clears (lib/projects/floors.ts). On THIS step the rooms are
+    // almost always still empty, so the two behave identically; the shared helper is
+    // used anyway so the summary's field and this stepper cannot drift apart on what
+    // changing the floor count means.
+    update(floorCountPatch(n, data.floorRooms ?? []));
   }
 
   return (

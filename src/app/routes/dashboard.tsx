@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 import {
   Plus,
   ChevronRight, HardHat,
-  UserCircle, Check, Upload, MessageSquare, FolderArchive,
+  UserCircle, Check, Upload, MessageSquare, FolderArchive, Eye, Camera,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
 import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
 import { supabase }                   from '@/lib/supabase/client';
-import { fetchProjects }              from '@/lib/supabase/projects';
+import { fetchClientProjects }        from '@/lib/supabase/projects';
 import { fetchContractorProjects }    from '@/lib/supabase/invites';
 import { formatUSDFull, BUDGET_SLICES, projectBudget, sliceShares, type BudgetSliceKey } from '@/lib/budget';
 import { formatMoney } from '@/lib/format';
@@ -118,6 +118,11 @@ function ProfileCompletion({ nameSet, hasProject }: {
     { label: t('dashboard.profileCompletion.nameSet'),        done: nameSet    },
     { label: t('dashboard.profileCompletion.firstProject'),   done: hasProject },
   ];
+  // `hasProject` counts OWNED projects only, and the caller does not render this card
+  // at all for somebody whose builds are all shared with them (112, 166). A client
+  // whose contractor set the build up has no project of their own to create and never
+  // will, so a tracker stuck at 67% would be telling them to undo their own
+  // onboarding.
   const count = items.filter(i => i.done).length;
   const pct   = Math.round((count / items.length) * 100);
   if (pct === 100) return null;
@@ -192,8 +197,10 @@ function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
   return { released, held, remaining: Math.max(total - released - held, 0) };
 }
 
-function ActiveProjectHero({ project, stages, stagesLoading }: {
+function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
   project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean;
+  /** Somebody else owns this build and invited this person onto it (112, 166). */
+  shared: boolean;
 }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
@@ -221,10 +228,21 @@ function ActiveProjectHero({ project, stages, stagesLoading }: {
       className="rounded-2xl border border-[#333] bg-brand-near-black p-6 sm:p-7"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
-          <span className={`size-1.5 rounded-full ${status.dot}`} />
-          {t(status.labelKey)}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
+            <span className={`size-1.5 rounded-full ${status.dot}`} />
+            {t(status.labelKey)}
+          </span>
+          {/* Beside the status, not instead of it: whose build this is and how it is
+              going are different questions and a client watching their contractor's
+              build needs both answered. */}
+          {shared && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
+              <Eye className="size-3" aria-hidden="true" />
+              {t('dashboard.shared.badge')}
+            </span>
+          )}
+        </div>
         <span className="shrink-0 text-[11px] text-white/40 tabular-nums">
           {stagesLoading
             ? '—'
@@ -267,6 +285,16 @@ function ActiveProjectHero({ project, stages, stagesLoading }: {
         ))}
       </div>
 
+      {/* Said once, here, rather than left for the person to deduce from buttons that
+          are missing. A client paying for a house wants to know why they cannot
+          approve a stage; the answer is that somebody else is running the build, and
+          it is not a fault. */}
+      {shared && (
+        <p className="mt-4 rounded-xl bg-white/6 px-3.5 py-3 text-[11px] leading-relaxed text-white/55">
+          {t('dashboard.shared.readOnly')}
+        </p>
+      )}
+
       <Link
         to={`/projects/${project.id}`}
         className="group mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
@@ -282,16 +310,29 @@ function ActiveProjectHero({ project, stages, stagesLoading }: {
 // Four destinations with a live subtitle each, so the tile says what is waiting
 // rather than merely where it goes. Monochrome icons — no emoji anywhere.
 
-function QuickActions({ project, unread, documentCount, contractorCount }: {
+function QuickActions({ project, unread, documentCount, shared }: {
   project: ProjectRow | undefined;
   unread: number;
   documentCount: number;
-  contractorCount: number;
+  /** The active build belongs to somebody else. The first card changes; the rest do not. */
+  shared: boolean;
 }) {
   const t = useT();
 
   const actions = [
-    {
+    // Upload, or read what was uploaded.
+    //
+    // 088 names who may file a site update — the owner, an accepted contractor, an
+    // administrator — and refuses everybody else with `not_member`. An invited client
+    // is none of those, so "Upload Updates" is a card that leads to a refusal. What
+    // they came for is on the same screen anyway: the photographs and reports from
+    // site, which is the Timeline tab.
+    shared && project ? {
+      to: `/projects/${project.id}?tab=timeline`,
+      icon: Camera,
+      labelKey: 'dashboard.quick.updates' as TKey,
+      sub: t('dashboard.quick.updatesSub'),
+    } : {
       to: project ? `/projects/${project.id}` : '/projects',
       icon: Upload,
       labelKey: 'dashboard.quick.evidence' as TKey,
@@ -299,30 +340,32 @@ function QuickActions({ project, unread, documentCount, contractorCount }: {
         ? t('dashboard.quick.evidenceSub', { project: project.name })
         : t('dashboard.quick.evidenceNone'),
     },
-    {
-      // Straight into the conversation. This said "Messages" and went to
-      // /notifications — a list of things that had happened, not the thread. With a
-      // build open it opens THAT build's messages, because that is the conversation
-      // the person on the dashboard means.
-      to: project ? `/projects/${project.id}?tab=messages` : '/messages',
-      icon: MessageSquare,
-      labelKey: 'dashboard.quick.messages' as TKey,
-      sub: unread > 0
-        ? t('dashboard.quick.messagesSub', { count: unread })
-        : t('dashboard.quick.messagesNone'),
-    },
+    // Straight into the conversation. This said "Messages" and went to
+    // /notifications — a list of things that had happened, not the thread. With a
+    // build open it opens THAT build's messages, because that is the conversation
+    // the person on the dashboard means.
+    //
+    // 9 Nov 2026: with messaging out of the client menu, the project tab is the only
+    // place a client is sent for a conversation, so this card is shown only when there
+    // is a build for it to open. Without one it used to fall back to the standalone
+    // /messages page, which is now a door nothing else points at.
+    ...(project ? [{
+        to: `/projects/${project.id}?tab=messages`,
+        icon: MessageSquare,
+        labelKey: 'dashboard.quick.messages' as TKey,
+        sub: unread > 0
+          ? t('dashboard.quick.messagesSub', { count: unread })
+          : t('dashboard.quick.messagesNone'),
+      }] : []),
     {
       to: '/documents',
       icon: FolderArchive,
       labelKey: 'dashboard.quick.documents' as TKey,
       sub: t('dashboard.quick.documentsSub', { count: documentCount }),
     },
-    {
-      to: '/contractors',
-      icon: HardHat,
-      labelKey: 'dashboard.quick.contractors' as TKey,
-      sub: t('dashboard.quick.contractorsSub', { count: contractorCount }),
-    },
+    // The "Contractors" card went with the sidebar item on 9 Nov 2026. It opened the
+    // published directory — people the client has not hired — from the page they come
+    // to for the build they are in the middle of.
   ];
 
   return (
@@ -456,7 +499,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 // are builds you are not working on right now, and the page's job is to keep the
 // active one unambiguous.
 
-function OtherProjectRow({ project }: { project: ProjectRow }) {
+function OtherProjectRow({ project, shared }: { project: ProjectRow; shared: boolean }) {
   const t = useT();
   const { buildingType } = useDomainLabels();
   const { total } = projectBudget(project);
@@ -469,7 +512,15 @@ function OtherProjectRow({ project }: { project: ProjectRow }) {
     >
       <span className={`size-2 shrink-0 rounded-full ${status.dot}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-brand-near-black dark:text-white">{project.name}</p>
+        <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-brand-near-black dark:text-white">
+          <span className="truncate">{project.name}</span>
+          {/* An icon, not a word: the row is one line and the name has to survive on a
+              phone. The title attribute carries the same thing for a pointer, and the
+              screen-reader text for everyone else. */}
+          {shared && (
+            <Eye className="size-3.5 shrink-0 text-brand-mid-grey" aria-label={t('dashboard.shared.badge')} />
+          )}
+        </p>
         <p className="truncate text-xs text-brand-mid-grey">
           {[
             buildingType(project.building_type),
@@ -527,12 +578,16 @@ export default function Dashboard() {
   // view, complete with an invitation to invite a contractor. Reported 29 October.
 
   const [projects,      setProjects]      = useState<ProjectRow[]>([]);
+  // Which of `projects` this person does not own. Separate from the list rather than a
+  // flag on the rows, because `ProjectRow` is the database row and nothing that is not
+  // a column belongs on it.
+  const [sharedIds,     setSharedIds]     = useState<Set<string>>(() => new Set());
+  const [ownedCount,    setOwnedCount]    = useState(0);
   const [loading,       setLoading]       = useState(true);
   const [activeStages,  setActiveStages]  = useState<ProjectStage[]>([]);
   const [stagesLoading, setStagesLoading] = useState(false);
   const [unreadCount,      setUnreadCount]      = useState(0);
   const [documentCount,    setDocumentCount]    = useState(0);
-  const [contractorCount,  setContractorCount]  = useState(0);
 
   const displayName = user?.user_metadata?.full_name
     ?? user?.email?.split('@')[0]
@@ -549,11 +604,28 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    const loader = isContractor ? fetchContractorProjects(user.id) : fetchProjects(user.id);
+    let live = true;
+
+    // A contractor's builds come from their accepted invitations. A client's come from
+    // two places — the ones they created and the ones they were invited onto (112,
+    // 166) — and until 9 Nov 2026 this page only ever asked for the first, so a client
+    // whose contractor set the build up was shown an empty dashboard and offered a
+    // wizard.
+    const loader = isContractor
+      ? fetchContractorProjects(user.id).then(rows => ({ all: rows, shared: [], owned: rows }))
+      : fetchClientProjects(user.id);
+
     loader
-      .then(setProjects)
+      .then(({ all, shared, owned }) => {
+        if (!live) return;
+        setProjects(all);
+        setSharedIds(new Set(shared.map(p => p.id)));
+        setOwnedCount(owned.length);
+      })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (live) setLoading(false); });
+
+    return () => { live = false; };
   }, [user, isContractor]);
 
   useEffect(() => {
@@ -590,15 +662,26 @@ export default function Dashboard() {
       .in('project_id', ids)
       .then(({ count }) => setDocumentCount(count ?? 0));
 
-    supabase
-      .from('contractor_invites')
-      .select('id', { count: 'exact', head: true })
-      .in('project_id', ids)
-      .eq('status', 'accepted')
-      .then(({ count }) => setContractorCount(count ?? 0));
+    // The accepted-contractor count was read here for the "Contractors" quick action.
+    // That card went on 9 Nov 2026, and a count nothing renders is a query every
+    // dashboard load pays for and nobody sees.
   }, [user, projects]);
 
   const otherProjects = visibleProjects.filter(p => p.id !== activeProject?.id);
+
+  /**
+   * The invited-client path.
+   *
+   * Every build this person can see belongs to somebody else. They did not come here
+   * to start a project — their project already exists and somebody else is running it
+   * — so the three things this page uses to push a new client toward the wizard are
+   * all wrong for them: the New Project button, the profile tracker whose last item is
+   * "First project created", and the dashed Create a build strip at the bottom.
+   *
+   * Not the same test as "has no projects". Somebody with one of their own and one
+   * shared with them is on the ordinary path and keeps all three.
+   */
+  const viewerOnly = !isContractor && !loading && ownedCount === 0 && projects.length > 0;
 
   return (
     // Design B: focus-forward. One active build owns the top of the page; everything
@@ -612,7 +695,7 @@ export default function Dashboard() {
         </div>
         {/* Primary action kept in the header for quick project creation. */}
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {!isContractor && (
+          {!isContractor && !viewerOnly && (
             <Link to="/projects/new"
               data-tour="new-project"
               className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
@@ -627,8 +710,8 @@ export default function Dashboard() {
           profile. Renders nothing once both are handled. */}
       <SecurityNudges user={user} />
 
-      {!loading && !isContractor && (
-        <ProfileCompletion nameSet={nameSet} hasProject={projects.length > 0} />
+      {!loading && !isContractor && !viewerOnly && (
+        <ProfileCompletion nameSet={nameSet} hasProject={ownedCount > 0} />
       )}
 
       {loading ? (
@@ -639,13 +722,14 @@ export default function Dashboard() {
             project={activeProject}
             stages={activeStages}
             stagesLoading={stagesLoading}
+            shared={sharedIds.has(activeProject.id)}
           />
 
           <QuickActions
             project={activeProject}
             unread={unreadCount}
             documentCount={documentCount}
-            contractorCount={contractorCount}
+            shared={sharedIds.has(activeProject.id)}
           />
 
           <CostingDonut project={activeProject} />
@@ -674,14 +758,14 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}>
-                <OtherProjectRow project={p} />
+                <OtherProjectRow project={p} shared={sharedIds.has(p.id)} />
               </motion.div>
             ))}
           </div>
         </div>
       )}
 
-      {!loading && !isContractor && projects.length > 0 && (
+      {!loading && !isContractor && !viewerOnly && projects.length > 0 && (
         <Link
           to="/projects/new"
           className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-border-grey py-4 text-sm font-semibold text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black"

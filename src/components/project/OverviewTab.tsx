@@ -18,12 +18,10 @@ import {
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import {
-  formatUSDFull,
   DESIGN_RATE_XAF_PER_M2,
   LABOR_PCT,
   MATERIAL_PCT,
   PERMIT_PCT_OF_BUILD,
-  decomposeBudget,
   projectBudget,
   buildDurationDays,
   buildDurationMonths,
@@ -34,10 +32,12 @@ import {
   QUANTITY_SURVEYOR_XAF_PER_MONTH,
   SITE_MANAGER_XAF_PER_MONTH,
 } from '@/lib/budget';
+import { useMoney } from '@/lib/budget/project-money-context';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
-import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, BudgetBreakdown } from '@/types/project';
+import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow, BudgetBreakdown } from '@/types/project';
+import type { StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
 
@@ -113,11 +113,13 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 
 // ── Cost breakdown ────────────────────────────────────────
 
-function CostBreakdownCard({ budget, paid, paidTotal, outstanding }: {
+function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt }: {
   budget: BudgetBreakdown;
   paid: BudgetBreakdown;
   paidTotal: number;
   outstanding: number;
+  /** Renders a stored USD figure in the project's own currency. See `useProjectMoney`. */
+  fmt: (usd: number) => string;
 }) {
   const t = useT();
   const total = budget.total;
@@ -138,9 +140,9 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding }: {
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: t('project.overview.costPlanned'), value: formatUSDFull(total), cls: '' },
-          { label: t('project.overview.costPaid'), value: formatUSDFull(paidTotal), cls: 'text-state-complete' },
-          { label: outstanding > 0 ? t('project.overview.costOutstanding') : t('project.overview.costUnder'), value: formatUSDFull(outstanding), cls: 'text-state-held' },
+          { label: t('project.overview.costPlanned'), value: fmt(total), cls: '' },
+          { label: t('project.overview.costPaid'), value: fmt(paidTotal), cls: 'text-state-complete' },
+          { label: outstanding > 0 ? t('project.overview.costOutstanding') : t('project.overview.costUnder'), value: fmt(outstanding), cls: 'text-state-held' },
         ].map(c => (
           <div key={c.label} className="rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-2 py-2 text-center">
             <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-brand-mid-grey">{c.label}</p>
@@ -162,7 +164,7 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding }: {
               <div className="h-full rounded-full bg-state-complete" style={{ width: `${Math.min(Math.round((r.paid / r.planned) * 100), 100)}%` }} />
             </div>
             <span className="w-28 shrink-0 text-right text-[11px] font-medium tabular-nums text-brand-near-black dark:text-white">
-              {formatUSDFull(r.planned)}
+              {fmt(r.planned)}
             </span>
           </div>
         ))}
@@ -242,16 +244,35 @@ interface OverviewTabProps {
   stages: ProjectStageRow[];
   substages: ProjectSubstageRow[];
   budget: BudgetBreakdown;
+  /** The incoming ledger rows, by stage — what actually arrived, not what was projected. */
+  payments: Map<string, StagePayment>;
+  /** Permit, professional, verification, contingency. Carry no stage of their own. */
+  fees: ProjectFeeRow[];
   onViewCosting: () => void;
   onViewStage: () => void;
 }
 
 export default function OverviewTab({
-  project, stages, substages, budget, onViewCosting, onViewStage,
+  project, stages, substages, budget, payments, fees, onViewCosting, onViewStage,
 }: OverviewTabProps) {
   const { stageLabel } = useStageLabels();
   const labels = useDomainLabels();
   const t = useT();
+
+  /**
+   * Money, in the currency the client actually pays in.
+   *
+   * Every figure Groundwork stores is USD. Philip, 9 Nov 2026: the project currency is
+   * "mistakenly displayed in USD instead of CFA Franc". It is not a label — the stored
+   * number really is dollars — so it is converted here, at the rate `useProjectMoney`
+   * fetches today, with `construction_rates.approx_fx_rate` as the fallback. That is the
+   * same hook and the same rate the contractor's Work screens have used since 29 October,
+   * so client and contractor cannot be quoted different conversions of one stage.
+   *
+   * Nothing here moves money. The ledger is still denominated in USD and the budget
+   * engine still divides by the stored rate; this only changes what is shown.
+   */
+  const fmt = useMoney();
 
   const sortedStages = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
 
@@ -283,14 +304,89 @@ export default function OverviewTab({
     s => s.status !== 'complete' && !s.pre_existing && s.payment_status !== 'paid',
   );
 
-  // `pre_existing` first: those stages read 'paid' through 090's legacy projection because
-  // nothing is owed on them, which is not the same as money having moved (103).
-  const paidTotal   = sortedStages.filter(s => !s.pre_existing && s.payment_status === 'paid').reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-  // `budget` already resolves the owner's confirmed budget_usd (see projectBudget), so
-  // the slices and this total are shares of one figure. Re-reading project.budget_usd
-  // here is what used to make "41% × total = materials" a false statement.
-  const totalBudget = budget.total;
-  const outstanding = Math.max(0, totalBudget - paidTotal);
+  /**
+   * What has been paid, and what is still owed.
+   *
+   * ── Why this is not `total − paid` any more ────────────────────────────────────────
+   * Philip, 9 Nov 2026: the outstanding balance should "reflect only the remaining
+   * project funds rather than the total amount". It read as the total because the two
+   * halves of the arithmetic did not meet. Stage milestones cover the construction and
+   * design fees ONLY — the permit, professional, verification and contingency lines
+   * live in `project_fees` and hang off no stage at all (036, 072). So subtracting the
+   * stages that had been paid from a budget that also contained four fee lines left
+   * those fees in "outstanding" permanently, and on a project where nothing had been
+   * paid yet the figure was the whole budget, printed a second time beside "Planned".
+   *
+   * Both figures are now summed from the obligations themselves — every stage and every
+   * fee row, each counted once, on one side or the other. They therefore add up to the
+   * planned total, which is the property that was missing and the thing a client checks.
+   *
+   * ── Why the ledger is asked first ─────────────────────────────────────────────────
+   * `project_stages.payment_status` is 090's legacy projection. The ledger's `state` is
+   * what the money did: `funded` means the contractor confirmed receipt, `reconciled`
+   * that it was matched off. A stage whose tranche is funded but whose projection was
+   * never written back would otherwise still be counted as owing. The projection is
+   * kept as the fallback for projects that predate the ledger entirely.
+   *
+   * `pre_existing` stages are excluded from both sides: they read 'paid' because nothing
+   * was ever owed on them, which is not the same as money having moved (103).
+   */
+  const stageIsPaid = (s: ProjectStageRow) => {
+    const tranche = payments.get(s.id);
+    if (tranche) return tranche.state === 'funded' || tranche.state === 'reconciled';
+    return s.payment_status === 'paid';
+  };
+
+  const billableStages = sortedStages.filter(s => !s.pre_existing);
+  const stagesPaid   = billableStages.filter(stageIsPaid)
+    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  const stagesUnpaid = billableStages.filter(s => !stageIsPaid(s))
+    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+
+  const feesPaid   = fees.filter(f => f.payment_status === 'paid')
+    .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+  const feesUnpaid = fees.filter(f => f.payment_status !== 'paid')
+    .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+
+  const paidTotal   = stagesPaid + feesPaid;
+  const outstanding = stagesUnpaid + feesUnpaid;
+
+  /**
+   * The same money, split the way the cost rows below are split.
+   *
+   * This used to be `decomposeBudget(paidTotal, …)` — the inverse of the pricing
+   * formula, run over the amount paid so far. That answers "if this sum were a whole
+   * budget, how would it have been composed?", which is not a question anybody asked:
+   * payments are made against stages and fee lines, in an order, and the first money a
+   * client sends is not 2% permit and 5% project manager. It produced a permit bar part
+   * filled before any permit had been paid for.
+   *
+   * Each line is now read off what was actually settled. The design fee rides on its own
+   * stage (036), so it is pulled out of the construction figure rather than estimated.
+   * `material` and `labor` are views of construction — 60/40 — not additions to it, so
+   * they follow it rather than being tracked separately.
+   */
+  const feePaid = (kind: ProjectFeeRow['kind']) =>
+    fees.filter(f => f.kind === kind && f.payment_status === 'paid')
+        .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+
+  const designPaid = billableStages
+    .filter(s => s.stage_key === 'designCompleted' && stageIsPaid(s))
+    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  const constructionPaid = stagesPaid - designPaid;
+
+  const paidBySlice: BudgetBreakdown = {
+    total:        paidTotal,
+    construction: constructionPaid,
+    material:     constructionPaid * MATERIAL_PCT,
+    labor:        constructionPaid * LABOR_PCT,
+    design:       designPaid,
+    permit:       feePaid('permit'),
+    professional: feePaid('professional'),
+    verification: feePaid('verification'),
+    contingency:  feePaid('contingency'),
+  };
+
 
   const country     = findCountry(project.country);
   const projStart   = new Date(project.target_start ? `${project.target_start}T00:00:00` : project.created_at);
@@ -333,7 +429,7 @@ export default function OverviewTab({
         />
         <StatCard
           label={t('project.overview.nextMilestone')}
-          value={nextStage ? formatUSDFull(nextStage.payment_milestone_usd ?? 0) : '—'}
+          value={nextStage ? fmt(nextStage.payment_milestone_usd ?? 0) : '—'}
           sub={nextStage ? t('project.overview.nextStarts', { date: fmtDate(projStart) }) : t('project.overview.allDone')}
           valueSize="text-lg"
           icon={<Landmark className="size-4 text-brand-near-black dark:text-white" />}
@@ -371,7 +467,7 @@ export default function OverviewTab({
                   {t('project.overview.unlockAmount', {
                     // The full figure, not the compact one: a client about to transfer money
                     // needs the exact amount, and $1k is not an amount anybody can pay.
-                    amount: formatUSDFull(unlockStage.payment_milestone_usd ?? 0),
+                    amount: fmt(unlockStage.payment_milestone_usd ?? 0),
                     stage:  stageLabel(unlockStage),
                   })}
                 </p>
@@ -388,9 +484,10 @@ export default function OverviewTab({
 
           <CostBreakdownCard
             budget={budget}
-            paid={decomposeBudget(paidTotal, { builtAreaSqm: Number(project.sqm) * project.num_floors, floors: project.num_floors })}
+            paid={paidBySlice}
             paidTotal={paidTotal}
             outstanding={outstanding}
+            fmt={fmt}
           />
 
           {/* The latest on the stage in play, with a way into it. */}

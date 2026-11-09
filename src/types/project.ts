@@ -460,7 +460,12 @@ export interface ProjectStageRow {
 export interface ProjectFeeRow {
   id: string;
   project_id: string;
-  kind: 'permit' | 'professional';
+  /**
+   * Migration 072 widened the CHECK to four kinds. This type still said two, which is
+   * why nothing downstream could sum the verification and contingency lines without
+   * casting — they were invisible to TypeScript while being present in every row set.
+   */
+  kind: 'permit' | 'professional' | 'verification' | 'contingency';
   amount_usd: number;
   payment_status: PaymentStatus;
   paid_at: string | null;

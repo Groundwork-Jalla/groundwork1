@@ -5473,6 +5473,12 @@ export const en = {
       documentsSub:    '{count} files',
       contractors:     'Contractors',
       contractorsSub:  '{count} on your builds',
+      // The invited client's first card. They cannot file a site update — 088 refuses
+      // anybody who is not the owner, a contractor or an administrator by name — so
+      // offering them "Upload Updates" is offering an action the server will refuse.
+      // They read what was filed instead.
+      updates:         'Progress Updates',
+      updatesSub:      'Photos and reports from site',
     },
     costCats: {
       // Labels come from BUDGET_SLICES; only the descriptions live here.
@@ -5486,6 +5492,13 @@ export const en = {
       body:   'Track every stage, manage your budget, and stay connected with your contractor — all in one place.',
       cta:    'Create a build',
       contractor: 'No assigned builds yet. Check back once your invite is confirmed.',
+    },
+    // Somebody else owns this build and invited this person onto it (112, 166). Said
+    // plainly, because the alternative is a client wondering why a house they are
+    // paying for shows them no budget controls and no approve button.
+    shared: {
+      badge:    'Shared with you',
+      readOnly: 'You can follow this build, read every document and message the team. Approvals and payments stay with whoever is running it.',
     },
     card: {
       stages:    '{done}/{total} stages',

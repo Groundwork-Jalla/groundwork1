@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
+import { fetchSharedProjectIds } from './project-viewers';
 import { trackEvent } from '@/lib/analytics';
 import type { WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
 import { DEFAULT_BUILDING_KIND } from '@/lib/projects/document-identity';
@@ -347,6 +348,86 @@ export async function fetchProjects(userId: string): Promise<ProjectRow[]> {
 
   if (error) throw error;
   return data ?? [];
+}
+
+
+// =========================================================
+// fetchClientProjects — the two ways a client has a build
+//
+// A client reaches Groundwork by one of two routes, and until 9 Nov 2026 only one of
+// them worked past the front door:
+//
+//   SELF-CREATED   They signed up, ran the wizard, and own the `projects` row.
+//                  `fetchProjects` finds it, every client screen shows it.
+//
+//   INVITED        A contractor set the build up (166) or the owner shared it (112).
+//                  Somebody else owns the row; this person is an accepted viewer.
+//                  `fetchProjects` finds NOTHING, because it keys on `user_id`.
+//
+// The second client could open the deep link in their invitation email and nothing
+// else. Dashboard, Projects, Documents and Payments all told them they had no builds
+// and offered to help them start one — on the platform their own house was on.
+//
+// RLS was never the problem: `member_select_projects` (086) has read the viewer arm
+// since 112. The query was.
+//
+// Owned and shared are returned APART, not merged, because the difference is not
+// cosmetic and the screens have to act on it:
+//   · a viewer cannot submit a site update (088 refuses them by name)
+//   · a viewer cannot approve a stage, release money or invite anybody (112)
+//   · a shared build is not one of their plan's project slots (053)
+// A screen that cannot tell the two apart will offer a viewer an action the server
+// will refuse, which is the kind of thing that reads as the product being broken.
+// =========================================================
+
+export interface ClientProjects {
+  /** Created by this person. Theirs to act on. */
+  owned: ProjectRow[];
+  /** Somebody else's build, shared with them. Read, message, download — nothing more. */
+  shared: ProjectRow[];
+  /** Both, newest first — what a list renders. */
+  all: ProjectRow[];
+  /** Membership test for `all`, so a row can be marked without a second pass. */
+  isShared: (projectId: string) => boolean;
+}
+
+export async function fetchClientProjects(userId: string): Promise<ClientProjects> {
+  // Both halves at once. A person with no invitations pays one extra indexed lookup
+  // against a tiny table; a person with no projects of their own gets a dashboard.
+  const [owned, sharedIds] = await Promise.all([
+    fetchProjects(userId),
+    fetchSharedProjectIds(userId),
+  ]);
+
+  // Somebody can be invited to a build they already own — a contractor who set a
+  // project up and was then added as a viewer of it, which 112 permits. Owned wins:
+  // it is the stronger relationship and the one the screens grant actions from.
+  const ownedIds = new Set(owned.map(p => p.id));
+  const toFetch  = sharedIds.filter(id => !ownedIds.has(id));
+
+  let shared: ProjectRow[] = [];
+  if (toFetch.length > 0) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .in('id', toFetch)
+      .order('created_at', { ascending: false });
+    // A revoked-then-deleted project, or a row RLS no longer returns, is simply absent
+    // rather than fatal — the viewer list is a cache of ids, not a guarantee.
+    if (error) throw error;
+    shared = data ?? [];
+  }
+
+  const sharedSet = new Set(shared.map(p => p.id));
+
+  return {
+    owned,
+    shared,
+    all: [...owned, ...shared].sort(
+      (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+    ),
+    isShared: (projectId: string) => sharedSet.has(projectId),
+  };
 }
 
 

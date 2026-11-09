@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { ACCEPTANCE_STATEMENT, CONTRACTOR_TOS } from '@/lib/legal/contractor-tos
 import { CONTRACTOR_TOS_FR, TOS_FR_NOTICE, ACCEPTANCE_STATEMENT_FR } from '@/lib/legal/contractor-tos.fr';
 import { TERMS } from '@/lib/legal/content';
 import type { AgreementDocument } from '@/lib/supabase/contractor-onboarding';
-import { cn } from '@/lib/utils';
 
 // =========================================================
 // Reading an agreement, and signing it, without leaving the page.
@@ -18,9 +17,15 @@ import { cn } from '@/lib/utils';
 // have to sign: the signature box was on one page and the text on another, so the honest
 // answer to "have you read this?" was "I clicked a link that went somewhere else".
 //
-// Here the whole document is in front of the signature. The accept control stays
-// disabled until the reader has actually reached the end of the text — not a legal
-// requirement, but the difference between a signature and a reflex.
+// Here the whole document is in front of the signature.
+//
+// The accept control used to stay disabled until the reader reached the end of the text.
+// Philip, 9 Nov 2026: that gate was costing sign-ups and it is not what makes the
+// signature binding. What does is already recorded server-side — `accept_agreement`
+// (116) writes the signer, the DOCUMENT VERSION the database chose (never one the
+// browser claimed), the typed name and a timestamped activity row. The document is
+// still rendered in full above the signature, so acceptance is still given in front of
+// the text rather than through a link to it.
 // =========================================================
 
 type Block = ['h2' | 'clause' | 'p', string];
@@ -51,32 +56,16 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
 }) {
   const t = useT();
   const { lang } = useLanguage();
-  const [readToEnd, setReadToEnd] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [name, setName] = useState('');
-  const scroller = useRef<HTMLDivElement>(null);
 
   const blocks = blocksFor(doc, lang);
   const translated = doc === 'terms_of_service' && lang === 'fr';
 
-  /**
-   * Have they reached the end?
-   *
-   * Also true when the text is short enough not to scroll — otherwise a document that
-   * fits on screen could never be accepted, which is the kind of dead end that looks
-   * like a broken page rather than a rule.
-   */
-  const checkEnd = useCallback(() => {
-    const el = scroller.current;
-    if (!el) return;
-    const fits = el.scrollHeight <= el.clientHeight + 4;
-    const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
-    if (fits || atEnd) setReadToEnd(true);
-  }, []);
-
-  // Run once on mount for the short-document case, and whenever the language flips the
-  // text out from under them.
-  useEffect(() => { setReadToEnd(false); queueMicrotask(checkEnd); }, [doc, lang, checkEnd]);
+  // Swapping the document or the language replaces the text under the signature, so the
+  // tick and the typed name are cleared: what was agreed to is no longer what is on
+  // screen, and a carried-over signature would be given against text nobody read.
+  useEffect(() => { setConfirmed(false); setName(''); }, [doc, lang]);
 
   // Escape closes, and the page behind does not scroll while this is open.
   useEffect(() => {
@@ -117,10 +106,7 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
         </header>
 
         {/* ── The document ── */}
-        <div
-          ref={scroller} onScroll={checkEnd}
-          className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7"
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
           <div className="mx-auto flex max-w-[68ch] flex-col gap-3.5">
             {translated && (
               <p className="rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2 text-xs text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
@@ -161,19 +147,9 @@ export function AgreementReader({ doc, onAccept, onClose, busy, error }: {
           onSubmit={e => { e.preventDefault(); onAccept(name); }}
           className="shrink-0 space-y-3 border-t border-brand-border-grey bg-brand-off-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#141414] sm:px-7"
         >
-          {!readToEnd && (
-            <p className="flex items-center gap-1.5 text-xs text-brand-mid-grey">
-              <span className="inline-block size-1.5 animate-pulse rounded-full bg-brand-mid-grey" />
-              {t('contractorOnboarding.scrollToEnd')}
-            </p>
-          )}
-
-          <label className={cn(
-            'flex cursor-pointer items-start gap-2 text-xs',
-            readToEnd ? 'text-brand-near-black dark:text-white' : 'cursor-not-allowed text-brand-mid-grey opacity-60',
-          )}>
+          <label className="flex cursor-pointer items-start gap-2 text-xs text-brand-near-black dark:text-white">
             <input
-              type="checkbox" className="mt-0.5" disabled={!readToEnd || busy}
+              type="checkbox" className="mt-0.5" disabled={busy}
               checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
             />
             {doc === 'terms_of_service' ? (

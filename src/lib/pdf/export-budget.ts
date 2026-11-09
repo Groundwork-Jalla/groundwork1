@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { BUDGET_SLICES, projectBudget, sliceShares } from '@/lib/budget';
 import { formatMoney, localeFor } from '@/lib/format';
+import { moneyPair } from '@/lib/budget/money-pair';
 import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
 import type { Lang } from '@/lib/i18n/types';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
@@ -24,15 +25,25 @@ function stageLabel(lang: Lang, stage: ProjectStageRow): string {
  * whoever reads it. Money and dates go through the locale-aware formatters rather than
  * `formatUSDFull`, which reads a module-level locale that is only correct by
  * coincidence outside a render.
+ *
+ * `fx` is the project's currency and today's rate, handed down from the screen that
+ * triggered the export (see project-money-context.tsx). It is passed in rather than
+ * fetched here so the PDF and the costing tab quote ONE conversion: a report that
+ * disagrees with the page it was downloaded from is worse than one in dollars. Omitted,
+ * or USD, and every figure stays in dollars exactly as before.
  */
 export async function exportBudgetPDF(
   project: ProjectRow,
   stages: ProjectStageRow[],
   lang: Lang,
+  fx?: { code: string; rate: number },
 ): Promise<void> {
   const t = translator(lang);
   const locale = localeFor(lang);
-  const money = (n: number) => formatMoney(n, 'USD', locale);
+  const converts = !!fx && fx.code !== 'USD' && Number.isFinite(fx.rate) && fx.rate > 0;
+  const money = converts
+    ? (n: number) => moneyPair(Math.round(n * fx!.rate), fx!.code, fx!.rate).local
+    : (n: number) => formatMoney(n, 'USD', locale);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210;
   const MARGIN = 16;

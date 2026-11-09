@@ -245,3 +245,42 @@ export function takeRememberedShare(): string | null {
     return t;
   } catch { return null; }
 }
+
+/**
+ * The builds somebody else owns that this person was invited onto, and accepted.
+ *
+ * The mirror of `fetchProjectViewers`: that one answers "who is watching this project",
+ * this one answers "which projects am I watching". Both read the same table through the
+ * same policy — `user_id = auth.uid()` is the first arm of `owner_reads_project_viewers`
+ * — and 112's `project_viewers_by_user` index is exactly this query.
+ *
+ * Why it matters more than "family can see the build" suggests: 166 made a
+ * CONTRACTOR-RUN project the ordinary case. The contractor owns the `projects` row, and
+ * the person the house is for is a viewer. Every client surface loaded projects with
+ * `user_id = me`, so that client signed in and was told they had no builds and should
+ * start one — on the platform their own house was being tracked on.
+ *
+ * Ids rather than rows: the caller already has to fetch `projects` and would otherwise
+ * read the same table twice.
+ *
+ * Empty rather than throwing when 112 is not applied, for the same reason as above — a
+ * dashboard that will not load because one table is missing is worse than one without
+ * the shared builds on it.
+ */
+export async function fetchSharedProjectIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('project_viewers')
+    .select('project_id')
+    .eq('user_id', userId)
+    .not('accepted_at', 'is', null)
+    .is('revoked_at', null);
+
+  if (error) {
+    if (error.code === '42P01' || error.code === 'PGRST205') return [];
+    throw error;
+  }
+  // 112's partial unique index allows one live invitation per ADDRESS per project, so
+  // one person reachable at two addresses can hold two live rows on the same build.
+  // Deduplicated before the ids become an `in` filter.
+  return [...new Set((data ?? []).map((r: { project_id: string }) => r.project_id))];
+}

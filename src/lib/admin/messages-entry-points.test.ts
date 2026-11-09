@@ -16,6 +16,15 @@ import { fr } from '@/lib/i18n/fr';
  *   · the bell opened the project overview instead of the message;
  *   · `destinationFor` had been pointing project-less threads at /messages, a route
  *     that did not exist, so that was a dead link too.
+ *
+ * ── 9 Nov 2026: the client sidebar door was CLOSED on purpose ──────────────────────
+ * Philip asked for contractor access and messaging to come out of the client menu. The
+ * conversation did not go anywhere — it lives on the project, as the Messages tab beside
+ * the stages it is about, which is where a client means it when they look for it.
+ *
+ * So the first assertion below is inverted, and the rest of this file matters MORE, not
+ * less: with the sidebar item gone, the project tab, the dashboard card and the bell are
+ * now the only ways in. A dead link in any of them is no longer one door among four.
  */
 
 const ROOT = resolve(__dirname, '..', '..', '..');
@@ -25,13 +34,22 @@ const nav       = read('src/components/shell/nav-config.ts');
 const routes    = read('src/app/routes.ts');
 const dashboard = read('src/app/routes/dashboard.tsx');
 
-describe('the sidebar', () => {
-  it('the client has a Messages item', () => {
-    const block = nav.slice(nav.indexOf('CLIENT_NAV'), nav.indexOf('ADMIN_NAV'));
-    expect(block).toMatch(/to: '\/messages'/);
+describe('the client sidebar', () => {
+  const block = () => nav.slice(nav.indexOf('CLIENT_NAV'), nav.indexOf('ADMIN_NAV'));
+
+  it('no longer carries Messages or Contractors', () => {
+    expect(block()).not.toMatch(/to: '\/messages'/);
+    expect(block()).not.toMatch(/to: '\/contractors'/);
   });
 
-  it('and it is labelled in both languages', () => {
+  it('but the routes stay registered, so old links do not 404', () => {
+    // Notification emails, the bell's project-less fallback and anyone's bookmarks
+    // already point at both. Removing the signpost is not removing the destination.
+    expect(routes).toMatch(/route\("messages",\s+"routes\/messages\.tsx"\)/);
+    expect(routes).toMatch(/contractors/);
+  });
+
+  it('and the labels stay in both dictionaries for the admin nav that still uses them', () => {
     expect((en as any).nav.messages).toBe('Messages');
     expect((fr as any).nav.messages).toBe('Messages');
   });
@@ -64,7 +82,21 @@ describe('the dashboard shortcut', () => {
   });
 
   it('and opens the open build\'s messages when there is one', () => {
-    expect(dashboard).toMatch(/to: project \? `\/projects\/\$\{project\.id\}\?tab=messages` : '\/messages'/);
+    expect(dashboard).toMatch(/to: `\/projects\/\$\{project\.id\}\?tab=messages`/);
+  });
+
+  it('and is not shown at all without a build to open', () => {
+    // The card used to fall back to the standalone /messages page. With that page out
+    // of the menu, a dashboard with no project would have been the last thing still
+    // pointing at it.
+    expect(dashboard).toMatch(/\.\.\.\(project \? \[\{/);
+  });
+
+  it('and the Contractors card went with the sidebar item', () => {
+    const block = dashboard.slice(dashboard.indexOf('const actions = ['),
+                                  dashboard.indexOf('return ('));
+    expect(block).not.toMatch(/to: '\/contractors'/);
+    expect(block).not.toMatch(/dashboard\.quick\.contractors/);
   });
 });
 

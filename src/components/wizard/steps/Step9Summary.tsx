@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  MapPin, Building2, Layers, Home, ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
+  MapPin, Building2, Layers, Home, Ruler, ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
 import { useWizard } from '@/contexts/WizardContext';
@@ -10,6 +10,7 @@ import {
   buildDurationDays, buildDurationMonths,
 } from '@/lib/budget';
 import { checkEstimate } from '@/lib/budget/sanity';
+import { floorCountPatch, MAX_FLOORS, MIN_FLOORS } from '@/lib/projects/floors';
 import { calculateBudget } from '@/lib/budget';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { useUsdRate } from '@/lib/budget/live-fx';
@@ -222,6 +223,74 @@ function BudgetBreakdownCard() {
 
 // ── Summary row ────────────────────────────────────────────
 
+/**
+ * The floor count, editable here.
+ *
+ * Philip, 9 Nov 2026: it must be changeable on the summary. It already was in ONE case
+ * — the document flow, when extraction failed to read it — and nowhere else. The two
+ * cases it was missing from are the ones that matter most:
+ *
+ *   · extraction SUCCEEDED but read it wrong. "Mr.NAS G + 1" is parsed out of a bill's
+ *     title; a drawing with a staircase states no storey count at all. A figure a
+ *     machine guessed is exactly the figure a person should be able to correct, and it
+ *     was the only one on the page presented as settled fact.
+ *   · the ordinary flow, where it was prose inside the "Scale" line — the user has to
+ *     walk back five steps to change a number they are looking at.
+ *
+ * Changing it RESIZES `floorRooms` rather than clearing it (see lib/projects/floors.ts):
+ * on this screen the rooms are already entered, and step 4's reset would throw them away.
+ */
+function FloorsField({ note, onTouched }: {
+  note?: string;
+  /**
+   * Fired once a count has actually been entered.
+   *
+   * The document flow refuses to continue until the floors are known, and when
+   * extraction failed there is nothing to tell "they chose 1" from "it defaulted to 1".
+   * The field owns its own draft, so it is the only thing that can answer that, and it
+   * reports it rather than the parent guessing from `data.floors`.
+   */
+  onTouched?: () => void;
+}) {
+  const t = useT();
+  const { data, update } = useWizard();
+  const [draft, setDraft] = useState(String(data.floors || ''));
+
+  // Follow the context when something else changes it — re-extraction, or a draft
+  // reloading underneath this screen.
+  useEffect(() => { setDraft(String(data.floors || '')); }, [data.floors]);
+
+  const commit = (raw: string) => {
+    setDraft(raw);
+    // An empty box is someone mid-edit, not a request for zero floors. The committed
+    // value only moves once there is a number in it.
+    if (raw.trim() === '') return;
+    update(floorCountPatch(Number(raw), data.floorRooms ?? []));
+    onTouched?.();
+  };
+
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <input
+        type="number" min={MIN_FLOORS} max={MAX_FLOORS} step="1" value={draft}
+        onChange={event => commit(event.target.value)}
+        // Leaving the field empty snaps it back to what is actually stored, so the box
+        // can never disagree with the budget printed below it.
+        onBlur={() => setDraft(String(data.floors || MIN_FLOORS))}
+        placeholder={t('planGate.floorsPlaceholder')}
+        aria-label={t('planGate.floorsRequired')}
+        className="w-20 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-sm tabular-nums text-brand-near-black"
+        required
+      />
+      <span className="text-xs font-normal text-brand-mid-grey">
+        {/* The same words as the aria-label rather than a new pair of dictionary keys:
+            the field is a bare number box, and "Number of floors" is what it is. */}
+        {note ?? t('planGate.floorsRequired')}
+      </span>
+    </span>
+  );
+}
+
 function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
@@ -371,10 +440,13 @@ export default function Step9Summary() {
     || documentExtraction?.bqStatedFloors != null;
   const hasExtractedFootprint = documentExtraction?.floorPlans
     .some(plan => plan.facts.footprintSqm != null) ?? false;
-  const [manualFloors, setManualFloors] = useState(data.floors > 1 ? String(data.floors) : '');
+  // Whether a floor count has been supplied, as opposed to defaulting to 1. Seeded
+  // true for a draft that already carries more than one floor, so reopening one does
+  // not ask again for something already answered.
+  const [floorsTouched, setFloorsTouched] = useState(data.floors > 1);
   const [manualFootprint, setManualFootprint] = useState(data.sqm > 0 ? String(data.sqm) : '');
   const [budgetConfirmed, setBudgetConfirmed] = useState(false);
-  const hasValidFloors = hasExtractedFloors || Number(manualFloors) > 0;
+  const hasValidFloors = hasExtractedFloors || floorsTouched;
   const hasValidFootprint = hasExtractedFootprint || Number(manualFootprint) > 0;
   const validDateRange = !data.targetStartDate || !data.targetEndDate
     || data.targetEndDate >= data.targetStartDate;
@@ -437,37 +509,26 @@ export default function Step9Summary() {
             value={[data.city, labels.country(data.country)].filter(Boolean).join(', ')} />
           <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
             value={`${labels.projectType(data.projectType)} · ${labels.buildingType(data.buildingType)}`} />
+          {/* Floors are editable in BOTH flows. When the documents did not give the
+              count up, the row that reports the gap is also the place you close it —
+              "Floor count not extracted" on its own reads as a dead end. When they DID,
+              the number is still a machine's reading of a drawing or a bill title, and
+              the person holding the drawing is the better authority. */}
           {documentFlow ? (
             <SummaryRow icon={<Layers className="size-3.5" />} label={t('wizard.stepFloors')}
-              value={hasExtractedFloors
-                ? `${data.floors} ${data.floors === 1 ? 'floor' : 'floors'}`
-                /* Asked for in the row that admits it could not be read, rather than
-                   in a field further up the page. "Floor count not extracted" on its
-                   own reads as a dead end — the place that reports the gap should be
-                   the place you close it, and nothing continues until it is. */
-                : (
-                  <span className="flex items-center gap-2">
-                    <input
-                      type="number" min="1" max="20" step="1" value={manualFloors}
-                      onChange={event => {
-                        setManualFloors(event.target.value);
-                        update({ floors: Number(event.target.value) || 1 });
-                      }}
-                      placeholder={t('planGate.floorsPlaceholder')}
-                      aria-label={t('planGate.floorsRequired')}
-                      className="w-24 rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-sm tabular-nums text-brand-near-black"
-                      required
-                    />
-                    <span className="text-xs font-normal text-brand-mid-grey">
-                      {t('planGate.floorsNotRead')}
-                    </span>
-                  </span>
-                )} />
+              value={<FloorsField
+                note={hasExtractedFloors ? undefined : t('planGate.floorsNotRead')}
+                onTouched={() => setFloorsTouched(true)}
+              />} />
           ) : (
             <>
-              <SummaryRow icon={<Layers className="size-3.5" />}    label="Scale"
+              {/* Floors left the "Scale" line on 9 Nov 2026. As prose inside a joined
+                  string it was the one figure on this page that could only be changed
+                  by walking back five steps. */}
+              <SummaryRow icon={<Layers className="size-3.5" />} label={t('wizard.stepFloors')}
+                value={<FloorsField />} />
+              <SummaryRow icon={<Ruler className="size-3.5" />}     label="Scale"
                 value={[
-                  `${data.floors} floor${data.floors > 1 ? 's' : ''}`,
                   `${data.sqm} sqm`,
                   `${data.bedrooms} bed`,
                   `${data.bathrooms} bath`,

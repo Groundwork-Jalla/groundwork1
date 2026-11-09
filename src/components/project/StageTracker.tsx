@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
-import { formatUSD } from '@/lib/budget';
+import { useMoney } from '@/lib/budget/project-money-context';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
@@ -169,6 +169,8 @@ function StageDetail({
   renderEvidenceUpload,
 }: StageDetailProps) {
   const { stageLabel } = useStageLabels();
+  // The milestone in the project's currency (9 Nov 2026) — project-money-context.tsx.
+  const money = useMoney();
   const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
@@ -224,7 +226,7 @@ function StageDetail({
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-            {formatUSD(stage.payment_milestone_usd ?? 0)}{' '}
+            {money(stage.payment_milestone_usd ?? 0)}{' '}
             <span className="text-[10px]">({stage.budget_pct}%)</span>
           </span>
           <StageBadge status={stage.status} tier={tier} />

@@ -5346,6 +5346,8 @@ export const fr: Mirror<EnDict> = {
       documentsSub:    '{count} fichiers',
       contractors:     'Prestataires',
       contractorsSub:  '{count} sur vos chantiers',
+      updates:         'Avancement du chantier',
+      updatesSub:      'Photos et comptes rendus du site',
     },
     costCats: {
       construction: { desc: 'Matériaux, main-d\'œuvre et tous les corps de métier' },
@@ -5358,6 +5360,10 @@ export const fr: Mirror<EnDict> = {
       body:   'Suivez chaque étape, maîtrisez votre budget et restez en lien avec votre entrepreneur — au même endroit.',
       cta:    'Créer un chantier',
       contractor: "Aucun chantier attribué pour l'instant. Revenez une fois votre invitation confirmée.",
+    },
+    shared: {
+      badge:    'Partagé avec vous',
+      readOnly: "Vous pouvez suivre ce chantier, consulter chaque document et écrire à l'équipe. Les validations et les paiements restent à la charge de la personne qui le gère.",
     },
     card: {
       stages:    '{done}/{total} étapes',

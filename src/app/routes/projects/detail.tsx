@@ -13,12 +13,14 @@ import {
   fetchProject,
   fetchProjectStages,
   fetchProjectSubstages,
+  fetchProjectFees,
 }                                from '@/lib/supabase/projects';
 import {
   markSubstageComplete,
   approveStage,
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
+import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
@@ -31,7 +33,7 @@ import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
 import type {
-  ProjectRow, ProjectStageRow, ProjectSubstageRow,
+  ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow,
   FinishLevel, ProjectTier, PaymentStatus,
 }                                from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -149,6 +151,10 @@ export default function ProjectDetail() {
   const [stages,    setStages]    = useState<ProjectStageRow[]>([]);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [payments,  setPayments]  = useState<Map<string, StagePayment>>(new Map());
+  // The permit, professional, verification and contingency lines. They carry no stage,
+  // so without them the overview's "outstanding" could only ever be the whole budget
+  // minus the stages — which is why it read as the project total (Philip, 9 Nov 2026).
+  const [fees,      setFees]      = useState<ProjectFeeRow[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   /**
@@ -177,17 +183,19 @@ export default function ProjectDetail() {
     if (!id) return;
     try {
       // The document count went with the delete confirmation it was counting for (053).
-      const [p, s, sub, pay] = await Promise.all([
+      const [p, s, sub, pay, fee] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
         fetchStagePayments(id),
+        fetchProjectFees(id),
       ]);
       if (!p) { setError(t('project.notFound')); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
       setPayments(pay);
+      setFees(fee);
     } catch {
       setError(t('project.loadFailed'));
     }
@@ -369,6 +377,11 @@ export default function ProjectDetail() {
             {t('wizard.confirmBudget.quoteFailed')}
           </p>
         )}
+        {/* Every money figure on this page is rendered in the project's own currency —
+            see project-money-context.tsx. One provider for the whole body so the budget
+            gate, the overview, the costing tab, the stage list and the payments ledger
+            can never quote four different conversions of the same stage. */}
+        <ProjectMoneyProvider country={project.country}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}
@@ -466,7 +479,6 @@ export default function ProjectDetail() {
               already `locked`, so nothing here is actionable until start_project_tracking
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
-          <>
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} />
 
           {/* Somebody else built this project for them — an admin, or the partner
@@ -494,6 +506,8 @@ export default function ProjectDetail() {
               stages={stages}
               substages={substages}
               budget={budget}
+              payments={payments}
+              fees={fees}
               onViewCosting={() => setActiveTab('costing')}
               onViewStage={() => setActiveTab('stages')}
             />
@@ -585,9 +599,9 @@ export default function ProjectDetail() {
               through the project". Archiving is not a step in a build, and a
               destructive action at the foot of the page a client reads every day is
               the one thing on it they can do by accident. */}
-          </>
 
         </motion.div>
+        </ProjectMoneyProvider>
       </div>
     </div>
   );

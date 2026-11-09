@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Download, FolderOpen, Search, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, Download, Eye, FolderOpen, Search, Trash2, Upload } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useFormat, useT } from '@/lib/i18n';
@@ -21,6 +21,7 @@ import {
   getSignedDocumentUrl,
   deleteDocument,
 } from '@/lib/supabase/documents';
+import { DocumentViewer } from '@/components/project/DocumentViewer';
 import type { ProjectDocumentRow, DocumentCategory } from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
@@ -107,12 +108,14 @@ function ProgressBar({ progress }: { progress: number }) {
 
 interface DocRowProps {
   doc: ProjectDocumentRow;
+  /** Open the file in the in-page viewer. The primary action — see `handleView`. */
+  onView: (doc: ProjectDocumentRow) => void;
   onDownload: (doc: ProjectDocumentRow) => void;
   onDeleteRequest: (doc: ProjectDocumentRow) => void;
   downloadingId: string | null;
 }
 
-function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
+function DesktopDocRow({ doc, onView, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
   const f = useFormat();
   const category = (doc.category as DocumentCategory) ?? 'other';
   return (
@@ -129,9 +132,12 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
           <span className="shrink-0 text-brand-mid-grey">
             <FileIcon mimeType={doc.mime_type} fileName={doc.file_name} className="size-4" />
           </span>
-          <span className="text-sm font-medium text-brand-near-black dark:text-white truncate max-w-50" title={doc.file_name}>
+          <button
+            type="button" onClick={() => onView(doc)} title={doc.file_name}
+            className="truncate max-w-50 text-left text-sm font-medium text-brand-near-black hover:underline dark:text-white"
+          >
             {doc.file_name}
-          </span>
+          </button>
           <CategoryBadge category={category} />
         </div>
       </td>
@@ -143,6 +149,9 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
+          <Button variant="ghost" size="icon" aria-label={`View ${doc.file_name}`} onClick={() => onView(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
+            <Eye className="size-4" />
+          </Button>
           <Button variant="ghost" size="icon" aria-label={`Download ${doc.file_name}`} disabled={downloadingId === doc.id} onClick={() => onDownload(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
             <Download className="size-4" />
           </Button>
@@ -159,7 +168,7 @@ function DesktopDocRow({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
 // Mobile card
 // ---------------------------------------------------------------------------
 
-function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
+function MobileDocCard({ doc, onView, onDownload, onDeleteRequest, downloadingId }: DocRowProps) {
   const f = useFormat();
   const category = (doc.category as DocumentCategory) ?? 'other';
   return (
@@ -175,9 +184,12 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
         <FileIcon mimeType={doc.mime_type} fileName={doc.file_name} className="size-5" />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-brand-near-black dark:text-white truncate" title={doc.file_name}>
+        <button
+          type="button" onClick={() => onView(doc)} title={doc.file_name}
+          className="block w-full truncate text-left text-sm font-medium text-brand-near-black dark:text-white"
+        >
           {doc.file_name}
-        </p>
+        </button>
         <p className="text-xs text-brand-mid-grey mt-0.5 flex items-center gap-1.5 flex-wrap">
           {f.date(doc.created_at)}
           {doc.file_size ? ` · ${formatFileSize(doc.file_size)}` : ''}
@@ -185,6 +197,9 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
         </p>
       </div>
       <div className="flex items-center gap-1 shrink-0">
+        <Button variant="ghost" size="icon" aria-label={`View ${doc.file_name}`} onClick={() => onView(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
+          <Eye className="size-4" />
+        </Button>
         <Button variant="ghost" size="icon" aria-label={`Download ${doc.file_name}`} disabled={downloadingId === doc.id} onClick={() => onDownload(doc)} className="size-8 text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
           <Download className="size-4" />
         </Button>
@@ -203,12 +218,14 @@ function MobileDocCard({ doc, onDownload, onDeleteRequest, downloadingId }: DocR
 function CategorySection({
   category,
   docs,
+  onView,
   onDownload,
   onDeleteRequest,
   downloadingId,
 }: {
   category: DocumentCategory;
   docs: ProjectDocumentRow[];
+  onView: (doc: ProjectDocumentRow) => void;
   onDownload: (doc: ProjectDocumentRow) => void;
   onDeleteRequest: (doc: ProjectDocumentRow) => void;
   downloadingId: string | null;
@@ -243,7 +260,7 @@ function CategorySection({
                 <tbody>
                   <AnimatePresence initial={false}>
                     {docs.map(doc => (
-                      <DesktopDocRow key={doc.id} doc={doc} onDownload={onDownload} onDeleteRequest={onDeleteRequest} downloadingId={downloadingId} />
+                      <DesktopDocRow key={doc.id} doc={doc} onView={onView} onDownload={onDownload} onDeleteRequest={onDeleteRequest} downloadingId={downloadingId} />
                     ))}
                   </AnimatePresence>
                 </tbody>
@@ -253,7 +270,7 @@ function CategorySection({
             <div className="sm:hidden flex flex-col gap-2 p-3">
               <AnimatePresence initial={false}>
                 {docs.map(doc => (
-                  <MobileDocCard key={doc.id} doc={doc} onDownload={onDownload} onDeleteRequest={onDeleteRequest} downloadingId={downloadingId} />
+                  <MobileDocCard key={doc.id} doc={doc} onView={onView} onDownload={onDownload} onDeleteRequest={onDeleteRequest} downloadingId={downloadingId} />
                 ))}
               </AnimatePresence>
             </div>
@@ -345,6 +362,17 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  /**
+   * The file open in the in-page viewer.
+   *
+   * Philip, 9 Nov 2026: documents should be previewable without leaving the project.
+   * `url` is null while the Storage URL is being signed, which is what the viewer's
+   * own loading state reads — the modal opens straight away with the file's name on
+   * it, rather than the row sitting silent for a second and then a window appearing.
+   */
+  const [viewing, setViewing] = useState<{ doc: ProjectDocumentRow; url: string | null } | null>(null);
+  const [viewError, setViewError] = useState<string | null>(null);
 
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -448,6 +476,24 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
     },
     [projectId, userId, hasStorageLimit, storageLimit]
   );
+
+  // ---- view ----
+  // Download is kept beside it: a signed URL is still the only way to get the file onto
+  // a phone for a site visit, and the viewer cannot draw a .docx or an .xlsx at all.
+  const handleView = useCallback(async (doc: ProjectDocumentRow) => {
+    setViewError(null);
+    setViewing({ doc, url: null });
+    try {
+      const url = await getSignedDocumentUrl(doc.file_path);
+      if (!url) throw new Error('no url');
+      // Only adopt the URL if this is still the file on screen — a second click while
+      // the first was signing must not drop someone else's document into the frame.
+      setViewing(current => (current && current.doc.id === doc.id ? { doc, url } : current));
+    } catch {
+      setViewing(null);
+      setViewError(doc.file_name);
+    }
+  }, []);
 
   // ---- download ----
   const handleDownload = useCallback(async (doc: ProjectDocumentRow) => {
@@ -656,6 +702,7 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
                 <CategorySection
                   category={cat}
                   docs={grouped.get(cat)!}
+                  onView={handleView}
                   onDownload={handleDownload}
                   onDeleteRequest={setPendingDelete}
                   downloadingId={downloadingId}
@@ -665,6 +712,22 @@ export function DocumentVault({ projectId, userId, tier }: DocumentVaultProps) {
           </div>
         )}
       </div>
+
+      {/* In-page document viewer */}
+      {viewing && (
+        <DocumentViewer
+          name={viewing.doc.file_name}
+          url={viewing.url}
+          loading={viewing.url === null}
+          onClose={() => setViewing(null)}
+        />
+      )}
+
+      {viewError && (
+        <p role="alert" className="mt-3 text-xs text-state-alert">
+          {t('contractorDocs.openFailed')}
+        </p>
+      )}
 
       {/* Delete confirmation modal */}
       <ConfirmModal
