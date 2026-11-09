@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { RoleTour } from '@/components/tour/RoleTour';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -153,6 +154,10 @@ export default function WorkLayout() {
       onLogout={() => { void signOut().then(() => navigate('/', { replace: true })); }}
     >
       <Outlet />
+      {/* Not while onboarding is unfinished: that screen deliberately leaves only its
+          own two buttons live, and an arrow pointing at a locked sidebar would be the
+          product contradicting itself. */}
+      {!(gate !== null && !(gate.decided && gate.complete)) && <RoleTour />}
     </WorkShell>
   );
 }

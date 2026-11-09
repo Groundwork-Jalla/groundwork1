@@ -18,17 +18,6 @@ export function isMissingRpc(err: unknown): boolean {
 }
 
 /**
- * Owner submits a stage for review (Jalla Verify / Jalla Management). The database
- * re-checks ownership, tier, `active`, paid, and that every substage is pending review or
- * complete; refuses with `not_owner:`, `self_verify:`, `wrong_state:`, `not_paid:` or
- * `substages_not_ready:`. Writes `stage_submitted_for_review` itself.
- */
-export async function submitStageForReview(stageId: string): Promise<void> {
-  const { error } = await supabase.rpc('submit_stage_for_review', { p_stage: stageId });
-  if (error) throw error;
-}
-
-/**
  * Admin sends a pending-review stage back to active and its reviewed substages back to
  * in_progress. Refuses `not_admin:` and `wrong_state:`. Writes `rework_requested` itself.
  * The bell and the email are the caller's, after this returns.

@@ -1,7 +1,6 @@
 import { supabase } from './client';
 import { approveStageRpc } from './verifications';
-import { isMissingRpc, requestRework, submitStageForReview } from './activity';
-import { notifyAdmins } from './notifications';
+import { isMissingRpc, requestRework } from './activity';
 import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml, stageApprovedSubject } from '../email/stage-approved-html';
 import { resolveRecipientLang, translate, type TKey } from '@/lib/i18n/translate';
@@ -12,23 +11,21 @@ import { trackEvent } from '@/lib/analytics';
 
 // =========================================================
 // markSubstageComplete
-// Tier fork: starter → complete immediately
-//            pro / enterprise → pending_review (admin reviews)
+// Free mode: every project uses direct completion (no verification queue).
 // =========================================================
 export async function markSubstageComplete(
   substageId: string,
   tier: string,
   userId: string,
 ): Promise<void> {
-  const isStarterTier = tier === 'self_verify' || tier === 'starter';
-  const newStatus = isStarterTier ? 'complete' : 'pending_review';
+  void tier;
 
   const { error } = await supabase
     .from('project_substages')
     .update({
-      status:      newStatus,
-      approved_by: isStarterTier ? userId : null,
-      approved_at: isStarterTier ? new Date().toISOString() : null,
+      status:      'complete',
+      approved_by: userId,
+      approved_at: new Date().toISOString(),
     })
     .eq('id', substageId);
 
@@ -47,7 +44,7 @@ export async function approveStage(
   userId: string,
   tier: string,
 ): Promise<void> {
-  const isSelfVerify = tier === 'self_verify' || tier === 'starter';
+  void tier;
 
   // 0. Verify stage has been paid for
   const { data: stageRow, error: stageFetchErr } = await supabase
@@ -68,50 +65,9 @@ export async function approveStage(
 
   if (subFetchErr) throw subFetchErr;
 
-  const allReady = (substages ?? []).every(s =>
-    isSelfVerify
-      ? s.status === 'complete'
-      : s.status === 'pending_review' || s.status === 'complete',
-  );
+  const allReady = (substages ?? []).every(s => s.status === 'complete');
 
   if (!allReady) throw new Error('Not all substages are ready for approval.');
-
-  if (!isSelfVerify) {
-    // jalla_verify: submit stage for admin review — in the database (089), which
-    // re-checks the preconditions above and writes the audit row in the same
-    // transaction. The direct update is the fallback for a deploy that lands before the
-    // migration is pasted; once 089 is live the browser can no longer write an audit row.
-    try {
-      await submitStageForReview(stageId);
-    } catch (err) {
-      if (!isMissingRpc(err)) throw err;
-      const { error } = await supabase
-        .from('project_stages')
-        .update({ status: 'pending_review' })
-        .eq('id', stageId);
-      if (error) throw error;
-      await supabase.from('project_audit_log').insert({
-        project_id: projectId, stage_id: stageId,
-        action: 'stage_submitted_for_review', actor_id: userId,
-        details: { tier, stage_number: stageNumber },
-      });
-    }
-
-    // Notify admins (fire-and-forget)
-    Promise.all([
-      supabase.from('projects').select('name').eq('id', projectId).single(),
-      supabase.from('project_stages').select('name').eq('id', stageId).single(),
-    ]).then(([{ data: proj }, { data: stageData }]) => {
-      notifyAdmins(
-        'verification_requested',
-        'Stage Verification Requested',
-        `${proj?.name ?? 'A project'}: Stage ${stageNumber} (${stageData?.name ?? ''}) submitted for verification`,
-        { project_id: projectId, stage_id: stageId, stage_number: stageNumber },
-      ).catch(() => {});
-    }).catch(() => {});
-
-    return;
-  }
 
   // self_verify: approve — in the database (087). `approve_stage()` re-checks that the
   // caller owns a Self Verify project, that the stage is paid and every substage complete
@@ -120,7 +76,7 @@ export async function approveStage(
   // writes the audit row, all in one transaction. A trigger refuses `status = 'complete'`
   // from anywhere else, so this is no longer a client decision.
   await approveStageRpc(stageId);
-  trackEvent('stage_approved', { stage_number: stageNumber, tier });
+  trackEvent('stage_approved', { stage_number: stageNumber, tier: 'self_verify' });
   void userId;
 }
 

@@ -1,17 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-const STORAGE_LIMITS: Record<string, number> = {
-  self_verify:       500 * 1024 * 1024,  // 500 MB
-  starter:           500 * 1024 * 1024,  // backward compat
-  jalla_verify:      Infinity,
-  pro:               Infinity,
-  enterprise_custom: Infinity,
-  enterprise:        Infinity,
-  jalla_management:  Infinity,
-};
-
-export function getStorageLimit(tier: string): number {
-  return STORAGE_LIMITS[tier] ?? STORAGE_LIMITS.self_verify;
+export function getStorageLimit(_tier: string): number {
+  return Infinity;
 }
 
 export async function getProjectStorageUsed(

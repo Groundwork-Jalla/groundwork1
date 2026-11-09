@@ -2657,6 +2657,43 @@ export const fr: Mirror<EnDict> = {
     none:          'Aucun renseign\u00e9',
     notGiven:      'Non renseign\u00e9',
   },
+  tour: {
+    next: "C'est compris",
+    done: 'Termin\u00e9',
+    skip: 'Passer',
+    planQuestion: {
+      title: 'Cette question d\u00e9termine les cinq prochaines minutes',
+      body: "Si votre architecte vous a remis des plans et un devis quantitatif chiffr\u00e9, choisissez Oui \u2014 t\u00e9l\u00e9versez-les et votre budget est lu directement dans vos propres documents. Si vous ne les avez pas encore, choisissez Non : nous \u00e9tablirons avec vous la surface, la distribution et le co\u00fbt, \u00e9tape par \u00e9tape. Aucune des deux r\u00e9ponses n'est meilleure. Ce sont deux points de d\u00e9part diff\u00e9rents.",
+    },
+    client: {
+      start: {
+        title: 'Commencez ici',
+        body: "Cr\u00e9er un projet prend environ cinq minutes. Vous pouvez vous arr\u00eater en chemin et revenir \u2014 ce que vous avez saisi est conserv\u00e9.",
+      },
+      invite: {
+        title: 'Invitez maintenant votre entrepreneur',
+        body: "Invitez la personne qui construit pour vous. Elle t\u00e9l\u00e9verse les photos et les documents \u00e0 chaque \u00e9tape, et tous vos \u00e9changes restent dans Groundwork : il n'y a qu'un seul historique.",
+      },
+      approve: {
+        title: "N'approuvez une \u00e9tape qu'apr\u00e8s avoir vu le travail",
+        body: "Chaque \u00e9tape pr\u00e9sente ses preuves avant de demander votre approbation \u2014 photos, documents, travaux r\u00e9alis\u00e9s. Regardez-les d'abord. C'est votre approbation qui fait passer le chantier \u00e0 l'\u00e9tape suivante.",
+      },
+    },
+    contractor: {
+      client: {
+        title: 'Commencez par votre client',
+        body: "Ajoutez la personne pour qui vous construisez, puis cr\u00e9ez son projet. Elle acc\u00e8de au m\u00eame projet et voit chaque \u00e9tape que vous mettez \u00e0 jour.",
+      },
+      evidence: {
+        title: 'T\u00e9l\u00e9versez les preuves au fur et \u00e0 mesure',
+        body: "Photos et documents pour chaque \u00e9tape, t\u00e9l\u00e9vers\u00e9s pendant les travaux plut\u00f4t qu'\u00e0 la fin. C'est ce que votre client examine avant d'approuver l'\u00e9tape.",
+      },
+      payment: {
+        title: "L'\u00e9tape s'ouvre quand vous confirmez le re\u00e7u",
+        body: "Votre client t\u00e9l\u00e9verse son re\u00e7u de paiement et vous confirmez l'avoir re\u00e7u. L'\u00e9tape suivante se d\u00e9bloque sur votre confirmation, pas sur l'approbation \u2014 confirmez donc d\u00e8s que l'argent vous parvient, et laissez en attente si ce n'est pas le cas.",
+      },
+    },
+  },
   planGate: {
     question:     'Votre projet dispose-t-il d\u2019un plan d\u2019architecte ?',
     questionBody: 'C\u2019est le plan que votre architecte ou votre ing\u00e9nieur \u00e9tablit avant le d\u00e9but des travaux. Il comprend votre plan de masse et votre devis quantitatif.',
@@ -2693,6 +2730,17 @@ export const fr: Mirror<EnDict> = {
     typeInstitutional:  'b\u00e2timent institutionnel',
     typeOther:          'b\u00e2timent',
     lookingAtPlan: 'Lecture du plan\u2026',
+    sheetFloorPlan: 'un plan de niveau',
+    sheetSitePlan: 'un plan de masse',
+    sheetFoundation: 'un plan de fondation',
+    sheetStructural: 'des plans de structure',
+    sheetElevation: 'des fa\u00e7ades',
+    sheetSection: 'des coupes',
+    sheetRoofPlan: 'un plan de toiture',
+    sheetSchedule: 'un tableau',
+    noFloorPlanTitle: "Nous n'avons pas trouv\u00e9 de plan de niveau dans ce document",
+    noFloorPlanBody: "Ce que vous avez t\u00e9l\u00e9vers\u00e9 ressemble \u00e0 {kinds}. Un plan de niveau montre les pi\u00e8ces d'un \u00e9tage \u2014 les chambres, la cuisine, le salon \u2014 et c'est \u00e0 partir de lui que le budget et l'\u00e9ch\u00e9ancier des \u00e9tapes sont \u00e9tablis. Si vous avez cette planche, ajoutez-la aussi. Si c'est tout ce que vous avez, continuez : nous \u00e9tablirons le plan avec vous.",
+    noFloorPlanUnreadable: "Nous n'avons pas pu lire ce dessin \u2014 un scan ou une photo ne contient aucun texte. Continuez ; quelqu'un l'examinera avec vous.",
     modelReadTitle: 'Ce que le plan semble montrer',
     modelReadBody:  'Lu sur le dessin lui-m\u00eame, et non sur ses libell\u00e9s. V\u00e9rifiez avant de continuer \u2014 c\u2019est une lecture, pas une mention du plan.',
     documentSummaryTitle: 'Donn\u00e9es extraites de vos documents',

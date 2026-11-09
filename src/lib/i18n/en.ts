@@ -2716,6 +2716,43 @@ export const en = {
     none:          'None given',
     notGiven:      'Not given',
   },
+  tour: {
+    next: 'Got it',
+    done: 'Done',
+    skip: 'Skip',
+    planQuestion: {
+      title: 'This question decides the next five minutes',
+      body: "If your architect has given you drawings and a priced bill of quantities, choose Yes \u2014 upload them and your budget is read straight off your own documents. If you do not have them yet, choose No: we work out the size, the layout and the cost with you, step by step. Neither answer is the better one. They are two different starting points.",
+    },
+    client: {
+      start: {
+        title: 'Start here',
+        body: 'Setting up a build takes about five minutes. You can stop partway and come back \u2014 what you have filled in is kept.',
+      },
+      invite: {
+        title: 'Now bring your contractor in',
+        body: 'Invite the person building for you. They upload the photographs and documents at each stage, and everything you both say stays inside Groundwork, so there is one record of it.',
+      },
+      approve: {
+        title: 'Approve a stage only after you have seen the work',
+        body: 'Each stage opens its evidence before it asks for your approval \u2014 photographs, documents, what was done. Look at it first. Your approval is what moves the build to the next stage.',
+      },
+    },
+    contractor: {
+      client: {
+        title: 'Start with your client',
+        body: 'Add the person you are building for, then set their build up. They get access to the same project and see every stage you update.',
+      },
+      evidence: {
+        title: 'Upload the evidence as you go',
+        body: 'Photographs and documents for each stage, uploaded as the work happens rather than at the end. This is what your client reviews before they approve the stage.',
+      },
+      payment: {
+        title: 'The stage opens when you confirm the receipt',
+        body: "Your client uploads their payment receipt and you confirm you have received it. The next stage unlocks on your confirmation, not on the approval \u2014 so confirm as soon as the money reaches you, and leave it if it has not.",
+      },
+    },
+  },
   planGate: {
     question:     'Does your project have an architecture plan?',
     questionBody: 'This is drawing your architect or engineer prepares before building starts. It includes your floor plan and bill of quantities.',
@@ -2752,6 +2789,17 @@ export const en = {
     typeInstitutional:  'institutional building',
     typeOther:          'building',
     lookingAtPlan: 'Looking at the drawing\u2026',
+    sheetFloorPlan: 'a plan of a level',
+    sheetSitePlan: 'a site layout',
+    sheetFoundation: 'a foundation plan',
+    sheetStructural: 'structural drawings',
+    sheetElevation: 'elevations',
+    sheetSection: 'sections',
+    sheetRoofPlan: 'a roof plan',
+    sheetSchedule: 'a schedule',
+    noFloorPlanTitle: 'We could not find a plan of a level in this',
+    noFloorPlanBody: 'What you uploaded reads as {kinds}. A floor plan shows the rooms on one level \u2014 the bedrooms, the kitchen, the sitting room \u2014 and it is what the budget and the stage schedule are built from. If you have that sheet, add it too. If this is all you have, carry on: we will work the layout out with you.',
+    noFloorPlanUnreadable: 'We could not read this drawing \u2014 a scan or a photograph has no text in it. Carry on; somebody will look at it with you.',
     modelReadTitle: 'What the drawing appears to show',
     modelReadBody:  'Read from the drawing itself, not from its labels. Check it before you continue \u2014 it is a reading, not something the plan states.',
     documentSummaryTitle: 'Extracted from your documents',

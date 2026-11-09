@@ -31,8 +31,6 @@ import type { ContractorInviteRow } from '@/types/project';
 // · No Name field. `contractor_invites` has nowhere to put one (project, email, role,
 //   status, token). Share This Build stores the client's name in `relationship`.
 //   Inventing a box whose contents are dropped on submit is worse than not asking.
-// · A plan cap. Self Verify allows one contractor per project, so the form is replaced
-//   by a line saying so rather than left to fail on submit.
 // · Removing is confirmed. A revoked contractor loses access to a build they may be
 //   standing on; a family viewer loses a page they were reading.
 // =========================================================
@@ -41,11 +39,10 @@ interface ContractorInviteProps {
   projectId: string;
   userId: string;
   projectName: string;
-  projectTier: string;
 }
 
 export function ContractorInvite({
-  projectId, userId, projectName, projectTier,
+  projectId, userId, projectName,
 }: ContractorInviteProps) {
   const t = useT();
   const { user } = useAuth();
@@ -71,9 +68,6 @@ export function ContractorInvite({
     fetchInvites(projectId).then(setRows).catch(() => setRows([]));
   }, [projectId]);
   useEffect(() => { load(); }, [load]);
-
-  const live = (rows ?? []).filter(r => r.status === 'pending' || r.status === 'accepted');
-  const atCap = (projectTier === 'self_verify' || projectTier === 'starter') && live.length >= 1;
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
@@ -126,14 +120,6 @@ export function ContractorInvite({
         {t('inviteUi.body')}
       </p>
 
-      {atCap ? (
-        /* Said instead of the form, not beside it. A box you may not submit is a
-           worse answer than a sentence explaining why there is no box. */
-        <p className="mt-4 rounded-lg border border-brand-border-grey bg-brand-off-white px-3 py-2.5 text-xs leading-relaxed text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
-          {t('inviteUi.capReached')}{' '}
-          <span className="text-brand-near-black dark:text-white">{t('project.invite.capUpgrade')}</span>
-        </p>
-      ) : (
         <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-1.5">
             <Label htmlFor="contractorEmail" className="text-xs">{t('inviteUi.email')}</Label>
@@ -147,7 +133,6 @@ export function ContractorInvite({
             {busy ? <Loader2 className="size-4 animate-spin" /> : t('inviteUi.invite')}
           </Button>
         </form>
-      )}
 
       {sent && (
         <p className="mt-3 flex items-center gap-2 text-xs text-state-complete">

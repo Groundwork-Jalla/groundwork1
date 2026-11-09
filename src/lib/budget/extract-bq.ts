@@ -1,5 +1,6 @@
 import { parseAmount, readBqLineItems, readBqTotal, type BqLineItem, type BqReading } from './read-bq-total';
 import type { ModelPlanReading } from './model-plan-reading';
+import { readPlanDocument, type SheetReading } from '@/lib/documents/plan-sheet';
 
 // =========================================================
 // Getting the rows out of a bill of quantities, whatever it arrived as.
@@ -55,7 +56,9 @@ async function fromSpreadsheet(file: File): Promise<string> {
  * in document order instead would put every number on its own line and lose which row
  * each belonged to.
  */
-async function fromPdf(file: File): Promise<{ text: string; ocr: boolean; pages: number }> {
+async function fromPdf(
+  file: File,
+): Promise<{ text: string; ocr: boolean; pages: number; pageTexts: string[] }> {
   const pdfjs = await import('pdfjs-dist');
   // The worker is bundled beside the library; Vite resolves this to a real URL.
   pdfjs.GlobalWorkerOptions.workerSrc =
@@ -94,9 +97,13 @@ async function fromPdf(file: File): Promise<{ text: string; ocr: boolean; pages:
   // No text layer at all means a scan — a photograph of a printed BQ. That used to be
   // the end of it; now the pages are rendered and read as pictures.
   const text = anyText ? pages.join('\n') : '';
+  // `pageTexts` is kept SEPARATE from the joined `text` on purpose. Counting labels
+  // wants the whole file at once; asking which sheet is which has to be done per sheet,
+  // because a ten-page set is a site layout, a foundation plan, four elevations and
+  // three plans of a level, and joining them loses exactly that.
   const out = text.trim()
-    ? { text, ocr: false, pages: doc.numPages }
-    : { text: await fromScannedPdf(doc as never), ocr: true, pages: doc.numPages };
+    ? { text, ocr: false, pages: doc.numPages, pageTexts: pages }
+    : { text: await fromScannedPdf(doc as never), ocr: true, pages: doc.numPages, pageTexts: [] as string[] };
 
   // Release the worker's copy of the document. `cleanup()` is the public surface in
   // pdfjs 6; a leaked document keeps its page data alive for the life of the tab.
@@ -314,6 +321,19 @@ export interface FloorPlanFacts {
    * called. Optional so older saved readings still type-check.
    */
   officeRooms?: number;
+  /**
+   * Which sheet each page of this file is, and whether any of them is a plan of a level.
+   *
+   * Added 9 Nov 2026. Of the eleven drawings contractors had filed as their plan, SEVEN
+   * were not floor plans — two site layouts, two foundation plans, two structural sets
+   * and a sheet of elevations. Nobody was being careless: a site layout and a foundation
+   * plan are both drawn in plan view, so they look like the thing that was asked for.
+   * Nothing told them otherwise, so nothing could.
+   *
+   * Optional so a reading saved before this existed still type-checks.
+   */
+  sheets?: SheetReading[];
+  isFloorPlan?: boolean;
   /**
    * What a vision model made of the drawing, when one was asked and answered.
    *
@@ -639,9 +659,14 @@ export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts>
 
   try {
     const out = isPdf ? await fromPdf(file) : { text: await ocrImage(file), ocr: true };
+    // An image has one sheet, and it is whatever the OCR of it reads as.
+    const pageTexts = 'pageTexts' in out && out.pageTexts.length ? out.pageTexts : [out.text];
+    const document = readPlanDocument(pageTexts);
     return {
       readable: !!out.text.trim(),
       ...readFloorPlanFacts(out.text, { pageCount: 'pages' in out ? out.pages : 1 }),
+      sheets: document.sheets,
+      isFloorPlan: document.isFloorPlan,
     };
   } catch {
     return { ...NO_FLOOR_PLAN_FACTS };

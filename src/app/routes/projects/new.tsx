@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { RoleTour } from '@/components/tour/RoleTour';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { mustChangePassword, FORCED_PASSWORD_PATH } from '@/lib/auth/provisioned';
@@ -110,6 +111,10 @@ export default function NewProjectPage() {
     // nobody else's unfinished project can surface here.
     <WizardProvider persistenceKey={userId ? ownProjectDraftKey(userId) : undefined}>
       <WizardRouter />
+      {/* The wizard is its own top-level route with no shell, so the tour is mounted
+          here rather than inherited. This screen holds the plan question — the one step
+          both tours share. */}
+      <RoleTour />
     </WizardProvider>
   );
 }

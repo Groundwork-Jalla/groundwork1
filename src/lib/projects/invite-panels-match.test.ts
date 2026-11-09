@@ -71,11 +71,8 @@ describe('both panels are built from the same pieces', () => {
 });
 
 describe('what the contractor panel keeps that the other does not', () => {
-  it('replaces the form with a sentence at the plan limit', () => {
-    // A box you may not submit is a worse answer than a line explaining why there
-    // is no box.
-    expect(contractor).toMatch(/\{atCap \? \(/);
-    expect(contractor).toMatch(/inviteUi\.capReached/);
+  it('does not impose a plan limit on contractor invitations', () => {
+    expect(contractor).not.toMatch(/atCap|inviteUi\.capReached/);
   });
 
   it('and confirms removal, because a contractor loses a site they stand on', () => {

@@ -872,6 +872,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
               className="rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
               {row}
               {showGate && (
+                <div data-tour="confirm-payment">
                 <StagePaymentGate
                   projectId={stage.project_id}
                   stageId={stage.id}
@@ -880,6 +881,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                   isContractor
                   onChanged={onSubmitted}
                 />
+                </div>
               )}
             </section>
           );
@@ -961,6 +963,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                         </span>
                       ) : (
                         <button type="button" onClick={() => setUploadFor(item.id)}
+                          data-tour="upload-evidence"
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black">
                           <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
                         </button>

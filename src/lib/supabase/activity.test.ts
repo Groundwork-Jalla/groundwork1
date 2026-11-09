@@ -66,11 +66,16 @@ describe('the browser no longer writes audit rows', () => {
     expect(ddl).toMatch(/\(project_id, stage_id, action, actor_id, details, entity_type, entity_id, person_id\)/);
     expect(ddl).toMatch(/CASE WHEN p_entity_type = 'project_stage' THEN p_entity_id END/);
   });
-  it('the two writers that were still in approvals.ts call RPCs; the direct insert survives only as the not-yet-applied fallback', () => {
-    expect(approvals).toMatch(/await submitStageForReview\(stageId\)/);
+  it('the writer still in approvals.ts calls an RPC; the direct insert survives only as the not-yet-applied fallback', () => {
+    // There was a second writer here — `submitStageForReview`, the tier fork that sent a
+    // stage to the Jalla review queue. Free mode removed the queue, so the call and its
+    // wrapper are gone and only the rework writer remains. The RULE is unchanged: the
+    // browser reaches the audit log through an RPC, and writes directly only when that
+    // RPC is not yet applied.
+    expect(approvals).not.toMatch(/submitStageForReview/);
     expect(approvals).toMatch(/await requestRework\(stageId, reason\)/);
     const inserts = approvals.match(/from\('project_audit_log'\)\.insert\(/g) ?? [];
-    expect(inserts.length).toBe(2);
+    expect(inserts.length).toBe(1);
     for (const m of approvals.matchAll(/from\('project_audit_log'\)\.insert\(/g)) {
       const before = approvals.slice(Math.max(0, m.index! - 700), m.index);
       expect(before).toMatch(/if \(!isMissingRpc\(err\)\) throw err;/);

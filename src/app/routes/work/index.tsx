@@ -179,6 +179,7 @@ export default function ContractorDashboard() {
         </div>
         <Link
           to="/projects/new"
+          data-tour="add-client"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-3.5 py-2 text-xs font-semibold text-white dark:bg-white dark:text-brand-near-black"
         >
           <Plus className="size-4" aria-hidden />{t('contractor.newProject')}

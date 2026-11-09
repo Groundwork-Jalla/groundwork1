@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { RoleTour } from '@/components/tour/RoleTour';
 import { Outlet, useNavigate } from 'react-router';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { AppShell } from '@/components/shell/AppShell';
@@ -82,6 +83,9 @@ export default function ProtectedLayout() {
       topBarActions={<NotificationBell userId={user?.id ?? ''} />}
     >
       <Outlet />
+      {/* Mounted inside the shell, so a tip can point at the sidebar as well as the
+          page. Renders nothing at all once the person has been through it or skipped. */}
+      <RoleTour />
     </AppShell>
   );
 }

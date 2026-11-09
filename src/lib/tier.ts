@@ -10,24 +10,18 @@ import type { ProjectTier } from '@/types/project';
 // =========================================================
 
 /**
- * True when the project owner is their own approver.
+ * Temporary free-mode rule: every project follows self-approval flow.
  *
- * On Self Verify nobody at Jalla reviews a stage: the owner uploads evidence and
- * approves it themselves — that is what the plan is. On Jalla Verify and Jalla
- * Management an independent verifier or Jalla staff decides, so the same screens have
- * to say something different.
+ * Pricing and tier gates are switched off for now, so approval UX must not branch by
+ * stored tier values until paid verification returns.
  */
 export function isSelfVerify(tier: ProjectTier | string | null | undefined): boolean {
-  return tier === 'self_verify' || tier === 'starter';
+  void tier;
+  return true;
 }
 
-/**
- * True when a stage on this plan waits on somebody other than the owner.
- *
- * Read this before showing any "in review" or "awaiting approval" wording: on Self
- * Verify there is nobody to wait for, and language that implies otherwise describes a
- * plan the owner did not buy.
- */
+/** Temporary free mode: no project waits for external verification. */
 export function awaitsSomeoneElse(tier: ProjectTier | string | null | undefined): boolean {
-  return !isSelfVerify(tier);
+  void tier;
+  return false;
 }

@@ -54,7 +54,7 @@ export const TIER_ECONOMICS: Record<ProjectTier, TierEconomics> = {
   self_verify: {
     id: 'self_verify',
     priceValue: 0,
-    feePct: 0.10,
+    feePct: 0,
     hasPeriod: false,
     hasTag: false,
     featureCount: 5,
@@ -62,7 +62,7 @@ export const TIER_ECONOMICS: Record<ProjectTier, TierEconomics> = {
   jalla_verify: {
     id: 'jalla_verify',
     priceValue: 199,
-    feePct: 0.03,
+    feePct: 0,
     hasPeriod: true,
     hasTag: true,
     // 6 since "Community access" went: the community is gone, and a paid tier must not

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Loader2, CreditCard, ShieldCheck, Lock, ArrowDown, Banknote, Check, ChevronDown,
+  X, Loader2, CreditCard, ShieldCheck, Lock, ArrowDown, Banknote, Check,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { formatUSDFull, formatLocalCurrency } from '@/lib/budget';
-import { platformFee, stripeProcessing } from '@/lib/payments/config';
+import { platformFee } from '@/lib/payments/config';
 import { useT } from '@/lib/i18n';
 import type { ProjectStageRow, ProjectTier, ConstructionRate } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -28,7 +27,6 @@ export default function MilestonePaymentModal({
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
-  const [feesOpen, setFeesOpen]     = useState(false);
 
   // Every hook above this line — `stage` is null until a stage is picked, and an
   // early return before the hooks would change the hook count between renders.
@@ -37,7 +35,6 @@ export default function MilestonePaymentModal({
   const amount    = stage.payment_milestone_usd ?? 0;
   const fee       = platformFee(amount, tier);
   const youPay    = amount + fee;
-  const stripeEst = stripeProcessing(youPay);
   const localAmt  = rate ? amount * rate.approx_fx_rate : null;
 
   async function handleConfirm() {
@@ -129,45 +126,6 @@ export default function MilestonePaymentModal({
                 <span className="text-brand-mid-grey">{t('project.payments.stageBudget')}</span>
                 <span className="font-semibold tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(amount)}</span>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setFeesOpen(o => !o)}
-                aria-expanded={feesOpen}
-                className="flex w-full items-center justify-between border-t border-brand-light-grey py-2 text-[12px] text-brand-mid-grey transition-colors hover:text-brand-near-black dark:border-[#252525] dark:hover:text-white"
-              >
-                <span className="flex items-center gap-1.5">
-                  <ChevronDown className={cn('size-3 transition-transform', feesOpen && 'rotate-180')} />
-                  {t('project.payments.feeDetails')}
-                </span>
-                <span className="tabular-nums">{fee > 0 ? formatUSDFull(fee) : '—'}</span>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {feesOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-1.5 pb-2 pl-4.5 pt-1">
-                      <div className="flex justify-between text-[12px]">
-                        <span className="text-brand-mid-grey">{t('project.payments.processingFee')}</span>
-                        <span className="tabular-nums text-brand-near-black dark:text-white">{fee > 0 ? formatUSDFull(fee) : '—'}</span>
-                      </div>
-                      <div className="flex justify-between text-[12px]">
-                        <span className="text-brand-mid-grey">{t('project.payments.cardProcessing')}</span>
-                        <span className="tabular-nums text-brand-soft-grey">~{formatUSDFull(stripeEst)}</span>
-                      </div>
-                      <p className="pt-1 text-[10px] leading-relaxed text-brand-mid-grey">
-                        {t('project.payments.feeNote')}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
 
               <div className="my-4 flex items-center justify-between rounded-xl bg-brand-near-black px-4 py-3.5 dark:bg-white">
                 <span className="text-[13px] font-semibold text-white dark:text-brand-near-black">{t('project.payments.totalCharge')}</span>

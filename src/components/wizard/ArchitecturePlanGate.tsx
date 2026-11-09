@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Paperclip, Ruler, X } from 'lucide-react';
-import { useT } from '@/lib/i18n';
+import { useT, useLanguage } from '@/lib/i18n';
+import type { TKey } from '@/lib/i18n/translate';
 import {
   BOQ_ACCEPT_ATTR, FLOOR_PLAN_ACCEPT_ATTR, MAX_FILE_MB, fileProblem,
   isBoqFile, isFloorPlanFile,
@@ -9,6 +10,7 @@ import {
 import { extractBqTotal, extractFloorPlanFacts, canExtract, type FloorPlanFacts } from '@/lib/budget/extract-bq';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { readPlanWithModel, mergeModelReading } from '@/lib/budget/model-plan-reading';
+import { readUpload, type NamedSheetKind } from '@/lib/documents/plan-sheet';
 import type { BqLineItem, BqReading } from '@/lib/budget/read-bq-total';
 import { cn } from '@/lib/utils';
 import { GroundworkLogo } from '@/components/ui/GroundworkLogo';
@@ -48,6 +50,18 @@ export type PlanAnswer =
       bqStatedFloors: number | null;
     };
 
+/** A sheet kind, as a person would name it. `unknown` is never shown — it is not a finding. */
+const SHEET_KIND_KEYS = {
+  floor_plan: 'planGate.sheetFloorPlan',
+  site_plan:  'planGate.sheetSitePlan',
+  foundation: 'planGate.sheetFoundation',
+  structural: 'planGate.sheetStructural',
+  elevation:  'planGate.sheetElevation',
+  section:    'planGate.sheetSection',
+  roof_plan:  'planGate.sheetRoofPlan',
+  schedule:   'planGate.sheetSchedule',
+} as const satisfies Record<NamedSheetKind, TKey>;
+
 export function ArchitecturePlanGate({
   onAnswered, onCancel, backLabel, currencyCode, fxRate,
 }: {
@@ -59,6 +73,7 @@ export function ArchitecturePlanGate({
   fxRate?: number | null;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [slide, setSlide] = useState<'ask' | 'upload'>('ask');
   const [selectedHasPlan, setSelectedHasPlan] = useState<boolean | null>(null);
   const [floorPlans, setFloorPlans] = useState<File[]>([]);
@@ -70,6 +85,27 @@ export function ArchitecturePlanGate({
   // build in Cameroon says so, and guessing XAF would misstate it by a factor of 600.
   const bqMoney = moneyPair(reading?.total ?? 0, reading?.currencyCode ?? currencyCode, fxRate);
   const [floorPlanFacts, setFloorPlanFacts] = useState<FloorPlanFacts[]>([]);
+  // What the uploaded drawings add up to: a plan of a level, something else, or nothing
+  // we could read. Derived rather than stored — it is a pure function of the readings.
+  const uploadReading = readUpload(floorPlanFacts);
+  /**
+   * "a site layout and a foundation plan" — joined in the reader's own language.
+   *
+   * `Intl.ListFormat` rather than `join(', ')`, because French puts "et" where English
+   * puts "and" and neither uses a comma before it.
+   */
+  const sheetKindList = (() => {
+    const names = uploadReading.insteadFound
+      .map(kind => t(SHEET_KIND_KEYS[kind]))
+      .filter(Boolean);
+    if (names.length < 2) return names[0] ?? '';
+    try {
+      return new Intl.ListFormat(lang === 'fr' ? 'fr' : 'en',
+        { style: 'long', type: 'conjunction' }).format(names);
+    } catch {
+      return names.join(', ');
+    }
+  })();
   const [scanCount, setScanCount] = useState(0);
   const scanning = scanCount > 0;
   const [unreadable, setUnreadable] = useState(false);
@@ -161,7 +197,7 @@ export function ArchitecturePlanGate({
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2" data-tour="plan-question">
           <Choice
             id="plan-yes"
             title={t('planGate.yes')} body={t('planGate.yesBody')}
@@ -281,6 +317,34 @@ export function ArchitecturePlanGate({
       {looking && !scanning && (
         <p role="status" className="mt-3 flex items-center gap-2 text-xs text-brand-mid-grey">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.lookingAtPlan')}
+        </p>
+      )}
+      {/*
+        * What they actually uploaded, when it is not a plan of a level.
+        *
+        * Of the eleven drawings contractors had filed as their floor plan on 9 Nov 2026,
+        * seven were not: two site layouts, two foundation plans, two structural sets and
+        * a sheet of elevations. A site layout and a foundation plan are both drawn in
+        * plan view, so they look like the thing that was asked for — and three projects
+        * reached a budget and a stage schedule on sheets showing no rooms at all.
+        *
+        * A notice, never a block. The drawing they have is still the drawing they have,
+        * and Continue stays enabled: refusing the upload would make a reading into a
+        * gate. Shown only once the reading has finished, so it cannot flash mid-scan.
+        */}
+      {!scanning && !looking && uploadReading.insteadFound.length > 0 && (
+        <div className="mt-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3">
+          <p className="text-xs font-semibold text-brand-near-black">
+            {t('planGate.noFloorPlanTitle')}
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">
+            {t('planGate.noFloorPlanBody').replace('{kinds}', sheetKindList)}
+          </p>
+        </div>
+      )}
+      {!scanning && !looking && floorPlans.length > 0 && uploadReading.unreadable && (
+        <p className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
+          {t('planGate.noFloorPlanUnreadable')}
         </p>
       )}
       {bq && !reading && !scanning && (

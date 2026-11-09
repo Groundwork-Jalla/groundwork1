@@ -503,15 +503,19 @@ export default function ProjectDetail() {
           {activeTab === 'stages' && (
             <div className="space-y-6">
               {!isContractor && (
-                <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
+                <div data-tour="invite-contractor"
+                     className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
                   <ContractorInvite
                     projectId={project.id}
                     userId={user?.id ?? ''}
                     projectName={project.name}
-                    projectTier={project.tier}
                   />
                 </div>
               )}
+              {/* A plain wrapper, deliberately unstyled: `display: contents` measures
+                  as a zero-sized box, so the tour would have nothing to point at. One
+                  child of a `space-y-6` parent either way, so the spacing is unchanged. */}
+              <div data-tour="stage-list">
               <StageTracker
                 stages={stages}
                 substages={substages}
@@ -532,6 +536,7 @@ export default function ProjectDetail() {
                 onApproveStage={handleApproveStage}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
+              </div>
             </div>
           )}
 

@@ -29,23 +29,17 @@ const timeline = code('src/components/project/TimelineTab.tsx');
 const overview = code('src/components/project/OverviewTab.tsx');
 
 describe('isSelfVerify', () => {
-  it('accepts both names for the same plan', () => {
-    // `starter` is the pre-rename value (migration 008) and still sits in old rows.
-    expect(isSelfVerify('self_verify')).toBe(true);
-    expect(isSelfVerify('starter')).toBe(true);
-  });
-
-  it('rejects the plans where somebody else decides', () => {
-    for (const tier of ['jalla_verify', 'jalla_management', 'pro', 'enterprise']) {
-      expect(isSelfVerify(tier), `${tier} has a reviewer`).toBe(false);
-      expect(awaitsSomeoneElse(tier)).toBe(true);
+  it('treats every tier as self-approval while pricing gates are paused', () => {
+    for (const tier of ['self_verify', 'starter', 'jalla_verify', 'jalla_management', 'pro', 'enterprise']) {
+      expect(isSelfVerify(tier)).toBe(true);
+      expect(awaitsSomeoneElse(tier)).toBe(false);
     }
   });
 
-  it('treats an unknown or missing tier as needing review, never as self-verify', () => {
-    // Failing open would show a Jalla Verify owner their stage as self-approved.
+  it('fails open to self-approval for unknown values in free mode', () => {
     for (const tier of [null, undefined, '', 'something_new']) {
-      expect(isSelfVerify(tier)).toBe(false);
+      expect(isSelfVerify(tier)).toBe(true);
+      expect(awaitsSomeoneElse(tier)).toBe(false);
     }
   });
 });

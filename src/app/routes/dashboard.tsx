@@ -614,6 +614,7 @@ export default function Dashboard() {
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           {!isContractor && (
             <Link to="/projects/new"
+              data-tour="new-project"
               className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
               <Plus className="size-4" /> {t('dashboard.newProject')}
             </Link>
