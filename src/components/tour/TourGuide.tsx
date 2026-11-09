@@ -34,9 +34,18 @@ type Side = 'above' | 'below';
 
 interface Box { top: number; left: number; width: number; height: number }
 
-/** Space the bubble needs. Below the anchor by default; above when there isn't room. */
-const BUBBLE_HEIGHT = 150;
+/**
+ * How tall the bubble is ASSUMED to be, for the very first frame only.
+ *
+ * It is then measured, because the assumption is wrong by a factor of two: the longest
+ * tip — the plan question, which has to explain both ways a project can start — renders
+ * near 300px in English and taller in French, where the same sentence runs about 15%
+ * longer. A guessed 150 put it half off the bottom of a phone.
+ */
+const BUBBLE_GUESS = 180;
 const GAP = 12;
+/** Never closer than this to any edge, on any screen. */
+const GUTTER = 16;
 
 export function TourGuide({ tour }: { tour: TourId }) {
   const t = useT();
@@ -48,6 +57,10 @@ export function TourGuide({ tour }: { tour: TourId }) {
   const [step, setStep] = useState<TourStep | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   const frame = useRef<number | null>(null);
+  // The bubble's real height, measured once it has rendered. Until then the guess above
+  // is used, which only ever affects the first frame of a tip appearing.
+  const bubble = useRef<HTMLDivElement | null>(null);
+  const [bubbleHeight, setBubbleHeight] = useState(BUBBLE_GUESS);
 
   // A different person signing in on the same browser has not seen this one's tour.
   useEffect(() => { setSeen(readSeen(user?.id, tour)); }, [user?.id, tour]);
@@ -60,11 +73,22 @@ export function TourGuide({ tour }: { tour: TourId }) {
   /**
    * Pick the step and measure its anchor.
    *
-   * Runs in a layout effect and then again on a frame, because on the render where a
-   * route first paints the anchor exists but its box is frequently still zero — an
-   * image has not loaded, a font has not swapped, a `motion` entrance is at its initial
-   * transform. Measuring once on that frame pins the arrow to the wrong place for as
-   * long as the tip is open.
+   * ── Why this watches the DOM instead of just re-running on navigation ─────────────
+   * The anchor frequently appears LATER, with nothing this effect depends on having
+   * changed. The project wizard is the case that caught it: every one of its nine steps
+   * is the same route, so the plan question mounts while `pathname`, `seen` and the
+   * step list all stay exactly as they were. Measured once on arrival, the tour saw no
+   * anchor, concluded there was nothing to say, and never looked again — the tip for
+   * the single most important question in the product silently never appeared.
+   *
+   * So the page is observed rather than sampled. The work is cheap: on most mutations
+   * `nextStep` finds the same step and the state setters bail out on identical values.
+   *
+   * ── And why a frame as well ──────────────────────────────────────────────────────
+   * On the render where an anchor first paints it exists but its box is often still
+   * zero — a font has not swapped, a `motion` entrance is at its initial transform.
+   * Measuring only on that frame pins the arrow to the wrong place for as long as the
+   * tip is open.
    */
   useLayoutEffect(() => {
     if (!user?.id || tourComplete(steps, seen)) { setStep(null); setBox(null); return; }
@@ -72,20 +96,35 @@ export function TourGuide({ tour }: { tour: TourId }) {
     const measure = () => {
       const found = nextStep(steps, seen, { path: pathname, hasProject: true },
         anchor => findAnchor(anchor) != null);
-      setStep(found);
+      setStep(prev => (prev?.anchor === found?.anchor ? prev : found));
       if (!found) { setBox(null); return; }
       const el = findAnchor(found.anchor);
       if (!el) { setBox(null); return; }
       const r = el.getBoundingClientRect();
       // A collapsed box means it is not laid out yet, not that it is not there.
-      setBox(r.width === 0 && r.height === 0
-        ? null
+      if (r.width === 0 && r.height === 0) { setBox(null); return; }
+      setBox(prev => (prev
+        && prev.top === r.top && prev.left === r.left
+        && prev.width === r.width && prev.height === r.height)
+        ? prev
         : { top: r.top, left: r.left, width: r.width, height: r.height });
     };
 
+    // Coalesced to one measurement per frame: a React render can fire hundreds of
+    // mutation records, and each one would otherwise be a full layout read.
+    const schedule = () => {
+      if (frame.current != null) return;
+      frame.current = requestAnimationFrame(() => { frame.current = null; measure(); });
+    };
+
     measure();
-    frame.current = requestAnimationFrame(measure);
-    return () => { if (frame.current != null) cancelAnimationFrame(frame.current); };
+    schedule();
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      if (frame.current != null) { cancelAnimationFrame(frame.current); frame.current = null; }
+    };
   }, [pathname, seen, steps, user?.id, findAnchor]);
 
   // The anchor moves when the page scrolls or the window changes shape, and the tip has
@@ -107,23 +146,37 @@ export function TourGuide({ tour }: { tour: TourId }) {
     };
   }, [step, findAnchor]);
 
+  // Measured after paint, every time the tip changes: the same step is a different
+  // height in French, and a language toggle does not remount this.
+  useLayoutEffect(() => {
+    const h = bubble.current?.offsetHeight;
+    if (h && h !== bubbleHeight) setBubbleHeight(h);
+  });
+
   if (!step || !box || !user?.id) return null;
 
   const advance = () => setSeen(markSeen(user.id, tour, step.anchor));
   const skip = () => setSeen(dismissTour(user.id, tour, steps.map(s => s.anchor)));
 
-  // Below the anchor unless the bottom of the viewport is nearer than the bubble is tall.
-  const side: Side = box.top + box.height + GAP + BUBBLE_HEIGHT > window.innerHeight
-    ? 'above' : 'below';
+  // Below the anchor, unless there is more room above it. Compared both ways rather
+  // than only testing "does it fit below": on a phone a long tip fits in NEITHER
+  // direction, and the right answer then is the side with more space, not the default.
+  const roomBelow = window.innerHeight - (box.top + box.height) - GAP - GUTTER;
+  const roomAbove = box.top - GAP - GUTTER;
+  const side: Side = bubbleHeight <= roomBelow || roomBelow >= roomAbove ? 'below' : 'above';
 
-  // Clamped to a 16px gutter so the bubble never hangs off the edge on a phone, which is
+  // Clamped to a gutter on every edge so the bubble never hangs off the screen, which is
   // where most of this market reads the product.
-  const width = Math.min(320, window.innerWidth - 32);
-  const left = Math.max(16, Math.min(
-    box.left + box.width / 2 - width / 2, window.innerWidth - width - 16));
-  const top = side === 'below'
+  const width = Math.min(320, window.innerWidth - GUTTER * 2);
+  const left = Math.max(GUTTER, Math.min(
+    box.left + box.width / 2 - width / 2, window.innerWidth - width - GUTTER));
+  const unclamped = side === 'below'
     ? box.top + box.height + GAP
-    : Math.max(16, box.top - GAP - BUBBLE_HEIGHT);
+    : box.top - GAP - bubbleHeight;
+  // The last resort: a tip taller than the viewport is pinned to the top gutter and
+  // scrolls with its own content rather than being cut off at the bottom.
+  const top = Math.max(GUTTER,
+    Math.min(unclamped, window.innerHeight - bubbleHeight - GUTTER));
 
   const Arrow = side === 'below' ? ArrowUp : ArrowDown;
   const remaining = steps.filter(s => !seen.includes(s.anchor)).length;
@@ -141,10 +194,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
         style={{ top: box.top - 4, left: box.left - 4, width: box.width + 8, height: box.height + 8 }}
       />
       <div
+        ref={bubble}
         role="dialog"
         aria-live="polite"
         aria-label={t(step.titleKey)}
-        className="fixed z-[91] rounded-2xl border border-brand-border-grey bg-white p-4 shadow-lg dark:border-[#2a2a2a] dark:bg-[#1a1a1a]"
+        className="fixed z-[91] max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl border border-brand-border-grey bg-white p-4 shadow-lg dark:border-[#2a2a2a] dark:bg-[#1a1a1a]"
         style={{ top, left, width }}
       >
         <div className="flex items-start gap-2.5">

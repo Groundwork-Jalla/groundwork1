@@ -69,6 +69,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         {/* Apply saved theme class before first paint — prevents flash */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();` }} />
+        {/*
+          * The page background, inline, before the stylesheet exists.
+          *
+          * The theme class above is applied before first paint, but the colour it
+          * selects lives in globals.css — so between the HTML arriving and the
+          * stylesheet applying, the browser paints its own default WHITE. In dark mode
+          * that is a full-screen white flash on every cold load, and it is long enough
+          * to film: 1.8 seconds of it was recorded in the orientation walkthrough on
+          * 9 Nov 2026, which is how it was finally noticed.
+          *
+          * Inline, so it applies with the document and waits for nothing. #141414 is
+          * the same value `html.dark body` sets, and the two must be changed together.
+          */}
+        <style dangerouslySetInnerHTML={{ __html: 'html{background-color:#fff}html.dark{background-color:#141414}' }} />
         {/* Resolve language before first paint so <html lang> is correct for
             screen readers and browser translate prompts. Mirrors detectLang(). */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var l=localStorage.getItem('lang');if(l!=='en'&&l!=='fr'){var c=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];l='en';for(var i=0;i<c.length;i++){if(typeof c[i]==='string'&&c[i].toLowerCase().indexOf('fr')===0){l='fr';break;}}}document.documentElement.lang=l;}catch(e){}})();` }} />

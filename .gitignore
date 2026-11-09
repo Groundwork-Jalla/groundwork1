@@ -30,3 +30,7 @@ frames_*/
 # browser (a probe, a test). It is tens of megabytes and must never be committed.
 *.traineddata
 *.traineddata.gz
+
+# Sample documents pulled from the bucket for a recording run. Real client drawings.
+.film-samples/
+frames_2p_*/
