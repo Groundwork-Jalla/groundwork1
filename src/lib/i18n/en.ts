@@ -6410,6 +6410,14 @@ export const en = {
       fileCount:'{n} document(s) uploaded',
       ctaSite:  'Visit Groundwork',
     },
+    clientInvite: {
+      subject: '{contractor} has set up your Groundwork account',
+      heading: 'Your Groundwork account is ready',
+      body: '<strong>{contractor}</strong> is building for you and has set up your Groundwork account, so you can follow the work stage by stage.',
+      explain: 'Choose your own password to get in. Nobody else has it \u2014 not your contractor, not Groundwork. Once you are in, every stage of your build, every photo from site and every payment is recorded in one place.',
+      cta: 'Set my password and get in',
+      ignore: 'If you weren\'t expecting this, you can safely ignore this email and the account will stay unused.',
+    },
     invite: {
       subject: '{inviter} invited you to a Groundwork project',
       heading: 'You\'ve been invited',

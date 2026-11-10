@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { detectLang } from '@/lib/i18n';
 
 // =========================================================
 // A partner contractor's own clients (109).
@@ -121,7 +122,9 @@ export async function inviteMyClient(
   const r = await fetch('/api/events?action=contractor-invite-client', {
     method: 'POST',
     headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fullName, email, phone }),
+    // The screen language, so the client's first email is in the language the
+    // contractor is actually using — see contractor-invite-client.ts.
+    body: JSON.stringify({ fullName, email, phone, lang: detectLang() }),
   });
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new InviteClientFailed(String(json?.error ?? `http_${r.status}`));

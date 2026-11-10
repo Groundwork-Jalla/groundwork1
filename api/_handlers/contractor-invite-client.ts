@@ -2,6 +2,11 @@ import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
 import { isValidPhone } from '../../src/lib/phone.js';
 import { siteUrl } from '../../src/lib/site-url.js';
+import { resolveRecipientLang } from '../../src/lib/i18n/translate.js';
+import { buildClientInviteHtml, clientInviteSubject } from '../../src/lib/email/client-invite-html.js';
+import { senderFor } from '../../src/lib/email/senders.js';
+import { sendViaResend } from '../_lib/resend-send.js';
+import { logEmailToCrm } from '../ghl/_email-log.js';
 
 /**
  * A partner contractor brings their own client onto Groundwork (109).
@@ -16,7 +21,19 @@ import { siteUrl } from '../../src/lib/site-url.js';
  *
  * `createUser` refuses duplicates, including a racing registration. Starting with
  * `inviteUserByEmail` or `generateLink` instead could reuse an existing unconfirmed
- * account and wrongly claim that this contractor created it (110).
+ * account and wrongly claim that this contractor created it (110). `generateLink` is
+ * used here only AFTER `createUser` has succeeded, on the account it just reserved.
+ *
+ * ── The email is ours, the link is Supabase's (11 Nov 2026) ───────────────────────
+ * This used to end in `inviteUserByEmail`, which sends the dashboard's "You have been
+ * invited" template: one template, one language, not in this repository. An English
+ * contractor's client got French and nothing here could change it. Now the single-use
+ * link comes from `generateLink` (the same `/auth/v1/verify?type=invite` link, so the
+ * callback is unchanged) and the message goes through Resend in the language
+ * `resolveRecipientLang` settles on — the contractor's stored choice, then the screen
+ * they are reading, then the country. That language is also written to the new
+ * account's `preferred_lang`, exactly as admin provisioning does: the person creating
+ * an account chooses its language, and every later email to this client follows it.
  *
  * Existing accounts are refused with `client_exists`: their owner invites a contractor
  * from inside their own project. No password, session or invitation token is returned
@@ -157,6 +174,20 @@ export async function handler(req: any, res: any): Promise<void> {
   }
   if (existing?.id) { res.status(409).json({ error: 'client_exists' }); return; }
 
+  // The language this client will be written to. They have no account yet, so it is
+  // the contractor's: what they chose, else the screen they are reading (sent in the
+  // body, validated to the two values), else the country they signed up from.
+  const uiLang = (req.body as { lang?: unknown } | undefined)?.lang;
+  const { data: contractor } = await admin
+    .from('profiles').select('full_name, preferred_lang, signup_country').eq('id', caller.id).maybeSingle();
+  const lang = resolveRecipientLang(
+    null,
+    contractor?.signup_country ?? null,
+    contractor?.preferred_lang ?? null,
+    uiLang === 'en' || uiLang === 'fr' ? uiLang : null,
+  );
+  const contractorName = String(contractor?.full_name ?? '').trim() || 'Your contractor';
+
   const { data: made, error: createErr } = await admin.auth.admin.createUser({
     email,
     // No chosen or shared password; Supabase keeps any internal credential private.
@@ -182,6 +213,9 @@ export async function handler(req: any, res: any): Promise<void> {
     .from('profiles')
     .update({
       phone,
+      // Chosen by the person creating the account, as admin provisioning does. Every
+      // later email to this client reads it first.
+      preferred_lang:       lang,
       email_mfa_enabled:    true,
       must_change_password: true,
       provisioned_by:       caller.id,
@@ -212,19 +246,41 @@ export async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  // Supabase sends the single-use link directly to the client. This accepts the reserved,
-  // unconfirmed account; it does not replace a password or issue one to the contractor.
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl()}/auth/callback?flow=client-invite`,
+  // The single-use link for the reserved, unconfirmed account — generated, not sent.
+  // It accepts the account and lets the client choose a password; it does not replace
+  // one or issue one to the contractor. The link never reaches the caller: it goes
+  // into the email below and nowhere else.
+  const { data: link, error: linkGenErr } = await admin.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: { redirectTo: `${siteUrl()}/auth/callback?flow=client-invite` },
   });
-  if (inviteErr || invited?.user?.id !== clientId) {
-    console.error('[invite-client] invitation failed:', inviteErr?.message ?? 'unexpected user');
+  const actionLink = link?.properties?.action_link;
+  if (linkGenErr || link?.user?.id !== clientId || !actionLink) {
+    console.error('[invite-client] link generation failed:', linkGenErr?.message ?? 'unexpected user');
     // There is no project yet. Removing the new account also removes its link, allowing
     // a fresh attempt instead of stranding an account whose owner received no email.
     await admin.auth.admin.deleteUser(clientId);
     res.status(500).json({ error: 'invite_failed' });
     return;
   }
+
+  const subject = clientInviteSubject(lang, contractorName);
+  const html    = buildClientInviteHtml(lang, contractorName, actionLink);
+  const sent = await sendViaResend({ from: senderFor('other'), to: email, subject, html });
+  if (!sent.ok) {
+    console.error('[invite-client] email send failed:', sent.error ?? 'unknown');
+    // Same reasoning: an account whose owner never received the email is a dead end for
+    // both people, and nothing else refers to it yet.
+    await admin.auth.admin.deleteUser(clientId);
+    res.status(500).json({ error: 'invite_failed' });
+    return;
+  }
+
+  // What was said, on the client's CRM thread. Awaited before responding: Vercel
+  // freezes the instance when the handler returns, so a floating promise never lands.
+  // It cannot throw and cannot fail the send — see the header of ghl/_email-log.ts.
+  await logEmailToCrm({ to: email, subject, html, kind: 'other', name: fullName });
 
   res.status(200).json({ clientId, email });
 }

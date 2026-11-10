@@ -40,21 +40,28 @@ describe('link 2–3 · the account exists and only the client can get into it',
     // The success body is exactly two fields. A tail-scan would be blunter and
     // wrong — `linkErr` and `link_failed` are ordinary control flow in this file.
     expect(handler).toMatch(/res\.status\(200\)\.json\(\{ clientId, email \}\);\s*\}?\s*$/m);
-    // And no credential is ever minted to hand over in the first place.
-    // No credential is minted to hand over in the first place, and no link is lifted
-    // out of Supabase's response to show the contractor. (`must_change_password:` is
-    // a guarded profile column, which is why this names what it means rather than
+    // No credential is minted to hand over in the first place. (`must_change_password:`
+    // is a guarded profile column, which is why this names what it means rather than
     // scanning for the word "password".)
-    expect(handler).not.toMatch(/generateTemporaryPassword|action_link|properties\?\./);
+    expect(handler).not.toMatch(/generateTemporaryPassword/);
     expect(handler).toMatch(/createUser\(\{[\s\S]{0,200}?email_confirm: false/);
+    // Since 11 Nov 2026 the single-use link IS lifted out of Supabase's response — but
+    // it flows into the email we send the client, in their language, and into nothing
+    // the contractor can see. Supabase's own template could not be told a language.
+    expect(handler).not.toMatch(/inviteUserByEmail\(/);
+    expect(handler).toMatch(/buildClientInviteHtml\(lang, contractorName, actionLink\)/);
+    expect(handler).not.toMatch(/json\(\{[^}]*(actionLink|action_link|hashed_token)/);
   });
 
   it('the first-sign-in gates are armed BEFORE the email goes out', () => {
-    // Otherwise a client who opens it instantly is in ahead of the gate.
+    // Otherwise a client who opens it instantly is in ahead of the gate. Both halves of
+    // sending — generating the link and handing it to Resend — come after the gates.
     const armed = handler.indexOf('must_change_password');
-    const sent  = handler.indexOf('inviteUserByEmail');
+    const linked = handler.indexOf('auth.admin.generateLink(');
+    const sent  = handler.indexOf('sendViaResend(');
     expect(armed).toBeGreaterThan(-1);
-    expect(sent, 'the invitation must be sent last').toBeGreaterThan(armed);
+    expect(linked, 'the link must be generated after the gates').toBeGreaterThan(armed);
+    expect(sent, 'the invitation must be sent last').toBeGreaterThan(linked);
   });
 
   it('a failure anywhere rolls the half-made account back', () => {

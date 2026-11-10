@@ -29,6 +29,11 @@ const state = {
   pendingProjects: [] as Row[],
   pendingQueries: [] as { table: string; columns: string; filters: Row }[],
   invitedUserId: 'new-client-id' as string | null,
+  /** What `profiles` says about the CALLER — the language the client's email takes. */
+  contractorProfile: { full_name: 'Sage Builder', preferred_lang: null, signup_country: 'CM' } as Row | null,
+  sendError: null as string | null,
+  sends: [] as Row[],
+  crmLogs: [] as Row[],
   events: [] as string[],
   gateQueries: [] as { table: string; filters: Row }[],
   profileLookups: [] as Row[],
@@ -76,6 +81,11 @@ function fakeAdmin() {
           return { data: state.hasAcceptedAssignment ? [{ id: 'assignment-1' }] : [], error: null };
         },
         maybeSingle: async () => {
+          // Read by id: the contractor's own profile, for the client's language.
+          if (table === 'profiles' && 'id' in filters) {
+            state.events.push('contractor_profile');
+            return { data: state.contractorProfile, error: null };
+          }
           state.events.push('existing_account');
           state.profileLookups.push(filters);
           return { data: state.existingProfile, error: state.profileLookupError };
@@ -105,17 +115,28 @@ function fakeAdmin() {
             error: state.createUserError,
           };
         },
-        inviteUserByEmail: async (email: string, options: Row) => {
-          state.events.push('send_invitation');
-          state.invitations.push({ email, options });
+        // Since 11 Nov 2026 the handler GENERATES the single-use link and sends the
+        // email itself, so the client's first message is in the contractor's language
+        // rather than the dashboard template's. The recorded shape stays
+        // `{ email, options }` so every expectation about where the link points holds.
+        generateLink: async (args: { type: string; email: string; options: Row }) => {
+          state.events.push('generate_link');
+          state.invitations.push({ email: args.email, options: args.options, type: args.type } as never);
           // Even if upstream includes sensitive fields, none belongs in the response.
           return {
             data: {
               user: state.invitedUserId ? { id: state.invitedUserId } : null,
+              properties: {
+                action_link: 'https://groundwork.test/auth/v1/verify?type=invite&token=private-hashed-token',
+                hashed_token: 'private-hashed-token',
+              },
               session: { access_token: 'private-access-token', refresh_token: 'private-refresh-token' },
             },
             error: state.inviteError,
           };
+        },
+        inviteUserByEmail: async () => {
+          throw new Error('inviteUserByEmail must not be called: Supabase would send its own-language template');
         },
         deleteUser: async (id: string) => {
           state.events.push('delete_user');
@@ -136,6 +157,24 @@ vi.mock('../../../api/_lib/stripe', () => ({
 }));
 
 vi.mock('../site-url', () => ({ siteUrl: () => 'https://groundwork.test' }));
+
+vi.mock('../../../api/_lib/resend-send', () => ({
+  sendViaResend: async (input: Row) => {
+    state.events.push('send_email');
+    state.sends.push(input);
+    return state.sendError
+      ? { ok: false, retryable: false, error: state.sendError, attempts: 1 }
+      : { ok: true, messageId: 'msg-1', attempts: 1 };
+  },
+}));
+
+vi.mock('../../../api/ghl/_email-log', () => ({
+  logEmailToCrm: async (opts: Row) => {
+    state.events.push('crm_log');
+    state.crmLogs.push(opts);
+    return { ok: true, surface: 'thread' };
+  },
+}));
 
 const { handler } = await import('../../../api/_handlers/contractor-invite-client');
 
@@ -177,6 +216,10 @@ beforeEach(() => {
   state.pendingProjects = [];
   state.pendingQueries = [];
   state.invitedUserId = 'new-client-id';
+  state.contractorProfile = { full_name: 'Sage Builder', preferred_lang: null, signup_country: 'CM' };
+  state.sendError = null;
+  state.sends = [];
+  state.crmLogs = [];
   state.events = [];
   state.gateQueries = [];
   state.profileLookups = [];
@@ -291,7 +334,8 @@ describe('the client owns their first credential', () => {
   it('arms the profile gates and records the new client link before any email is sent', async () => {
     await call();
     expect(state.events).toEqual([
-      'contractor_role', 'existing_account', 'create_user', 'profile_flags', 'client_link', 'send_invitation',
+      'contractor_role', 'existing_account', 'contractor_profile', 'create_user',
+      'profile_flags', 'client_link', 'generate_link', 'send_email', 'crm_log',
     ]);
     expect(state.profileUpdates).toHaveLength(1);
     expect(state.profileUpdates[0]).toMatchObject({
@@ -304,9 +348,52 @@ describe('the client owns their first credential', () => {
       options: { onConflict: 'contractor_id,client_id' },
     }]);
     expect(state.invitations).toEqual([{
+      type: 'invite',
       email: 'client@example.com',
       options: { redirectTo: 'https://groundwork.test/auth/callback?flow=client-invite' },
     }]);
+    // The email carries the link Supabase generated, to the client, and nowhere else.
+    expect(state.sends).toHaveLength(1);
+    expect(state.sends[0].to).toBe('client@example.com');
+    expect(String(state.sends[0].html)).toContain('verify?type=invite&amp;token=private-hashed-token');
+  });
+
+  it('writes the email in the language the contractor is using, and stores it on the client', async () => {
+    /*
+     * Favour, 11 Nov 2026: "when a contractor invited a client, it sent out the email in
+     * French even though that contractor was using English." Supabase's template could
+     * not be told a language; this one is resolved from the contractor — their stored
+     * choice, then the screen they are reading (`lang` in the body), then the country.
+     */
+    // No stored choice, English screen, Cameroon build → English.
+    await call({ ...GOOD, lang: 'en' });
+    expect(String(state.sends[0].subject)).toMatch(/has set up your Groundwork account/);
+    expect(state.profileUpdates[0].values.preferred_lang).toBe('en');
+
+    // No stored choice, nothing sent, Cameroon → the country decides: French.
+    state.sends = []; state.profileUpdates = [];
+    await call({ ...GOOD });
+    expect(String(state.sends[0].subject)).toMatch(/votre compte Groundwork/);
+    expect(state.profileUpdates[0].values.preferred_lang).toBe('fr');
+
+    // A stored choice beats the screen: the contractor chose French, is on an English
+    // screen for the moment, and the client still gets French.
+    state.sends = []; state.profileUpdates = [];
+    state.contractorProfile = { full_name: 'Sage Builder', preferred_lang: 'fr', signup_country: 'CM' };
+    await call({ ...GOOD, lang: 'en' });
+    expect(String(state.sends[0].subject)).toMatch(/votre compte Groundwork/);
+
+    // Junk in the body is not a language.
+    state.sends = []; state.contractorProfile = { full_name: 'Sage Builder', preferred_lang: null, signup_country: 'NG' };
+    await call({ ...GOOD, lang: 'klingon' });
+    expect(String(state.sends[0].subject)).toMatch(/has set up your Groundwork account/);
+  });
+
+  it('records what was said on the client\'s CRM thread, after the send', async () => {
+    await call();
+    expect(state.crmLogs).toHaveLength(1);
+    expect(state.crmLogs[0]).toMatchObject({ to: 'client@example.com', kind: 'other', name: 'Ada Client' });
+    expect(state.events.indexOf('crm_log')).toBeGreaterThan(state.events.indexOf('send_email'));
   });
 
   it('returns only the account identity, with no password, tokens, or invitation link', async () => {
@@ -367,13 +454,25 @@ describe('partial failures never send an unready invitation', () => {
     expect(state.invitations).toEqual([]);
   });
 
-  it('deletes the new account and reports failure if Supabase cannot send the invitation', async () => {
-    state.inviteError = { message: 'Email service unavailable' };
+  it('deletes the new account and reports failure if the link cannot be generated', async () => {
+    state.inviteError = { message: 'Auth service unavailable' };
     const response = await call();
     expect(response.statusCode).toBe(500);
     expect(response.body).toEqual({ error: 'invite_failed' });
-    expect(state.events.slice(-2)).toEqual(['send_invitation', 'delete_user']);
+    expect(state.events.slice(-2)).toEqual(['generate_link', 'delete_user']);
     expect(state.deletedUsers).toEqual(['new-client-id']);
+    expect(state.sends).toEqual([]);
+  });
+
+  it('deletes the new account and reports failure if the email cannot be sent', async () => {
+    // An account whose owner never received the email is a dead end for both people.
+    state.sendError = 'Email service unavailable';
+    const response = await call();
+    expect(response.statusCode).toBe(500);
+    expect(response.body).toEqual({ error: 'invite_failed' });
+    expect(state.events.slice(-2)).toEqual(['send_email', 'delete_user']);
+    expect(state.deletedUsers).toEqual(['new-client-id']);
+    expect(state.crmLogs).toEqual([]);
   });
 
   it('refuses an invitation result for another account or without a user', async () => {

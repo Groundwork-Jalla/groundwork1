@@ -69,9 +69,13 @@ describe('the client alone sets their password from an email link', () => {
     expect(handler).toMatch(/must_change_password:\s*true/);
     expect(handler).toMatch(/email_mfa_enabled:\s*true/);
     const armed = handler.indexOf('must_change_password');
-    const invited = handler.indexOf('auth.admin.inviteUserByEmail(');
+    // The link is generated, not sent by Supabase, since 11 Nov 2026 — so the client's
+    // email can be in the contractor's language. The ordering guarantee is the same.
+    const invited = handler.indexOf('auth.admin.generateLink(');
+    const sent = handler.indexOf('sendViaResend(');
     expect(armed).toBeGreaterThan(-1);
     expect(invited).toBeGreaterThan(armed);
+    expect(sent).toBeGreaterThan(invited);
   });
 
   it('rolls the account back if those gates cannot be set', () => {

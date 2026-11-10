@@ -6263,6 +6263,14 @@ export const fr: Mirror<EnDict> = {
       fileCount:'{n} document(s) téléversé(s)',
       ctaSite:  'Découvrir Groundwork',
     },
+    clientInvite: {
+      subject: '{contractor} a cr\u00e9\u00e9 votre compte Groundwork',
+      heading: 'Votre compte Groundwork est pr\u00eat',
+      body: '<strong>{contractor}</strong> construit pour vous et a cr\u00e9\u00e9 votre compte Groundwork, pour que vous puissiez suivre les travaux \u00e9tape par \u00e9tape.',
+      explain: 'Choisissez votre propre mot de passe pour entrer. Personne d\u2019autre ne le conna\u00eet \u2014 ni votre entrepreneur, ni Groundwork. Une fois connect\u00e9, chaque \u00e9tape de votre chantier, chaque photo du site et chaque paiement sont enregistr\u00e9s au m\u00eame endroit.',
+      cta: 'D\u00e9finir mon mot de passe et entrer',
+      ignore: 'Si vous n\u2019attendiez pas ce message, vous pouvez l\u2019ignorer : le compte restera inutilis\u00e9.',
+    },
     invite: {
       subject: '{inviter} vous a invité sur un chantier Groundwork',
       heading: 'Vous avez reçu une invitation',
