@@ -70,6 +70,11 @@ describe('a schedule nobody has paid into is re-cut whole', () => {
     expect(repriceBalances(plan, CONSTRUCTION)).toBe(true);
   });
 
+  it('adds up to the construction fee to the cent', () => {
+    const total = plan.rows.filter(r => r.heldReason !== 'fixed_fee').reduce((x, r) => x + r.nowAmount, 0);
+    expect(Math.round(total * 100)).toBe(Math.round(CONSTRUCTION * 100));
+  });
+
   it('leaves the design fee alone', () => {
     // An absolute amount on `fixed_amount_usd` (036), not a share of construction.
     expect(row('designCompleted').settled).toBe(true);
