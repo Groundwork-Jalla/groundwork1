@@ -62,6 +62,37 @@ const SHEET_KIND_KEYS = {
   schedule:   'planGate.sheetSchedule',
 } as const satisfies Record<NamedSheetKind, TKey>;
 
+
+/**
+ * How long a read may hold the Continue button.
+ *
+ * The plan and the bill are read on the device: pdf.js for a text layer, Tesseract OCR
+ * for anything scanned or photographed — which, here, is most drawings. OCR on a large
+ * sheet is legitimately slow, so this is generous rather than snappy. What it is not is
+ * unbounded, which is what it was: a worker that stalled left `scanCount` above zero and
+ * Continue disabled for ever, on a screen where both files had plainly uploaded.
+ *
+ * The same reasoning `readPlanWithModel` already carries — "a model that is slow,
+ * unconfigured or down cannot be allowed to hold up a project" — applied to the read
+ * that actually gates the button.
+ */
+const READ_DEADLINE_MS = 45_000;
+
+/**
+ * Resolve with the work, or with null once the deadline passes.
+ *
+ * The work is not cancelled — neither pdf.js nor Tesseract offers that — it simply stops
+ * being waited on. A late result is discarded by the generation guard in the caller, so
+ * it cannot overwrite what the person has since been shown.
+ */
+function withDeadline<T>(work: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise<T | null>(resolve => {
+    const timer = setTimeout(() => resolve(null), ms);
+    const settle = (value: T | null) => { clearTimeout(timer); resolve(value); };
+    work.then(settle, () => settle(null));
+  });
+}
+
 export function ArchitecturePlanGate({
   onAnswered, onCancel, backLabel, currencyCode, fxRate,
 }: {
@@ -107,6 +138,10 @@ export function ArchitecturePlanGate({
     }
   })();
   const [scanCount, setScanCount] = useState(0);
+  /** A read hit its deadline, so the figures on the next step were not taken off the file. */
+  const [readTimedOut, setReadTimedOut] = useState(false);
+  /** Bumped on every pick, so a late read cannot overwrite a newer one. */
+  const readGeneration = useRef(0);
   const scanning = scanCount > 0;
   const [unreadable, setUnreadable] = useState(false);
   // The second, slower read. Never gates Continue — see `inspectFloorPlans`.
@@ -131,10 +166,18 @@ export function ArchitecturePlanGate({
    * model that is slow, unconfigured or down cannot be allowed to hold up a project.
    */
   async function inspectFloorPlans(files: File[]) {
+    const generation = ++readGeneration.current;
     setScanCount(count => count + 1);
     let facts: FloorPlanFacts[];
     try {
-      facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
+      const read = await Promise.all(files.map(
+        file => withDeadline(extractFloorPlanFacts(file), READ_DEADLINE_MS)));
+      // A read that gave up is not a read that found nothing, and the difference is
+      // what the person is told: one means check the figures, the other means the
+      // drawing does not state them.
+      if (generation !== readGeneration.current) return;
+      if (read.some(fact => fact === null)) setReadTimedOut(true);
+      facts = read.map(fact => fact ?? { ...NO_FLOOR_PLAN_FACTS });
       setFloorPlanFacts(facts);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
@@ -143,6 +186,7 @@ export function ArchitecturePlanGate({
     setLooking(true);
     try {
       const readings = await Promise.all(files.map(file => readPlanWithModel(file)));
+      if (generation !== readGeneration.current) return;
       if (readings.every(reading => reading == null)) return;
       setFloorPlanFacts(facts.map((fact, i) => mergeModelReading(fact, readings[i] ?? null)));
     } finally {
@@ -158,13 +202,22 @@ export function ArchitecturePlanGate({
    * against the budget, because it becomes ten stage payments.
    */
   async function inspect(file: File) {
+    const generation = ++readGeneration.current;
     setReading(null);
     setUnreadable(false);
     setFromOcr(false);
     if (!canExtract(file.name)) { setUnreadable(true); return; }
     setScanCount(count => count + 1);
     try {
-      const out = await extractBqTotal(file);
+      // Bounded for the same reason as the plan: a bill that is a scan goes through OCR,
+      // and an OCR pass that never returns used to disable Continue permanently.
+      const out = await withDeadline(extractBqTotal(file), READ_DEADLINE_MS);
+      if (generation !== readGeneration.current) return;
+      if (!out) {
+        setReadTimedOut(true);
+        setUnreadable(true);
+        return;
+      }
       setReading(out.reading);
       setLineItems(out.lineItems);
       setBqStatedFloors(out.statedFloors);
@@ -173,6 +226,7 @@ export function ArchitecturePlanGate({
       // different thing to say than a file we read but found no total in.
       setUnreadable(!out.readable);
     } catch {
+      if (generation !== readGeneration.current) return;
       setReading(null);
       setLineItems([]);
       setBqStatedFloors(null);
@@ -255,6 +309,7 @@ export function ArchitecturePlanGate({
           onPick={files => {
             const chosen = Array.isArray(files) ? files : files ? [files] : [];
             setError(null);
+            setReadTimedOut(false);
             setFloorPlans(chosen);
             setFloorPlanFacts([]);
             if (chosen.length) void inspectFloorPlans(chosen);
@@ -267,6 +322,7 @@ export function ArchitecturePlanGate({
           onPick={selection => {
             const file = Array.isArray(selection) ? selection[0] ?? null : selection;
             setError(null);
+            setReadTimedOut(false);
             setBq(file);
             if (file) void inspect(file);
             else { setReading(null); setLineItems([]); }
