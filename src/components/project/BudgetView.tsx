@@ -15,6 +15,7 @@ import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
+import { fetchProjectDocuments } from '@/lib/supabase/contractor-work';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -366,6 +367,14 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   // cannot disagree with the screen it came from.
   const fx = useProjectMoneyContext();
   const [exporting, setExporting] = useState(false);
+  const [hasBoq, setHasBoq] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetchProjectDocuments(project.id)
+      .then(docs => { if (alive) setHasBoq(docs.some(d => d.category === 'boq')); })
+      .catch(() => { if (alive) setHasBoq(false); });
+    return () => { alive = false; };
+  }, [project.id]);
   // The country rate row, for its rule-of-thumb reference figure. Same pattern as
   // ProjectPayments and TakeoffComparison; a failure leaves it null, which switches the
   // check off rather than surfacing a fetch error on a costing screen.
@@ -413,10 +422,10 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   });
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
-  // A project joined mid-build is split as stage % of the whole project total. The old
-  // inference rebuilt the base from the remaining-work milestones, which were written
-  // against an earlier budget and so inflated every stage (Edgar: ~3.3%).
-  const wholeProject = sortedStages.some(s => s.pre_existing);
+  // An uploaded Bill of Quantities already is the whole figure, so each stage is its
+  // percentage of the project total. A build from scratch keeps the fees (permit, project
+  // manager, contingency, ...) on top, and its stages are shares of construction alone.
+  const wholeProject = hasBoq;
   const stageConstructionTotal = wholeProject
     ? budget.total
     : inferConstructionTotal(sortedStages) ?? budget.construction;

@@ -14,6 +14,7 @@ import { DocumentViewer } from '@/components/project/DocumentViewer';
 import { FileRow, Group, fileKind } from '@/components/project/DocumentList';
 import { StagePipeline } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
+import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -873,14 +874,27 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
               {row}
               {showGate && (
                 <div data-tour="confirm-payment">
-                <StagePaymentGate
-                  projectId={stage.project_id}
-                  stageId={stage.id}
-                  stageNumber={stage.stage_number}
-                  payment={tranche}
-                  isContractor
-                  onChanged={onSubmitted}
-                />
+                {/*
+                  * The contractor's half of the handshake, in the SAME currency as the
+                  * client's half.
+                  *
+                  * `StagePaymentGate` reads the figure through `useMoney()`, which falls
+                  * back to dollars outside a provider — and these routes format with
+                  * `useProjectMoney` directly rather than providing it. So the client was
+                  * being asked to transfer 25,102,200 XAF while the contractor was asked
+                  * to confirm $41,837: one payment, two currencies, on the one screen
+                  * pair where the two parties have to agree.
+                  */}
+                <ProjectMoneyProvider country={project.country}>
+                  <StagePaymentGate
+                    projectId={stage.project_id}
+                    stageId={stage.id}
+                    stageNumber={stage.stage_number}
+                    payment={tranche}
+                    isContractor
+                    onChanged={onSubmitted}
+                  />
+                </ProjectMoneyProvider>
                 </div>
               )}
             </section>

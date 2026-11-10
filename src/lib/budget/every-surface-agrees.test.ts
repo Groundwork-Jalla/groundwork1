@@ -175,3 +175,37 @@ describe('the schedule adds up, in the database', () => {
     expect('184_recut_a_live_schedule.sql' < '20261110000000_stages_sum_to_construction.sql').toBe(true);
   });
 });
+
+describe('both halves of the receipt handshake quote one currency', () => {
+  it('the contractor route provides the context StagePaymentGate reads', () => {
+    /*
+     * `StagePaymentGate` renders on BOTH sides: the client uploads the receipt from
+     * StageTracker, the contractor confirms it from /work. It formats through
+     * `useMoney()`, which falls back to dollars outside a provider — and the contractor
+     * routes format with `useProjectMoney` directly rather than providing it.
+     *
+     * So the client was asked to transfer 25,102,200 XAF while the contractor was asked
+     * to confirm $41,837: one payment, two currencies, on the one screen pair where the
+     * two parties have to agree before a stage opens.
+     */
+    const work = code('src/app/routes/work/projects.detail.tsx');
+    const provider = work.indexOf('<ProjectMoneyProvider');
+    const gate     = work.indexOf('<StagePaymentGate');
+    expect(provider, 'the contractor route must provide the money context').toBeGreaterThan(-1);
+    expect(gate, 'the gate must be inside it').toBeGreaterThan(provider);
+  });
+
+  it('every shared project component the contractor mounts is covered', () => {
+    // The check that found it: anything under components/project that reads `useMoney()`
+    // needs a provider wherever it is rendered, and /work supplies one only here.
+    const work = code('src/app/routes/work/projects.detail.tsx');
+    const imported = [...work.matchAll(/from '@\/components\/project\/([A-Za-z]+)'/g)].map(m => m[1]);
+    for (const name of imported) {
+      let body: string;
+      try { body = code(`src/components/project/${name}.tsx`); } catch { continue; }
+      if (!/useMoney\(\)/.test(body)) continue;
+      expect(name, `${name} reads useMoney() and the contractor route must provide it`)
+        .toBe('StagePaymentGate');
+    }
+  });
+});

@@ -72,8 +72,8 @@ REVOKE ALL ON FUNCTION public.apply_budget_milestones(uuid, numeric, numeric, nu
 -- Re-share the unsettled stages in CENTS, in proportion to what each already carries, so
 -- the column adds up to the budget exactly. Paid, complete, pre-existing and fixed-fee
 -- stages are never touched, and a project whose gap is over $10 is left for an admin to
--- re-cut with the preview on the Financials tab (184). Joined mid-build projects are
--- skipped: their budget is the remaining work, not the construction fee.
+-- re-cut with the preview on the Financials tab (184). Joined mid-build projects get
+-- their own pass below.
 DO $$
 DECLARE
   r         record;
@@ -137,6 +137,40 @@ BEGIN
   END LOOP;
 
   RAISE NOTICE 'stage milestones rebalanced on % project(s)', v_fixed;
+END $$;
+
+-- Projects priced on an uploaded Bill of Quantities. The BoQ already is the whole figure, so
+-- each unsettled stage is its percentage of the project total (what the costing page
+-- shows). Builds from scratch keep their fees on top and are not touched here. Their
+-- stored amounts were written against an older budget, so every open stage read ~3% high
+-- (Edgar). Only unsettled stages move, and the percentage itself is never changed.
+DO $$
+DECLARE
+  v_n integer;
+BEGIN
+  WITH fixed AS (
+    SELECT s.id,
+           round(p.budget_usd * s.budget_pct / 100.0, 2) AS amount
+      FROM public.project_stages s
+      JOIN public.projects p ON p.id = s.project_id
+     WHERE EXISTS (SELECT 1 FROM public.project_documents d
+                    WHERE d.project_id = p.id AND d.category = 'boq')
+       AND p.budget_usd IS NOT NULL
+       AND s.budget_pct > 0
+       AND COALESCE(s.fixed_amount_usd, 0) = 0
+       AND NOT (COALESCE(s.pre_existing, false)
+                OR COALESCE(s.payment_status, 'unpaid') = 'paid'
+                OR s.status = 'complete')
+  ), changed AS (
+    UPDATE public.project_stages s
+       SET payment_milestone_usd = f.amount
+      FROM fixed f
+     WHERE s.id = f.id AND s.payment_milestone_usd IS DISTINCT FROM f.amount
+    RETURNING s.id, s.project_id
+  )
+  SELECT count(*) INTO v_n FROM changed;
+
+  RAISE NOTICE 'BoQ-project stage milestones corrected on % stage(s)', v_n;
 END $$;
 
 -- The re-price RPC (184) rounded each stage to a whole dollar as well.
