@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Paperclip, Ruler, X } from 'lucide-react';
 import { useT, useLanguage } from '@/lib/i18n';
@@ -64,33 +64,23 @@ const SHEET_KIND_KEYS = {
 
 
 /**
- * How long a read may hold the Continue button.
+ * How long a read may hold the Continue button BEFORE the button is released.
  *
- * The plan and the bill are read on the device: pdf.js for a text layer, Tesseract OCR
- * for anything scanned or photographed — which, here, is most drawings. OCR on a large
- * sheet is legitimately slow, so this is generous rather than snappy. What it is not is
- * unbounded, which is what it was: a worker that stalled left `scanCount` above zero and
- * Continue disabled for ever, on a screen where both files had plainly uploaded.
+ * The read itself is never abandoned. The plan and the bill are read on the device —
+ * pdf.js for a text layer, Tesseract OCR for anything scanned or photographed, which
+ * here is most drawings — and that reading is what the budget is built from, so cutting
+ * it short to make a button light up would trade ten stage payments for a few seconds.
  *
- * The same reasoning `readPlanWithModel` already carries — "a model that is slow,
- * unconfigured or down cannot be allowed to hold up a project" — applied to the read
- * that actually gates the button.
+ * What was wrong was not the waiting. It was waiting SILENTLY and without end: a stalled
+ * worker left `scanCount` above zero and Continue dead for ever, on a screen where both
+ * files had plainly uploaded and nothing said why.
+ *
+ * So after this long the button unlocks while the read carries on in the background. If
+ * the read lands first, its figures are used. If the person continues first, they are
+ * told plainly that the figures are theirs to check on the summary.
  */
-const READ_DEADLINE_MS = 45_000;
+const READ_GRACE_SECONDS = 20;
 
-/**
- * Resolve with the work, or with null once the deadline passes.
- *
- * The work is not cancelled — neither pdf.js nor Tesseract offers that — it simply stops
- * being waited on. A late result is discarded by the generation guard in the caller, so
- * it cannot overwrite what the person has since been shown.
- */
-function withDeadline<T>(work: Promise<T>, ms: number): Promise<T | null> {
-  return new Promise<T | null>(resolve => {
-    const timer = setTimeout(() => resolve(null), ms);
-    const settle = (value: T | null) => { clearTimeout(timer); resolve(value); };
-    work.then(settle, () => settle(null));
-  });
 }
 
 export function ArchitecturePlanGate({
@@ -138,11 +128,35 @@ export function ArchitecturePlanGate({
     }
   })();
   const [scanCount, setScanCount] = useState(0);
-  /** A read hit its deadline, so the figures on the next step were not taken off the file. */
-  const [readTimedOut, setReadTimedOut] = useState(false);
+  /** Seconds the current read has been running, so the screen can say so. */
+  const [readSeconds, setReadSeconds] = useState(0);
   /** Bumped on every pick, so a late read cannot overwrite a newer one. */
   const readGeneration = useRef(0);
   const scanning = scanCount > 0;
+
+  /**
+   * Count the wait out loud.
+   *
+   * A scanned plan is read page by page by Tesseract and can genuinely take a minute.
+   * The screen used to say "Reading…" with no sense of whether that meant two seconds
+   * or for ever, and the Continue button simply sat dead beneath it. A number moving
+   * is the difference between "it is working" and "it is broken".
+   */
+  useEffect(() => {
+    if (!scanning) { setReadSeconds(0); return; }
+    const startedAt = Date.now();
+    const id = setInterval(
+      () => setReadSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [scanning]);
+
+  /**
+   * The read is taking long enough that the person should not be held by it.
+   *
+   * The read continues; only the hold is released. Whatever it finds still lands, and
+   * the generation guard keeps a late answer from overwriting a newer pick.
+   */
+  const heldByRead = scanning && readSeconds < READ_GRACE_SECONDS;
   const [unreadable, setUnreadable] = useState(false);
   // The second, slower read. Never gates Continue — see `inspectFloorPlans`.
   const [looking, setLooking] = useState(false);
@@ -170,14 +184,10 @@ export function ArchitecturePlanGate({
     setScanCount(count => count + 1);
     let facts: FloorPlanFacts[];
     try {
-      const read = await Promise.all(files.map(
-        file => withDeadline(extractFloorPlanFacts(file), READ_DEADLINE_MS)));
-      // A read that gave up is not a read that found nothing, and the difference is
-      // what the person is told: one means check the figures, the other means the
-      // drawing does not state them.
+      // Read in full. `extractFloorPlanFacts` never throws — an unreadable sheet comes
+      // back as "nothing stated", which is a true answer and not a failure.
+      facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
       if (generation !== readGeneration.current) return;
-      if (read.some(fact => fact === null)) setReadTimedOut(true);
-      facts = read.map(fact => fact ?? { ...NO_FLOOR_PLAN_FACTS });
       setFloorPlanFacts(facts);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
@@ -209,15 +219,8 @@ export function ArchitecturePlanGate({
     if (!canExtract(file.name)) { setUnreadable(true); return; }
     setScanCount(count => count + 1);
     try {
-      // Bounded for the same reason as the plan: a bill that is a scan goes through OCR,
-      // and an OCR pass that never returns used to disable Continue permanently.
-      const out = await withDeadline(extractBqTotal(file), READ_DEADLINE_MS);
+      const out = await extractBqTotal(file);
       if (generation !== readGeneration.current) return;
-      if (!out) {
-        setReadTimedOut(true);
-        setUnreadable(true);
-        return;
-      }
       setReading(out.reading);
       setLineItems(out.lineItems);
       setBqStatedFloors(out.statedFloors);
@@ -309,7 +312,6 @@ export function ArchitecturePlanGate({
           onPick={files => {
             const chosen = Array.isArray(files) ? files : files ? [files] : [];
             setError(null);
-            setReadTimedOut(false);
             setFloorPlans(chosen);
             setFloorPlanFacts([]);
             if (chosen.length) void inspectFloorPlans(chosen);
@@ -322,7 +324,6 @@ export function ArchitecturePlanGate({
           onPick={selection => {
             const file = Array.isArray(selection) ? selection[0] ?? null : selection;
             setError(null);
-            setReadTimedOut(false);
             setBq(file);
             if (file) void inspect(file);
             else { setReading(null); setLineItems([]); }
@@ -366,9 +367,29 @@ export function ArchitecturePlanGate({
         </div>
       )}
       {scanning && (
-        <p role="status" className="mt-4 flex items-center gap-2 text-xs text-brand-mid-grey">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.reading')}
-        </p>
+        /*
+          * What is happening, how long it has been, and whether it is still worth
+          * waiting for. The old version said "Reading…" and nothing else, beside a
+          * Continue button it had silently disabled — so a slow OCR pass and a broken
+          * screen looked exactly alike.
+          */
+        <div role="status" className="mt-4 space-y-1">
+          <p className="flex items-center gap-2 text-xs text-brand-mid-grey">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            {t('planGate.reading')}
+            <span className="tabular-nums">{t('planGate.readingElapsed', { s: readSeconds })}</span>
+          </p>
+          <p className="pl-5 text-[11px] leading-relaxed text-brand-mid-grey">
+            {t('planGate.readingScanned')}
+          </p>
+          {!heldByRead && (
+            // Released, and said so. The read carries on and its figures still land if
+            // they arrive before this screen is left.
+            <p className="pl-5 text-[11px] font-medium leading-relaxed text-brand-near-black dark:text-white">
+              {t('planGate.readingContinueAnyway')}
+            </p>
+          )}
+        </div>
       )}
       {looking && !scanning && (
         <p role="status" className="mt-3 flex items-center gap-2 text-xs text-brand-mid-grey">
@@ -433,7 +454,7 @@ export function ArchitecturePlanGate({
           // Both documents are the point of this path, so both are required. Somebody
           // who cannot produce them belongs on the other branch, and the Back button
           // above is how they get there.
-          disabled={!floorPlans.length || !bq || scanning}
+          disabled={!floorPlans.length || !bq || heldByRead}
           onClick={() => onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
           })}
