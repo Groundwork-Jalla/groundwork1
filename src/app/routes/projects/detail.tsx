@@ -25,7 +25,7 @@ import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
-import DocumentVault             from '@/components/project/DocumentVault';
+import { ClientDocuments }       from '@/components/project/ClientDocuments';
 import { ProjectConversations }  from '@/components/project/ProjectConversations';
 import ContractorInvite          from '@/components/project/ContractorInvite';
 import { ShareProject }          from '@/components/project/ShareProject';
@@ -591,10 +591,16 @@ export default function ProjectDetail() {
           {/* Tab: Documents */}
           {activeTab === 'documents' && (
             <div>
-              <DocumentVault
+              {/* The contractor's documents view, shared (11 Nov). An invited client on
+                  somebody else's build reads and does not upload — 112 makes them a
+                  viewer, and the server refuses the write anyway. The owner and the
+                  contractor working the build both file documents against it. */}
+              <ClientDocuments
                 projectId={project.id}
                 userId={user?.id ?? ''}
                 tier={project.tier}
+                stages={stages}
+                canUpload={isOwner || isContractor}
               />
 
             </div>

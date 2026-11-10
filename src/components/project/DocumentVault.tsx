@@ -285,7 +285,11 @@ function CategorySection({
 // Category select modal (shown after file chosen, before upload)
 // ---------------------------------------------------------------------------
 
-function CategorySelectModal({
+/**
+ * Shared with `ClientDocuments`: the client's upload lives on the new documents view
+ * now, and categorising a file is the same question wherever it is asked.
+ */
+export function CategorySelectModal({
   file,
   onConfirm,
   onCancel,
