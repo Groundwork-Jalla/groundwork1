@@ -39,7 +39,16 @@ export function PlanQuestionStep({ children }: { children: React.ReactNode }) {
   const liveRate = useUsdRate(
     constructionRate?.currency_code ?? getCurrencyCode(data.country), storedRate) ?? storedRate;
 
-  const uploadedPlanDocs = pendingDocuments?.some(doc => doc.category === 'other') ?? false;
+  // 'floor_plan' since 179; 'other' is what a drawing was filed as before it, and is
+  // still accepted so a run already in flight when this shipped is not stranded.
+  //
+  // This one word is why Continue stopped working. `planDocuments` began filing plans
+  // as 'floor_plan' on 9 Nov; this line kept asking for 'other'. So the click DID fire,
+  // the answer WAS written, and then `planQuestionDue` recomputed with hasPlanDoc false
+  // and put the person straight back on the upload screen — a button that looked dead
+  // and a screen that never advanced.
+  const uploadedPlanDocs = pendingDocuments?.some(
+    doc => doc.category === 'floor_plan' || doc.category === 'other') ?? false;
   const uploadedBq = pendingDocuments?.some(doc => doc.category === 'boq') ?? false;
   // Whether this question is due is pure, and lives in `plan-answer` so the case that
   // bit partners — a reload drops the Files, which must not un-answer the question —
