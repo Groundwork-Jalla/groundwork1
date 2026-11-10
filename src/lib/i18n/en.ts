@@ -1416,6 +1416,7 @@ export const en = {
         stage_submitted_for_review: 'submitted a stage for review',
         stage_approved:             'approved a stage',
         project_repriced:           'recalculated the costing',
+        project_stages_rebalanced:  'rebalanced the stage amounts',
         stage_opened: 'opened a stage for work',
         stage_awaiting_payment: 'held a stage until it is paid for',
         stage_approved_by_admin:    'approved a stage',

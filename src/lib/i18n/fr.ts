@@ -1408,6 +1408,7 @@ export const fr: Mirror<EnDict> = {
         stage_submitted_for_review: 'a soumis une étape à validation',
         stage_approved:             'a validé une étape',
         project_repriced:           'a recalculé le chiffrage',
+        project_stages_rebalanced:  'a rééquilibré les montants des étapes',
         stage_opened: 'a ouvert une étape',
         stage_awaiting_payment: 'a mis une étape en attente de paiement',
         stage_approved_by_admin:    'a validé une étape',
