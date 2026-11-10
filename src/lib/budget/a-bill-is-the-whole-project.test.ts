@@ -43,6 +43,21 @@ describe('what the contractor confirmed is what the project holds', () => {
     expect(STEP11).toMatch(/hasBillOfQuantities\s*\?\s*\{ \.\.\.confirmed, construction: confirmed\.total \}/);
   });
 
+  it('charges nothing on top of a bill', () => {
+    // "Someone that has uploaded their bill of quantities already knows what their
+    // project costs. We are not charging them for anything." The fee lines belong to
+    // an estimate, where Groundwork priced the work.
+    expect(STEP11).toMatch(/design: 0, permit: 0, professional: 0, verification: 0, contingency: 0/);
+  });
+
+  it('tells the join RPC the project is priced from a bill', () => {
+    // So the stages already built keep their share and are marked complete, rather
+    // than being zeroed as an estimate's would be.
+    expect(STEP11).toMatch(/startStage \? stageLabel\(startStage\) : '', hasBillOfQuantities\)/);
+    const tracking = code('src/lib/supabase/tracking.ts');
+    expect(tracking).toMatch(/p_bill_of_quantities: billOfQuantities/);
+  });
+
   it('does not shrink a bill-priced total when the build joined mid-way', () => {
     /*
      * `joinedBudget` reduces `total` to the work still to come, and that reduced figure
@@ -81,11 +96,20 @@ describe('the backfill for projects already created', () => {
     expect(sql).not.toMatch(/now\(\)/);
   });
 
-  it('never touches settled money', () => {
-    expect(sql).toMatch(/COALESCE\(s\.pre_existing, false\)/);
-    expect(sql).toMatch(/COALESCE\(s\.payment_status, 'unpaid'\) = 'paid'/);
-    expect(sql).toMatch(/s\.status = 'complete'/);
-    expect(sql).toMatch(/COALESCE\(s\.fixed_amount_usd, 0\) = 0/);
+  it('fills the stages completed before the join, and leaves only paid-through-Groundwork money alone', () => {
+    // Those stages were zeroed on creation; that is the fault being repaired. A stage the
+    // client actually paid through Groundwork is the one thing not rewritten.
+    expect(sql).toMatch(/COALESCE\(s\.payment_status, 'unpaid'\) = 'paid'\s*\n?\s*AND COALESCE\(s\.pre_existing, false\) = false/);
+    expect(sql).not.toMatch(/AND NOT \(COALESCE\(s\.pre_existing, false\)\s*\n?\s*OR/);
+  });
+
+  it('zeroes the fee lines on a bill-priced project', () => {
+    expect(sql).toMatch(/UPDATE public\.project_fees f\s*\n?\s*SET amount_usd = 0/);
+  });
+
+  it('widens the join RPC so new bill-priced projects keep their built stages', () => {
+    expect(sql).toMatch(/p_bill_of_quantities boolean DEFAULT false/);
+    expect(sql).toMatch(/CASE WHEN p_bill_of_quantities\s*\n?\s*THEN payment_milestone_usd ELSE 0 END/);
   });
 
   it('refuses a project whose bill is no longer filed as one', () => {

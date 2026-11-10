@@ -88,31 +88,48 @@ describe('what a stage is worth', () => {
   });
 });
 
-describe('what the contractor is OWED is a different question', () => {
-  const basis = { wholeProject: false, base: 89565.86 };
-  const historical = stage({
-    pre_existing: true, status: 'complete', payment_milestone_usd: 0, budget_pct: 15.664829,
-  });
+describe('what a completed-before-join stage counts for on the contractor side', () => {
+  const basis = { wholeProject: true, base: 99458.80 };
 
-  it('pays nothing for work that was already standing', () => {
+  it('shows its share of the bill when the project was priced from one', () => {
     /*
-     * A pre-existing stage was "never approved, verified or funded by us" (103).
-     * Printing its value beside "Released" would say the contractor had been paid for
-     * work Groundwork never financed — two true numbers that together say something
-     * false.
+     * "Stages 1 to 4 should be completed with the actual amount being distributed —
+     * not zero" (11 Nov 2026). The join RPC now leaves that amount in place on a bill,
+     * and this is what the contractor sees beside the completed stage.
      */
-    expect(stageScheduleUsd(historical, basis)).toBeGreaterThan(0);
-    expect(stagePayableUsd(historical, basis)).toBe(0);
+    const built = stage({ pre_existing: true, status: 'complete', budget_pct: 15.664829,
+      payment_milestone_usd: 15580.07 });
+    expect(stagePayableUsd(built, basis)).toBe(15580.07);
   });
 
-  it('pays nothing for pre-existing work even when it is not complete', () => {
-    expect(stagePayableUsd(stage({ pre_existing: true, status: 'active' }), basis)).toBe(0);
+  it('shows the zero the system recorded on an estimated build', () => {
+    // 162 zeroes those stages on an estimate, because that total was only ever for the
+    // work to come. The screen says what the database says — it does not invent a
+    // value beside the word "Released".
+    const built = stage({ pre_existing: true, status: 'complete', budget_pct: 15.664829,
+      payment_milestone_usd: 0 });
+    expect(stagePayableUsd(built, { wholeProject: false, base: 89565.86 })).toBe(0);
+    // ...even though the costing page, asking what the building cost, shows its value.
+    expect(stageScheduleUsd(built, { wholeProject: false, base: 89565.86 })).toBeGreaterThan(0);
   });
 
-  it('leaves the contract total out of pre-existing stages', () => {
-    const stages = [historical, stage(), stage({ id: 's2', budget_pct: 5, payment_milestone_usd: 4478.29 })];
+  it('never derives a pre-existing amount, whatever the basis says', () => {
+    const built = stage({ pre_existing: true, status: 'active', budget_pct: 50, payment_milestone_usd: 123 });
+    expect(stagePayableUsd(built, { wholeProject: true, base: 1000000 })).toBe(123);
+  });
+
+  it('still to come is the total minus what is completed', () => {
+    // The rule, stated in one line. All four stages carry their share of the bill.
+    const stages = [
+      stage({ id: 'a', pre_existing: true, status: 'complete', budget_pct: 15.664829, payment_milestone_usd: 15580.07 }),
+      stage({ id: 'b', status: 'active',  budget_pct: 46.371529, payment_milestone_usd: 46120.57 }),
+      stage({ id: 'c', status: 'locked',  budget_pct: 5,         payment_milestone_usd: 4972.94 }),
+    ];
     const total = sumPayableUsd(stages, basis);
-    expect(total).toBe(stagePayableUsd(stages[1], basis) + stagePayableUsd(stages[2], basis));
+    const completed = sumPayableUsd(stages.filter(s => s.status === 'complete'), basis);
+    const stillToCome = sumPayableUsd(stages.filter(s => s.status !== 'complete'), basis);
+    expect(stillToCome).toBeCloseTo(total - completed, 2);
+    expect(completed).toBe(15580.07);
   });
 });
 
