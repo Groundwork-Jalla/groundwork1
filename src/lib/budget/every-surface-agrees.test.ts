@@ -209,3 +209,62 @@ describe('both halves of the receipt handshake quote one currency', () => {
     }
   });
 });
+
+/**
+ * The client and the contractor derive a stage figure the SAME way — 11 Nov 2026.
+ *
+ * The costing page was corrected to split a bill-of-quantities project across the
+ * project total. The contractor's screens were not, and went on printing the stored
+ * amount: about 3.34% higher on every stage of the same build, for the two people who
+ * have to agree on it before a stage opens.
+ *
+ * This is the third time the same shape has appeared — a currency change applied to the
+ * screens somebody had open, a `verified` branch that forgot its own definition, and now
+ * a stage split fixed on one surface. So the rule is not "remember the other file": the
+ * derivation lives in `lib/budget/stage-amounts.ts` and this asks, by surface, that
+ * nobody re-implements it.
+ */
+describe('one definition of what a stage is worth', () => {
+  const SURFACES = [
+    'src/components/project/BudgetView.tsx',
+    'src/app/routes/work/projects.detail.tsx',
+  ];
+
+  it('both the client and the contractor import it', () => {
+    for (const file of SURFACES) {
+      expect(code(file), `${file} must derive stage money through stage-amounts`)
+        .toMatch(/from '@\/lib\/budget\/stage-amounts'/);
+    }
+  });
+
+  it('neither prints a raw stored milestone any more', () => {
+    /*
+     * `payment_milestone_usd` is written at creation and can predate a re-price or a
+     * corrected budget. Reading it straight is what made the two screens disagree, and
+     * the migration cannot fix it for them — it deliberately never touches a stage that
+     * is paid, complete, pre-existing or fixed-fee.
+     */
+    for (const file of SURFACES) {
+      expect(code(file), `${file} must not read payment_milestone_usd directly`)
+        .not.toMatch(/payment_milestone_usd/);
+    }
+  });
+
+  it('decides on the bill of quantities, never on whether the build joined mid-way', () => {
+    // The bug this replaced: `wholeProject` keyed on `pre_existing`. Of the live
+    // projects on 11 Nov 2026, five had both, four a bill alone and five a mid-build
+    // join with no bill — so the two facts cannot stand in for one another.
+    const basis = code('src/lib/budget/stage-amounts.ts');
+    expect(basis).toMatch(/hasBoq/);
+    expect(basis).toMatch(/if \(hasBoq\) return \{ wholeProject: true/);
+  });
+
+  it('keeps the contractor on PAYABLE, so pre-existing work is never shown as owed', () => {
+    // 103: pre-existing stages were "never approved, verified or funded by us". A
+    // figure beside "Released" is a claim that money moved.
+    const work = code('src/app/routes/work/projects.detail.tsx');
+    expect(work).toMatch(/stagePayableUsd|sumPayableUsd/);
+    expect(work, 'the contractor must not use the client-side schedule figure')
+      .not.toMatch(/stageScheduleUsd/);
+  });
+});

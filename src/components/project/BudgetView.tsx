@@ -18,7 +18,9 @@ import { useStageLabels } from '@/lib/stage-labels';
 import { fetchProjectDocuments } from '@/lib/supabase/contractor-work';
 // One definition of what a stage is worth, shared with the contractor's screens.
 // They print the same payment and used to disagree about it — see stage-amounts.ts.
-import { stageBasisFor, stageScheduleUsd, type StageBasis } from '@/lib/budget/stage-amounts';
+import {
+  stageBasisFor, stageScheduleUsd, sumPayableUsd, type StageBasis,
+} from '@/lib/budget/stage-amounts';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -36,13 +38,23 @@ export interface BudgetViewProps {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/**
+ * Released / held / still to come.
+ *
+ * PAYABLE, not schedule. These three buckets are about money, so a stage that was
+ * already standing when the build joined Groundwork contributes nothing to them — it was
+ * "never approved, verified or funded by us" (103). The per-stage rows below DO show
+ * what such a stage was worth, because there the question is what the building cost.
+ *
+ * Derived rather than summed off the column, so these totals cannot disagree with the
+ * rows printed directly above them on the same page.
+ */
 function sumMilestones(
   stages: ProjectStageRow[],
   predicate: (s: ProjectStageRow) => boolean,
+  basis: StageBasis,
 ): number {
-  return stages
-    .filter(predicate)
-    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  return sumPayableUsd(stages.filter(predicate), basis);
 }
 
 function formatDate(iso: string): string {
@@ -412,9 +424,9 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   const basis = stageBasisFor(project, sortedStages, hasBoq);
   const stageConstructionTotal = basis.base;
 
-  const released  = sumMilestones(sortedStages, s => s.status === 'complete');
-  const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review');
-  const remaining = sumMilestones(sortedStages, s => s.status === 'locked');
+  const released  = sumMilestones(sortedStages, s => s.status === 'complete', basis);
+  const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review', basis);
+  const remaining = sumMilestones(sortedStages, s => s.status === 'locked', basis);
 
   return (
     <motion.div
