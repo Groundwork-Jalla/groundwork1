@@ -40,7 +40,7 @@ describe('what the contractor confirmed is what the project holds', () => {
   it('distributes the confirmed TOTAL across the stages, not the carved-down construction', () => {
     // `apply_budget_milestones` splits whatever is handed to it as the construction fee.
     // For a bill, that has to be the whole figure or the percentages lie.
-    expect(STEP11).toMatch(/hasBillOfQuantities\s*\?\s*\{ \.\.\.confirmed, construction: confirmed\.total \}/);
+    expect(STEP11).toMatch(/hasBillOfQuantities\s*\?\s*\{\s*\.\.\.confirmed,[\s\S]*?construction: confirmed\.total,/);
   });
 
   it('charges nothing on top of a bill', () => {
@@ -92,8 +92,11 @@ describe('the backfill for projects already created', () => {
   it('converts at the stored rate, so a re-run produces the same numbers', () => {
     // A live rate would make the migration non-deterministic: the same statement would
     // write a different budget depending on the day it was applied.
-    expect(sql).toMatch(/fx_rate/);
-    expect(sql).not.toMatch(/now\(\)/);
+    // The conversion is bill ÷ a rate held in the migration itself. `now()` does appear
+    // in the file — the join RPC stamps `tracking_started_at` — so the check is on the
+    // conversion, not on the word.
+    expect(sql).toMatch(/round\(c\.bill_local \/ c\.fx_rate, 2\)/);
+    expect(sql).not.toMatch(/approx_fx_rate|live|fetch/i);
   });
 
   it('fills the stages completed before the join, and leaves only paid-through-Groundwork money alone', () => {
