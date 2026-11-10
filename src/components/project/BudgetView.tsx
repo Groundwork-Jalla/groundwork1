@@ -252,9 +252,11 @@ function OverviewBar({
 function StageBar({
   stage,
   stageConstructionTotal,
+  wholeProject,
 }: {
   stage: ProjectStageRow;
   stageConstructionTotal: number | null;
+  wholeProject: boolean;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
@@ -264,7 +266,7 @@ function StageBar({
   const isReview   = stage.status === 'pending_review';
   const historical = stage.pre_existing && isComplete;
   const estimated = stageEstimatedMilestone(stage, stageConstructionTotal);
-  const shownMilestone = historical ? (estimated ?? 0) : (stage.payment_milestone_usd ?? 0);
+  const shownMilestone = historical || wholeProject ? (estimated ?? stage.payment_milestone_usd ?? 0) : (stage.payment_milestone_usd ?? 0);
 
   const barColor = isComplete ? '#22c55e' : isActive ? '#3b82f6' : isReview ? '#f59e0b' : undefined;
 
@@ -411,7 +413,13 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   });
 
   const sortedStages = [...stages].sort((a, b) => a.stage_number - b.stage_number);
-  const stageConstructionTotal = inferConstructionTotal(sortedStages) ?? budget.construction;
+  // A project joined mid-build is split as stage % of the whole project total. The old
+  // inference rebuilt the base from the remaining-work milestones, which were written
+  // against an earlier budget and so inflated every stage (Edgar: ~3.3%).
+  const wholeProject = sortedStages.some(s => s.pre_existing);
+  const stageConstructionTotal = wholeProject
+    ? budget.total
+    : inferConstructionTotal(sortedStages) ?? budget.construction;
 
   const released  = sumMilestones(sortedStages, s => s.status === 'complete');
   const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review');
@@ -511,6 +519,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                 key={stage.id}
                 stage={stage}
                 stageConstructionTotal={stageConstructionTotal}
+                wholeProject={wholeProject}
               />
             ))}
           </div>
@@ -530,7 +539,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
               const isReview   = stage.status === 'pending_review';
               const historical = !!stage.pre_existing && isComplete;
               const estimated = stageEstimatedMilestone(stage, stageConstructionTotal);
-              const shownMilestone = historical ? (estimated ?? 0) : (stage.payment_milestone_usd ?? 0);
+              const shownMilestone = historical || wholeProject ? (estimated ?? stage.payment_milestone_usd ?? 0) : (stage.payment_milestone_usd ?? 0);
 
               return (
                 <div key={stage.id} className="flex gap-4">
