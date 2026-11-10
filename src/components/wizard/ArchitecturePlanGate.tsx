@@ -81,8 +81,6 @@ const SHEET_KIND_KEYS = {
  */
 const READ_GRACE_SECONDS = 20;
 
-}
-
 export function ArchitecturePlanGate({
   onAnswered, onCancel, backLabel, currencyCode, fxRate,
 }: {
