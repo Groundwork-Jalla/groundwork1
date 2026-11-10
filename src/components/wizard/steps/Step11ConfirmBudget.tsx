@@ -247,7 +247,7 @@ export default function Step11ConfirmBudget() {
        * So where a bill exists the stages are distributed across the CONFIRMED TOTAL,
        * and the percentages mean what they say: 2% of the project is 2% of the bill.
        */
-      const priced: BudgetBreakdown = hasBillOfQuantities
+      const priced = hasBillOfQuantities
         ? { ...confirmed, construction: confirmed.total }
         : confirmed;
       // A partner takes their place on the project FIRST: membership and primary standing
