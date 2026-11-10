@@ -82,7 +82,7 @@ describe('a schedule nobody has paid into is re-cut whole', () => {
     // re-price. If the two disagree, the next one silently undoes this one.
     for (const r of plan.rows) {
       if (r.settled) continue;
-      expect(Math.round(CONSTRUCTION * r.nowPct / 100), `${r.stageKey}`).toBe(r.nowAmount);
+      expect(Math.abs(CONSTRUCTION * r.nowPct / 100 - r.nowAmount), `${r.stageKey}`).toBeLessThan(0.01);
     }
   });
 });

@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { createTakeoff, fetchTakeoffs, priceTakeoff, type ProjectTakeoffRow } from '@/lib/supabase/takeoffs';
-import { formatLocalCurrency, formatUSDFull, projectBudget } from '@/lib/budget';
+import { formatLocalCurrency, projectBudget } from '@/lib/budget';
+import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-context';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -32,6 +33,17 @@ function StatusPill({ status }: { status: ProjectTakeoffRow['status'] }) {
     <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', map[status])}>
       {t(`takeoff.status.${status}`)}
     </span>
+  );
+}
+
+/** The client budget, in the project's own currency. See `ManagedEstimate` for why it
+ *  is a component: `useMoney()` must run inside the provider this route renders. */
+function ClientBudgetFigure({ usd }: { usd: number }) {
+  const money = useMoney();
+  return (
+    <p className="mt-0.5 text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
+      {money(usd)}
+    </p>
   );
 }
 
@@ -109,6 +121,11 @@ export default function TakeoffList() {
   const budget = projectBudget(project);
 
   return (
+    // The client budget above the take-off was the one pair of figures Philip called out
+    // on 29 October: "it will be different figures, and I don't know what exchange rate
+    // it is using." It was dollars; the take-off beneath it is francs. One provider now
+    // puts both in the same currency at the same rate.
+    <ProjectMoneyProvider country={project.country}>
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -125,9 +142,7 @@ export default function TakeoffList() {
 
       <div className="rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1a1a1a]">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t('takeoff.clientBudget')}</p>
-        <p className="mt-0.5 text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
-          {formatUSDFull(budget.construction)}
-        </p>
+        <ClientBudgetFigure usd={budget.construction} />
         <p className="mt-0.5 text-[11px] text-brand-mid-grey">{t('takeoff.clientBudgetNote')}</p>
       </div>
 
@@ -178,5 +193,6 @@ export default function TakeoffList() {
         {t('takeoff.newTakeoff')}
       </button>
     </motion.div>
+    </ProjectMoneyProvider>
   );
 }

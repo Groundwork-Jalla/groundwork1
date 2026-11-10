@@ -20,7 +20,7 @@ import {
   approveStage,
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
-import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-context';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
@@ -136,6 +136,24 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
 }
 
 // ── Main component ────────────────────────────────────────
+
+
+/**
+ * The Jalla Management estimate, in the project's own currency.
+ *
+ * Its own component for one reason: `useMoney()` has to be called from INSIDE
+ * `ProjectMoneyProvider`, and this route's body is what renders the provider. Called
+ * there it would always fall back to dollars — which is exactly what it used to do, on
+ * the figure a Management client is quoted.
+ */
+function ManagedEstimate({ usd }: { usd: number | null }) {
+  const money = useMoney();
+  return (
+    <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
+      {usd ? money(usd) : '\u2014'}
+    </p>
+  );
+}
 
 export default function ProjectDetail() {
   const { stageLabel, substageLabel } = useStageLabels();
@@ -463,9 +481,7 @@ export default function ProjectDetail() {
                     <p className="text-[11px] font-semibold text-brand-mid-grey uppercase tracking-wide">{t('project.gate.managedEstimate')}</p>
                     <p className="text-xs text-brand-mid-grey mt-0.5">{t('project.gate.managedNote')}</p>
                   </div>
-                  <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
-                    {project.budget_usd ? formatUSDFull(project.budget_usd) : '—'}
-                  </p>
+                  <ManagedEstimate usd={project.budget_usd} />
                 </div>
               </div>
             ) : (

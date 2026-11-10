@@ -124,15 +124,15 @@ export function planReprice(
     Math.max(0, shares[(s.stage_key ?? '') as StageKey] ?? 0);
   const openShareTotal = open.reduce((a, s) => a + shareOf(s), 0);
 
-  // Whole dollars, shared out by largest remainder so the open stages add up to the pot
-  // exactly. Rounding each one alone let the column drift from the construction fee, and
-  // the stage list then read a little MORE than the budget it came from. The pot is
-  // floored, so a schedule can fall short by under a dollar but never exceed it.
+  // Cents, shared out by largest remainder so the open stages add up to the pot exactly.
+  // Whole dollars were not fine enough: the page shows XAF at roughly 590 per dollar, so
+  // rounding each stage to a dollar moved it by up to ~295 XAF and the column then read
+  // about 100 XAF more than the budget it came from.
   const amounts = new Map<string, number>();
   if (openShareTotal > 0) {
-    const whole = Math.floor(pot + 1e-9);
-    const exact = open.map(s => ({ id: s.id, v: whole * (shareOf(s) / openShareTotal) }));
-    let spare = whole - exact.reduce((a, e) => a + Math.floor(e.v), 0);
+    const cents = Math.floor(pot * 100 + 1e-6);
+    const exact = open.map(s => ({ id: s.id, v: cents * (shareOf(s) / openShareTotal) }));
+    let spare = cents - exact.reduce((a, e) => a + Math.floor(e.v), 0);
     const byRemainder = [...exact].sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)));
     for (const e of exact) amounts.set(e.id, Math.floor(e.v));
     for (const e of byRemainder) {
@@ -140,6 +140,7 @@ export function planReprice(
       amounts.set(e.id, (amounts.get(e.id) ?? 0) + 1);
       spare -= 1;
     }
+    for (const [id, c] of amounts) amounts.set(id, c / 100);
   }
 
   const rows: RepriceRow[] = [];
@@ -197,6 +198,6 @@ export function repriceBalances(plan: RepricePlan, construction: number): boolea
   const total = plan.rows
     .filter(r => r.heldReason !== 'fixed_fee')
     .reduce((a, r) => a + r.nowAmount, 0);
-  // Never over the fee; under it by less than a dollar, from flooring the pot.
-  return total <= construction + 1e-6 && construction - total < 1 + 1e-6;
+  // Never over the fee; under it by less than a cent, from flooring the pot.
+  return total <= construction + 1e-6 && construction - total < 0.01 + 1e-6;
 }

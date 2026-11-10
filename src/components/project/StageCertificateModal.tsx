@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Printer } from 'lucide-react';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useT, type TKey } from '@/lib/i18n';
+import { useMoney } from '@/lib/budget/project-money-context';
 
 // ── Props ─────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export function StageCertificateModal({
   onClose,
 }: StageCertificateModalProps) {
   const t = useT();
+  const money = useMoney();
   const { stageLabel } = useStageLabels();
   const completedDate = stage.completed_at
     ? new Date(stage.completed_at).toLocaleDateString('en-GB', {
@@ -60,10 +62,13 @@ export function StageCertificateModal({
   const locationStr = [project.city, project.country].filter(Boolean).join(', ');
   const progressPct = Math.min((stage.stage_number / 10) * 100, 100);
 
+  // The certificate is the most formal document Groundwork produces, and it was the one
+  // client surface still quoting dollars after the 9 Nov currency change — a client in
+  // Douala was handed a certificate reading $41,837 against a build priced in francs.
+  // Through the project's own currency now, like every other figure on the page: the
+  // modal is opened from StageTracker, which renders inside ProjectMoneyProvider.
   const milestoneStr =
-    stage.payment_milestone_usd != null
-      ? `$${stage.payment_milestone_usd.toLocaleString()}`
-      : '—';
+    stage.payment_milestone_usd != null ? money(stage.payment_milestone_usd) : '—';
 
   const details: Array<[string, string]> = [
     [t('certificate.fieldProject'),   project.name],

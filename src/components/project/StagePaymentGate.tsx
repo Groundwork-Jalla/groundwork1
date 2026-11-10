@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Loader2, Receipt, Check, ExternalLink, Clock } from 'lucide-react';
 import { useT } from '@/lib/i18n';
-import { formatUSDFull } from '@/lib/budget';
+import { useMoney } from '@/lib/budget/project-money-context';
 import {
   uploadStagePaymentReceipt, confirmStagePayment, signReceiptUrl,
   type StagePayment,
@@ -42,6 +42,10 @@ export function StagePaymentGate({
   projectId, stageId, stageNumber, payment, isContractor, onChanged,
 }: Props) {
   const t = useT();
+  // The figure the client is about to transfer, in the currency they will transfer it
+  // in. This read `formatUSDFull` — dollars — on the one screen whose whole job is to
+  // name an amount somebody must pay. Rendered from StageTracker, inside the provider.
+  const money = useMoney();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy]   = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +164,7 @@ export function StagePaymentGate({
       </p>
       <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
         {/* The full figure, not a rounded one: somebody is about to transfer this. */}
-        {t('project.stages.receiptBody', { amount: formatUSDFull(payment.amount) })}
+        {t('project.stages.receiptBody', { amount: money(payment.amount) })}
       </p>
 
       <input
