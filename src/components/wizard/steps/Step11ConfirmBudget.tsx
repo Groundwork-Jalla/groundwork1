@@ -61,6 +61,15 @@ export default function Step11ConfirmBudget() {
    */
   const estimate  = calculateBudget(data, constructionRate, cityRate).total;
   const documentFlow = data.hasArchitecturePlan === true;
+  /**
+   * A bill of quantities was actually attached.
+   *
+   * Narrower than `documentFlow`, deliberately: somebody can take the architecture-plan
+   * path with drawings and no bill, and then the figure on this screen is an estimate
+   * like any other. Only an attached bill makes the confirmed total a document's own
+   * number — which is what decides whether it may be reduced below what they approved.
+   */
+  const hasBillOfQuantities = (pendingDocuments ?? []).some(doc => doc.category === 'boq');
   const opening   = data.bqTotalUsd ?? (documentFlow ? null : estimate);
   // The budget is confirmed on the summary screen; this step only reads it.
   const raw = confirmationDraft?.raw
@@ -220,6 +229,27 @@ export default function Step11ConfirmBudget() {
         builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
         floors:       data.floors ?? 1,
       });
+
+      /*
+       * ── DISTRIBUTING A BILL OF QUANTITIES ───────────────────────────────────────
+       *
+       * `apply_budget_milestones` splits the CONSTRUCTION fee across the stages by
+       * their percentages. For an estimated build that is right: the estimator prices
+       * construction and the permit, project manager and contingency sit on top of it.
+       *
+       * A bill of quantities is not priced that way. It is the whole figure the
+       * contractor quoted, so `decomposeBudget` inverting the fee formulas out of it
+       * takes about 12% of their own number and relabels it — and the stages then split
+       * only what is left. On Brian Home that is why 46.371529% of a 59,675,280 bill
+       * showed as 24,313,931 instead of 27,672,383: the percentage was applied to
+       * 87.86% of the bill.
+       *
+       * So where a bill exists the stages are distributed across the CONFIRMED TOTAL,
+       * and the percentages mean what they say: 2% of the project is 2% of the bill.
+       */
+      const priced: BudgetBreakdown = hasBillOfQuantities
+        ? { ...confirmed, construction: confirmed.total }
+        : confirmed;
       // A partner takes their place on the project FIRST: membership and primary standing
       // (109). Creating it does not do that, and the budget call below is gated on being
       // the client's partner — so doing this second would fail on a project they own.
@@ -239,18 +269,46 @@ export default function Step11ConfirmBudget() {
       // be gated on `onBehalfOf`, so a client's choice was read, shown back to them,
       // and then silently dropped — the project opened at stage 1 regardless.
       if (joined) {
+        /*
+         * ── A BILL OF QUANTITIES IS THE WHOLE PROJECT, EVEN WHEN JOINING MID-BUILD ──
+         *
+         * `joinedBudget` re-prices a build that starts part-way through: it keeps the
+         * full construction fee (so the stage percentages still describe the whole
+         * house) but reduces `total` to what is still to come, and that reduced figure
+         * is what reaches `projects.budget_usd`.
+         *
+         * That is right for an ESTIMATED build, where the total is a quote for the work
+         * Groundwork will govern. It is wrong for a build priced from an uploaded bill:
+         * the contractor confirms a figure off their own document — 59,675,280 on Brian
+         * Home — and the project then stores a smaller one, so nothing on either screen
+         * adds up to the bill they just approved. Reported 11 Nov 2026: "the total
+         * budget on the project after its creation is wrong from what the contractor
+         * confirmed as their budget."
+         *
+         * So where a bill exists the CONFIRMED total stands, whole, and the mid-build
+         * part of the join is unchanged: `startStage` still records which stages were
+         * already built, and those stages are still zeroed and never billed. What the
+         * client owes is the sum of the stages that remain — derived, not stored — which
+         * is exactly what `stagePayableUsd` answers for both screens.
+         */
+        const pricedJoin = hasBillOfQuantities
+          ? { ...joined, total: priced.total, construction: priced.construction,
+              design: priced.design, permit: priced.permit,
+              professional: priced.professional, verification: priced.verification,
+              contingency: priced.contingency }
+          : joined;
         // Joining a build in progress: the earlier stages are recorded as already built and
         // the client is billed only for what is left (103).
         // The note is the stage they CHOSE. It used to be whatever they typed; with
         // no text box there is nothing to pass but the thing they actually told us.
-        await adminStartProjectAtStage(project.id, joined, ownerId, project.name,
+        await adminStartProjectAtStage(project.id, pricedJoin, ownerId, project.name,
           startStage ? stageLabel(startStage) : '');
       } else if (onBehalfOf) {
         // Named `admin…` for the RPC it calls; 109 widened that function to accept a
         // partner for their own client's project, so this one call serves both.
-        await adminStartProjectTracking(project.id, confirmed, ownerId, project.name);
+        await adminStartProjectTracking(project.id, priced, ownerId, project.name);
       } else {
-        await startProjectTracking(project.id, confirmed);
+        await startProjectTracking(project.id, priced);
       }
 
       // 3. The costing they attached, if any. Only possible now that a project id
