@@ -142,3 +142,32 @@ describe('the backfill for projects already created', () => {
     expect(sql).not.toMatch(/SET budget_pct/);
   });
 });
+
+describe('the follow-up for Home 2, the project the rule was demonstrated on', () => {
+  /*
+   * The first backfill listed only bills that had been re-read before it was written.
+   * Home 2 was created on the call to SHOW the fault, after that reading — so the project
+   * in the screenshots was the one project the migration did not touch, and the
+   * contractor's view of it stayed exactly as it was: 54,042,849 against a 59,675,280
+   * bill, two built stages at zero. The first migration had already been applied, so
+   * the fix is a second file, not an edit.
+   */
+  const SQL = read('supabase/migrations/20261111000100_home_2_from_its_bill.sql');
+  const sql = SQL.replace(/--[^\n]*/g, '');
+
+  it('names Home 2 and the line its bill was read from', () => {
+    expect(sql).toMatch(/'d8be43a7-ffd4-4f57-851b-c709a9f11499',\s*59675280,\s*600,\s*'TOTAL 59675280'/);
+  });
+
+  it('applies the same four corrections as the first backfill, with the same guard', () => {
+    expect(sql).toMatch(/round\(c\.bill_local \/ c\.fx_rate, 2\)/);
+    expect(sql).toMatch(/UPDATE public\.project_fees f\s*\n?\s*SET amount_usd = 0/);
+    expect(sql).toMatch(/payment_milestone_usd = round\(p\.budget_usd \* s\.budget_pct \/ 100\.0, 2\)/);
+    expect(sql).toMatch(/COALESCE\(s\.payment_status, 'unpaid'\) = 'paid'\s*\n?\s*AND COALESCE\(s\.pre_existing, false\) = false/);
+    expect(sql).toMatch(/DELETE FROM confirmed_bill/);
+  });
+
+  it('is ordered after the migration it extends', () => {
+    expect('20261111000000_a_bill_is_the_whole_project.sql' < '20261111000100_home_2_from_its_bill.sql').toBe(true);
+  });
+});
