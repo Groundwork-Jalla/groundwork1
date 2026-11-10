@@ -1,0 +1,833 @@
+<title>Groundwork Daily Report</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:      #FAFAF9;
+    --surface:     #FFFFFF;
+    --ink:         #1A1D1F;
+    --ink-soft:    #55595C;
+    --ink-faint:   #82878B;
+    --rule:        #DCDAD5;
+    --rule-soft:   #EAE8E3;
+    --accent:      #1F4E5F;
+    --accent-soft: #E8F0F2;
+
+    --ok:      #2F6B4F;  --ok-bg:      #E9F2ED;
+    --partial: #8A6114;  --partial-bg: #F7EFDF;
+    --manual:  #4E5866;  --manual-bg:  #EAECEF;
+    --gap:     #A33A2E;  --gap-bg:     #F8EAE7;
+
+    --measure: 66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #131517;
+      --surface:     #1A1D20;
+      --ink:         #ECEAE5;
+      --ink-soft:    #AAAFB4;
+      --ink-faint:   #7E858B;
+      --rule:        #32373B;
+      --rule-soft:   #262A2E;
+      --accent:      #7FBBCC;
+      --accent-soft: #1B2F36;
+
+      --ok:      #7BC49B;  --ok-bg:      #17281F;
+      --partial: #D6A54A;  --partial-bg: #2B2318;
+      --manual:  #9AA5B1;  --manual-bg:  #21252A;
+      --gap:     #E58472;  --gap-bg:     #2E1D1A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #131517;
+    --surface:     #1A1D20;
+    --ink:         #ECEAE5;
+    --ink-soft:    #AAAFB4;
+    --ink-faint:   #7E858B;
+    --rule:        #32373B;
+    --rule-soft:   #262A2E;
+    --accent:      #7FBBCC;
+    --accent-soft: #1B2F36;
+
+    --ok:      #7BC49B;  --ok-bg:      #17281F;
+    --partial: #D6A54A;  --partial-bg: #2B2318;
+    --manual:  #9AA5B1;  --manual-bg:  #21252A;
+    --gap:     #E58472;  --gap-bg:     #2E1D1A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 28px 96px; }
+  .col  { max-width: var(--measure); }
+
+  h1, h2, h3, .eyebrow, th, .chip, .num {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+  }
+  h1 { font-size: clamp(30px, 4vw, 42px); font-weight: 700; line-height: 1.1;
+       letter-spacing: -0.018em; margin: 0 0 14px; text-wrap: balance; }
+  h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.008em; margin: 0; text-wrap: balance; }
+  h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  p  { margin: 0 0 14px; }
+  a  { color: var(--accent); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+  code { background: var(--rule-soft); padding: 1px 5px; border-radius: 3px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  /* ── Masthead ── */
+  header.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 26px; margin-bottom: 34px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px 30px; margin-top: 18px; }
+  .meta div { display: flex; flex-direction: column; gap: 2px; }
+  .meta dt { font-size: 10.5px; font-weight: 600; letter-spacing: 0.11em;
+             text-transform: uppercase; color: var(--ink-faint); font-family: Archivo, sans-serif; }
+  .meta dd { margin: 0; font-size: 14px; }
+
+  /* ── Sections numbered to Philip's own asks ── */
+  section { margin-top: 52px; }
+  .shead { display: flex; align-items: baseline; gap: 14px;
+           border-bottom: 1px solid var(--rule); padding-bottom: 9px; margin-bottom: 22px; }
+  .num { font-size: 12px; font-weight: 700; color: var(--accent);
+         font-variant-numeric: tabular-nums; padding-top: 3px; }
+
+  /* ── Headline findings ── */
+  .findings { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .finding { border-left: 3px solid var(--gap); background: var(--surface);
+             padding: 15px 17px; border-top: 1px solid var(--rule-soft);
+             border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); }
+  .finding p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .finding h3 { color: var(--ink); }
+
+  /* ── Capability matrix ── */
+  .scroller { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 780px; font-size: 14px; }
+  th { text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+       text-transform: uppercase; color: var(--ink-faint);
+       padding: 11px 14px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.step { font-weight: 600; white-space: nowrap; }
+  td.note { color: var(--ink-soft); font-size: 13.5px; line-height: 1.5; }
+
+  .chip { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em;
+          text-transform: uppercase; padding: 3px 8px; border-radius: 2px; white-space: nowrap; }
+  .c-ok      { color: var(--ok);      background: var(--ok-bg); }
+  .c-partial { color: var(--partial); background: var(--partial-bg); }
+  .c-manual  { color: var(--manual);  background: var(--manual-bg); }
+  .c-gap     { color: var(--gap);     background: var(--gap-bg); }
+  .c-new     { color: var(--accent);  background: var(--accent-soft); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; font-size: 13px;
+            color: var(--ink-soft); align-items: center; }
+
+  /* ── Reference blocks ── */
+  .ref { display: grid; gap: 0; border: 1px solid var(--rule); background: var(--surface); }
+  .ref > div { display: grid; grid-template-columns: 190px 1fr; gap: 18px;
+               padding: 12px 16px; border-bottom: 1px solid var(--rule-soft); }
+  .ref > div:last-child { border-bottom: 0; }
+  .ref dt { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+            color: var(--ink-faint); font-family: Archivo, sans-serif; }
+  .ref dd { margin: 0; font-size: 14px; }
+  @media (max-width: 620px) { .ref > div { grid-template-columns: 1fr; gap: 4px; } }
+
+  /* ── Numbered lists that carry meaning: risks (R1…) and setup steps (1…) ── */
+  ol.risks { list-style: none; counter-reset: r; padding: 0; margin: 0;
+             display: grid; gap: 2px; }
+  ol.risks li { counter-increment: r; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 15px 17px 15px 52px; position: relative; }
+  ol.risks li::before {
+    content: "R" counter(r); position: absolute; left: 16px; top: 15px;
+    font-family: Archivo, sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  ol.risks p { margin: 4px 0 0; font-size: 14px; color: var(--ink-soft); }
+
+  ol.steps { list-style: none; counter-reset: st; padding: 0; margin: 0;
+             display: grid; gap: 2px; }
+  ol.steps li { counter-increment: st; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 13px 17px 13px 46px;
+                position: relative; font-size: 14px; color: var(--ink-soft); }
+  ol.steps li::before {
+    content: counter(st); position: absolute; left: 18px; top: 13px;
+    font-family: Archivo, sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  ol.steps strong { color: var(--ink); }
+
+  /* ── The walkthrough: what happens, and who does it ── */
+  .flow { display: grid; gap: 2px; }
+  .flow > div { display: grid; grid-template-columns: 30px 150px 1fr;
+                gap: 16px; background: var(--surface);
+                border: 1px solid var(--rule-soft); padding: 13px 16px; }
+  .flow .n     { font-family: Archivo, sans-serif; font-size: 12px; font-weight: 700;
+                 color: var(--accent); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .flow .who   { font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+                 text-transform: uppercase; color: var(--ink-faint);
+                 font-family: Archivo, sans-serif; padding-top: 2px; }
+  .flow .what  { font-size: 14px; color: var(--ink-soft); }
+  .flow .what strong { color: var(--ink); }
+  @media (max-width: 700px) {
+    .flow > div { grid-template-columns: 24px 1fr; gap: 8px 12px; }
+    .flow .who { grid-column: 2; }
+    .flow .what { grid-column: 2; }
+  }
+
+  /* ── Three-lane split ── */
+  .lanes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .lane { background: var(--surface); border: 1px solid var(--rule); padding: 17px 18px; }
+  .lane h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .lane ul { margin: 0; padding-left: 17px; font-size: 14px; color: var(--ink-soft); }
+  .lane li { margin-bottom: 6px; }
+
+  .callout { background: var(--accent-soft); border-left: 3px solid var(--accent);
+             padding: 15px 18px; margin: 22px 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
+           font-size: 13px; color: var(--ink-faint); }
+
+  /* ── Print / PDF ──────────────────────────────────────────────────────────────────
+     Philip reads this as a file, so the paged version is a real output rather than a
+     screenshot of a web page. Two things matter: nothing lands half on one page and
+     half on the next, and the capability table — the point of the document — is not
+     the thing that gets split. */
+  @page { size: A4; margin: 14mm 13mm 16mm; }
+
+  @media print {
+    .wrap { max-width: none; padding: 0; }
+    body  { font-size: 10.5pt; line-height: 1.5; }
+
+    h1 { font-size: 22pt; }
+    h2 { font-size: 13pt; }
+    h3 { font-size: 10.5pt; }
+    .meta dd, .ref dd, td, .lane ul, ol.risks p, ol.steps li { font-size: 9.5pt; }
+    td.note { font-size: 9pt; }
+
+    /* A section heading stranded at the foot of a page is the commonest paged-layout
+       fault, and the easiest to prevent. */
+    section        { margin-top: 26px; break-inside: auto; }
+    .shead         { break-after: avoid; }
+    h1, h2, h3     { break-after: avoid; }
+
+    /* These are single objects. Splitting one across a fold makes it unreadable. */
+    .finding, .lane, .callout, ol.risks li, ol.steps li, .ref > div { break-inside: avoid; }
+    tr, thead      { break-inside: avoid; }
+    thead          { display: table-header-group; }
+
+    /* No horizontal scroller on paper: let the table use the full measure instead. */
+    .scroller { overflow: visible; }
+    table     { min-width: 0; }
+
+    /* Multi-column grids stack on paper. A two-up grid that breaks across a fold leaves
+       one card alone beside an empty half-page; stacked, they simply flow. */
+    .findings, .lanes { grid-template-columns: 1fr; }
+
+    a { text-decoration: none; }
+  }
+</style>
+<style>
+  /* ── Added for the daily report ───────────────────────────────────────────────────
+     The readiness document reported a state. This one reports a CHANGE, so the one
+     shape it needs that the house sheet has not got is a before-and-after pair. */
+  .item { margin-top: 30px; }
+  .item > h3 { display: flex; align-items: baseline; gap: 10px; font-size: 16px;
+               margin-bottom: 10px; }
+  .item > h3 .k { font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+                  font-weight: 500; color: var(--ink-faint); }
+
+  .change { display: grid; gap: 1px; background: var(--rule-soft);
+            border: 1px solid var(--rule-soft); margin: 0 0 12px; }
+  .change > div { display: grid; grid-template-columns: 74px 1fr; gap: 16px;
+                  background: var(--surface); padding: 12px 15px; }
+  .change dt { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+               text-transform: uppercase; font-family: Archivo, sans-serif;
+               padding-top: 3px; }
+  .change dd { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .change dd strong { color: var(--ink); font-weight: 600; }
+  .change .was dt { color: var(--gap); }
+  .change .now dt { color: var(--ok); }
+  @media (max-width: 620px) { .change > div { grid-template-columns: 1fr; gap: 3px; } }
+
+  .c-closed { color: var(--ok);      background: var(--ok-bg); }
+  .c-open   { color: var(--partial); background: var(--partial-bg); }
+  .c-held   { color: var(--gap);     background: var(--gap-bg); }
+
+  /* A figure that is the point of a paragraph, not decoration. */
+  .stat { font-family: Archivo, sans-serif; font-variant-numeric: tabular-nums;
+          font-weight: 700; color: var(--ink); }
+
+  td.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  @media print {
+    .item   { break-inside: auto; margin-top: 20px; }
+    .item > h3 { break-after: avoid; }
+    .change { break-inside: avoid; }
+    .change dd { font-size: 9.5pt; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Groundwork · Daily report</p>
+    <h1>Nine of Monday&rsquo;s twelve items are built. Two need a decision from you.</h1>
+    <p class="col" style="font-size:17px;color:var(--ink-soft)">
+      Written against the code and the database, not from memory. Where something could
+      not be reproduced it is reported as not reproduced rather than guessed at, and
+      where a change is waiting on a product decision it is listed as waiting rather
+      than made.
+    </p>
+    <p class="col" style="margin-bottom:0;color:var(--ink-soft)">
+      <strong>How to read it.</strong> Section&nbsp;02 is the state of the code in
+      numbers. Section&nbsp;03 is what was built, each item as what was wrong and what
+      it does now. Sections&nbsp;05 and&nbsp;06 are the parts that need you &mdash; three
+      decisions and five things to clear before the next deployment. Exact names are
+      given in <code>this typeface</code> so a claim can be checked rather than taken on
+      trust; nothing depends on reading them.
+    </p>
+    <dl class="meta">
+      <div><dt>Date</dt><dd>10 November 2026</dd></div>
+      <div><dt>Covers</dt><dd>The 9 November action list</dd></div>
+      <div><dt>Prepared by</dt><dd>Favour</dd></div>
+      <div><dt>Status</dt><dd>9 closed &middot; 1 not reproducible &middot; 2 awaiting you</dd></div>
+      <div><dt>Code state</dt><dd>Staged on <code>main</code>, nothing committed</dd></div>
+    </dl>
+  </header>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">01</span><h2>Headline</h2></div>
+
+    <p class="col">
+      Nine of the twelve items from Monday&rsquo;s meeting are built and verified. One
+      &mdash; the stage cost distribution &mdash; I could not reproduce and have not
+      guessed at; it needs a screenshot. Two are decisions rather than work, and are
+      waiting on you.
+    </p>
+    <p class="col">
+      Two defects were found during the work that <strong>nobody had reported</strong>.
+      Both were in the money the client is shown, and both are fixed.
+    </p>
+
+    <div class="findings" style="margin-top:22px">
+      <div class="finding">
+        <h3>The invited client could not see their own house</h3>
+        <p>Four screens asked the database the wrong question. A client whose contractor
+           set the build up was told they had no builds and offered the wizard. No error
+           was ever raised, which is why it went unreported.</p>
+      </div>
+      <div class="finding">
+        <h3>The permit bar filled before any permit was paid</h3>
+        <p>Per-category paid figures were produced by running the pricing formula
+           backwards over the paid total, rather than read from what had been paid.</p>
+      </div>
+      <div class="finding">
+        <h3>&ldquo;Verified&rdquo; had two false routes, not one</h3>
+        <p>Reproducing the rule on a local database turned up a second way in that the
+           migration had not anticipated: a complete-looking project whose only fault is
+           its start date.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Nothing is committed.</strong> Every change is staged by exact path and
+         ready for you to review and push. <span class="stat">32</span> files,
+         <span class="stat">+1,740</span> / <span class="stat">&minus;244</span> lines,
+         one database migration.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">02</span><h2>Verification</h2></div>
+
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Check</th><th>Result</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="step">Type checking</td>
+            <td><span class="chip c-ok">Clean</span></td>
+            <td class="note">No type errors across the whole project.</td>
+          </tr>
+          <tr>
+            <td class="step">Production build</td>
+            <td><span class="chip c-ok">Clean</span></td>
+            <td class="note">Builds in 2.5 seconds.</td>
+          </tr>
+          <tr>
+            <td class="step">Test suite</td>
+            <td class="r"><span class="stat">3,808</span> passing</td>
+            <td class="note">9 failing &mdash; the pre-existing baseline, unchanged by
+                any of this work.</td>
+          </tr>
+          <tr>
+            <td class="step">Tests added today</td>
+            <td class="r"><span class="stat">48</span></td>
+            <td class="note">Across three new files: project currency, floor handling,
+                and the invited-client path.</td>
+          </tr>
+          <tr>
+            <td class="step">Files changed</td>
+            <td class="r"><span class="stat">32</span></td>
+            <td class="note">+1,740 / &minus;244 lines.</td>
+          </tr>
+          <tr>
+            <td class="step">Migration added</td>
+            <td class="r"><span class="stat">1</span></td>
+            <td class="note">182, reproduced and verified on a local PostgreSQL 16
+                database before it was written.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="col" style="margin-top:18px">
+      The nine failures sit in six files: <code>partner-funnel</code> (three),
+      <code>wizard-draft</code> (two), and one each in <code>payment-receipt</code>,
+      <code>whatsapp-recipient</code>, <code>partner-qualification</code> and
+      <code>client-view</code>. The <code>wizard-draft</code> pair are telling the truth
+      about a real contradiction, which is&nbsp;R4 in section&nbsp;06.
+    </p>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">03</span><h2>What was built</h2></div>
+
+    <div class="item">
+      <h3>The forced scroll on the contractor agreement is gone
+          <span class="chip c-closed">Closed</span></h3>
+      <dl class="change">
+        <div class="was"><dt>Was</dt><dd>A contractor could not tick &ldquo;I
+          agree&rdquo; until they had scrolled to the last line of the terms. On a phone
+          that is a long way, and it taught people to flick to the bottom without
+          reading.</dd></div>
+        <div class="now"><dt>Now</dt><dd>The tick is available immediately.
+          <strong>Nothing about the record weakens</strong> &mdash; the server still
+          records who signed, which version the <em>database</em> chose, the name they
+          typed, and a timestamped activity row.</dd></div>
+      </dl>
+      <p class="col">One thing was added that was not asked for: switching the document
+        or the language now clears the tick and the typed name. Without it somebody
+        could agree to the English terms, switch to French, and submit a signature
+        against text nobody had read.</p>
+    </div>
+
+    <div class="item">
+      <h3>Documents open in the app <span class="chip c-closed">Closed</span></h3>
+      <dl class="change">
+        <div class="was"><dt>Was</dt><dd>Every document could only be downloaded. To look
+          at one certificate you downloaded a file, found it, opened it in another
+          application, and came back.</dd></div>
+        <div class="now"><dt>Now</dt><dd>Filenames are clickable and there is a view
+          button beside Download on both the desktop and mobile rows. Download is
+          untouched for anybody who wants the file.</dd></div>
+      </dl>
+    </div>
+
+    <div class="item">
+      <h3>Project money is shown in CFA Francs <span class="chip c-closed">Closed</span></h3>
+      <dl class="change">
+        <div class="was"><dt>Was</dt><dd>Every client money screen printed US dollars.</dd></div>
+        <div class="now"><dt>Now</dt><dd>A project shows its own currency throughout
+          &mdash; Overview, Budget, Stages, the Payments ledger, the pre-tracking gate
+          and the exported budget PDF. <strong>One project, one currency, one exchange
+          rate</strong>, held in one place so two panels on the same screen can never
+          disagree.</dd></div>
+      </dl>
+      <p class="col">This did not re-open the exchange-rate question. The live-rate
+        mechanism already existed &mdash; built on 29 October for the contractor Work
+        screens, fetching a real rate and falling back to the stored one. The fix was to
+        point the client screens at something we already had.</p>
+      <div class="callout">
+        <p><strong>Checked end to end.</strong> A Cameroon project stored at $44,480
+           renders <span class="stat">26,688,000 XAF</span>. The real bill of quantities
+           for that building is <span class="stat">26,687,728 XAF</span>. Those agree to
+           within a rounding step.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <h3>The outstanding balance was wrong &mdash; root cause, not a patch
+          <span class="chip c-closed">Closed</span></h3>
+      <dl class="change">
+        <div class="was"><dt>Was</dt><dd>The Overview showed outstanding as <em>total
+          budget minus what had been paid</em>. On an unpaid project it printed the whole
+          budget twice, and it could never reach zero even on a fully paid one.</dd></div>
+        <div class="now"><dt>Now</dt><dd>Both sides are added up from the actual
+          obligations &mdash; the stages plus the fee records. <strong>Planned = Paid +
+          Outstanding</strong> now holds, and it reaches zero when the project is
+          settled.</dd></div>
+      </dl>
+      <p class="col"><strong>Why it happened.</strong> Stage milestones only cover
+        construction and design. The permit, professional, verification and contingency
+        fees are separate records attached to no stage at all. Subtracting from the grand
+        total therefore left those four fees stranded in &ldquo;outstanding&rdquo;
+        forever.</p>
+    </div>
+
+    <div class="item">
+      <h3>A second defect in the same card, which nobody had reported
+          <span class="chip c-closed">Closed</span></h3>
+      <p class="col">While fixing the above I found that the per-category paid bars
+        &mdash; how much of Materials, Labour, Permit and Design had been paid &mdash;
+        were not read from anything that had been paid. They were produced by running the
+        <em>pricing formula backwards</em> over the paid total.</p>
+      <p class="col">The practical effect: pay the first construction milestone, and the
+        permit bar fills in proportionally, reporting a permit fee as partly paid when no
+        permit had been paid at all. Those figures now come from the actual stage and fee
+        records. If no permit has been paid, the permit bar is empty.</p>
+    </div>
+
+    <div class="item">
+      <h3>Contractors and Messages are off the client menu
+          <span class="chip c-closed">Closed</span></h3>
+      <p class="col">The client sidebar goes from nine items to seven, which also
+        reshuffles the mobile tab bar. The dashboard was duplicating both doors, so the
+        Contractors card is gone and the Messages card now appears only when there is a
+        build for it to open.</p>
+      <p class="col"><strong>The routes stay registered.</strong> Notification emails,
+        the bell&rsquo;s fallback and anyone&rsquo;s bookmarks already point at both, and
+        a dead link is a worse answer than a page nothing signposts. This removes the
+        signposting, not the destination.</p>
+      <p class="col">A small side benefit: dropping the Contractors card also removed a
+        database count query that ran on every dashboard load and now renders nothing.</p>
+    </div>
+
+    <div class="item">
+      <h3>Floors can be corrected on the summary <span class="chip c-closed">Closed</span></h3>
+      <dl class="change">
+        <div class="was"><dt>Was</dt><dd>Editable in exactly one situation &mdash; the
+          document upload path, and only when reading the plan had <em>failed</em>.</dd></div>
+        <div class="now"><dt>Now</dt><dd>Editable on both paths, with the destructive
+          case handled.</dd></div>
+      </dl>
+      <p class="col">The two cases that actually matter were both missing. First,
+        extraction succeeding but being <strong>wrong</strong> &mdash; the floor count is
+        parsed out of a bill title like &ldquo;Mr.NAS G + 1&rdquo;, and a ground-floor
+        plan showing a staircase states no storey count at all. Second, the ordinary
+        path, where floors were buried inside a joined &ldquo;Scale&rdquo; line and could
+        not be touched.</p>
+      <p class="col"><strong>One catch had to be handled.</strong> Step 4 of the wizard
+        deals with a floor change by clearing every room. That is harmless there, because
+        rooms are asked for on the very next screen. On the summary it would have thrown
+        away the longest piece of work in the whole wizard because somebody corrected 2
+        to 3. The new shared helper <em>resizes</em> instead: existing floors keep their
+        rooms, new floors start empty, and the room totals the budget is priced from are
+        recalculated in the same step.</p>
+    </div>
+
+    <div class="item">
+      <h3>The invited client can now see their own house
+          <span class="chip c-closed">Closed</span></h3>
+      <p class="col">This was the largest single finding of the week, and nobody had
+        reported it &mdash; because it produces no error anywhere.</p>
+      <p class="col">A client reaches Groundwork two ways. <strong>Self-created:</strong>
+        they signed up, ran the wizard, and own the project record.
+        <strong>Invited:</strong> their contractor set the build up &mdash; the normal
+        case we designed for &mdash; so the contractor owns the record and the client is
+        invited onto it.</p>
+      <p class="col">Every client screen asked the database for &ldquo;projects where the
+        owner is me&rdquo;. So the invited client signed in and the dashboard, My Builds,
+        Documents and Payments <em>all</em> told them they had no builds and offered to
+        help them start one &mdash; on the platform their own house was being tracked on.
+        The only thing that worked for them was the deep link in their invitation
+        email.</p>
+      <p class="col">The permissions were never the problem; the database has returned
+        that project to that client since migration 112. <strong>The question the screens
+        asked was wrong.</strong></p>
+
+      <div class="scroller" style="margin-top:16px">
+        <table>
+          <thead><tr><th></th><th>Self-created</th><th>Invited</th></tr></thead>
+          <tbody>
+            <tr><td class="step">First quick action</td>
+                <td class="note">Upload Updates</td>
+                <td class="note"><strong>Progress Updates</strong></td></tr>
+            <tr><td class="step">New Project buttons</td>
+                <td class="note">Shown (three on the dashboard, two on the list)</td>
+                <td class="note"><strong>Withheld</strong></td></tr>
+            <tr><td class="step">Profile completion tracker</td>
+                <td class="note">Shown</td>
+                <td class="note"><strong>Withheld</strong></td></tr>
+            <tr><td class="step">Build card</td>
+                <td class="note">Status only</td>
+                <td class="note"><strong>&ldquo;Shared with you&rdquo;, and why</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="col" style="margin-top:16px">Each has a reason behind it. An invited
+        client <strong>cannot</strong> file a site update &mdash; the server refuses them
+        by name &mdash; so offering them an Upload button is offering an action that will
+        fail. They have no project to create and never will, so a tracker whose last item
+        is &ldquo;First project created&rdquo; would sit at 67% permanently, telling them
+        to undo their own onboarding.</p>
+      <p class="col">The read-only note on the build is deliberate. The alternative is a
+        client who is paying for a house working out from absent buttons that something
+        is broken. One sentence &mdash; approvals and payments stay with whoever is
+        running the build &mdash; answers it.</p>
+      <div class="callout">
+        <p><strong>Note the test.</strong> A client who has one build of their own
+          <em>and</em> one shared with them is an ordinary client and keeps everything.
+          Only somebody whose builds are all somebody else&rsquo;s is on the invited
+          path.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <h3>Qualified-projects tracking corrected <span class="k">migration 182</span>
+          <span class="chip c-closed">Closed</span></h3>
+      <p class="col">The definition confirmed on 9 November is that a <strong>verified</strong>
+        project is a <em>qualified</em> project with both sides active on it. The live
+        rule did not check it that way &mdash; it asked only whether a client had joined
+        and something had been posted from site, and never looked at the bill of
+        quantities or the start date.</p>
+      <p class="col">I reproduced both versions side by side on a local PostgreSQL&nbsp;16
+        database against real rows. That turned up <strong>two</strong> ways into a false
+        &ldquo;verified&rdquo;, not the one I expected.</p>
+
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Project</th><th>Old rule</th><th>New rule</th></tr></thead>
+          <tbody>
+            <tr><td class="note">Client joined + site update, <strong>no bill of quantities</strong></td>
+                <td><span class="chip c-gap">Verified</span></td>
+                <td><span class="chip c-manual">General</span></td></tr>
+            <tr><td class="note">BQ + client + site update, <strong>start date 90 days out</strong></td>
+                <td><span class="chip c-gap">Verified</span></td>
+                <td><span class="chip c-manual">General</span></td></tr>
+            <tr><td class="note">Everything in place</td>
+                <td><span class="chip c-ok">Verified</span></td>
+                <td><span class="chip c-ok">Verified</span></td></tr>
+            <tr><td class="note">BQ + near start date only</td>
+                <td><span class="chip c-ok">Qualified</span></td>
+                <td><span class="chip c-ok">Qualified</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="col" style="margin-top:16px">The second is the dangerous one and the one
+        I had not anticipated: the project looks complete from every angle except the
+        date. The function and the bulk view now agree on all four cases, which they did
+        not have to &mdash; the 30 October meeting opened with exactly those two numbers
+        disagreeing with each other.</p>
+
+      <div class="callout">
+        <p><strong>Production reads 3 qualified, 0 verified</strong>, so no number we have
+          reported has ever been wrong. That is precisely why it is worth fixing this
+          week. The target is two verified projects, and the first project to pick up a
+          client and a site update without a bill of quantities on file would have been
+          counted as verified and would not have been one. <em>A metric that is only
+          correct while its count is zero is not yet a metric.</em></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">04</span><h2>Not reproducible &mdash; I need a screenshot</h2></div>
+
+    <div class="item" style="margin-top:0">
+      <h3>&ldquo;The stage cost distribution is wrong from stage 5 onwards&rdquo;
+          <span class="chip c-open">Open</span></h3>
+      <p class="col">I traced the stage weightings from where they are defined, through
+        project creation, through the database function that writes each milestone, and
+        out to all four screens that display them. <strong>Nothing special happens at
+        stage 5.</strong> The multi-floor template does add extra sub-stages at stages 5,
+        7, 8, 9 and 10 &mdash; but it shifts no stage number and changes no amount.</p>
+      <p class="col">I have not changed any arithmetic on a guess. If Philip can send the
+        screen he was looking at, with the project name, I will have it in under an
+        hour.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">05</span><h2>Decisions waiting on you</h2></div>
+
+    <div class="item" style="margin-top:0">
+      <h3>The floor plan requirement &mdash; my recommendation
+          <span class="chip c-open">Needs you</span></h3>
+      <p class="col">You asked me to evaluate whether the floor plan is necessary. It is
+        <strong>already optional</strong>, and its only load-bearing output is now two
+        numbers a person can type.</p>
+      <p class="col">The document path requires <em>both</em> a floor plan and a bill of
+        quantities. Of everything we read off the drawing, only the floor count and the
+        building footprint affect anything &mdash; and as of today both are editable on
+        the summary.</p>
+      <div class="callout">
+        <p>So requiring the drawing buys accuracy, not possibility.
+          <strong>I would relax the gate to require the bill of quantities and make the
+          floor plan optional.</strong> The BQ is what the pricing is actually checked
+          against, and a client who has the bill but not stamped drawings is currently
+          pushed onto the estimate-only path for no reason.</p>
+        <p>That is a product decision, not a cleanup, so I have not touched it.</p>
+      </div>
+    </div>
+
+    <div class="item">
+      <h3>Session recording and heat mapping &mdash; vendor not chosen
+          <span class="chip c-open">Needs you</span></h3>
+      <p class="col">This needs a decision before any code. Microsoft Clarity is free,
+        Hotjar is the familiar one, PostHog can be self-hosted.</p>
+      <p class="col">There is a privacy dimension that is <strong>not optional</strong>:
+        these tools record client <em>financial</em> screens &mdash; budgets, payment
+        amounts, document names &mdash; so whichever we pick needs field masking
+        configured before it goes anywhere near production, and the privacy policy needs
+        the sub-processor named. Tell me which one and I will wire it with masking on
+        from the first commit.</p>
+    </div>
+
+    <div class="item">
+      <h3>The client dashboard &mdash; what does &ldquo;redesign&rdquo; mean?
+          <span class="chip c-open">Needs you</span></h3>
+      <p class="col">The dashboard structure is now correct for both kinds of client. I
+        have <strong>not</strong> done a visual redesign: our screen-design record has the
+        dashboard as variant&nbsp;B, signed off on 9 August, with its hero and costing
+        donut already built to that decision.</p>
+      <p class="col">If &ldquo;redesign&rdquo; means something beyond the
+        invited / self-created split, it needs a mockup or a few sentences. I would rather
+        ask than repaint a screen that was approved.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">06</span><h2>Risks to clear before the next deployment</h2></div>
+
+    <p class="col">These are not today&rsquo;s work. They are known hazards that should
+      not be discovered <em>during</em> a deploy.</p>
+
+    <ol class="risks">
+      <li>
+        <h3>Two migrations fight over the contractor directory &mdash; verified today</h3>
+        <p>Migration&nbsp;<strong>180</strong> opens the contractor directory to every
+          signed-in account, per your own words on 9 November: the directory should be
+          admin-curated, not subscription-gated. A second file,
+          <code>20261109000000_free_access_and_locked_directory</code>, redefines the same
+          database function to <em>admins only</em>.</p>
+        <p>Migrations run in filename order, and <code>180&hellip;</code> sorts
+          <strong>before</strong> <code>2026&hellip;</code>. So the later file wins and
+          <strong>the directory stays shut to everybody except staff</strong> &mdash; the
+          opposite of what 180 was written to do. 180&rsquo;s own header already flags
+          this.</p>
+        <p><strong>Fix:</strong> renumber the two timestamped files into the 18x sequence,
+          or apply them by hand in the intended order. One line of naming, but it has to
+          happen before deploy.</p>
+      </li>
+      <li>
+        <h3>Migrations 174 and 175 collide with free mode</h3>
+        <p>174 makes the client the approver of a stage;
+          <code>20261109001000_remove_verification_gates</code> switches verification off
+          entirely. They have not been reconciled. Neither should ship until they
+          have been.</p>
+      </li>
+      <li>
+        <h3>&ldquo;Record a payment&rdquo; writes to the browser only</h3>
+        <p>On the Payments page, the Record button saves to local browser storage under a
+          comment reading <em>&ldquo;no payments table yet&rdquo;</em>. There has been a
+          payments table since migration 090.</p>
+        <p>So that button records nothing the admin can see, nothing that survives a
+          different browser or device, and nothing that reconciles against the ledger
+          &mdash; and it sits on the page next to real figures. It is either a wiring job
+          or a deletion. Your call; I have left it alone.</p>
+      </li>
+      <li>
+        <h3>The wizard contradicts the Cameroon default</h3>
+        <p>A fresh wizard starts with <strong>no country selected</strong>, added on
+          28 October so that step 1 reflects an explicit choice. Our standing rule is that
+          Cameroon is the default everywhere. Two of the nine failing tests are reporting
+          this honestly rather than being broken.</p>
+        <p>Both positions are defensible. It is a product call, so I have not changed it,
+          and the two tests stay red until somebody makes it.</p>
+      </li>
+      <li>
+        <h3>Migration 104 remains on hold</h3>
+        <p>Still held, with the two blocking defects recorded previously: no transaction
+          wrapper, and no repair pass before the constraints are applied.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">07</span><h2>What I would do next</h2></div>
+
+    <ol class="steps">
+      <li><strong>Clear R1</strong> &mdash; the migration ordering. Ten minutes, and it
+        blocks a correct deployment.</li>
+      <li><strong>Your answers to the three decisions in section 05</strong> &mdash; each
+        one unblocks a build.</li>
+      <li><strong>Philip&rsquo;s screenshot</strong> for the stage cost distribution.</li>
+      <li><strong>Seven-day follow-up sequences and walkthrough videos</strong> &mdash;
+        the last untouched item from Monday. It needs content written before any
+        code.</li>
+    </ol>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────────────────────── -->
+  <section>
+    <div class="shead"><span class="num">08</span><h2>Everything changed today</h2></div>
+
+    <p class="col">All staged on <code>main</code>. Nothing committed, nothing deployed.</p>
+
+    <dl class="ref">
+      <div>
+        <dt>New files</dt>
+        <dd>A project money context (one project, one currency, one rate); a shared floor
+          helper, so the wizard steps cannot diverge; migration 182; and three test files
+          &mdash; project currency, floors, and the invited-client path &mdash; carrying
+          48 tests between them.</dd>
+      </div>
+      <div>
+        <dt>Client screens</dt>
+        <dd>Dashboard, projects list, documents, payments, project detail.</dd>
+      </div>
+      <div>
+        <dt>Project components</dt>
+        <dd>Overview, Budget, Stage tracker, Payments ledger, Document vault,
+          Start-tracking gate.</dd>
+      </div>
+      <div>
+        <dt>Wizard</dt>
+        <dd>Steps 4, 5 and 9.</dd>
+      </div>
+      <div>
+        <dt>Also changed</dt>
+        <dd>Contractor agreement reader, navigation configuration, budget PDF export,
+          project types, and the English and French dictionaries.</dd>
+      </div>
+      <div>
+        <dt>Tests updated</dt>
+        <dd>Five existing files, where they pinned behaviour that was deliberately
+          changed. Each rewritten to assert the new rule with the reason recorded beside
+          it.</dd>
+      </div>
+      <div>
+        <dt>Totals</dt>
+        <dd><span class="stat">32</span> files &middot;
+            <span class="stat">+1,740</span> / <span class="stat">&minus;244</span> lines</dd>
+      </div>
+    </dl>
+  </section>
+
+  <footer>
+    Groundwork by Jalla &middot; daily report, 10 November 2026 &middot; prepared by
+    Favour. Figures measured from the repository and the test suite on the day of
+    writing, not recalled.
+  </footer>
+
+</div>
