@@ -103,6 +103,49 @@ rec = Recorder(c, outdir=f'frames_2p_{LANG}', fps=FPS)
 def hold(s): time.sleep(s)
 def beat(label): print(f'  [{rec.n:5d}] {label}', flush=True)
 
+def click_label(text):
+    """Click a control by its visible text, forgiving the ways text differs from source.
+
+    `gw.click_text` compares the strings as they are. That is enough in English and not
+    in French: the interface renders a TYPOGRAPHIC apostrophe — "Oui, j\u2019en ai un." —
+    and a script written with a straight one matches nothing. The whole French recording
+    ran to the end having clicked neither answer, uploaded nothing, and filmed a wizard
+    that never moved, because a failed click returns False and the script carries on.
+
+    So both sides are normalised: curly quotes to straight, accents stripped, folded to
+    lower case.
+    """
+    return c.js(r"""(()=>{
+      const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/[\u2018\u2019\u02bc]/g, "'").replace(/[\u201c\u201d]/g, '"')
+        .replace(/\s+/g,' ').toLowerCase().trim();
+      const want = norm(%s);
+      const els = [...document.querySelectorAll('button, a, [role=button]')]
+        .filter(e => e.offsetParent !== null && !e.disabled);
+      const hit = els.find(e => norm(e.innerText).includes(want));
+      if (!hit) return false;
+      hit.scrollIntoView({block:'center'}); hit.click(); return true;
+    })()""" % json.dumps(text))
+
+
+def click_href(path):
+    """Click a link by its DESTINATION, not its label.
+
+    The sidebar is the same five links in both languages — 'Projects' is 'Projets',
+    'Payouts' is 'Configuration du compte'. Matching labels means keeping a translation
+    table in the recording script that silently rots whenever the product's own copy
+    changes; matching the href does not, because the route is the route.
+    """
+    return c.js(r"""(()=>{
+      const want = %s;
+      const a = [...document.querySelectorAll('a[href]')]
+        .filter(e => e.offsetParent !== null)
+        .find(e => new URL(e.href, location.origin).pathname === want);
+      if (!a) return false;
+      a.scrollIntoView({block:'center'}); a.click(); return true;
+    })()""" % json.dumps(path))
+
+
 def settle(expect=None, timeout=20):
     """Wait until the page has actually painted something, never hold on white.
 
@@ -177,22 +220,25 @@ try:
     # ── PART 3 ── The question everything forks on ──────────────────────────────────
     c.goto('/projects/new', 3.0); settle()
     beat('wizard: country')
-    c.click_text(L['country']); hold(1.2)
-    c.click_text(L['cont']); hold(4.0)
+    click_label(L['country']); hold(1.2)
+    click_label(L['cont']); hold(4.0)
 
     # The tour tip for THIS question is left visible: it is the film's subject, said in
     # the product's own words, on the screen the viewer will meet it on.
     c.js("(()=>{for(const k of Object.keys(localStorage)) if(k.startsWith('gw.tour.')) localStorage.removeItem(k); return 1})()")
     c.goto('/projects/new', 4.0)
-    c.click_text(L['country']); hold(1.0); c.click_text(L['cont']); hold(4.0)
+    click_label(L['country']); hold(1.0); click_label(L['cont']); hold(4.0)
     beat('THE FORK: does your project have an architecture plan?')
     hold(7.0)                                   # long enough to read the tip
 
     # ── PART 4 ── Pathway A: they have the drawings ─────────────────────────────────
     beat('pathway A — yes, I have one')
-    c.click_text(L['tip_done']); hold(0.8)
-    c.click_text(L['yes']); hold(1.5)
-    c.click_text(L['cont']); hold(3.5)
+    click_label(L['tip_done']); hold(0.8)
+    if click_label(L['yes']) is not True:
+        raise SystemExit(f'could not click "{L["yes"]}" — the fork was never taken, '
+                         'so there is no film to make. Check the label against i18n.')
+    hold(1.5)
+    click_label(L['cont']); hold(3.5)
     beat('upload the floor plan')
     upload_nth(0, samples['plan'], 'Floor plan'); hold(3.0)
     beat('upload the bill of quantities')
@@ -210,13 +256,13 @@ try:
     # ── PART 5 ── Pathway B: they do not ────────────────────────────────────────────
     beat('pathway B — no, not yet')
     c.goto('/projects/new', 5.0)
-    c.click_text(L['country']); hold(1.0); c.click_text(L['cont']); hold(3.5)
-    c.click_text(L['no']); hold(1.5)
-    c.click_text(L['cont']); hold(3.5)
+    click_label(L['country']); hold(1.0); click_label(L['cont']); hold(3.5)
+    click_label(L['no']); hold(1.5)
+    click_label(L['cont']); hold(3.5)
     for n in range(6):
         beat(f'guided step {n + 1}')
         hold(3.0)
-        if c.click_text(L['cont']) is not True:
+        if click_label(L['cont']) is not True:
             break
         hold(2.5)
     beat('the estimate the wizard worked out'); hold(6.0)
@@ -231,12 +277,12 @@ try:
     # client-side routing — the chrome never leaves the screen.
     beat('the contractor side')
     c.goto('/work', 2.0)
-    settle('Dashboard'); hold(5.0)
-    for label in ('Projects', 'Payouts'):
-        if c.click_text(label) is True:
-            settle(label); hold(4.5)
+    settle(); hold(5.0)
+    for route in ('/work/projects', '/work/payouts'):
+        if click_href(route) is True:
+            settle(); hold(4.5)
         else:
-            print('    !! no sidebar link:', label, flush=True)
+            print('    !! no sidebar link to', route, flush=True)
 
     beat('end'); hold(2.5)
     rec.stop()
