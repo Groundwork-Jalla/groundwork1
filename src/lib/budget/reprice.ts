@@ -124,6 +124,24 @@ export function planReprice(
     Math.max(0, shares[(s.stage_key ?? '') as StageKey] ?? 0);
   const openShareTotal = open.reduce((a, s) => a + shareOf(s), 0);
 
+  // Whole dollars, shared out by largest remainder so the open stages add up to the pot
+  // exactly. Rounding each one alone let the column drift from the construction fee, and
+  // the stage list then read a little MORE than the budget it came from. The pot is
+  // floored, so a schedule can fall short by under a dollar but never exceed it.
+  const amounts = new Map<string, number>();
+  if (openShareTotal > 0) {
+    const whole = Math.floor(pot + 1e-9);
+    const exact = open.map(s => ({ id: s.id, v: whole * (shareOf(s) / openShareTotal) }));
+    let spare = whole - exact.reduce((a, e) => a + Math.floor(e.v), 0);
+    const byRemainder = [...exact].sort((a, b) => (b.v - Math.floor(b.v)) - (a.v - Math.floor(a.v)));
+    for (const e of exact) amounts.set(e.id, Math.floor(e.v));
+    for (const e of byRemainder) {
+      if (spare <= 0) break;
+      amounts.set(e.id, (amounts.get(e.id) ?? 0) + 1);
+      spare -= 1;
+    }
+  }
+
   const rows: RepriceRow[] = [];
   const changes: RepricePlan['changes'] = [];
 
@@ -143,9 +161,7 @@ export function planReprice(
 
     // Nothing to divide, or this stage has no share of the priced work. Either way it
     // goes to zero rather than keeping a figure the take-off does not support.
-    const nowAmount = openShareTotal > 0
-      ? Math.round(pot * (shareOf(s) / openShareTotal))
-      : 0;
+    const nowAmount = amounts.get(s.id) ?? 0;
 
     // The percentage that reproduces this amount — see the header. With no construction
     // fee there is nothing meaningful to express a share of, so it keeps what it had.
@@ -181,6 +197,6 @@ export function repriceBalances(plan: RepricePlan, construction: number): boolea
   const total = plan.rows
     .filter(r => r.heldReason !== 'fixed_fee')
     .reduce((a, r) => a + r.nowAmount, 0);
-  const slack = Math.max(1, plan.rows.filter(r => !r.settled).length);
-  return Math.abs(total - construction) <= slack;
+  // Never over the fee; under it by less than a dollar, from flooring the pot.
+  return total <= construction + 1e-6 && construction - total < 1 + 1e-6;
 }
