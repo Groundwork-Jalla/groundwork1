@@ -15,6 +15,10 @@ import { ProjectDocuments } from '@/components/project/ProjectDocuments';
 import { StagePipeline } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+// The same definition the client's costing page uses. These screens print the same
+// payment the client is shown, and until 11 Nov 2026 they disagreed about it by ~3.34%
+// on every stage of a bill-of-quantities project — see lib/budget/stage-amounts.ts.
+import { stageBasisFor, stagePayableUsd, sumPayableUsd } from '@/lib/budget/stage-amounts';
 import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -70,6 +74,17 @@ export default function ContractorProjectDetail() {
   const [assigned, setAssigned] = useState<AssignedProject | null | 'denied'>(null);
   const [substages, setSubstages] = useState<ProjectSubstageRow[]>([]);
   const [documents, setDocuments] = useState<ProjectDocumentRow[]>([]);
+  /**
+   * Did the price come from an uploaded bill of quantities?
+   *
+   * Read off the documents this route already loads for the Documents tab, so the
+   * money screens cost no extra request. It is the one signal that decides whether a
+   * stage percentage is a share of the project total or of construction alone — and it
+   * is deliberately NOT inferred from the stages: a project can join mid-build without
+   * a bill, or arrive with a bill and no history, and the two say nothing about
+   * each other.
+   */
+  const hasBoq = documents.some(d => d.category === 'boq');
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   /** Incoming tranches per stage (175). Distinct from `payments` above, which is
@@ -199,6 +214,7 @@ export default function ContractorProjectDetail() {
 
       {tab === 'work' && (
         <WorkTab
+          hasBoq={hasBoq}
           assigned={assigned} substages={substages} rework={rework}
           isOwner={user?.id === project.user_id}
           stagePayments={stagePayments}
@@ -215,7 +231,7 @@ export default function ContractorProjectDetail() {
       )}
 
       {tab === 'money' && (
-        <MoneyTab assigned={assigned} payments={payments} />
+        <MoneyTab assigned={assigned} payments={payments} hasBoq={hasBoq} />
       )}
 
       {tab === 'people' && (
@@ -414,7 +430,8 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
  * provider holds and moves the money. There is no confirm, authorise or reconcile
  * here, and nothing on this tab says Groundwork is holding anything.
  */
-function MoneyTab({ assigned, payments }: {
+function MoneyTab({ assigned, payments, hasBoq }: {
+  hasBoq: boolean;
   assigned: AssignedProject;
   payments: { rows: ContractorPayment[]; available: boolean } | null;
 }) {
@@ -444,8 +461,9 @@ function MoneyTab({ assigned, payments }: {
    * the only record of money that actually moved — and shows a dash, never a
    * zero, when the ledger cannot be read.
    */
-  const sum = (list: typeof stages) =>
-    list.reduce((total, s) => total + (s.payment_milestone_usd ?? 0), 0);
+  const basis = stageBasisFor(assigned.project, stages, hasBoq);
+  // PAYABLE, not schedule: a pre-existing stage is worth something and is owed nothing.
+  const sum = (list: typeof stages) => sumPayableUsd(list, basis);
 
   /** Finished THROUGH Groundwork — what was there before we arrived is not ours. */
   const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
@@ -495,7 +513,7 @@ function MoneyTab({ assigned, payments }: {
         ) : (
           <ul className="flex flex-col gap-1.5">
             {stages.map(s => {
-              const due = money.pair(s.payment_milestone_usd);
+              const due = money.pair(stagePayableUsd(s, basis));
               const state = s.status === 'complete'
                 ? { label: t('contractorMoney.stateReleased'), tone: 'complete' as const }
                 : s.status === 'active' || s.status === 'pending_review'
@@ -777,7 +795,8 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * against the item — `submit_site_update` does that server side. Nothing here
  * completes a stage or approves anything: that is not the contractor's to do.
  */
-function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmitted }: {
+function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmitted, hasBoq }: {
+  hasBoq: boolean;
   assigned: AssignedProject;
   substages: ProjectSubstageRow[];
   rework: ReworkItem[];
@@ -791,6 +810,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
   const { stageLabel, substageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project.country);
   const { project, stages, activeStage } = assigned;
+  const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
 
@@ -825,7 +845,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
 
       {stages.map(stage => {
         const isOpen = stage.id === activeStage?.id;
-        const due = money.pair(stage.payment_milestone_usd);
+        const due = money.pair(stagePayableUsd(stage, basis));
         const sent = rework.filter(r => r.stageId === stage.id);
 
         if (!isOpen) {
@@ -1026,7 +1046,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
       )}
     </div>
 
-    <WorkRail assigned={assigned} isOwner={isOwner} />
+    <WorkRail assigned={assigned} isOwner={isOwner} hasBoq={hasBoq} />
     </div>
   );
 }
@@ -1039,7 +1059,9 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
  * reported 30 Oct: "this is not how it is in the screen design." The verifier row
  * is not here, with the rest of verification.
  */
-function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: boolean }) {
+function WorkRail({ assigned, isOwner, hasBoq }: {
+  assigned: AssignedProject; isOwner: boolean; hasBoq: boolean;
+}) {
   const t = useT();
   const money = useProjectMoney(assigned.project.country);
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
@@ -1053,13 +1075,13 @@ function WorkRail({ assigned, isOwner }: { assigned: AssignedProject; isOwner: b
     return () => { alive = false; };
   }, [project.id]);
 
-  const sum = (list: typeof stages) =>
-    list.reduce((n, s) => n + (s.payment_milestone_usd ?? 0), 0);
+  const basis = stageBasisFor(project, stages, hasBoq);
+  const sum = (list: typeof stages) => sumPayableUsd(list, basis);
   const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
   const contract = money.pair(sum(stages));
   const signedOff = money.pair(sum(approved));
   const pct = sum(stages) > 0 ? Math.round((sum(approved) / sum(stages)) * 100) : 0;
-  const due = money.pair(activeStage?.payment_milestone_usd ?? null);
+  const due = money.pair(activeStage ? stagePayableUsd(activeStage, basis) : null);
 
   return (
     <aside className="flex min-w-0 flex-col gap-4">
