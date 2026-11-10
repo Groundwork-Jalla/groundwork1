@@ -96,10 +96,14 @@ export async function handler(req: any, res: any) {
      * Cameroon build — so the country decided it. Where the house is says nothing
      * about the language two people use with each other; the person writing does.
      */
+    // The sender's screen language, from the body. Two values are legal and anything
+    // else is ignored; it is read only after every stored choice — see the resolver.
+    const uiLang = req.body?.lang;
     const lang = resolveRecipientLang(
       existing?.[0]?.preferred_lang ?? null,
       project?.country ?? null,
       inviter?.preferred_lang ?? null,
+      uiLang === 'en' || uiLang === 'fr' ? uiLang : null,
     );
 
     // The inviter is a person here, not a company, so the fallback is deliberately not

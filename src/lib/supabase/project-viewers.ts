@@ -1,4 +1,6 @@
 import { supabase } from './client';
+import { detectLang } from '@/lib/i18n';
+import type { Lang } from '@/lib/i18n/types';
 import { trackFunnel } from '@/lib/analytics/funnel';
 import { trackLifecycle } from '@/lib/analytics/lifecycle';
 
@@ -149,14 +151,22 @@ export async function inviteProjectViewer(
  * Resolves false rather than throwing: a send that failed must not lose the row, and
  * the owner can copy the link instead.
  */
-export async function sendShareInviteEmail(shareToken: string): Promise<boolean> {
+export async function sendShareInviteEmail(
+  shareToken: string,
+  /**
+   * The language the sender's screen is in. Falls back to what the device shows when
+   * a caller has none in scope — never to nothing, because nothing means the country
+   * decides, and that is the bug (see resolveRecipientLang).
+   */
+  lang: Lang = detectLang(),
+): Promise<boolean> {
   try {
     // Through the dispatcher, not an endpoint of its own: Vercel's Hobby plan allows
     // 12 serverless functions and api/ is already at 11.
     const r = await fetch('/api/events?action=send-share-invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'send-share-invite', shareToken }),
+      body: JSON.stringify({ action: 'send-share-invite', shareToken, lang }),
     });
     if (!r.ok) {
       console.error('[share] email send failed:', await r.json().catch(() => ({})));

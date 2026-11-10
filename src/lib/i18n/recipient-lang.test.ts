@@ -87,6 +87,30 @@ describe('with no stated choice, the inviter outranks the build country', () => 
   });
 });
 
+describe('the screen the sender is looking at beats the country, and nothing else', () => {
+  /*
+   * 119 of 166 accounts have never touched the toggle, so `preferred_lang` is NULL on an
+   * account whose screen has been English since sign-up. Nine of the fifteen most recent
+   * invitations (10–11 Nov 2026) went out in French on that basis alone — to Brian three
+   * times, from an English screen. The sender's UI language is the last human signal
+   * before the country guesses.
+   */
+  it('the reported case: English screen, nothing stored anywhere, Cameroon build', () => {
+    expect(resolveRecipientLang(null, 'CM', null, 'en')).toBe('en');
+  });
+
+  it('can replace a default, never a choice', () => {
+    // It arrives in the request body. A forged value must not overrule anyone.
+    expect(resolveRecipientLang('fr', 'CM', null, 'en')).toBe('fr');   // recipient chose
+    expect(resolveRecipientLang(null, 'CM', 'fr', 'en')).toBe('fr');   // inviter chose
+  });
+
+  it('is ignored when it is not a language', () => {
+    expect(resolveRecipientLang(null, 'CM', null, 'klingon')).toBe('fr');
+    expect(resolveRecipientLang(null, 'CM', null, '')).toBe('fr');
+  });
+});
+
 describe('both invitation senders pass the inviter', () => {
   it.each([
     ['contractor invite', 'api/send-invite.ts'],
@@ -97,5 +121,17 @@ describe('both invitation senders pass the inviter', () => {
     // language any more than it gets to pick the recipient.
     expect(src).toMatch(/select\('full_name, preferred_lang'\)/);
     expect(src).toMatch(/inviter\?\.preferred_lang \?\? null,/);
+    // And the sender's screen language from the body — validated to the two values,
+    // and in the LAST slot, so the row always wins over the request.
+    expect(src).toMatch(/const uiLang = req\.body\?\.lang;/);
+    expect(src).toMatch(/inviter\?\.preferred_lang \?\? null,\s*\n\s*uiLang === 'en' \|\| uiLang === 'fr' \? uiLang : null,/);
+  });
+
+  it.each([
+    ['contractor invite', 'src/lib/supabase/invites.ts',         /lang,?\s*\n?\s*\}\)/],
+    ['client invite',     'src/lib/supabase/project-viewers.ts', /shareToken, lang \}\)/],
+  ])('%s: the caller actually sends it', (_name, path, shape) => {
+    const src = readFileSync(resolve(__dirname, '..', '..', '..', path), 'utf8');
+    expect(src).toMatch(shape);
   });
 });

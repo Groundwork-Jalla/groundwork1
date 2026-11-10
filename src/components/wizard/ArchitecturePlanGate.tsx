@@ -158,6 +158,16 @@ export function ArchitecturePlanGate({
   const [unreadable, setUnreadable] = useState(false);
   // The second, slower read. Never gates Continue — see `inspectFloorPlans`.
   const [looking, setLooking] = useState(false);
+  // Counted out loud for the same reason the text read is: a spinner with no number
+  // beside it cannot be told from a stall, and the drawing read is the longer of the two.
+  const [lookSeconds, setLookSeconds] = useState(0);
+  useEffect(() => {
+    if (!looking) { setLookSeconds(0); return; }
+    const startedAt = Date.now();
+    const id = setInterval(
+      () => setLookSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [looking]);
   // Read from a picture rather than from the file. Said plainly wherever the figure
   // appears: OCR confuses 8 with 3 and 1 with 7, and this number becomes ten payments.
   const [fromOcr, setFromOcr] = useState(false);
@@ -390,9 +400,14 @@ export function ArchitecturePlanGate({
         </div>
       )}
       {looking && !scanning && (
-        <p role="status" className="mt-3 flex items-center gap-2 text-xs text-brand-mid-grey">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.lookingAtPlan')}
-        </p>
+        <div role="status" className="mt-3 space-y-1">
+          <p className="flex items-center gap-2 text-xs text-brand-mid-grey">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />{t('planGate.lookingAtPlan')}
+          </p>
+          <p className="pl-5 text-[11px] leading-relaxed text-brand-mid-grey tabular-nums">
+            {t('planGate.lookingElapsed', { s: lookSeconds })}
+          </p>
+        </div>
       )}
       {/*
         * What they actually uploaded, when it is not a plan of a level.

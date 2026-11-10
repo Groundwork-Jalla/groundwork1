@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { trackLifecycle } from '@/lib/analytics/lifecycle';
-import { resolveRecipientLang } from '@/lib/i18n/translate';
+import { detectLang } from '@/lib/i18n';
 import type { ContractorInviteRow } from '@/types/project';
 
 // =========================================================
@@ -18,13 +18,17 @@ export async function inviteContractor(
   projectName: string,
   inviterName: string,
 ): Promise<InviteResult> {
-  // The invitee has no account yet, so there is no stored language preference to read.
-  // The build country is the best available signal — a contractor being invited onto a
-  // Cameroon project is overwhelmingly likely to read French. They can switch once
-  // they sign in, and that explicit choice is what every later email uses.
-  const { data: proj } = await supabase
-    .from('projects').select('country').eq('id', projectId).maybeSingle();
-  const lang = resolveRecipientLang(null, proj?.country);
+  // The language this screen is in, which is what the sender means the invitation in.
+  //
+  // This used to be `resolveRecipientLang(null, country)` — the COUNTRY default, 'fr'
+  // for every Cameroon build — sent as `lang` on the reasoning that the invitee has no
+  // stored preference. Production ignored it and read the row; now the server reads it
+  // as the sender's screen language, in the last slot before the country guesses. Sent
+  // as the country default it would have put French on every Cameroon invitation from
+  // an English screen, which is precisely the bug: three invitations to Brian on
+  // 10 Nov 2026, from an English account, all in French. The server still ranks every
+  // stored choice above this — see resolveRecipientLang.
+  const lang = detectLang();
   const { data, error } = await supabase
     .from('contractor_invites')
     .insert({

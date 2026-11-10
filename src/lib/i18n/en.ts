@@ -2814,6 +2814,7 @@ export const en = {
     typeInstitutional:  'institutional building',
     typeOther:          'building',
     lookingAtPlan: 'Looking at the drawing\u2026',
+    lookingElapsed: '{s}s \u2014 this is a second, slower read and never holds you up. Continue whenever you like.',
     sheetFloorPlan: 'a plan of a level',
     sheetSitePlan: 'a site layout',
     sheetFoundation: 'a foundation plan',

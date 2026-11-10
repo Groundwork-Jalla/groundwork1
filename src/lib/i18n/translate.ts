@@ -118,9 +118,26 @@ export function resolveRecipientLang(
   countryCode?: string | null,
   /** The sender's own stored choice. Used only when the recipient has none. */
   inviterLang?: string | null,
+  /**
+   * The language the sender's screen was in when they pressed send.
+   *
+   * Read LAST among the people, and only ahead of the country. 119 of 166 accounts
+   * (11 Nov 2026) have never touched the toggle, so their stored choice is NULL even
+   * though their screen has been English since the day they signed up — and nine of
+   * the fifteen most recent invitations went out in French to people who had never
+   * seen a word of it, because the Cameroon default was the only signal left. The
+   * language somebody is reading the product in while writing an invitation is the
+   * best evidence there is of the language they mean it in.
+   *
+   * It arrives in the request body, which is why it sits this low: a forged value can
+   * replace a DEFAULT, never anyone's stated choice. It is not persisted — NULL on the
+   * profile still means "never told us".
+   */
+  inviterUiLang?: string | null,
 ): Lang {
   if (preferredLang === 'en' || preferredLang === 'fr') return preferredLang;
   if (inviterLang === 'en' || inviterLang === 'fr') return inviterLang;
+  if (inviterUiLang === 'en' || inviterUiLang === 'fr') return inviterUiLang;
   if (countryCode && FRENCH_DEFAULT_COUNTRIES.includes(countryCode.toUpperCase())) return 'fr';
   return 'en';
 }
