@@ -82,7 +82,9 @@ export default function Step10PlanSelection() {
     setSubmitting(true);
     try {
       const budget  = calculateBudget(data, constructionRate, cityRate);
-      const project = await createProject(user.id, data, budget);
+      // The same rates the budget above was priced with, so the stage split comes
+      // out of that one take-off rather than a second one resolved differently.
+      const project = await createProject(user.id, data, budget, { rate: constructionRate, cityRate });
       clearDraft();
       navigate(`${JALLA_MANAGEMENT_PATH}?project=${project.id}`);
     } catch (err) {

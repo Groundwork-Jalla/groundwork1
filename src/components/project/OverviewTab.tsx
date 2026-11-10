@@ -375,6 +375,52 @@ export default function OverviewTab({
     .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
   const constructionPaid = stagesPaid - designPaid;
 
+  /**
+   * The PLANNED column, summed from the same obligations as the paid one.
+   *
+   * It used to be `decomposeBudget(project.budget_usd, shape)` — the pricing formula run
+   * backwards over the confirmed total. The paid side was taken off that formula on
+   * 9 Nov; this side was left on it, and the two then answered different questions.
+   *
+   * On TAMSO (Douala, 13 floors) that gap is visible on the screen Philip read out:
+   * the stage column sums to about $2.35m while this card printed Construction
+   * $2,242,660 against a planned total of $2,525,187. Neither number is reachable from
+   * the other, and the one a client is actually asked to pay — the stages — was not the
+   * one being shown. A project that joined mid-build (103) is where it bites hardest:
+   * `budget_usd` is what THIS client pays for the remaining work, while the milestones
+   * are written from the whole house's construction fee, so the card and the schedule
+   * are two different buildings.
+   *
+   * Summed from the rows instead, Planned = Paid + Outstanding by construction, and
+   * every line is a figure somebody can point at in the Stages tab.
+   */
+  const plannedConstruction = stagesPaid + stagesUnpaid
+    - billableStages.filter(s => s.stage_key === 'designCompleted')
+        .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
+  const feePlanned = (kind: ProjectFeeRow['kind']) =>
+    fees.filter(f => f.kind === kind)
+        .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+
+  /**
+   * Before tracking starts there are no obligations to sum — no milestones written, no
+   * fee rows. The priced estimate is all there is, and showing zeros on the screen where
+   * a client decides whether to go ahead would be worse than showing the estimate.
+   */
+  const hasObligations = billableStages.length > 0 || fees.length > 0;
+
+  const plannedBySlice: BudgetBreakdown = hasObligations ? {
+    total:        paidTotal + outstanding,
+    construction: plannedConstruction,
+    material:     plannedConstruction * MATERIAL_PCT,
+    labor:        plannedConstruction * LABOR_PCT,
+    design:       billableStages.filter(s => s.stage_key === 'designCompleted')
+                    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0),
+    permit:       feePlanned('permit'),
+    professional: feePlanned('professional'),
+    verification: feePlanned('verification'),
+    contingency:  feePlanned('contingency'),
+  } : budget;
+
   const paidBySlice: BudgetBreakdown = {
     total:        paidTotal,
     construction: constructionPaid,
@@ -483,7 +529,7 @@ export default function OverviewTab({
           </div>
 
           <CostBreakdownCard
-            budget={budget}
+            budget={plannedBySlice}
             paid={paidBySlice}
             paidTotal={paidTotal}
             outstanding={outstanding}

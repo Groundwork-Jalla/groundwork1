@@ -49,8 +49,16 @@ export const STAGE_BUDGET_PCT: Record<StageKey, number> = {
   exteriorWork: 0, finalHandover: 5,
 };
 
-/** Stages that raise a payment at all. `exteriorWork` is 0% in the canonical seed. */
-const CHARGED = STAGE_KEYS.filter(k => STAGE_BUDGET_PCT[k] > 0);
+/**
+ * Stages that raise a payment under a given split.
+ *
+ * `exteriorWork` and `landSecured` are 0% in the canonical seed, and a take-off split
+ * can zero another one — a flat roof whose cost sits in the slab, for instance. Asking
+ * the split rather than the seed keeps the verification fee pro-rated against the stages
+ * this project will actually be billed for.
+ */
+const chargedUnder = (shares: Record<StageKey, number>) =>
+  STAGE_KEYS.filter(k => (shares[k] ?? 0) > 0);
 
 export interface JoinedBudget {
   /** What this client will be asked for. Written to `projects.budget_usd`. */
@@ -82,7 +90,21 @@ const round = (n: number) => Math.round(n);
  * `fullTotal`, so one code path serves both and there is no "is this a joined project?"
  * branch at the call site.
  */
-export function joinedBudget(full: BudgetBreakdown, startStage: number): JoinedBudget {
+export function joinedBudget(
+  full: BudgetBreakdown,
+  startStage: number,
+  /**
+   * This project's own stage split, when it has one.
+   *
+   * Since 183 a stage's share comes from the project's take-off rather than the national
+   * average below, and `remainingShare` decides what the client is billed. Computing it
+   * from the averages while the stage milestones come from the take-off would bill a
+   * figure that the remaining milestones do not add up to — on a build joined at the
+   * roof, by thousands. Omitted (no take-off, or a caller that has none), it falls back
+   * to the averages, which is what every joined project used before.
+   */
+  shares: Record<StageKey, number> = STAGE_BUDGET_PCT,
+): JoinedBudget {
   const start = Math.min(Math.max(Math.trunc(startStage) || 1, 1), STAGE_KEYS.length);
 
   const skipped = STAGE_KEYS
@@ -90,11 +112,11 @@ export function joinedBudget(full: BudgetBreakdown, startStage: number): JoinedB
     .map((key, i) => ({ stageNumber: i + 1, key }));
   const skippedKeys = new Set(skipped.map(s => s.key));
 
-  // The share of the build still to come, by the stage percentages the schedule uses.
-  const totalPct = STAGE_KEYS.reduce((sum, k) => sum + STAGE_BUDGET_PCT[k], 0);
+  // The share of the build still to come, by the stage percentages THIS schedule uses.
+  const totalPct = STAGE_KEYS.reduce((sum, k) => sum + (shares[k] ?? 0), 0);
   const remainingPct = STAGE_KEYS
     .filter(k => !skippedKeys.has(k))
-    .reduce((sum, k) => sum + STAGE_BUDGET_PCT[k], 0);
+    .reduce((sum, k) => sum + (shares[k] ?? 0), 0);
   const remainingShare = totalPct > 0 ? remainingPct / totalPct : 0;
 
   // Design and permit both belong to stage 2. Past it, neither is owed.
@@ -106,9 +128,10 @@ export function joinedBudget(full: BudgetBreakdown, startStage: number): JoinedB
   const professional = round(full.professional * remainingShare);
 
   // Per verified stage, so it tracks how many charged stages are left.
-  const chargedLeft = CHARGED.filter(k => !skippedKeys.has(k)).length;
-  const verification = CHARGED.length > 0
-    ? round(full.verification * (chargedLeft / CHARGED.length))
+  const charged = chargedUnder(shares);
+  const chargedLeft = charged.filter(k => !skippedKeys.has(k)).length;
+  const verification = charged.length > 0
+    ? round(full.verification * (chargedLeft / charged.length))
     : 0;
 
   // The stage milestones the client will actually be billed for.

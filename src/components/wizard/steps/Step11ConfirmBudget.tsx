@@ -14,6 +14,7 @@ import { setClientIntent } from '@/lib/supabase/contractor-onboarding';
 import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
+import { stageSharesFromTakeoff } from '@/lib/budget/stage-shares';
 import { uploadDocument } from '@/lib/supabase/documents';
 import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
 import { useFormat, useT, type TKey } from '@/lib/i18n';
@@ -144,8 +145,12 @@ export default function Step11ConfirmBudget() {
       builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
       floors:       data.floors ?? 1,
     });
-    return joinedBudget(fullBreakdown, startStage);
-  }, [startStage, finalBudget, data.sqm, data.floors]);
+    // This project's own stage split, so what the client is billed for the remaining
+    // work agrees with the milestones that will be written for it. Null without a
+    // take-off, and `joinedBudget` then falls back to the national averages.
+    const joinShares = stageSharesFromTakeoff(data, constructionRate, cityRate) ?? undefined;
+    return joinedBudget(fullBreakdown, startStage, joinShares);
+  }, [startStage, finalBudget, data, constructionRate, cityRate]);
 
   const canSubmit = finalBudget > 0 && !busy;
 
@@ -194,7 +199,12 @@ export default function Step11ConfirmBudget() {
       // while an admin creates Jalla Management. The override also wins over any stale
       // form selection. Paid plans chosen by clients still go through checkout below.
       const project = createdProject.current
-        ?? await createProject(ownerId, data, budget, onBehalfOf?.tier ? { tier: onBehalfOf.tier } : {});
+        ?? await createProject(ownerId, data, budget, {
+          ...(onBehalfOf?.tier ? { tier: onBehalfOf.tier } : {}),
+          // The rates this screen priced with. Without them the stage split would fall
+          // back to the seed averages on a project that has a take-off to read.
+          rate: constructionRate, cityRate,
+        });
       createdProject.current = project;
 
       // 2. Confirm the final figure. This re-derives every stage milestone from it and

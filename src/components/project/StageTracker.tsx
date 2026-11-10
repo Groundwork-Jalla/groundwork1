@@ -6,6 +6,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { useMoney } from '@/lib/budget/project-money-context';
+import { formatShare } from '@/lib/budget/stage-shares';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
@@ -227,7 +228,7 @@ function StageDetail({
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
             {money(stage.payment_milestone_usd ?? 0)}{' '}
-            <span className="text-[10px]">({stage.budget_pct}%)</span>
+            <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
           <StageBadge status={stage.status} tier={tier} />
         </div>

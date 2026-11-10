@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import { BUDGET_SLICES, projectBudget, sliceShares } from '@/lib/budget';
 import { formatMoney, localeFor } from '@/lib/format';
 import { moneyPair } from '@/lib/budget/money-pair';
+import { formatShare } from '@/lib/budget/stage-shares';
 import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
 import type { Lang } from '@/lib/i18n/types';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
@@ -196,7 +197,7 @@ export async function exportBudgetPDF(
     }
     const payKey = PAY_LABEL[stage.payment_status];
     doc.text(`${stage.stage_number}. ${stageLabel(lang, stage)}`, MARGIN + 2,   y + 4);
-    doc.text(`${stage.budget_pct}%`,                              MARGIN + 95,  y + 4);
+    doc.text(formatShare(stage.budget_pct),                    MARGIN + 95,  y + 4);
     doc.text(money(stage.payment_milestone_usd ?? 0),             MARGIN + 110, y + 4);
     doc.text(payKey ? t(payKey) : '—',                            MARGIN + 155, y + 4);
     y += 6;

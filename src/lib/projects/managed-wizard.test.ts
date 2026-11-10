@@ -129,9 +129,16 @@ describe('contractor client project wizard', () => {
       renderToStaticMarkup(createElement(ManagedWizard));
       expect(h.submit).toBeTypeOf('function');
       await h.submit!();
+      // `objectContaining`, because the options now also carry the rates this screen
+      // priced with — the stage split is read off that take-off (183) and re-resolving
+      // it inside createProject would price the schedule from a second one. What this
+      // assertion is about is the TIER, which is fixed whatever the form said.
       expect(h.createProject).toHaveBeenCalledWith(
-        'client-id', h.data, expect.any(Object), { tier: 'self_verify' },
+        'client-id', h.data, expect.any(Object),
+        expect.objectContaining({ tier: 'self_verify' }),
       );
+      expect(h.createProject.mock.calls[0][3]).toHaveProperty('rate');
+      expect(h.createProject.mock.calls[0][3]).toHaveProperty('cityRate');
       expect(h.takeProject).toHaveBeenCalledWith('project-id');
       expect(h.startTracking).toHaveBeenCalledWith(
         'project-id', expect.any(Object), 'client-id', 'Client home',

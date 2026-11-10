@@ -3,7 +3,8 @@ import { getStageSeed } from './stage-seeds';
 import { notifyAdmins } from './notifications';
 import { fetchSharedProjectIds } from './project-viewers';
 import { trackEvent } from '@/lib/analytics';
-import type { WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
+import type { CityRate, ConstructionRate, WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
+import { stageShares } from '@/lib/budget/stage-shares';
 import { DEFAULT_BUILDING_KIND } from '@/lib/projects/document-identity';
 
 // =========================================================
@@ -21,6 +22,16 @@ export async function createProject(
      * Jalla Management for admins. The tier guard (061/062) enforces paid entitlements.
      */
     tier?: ProjectTier;
+    /**
+     * The rates the caller priced this project with.
+     *
+     * Passed in rather than re-resolved here so the stage split and the construction fee
+     * it is multiplied by come from ONE take-off. Re-running the engine on a different
+     * rate would produce a schedule that quietly disagrees with the budget on the screen
+     * the client just approved. Omitted, the split falls back to the seed percentages.
+     */
+    rate?: ConstructionRate | null;
+    cityRate?: CityRate | null;
   } = {},
 ): Promise<ProjectRow> {
   // ALWAYS created on the free plan, unless an admin says otherwise. A paid tier is
@@ -107,6 +118,14 @@ export async function createProject(
     //
     // Design is the exception: it is an absolute amount rather than a share, so it rides
     // on `fixed_amount_usd` and `budget_pct` stays 0. See migration 036.
+    //
+    // The SPLIT is this building's own, not a national average. `stage-shares.ts` reads
+    // the take-off's section totals back onto the stages that do that work, so the
+    // foundation line is what the foundation was priced at. A project with no take-off
+    // keeps the seed percentages. Philip, 9 Nov 2026 — see that module's header for the
+    // size of the gap it closes.
+    const { shares } = stageShares(seeds, formData, opts.rate, opts.cityRate);
+
     const stageRows = seeds.map(s => ({
       project_id:            project.id,
       stage_number:          s.stage_number,
@@ -114,11 +133,11 @@ export async function createProject(
       // fallback and a human-readable audit trail. See migration 024.
       stage_key:             s.key,
       name:                  s.name,
-      budget_pct:            s.budget_pct,
+      budget_pct:            shares[s.key as keyof typeof shares] ?? s.budget_pct,
       fixed_amount_usd:      s.key === 'designCompleted' ? budget.design : null,
       payment_milestone_usd: s.key === 'designCompleted'
         ? Math.round(budget.design)
-        : Math.round(budget.construction * s.budget_pct / 100),
+        : Math.round(budget.construction * (shares[s.key as keyof typeof shares] ?? s.budget_pct) / 100),
       status:                (!gated && s.stage_number === 1) ? 'active' : 'locked',
       payment_status:        'unpaid',
     }));
