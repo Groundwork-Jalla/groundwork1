@@ -188,7 +188,10 @@ describe('the question itself', () => {
   it('requires both documents on the YES path', () => {
     // Both are the point of that route. Somebody who cannot produce them belongs on
     // the other branch, and Back is how they get there.
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| scanning\}/);
+    // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
+    // stops holding the button once the grace period is out. Both documents are still
+    // required, which is what this assertion is about.
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead\}/);
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
