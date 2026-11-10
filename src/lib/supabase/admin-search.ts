@@ -98,7 +98,8 @@ export async function searchAdmin(raw: string): Promise<SearchResults> {
         // which is what it is — never by a name invented from the address.
         title: u.fullName || u.email,
         detail: [u.fullName ? u.email : '', u.roles].filter(Boolean).join(' · '),
-        to: `/admin/users?q=${encodeURIComponent(u.email)}`,
+        // `q` keeps the row on screen; `person` opens their signup details over it.
+        to: `/admin/users?q=${encodeURIComponent(u.email)}&person=${u.id}`,
       });
     }
   } else {

@@ -7,6 +7,7 @@ import { useDomainLabels } from '@/lib/domain-labels';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { CrmBackfillPanel } from '@/components/admin/CrmBackfillPanel';
+import { PersonPreview, usePersonPreview } from '@/components/admin/PersonPreview';
 
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-brand-off-white text-state-active',
@@ -29,6 +30,8 @@ export default function AdminUsers() {
     setParams(p, { replace: true });
   };
   const [target, setTarget]   = useState<AdminUser | null>(null);
+  // Click a name, see what they signed up with — without leaving the list.
+  const person = usePersonPreview();
   const [busy, setBusy]       = useState(false);
   const [delError, setDelError] = useState<string | null>(null);
   const [notice, setNotice]   = useState<string | null>(null);
@@ -135,7 +138,14 @@ export default function AdminUsers() {
               {filtered.map(u => (
                 <tr key={u.id} className="hover:bg-brand-off-white transition-colors">
                   <td className="px-4 py-3 font-medium text-brand-near-black max-w-[200px]">
-                    <span className="block truncate">{u.fullName || '—'}</span>
+                    <button
+                      type="button"
+                      onClick={() => person.open({ userId: u.id, email: u.email }, u.roles)}
+                      title={t('admin.person.view')}
+                      className="block max-w-full truncate text-left underline-offset-2 hover:underline"
+                    >
+                      {u.fullName || u.email}
+                    </button>
                     {/* Set up by an admin and not yet used: the temporary password is still
                         the only way in, so this is the account to chase, not to trust. */}
                     {u.mustChangePassword && (
@@ -186,6 +196,7 @@ export default function AdminUsers() {
           </table>
         </div>
       )}
+      <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
       <ConfirmDelete
         open={!!target}
         subject={target?.email ?? ''}

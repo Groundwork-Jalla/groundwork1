@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { ChevronRight, Loader2, UserRound } from 'lucide-react';
 import { listClients, type ClientDirectory, type ClientRow } from '@/lib/supabase/admin-clients';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PersonPreview, usePersonPreview } from '@/components/admin/PersonPreview';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -25,6 +26,8 @@ export default function AdminClients() {
   const t = useT();
   const labels = useDomainLabels();
   const [params, setParams] = useSearchParams();
+  // Click a name, see what they signed up with — without leaving the list.
+  const person = usePersonPreview();
   const query = params.get('q') ?? '';
   const withProjects = params.get('projects') === 'with';
 
@@ -87,20 +90,31 @@ export default function AdminClients() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {shown.map(c => <ClientCard key={c.id} client={c} data={data} labels={labels} />)}
+          {shown.map(c => <ClientCard key={c.id} client={c} data={data} labels={labels} onOpen={person.open} />)}
         </ul>
       )}
+      <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
     </div>
   );
 }
 
-function ClientCard({ client, data, labels }: { client: ClientRow; data: ClientDirectory; labels: ReturnType<typeof useDomainLabels> }) {
+function ClientCard({ client, data, labels, onOpen }: {
+  client: ClientRow; data: ClientDirectory; labels: ReturnType<typeof useDomainLabels>;
+  onOpen: (ref: { userId: string; email: string }, rolesHint?: string | null) => void;
+}) {
   const t = useT();
   return (
     <li className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-3.5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-brand-near-black dark:text-white">{client.name || client.email}</p>
+          <button
+            type="button"
+            onClick={() => onOpen({ userId: client.id, email: client.email }, '')}
+            title={t('admin.person.view')}
+            className="block max-w-full truncate text-left text-sm font-semibold text-brand-near-black underline-offset-2 hover:underline dark:text-white"
+          >
+            {client.name || client.email}
+          </button>
           <p className="mt-0.5 truncate text-[11px] text-brand-mid-grey">
             {client.name ? `${client.email} · ` : ''}
             {t('admin.clients.joined', { when: formatRelative(client.createdAt) })}

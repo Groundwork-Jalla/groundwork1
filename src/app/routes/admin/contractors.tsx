@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2, ChevronRight } from 'lucide-react';
+import { Loader2, Search, BadgeCheck, EyeOff, Eye, Link2, Trash2, ChevronRight, UserRound } from 'lucide-react';
 import {
   listDirectory, setDirectoryActive, deleteDirectoryEntry, type DirectoryEntry,
 } from '@/lib/supabase/admin-applications';
@@ -11,6 +11,7 @@ import { useRoleLabel } from './applications';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
 import { PublishContractor } from '@/components/admin/PublishContractor';
+import { PersonPreview, usePersonPreview } from '@/components/admin/PersonPreview';
 
 // =========================================================
 // /admin/contractors — the published directory.
@@ -61,6 +62,9 @@ export default function AdminContractors() {
   const setQuery = useCallback((v: string) => put('q', v), [put]);
   const [onlyInactive, setOnlyInactive] = useState(false);
   const [target, setTarget]     = useState<DirectoryEntry | null>(null);
+  // The person behind a listing. A directory row carries no user id, so the preview is
+  // opened by its application or its email and resolves the account itself.
+  const person = usePersonPreview();
   const [deleting, setDeleting] = useState(false);
   const [delError, setDelError] = useState<string | null>(null);
 
@@ -223,6 +227,15 @@ export default function AdminContractors() {
                       {r.active ? t('admin.dir.hide') : t('admin.dir.show')}
                     </button>
                     <button
+                      type="button"
+                      onClick={() => person.open({ applicationId: r.applicationId, email: r.email })}
+                      aria-label={`${t('admin.person.view')} ${r.name}`}
+                      title={t('admin.person.view')}
+                      className="ml-1 inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-brand-near-black"
+                    >
+                      <UserRound className="size-3.5" />
+                    </button>
+                    <button
                       type="button" onClick={() => setTarget(r)}
                       aria-label={`${t('admin.del.confirm')} ${r.name}`}
                       className="ml-1 inline-flex size-7 items-center justify-center rounded-lg text-brand-mid-grey transition-colors hover:bg-brand-off-white hover:text-state-alert"
@@ -244,6 +257,7 @@ export default function AdminContractors() {
           </table>
         </div>
       )}
+      <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
       <ConfirmDelete
         open={!!target}
         subject={target?.name ?? ''}
