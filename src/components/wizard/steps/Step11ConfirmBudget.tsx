@@ -248,7 +248,15 @@ export default function Step11ConfirmBudget() {
        * and the percentages mean what they say: 2% of the project is 2% of the bill.
        */
       const priced = hasBillOfQuantities
-        ? { ...confirmed, construction: confirmed.total }
+        ? {
+            ...confirmed,
+            // The whole bill is distributed, and NOTHING is charged on top of it:
+            // "someone that has uploaded their bill of quantities already knows what
+            // their project costs. We are not charging them for anything." The fee
+            // lines exist for an estimate, where Groundwork priced the work.
+            construction: confirmed.total,
+            design: 0, permit: 0, professional: 0, verification: 0, contingency: 0,
+          }
         : confirmed;
       // A partner takes their place on the project FIRST: membership and primary standing
       // (109). Creating it does not do that, and the budget call below is gated on being
@@ -302,7 +310,7 @@ export default function Step11ConfirmBudget() {
         // The note is the stage they CHOSE. It used to be whatever they typed; with
         // no text box there is nothing to pass but the thing they actually told us.
         await adminStartProjectAtStage(project.id, pricedJoin, ownerId, project.name,
-          startStage ? stageLabel(startStage) : '');
+          startStage ? stageLabel(startStage) : '', hasBillOfQuantities);
       } else if (onBehalfOf) {
         // Named `admin…` for the RPC it calls; 109 widened that function to accept a
         // partner for their own client's project, so this one call serves both.

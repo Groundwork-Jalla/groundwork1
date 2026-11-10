@@ -34,8 +34,9 @@ import type { ProjectRow, ProjectStageRow } from '@/types/project';
 // They are different questions and the difference has already caused a bug.
 //
 //   stageScheduleUsd  what this stage is WORTH.
-//   stagePayableUsd   what the contractor is OWED for it — zero for work that was
-//                     already standing when the build joined Groundwork.
+//   stagePayableUsd   what it counts for on the contractor's side — for work already
+//                     standing when the build joined, exactly what was recorded: its
+//                     share of a bill, or zero on an estimate. Never derived.
 //
 // A `pre_existing` stage is complete but was "never approved, verified or funded by us"
 // (103). Printing its notional value beside the word "Released" on a contractor's money
@@ -133,13 +134,19 @@ export function stageScheduleUsd(stage: ProjectStageRow, basis: StageBasis): num
 }
 
 /**
- * What the CONTRACTOR is owed for this stage.
+ * What this stage counts for on the contractor's side.
  *
- * Zero for anything `pre_existing`, whatever its percentage says. See the header: a
- * figure beside "Released" is a claim that money moved.
+ * A stage completed before the build joined Groundwork shows EXACTLY what the system
+ * recorded for it, never a figure derived here. On a bill-of-quantities project that is
+ * its share of the bill — "stages 1 to 4 should be completed with the actual amount,
+ * not zero" (11 Nov 2026). On an estimated build it is the zero that 162 wrote, because
+ * that total was only ever for the work to come, and a value invented beside the word
+ * "Released" would claim money moved that never did. Either way the number on screen
+ * is one the database holds, which is the only kind a contractor can be asked to
+ * reconcile against.
  */
 export function stagePayableUsd(stage: ProjectStageRow, basis: StageBasis): number {
-  if (stage.pre_existing === true) return 0;
+  if (stage.pre_existing === true) return stage.payment_milestone_usd ?? 0;
   return stageScheduleUsd(stage, basis);
 }
 

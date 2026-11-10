@@ -93,6 +93,15 @@ export async function adminStartProjectAtStage(
   projectName: string,
   /** What the contractor said, kept on the record with the project. */
   describedAs?: string | null,
+  /**
+   * Priced from an uploaded bill of quantities.
+   *
+   * The stages already built then KEEP their share of the bill and are marked
+   * complete, instead of being zeroed: the bill priced the whole building and those
+   * stages are part of it. On an estimate they are zeroed as before, because that
+   * total was only ever for the work still to come.
+   */
+  billOfQuantities = false,
 ): Promise<{ startStage: number; preExistingStages: number }> {
   const { data, error } = await supabase.rpc('admin_start_project_at_stage', {
     p_project_id:       projectId,
@@ -105,6 +114,7 @@ export async function adminStartProjectAtStage(
     p_contingency_fee:  joined.contingency,
     p_start_stage:      joined.startStage,
     p_note:             describedAs?.trim() || null,
+    p_bill_of_quantities: billOfQuantities,
   });
   if (error) throw error;
 
