@@ -30,7 +30,9 @@ describe('the six sections, in order', () => {
       "t('admin.workspace.financials.disbursements')",
       "t('admin.workspace.financials.compensation')",
       "t('admin.workspace.financials.reconciliation')",
-      '<BudgetSection ws={ws} />',
+      // The tag, not its props: this assertion is about section ORDER. Budget now also
+      // takes `onChanged`, because the costing section carries the re-price action (184).
+      '<BudgetSection ',
     ];
     let last = -1;
     for (const marker of order) {

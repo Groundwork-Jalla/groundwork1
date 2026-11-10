@@ -9,6 +9,7 @@ import BudgetView from '@/components/project/BudgetView';
 import { domainStateOf, workspaceHref } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { MoneyFlow } from './MoneyFlow';
+import { RepriceCard } from './RepriceCard';
 import { DomainNote } from './DomainNote';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatUSDFull } from '@/lib/budget';
@@ -49,7 +50,7 @@ export function FinancialsTab({ loaded, onChanged }: { loaded: LoadedWorkspace; 
     return (
       <div className="flex flex-col gap-5 p-5 sm:p-6 2xl:p-8">
         <DomainNote state={ledgerState} reason={loaded.errors.ledger} />
-        <BudgetSection ws={ws} />
+        <BudgetSection ws={ws} onChanged={onChanged} />
       </div>
     );
   }
@@ -245,7 +246,7 @@ export function FinancialsTab({ loaded, onChanged }: { loaded: LoadedWorkspace; 
       </Section>
 
       {/* ── 6. Budget: fees read-only, costing as-is ─────────────────────────────── */}
-      <BudgetSection ws={ws} />
+      <BudgetSection ws={ws} onChanged={onChanged} />
 
       <AnimatePresence>
         {modal && (
@@ -309,7 +310,7 @@ function ReconciliationList({ payments, stageRef }: { payments: Payment[]; stage
   );
 }
 
-function BudgetSection({ ws }: { ws: LoadedWorkspace['workspace'] }) {
+function BudgetSection({ ws, onChanged }: { ws: LoadedWorkspace['workspace']; onChanged: () => void }) {
   const t = useT();
   const fees = ws.financials.fees;
   return (
@@ -333,6 +334,11 @@ function BudgetSection({ ws }: { ws: LoadedWorkspace['workspace'] }) {
         )}
       </Section>
       <Section title={t('admin.workspace.financials.costing')} sub={t('admin.workspace.financials.costingSub')}>
+        {/* Above the costing it changes, and separated from it, because this is a write
+            and everything below is a read. */}
+        <div className="border-b border-brand-border-grey dark:border-[#2c2c2c]">
+          <RepriceCard projectId={ws.project.id} onChanged={onChanged} />
+        </div>
         <div className="px-5 py-4">
           {/* Costing only. BudgetView's Released/Held/Remaining are stage-status buckets — the
               client's estimate — and the ledger above is the record; one "released" per screen. */}

@@ -841,6 +841,25 @@ export const en = {
         },
         costing:             'Costing',
         costingSub:          'The budget as estimated and confirmed \u2014 the same view the client sees.',
+        reprice: {
+          title:        'Recalculate from the take-off',
+          sub:          'Re-cuts the stages still owed so each carries what its own work was priced at. Paid, completed and pre-existing stages are never changed.',
+          action:       'Preview recalculation',
+          apply:        'Apply to {count} stages',
+          applying:     'Applying\u2026',
+          cancel:       'Cancel',
+          held:         'unchanged',
+          heldPaid:     'paid',
+          heldComplete: 'completed',
+          heldPre:      'pre-existing',
+          heldFixed:    'fixed fee',
+          settledNote:  '{amount} already settled and left out of the recalculation.',
+          done:         'Recalculated {count} stages.',
+          noTakeoff:    'This project has no take-off to read a split from, so there is nothing to recalculate it against.',
+          noBudget:     'This project has no confirmed budget yet.',
+          noChange:     'The costing already matches this building\u2019s take-off.',
+          notBalanced:  'The recalculation does not add up to the construction fee and was not offered. Paid stages may already exceed the budget.',
+        },
       },
       activity: {
         emptyBody: 'Every change made through Groundwork is recorded here as it happens \u2014 approvals, verifications, funding, releases, conversations.',
@@ -1396,6 +1415,7 @@ export const en = {
       action: {
         stage_submitted_for_review: 'submitted a stage for review',
         stage_approved:             'approved a stage',
+        project_repriced:           'recalculated the costing',
         stage_opened: 'opened a stage for work',
         stage_awaiting_payment: 'held a stage until it is paid for',
         stage_approved_by_admin:    'approved a stage',
@@ -6124,6 +6144,8 @@ export const en = {
       heldInProgress: 'held · in progress',
       awaitingApproval:'awaiting approval',
       lockedLabel:    'locked',
+      historicalLabel:'estimated',
+      completedBeforeTracking: 'completed before tracking',
     },
 
     // ── Timeline tab ────────────────────────────────────────
