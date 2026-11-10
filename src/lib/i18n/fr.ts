@@ -5997,6 +5997,8 @@ export const fr: Mirror<EnDict> = {
       heldInProgress: 'bloqué · en cours',
       awaitingApproval:'en attente de validation',
       lockedLabel:    'verrouillé',
+      historicalLabel:'estimé',
+      completedBeforeTracking: 'terminé avant le suivi',
     },
 
     // ── Onglet Calendrier ───────────────────────────────────
