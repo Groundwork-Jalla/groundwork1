@@ -15,27 +15,29 @@ Already implemented and retained:
   verified acceptance, role controls and recipient language.
 - [x] Project Team tab with sharing moved out of Overview/Stages.
 
-Remaining implementation and verification:
+Completed implementation; final verification in progress:
 
-- [ ] Confirm building type can be corrected before project creation without changing a confirmed BOQ total.
-- [ ] Match client fonts, green actions and progress colours to the contractor design.
-- [ ] Remove site-preview/latest-project content from the project overview.
-- [ ] Show USD equivalents alongside project-currency financial values.
-- [ ] Use Approved/Approve updates for client sign-off; reserve Verified for independent verification.
-- [ ] Replace idle flashing evidence cues with an explanation that contractor updates will appear there.
-- [ ] Merge stage breakdown and payment timeline; distinguish scheduled values from actual receipts.
-- [ ] Use consistent project timeline colours and preserve expected completion dates.
-- [ ] Simplify dashboard: green hero/actions, keep other projects, remove cost allocation and Upload updates.
-- [ ] Give filtered project lists accurate empty states, especially On hold.
-- [ ] Hide the dashboard 2FA setup action while retaining account security settings.
-- [ ] Hide unavailable video/resource categories.
-- [ ] Preview Excel documents in the project, with bounded processing and readable sheets.
-- [ ] Make actual documents openable and show only uploaded media/formally issued certificates.
-- [ ] Restrict BQ editing to assigned contractors/admins while preserving client access to uploaded BOQ documents.
-- [ ] Rename take-off actions to Edit bill of quantities and sharing to Share this project.
+- [x] Confirm building type can be corrected before project creation without changing a confirmed BOQ total.
+- [x] Match client fonts, green actions and progress colours to the contractor design.
+- [x] Remove site-preview/latest-project content from the project overview.
+- [x] Show USD equivalents alongside project-currency financial values.
+- [x] Use Approved/Approve updates for client sign-off; reserve Verified for independent verification.
+- [x] Replace idle flashing evidence cues with an explanation that contractor updates will appear there.
+- [x] Merge stage breakdown and payment timeline; distinguish scheduled values from actual receipts.
+- [x] Use consistent project timeline colours and preserve expected completion dates.
+- [x] Simplify dashboard: green hero/actions, keep other projects, remove cost allocation and Upload updates.
+- [x] Give filtered project lists accurate empty states, especially On hold.
+- [x] Hide the dashboard 2FA setup action while retaining account security settings.
+- [x] Hide unavailable video/resource categories.
+- [x] Preview Excel documents in the project, with bounded processing and readable sheets.
+- [x] Make actual documents openable and show only uploaded media/formally issued certificates.
+- [x] Restrict BQ editing to assigned contractors/admins while preserving client access to uploaded BOQ documents.
+- [x] Rename take-off actions to Edit bill of quantities and sharing to Share this project.
 - [ ] Run meaningful client/contractor, BOQ, permission and document regressions; reconcile stale tests with agreed behaviour.
 - [ ] Typecheck/build and document deployment prerequisites and any manual acceptance steps.
 
 Production migrations and live account acceptance tests remain separate release
 steps until actually executed. No external messages or production changes are
 part of this local implementation.
+
+Implementation details and release steps: [product-review-completion.md](product-review-completion.md).
