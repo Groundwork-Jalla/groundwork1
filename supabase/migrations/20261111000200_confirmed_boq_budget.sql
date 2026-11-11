@@ -19,6 +19,10 @@ ALTER TABLE public.projects ADD CONSTRAINT projects_boq_budget_check CHECK (
     AND budget_fx_rate > 0 AND budget_precision BETWEEN 0 AND 6
     AND budget_amount IS NOT NULL AND budget_currency IS NOT NULL
     AND budget_fx_rate IS NOT NULL AND budget_precision IS NOT NULL));
+-- UPDATE OF records a dependency on the milestone column. PostgreSQL requires the
+-- trigger to be removed while changing that column's type; restore it below before
+-- any stage allocations are updated. The transaction keeps both changes atomic.
+DROP TRIGGER IF EXISTS stages_seed_expected_funding ON public.project_stages;
 ALTER TABLE public.projects ALTER COLUMN budget_usd TYPE numeric(24,9);
 ALTER TABLE public.project_stages
   ADD COLUMN IF NOT EXISTS milestone_amount numeric(24,6),
@@ -72,6 +76,10 @@ BEGIN
   END IF;
   RETURN NULL;
 END $$;
+
+CREATE TRIGGER stages_seed_expected_funding
+  AFTER INSERT OR UPDATE OF payment_milestone_usd ON public.project_stages
+  FOR EACH ROW EXECUTE FUNCTION public.stages_seed_expected_funding();
 
 CREATE OR REPLACE FUNCTION public.allocate_boq_stages(p_project uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$

@@ -40,6 +40,8 @@ Apply these migrations **before deploying the frontend**:
 
 The first migration adds the source budget and native stage allocations, installs the
 atomic confirmation RPC and rejects later changes that break the confirmed schedule.
+It drops and recreates the existing funding trigger within the transaction before
+changing milestone precision, as PostgreSQL requires for an `UPDATE OF` dependency.
 Legacy BoQ pricing mode is recorded independently of document fetching. Former fee
 amounts are retained in `boq_waived_amount_usd` before the fees are waived; payment
 markers and settled ledger rows are preserved.
@@ -68,6 +70,8 @@ The database regression uses temporary PostgreSQL storage and a standalone backe
 it opens no listener and needs no production credentials. It executes the actual
 migrations and confirmation/join functions against a minimal fixture schema. Install
 PostgreSQL server binaries, or set `GROUNDWORK_PG_BIN` to their directory.
+The fixture installs the existing funding trigger before the migration and verifies
+that the old operation fails with `0A000` before testing the corrected upgrade.
 
 Coverage includes the supplied workbook through draft restoration and allocation,
 manual French/English entry, exact totals, zero stages/fees, historical values without

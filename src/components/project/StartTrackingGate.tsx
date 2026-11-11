@@ -7,9 +7,14 @@ import {
 import { cn } from '@/lib/utils';
 import { decomposeBudget } from '@/lib/budget';
 import { useMoney } from '@/lib/budget/project-money-context';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
+import { useUsdRate } from '@/lib/budget/live-fx';
+import { confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
+import { extractBqTotal } from '@/lib/budget/extract-bq';
+import { BOQ_ACCEPT_ATTR, fileProblem, isBoqFile } from '@/lib/documents/accepted-files';
 import { uploadDocument } from '@/lib/supabase/documents';
-import { startProjectTracking } from '@/lib/supabase/tracking';
-import { useT } from '@/lib/i18n';
+import { startProjectTracking, confirmBoqBudget } from '@/lib/supabase/tracking';
+import { useT, useLanguage } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import type { ProjectRow } from '@/types/project';
 
@@ -20,17 +25,27 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
 }) {
   // Shown in the project's own currency — see project-money-context.tsx.
   const money = useMoney();
+  const projectMoney = useProjectMoney(project);
   const t = useT();
+  const { lang } = useLanguage();
   const estimate = project.budget_usd ?? 0;
+  const [isBill, setIsBill] = useState(project.budget_source === 'boq');
+  const [currency, setCurrency] = useState(project.budget_currency ?? projectMoney.code);
+  const [sourceLabel, setSourceLabel] = useState(project.budget_source_label);
+  const lockedRate = currency === project.budget_currency ? project.budget_fx_rate : null;
+  const fxRate = useUsdRate(lockedRate ? null : currency,
+    lockedRate ?? (currency === 'USD' ? 1 : currency === projectMoney.code ? projectMoney.rate : null));
 
-  const [rawValue,   setRawValue]   = useState(String(Math.round(estimate)));
+  const [rawValue, setRawValue] = useState(isBill
+    ? project.budget_amount == null ? '' : String(project.budget_amount) : String(Math.round(estimate)));
   const [uploadedName, setUploadedName] = useState<string | null>(null);
   const [uploading,  setUploading]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const finalBudget = Math.max(0, Math.round(Number(rawValue.replace(/[^0-9.]/g, '')) || 0));
+  const finalBudget = isBill ? fxRate != null && fxRate > 0 ? (confirmedBillAmount(rawValue) ?? 0) / fxRate : 0
+    : Math.max(0, Math.round(Number(rawValue.replace(/[^0-9.]/g, '')) || 0));
   const diff        = finalBudget - estimate;
   const diffPct     = estimate > 0 ? (diff / estimate) * 100 : 0;
   const changed     = Math.abs(diff) >= 1;
@@ -39,10 +54,20 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (fileProblem(file) || !isBoqFile(file)) { setError(t('project.gate.errUpload')); return; }
     setError(null);
     setUploading(true);
     try {
-      await uploadDocument(project.id, userId, file, undefined, 'contract');
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const out = await Promise.race([
+        extractBqTotal(file),
+        new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 20_000); }),
+      ]).finally(() => { if (timer) clearTimeout(timer); });
+      await uploadDocument(project.id, userId, file, undefined, 'boq');
+      setIsBill(true);
+      setCurrency(out?.reading?.currencyCode ?? projectMoney.code);
+      setSourceLabel(out?.reading?.confidence === 'grand' ? out.reading.label : null);
+      setRawValue(out?.reading?.confidence === 'grand' ? out.reading.sourceAmount ?? String(out.reading.total) : '');
       setUploadedName(file.name);
     } catch (err) {
       setError(errorMessage(err, t('project.gate.errUpload')));
@@ -57,7 +82,12 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
     setError(null);
     setSubmitting(true);
     try {
-      await startProjectTracking(
+      if (isBill) {
+        await confirmBoqBudget(project.id, {
+          amount: rawValue, currencyCode: currency, fxRate: fxRate!,
+          sourceLabel, fileName: uploadedName ?? project.budget_source_file,
+        }, project.joined_at_stage ?? 1);
+      } else await startProjectTracking(
         project.id,
         decomposeBudget(finalBudget, {
           builtAreaSqm: Number(project.sqm) * project.num_floors,
@@ -115,20 +145,20 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               {t('project.gate.finalLabel')}
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-brand-mid-grey">$</span>
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-brand-mid-grey">{isBill ? currency : '$'}</span>
               <input
                 id="final-budget"
-                inputMode="numeric"
+                inputMode="decimal"
                 value={rawValue}
-                onChange={(e) => setRawValue(e.target.value.replace(/[^0-9.]/g, ''))}
+                onChange={(e) => setRawValue(normaliseBudgetInput(e.target.value, lang))}
                 placeholder="0"
-                className="w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#171717] pl-9 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black dark:text-white focus:outline-none focus:border-brand-near-black dark:focus:border-white transition-colors"
+                className="w-full rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#171717] pl-16 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black dark:text-white focus:outline-none focus:border-brand-near-black dark:focus:border-white transition-colors"
               />
             </div>
           </div>
 
           {/* Side-by-side comparison (only when it differs) */}
-          {changed && estimate > 0 && (
+          {!isBill && changed && estimate > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -163,7 +193,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               {t('project.gate.quoteLabel')} <span className="text-brand-mid-grey font-normal">{t('common.optional')}</span>
             </p>
             <p className="text-xs text-brand-mid-grey mb-2.5">{t('project.gate.quoteSub')}</p>
-            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
+            <input ref={fileRef} type="file" accept={BOQ_ACCEPT_ATTR} disabled={uploading || submitting} onChange={handleFile} className="hidden" />
             {uploadedName ? (
               <div className="flex items-center gap-2.5 rounded-xl border border-state-complete/30 dark:border-state-complete/40 bg-brand-off-white dark:bg-state-complete/30 px-4 py-2.5">
                 <Check className="size-4 shrink-0 text-state-complete dark:text-state-complete" />
@@ -188,6 +218,10 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
               <Info className="size-3.5 shrink-0" /> {error}
             </p>
           )}
+          {isBill && !rawValue && <p className="text-xs text-brand-mid-grey">{t('planGate.noDocumentTotal')}</p>}
+          {isBill && fxRate == null && <p className="text-xs text-brand-mid-grey">
+            {t('wizard.confirmBudget.awaitingRate', { currency })}
+          </p>}
         </div>
 
         {/* Footer */}
@@ -198,7 +232,7 @@ export default function StartTrackingGate({ project, userId, onStarted }: {
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={submitting || finalBudget <= 0}
+            disabled={submitting || uploading || finalBudget <= 0}
             className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black text-sm font-semibold px-5 py-3 hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}

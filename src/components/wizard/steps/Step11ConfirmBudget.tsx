@@ -219,6 +219,7 @@ export default function Step11ConfirmBudget() {
           // The rates this screen priced with. Without them the stage split would fall
           // back to the seed averages on a project that has a take-off to read.
           rate: constructionRate, cityRate,
+          startStage,
           ...(hasBillOfQuantities ? { bill: {
             amount: raw, currencyCode, fxRate: fxRate!,
             sourceLabel: data.boqBudget?.sourceLabel ?? documentExtraction?.bqReading?.label,

@@ -43,7 +43,6 @@ INSERT INTO project_substages(stage_id,project_id,status) SELECT id,project_id,'
 END $$;
 `;
   const tests = `
-CREATE TRIGGER stages_seed_expected_funding AFTER INSERT OR UPDATE OF payment_milestone_usd ON public.project_stages FOR EACH ROW EXECUTE FUNCTION public.stages_seed_expected_funding();
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
 SELECT test_project('00000000-0000-0000-0000-000000000010',auth.uid());
 SELECT confirm_boq_budget('00000000-0000-0000-0000-000000000010',1414073374.524,'XAF',600,4,'TOTAL GÉNÉRAL TTC','fixture.xlsx');
@@ -128,6 +127,16 @@ END $$;
 SELECT 'INVITATION_MIGRATION_OK' AS result;
 `;
   const sql = [setup,
+    fn('supabase/migrations/090_payments_ledger.sql', 'stages_seed_expected_funding'),
+    `CREATE TRIGGER stages_seed_expected_funding AFTER INSERT OR UPDATE OF payment_milestone_usd
+       ON public.project_stages FOR EACH ROW EXECUTE FUNCTION public.stages_seed_expected_funding();
+     DO $$ BEGIN
+       BEGIN
+         ALTER TABLE public.project_stages ALTER COLUMN payment_milestone_usd TYPE numeric(24,9);
+         RAISE EXCEPTION 'fixture must reproduce the existing trigger dependency';
+       EXCEPTION WHEN feature_not_supported THEN NULL;
+       END;
+     END $$;`,
     fn('supabase/migrations/20261110000000_stages_sum_to_construction.sql', 'apply_budget_milestones'),
     fn('supabase/migrations/20261111000000_a_bill_is_the_whole_project.sql', 'admin_start_project_at_stage'),
     read('supabase/migrations/20261111000200_confirmed_boq_budget.sql'), tests,

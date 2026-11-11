@@ -34,6 +34,7 @@ export async function createProject(
     rate?: ConstructionRate | null;
     cityRate?: CityRate | null;
     bill?: BillBudgetSnapshot;
+    startStage?: number;
   } = {},
 ): Promise<ProjectRow> {
   // ALWAYS created on the free plan, unless an admin says otherwise. A paid tier is
@@ -101,6 +102,7 @@ export async function createProject(
       tier,
       status:              'active' as const,
       current_stage:       1,
+      ...(opts.bill && (opts.startStage ?? 1) > 1 ? { joined_at_stage: opts.startStage } : {}),
       target_start:        formData.targetStartDate || null,
       target_end:          formData.targetEndDate || null,
       tracking_started_at: gated ? null : new Date().toISOString(),

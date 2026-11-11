@@ -417,6 +417,7 @@ export interface ProjectRow {
   tier: ProjectTier;
   status: ProjectStatus;
   current_stage: number;
+  joined_at_stage?: number | null;
   target_start: string | null;
   target_end: string | null;
   tracking_started_at: string | null;

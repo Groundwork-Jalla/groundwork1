@@ -650,7 +650,7 @@ function DocumentBudgetBreakdown() {
   // off the top. The chevron is how you get the detail when you want it.
   const [open, setOpen] = useState(false);
   const { documentExtraction } = useWizard();
-  const reading = documentExtraction?.bqReading ?? null;
+  const reading = documentExtraction?.bqReading?.confidence === 'grand' ? documentExtraction.bqReading : null;
   /**
    * What the bill is priced in: its own currency if it names one, otherwise the
    * country's.
@@ -664,7 +664,7 @@ function DocumentBudgetBreakdown() {
     ?? constructionRate?.currency_code
     ?? getCurrencyCode(wizardData.country);
   const floorPlans = documentExtraction?.floorPlans ?? [];
-  const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const amount = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 6 });
   // Today's rate where it can be fetched, the stored one otherwise. The stored
   // figure is a round 600 for Cameroon and the real rate is nearer 580, which on a
   // 59 million franc bill is thousands of dollars of apparent budget.
