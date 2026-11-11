@@ -11,6 +11,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test": "vitest run",
+    "test:boq-db": "node scripts/test-boq-budget.mjs",
     "test:watch": "vitest",
     "agent:queue": "node --env-file=.env scripts/agent-queue.mjs",
     "media:setup": "python3 -m venv --system-site-packages .venv && .venv/bin/pip install -q imageio-ffmpeg python-pptx python-docx && .venv/bin/python -c \"import imageio_ffmpeg,pptx,docx,websocket,PIL;print('media pipeline ready')\"",

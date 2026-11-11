@@ -87,7 +87,7 @@ describe('with no stated choice, the inviter outranks the build country', () => 
   });
 });
 
-describe('the screen the sender is looking at beats the country, and nothing else', () => {
+describe('the current sender screen beats stale sender preferences', () => {
   /*
    * 119 of 166 accounts have never touched the toggle, so `preferred_lang` is NULL on an
    * account whose screen has been English since sign-up. Nine of the fifteen most recent
@@ -99,10 +99,11 @@ describe('the screen the sender is looking at beats the country, and nothing els
     expect(resolveRecipientLang(null, 'CM', null, 'en')).toBe('en');
   });
 
-  it('can replace a default, never a choice', () => {
-    // It arrives in the request body. A forged value must not overrule anyone.
+  it('keeps the recipient choice and uses the current sender UI over an old sender choice', () => {
     expect(resolveRecipientLang('fr', 'CM', null, 'en')).toBe('fr');   // recipient chose
-    expect(resolveRecipientLang(null, 'CM', 'fr', 'en')).toBe('fr');   // inviter chose
+    expect(resolveRecipientLang('en', 'CM', 'fr', 'fr')).toBe('en');   // recipient chose
+    expect(resolveRecipientLang(null, 'CM', 'fr', 'en')).toBe('en');   // sender changed
+    expect(resolveRecipientLang(null, 'CM', 'en', 'fr')).toBe('fr');
   });
 
   it('is ignored when it is not a language', () => {

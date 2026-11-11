@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { contractorProjectReturn } from '@/lib/auth/project-invitation';
 import {
   ArrowLeft, ArrowRight, Check, FileText, FolderPlus, Landmark, Loader2, Lock,
   Phone, ShieldCheck, UserPlus, UserRound,
@@ -59,6 +60,8 @@ type PanelId = 'agreements' | 'you' | 'specialty' | 'payout' | 'contact' | 'almo
 export default function ContractorOnboarding() {
   const t = useT();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invitedProject = contractorProjectReturn(searchParams.get('redirect'));
   const { user } = useAuth();
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [at, setAt] = useState<PanelId>('agreements');
@@ -160,7 +163,7 @@ export default function ContractorOnboarding() {
   // gate, the unsigned-agreement redirect in _layout — is for somebody who has NOT
   // finished, and they still get the sequence below.
   if (status.complete && status.clientIntent !== null) {
-    return <Navigate to="/work" replace />;
+    return <Navigate to={invitedProject ?? '/work'} replace />;
   }
 
   return (
@@ -214,7 +217,7 @@ export default function ContractorOnboarding() {
               const destination = intent === 'onboard_client' ? '/work/partner'
                 : intent === 'create_project' ? '/projects/new'
                 : '/work';
-              navigate(destination, { replace: true });
+              navigate(invitedProject ?? destination, { replace: true });
             }}
           />
         )

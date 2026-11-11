@@ -85,59 +85,18 @@ export function translator(lang: Lang) {
   return (key: TKey, params?: Record<string, string | number>) => translate(lang, key, params);
 }
 
-/**
- * The language to use for someone we are sending to, rather than the one the sender is
- * looking at.
- *
- * `preferred_lang` is only written when a user explicitly picks a language, so NULL is
- * genuinely "we don't know" — not "English". Falling back through the build country
- * mirrors the in-app default, which matters because Cameroon is the primary market and
- * most users there never touch the toggle.
- *
- * Cameroon is officially bilingual, so this stays a default: the moment someone uses
- * the toggle, their explicit choice is stored and wins from then on.
- *
- * ── Why the INVITER outranks the build country ──────────────────────────────────
- *
- * Philip, 3 Nov 2026, testing a client invitation: "why is it sending me in French
- * when I'm English... my account is English." He invited from an English account, to
- * an address with no Groundwork profile, about a build in Cameroon — so there was no
- * `preferred_lang` to read and the country decided it.
- *
- * The country is the wrong signal for a stranger. It describes where the house is,
- * not what language two people use with each other. The person DOING the inviting is
- * a far better one: a contractor working in English is inviting a client they speak
- * English with, and they chose that language explicitly.
- *
- * So: what the recipient chose, then what the person writing to them chose, then the
- * build country, then English. The invitee's own preference still wins the moment
- * they have one — nothing here lets a sender override a stated choice.
- */
+/** Recipient preference wins; an unknown recipient inherits the sender's current UI. */
 export function resolveRecipientLang(
   preferredLang: string | null | undefined,
   countryCode?: string | null,
-  /** The sender's own stored choice. Used only when the recipient has none. */
+  /** Stored sender preference, used when no current screen language was supplied. */
   inviterLang?: string | null,
-  /**
-   * The language the sender's screen was in when they pressed send.
-   *
-   * Read LAST among the people, and only ahead of the country. 119 of 166 accounts
-   * (11 Nov 2026) have never touched the toggle, so their stored choice is NULL even
-   * though their screen has been English since the day they signed up — and nine of
-   * the fifteen most recent invitations went out in French to people who had never
-   * seen a word of it, because the Cameroon default was the only signal left. The
-   * language somebody is reading the product in while writing an invitation is the
-   * best evidence there is of the language they mean it in.
-   *
-   * It arrives in the request body, which is why it sits this low: a forged value can
-   * replace a DEFAULT, never anyone's stated choice. It is not persisted — NULL on the
-   * profile still means "never told us".
-   */
+  /** Current UI outranks a sender profile whose asynchronous save may still be pending. */
   inviterUiLang?: string | null,
 ): Lang {
   if (preferredLang === 'en' || preferredLang === 'fr') return preferredLang;
-  if (inviterLang === 'en' || inviterLang === 'fr') return inviterLang;
   if (inviterUiLang === 'en' || inviterUiLang === 'fr') return inviterUiLang;
+  if (inviterLang === 'en' || inviterLang === 'fr') return inviterLang;
   if (countryCode && FRENCH_DEFAULT_COUNTRIES.includes(countryCode.toUpperCase())) return 'fr';
   return 'en';
 }

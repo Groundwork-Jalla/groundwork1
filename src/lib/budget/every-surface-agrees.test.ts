@@ -76,7 +76,7 @@ describe('a client is quoted in the project currency, everywhere', () => {
 
   it('the take-off page wraps itself so both of its figures share one rate', () => {
     const takeoff = code('src/app/routes/projects/takeoff.tsx');
-    expect(takeoff).toMatch(/<ProjectMoneyProvider country=\{project\.country\}>/);
+    expect(takeoff).toMatch(/<ProjectMoneyProvider project=\{project\}>/);
     // The take-off's own total stays in the document's currency, as it always was.
     expect(takeoff).toMatch(/formatLocalCurrency\(/);
   });
@@ -256,7 +256,8 @@ describe('one definition of what a stage is worth', () => {
     // join with no bill — so the two facts cannot stand in for one another.
     const basis = code('src/lib/budget/stage-amounts.ts');
     expect(basis).toMatch(/hasBoq/);
-    expect(basis).toMatch(/if \(hasBoq\) return \{ wholeProject: true/);
+    expect(basis).toContain("project.budget_source === 'boq'");
+    expect(basis).toContain('wholeProject: true');
   });
 
   it('keeps the contractor on PAYABLE, so pre-existing work is never shown as owed', () => {

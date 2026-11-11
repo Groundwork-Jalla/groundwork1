@@ -363,7 +363,7 @@ describe('the client owns their first credential', () => {
      * Favour, 11 Nov 2026: "when a contractor invited a client, it sent out the email in
      * French even though that contractor was using English." Supabase's template could
      * not be told a language; this one is resolved from the contractor — their stored
-     * choice, then the screen they are reading (`lang` in the body), then the country.
+     * screen, then their stored choice, then the country.
      */
     // No stored choice, English screen, Cameroon build → English.
     await call({ ...GOOD, lang: 'en' });
@@ -376,12 +376,12 @@ describe('the client owns their first credential', () => {
     expect(String(state.sends[0].subject)).toMatch(/votre compte Groundwork/);
     expect(state.profileUpdates[0].values.preferred_lang).toBe('fr');
 
-    // A stored choice beats the screen: the contractor chose French, is on an English
-    // screen for the moment, and the client still gets French.
+    // A current English screen beats a stale French profile while its save is pending.
     state.sends = []; state.profileUpdates = [];
     state.contractorProfile = { full_name: 'Sage Builder', preferred_lang: 'fr', signup_country: 'CM' };
     await call({ ...GOOD, lang: 'en' });
-    expect(String(state.sends[0].subject)).toMatch(/votre compte Groundwork/);
+    expect(String(state.sends[0].subject)).toMatch(/has set up your Groundwork account/);
+    expect(state.profileUpdates[0].values.preferred_lang).toBe('en');
 
     // Junk in the body is not a language.
     state.sends = []; state.contractorProfile = { full_name: 'Sage Builder', preferred_lang: null, signup_country: 'NG' };

@@ -19,6 +19,7 @@ import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 // payment the client is shown, and until 11 Nov 2026 they disagreed about it by ~3.34%
 // on every stage of a bill-of-quantities project — see lib/budget/stage-amounts.ts.
 import { stageBasisFor, stagePayableUsd, sumPayableUsd } from '@/lib/budget/stage-amounts';
+import { sumBillAmounts } from '@/lib/budget/bill-budget';
 import { moneyPair, type MoneyPair } from '@/lib/budget/money-pair';
 import { formatDate } from '@/lib/format';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -30,6 +31,7 @@ import { ShareProject } from '@/components/project/ShareProject';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase/client';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 
 // =========================================================
@@ -84,7 +86,8 @@ export default function ContractorProjectDetail() {
    * a bill, or arrive with a bill and no history, and the two say nothing about
    * each other.
    */
-  const hasBoq = documents.some(d => d.category === 'boq');
+  const hasBoq = assigned && assigned !== 'denied' && assigned.project.budget_source != null
+    ? assigned.project.budget_source === 'boq' : documents.some(d => d.category === 'boq');
   const [rework, setRework] = useState<ReworkItem[]>([]);
   const [payments, setPayments] = useState<{ rows: ContractorPayment[]; available: boolean } | null>(null);
   /** Incoming tranches per stage (175). Distinct from `payments` above, which is
@@ -132,6 +135,16 @@ export default function ContractorProjectDetail() {
   }, [projectId]);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!projectId) return;
+    const refresh = () => { void load(); };
+    const channel = supabase.channel(`contractor-project-money-${projectId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${projectId}` }, refresh)
+      .subscribe();
+    window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
+  }, [projectId, load]);
 
   const activeSubstages = useMemo(
     () => (assigned && assigned !== 'denied' && assigned.activeStage
@@ -437,7 +450,7 @@ function MoneyTab({ assigned, payments, hasBoq }: {
 }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
-  const money = useProjectMoney(assigned.project.country);
+  const money = useProjectMoney(assigned.project);
   const { stages } = assigned;
 
   /**
@@ -469,8 +482,9 @@ function MoneyTab({ assigned, payments, hasBoq }: {
   const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
   const outstanding = stages.filter(s => s.status !== 'complete');
 
-  const contract = money.pair(sum(stages));
-  const toCome   = money.pair(sum(outstanding));
+  const contract = money.pair(assigned.project.budget_source === 'boq' ? assigned.project.budget_usd : sum(stages), assigned.project.budget_amount);
+  const toCome   = money.pair(sum(outstanding), assigned.project.budget_precision != null
+    ? sumBillAmounts(outstanding.map(s => s.milestone_amount), assigned.project.budget_precision) : null);
 
   /** What the ledger says reached this contractor on this project. */
   const ledger = payments?.available ? payments.rows : null;
@@ -513,7 +527,7 @@ function MoneyTab({ assigned, payments, hasBoq }: {
         ) : (
           <ul className="flex flex-col gap-1.5">
             {stages.map(s => {
-              const due = money.pair(stagePayableUsd(s, basis));
+              const due = money.pair(stagePayableUsd(s, basis), s.milestone_amount);
               const state = s.status === 'complete'
                 ? { label: t('contractorMoney.stateReleased'), tone: 'complete' as const }
                 : s.status === 'active' || s.status === 'pending_review'
@@ -808,7 +822,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
 }) {
   const t = useT();
   const { stageLabel, substageLabel } = useStageLabels();
-  const money = useProjectMoney(assigned.project.country);
+  const money = useProjectMoney(assigned.project);
   const { project, stages, activeStage } = assigned;
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
@@ -845,7 +859,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
 
       {stages.map(stage => {
         const isOpen = stage.id === activeStage?.id;
-        const due = money.pair(stagePayableUsd(stage, basis));
+        const due = money.pair(stagePayableUsd(stage, basis), stage.milestone_amount);
         const sent = rework.filter(r => r.stageId === stage.id);
 
         if (!isOpen) {
@@ -909,7 +923,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                   * to confirm $41,837: one payment, two currencies, on the one screen
                   * pair where the two parties have to agree.
                   */}
-                <ProjectMoneyProvider country={project.country}>
+                <ProjectMoneyProvider project={project}>
                   <StagePaymentGate
                     projectId={stage.project_id}
                     stageId={stage.id}
@@ -1063,7 +1077,7 @@ function WorkRail({ assigned, isOwner, hasBoq }: {
   assigned: AssignedProject; isOwner: boolean; hasBoq: boolean;
 }) {
   const t = useT();
-  const money = useProjectMoney(assigned.project.country);
+  const money = useProjectMoney(assigned.project);
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
   const { project, stages, activeStage } = assigned;
 
@@ -1078,10 +1092,10 @@ function WorkRail({ assigned, isOwner, hasBoq }: {
   const basis = stageBasisFor(project, stages, hasBoq);
   const sum = (list: typeof stages) => sumPayableUsd(list, basis);
   const approved = stages.filter(s => s.status === 'complete' && s.pre_existing !== true);
-  const contract = money.pair(sum(stages));
+  const contract = money.pair(project.budget_source === 'boq' ? project.budget_usd : sum(stages), project.budget_amount);
   const signedOff = money.pair(sum(approved));
   const pct = sum(stages) > 0 ? Math.round((sum(approved) / sum(stages)) * 100) : 0;
-  const due = money.pair(activeStage ? stagePayableUsd(activeStage, basis) : null);
+  const due = money.pair(activeStage ? stagePayableUsd(activeStage, basis) : null, activeStage?.milestone_amount);
 
   return (
     <aside className="flex min-w-0 flex-col gap-4">

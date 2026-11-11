@@ -64,7 +64,8 @@ describe('hop 2 — sign-up parks it for the other tab', () => {
   const code = stripComments(read('src/app/routes/auth/signup.tsx'));
 
   it('writes the parked destination only after the safety check', () => {
-    expect(code).toMatch(/isSafeInternalPath\(wanted\)\s*&&?\s*localStorage\.setItem\(PENDING_REDIRECT|if \(isSafeInternalPath\(wanted\)\) localStorage\.setItem\(PENDING_REDIRECT, wanted\)/);
+    expect(code).toContain('const wanted = safeAuthReturn(searchParams.get("redirect"))');
+    expect(code).toMatch(/if \(wanted\) localStorage\.setItem\(PENDING_REDIRECT, wanted\)/);
     // Never the raw parameter: the check is what makes the stored value worth reading back.
     expect(code).not.toMatch(/setItem\(PENDING_REDIRECT,\s*searchParams\.get/);
   });

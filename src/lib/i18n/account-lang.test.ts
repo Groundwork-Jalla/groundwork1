@@ -21,9 +21,9 @@ describe('reconcileLang', () => {
     expect(reconcileLang(null, 'en')).toEqual({ adopt: 'en' });
   });
 
-  it('does nothing for a new browser when the account never chose either', () => {
-    // Detection still runs: browser locale, then English. Not this function's job.
-    expect(reconcileLang(null, null)).toEqual({});
+  it('saves the effective screen language for an account without a preference', () => {
+    expect(reconcileLang(null, null, 'en')).toEqual({ push: 'en' });
+    expect(reconcileLang(null, null, 'fr')).toEqual({ push: 'fr' });
   });
 
   it('never undoes a toggle just pressed on this device', () => {

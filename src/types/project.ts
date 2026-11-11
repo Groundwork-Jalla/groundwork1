@@ -124,6 +124,13 @@ export interface WizardFormData {
    * the stage payment schedule, which is real money.
    */
   bqTotalUsd: number | null;
+  /** Durable document evidence; an attached bill remains a bill after a reload. */
+  boqBudget?: {
+    amount: string | null;
+    currencyCode: string | null;
+    sourceLabel: string | null;
+    fileName: string | null;
+  } | null;
 
   // UI-only: which floor tab is active in Step 5 (for building preview sync)
   previewActiveFloor: number;
@@ -399,6 +406,14 @@ export interface ProjectRow {
   offices: number;
   floor_rooms: FloorRoom[] | null;
   budget_usd: number | null;
+  budget_source?: 'boq' | 'estimate' | null;
+  budget_amount?: number | null;
+  budget_currency?: string | null;
+  /** Contract currency units per USD, fixed when the budget is confirmed. */
+  budget_fx_rate?: number | null;
+  budget_precision?: number | null;
+  budget_source_label?: string | null;
+  budget_source_file?: string | null;
   tier: ProjectTier;
   status: ProjectStatus;
   current_stage: number;
@@ -426,6 +441,8 @@ export interface ProjectStageRow {
    */
   fixed_amount_usd: number | null;
   payment_milestone_usd: number | null;
+  /** Exact allocation in the confirmed bill's currency. */
+  milestone_amount?: number | null;
   /**
    * LEGACY PROJECTION (090): derived by a trigger from the ledger, kept for the older
    * screens that still read it. Never an input to `stageLifecycle()`.
@@ -467,6 +484,8 @@ export interface ProjectFeeRow {
    */
   kind: 'permit' | 'professional' | 'verification' | 'contingency';
   amount_usd: number;
+  /** Retains the former fee for audit when a legacy BoQ fee is waived. */
+  boq_waived_amount_usd?: number | null;
   payment_status: PaymentStatus;
   paid_at: string | null;
   created_at: string;

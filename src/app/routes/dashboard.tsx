@@ -9,10 +9,9 @@ import {
 import { useAuth }                    from '@/contexts/AuthContext';
 import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
 import { supabase }                   from '@/lib/supabase/client';
-import { fetchClientProjects }        from '@/lib/supabase/projects';
-import { fetchContractorProjects }    from '@/lib/supabase/invites';
-import { formatUSDFull, BUDGET_SLICES, projectBudget, sliceShares, type BudgetSliceKey } from '@/lib/budget';
-import { formatMoney } from '@/lib/format';
+import { fetchParticipantProjects } from '@/lib/supabase/participant-projects';
+import { BUDGET_SLICES, projectBudget, sliceShares, type BudgetSliceKey } from '@/lib/budget';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -66,12 +65,6 @@ function greetingKey(): TKey {
   if (h < 12) return 'dashboard.goodMorning';
   if (h < 17) return 'dashboard.goodAfternoon';
   return 'dashboard.goodEvening';
-}
-
-function fmtShort(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${Math.round(n)}`;
 }
 
 function pctToDollars(pct: number | null, total: number): number {
@@ -166,7 +159,7 @@ function ProfileCompletion({ nameSet, hasProject }: {
 // statistics, so the active project gets the whole top of the page and everything
 // else is secondary.
 
-interface MoneySplit { released: number; held: number; remaining: number }
+interface MoneySplit { released: number; held: number; remaining: number; historical: number }
 
 /**
  * Where this project's money currently sits.
@@ -183,39 +176,44 @@ function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
   // design, permit and professional fees stacked on top of it.
   const { total, construction } = projectBudget(project);
 
-  let released = 0, held = 0;
+  let released = 0, held = 0, historical = 0;
   for (const s of stages) {
     const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, construction);
     // Work that predates Groundwork is complete but was never paid THROUGH us (103).
     // Checked before the projection rather than relying on its milestone being 0: the
     // `??` above would otherwise fall back to a percentage of the construction fee and
     // show money as released that never moved.
-    if (s.pre_existing) continue;
+    if (s.pre_existing) {
+      if (project.budget_source === 'boq') historical += amount;
+      continue;
+    }
     if (s.payment_status === 'paid') released += amount;
     else if (isActive(s)) held += amount;
   }
-  return { released, held, remaining: Math.max(total - released - held, 0) };
+  return { released, held, historical, remaining: Math.max(total - historical - released - held, 0) };
 }
 
-function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
+function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }: {
   project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean;
   /** Somebody else owns this build and invited this person onto it (112, 166). */
   shared: boolean;
+  assigned: boolean;
 }) {
   const t = useT();
+  const money = useProjectMoney(project);
   const { stageLabel } = useStageLabels();
   const { buildingType } = useDomainLabels();
 
   const done    = stages.filter(isComplete).length;
   const current = stages.find(isActive);
   const pct     = stages.length ? Math.round((done / stages.length) * 100) : 0;
-  const { released, held, remaining } = moneySplit(project, stages);
+  const { released, held, remaining, historical } = moneySplit(project, stages);
   const { total } = projectBudget(project);
 
   const meta = [
     buildingType(project.building_type),
     [project.city, project.country].filter(Boolean).join(', '),
-    total > 0 ? formatUSDFull(total) : null,
+    total > 0 ? money.local(total) : null,
   ].filter(Boolean).join(' · ');
 
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
@@ -270,8 +268,9 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2.5">
+      <div className={`mt-5 grid gap-2.5 ${historical > 0 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
         {([
+          ...(historical > 0 ? [['dashboard.hero.historical', historical] as const] : []),
           ['dashboard.hero.released',  released],
           ['dashboard.hero.held',      held],
           ['dashboard.hero.remaining', remaining],
@@ -279,7 +278,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
           <div key={labelKey} className="rounded-xl bg-white/6 px-3 py-2.5">
             <p className="text-[9px] font-semibold text-white/40">{t(labelKey)}</p>
             <p className="mt-0.5 text-base font-bold tabular-nums text-white">
-              {stagesLoading ? '—' : fmtShort(amount)}
+              {stagesLoading ? '—' : money.local(amount)}
             </p>
           </div>
         ))}
@@ -296,7 +295,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
       )}
 
       <Link
-        to={`/projects/${project.id}`}
+        to={`${assigned ? '/work/projects' : '/projects'}/${project.id}`}
         className="group mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
       >
         {t('dashboard.hero.openProject')}
@@ -310,14 +309,16 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared }: {
 // Four destinations with a live subtitle each, so the tile says what is waiting
 // rather than merely where it goes. Monochrome icons — no emoji anywhere.
 
-function QuickActions({ project, unread, documentCount, shared }: {
+function QuickActions({ project, unread, documentCount, shared, assigned }: {
   project: ProjectRow | undefined;
   unread: number;
   documentCount: number;
   /** The active build belongs to somebody else. The first card changes; the rest do not. */
   shared: boolean;
+  assigned: boolean;
 }) {
   const t = useT();
+  const projectPath = project ? `${assigned ? '/work/projects' : '/projects'}/${project.id}` : '/projects';
 
   const actions = [
     // Upload, or read what was uploaded.
@@ -333,7 +334,7 @@ function QuickActions({ project, unread, documentCount, shared }: {
       labelKey: 'dashboard.quick.updates' as TKey,
       sub: t('dashboard.quick.updatesSub'),
     } : {
-      to: project ? `/projects/${project.id}` : '/projects',
+      to: projectPath,
       icon: Upload,
       labelKey: 'dashboard.quick.evidence' as TKey,
       sub: project
@@ -350,7 +351,7 @@ function QuickActions({ project, unread, documentCount, shared }: {
     // is a build for it to open. Without one it used to fall back to the standalone
     // /messages page, which is now a door nothing else points at.
     ...(project ? [{
-        to: `/projects/${project.id}?tab=messages`,
+        to: `${projectPath}?tab=messages`,
         icon: MessageSquare,
         labelKey: 'dashboard.quick.messages' as TKey,
         sub: unread > 0
@@ -414,6 +415,7 @@ const COST_CATS = [
 
 function CostingDonut({ project }: { project: ProjectRow }) {
   const t = useT();
+  const money = useProjectMoney(project);
   // projectBudget resolves budget_usd ?? engine estimate — so a project the owner
   // has not yet confirmed a budget for still shows its allocation instead of "no
   // budget", and the amounts here can never disagree with the total beside them.
@@ -463,7 +465,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
             <>
               <text x={cx} y={cy - 8} textAnchor="middle" style={{ fontSize: '9px', fill: '#9ca3af' }}>{t('dashboard.totalBudget')}</text>
               <text x={cx} y={cy + 9} textAnchor="middle" style={{ fontSize: '13px', fontWeight: 700 }} fill="var(--color-brand-near-black, #111)">
-                {fmtShort(total)}
+                {money.local(total)}
               </text>
             </>
           ) : (
@@ -487,7 +489,7 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 
       {total > 0 && (
         <p className="mt-4 border-t border-brand-border-grey pt-3 text-[10px] text-brand-mid-grey dark:border-[#2c2c2c]">
-          {t('dashboard.costing.totalEstimated', { amount: formatMoney(total) })}
+          {t('dashboard.costing.totalEstimated', { amount: money.local(total) ?? '—' })}
         </p>
       )}
     </div>
@@ -499,15 +501,16 @@ function CostingDonut({ project }: { project: ProjectRow }) {
 // are builds you are not working on right now, and the page's job is to keep the
 // active one unambiguous.
 
-function OtherProjectRow({ project, shared }: { project: ProjectRow; shared: boolean }) {
+function OtherProjectRow({ project, shared, assigned }: { project: ProjectRow; shared: boolean; assigned: boolean }) {
   const t = useT();
+  const money = useProjectMoney(project);
   const { buildingType } = useDomainLabels();
   const { total } = projectBudget(project);
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
 
   return (
     <Link
-      to={`/projects/${project.id}`}
+      to={`${assigned ? '/work/projects' : '/projects'}/${project.id}`}
       className="flex items-center gap-4 rounded-2xl border border-brand-border-grey bg-white p-4 transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
     >
       <span className={`size-2 shrink-0 rounded-full ${status.dot}`} aria-hidden="true" />
@@ -531,7 +534,7 @@ function OtherProjectRow({ project, shared }: { project: ProjectRow; shared: boo
       </div>
       <div className="shrink-0 text-right">
         <p className="text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
-          {total > 0 ? fmtShort(total) : '—'}
+          {total > 0 ? money.local(total) : '—'}
         </p>
       </div>
       <ChevronRight className="size-4 shrink-0 text-brand-border-grey" />
@@ -582,8 +585,11 @@ export default function Dashboard() {
   // flag on the rows, because `ProjectRow` is the database row and nothing that is not
   // a column belongs on it.
   const [sharedIds,     setSharedIds]     = useState<Set<string>>(() => new Set());
+  const [assignedIds, setAssignedIds] = useState<Set<string>>(() => new Set());
   const [ownedCount,    setOwnedCount]    = useState(0);
   const [loading,       setLoading]       = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [activeStages,  setActiveStages]  = useState<ProjectStage[]>([]);
   const [stagesLoading, setStagesLoading] = useState(false);
   const [unreadCount,      setUnreadCount]      = useState(0);
@@ -611,29 +617,31 @@ export default function Dashboard() {
     // 166) — and until 9 Nov 2026 this page only ever asked for the first, so a client
     // whose contractor set the build up was shown an empty dashboard and offered a
     // wizard.
-    const loader = isContractor
-      ? fetchContractorProjects(user.id).then(rows => ({ all: rows, shared: [], owned: rows }))
-      : fetchClientProjects(user.id);
+    setLoading(true);
+    setLoadFailed(false);
+    const loader = fetchParticipantProjects(user.id, isContractor);
 
     loader
-      .then(({ all, shared, owned }) => {
+      .then(({ all, shared, owned, assigned, loadFailed: failed }) => {
         if (!live) return;
         setProjects(all);
         setSharedIds(new Set(shared.map(p => p.id)));
         setOwnedCount(owned.length);
+        setAssignedIds(new Set(assigned.map(p => p.id)));
+        setLoadFailed(!!failed);
       })
-      .catch(() => {})
+      .catch(() => { if (live) setLoadFailed(true); })
       .finally(() => { if (live) setLoading(false); });
 
     return () => { live = false; };
-  }, [user, isContractor]);
+  }, [user, isContractor, loadAttempt]);
 
   useEffect(() => {
     if (!activeProject?.id) { setActiveStages([]); return; }
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, payment_status, pre_existing')
+      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, milestone_amount, payment_status, pre_existing')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {
@@ -710,6 +718,14 @@ export default function Dashboard() {
           profile. Renders nothing once both are handled. */}
       <SecurityNudges user={user} />
 
+      {loadFailed && (
+        <div role="alert" className="rounded-xl border border-brand-border-grey p-4 text-sm">
+          <p>{t('projects.loadFailed')}</p>
+          <button type="button" onClick={() => setLoadAttempt(n => n + 1)}
+            className="mt-2 font-semibold underline underline-offset-4">{t('common.retry')}</button>
+        </div>
+      )}
+
       {!loading && !isContractor && !viewerOnly && (
         <ProfileCompletion nameSet={nameSet} hasProject={ownedCount > 0} />
       )}
@@ -723,6 +739,7 @@ export default function Dashboard() {
             stages={activeStages}
             stagesLoading={stagesLoading}
             shared={sharedIds.has(activeProject.id)}
+            assigned={assignedIds.has(activeProject.id)}
           />
 
           <QuickActions
@@ -730,11 +747,12 @@ export default function Dashboard() {
             unread={unreadCount}
             documentCount={documentCount}
             shared={sharedIds.has(activeProject.id)}
+            assigned={assignedIds.has(activeProject.id)}
           />
 
           <CostingDonut project={activeProject} />
         </>
-      ) : isContractor ? (
+      ) : loadFailed ? null : isContractor ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">
           {t('dashboard.empty.contractor')}
         </div>
@@ -758,7 +776,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.06 }}>
-                <OtherProjectRow project={p} shared={sharedIds.has(p.id)} />
+                <OtherProjectRow project={p} shared={sharedIds.has(p.id)} assigned={assignedIds.has(p.id)} />
               </motion.div>
             ))}
           </div>

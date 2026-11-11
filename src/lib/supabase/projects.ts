@@ -6,6 +6,7 @@ import { trackEvent } from '@/lib/analytics';
 import type { CityRate, ConstructionRate, WizardFormData, BudgetBreakdown, ProjectFeeRow, ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectTier, PaymentStatus } from '@/types/project';
 import { stageShares } from '@/lib/budget/stage-shares';
 import { DEFAULT_BUILDING_KIND } from '@/lib/projects/document-identity';
+import { allocateBill, amountPrecision, type BillBudgetSnapshot } from '@/lib/budget/bill-budget';
 
 // =========================================================
 // createProject
@@ -32,6 +33,7 @@ export async function createProject(
      */
     rate?: ConstructionRate | null;
     cityRate?: CityRate | null;
+    bill?: BillBudgetSnapshot;
   } = {},
 ): Promise<ProjectRow> {
   // ALWAYS created on the free plan, unless an admin says otherwise. A paid tier is
@@ -89,6 +91,12 @@ export async function createProject(
       offices:             formData.offices,
       floor_rooms:         formData.floorRooms.length ? formData.floorRooms : null,
       budget_usd:          budget.total,
+      ...(opts.bill ? {
+        budget_source: 'boq', budget_amount: opts.bill.amount,
+        budget_currency: opts.bill.currencyCode, budget_fx_rate: opts.bill.fxRate,
+        budget_precision: amountPrecision(opts.bill.amount),
+        budget_source_label: opts.bill.sourceLabel ?? null, budget_source_file: opts.bill.fileName ?? null,
+      } : {}),
       tier,
       status:              'active' as const,
       current_stage:       1,
@@ -125,6 +133,8 @@ export async function createProject(
     // keeps the seed percentages. Philip, 9 Nov 2026 — see that module's header for the
     // size of the gap it closes.
     const { shares } = stageShares(seeds, formData, opts.rate, opts.cityRate);
+    const native = opts.bill ? allocateBill(opts.bill.amount,
+      seeds.map(s => ({ id: s.key, pct: shares[s.key as keyof typeof shares] ?? s.budget_pct }))) : null;
 
     const stageRows = seeds.map(s => ({
       project_id:            project.id,
@@ -138,6 +148,11 @@ export async function createProject(
       payment_milestone_usd: s.key === 'designCompleted'
         ? Math.round(budget.design)
         : Math.round(budget.construction * (shares[s.key as keyof typeof shares] ?? s.budget_pct) / 100),
+      ...(opts.bill ? {
+        milestone_amount: native!.get(s.key),
+        payment_milestone_usd: Number(native!.get(s.key)) / opts.bill.fxRate,
+        fixed_amount_usd: (shares[s.key as keyof typeof shares] ?? s.budget_pct) === 0 ? 0 : null,
+      } : {}),
       status:                (!gated && s.stage_number === 1) ? 'active' : 'locked',
       payment_status:        'unpaid',
     }));
@@ -408,15 +423,20 @@ export interface ClientProjects {
   all: ProjectRow[];
   /** Membership test for `all`, so a row can be marked without a second pass. */
   isShared: (projectId: string) => boolean;
+  /** Some relationships could not be read; keep successful results visible. */
+  loadFailed?: boolean;
 }
 
 export async function fetchClientProjects(userId: string): Promise<ClientProjects> {
   // Both halves at once. A person with no invitations pays one extra indexed lookup
   // against a tiny table; a person with no projects of their own gets a dashboard.
-  const [owned, sharedIds] = await Promise.all([
+  const [ownedResult, sharedResult] = await Promise.allSettled([
     fetchProjects(userId),
     fetchSharedProjectIds(userId),
   ]);
+  const owned = ownedResult.status === 'fulfilled' ? ownedResult.value : [];
+  const sharedIds = sharedResult.status === 'fulfilled' ? sharedResult.value : [];
+  let loadFailed = ownedResult.status === 'rejected' || sharedResult.status === 'rejected';
 
   // Somebody can be invited to a build they already own — a contractor who set a
   // project up and was then added as a viewer of it, which 112 permits. Owned wins:
@@ -433,8 +453,8 @@ export async function fetchClientProjects(userId: string): Promise<ClientProject
       .order('created_at', { ascending: false });
     // A revoked-then-deleted project, or a row RLS no longer returns, is simply absent
     // rather than fatal — the viewer list is a cache of ids, not a guarantee.
-    if (error) throw error;
-    shared = data ?? [];
+    if (error) loadFailed = true;
+    else shared = data ?? [];
   }
 
   const sharedSet = new Set(shared.map(p => p.id));
@@ -446,6 +466,7 @@ export async function fetchClientProjects(userId: string): Promise<ClientProject
       (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
     ),
     isShared: (projectId: string) => sharedSet.has(projectId),
+    loadFailed,
   };
 }
 

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Loader2, Users } from 'lucide-react';
 import {
-  getViewerInvitePreview, acceptProjectViewer, rememberShare,
+  getViewerInvitePreview, rememberShare,
   type ViewerInvitePreview,
 } from '@/lib/supabase/project-viewers';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
+import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import { projectInvitationError, withProjectInvitation } from '@/lib/auth/project-invitation';
 
 // =========================================================
 // /share/:token — somebody was invited to watch a build (112)
@@ -22,7 +24,7 @@ import { useT } from '@/lib/i18n';
 
 export default function ShareInvite() {
   const { token } = useParams<{ token: string }>();
-  const { session, loading: authLoading } = useAuth();
+  const { session, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const t = useT();
 
@@ -47,12 +49,17 @@ export default function ShareInvite() {
     if (!token) return;
     setBusy(true); setError(null);
     try {
-      const projectId = await acceptProjectViewer(token);
-      navigate(`/projects/${projectId}`, { replace: true });
-    } catch {
-      setError(t('share.errFailed'));
+      const path = await completeProjectInvitation({ kind: 'viewer', token });
+      window.location.href = path;
+    } catch (err) {
+      setError(t(projectInvitationError(err)));
       setBusy(false);
     }
+  }
+
+  async function changeAccount() {
+    await signOut();
+    navigate(withProjectInvitation('/auth/login', token ? { kind: 'viewer', token } : null));
   }
 
   if (loading || authLoading) {
@@ -86,17 +93,23 @@ export default function ShareInvite() {
       {error && <p role="alert" className="mt-4 text-sm text-brand-near-black dark:text-white">{error}</p>}
 
       {session ? (
-        <Button onClick={accept} disabled={busy} className="mt-6 w-full">
-          {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-          {t('share.accept')}
-        </Button>
+        <div className="mt-6 space-y-3">
+          <p className="text-xs text-brand-mid-grey">{t('invite.loggedInAs', { email: session.user.email ?? '' })}</p>
+          <Button onClick={accept} disabled={busy} className="w-full">
+            {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+            {t('share.accept')}
+          </Button>
+          <button type="button" onClick={changeAccount} className="text-sm underline underline-offset-4">
+            {t('common.switchAccount')}
+          </button>
+        </div>
       ) : (
         <div className="mt-6 space-y-3">
           {/* The token is already parked, so signing up finishes the job by itself. */}
-          <Link to={`/auth/signup?email=`} className="block">
+          <Link to={withProjectInvitation('/auth/signup', token ? { kind: 'viewer', token } : null)} className="block">
             <Button className="w-full">{t('share.createAccount')}</Button>
           </Link>
-          <Link to="/auth/login" className="block text-center text-sm text-brand-mid-grey underline underline-offset-4">
+          <Link to={withProjectInvitation('/auth/login', token ? { kind: 'viewer', token } : null)} className="block text-center text-sm text-brand-mid-grey underline underline-offset-4">
             {t('share.haveAccount')}
           </Link>
         </div>

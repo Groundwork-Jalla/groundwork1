@@ -99,7 +99,9 @@ export function stageBasisFor(
   hasBoq: boolean,
 ): StageBasis {
   const budget = projectBudget(project);
-  if (hasBoq) return { wholeProject: true, base: budget.total };
+  if (project.budget_source === 'boq' || (project.budget_source == null && hasBoq)) {
+    return { wholeProject: true, base: budget.total };
+  }
   return {
     wholeProject: false,
     base: inferConstructionTotal(stages) ?? budget.construction ?? null,
@@ -109,7 +111,7 @@ export function stageBasisFor(
 /** `budget_pct` of the basis, or null when the stage carries no percentage. */
 function fromPercentage(stage: ProjectStageRow, basis: StageBasis): number | null {
   if (basis.base == null || (stage.budget_pct ?? 0) <= 0) return null;
-  return Math.round(basis.base * ((stage.budget_pct ?? 0) / 100));
+  return Math.round(basis.base * ((stage.budget_pct ?? 0) / 100) * 100) / 100;
 }
 
 /** Work that was already standing when this build joined Groundwork. */
@@ -127,7 +129,10 @@ function isHistorical(stage: ProjectStageRow): boolean {
  */
 export function stageScheduleUsd(stage: ProjectStageRow, basis: StageBasis): number {
   const derived = fromPercentage(stage, basis);
-  if (basis.wholeProject || isHistorical(stage)) {
+  // The database allocated rounding remainders across the complete schedule. Reading
+  // that allocation preserves the same figure on client, contractor and payment views.
+  if (basis.wholeProject) return stage.payment_milestone_usd ?? derived ?? 0;
+  if (isHistorical(stage)) {
     return derived ?? stage.payment_milestone_usd ?? 0;
   }
   return stage.payment_milestone_usd ?? 0;

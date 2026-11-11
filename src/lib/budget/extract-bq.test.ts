@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(__dirname, '..', '..', '..');
 import * as XLSX from 'xlsx';
 import { readBqTotal } from './read-bq-total';
-import { canExtract, readStatedFloors, readFloorPlanFacts } from './extract-bq';
+import { canExtract, extractBqTotal, readStatedFloors, readFloorPlanFacts } from './extract-bq';
 
 /**
  * Reading a real bill of quantities, in the formats they actually arrive in.
@@ -299,5 +299,34 @@ describe('French storey and area wording', () => {
 
   it('never reads the plot as the building', () => {
     expect(readFloorPlanFacts('Surface du terrain 500 m²', { pageCount: 1 }).areaSqm).toBeNull();
+  });
+});
+
+
+describe('the supplied R+4 penthouse workbook', () => {
+  it('reads the final formula cache as a numeric amount and retains its original cell', async () => {
+    const bytes = readFileSync(join(ROOT, 'docs/testcases/1793973807289_Devis_R4_Penthouse_Simplifie_Corrige.xlsx'));
+    const file = new File([bytes], 'Devis_R4_Penthouse.xlsx');
+    const extraction = await extractBqTotal(file);
+    expect(extraction.reading).toMatchObject({
+      total: 1_414_073_374.524,
+      sourceAmount: '1414073374.524',
+      currencyCode: 'XAF',
+      confidence: 'grand',
+      source: { sheet: '2-Devis', cell: 'E65', row: 65 },
+    });
+    expect(extraction.reading?.total).not.toBe(11_858_705_765);
+    expect(extraction.reading?.total).not.toBe(1_000_000);
+  });
+
+  it('reads currency from a numeric cell format and keeps 3 decimal places', async () => {
+    const book = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([['TOTAL GENERAL TTC', 1_414_073_374.524]]);
+    sheet.B1.z = '#,##0.000 "FCFA"';
+    XLSX.utils.book_append_sheet(book, sheet, 'Summary');
+    const data = XLSX.write(book, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+    const extraction = await extractBqTotal(new File([data], 'numeric.xlsx'));
+    expect(extraction.reading).toMatchObject({ total: 1_414_073_374.524, currencyCode: 'XAF',
+      sourceAmount: '1414073374.524', source: { sheet: 'Summary', cell: 'B1' } });
   });
 });

@@ -234,15 +234,18 @@ export default function ProjectDetail() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'project_stages', filter: `project_id=eq.${id}` },
         (payload) => {
-          const updated = payload.new as { id: string; payment_status: PaymentStatus };
+          const updated = payload.new as ProjectStageRow;
           setStages(prev =>
-            prev.map(s => s.id === updated.id ? { ...s, payment_status: updated.payment_status } : s),
+            prev.map(s => s.id === updated.id ? { ...s, ...updated } : s),
           );
         },
       )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, () => { void loadAll(); })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [id]);
+    const refresh = () => { void loadAll(); };
+    window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('focus', refresh); supabase.removeChannel(channel); };
+  }, [id, loadAll]);
 
   // ── Event handlers ─────────────────────────────────────
 
@@ -399,7 +402,7 @@ export default function ProjectDetail() {
             see project-money-context.tsx. One provider for the whole body so the budget
             gate, the overview, the costing tab, the stage list and the payments ledger
             can never quote four different conversions of the same stage. */}
-        <ProjectMoneyProvider country={project.country}>
+        <ProjectMoneyProvider project={project}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}

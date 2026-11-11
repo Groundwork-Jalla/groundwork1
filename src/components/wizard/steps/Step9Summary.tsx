@@ -312,14 +312,8 @@ function grouped(value: string): string {
 function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; onConfirmed: (v: boolean) => void }) {
   const t = useT();
   const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft,
-    documentExtraction } = useWizard();
-  // Fall back to the calculated budget whichever flow this is.
-  //
-  // The document flow used to fall back to 0 when the bill of quantities could not be
-  // read. That is the one case where the person is most stuck: the field stays empty,
-  // the checkbox below is disabled on `amount <= 0`, and "Confirm budget" can never
-  // enable — while the summary panel beside it shows a perfectly good calculated figure.
-  // Reported from a live activation call as "I can't get past this stage".
+    documentExtraction, pendingDocuments, planDocumentsSeen } = useWizard();
+  // An unreadable bill requires its amount to be entered; an estimate cannot replace it.
   /**
    * The confirmed budget, in the money of the country being built in.
    *
@@ -346,10 +340,12 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
    * The bill says what it is priced in, and that is the project's currency whatever
    * our 22-row table knows. The country is the fallback, not the authority.
    */
-  const currencyCode = (documentExtraction?.bqReading?.currencyCode
+  const currencyCode = (data.boqBudget?.currencyCode ?? documentExtraction?.bqReading?.currencyCode
     ?? constructionRate?.currency_code
     ?? getCurrencyCode(data.country)).toUpperCase();
-  const fxRate = useUsdRate(currencyCode, storedRate) ?? storedRate;
+  const countryCurrency = constructionRate?.currency_code ?? getCurrencyCode(data.country);
+  const fxRate = useUsdRate(currencyCode,
+    currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null) ?? 0;
   /**
    * The bill's own figure, untouched, whenever there is one.
    *
@@ -361,11 +357,14 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
    * Only an estimated build, with no bill to read, is converted — and there the
    * dollars are the original and the local figure is the derived one.
    */
-  const billTotal = documentExtraction?.bqReading?.total ?? null;
-  const estimate = billTotal != null
-    ? Math.round(billTotal)
+  const hasBill = !!data.boqBudget || (pendingDocuments ?? []).some(d => d.category === 'boq')
+    || (data.hasArchitecturePlan === true && planDocumentsSeen);
+  const reading = documentExtraction?.bqReading;
+  const billTotal = data.boqBudget?.amount != null ? Number(data.boqBudget.amount)
+    : reading?.confidence === 'grand' ? reading.total : null;
+  const estimate = billTotal ?? (hasBill ? 0
     : Math.round((data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total)
-        * (fxRate > 0 ? fxRate : 1));
+        * (fxRate > 0 ? fxRate : 1)));
   const raw = confirmationDraft?.raw ?? '';
   const previousEstimate = useRef<number | null>(null);
   const touchedByUser = useRef(false);
@@ -381,7 +380,8 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
     previousEstimate.current = estimate;
   }, [raw, estimate, updateConfirmationDraft]);
 
-  const amount = Number(raw.replace(/[^0-9.]/g, '') || 0);
+  const amount = /^\d+(?:\.\d{1,6})?$/.test(raw) && Number(raw) <= 1e12 ? Number(raw) : 0;
+  useEffect(() => { onConfirmed(false); }, [raw, currencyCode, onConfirmed]);
   return (
     <div className="mt-5 rounded-xl border border-brand-border-grey px-5 py-4 space-y-1.5">
       <label htmlFor="final-budget" className="text-sm font-semibold text-brand-near-black">
@@ -395,7 +395,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
         <input
           id="final-budget"
           data-tour="confirm-budget"
-          inputMode="numeric"
+          inputMode="decimal"
           // Grouped for reading — 26,687,728, not 26687728. A construction budget here
           // runs to eight digits and an ungrouped one cannot be checked at a glance
           // against the bill it came from. Stored ungrouped: the separators are display

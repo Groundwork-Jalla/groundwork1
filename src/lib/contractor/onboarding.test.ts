@@ -598,7 +598,7 @@ describe('signing up ends in the agreement, not on the dashboard', () => {
 
   it('and /work sends them to the form until BOTH holds clear', () => {
     expect(layout).toMatch(/if \(through\(gate\)\) return;/);
-    expect(layout).toMatch(/navigate\('\/work\/onboarding', \{ replace: true \}\)/);
+    expect(layout).toContain('navigate(`/work/onboarding?redirect=${encodeURIComponent(destination)}`, { replace: true })');
   });
 
   it('it gates on the WHOLE sequence, not the agreement alone', () => {
@@ -873,13 +873,13 @@ describe('the question at the end, and the two ways out (118)', () => {
   it('each answer goes where it should', () => {
     expect(page).toMatch(/intent === 'create_project' \? '\/projects\/new'/);
     expect(page).toMatch(/: '\/work'/);
-    expect(page).toMatch(/navigate\(destination, \{ replace: true \}\)/);
+    expect(page).toMatch(/navigate\(invitedProject \?\? destination, \{ replace: true \}\)/);
   });
 
   it('records the onboarding answer before navigating away', () => {
     const fn = page.slice(page.indexOf('onAnswered={async'));
     const handler = fn.slice(0, fn.indexOf('}}'));
-    expect(handler.indexOf('await setClientIntent(')).toBeLessThan(handler.indexOf('navigate(destination'));
+    expect(handler.indexOf('await setClientIntent(')).toBeLessThan(handler.indexOf('navigate(invitedProject ?? destination'));
   });
 
   it('the answer is recorded in the database, not the browser', () => {

@@ -94,7 +94,7 @@ describe('the screens use these rules', () => {
 
   it('the wizard offers the shared list and files the attachment as a BoQ', () => {
     const src = read('src/components/wizard/steps/Step11ConfirmBudget.tsx');
-    expect(src).toMatch(/accept=\{FILE_ACCEPT_ATTR\}/);
+    expect(src).toMatch(/accept=\{BOQ_ACCEPT_ATTR\}/);
     // One loop now covers the optional attachment AND the floor plan and bill of
     // quantities carried from the architecture-plan question. The attachment is still
     // filed as a BoQ — that is what `category: 'boq' as const` below pins.

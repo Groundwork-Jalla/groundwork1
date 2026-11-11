@@ -160,7 +160,7 @@ describe('every client surface asks for both kinds', () => {
   for (const file of CLIENT_SURFACES) {
     it(`${file} loads shared builds too`, () => {
       const src = code(file);
-      expect(src, 'must use the two-route loader').toContain('fetchClientProjects');
+      expect(src, 'must load every project relationship').toMatch(/fetch(?:Client|Participant)Projects/);
       // The owned-only query must not be what a client screen reaches for. It is still
       // exported — /profile counts a person's OWN projects against their plan, which is
       // the one question `user_id = me` is the right answer to.
@@ -243,7 +243,12 @@ describe('shared is derived from the shared list, never from the whole list', ()
     for (const file of ['src/app/routes/dashboard.tsx',
                         'src/app/routes/projects/index.tsx',
                         'src/app/routes/payments.tsx']) {
-      expect(code(file), file).toMatch(/fetchContractorProjects\(user\.id\)\.then\(rows => \(\{[^}]*shared: \[\]/);
+      if (file.endsWith('payments.tsx')) {
+        expect(code(file), file).toMatch(/fetchContractorProjects\(user\.id\)\.then\(rows => \(\{[^}]*shared: \[\]/);
+      } else {
+        expect(code(file), file).toContain('fetchParticipantProjects(user.id, isContractor)');
+        expect(code('src/lib/supabase/participant-projects.ts')).toContain('client.shared.filter(p => !assignedIds.has(p.id))');
+      }
     }
   });
 });

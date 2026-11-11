@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, HardHat, Loader2, X } from 'lucide-react';
 
-import { useT } from '@/lib/i18n';
+import { useLanguage, useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { isValidEmail } from '@/lib/email/is-valid-email';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ export function ContractorInvite({
   projectId, userId, projectName,
 }: ContractorInviteProps) {
   const t = useT();
+  const { lang } = useLanguage();
   const { user } = useAuth();
   const inviterName = user?.user_metadata?.full_name ?? user?.email ?? 'Project Owner';
 
@@ -79,7 +80,7 @@ export function ContractorInvite({
     setBusy(true);
     try {
       const { emailSent } = await inviteContractor(
-        projectId, userId, address, projectName, inviterName);
+        projectId, userId, address, projectName, inviterName, lang);
       if (emailSent) setSent(address); else setNotEmailed(address);
       setEmail('');
       load();

@@ -49,7 +49,7 @@ describe('the handler no longer lets Supabase send it', () => {
     expect(src).toMatch(/\/auth\/callback\?flow=client-invite/);
   });
 
-  it('resolves the language from the contractor, with the screen last and the country after it', () => {
+  it('supplies both the contractor profile and current screen to the shared resolver', () => {
     expect(src).toMatch(/const uiLang = \(req\.body as \{ lang\?: unknown \} \| undefined\)\?\.lang;/);
     expect(src).toMatch(/resolveRecipientLang\(\s*\n?\s*null,\s*\n?\s*contractor\?\.signup_country \?\? null,\s*\n?\s*contractor\?\.preferred_lang \?\? null,\s*\n?\s*uiLang === 'en' \|\| uiLang === 'fr' \? uiLang : null,/);
   });
@@ -75,7 +75,7 @@ describe('the handler no longer lets Supabase send it', () => {
 describe('the caller sends the screen language', () => {
   it('contractor-clients.ts', () => {
     const src = code('src/lib/supabase/contractor-clients.ts');
-    expect(src).toMatch(/lang: detectLang\(\)/);
+    expect(src).toMatch(/JSON\.stringify\(\{ fullName, email, phone, lang \}\)/);
   });
 });
 

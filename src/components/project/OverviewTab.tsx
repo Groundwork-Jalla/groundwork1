@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
+import { sumBillAmounts } from '@/lib/budget/bill-budget';
 import {
   DESIGN_RATE_XAF_PER_M2,
   LABOR_PCT,
@@ -113,13 +114,18 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 
 // ── Cost breakdown ────────────────────────────────────────
 
-function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt }: {
+function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt, boq, historical, remaining, historicalAmount, remainingAmount }: {
   budget: BudgetBreakdown;
   paid: BudgetBreakdown;
   paidTotal: number;
   outstanding: number;
   /** Renders a stored USD figure in the project's own currency. See `useProjectMoney`. */
-  fmt: (usd: number) => string;
+  fmt: (usd: number, sourceAmount?: number | null) => string;
+  boq?: boolean;
+  historical?: number;
+  remaining?: number;
+  historicalAmount?: number | null;
+  remainingAmount?: number | null;
 }) {
   const t = useT();
   const total = budget.total;
@@ -140,7 +146,7 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt }: {
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: t('project.overview.costPlanned'), value: fmt(total), cls: '' },
+          { label: t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned'), value: fmt(total), cls: '' },
           { label: t('project.overview.costPaid'), value: fmt(paidTotal), cls: 'text-state-complete' },
           { label: outstanding > 0 ? t('project.overview.costOutstanding') : t('project.overview.costUnder'), value: fmt(outstanding), cls: 'text-state-held' },
         ].map(c => (
@@ -150,6 +156,13 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt }: {
           </div>
         ))}
       </div>
+
+      {boq && (
+        <dl className="mt-3 space-y-1 text-xs text-brand-mid-grey">
+          {!!historical && <div className="flex justify-between gap-3"><dt>{t('project.overview.historicalValue')}</dt><dd className="font-semibold tabular-nums">{fmt(historical, historicalAmount)}</dd></div>}
+          <div className="flex justify-between gap-3"><dt>{t('contractorMoney.stillToCome')}</dt><dd className="font-semibold tabular-nums">{fmt(remaining ?? 0, remainingAmount)}</dd></div>
+        </dl>
+      )}
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
         <div className="h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${paidPct}%` }} />
@@ -344,7 +357,7 @@ export default function OverviewTab({
     .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
 
   const feesPaid   = fees.filter(f => f.payment_status === 'paid')
-    .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+    .reduce((acc, f) => acc + Number(f.boq_waived_amount_usd ?? f.amount_usd ?? 0), 0);
   const feesUnpaid = fees.filter(f => f.payment_status !== 'paid')
     .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
 
@@ -408,7 +421,7 @@ export default function OverviewTab({
    */
   const hasObligations = billableStages.length > 0 || fees.length > 0;
 
-  const plannedBySlice: BudgetBreakdown = hasObligations ? {
+  const plannedBySlice: BudgetBreakdown = project.budget_source === 'boq' ? budget : hasObligations ? {
     total:        paidTotal + outstanding,
     construction: plannedConstruction,
     material:     plannedConstruction * MATERIAL_PCT,
@@ -475,7 +488,7 @@ export default function OverviewTab({
         />
         <StatCard
           label={t('project.overview.nextMilestone')}
-          value={nextStage ? fmt(nextStage.payment_milestone_usd ?? 0) : '—'}
+          value={nextStage ? fmt(nextStage.payment_milestone_usd ?? 0, nextStage.milestone_amount) : '—'}
           sub={nextStage ? t('project.overview.nextStarts', { date: fmtDate(projStart) }) : t('project.overview.allDone')}
           valueSize="text-lg"
           icon={<Landmark className="size-4 text-brand-near-black dark:text-white" />}
@@ -513,7 +526,7 @@ export default function OverviewTab({
                   {t('project.overview.unlockAmount', {
                     // The full figure, not the compact one: a client about to transfer money
                     // needs the exact amount, and $1k is not an amount anybody can pay.
-                    amount: fmt(unlockStage.payment_milestone_usd ?? 0),
+                    amount: fmt(unlockStage.payment_milestone_usd ?? 0, unlockStage.milestone_amount),
                     stage:  stageLabel(unlockStage),
                   })}
                 </p>
@@ -534,6 +547,11 @@ export default function OverviewTab({
             paidTotal={paidTotal}
             outstanding={outstanding}
             fmt={fmt}
+            boq={project.budget_source === 'boq'}
+            historical={sortedStages.filter(s => s.pre_existing).reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}
+            remaining={sortedStages.filter(s => s.status !== 'complete').reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}
+            historicalAmount={project.budget_precision != null ? sumBillAmounts(sortedStages.filter(s => s.pre_existing).map(s => s.milestone_amount), project.budget_precision) : null}
+            remainingAmount={project.budget_precision != null ? sumBillAmounts(sortedStages.filter(s => s.status !== 'complete').map(s => s.milestone_amount), project.budget_precision) : null}
           />
 
           {/* The latest on the stage in play, with a way into it. */}

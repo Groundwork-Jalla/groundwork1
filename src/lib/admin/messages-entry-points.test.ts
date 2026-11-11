@@ -82,7 +82,8 @@ describe('the dashboard shortcut', () => {
   });
 
   it('and opens the open build\'s messages when there is one', () => {
-    expect(dashboard).toMatch(/to: `\/projects\/\$\{project\.id\}\?tab=messages`/);
+    expect(dashboard).toContain('to: `${projectPath}?tab=messages`');
+    expect(dashboard).toContain("assigned ? '/work/projects' : '/projects'");
   });
 
   it('and is not shown at all without a build to open', () => {

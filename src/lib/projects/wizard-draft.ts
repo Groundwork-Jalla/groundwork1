@@ -103,6 +103,14 @@ function formData(value: unknown): WizardFormData | null {
       ? value.hasArchitecturePlan : null,
     bqTotalUsd: typeof value.bqTotalUsd === 'number' && Number.isFinite(value.bqTotalUsd)
       && value.bqTotalUsd > 0 ? value.bqTotalUsd : null,
+    ...(record(value.boqBudget) ? { boqBudget: {
+      amount: text(value.boqBudget.amount, 100) && /^\d+(?:\.\d{1,6})?$/.test(value.boqBudget.amount)
+        ? value.boqBudget.amount : null,
+      currencyCode: text(value.boqBudget.currencyCode, 3) && /^[A-Z]{3}$/.test(value.boqBudget.currencyCode)
+        ? value.boqBudget.currencyCode : null,
+      sourceLabel: text(value.boqBudget.sourceLabel, 1000) ? value.boqBudget.sourceLabel : null,
+      fileName: text(value.boqBudget.fileName, 1000) ? value.boqBudget.fileName : null,
+    } } : {}),
     previewActiveFloor: Math.min(value.previewActiveFloor, value.floors - 1),
   };
 }

@@ -50,7 +50,7 @@ describe('the client is quoted in the project currency', () => {
 
   it('one provider covers the whole project page, the budget gate included', () => {
     const detail = code('src/app/routes/projects/detail.tsx');
-    expect(detail).toMatch(/<ProjectMoneyProvider country=\{project\.country\}>/);
+    expect(detail).toMatch(/<ProjectMoneyProvider project=\{project\}>/);
     // Before the tabs AND before StartTrackingGate: the gate is where a client first
     // sees what the build will cost them, which is the worst place to say $.
     const provider = detail.indexOf('<ProjectMoneyProvider');
@@ -76,14 +76,14 @@ describe('the client is quoted in the project currency', () => {
     // contractor is owed.
     const ctx = code('src/lib/budget/project-money-context.tsx');
     expect(ctx).not.toMatch(/supabase|\.rpc\(|insert|update/i);
-    expect(ctx).toMatch(/useProjectMoney\(country\)/);
+    expect(ctx).toMatch(/useProjectMoney\(project \?\? country\)/);
   });
 
   it('outside a provider it falls back to dollars rather than throwing', () => {
     // The same leaves render in the admin workspace, where there is no one project whose
     // currency it could be. A crash there would be a worse bug than the one being fixed.
     expect(code('src/lib/budget/project-money-context.tsx'))
-      .toMatch(/money\?\.local\(value\) \?\? formatUSDFull\(value\)/);
+      .toMatch(/money\?\.local\(value, sourceAmount\) \?\? formatUSDFull\(value\)/);
   });
 });
 

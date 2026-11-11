@@ -61,11 +61,10 @@ describe('which figure a percentage is a percentage of', () => {
 });
 
 describe('what a stage is worth', () => {
-  it('derives every stage from its percentage on a bill-of-quantities project', () => {
+  it('reads the saved allocation on a bill-of-quantities project', () => {
     const basis = stageBasisFor(project(), [stage()], true);
-    // 46.371529% of 80,587 — NOT the 41,533.06 stored against an older base.
-    expect(stageScheduleUsd(stage(), basis)).toBe(Math.round(80587 * 0.46371529));
-    expect(stageScheduleUsd(stage(), basis)).not.toBe(41533.06);
+    // Allocation remainders were assigned by the database across all stages.
+    expect(stageScheduleUsd(stage(), basis)).toBe(41533.06);
   });
 
   it('keeps the confirmed amount on a build from scratch', () => {
@@ -79,7 +78,7 @@ describe('what a stage is worth', () => {
     // cost, so the percentage answers instead.
     const historical = stage({ pre_existing: true, status: 'complete', payment_milestone_usd: 0, budget_pct: 15.664829 });
     const basis = { wholeProject: false, base: 89565.86 };
-    expect(stageScheduleUsd(historical, basis)).toBe(Math.round(89565.86 * 0.15664829));
+    expect(stageScheduleUsd(historical, basis)).toBe(Math.round(89565.86 * 0.15664829 * 100) / 100);
   });
 
   it('falls back to the stored amount when there is no percentage to use', () => {

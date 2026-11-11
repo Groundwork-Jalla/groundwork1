@@ -13,11 +13,12 @@ import { normalisePhone, isValidPhone } from "@/lib/phone";
 import { PhoneField } from "@/components/ui/PhoneField";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/countries";
 import { rememberEmailRequest } from "@/lib/auth/last-email-request";
-import { isSafeInternalPath, PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
+import { PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
          isExistingAccount } from "@/lib/auth/signup-account";
 import RoleSignup from "@/components/auth/RoleSignup";
 import { PasswordField } from '@/components/ui/PasswordField';
+import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn } from '@/lib/auth/project-invitation';
 
 export default function Signup() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,7 +71,7 @@ export default function Signup() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: projectAuthCallbackUrl(window.location.origin, searchParams.toString()) },
     });
     setResending(false);
     setResendMsg(error ? t('auth.signup.resendErr') : t('auth.signup.resentOk'));
@@ -80,7 +81,7 @@ export default function Signup() {
   async function handleGoogleSignUp() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: projectAuthCallbackUrl(window.location.origin, searchParams.toString()) },
     });
   }
 
@@ -107,15 +108,15 @@ export default function Signup() {
     }
 
     // Persist invite token across the email-confirmation tab switch
-    if (inviteToken) {
-      localStorage.setItem("pendingInvite", inviteToken);
-    }
+    const invitation = readProjectInvitation(searchParams.toString());
+    if (invitation) rememberProjectInvitation(invitation);
 
     // And the destination, for the same reason. Sign-up ends on "check your email", so the
     // session is established in a DIFFERENT tab via /auth/callback — a redirect held only in
     // this page's URL is gone by then. Same mechanism the invite already uses.
-    const wanted = searchParams.get("redirect");
-    if (isSafeInternalPath(wanted)) localStorage.setItem(PENDING_REDIRECT, wanted);
+    const wanted = safeAuthReturn(searchParams.get("redirect"));
+    try { if (wanted) localStorage.setItem(PENDING_REDIRECT, wanted); }
+    catch { /* The auth return URL carries the destination without browser storage. */ }
 
     setSubmitting(true);
     const { data, error } = await supabase.auth.signUp({
@@ -123,7 +124,7 @@ export default function Signup() {
       password,
       options: {
         data: signupMetadata(fullName, canonicalPhone),
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: projectAuthCallbackUrl(window.location.origin, searchParams.toString()),
       },
     });
     setSubmitting(false);
@@ -139,7 +140,7 @@ export default function Signup() {
 
     // Instant sign-in path (email confirmation disabled)
     if (data.session) {
-      window.location.href = "/auth/callback";
+      window.location.href = projectAuthCallbackUrl(window.location.origin, searchParams.toString());
       return;
     }
 

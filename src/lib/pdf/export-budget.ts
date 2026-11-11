@@ -6,6 +6,7 @@ import { formatShare } from '@/lib/budget/stage-shares';
 import { translate, translatePlural, translator, type TKey } from '@/lib/i18n/translate';
 import type { Lang } from '@/lib/i18n/types';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
+import { projectMoneyPair } from '@/lib/budget/project-money';
 
 const PAY_LABEL: Record<string, TKey> = {
   paid: 'pdf.payPaid', partial: 'pdf.payPartial', unpaid: 'pdf.payUnpaid',
@@ -42,7 +43,9 @@ export async function exportBudgetPDF(
   const t = translator(lang);
   const locale = localeFor(lang);
   const converts = !!fx && fx.code !== 'USD' && Number.isFinite(fx.rate) && fx.rate > 0;
-  const money = converts
+  const money = project.budget_source === 'boq'
+    ? (n: number) => projectMoneyPair(project, n)?.local ?? formatMoney(n, 'USD', locale)
+    : converts
     ? (n: number) => moneyPair(Math.round(n * fx!.rate), fx!.code, fx!.rate).local
     : (n: number) => formatMoney(n, 'USD', locale);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -138,7 +141,7 @@ export async function exportBudgetPDF(
   const shares = sliceShares(budget);
 
   let rowShade = false;
-  for (const slice of BUDGET_SLICES) {
+  for (const slice of BUDGET_SLICES.filter(slice => project.budget_source !== 'boq' || slice.key === 'construction')) {
     if (rowShade) {
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN, y, COL, 6, 'F');

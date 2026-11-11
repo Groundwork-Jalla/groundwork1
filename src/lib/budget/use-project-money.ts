@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import { getApproxFx, getCurrencyCode } from './legacy';
-import { moneyPair, type MoneyPair } from './money-pair';
+import type { MoneyPair } from './money-pair';
+import { projectMoneyBasis, projectMoneyPair, type ProjectMoneySource } from './project-money';
 import { useUsdRate } from './live-fx';
 
 // =========================================================
@@ -25,9 +25,9 @@ export interface ProjectMoney {
   /** Units of `code` per US dollar, today's if we have it. */
   rate: number;
   /** A stored USD figure, as the pair the contractor should see. */
-  pair: (usd: number | null | undefined) => MoneyPair | null;
+  pair: (usd: number | null | undefined, sourceAmount?: number | null) => MoneyPair | null;
   /** Just the local figure, grouped, for tight rows: "6,356,000 XAF". */
-  local: (usd: number | null | undefined) => string | null;
+  local: (usd: number | null | undefined, sourceAmount?: number | null) => string | null;
 }
 
 /**
@@ -35,24 +35,17 @@ export interface ProjectMoney {
  *   falls back to USD at parity, which `moneyPair` renders as plain dollars with no
  *   invented conversion beside them.
  */
-export function useProjectMoney(countryCode: string | null | undefined): ProjectMoney {
-  const code = getCurrencyCode((countryCode ?? '').toUpperCase());
-  const stored = getApproxFx((countryCode ?? '').toUpperCase());
-  const live = useUsdRate(code, stored);
-  const rate = live ?? stored;
+export function useProjectMoney(source: ProjectMoneySource): ProjectMoney {
+  const initial = projectMoneyBasis(source);
+  const live = useUsdRate(initial.locked ? null : initial.code, initial.fallback);
+  const { code, rate } = projectMoneyBasis(source, live);
 
-  const pair = useCallback((usd: number | null | undefined) => {
-    if (usd === null || usd === undefined || !Number.isFinite(usd)) return null;
-    const converted = moneyPair(Math.round(usd * rate), code, rate);
-    // Zero needs no conversion: "0 XAF ≈ $0" is two ways of saying nothing, and the
-    // "≈" implies an approximation that is not happening. A stage priced at zero —
-    // design on most builds, every stage on a job that joined half-built — says so
-    // once. See the `pre_existing` note in tracking.ts.
-    return usd === 0 ? { ...converted, usd: null, rate: null } : converted;
-  }, [code, rate]);
+  const pair = useCallback((usd: number | null | undefined, sourceAmount?: number | null) => {
+    return projectMoneyPair(source, usd, rate, sourceAmount);
+  }, [source, rate]);
 
   const local = useCallback(
-    (usd: number | null | undefined) => pair(usd)?.local ?? null,
+    (usd: number | null | undefined, sourceAmount?: number | null) => pair(usd, sourceAmount)?.local ?? null,
     [pair],
   );
 

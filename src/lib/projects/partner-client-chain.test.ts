@@ -137,7 +137,7 @@ describe('link 8 · the client follows the link and owns the project', () => {
     // PKCE redirects carry no Supabase `type`, so the marker is read from the URL
     // first or the purpose is lost.
     const resolve = callback.indexOf('passwordSetupPathForLink(window.location.search');
-    const navigate = callback.indexOf('navigate(passwordSetupPath');
+    const navigate = callback.indexOf('navigate(withProjectInvitation(passwordSetupPath');
     expect(resolve).toBeGreaterThan(-1);
     expect(navigate).toBeGreaterThan(resolve);
   });

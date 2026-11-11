@@ -468,6 +468,10 @@ export function projectBudget(
   rate?: ConstructionRate | null,
   cityRate?: CityRate | null,
 ): BudgetBreakdown {
+  if (project.budget_source === 'boq' && project.budget_usd != null) {
+    return { total: project.budget_usd, construction: project.budget_usd,
+      material: 0, labor: 0, design: 0, permit: 0, professional: 0, verification: 0, contingency: 0 };
+  }
   const shape = shapeOf(project.sqm, project.num_floors);
 
   // The confirmed total is authoritative. `decomposeBudget` recovers the four lines from
@@ -492,7 +496,8 @@ export function projectBudget(
 /** The fields of a `ProjectRow` that pricing actually reads. */
 export type ProjectBudgetSource = Pick<ProjectRow,
   | 'country' | 'city' | 'num_floors' | 'building_type' | 'roof_type'
-  | 'has_boys_quarters' | 'bq_rooms' | 'sqm' | 'finish_level' | 'budget_usd'>;
+  | 'has_boys_quarters' | 'bq_rooms' | 'sqm' | 'finish_level' | 'budget_usd'>
+  & Pick<ProjectRow, 'budget_source'>;
 
 /**
  * Display order, labels and colours for the four lines a client is quoted.

@@ -117,7 +117,7 @@ describe('the forced password change cannot be walked around', () => {
   it('the sign-in form checks it before acting on the identity', () => {
     const code = stripComments(read('src/app/routes/auth/login.tsx'));
     const gate = code.indexOf('mustChangePassword(');
-    const invite = code.indexOf('acceptInvite(');
+    const invite = code.indexOf('completeProjectInvitation(');
     const route = code.indexOf('postAuthPath(');
     expect(gate).toBeGreaterThan(-1);
     expect(invite).toBeGreaterThan(gate);

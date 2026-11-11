@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { trackLifecycle } from '@/lib/analytics/lifecycle';
 import { detectLang } from '@/lib/i18n';
+import type { Lang } from '@/lib/i18n/types';
 import type { ContractorInviteRow } from '@/types/project';
 
 // =========================================================
@@ -17,6 +18,7 @@ export async function inviteContractor(
   email: string,
   projectName: string,
   inviterName: string,
+  senderLang: Lang = detectLang(),
 ): Promise<InviteResult> {
   // The language this screen is in, which is what the sender means the invitation in.
   //
@@ -28,7 +30,7 @@ export async function inviteContractor(
   // an English screen, which is precisely the bug: three invitations to Brian on
   // 10 Nov 2026, from an English account, all in French. The server still ranks every
   // stored choice above this — see resolveRecipientLang.
-  const lang = detectLang();
+  const lang = senderLang;
   const { data, error } = await supabase
     .from('contractor_invites')
     .insert({

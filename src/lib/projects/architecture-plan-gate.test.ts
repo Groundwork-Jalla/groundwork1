@@ -37,7 +37,7 @@ describe('the answer carried into the wizard', () => {
   it('NO records a definite false, which is what stops the BQ being asked for again', () => {
     // `null` would leave the final step's attachment box showing. Only a definite NO
     // suppresses it, so the difference matters.
-    expect(planSeed({ hasPlan: false })).toEqual({ hasArchitecturePlan: false, bqTotalUsd: null });
+    expect(planSeed({ hasPlan: false })).toEqual({ hasArchitecturePlan: false, bqTotalUsd: null, boqBudget: null });
   });
 
   it('an unanswered question changes nothing', () => {
@@ -53,7 +53,7 @@ describe('the answer carried into the wizard', () => {
     // `projects.project_type` is NOT NULL, so the seed must supply it or the insert
     // is refused at the final click.
     expect(planSeed(answer)).toEqual({
-      hasArchitecturePlan: true, bqTotalUsd: 13_500_000,
+      hasArchitecturePlan: true, bqTotalUsd: 13_500_000, boqBudget: null,
       projectType: 'residential', buildingType: 'single_family',
     });
   });
@@ -90,7 +90,7 @@ describe('the answer carried into the wizard', () => {
     // collect is now read from the documents here instead. It is still a closed list
     // — the seed must not quietly reach into the rest of the form.
     const allowed = [
-      'hasArchitecturePlan', 'bqTotalUsd',
+      'hasArchitecturePlan', 'bqTotalUsd', 'boqBudget',
       'projectType', 'buildingType', 'projectName',
       'floors', 'sqm', 'bedrooms', 'bathrooms', 'livingRooms', 'kitchens',
     ];
@@ -191,7 +191,7 @@ describe('the question itself', () => {
     // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
     // stops holding the button once the grace period is out. Both documents are still
     // required, which is what this assertion is about.
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead\}/);
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning\}/);
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 

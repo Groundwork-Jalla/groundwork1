@@ -227,7 +227,7 @@ function StageDetail({
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-            {money(stage.payment_milestone_usd ?? 0)}{' '}
+            {money(stage.payment_milestone_usd ?? 0, stage.milestone_amount)}{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
           <StageBadge status={stage.status} tier={tier} />

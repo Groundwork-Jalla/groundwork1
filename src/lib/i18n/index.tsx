@@ -1,5 +1,5 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import { en } from './en';
 import { LANG_META, LANGS, type Lang } from './types';
@@ -98,6 +98,10 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectLang);
+  // Keep toggles available even when browser storage is blocked.
+  const choice = useRef<Lang | null>(storedLang());
+  const currentLang = useRef(lang);
+  currentLang.current = lang;
 
   // Keep the bare formatters in '@/lib/format' in step. Components should use
   // useFormat() so they re-render on a toggle; this covers the non-component callers
@@ -135,6 +139,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
    * into the session they eventually create.
    */
   const persistChoice = useCallback((next: Lang) => {
+    choice.current = next;
     try { localStorage.setItem(STORAGE_KEY, next); } catch { /* private mode */ }
     if (typeof document !== 'undefined') {
       document.documentElement.lang = LANG_META[next].htmlLang;
@@ -161,15 +166,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
    * the theme: signing in must not undo a toggle somebody just pressed here. A local
    * choice the account does not know about is pushed up instead.
    */
-  useEffect(() => onAuthUser(uid => {
-    if (!uid) return;
-    void (async () => {
-      const remote = await fetchPreferredLang(uid);
-      const { adopt, push } = reconcileLang(storedLang(), remote);
-      if (adopt) { setLangState(adopt); persistChoice(adopt); }
-      if (push) void persistPreferredLang(push);
-    })();
-  }), [persistChoice]);
+  useEffect(() => {
+    let generation = 0;
+    const unsubscribe = onAuthUser(uid => {
+      const reading = ++generation;
+      if (!uid) return;
+      void (async () => {
+        const remote = await fetchPreferredLang(uid);
+        if (reading !== generation || remote === undefined) return;
+        const { adopt, push } = reconcileLang(choice.current ?? storedLang(), remote, currentLang.current);
+        if (adopt) { setLangState(adopt); persistChoice(adopt); }
+        if (push) void persistPreferredLang(push);
+      })();
+    });
+    return () => { generation++; unsubscribe(); };
+  }, [persistChoice]);
 
   const toggle = useCallback(() => {
     setLangState(prev => {

@@ -79,25 +79,8 @@ export default async function handler(req: any, res: any) {
       admin.from('profiles').select('preferred_lang').ilike('email', invite.email).limit(1),
     ]);
 
-    // Resolve from the RECIPIENT, in this order: what they chose, then the project's
-    // build country, then English.
-    //
-    // This used to pass `null` for the preference, on the reasoning that "the invitee has
-    // no account yet". That is true of a first invitation and false of every one after it
-    // — a contractor already working on one project, invited to a second, has an account
-    // and a chosen language. That is precisely the case the beta tester reported: an
-    // English account receiving a French invitation, because the Cameroonian project
-    // country was the only signal being read.
-    /*
-     * The inviter's own language, between the recipient's and the build country.
-     *
-     * Philip, 3 Nov 2026: "why is it sending me in French when I'm English." He
-     * invited from an English account to an address with no profile, about a
-     * Cameroon build — so the country decided it. Where the house is says nothing
-     * about the language two people use with each other; the person writing does.
-     */
-    // The sender's screen language, from the body. Two values are legal and anything
-    // else is ignored; it is read only after every stored choice — see the resolver.
+    // The recipient's own preference wins. Otherwise use the sender's actual screen,
+    // then their stored preference; the country is only a fallback for unknown people.
     const uiLang = req.body?.lang;
     const lang = resolveRecipientLang(
       existing?.[0]?.preferred_lang ?? null,

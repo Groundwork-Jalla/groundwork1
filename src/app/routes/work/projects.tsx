@@ -170,7 +170,7 @@ function ProjectRow({ assigned, client }: {
 }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
-  const money = useProjectMoney(assigned.project.country);
+  const money = useProjectMoney(assigned.project);
   const { project, stages, activeStage } = assigned;
 
   const current = currentStageNumber(stages);
@@ -179,7 +179,7 @@ function ProjectRow({ assigned, client }: {
   // What releases on the stage being worked. Null — not 0 — when there is no open
   // stage or the stage carries no milestone, because "0 XAF" and "nothing is due
   // yet" are different statements and only one of them is true here.
-  const due = money.pair(activeStage?.payment_milestone_usd ?? null);
+  const due = money.pair(activeStage?.payment_milestone_usd ?? null, activeStage?.milestone_amount);
 
   // `awaiting` is deliberately not a state a row may show while verification is
   // hidden: it would name a step the contractor cannot see or act on.

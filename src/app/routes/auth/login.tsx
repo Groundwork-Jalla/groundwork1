@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
-import { acceptInvite } from "@/lib/supabase/invites";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
 import { postAuthPath } from "@/lib/auth/post-auth-path";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,10 @@ import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned
 import { useT } from "@/lib/i18n";
 import { signupHref } from "@/lib/auth/post-auth-path";
 import { PasswordField } from '@/components/ui/PasswordField';
+import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import {
+  projectAuthCallbackUrl, projectInvitationError, projectInvitationPath, readProjectInvitation, withProjectInvitation,
+} from '@/lib/auth/project-invitation';
 
 export default function Login() {
   const navigate        = useNavigate();
@@ -22,7 +25,8 @@ export default function Login() {
   const redirectTo      = searchParams.get("redirect");
 
   // Carry the destination, and the invite, into sign-up.
-  const toSignup = signupHref({ redirect: redirectTo, invite: inviteToken });
+  const invitation = readProjectInvitation(searchParams.toString());
+  const toSignup = withProjectInvitation(signupHref({ redirect: redirectTo, invite: inviteToken }), invitation);
   const t               = useT();
 
   const [email,      setEmail]      = useState("");
@@ -38,7 +42,7 @@ export default function Login() {
   async function handleGoogleSignIn() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: projectAuthCallbackUrl(window.location.origin, searchParams.toString()) },
     });
   }
 
@@ -57,7 +61,7 @@ export default function Login() {
     if (current) {
       try {
         if (await mustChangePassword(current.user.id)) {
-          navigate(FORCED_PASSWORD_PATH, { replace: true });
+          navigate(withProjectInvitation(FORCED_PASSWORD_PATH, invitation), { replace: true });
           return;
         }
       } catch {
@@ -66,33 +70,16 @@ export default function Login() {
       }
     }
 
-    // Process any pending invite (from URL param or localStorage)
-    const token = inviteToken || localStorage.getItem("pendingInvite") || "";
-    if (token) {
-      localStorage.removeItem("pendingInvite");
+    // Shared and contractor invitations finish after password/MFA authentication.
+    if (invitation) {
       try {
-        const projectId = await acceptInvite(token);
-        /**
-         * The CONTRACTOR's surface, not the client's.
-         *
-         * This line read `/projects/${projectId}` — the owner's view — so a contractor
-         * who accepted their invitation by signing in landed on the client page for
-         * somebody else's build. `invite.tsx` and `callback.tsx` have always sent them
-         * to /work; this third copy of the same three lines was missed, which is why
-         * the bug only appeared on one of the three ways in. Philip, 2 Nov 2026,
-         * testing contractor invitations: links "incorrectly redirected users to
-         * client views".
-         *
-         * A full page load rather than `navigate`, for the same reason callback.tsx
-         * does it: AuthContext resolved `isContractor` when the session was
-         * established, which was BEFORE `acceptInvite` granted the role. A client-side
-         * navigation keeps that stale answer and `/work` bounces straight back to
-         * `/dashboard` — landing them on the client dashboard by a second route.
-         */
-        window.location.href = `/work/projects/${projectId}`;
+        const path = await completeProjectInvitation(invitation);
+        // Re-read roles and membership after the write, before either project shell.
+        window.location.href = path;
         return;
-      } catch {
-        // Invite may be invalid or already used — fall through to normal routing
+      } catch (err) {
+        setError(t(projectInvitationError(err)));
+        return;
       }
     }
 
@@ -192,6 +179,11 @@ export default function Login() {
           >
             {error}
           </motion.p>
+        )}
+        {error && invitation && (
+          <Link to={projectInvitationPath(invitation)} className="block text-sm underline underline-offset-4">
+            {t(invitation.kind === 'viewer' ? 'share.accept' : 'invite.accept')}
+          </Link>
         )}
 
         <Button type="submit" disabled={submitting} className="w-full">

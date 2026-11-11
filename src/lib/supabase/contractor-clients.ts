@@ -114,7 +114,7 @@ export async function fetchPendingClients(): Promise<PendingContractorClient[]> 
  * contractor to their own project instead.
  */
 export async function inviteMyClient(
-  fullName: string, email: string, phone: string,
+  fullName: string, email: string, phone: string, lang = detectLang(),
 ): Promise<{ clientId: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new InviteClientFailed('not_signed_in');
@@ -124,7 +124,7 @@ export async function inviteMyClient(
     headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
     // The screen language, so the client's first email is in the language the
     // contractor is actually using — see contractor-invite-client.ts.
-    body: JSON.stringify({ fullName, email, phone, lang: detectLang() }),
+    body: JSON.stringify({ fullName, email, phone, lang }),
   });
   const json = await r.json().catch(() => ({}));
   if (!r.ok) throw new InviteClientFailed(String(json?.error ?? `http_${r.status}`));

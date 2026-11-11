@@ -11,12 +11,14 @@ import { createProject } from '@/lib/supabase/projects';
 import type { DocCategory } from '@/lib/projects/plan-answer';
 import { takeOwnClientProject } from '@/lib/supabase/contractor-clients';
 import { setClientIntent } from '@/lib/supabase/contractor-onboarding';
-import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage } from '@/lib/supabase/tracking';
+import { startProjectTracking, adminStartProjectTracking, adminStartProjectAtStage, confirmBoqBudget } from '@/lib/supabase/tracking';
+import { billBudget, confirmedBillAmount } from '@/lib/budget/bill-budget';
+import { extractBqTotal } from '@/lib/budget/extract-bq';
 import { STAGE_KEYS } from '@/lib/projects/stage-from-description';
 import { joinedBudget } from '@/lib/budget/joined-project';
 import { stageSharesFromTakeoff } from '@/lib/budget/stage-shares';
 import { uploadDocument } from '@/lib/supabase/documents';
-import { FILE_ACCEPT_ATTR, MAX_FILE_MB, fileProblem } from '@/lib/documents/accepted-files';
+import { BOQ_ACCEPT_ATTR, MAX_FILE_MB, fileProblem, isBoqFile } from '@/lib/documents/accepted-files';
 import { useFormat, useT, type TKey } from '@/lib/i18n';
 import { trackFunnel, currentProjectAttemptId, clearProjectAttempt } from '@/lib/analytics/funnel';
 import { cn } from '@/lib/utils';
@@ -41,12 +43,13 @@ const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
 export default function Step11ConfirmBudget() {
   const { data, constructionRate, cityRate, onBehalfOf,
     clearDraft, confirmationDraft, updateConfirmationDraft, pendingDocuments,
-    planDocumentsSeen } = useWizard();
+    planDocumentsSeen, update, setPendingDocuments, documentExtraction, setDocumentExtraction, goTo } = useWizard();
   const { user, isContractor }  = useAuth();
   const navigate  = useNavigate();
   const t         = useT();
   const f         = useFormat();
   const fileRef   = useRef<HTMLInputElement>(null);
+  const attachmentGeneration = useRef(0);
 
   /**
    * What the budget starts at.
@@ -69,11 +72,13 @@ export default function Step11ConfirmBudget() {
    * like any other. Only an attached bill makes the confirmed total a document's own
    * number — which is what decides whether it may be reduced below what they approved.
    */
-  const hasBillOfQuantities = (pendingDocuments ?? []).some(doc => doc.category === 'boq');
+  const hasBillOfQuantities = !!data.boqBudget || (pendingDocuments ?? []).some(doc => doc.category === 'boq')
+    || (documentFlow && planDocumentsSeen);
   const opening   = data.bqTotalUsd ?? (documentFlow ? null : estimate);
   // The budget is confirmed on the summary screen; this step only reads it.
   const raw = confirmationDraft?.raw
-    ?? (opening == null ? '' : String(Math.round(opening)));
+    ?? (hasBillOfQuantities ? data.boqBudget?.amount ?? ''
+      : opening == null ? '' : String(Math.round(opening)));
   const [file, setFile]     = useState<File | null>(null);
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -139,17 +144,17 @@ export default function Step11ConfirmBudget() {
    * exactly; the dollars are derived from it.
    */
   const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(data.country);
-  const currencyCode = constructionRate?.currency_code ?? getCurrencyCode(data.country);
-  // Never null in practice — the hook returns the stored rate until the live one
-  // lands — but a null here would divide the budget by nothing.
-  const fxRate = useUsdRate(currencyCode, storedRate) ?? storedRate;
-  const localBudget = Number(raw.replace(/[^0-9.]/g, '') || 0);
-  const finalBudget = fxRate > 0 ? localBudget / fxRate : localBudget;
+  const countryCurrency = constructionRate?.currency_code ?? getCurrencyCode(data.country);
+  const currencyCode = data.boqBudget?.currencyCode ?? documentExtraction?.bqReading?.currencyCode ?? countryCurrency;
+  // A foreign-currency bill waits for its own rate; the country's rate cannot price it.
+  const fxRate = useUsdRate(currencyCode, currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null);
+  const localBudget = confirmedBillAmount(raw) ?? 0;
+  const finalBudget = fxRate != null && fxRate > 0 ? localBudget / fxRate : 0;
 
   // What the client will actually be asked for. Recomputed from the confirmed total, so an
   // admin who edits the budget sees the joined figure follow.
   const joined = useMemo(() => {
-    if (!startStage || startStage <= 1 || finalBudget <= 0) return null;
+    if (hasBillOfQuantities || !startStage || startStage <= 1 || finalBudget <= 0) return null;
     const fullBreakdown = decomposeBudget(finalBudget, {
       builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
       floors:       data.floors ?? 1,
@@ -159,7 +164,7 @@ export default function Step11ConfirmBudget() {
     // take-off, and `joinedBudget` then falls back to the national averages.
     const joinShares = stageSharesFromTakeoff(data, constructionRate, cityRate) ?? undefined;
     return joinedBudget(fullBreakdown, startStage, joinShares);
-  }, [startStage, finalBudget, data, constructionRate, cityRate]);
+  }, [startStage, finalBudget, data, constructionRate, cityRate, hasBillOfQuantities]);
 
   const canSubmit = finalBudget > 0 && !busy;
 
@@ -201,7 +206,7 @@ export default function Step11ConfirmBudget() {
         builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
         floors: data.floors ?? 1,
       };
-      const budget = documentFlow
+      const budget = hasBillOfQuantities ? billBudget(finalBudget) : documentFlow
         ? decomposeBudget(finalBudget, shape)
         : calculateBudget(data, constructionRate, cityRate);
       // Fixed tiers survive the skipped plan picker: a partner creates Self Verify,
@@ -213,6 +218,11 @@ export default function Step11ConfirmBudget() {
           // The rates this screen priced with. Without them the stage split would fall
           // back to the seed averages on a project that has a take-off to read.
           rate: constructionRate, cityRate,
+          ...(hasBillOfQuantities ? { bill: {
+            amount: raw, currencyCode, fxRate: fxRate!,
+            sourceLabel: data.boqBudget?.sourceLabel ?? documentExtraction?.bqReading?.label,
+            fileName: data.boqBudget?.fileName ?? pendingDocuments?.find(d => d.category === 'boq')?.file.name,
+          } } : {}),
         });
       createdProject.current = project;
 
@@ -225,7 +235,7 @@ export default function Step11ConfirmBudget() {
       //
       //    An admin confirms through the admin RPC, which is what the Management tier
       //    was always meant to use — the client is notified that their budget is set.
-      const confirmed = decomposeBudget(finalBudget, {
+      const confirmed = hasBillOfQuantities ? billBudget(finalBudget) : decomposeBudget(finalBudget, {
         builtAreaSqm: (data.sqm ?? 0) * (data.floors ?? 1),
         floors:       data.floors ?? 1,
       });
@@ -276,7 +286,13 @@ export default function Step11ConfirmBudget() {
       // their own half-finished house as of a partner doing it for them. It used to
       // be gated on `onBehalfOf`, so a client's choice was read, shown back to them,
       // and then silently dropped — the project opened at stage 1 regardless.
-      if (joined) {
+      if (hasBillOfQuantities) {
+        await confirmBoqBudget(project.id, {
+          amount: raw, currencyCode, fxRate: fxRate!,
+          sourceLabel: data.boqBudget?.sourceLabel ?? documentExtraction?.bqReading?.label,
+          fileName: data.boqBudget?.fileName ?? pendingDocuments?.find(d => d.category === 'boq')?.file.name,
+        }, startStage);
+      } else if (joined) {
         /*
          * ── A BILL OF QUANTITIES IS THE WHOLE PROJECT, EVEN WHEN JOINING MID-BUILD ──
          *
@@ -299,17 +315,11 @@ export default function Step11ConfirmBudget() {
          * client owes is the sum of the stages that remain — derived, not stored — which
          * is exactly what `stagePayableUsd` answers for both screens.
          */
-        const pricedJoin = hasBillOfQuantities
-          ? { ...joined, total: priced.total, construction: priced.construction,
-              design: priced.design, permit: priced.permit,
-              professional: priced.professional, verification: priced.verification,
-              contingency: priced.contingency }
-          : joined;
         // Joining a build in progress: the earlier stages are recorded as already built and
         // the client is billed only for what is left (103).
         // The note is the stage they CHOSE. It used to be whatever they typed; with
         // no text box there is nothing to pass but the thing they actually told us.
-        await adminStartProjectAtStage(project.id, pricedJoin, ownerId, project.name,
+        await adminStartProjectAtStage(project.id, joined, ownerId, project.name,
           startStage ? stageLabel(startStage) : '', hasBillOfQuantities);
       } else if (onBehalfOf) {
         // Named `admin…` for the RPC it calls; 109 widened that function to accept a
@@ -490,6 +500,7 @@ export default function Step11ConfirmBudget() {
             )}
             <button
               type="button"
+              disabled={busy}
               onClick={() => fileRef.current?.click()}
               className={cn(
                 'w-full rounded-xl border border-dashed px-4 py-5 text-center transition-colors',
@@ -509,15 +520,16 @@ export default function Step11ConfirmBudget() {
             <input
               ref={fileRef}
               type="file"
-              accept={FILE_ACCEPT_ATTR}
+              accept={BOQ_ACCEPT_ATTR}
               className="hidden"
-              onChange={e => {
+              onChange={async e => {
                 const picked = e.target.files?.[0] ?? null;
                 e.target.value = '';
                 if (!picked) return;
+                const generation = ++attachmentGeneration.current;
                 // Checked here rather than at submit: finding out the spreadsheet was
                 // rejected after eleven steps and a project creation is the wrong moment.
-                const problem = fileProblem(picked);
+                const problem = fileProblem(picked) ?? (isBoqFile(picked) ? null : 'type');
                 if (problem) {
                   setFile(null);
                   setError(t(problem === 'size' ? 'wizard.confirmBudget.quoteTooLarge'
@@ -525,7 +537,23 @@ export default function Step11ConfirmBudget() {
                   return;
                 }
                 setError(null);
-                setFile(picked);
+                setBusy(true);
+                try {
+                  const out = await extractBqTotal(picked);
+                  if (generation !== attachmentGeneration.current) return;
+                  const reading = out.reading?.confidence === 'grand' ? out.reading : null;
+                  update({ boqBudget: {
+                    amount: reading ? reading.sourceAmount ?? String(reading.total) : null,
+                    currencyCode: reading?.currencyCode ?? countryCurrency,
+                    sourceLabel: reading?.label ?? null, fileName: picked.name,
+                  } });
+                  setPendingDocuments?.([...(pendingDocuments ?? []).filter(d => d.category !== 'boq'),
+                    { file: picked, category: 'boq' }]);
+                  setDocumentExtraction({ ...documentExtraction, floorPlans: documentExtraction?.floorPlans ?? [],
+                    bqReading: out.reading, bqLineItems: out.lineItems, bqStatedFloors: out.statedFloors });
+                  updateConfirmationDraft?.({ raw: reading ? String(reading.total) : '', hadAttachment: true });
+                  goTo(8);
+                } finally { if (generation === attachmentGeneration.current) setBusy(false); }
               }}
             />
             <p className="text-[11px] leading-relaxed text-brand-mid-grey">
@@ -534,6 +562,9 @@ export default function Step11ConfirmBudget() {
           </div>
           )}
 
+          {fxRate == null && <p className="text-xs text-brand-mid-grey" role="status">
+            {t('wizard.confirmBudget.awaitingRate', { currency: currencyCode })}
+          </p>}
           {error && <p className="text-xs text-state-alert" role="alert">{error}</p>}
 
           <motion.button

@@ -2,6 +2,18 @@ import { supabase } from './client';
 import { trackEvent } from '@/lib/analytics';
 import type { BudgetBreakdown } from '@/types/project';
 import type { JoinedBudget } from '@/lib/budget/joined-project';
+import type { BillBudgetSnapshot } from '@/lib/budget/bill-budget';
+
+/** Confirms source money and the complete stage schedule in one transaction. */
+export async function confirmBoqBudget(projectId: string, bill: BillBudgetSnapshot, startStage = 1): Promise<void> {
+  const { error } = await supabase.rpc('confirm_boq_budget', {
+    p_project_id: projectId, p_amount: bill.amount, p_currency: bill.currencyCode,
+    p_fx_rate: bill.fxRate, p_start_stage: startStage,
+    p_source_label: bill.sourceLabel ?? null, p_source_file: bill.fileName ?? null,
+  });
+  if (error) throw error;
+  trackEvent('project_tracking_started', { project_id: projectId, budget_source: 'boq' });
+}
 
 // Both RPCs take the whole breakdown, not just the total.
 //

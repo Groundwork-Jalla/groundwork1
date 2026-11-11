@@ -64,22 +64,23 @@ const SHEET_KIND_KEYS = {
 
 
 /**
- * How long a read may hold the Continue button BEFORE the button is released.
- *
- * The read itself is never abandoned. The plan and the bill are read on the device —
- * pdf.js for a text layer, Tesseract OCR for anything scanned or photographed, which
- * here is most drawings — and that reading is what the budget is built from, so cutting
- * it short to make a button light up would trade ten stage payments for a few seconds.
- *
- * What was wrong was not the waiting. It was waiting SILENTLY and without end: a stalled
- * worker left `scanCount` above zero and Continue dead for ever, on a screen where both
- * files had plainly uploaded and nothing said why.
- *
- * So after this long the button unlocks while the read carries on in the background. If
- * the read lands first, its figures are used. If the person continues first, they are
- * told plainly that the figures are theirs to check on the summary.
+ * Drawings may continue in the background after this grace period. A bill's amount
+ * must finish before normal Continue; a slow bill instead offers an explicit manual
+ * entry route, so leaving this component cannot silently drop its eventual total.
  */
 const READ_GRACE_SECONDS = 20;
+
+/** Versions are independent: replacing a drawing must not discard a bill's read. */
+export function createDocumentReadRequests() {
+  const generations = { floorPlan: 0, boq: 0 };
+  return {
+    begin(kind: keyof typeof generations) {
+      const generation = ++generations[kind];
+      return () => generation === generations[kind];
+    },
+    invalidate(kind: keyof typeof generations) { generations[kind]++; },
+  };
+}
 
 export function ArchitecturePlanGate({
   onAnswered, onCancel, backLabel, currencyCode, fxRate,
@@ -128,8 +129,15 @@ export function ArchitecturePlanGate({
   const [scanCount, setScanCount] = useState(0);
   /** Seconds the current read has been running, so the screen can say so. */
   const [readSeconds, setReadSeconds] = useState(0);
-  /** Bumped on every pick, so a late read cannot overwrite a newer one. */
-  const readGeneration = useRef(0);
+  const [readRequests] = useState(createDocumentReadRequests);
+  const [boqScanning, setBoqScanning] = useState(false);
+  const [boqReadStarted, setBoqReadStarted] = useState<number | null>(null);
+  const [boqReadSeconds, setBoqReadSeconds] = useState(0);
+  useEffect(() => {
+    if (!boqScanning || boqReadStarted === null) { setBoqReadSeconds(0); return; }
+    const id = setInterval(() => setBoqReadSeconds(Math.floor((Date.now() - boqReadStarted) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [boqScanning, boqReadStarted]);
   const scanning = scanCount > 0;
 
   /**
@@ -188,14 +196,14 @@ export function ArchitecturePlanGate({
    * model that is slow, unconfigured or down cannot be allowed to hold up a project.
    */
   async function inspectFloorPlans(files: File[]) {
-    const generation = ++readGeneration.current;
+    const isCurrent = readRequests.begin('floorPlan');
     setScanCount(count => count + 1);
     let facts: FloorPlanFacts[];
     try {
       // Read in full. `extractFloorPlanFacts` never throws — an unreadable sheet comes
       // back as "nothing stated", which is a true answer and not a failure.
       facts = await Promise.all(files.map(file => extractFloorPlanFacts(file)));
-      if (generation !== readGeneration.current) return;
+      if (!isCurrent()) return;
       setFloorPlanFacts(facts);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
@@ -204,11 +212,11 @@ export function ArchitecturePlanGate({
     setLooking(true);
     try {
       const readings = await Promise.all(files.map(file => readPlanWithModel(file)));
-      if (generation !== readGeneration.current) return;
+      if (!isCurrent()) return;
       if (readings.every(reading => reading == null)) return;
       setFloorPlanFacts(facts.map((fact, i) => mergeModelReading(fact, readings[i] ?? null)));
     } finally {
-      setLooking(false);
+      if (isCurrent()) setLooking(false);
     }
   }
 
@@ -220,15 +228,20 @@ export function ArchitecturePlanGate({
    * against the budget, because it becomes ten stage payments.
    */
   async function inspect(file: File) {
-    const generation = ++readGeneration.current;
+    const isCurrent = readRequests.begin('boq');
     setReading(null);
+    setLineItems([]);
+    setBqStatedFloors(null);
     setUnreadable(false);
     setFromOcr(false);
     if (!canExtract(file.name)) { setUnreadable(true); return; }
+    setBoqScanning(true);
+    setBoqReadSeconds(0);
+    setBoqReadStarted(Date.now());
     setScanCount(count => count + 1);
     try {
       const out = await extractBqTotal(file);
-      if (generation !== readGeneration.current) return;
+      if (!isCurrent()) return;
       setReading(out.reading);
       setLineItems(out.lineItems);
       setBqStatedFloors(out.statedFloors);
@@ -237,13 +250,14 @@ export function ArchitecturePlanGate({
       // different thing to say than a file we read but found no total in.
       setUnreadable(!out.readable);
     } catch {
-      if (generation !== readGeneration.current) return;
+      if (!isCurrent()) return;
       setReading(null);
       setLineItems([]);
       setBqStatedFloors(null);
       setUnreadable(true);
     } finally {
       setScanCount(count => Math.max(0, count - 1));
+      if (isCurrent()) setBoqScanning(false);
     }
   }
 
@@ -320,6 +334,8 @@ export function ArchitecturePlanGate({
           onPick={files => {
             const chosen = Array.isArray(files) ? files : files ? [files] : [];
             setError(null);
+            readRequests.invalidate('floorPlan');
+            setLooking(false);
             setFloorPlans(chosen);
             setFloorPlanFacts([]);
             if (chosen.length) void inspectFloorPlans(chosen);
@@ -328,13 +344,18 @@ export function ArchitecturePlanGate({
         />
         <Drop
           label={t('planGate.bq')} hint={t('planGate.bqHint')}
-          file={bq} busy={scanning} kind="boq" accept={BOQ_ACCEPT_ATTR}
+          file={bq} busy={boqScanning} kind="boq" accept={BOQ_ACCEPT_ATTR}
           onPick={selection => {
             const file = Array.isArray(selection) ? selection[0] ?? null : selection;
             setError(null);
+            readRequests.invalidate('boq');
             setBq(file);
+            setBoqScanning(false);
+            setReading(null);
+            setLineItems([]);
+            setBqStatedFloors(null);
+            setFromOcr(false);
             if (file) void inspect(file);
-            else { setReading(null); setLineItems([]); }
           }}
           onError={setError}
         />
@@ -390,7 +411,7 @@ export function ArchitecturePlanGate({
           <p className="pl-5 text-[11px] leading-relaxed text-brand-mid-grey">
             {t('planGate.readingScanned')}
           </p>
-          {!heldByRead && (
+          {!heldByRead && !boqScanning && (
             // Released, and said so. The read carries on and its figures still land if
             // they arrive before this screen is left.
             <p className="pl-5 text-[11px] font-medium leading-relaxed text-brand-near-black dark:text-white">
@@ -453,6 +474,21 @@ export function ArchitecturePlanGate({
         </p>
       )}
 
+      {boqScanning && boqReadSeconds >= READ_GRACE_SECONDS && floorPlans.length > 0 && bq && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-brand-mid-grey">{t('planGate.boqStillReading')}</p>
+          <button type="button" className="text-sm font-semibold underline underline-offset-4"
+            onClick={() => {
+              readRequests.invalidate('boq');
+              setBoqScanning(false);
+              onAnswered({ hasPlan: true, floorPlans, bq, reading: null, lineItems: [],
+                floorPlanFacts, bqStatedFloors: null });
+            }}>
+            {t('planGate.enterTotalManually')}
+          </button>
+        </div>
+      )}
+
       {error && <p role="alert" className="mt-3 text-xs text-state-alert">{error}</p>}
 
       <div className="mt-7 flex items-center gap-4">
@@ -464,10 +500,8 @@ export function ArchitecturePlanGate({
         </button>
         <motion.button
           type="button" whileTap={{ scale: 0.99 }}
-          // Both documents are the point of this path, so both are required. Somebody
-          // who cannot produce them belongs on the other branch, and the Back button
-          // above is how they get there.
-          disabled={!floorPlans.length || !bq || heldByRead}
+          // A pending bill must finish or the person explicitly chooses manual entry.
+          disabled={!floorPlans.length || !bq || heldByRead || boqScanning}
           onClick={() => onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
           })}

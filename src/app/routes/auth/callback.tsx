@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
-import { acceptInvite } from "@/lib/supabase/invites";
 import { claimContractorAccount, takeRememberedClaim, registerContractorAccount, takeRememberedContractorRegistration } from "@/lib/supabase/contractor-claim";
 import { claimVerifierAccount, takeRememberedVerifierClaim, registerVerifierAccount, takeRememberedVerifierRegistration } from "@/lib/supabase/verifier-claim";
 import { holdsVerifierRole, holdsContractorAccess } from '@/lib/auth/roles';
@@ -12,7 +11,11 @@ import { requiredFactor, type RequiredFactor } from "@/lib/auth/mfa";
 import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned";
 import { INVITED_PASSWORD_PATH, passwordSetupPathForLink } from "@/lib/auth/password-setup-link";
 import { signupIntentOf } from "@/lib/auth/signup-account";
-import { acceptProjectViewer, takeRememberedShare } from "@/lib/supabase/project-viewers";
+import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import {
+  projectAuthCallbackUrl, projectInvitationError, projectInvitationPath, readProjectInvitation,
+  rememberProjectInvitation, safeAuthReturn, withProjectInvitation,
+} from '@/lib/auth/project-invitation';
 import { googleWithoutPassword, passwordPromptDismissed, syncEmailChangeToCrm } from "@/lib/auth/account-security";
 import { trackEvent } from "@/lib/analytics";
 import { useT } from "@/lib/i18n";
@@ -89,6 +92,9 @@ export default function AuthCallback() {
   // a spent reset and a spent signup are indistinguishable — which is how a password
   // reset came to offer "confirm your email" and land on the signup page.
   const [pending] = useState(() => readEmailRequest());
+  const [invitation] = useState(() => readProjectInvitation(
+    typeof window === 'undefined' ? '' : window.location.search));
+  useEffect(() => { if (invitation) rememberProjectInvitation(invitation); }, [invitation]);
   // Retain invite/recovery intent while Supabase consumes the URL and while MFA runs.
   const [passwordSetupPath] = useState(() => typeof window === 'undefined' ? null
     : passwordSetupPathForLink(window.location.search, window.location.hash, pending?.flow));
@@ -107,7 +113,9 @@ export default function AuthCallback() {
     // The first link carried the marker (reset-password.tsx); so must the second.
     const { error: sendError } = flow === 'recovery'
       ? await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/auth/callback?flow=recovery` })
-      : await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${origin}/auth/callback` } });
+      : await supabase.auth.resend({ type: 'signup', email, options: {
+          emailRedirectTo: projectAuthCallbackUrl(origin, window.location.search),
+        } });
     // Re-stamp the record too, so the 24h window runs from this link rather than the
     // dead one it replaces.
     if (!sendError) rememberEmailRequest(flow, email);
@@ -173,7 +181,7 @@ export default function AuthCallback() {
         // simply absent either way. So say what is true of both and give them the move
         // that works: go back and sign in.
         if (hasCode) { setError(t('auth.callback.wrongDevice')); return; }
-        navigate("/auth/login", { replace: true });
+        navigate(withProjectInvitation('/auth/login', invitation), { replace: true });
         return;
       }
 
@@ -244,7 +252,7 @@ export default function AuthCallback() {
     // remembered request so it cannot affect the browser's next confirmation link.
     if (passwordSetupPath) {
       forgetEmailRequest();
-      navigate(passwordSetupPath, { replace: true });
+      navigate(withProjectInvitation(passwordSetupPath, invitation), { replace: true });
       return;
     }
 
@@ -252,7 +260,7 @@ export default function AuthCallback() {
     // owes the password change the admin's handover started. Recovery, above, is how it
     // is paid, so that path is not gated.
     if (await mustChangePassword(session.user.id)) {
-      navigate(FORCED_PASSWORD_PATH, { replace: true });
+      navigate(withProjectInvitation(FORCED_PASSWORD_PATH, invitation), { replace: true });
       return;
     }
 
@@ -260,7 +268,7 @@ export default function AuthCallback() {
     // live and setting one is a single step. "Not now" is honoured for this browser
     // session; the dashboard keeps a standing reminder until it is done.
     if (googleWithoutPassword(session.user) && !passwordPromptDismissed(session.user.id)) {
-      navigate("/auth/new-password?reason=google", { replace: true });
+      navigate(withProjectInvitation('/auth/new-password?reason=google', invitation), { replace: true });
       return;
     }
 
@@ -294,15 +302,14 @@ export default function AuthCallback() {
     // Somebody invited to watch a build (112). Before the role doors below: a family
     // member is not signing up to work, and sending them to /work or /verifiers would be
     // the wrong surface entirely. Theirs is the project they were shown.
-    const share = takeRememberedShare();
-    if (share) {
+    if (invitation) {
       try {
-        const projectId = await acceptProjectViewer(share);
-        navigate(`/projects/${projectId}`, { replace: true });
+        const path = await completeProjectInvitation(invitation);
+        leaveForRoleSurface(path);
         return;
-      } catch {
-        // Withdrawn, spent, or accepted by somebody else. Fall through rather than
-        // stranding them — they have an account either way.
+      } catch (err) {
+        setError(t(projectInvitationError(err)));
+        return;
       }
     }
 
@@ -341,26 +348,6 @@ export default function AuthCallback() {
       }
     }
 
-    // Process any pending invite (stored in localStorage before signup)
-    const token = localStorage.getItem("pendingInvite");
-    if (token) {
-      localStorage.removeItem("pendingInvite");
-      try {
-        const projectId = await acceptInvite(token);
-        // A contractor's surface is /work, not the owner's project page. They can read
-        // the project either way (project_member, 086), but the client view assumes an
-        // owner — which is what made an accepted invite look like it had done nothing.
-        //
-        // Reloaded for the same reason as the grants above: accepting an invite is what
-        // makes `holdsContractorAccess` true, and the /work shell would otherwise still
-        // be holding the answer it computed before the invite was accepted.
-        leaveForRoleSurface(`/work/projects/${projectId}`);
-        return;
-      } catch {
-        // Invalid/used token — fall through to normal routing
-      }
-    }
-
     const onboardingComplete = !!session.user?.user_metadata?.onboarding_complete;
     if (!onboardingComplete) trackEvent('signup_complete');
     const { data: isAdmin } = await supabase.rpc('is_admin');
@@ -371,10 +358,11 @@ export default function AuthCallback() {
     // Where they were trying to go before they were asked to sign up, parked by signup.tsx
     // because this runs in a different tab. Taken once and cleared, so a stale value cannot
     // hijack an unrelated sign-in later; postAuthPath re-checks it is a safe internal path.
-    let wanted: string | null = null;
+    let wanted = safeAuthReturn(params.get('redirect'));
     try {
-      wanted = localStorage.getItem(PENDING_REDIRECT);
-      if (wanted) localStorage.removeItem(PENDING_REDIRECT);
+      const stored = localStorage.getItem(PENDING_REDIRECT);
+      if (stored) localStorage.removeItem(PENDING_REDIRECT);
+      wanted ??= safeAuthReturn(stored);
     } catch { /* private mode: no parked redirect, land on the role's own surface */ }
 
     // An engineer who signed up at the bare /verifier-signup has no invitation to claim,
@@ -416,7 +404,7 @@ export default function AuthCallback() {
       <MfaChallenge
         factor={mfaFactor}
         onVerified={afterMfa}
-        onCancel={() => navigate('/auth/login', { replace: true })}
+        onCancel={() => navigate(withProjectInvitation('/auth/login', invitation), { replace: true })}
       />
     );
   }
@@ -429,6 +417,11 @@ export default function AuthCallback() {
         </h1>
         <p className="text-sm text-brand-mid-grey mt-2">{expired ? t('auth.callback.expired') : error}</p>
         <div className="mt-6 flex flex-col items-center gap-3">
+          {invitation && (
+            <Link to={projectInvitationPath(invitation)} className="text-sm font-medium underline underline-offset-4">
+              {t(invitation.kind === 'viewer' ? 'share.accept' : 'invite.accept')}
+            </Link>
+          )}
           {/* A spent link used to leave only "Back to login", which is a dead end: they
               cannot log in until the link's job is done. Resend for real where we know
               the address, and send them to the right form where we do not — never to
@@ -463,7 +456,7 @@ export default function AuthCallback() {
             </Link>
           )}
           <Link
-            to="/auth/login"
+            to={withProjectInvitation('/auth/login', invitation)}
             className="text-sm text-brand-mid-grey underline underline-offset-4"
           >
             {t('auth.callback.backToLogin')}

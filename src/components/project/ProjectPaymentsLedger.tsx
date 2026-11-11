@@ -272,7 +272,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-near-black">
-                    {(s.payment_milestone_usd ?? 0) > 0 ? money(s.payment_milestone_usd!) : '—'}
+                    {(s.payment_milestone_usd ?? 0) > 0 ? money(s.payment_milestone_usd!, s.milestone_amount) : '—'}
                   </span>
                   <span className={cn('hidden w-40 shrink-0 text-xs lg:block', TONE[f])}>{t(FUNDING_KEY[f])}</span>
                   <span className={cn('hidden w-40 shrink-0 text-xs lg:block', TONE[r])}>{t(RELEASE_KEY[r])}</span>

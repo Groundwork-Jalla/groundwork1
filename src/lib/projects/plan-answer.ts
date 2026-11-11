@@ -29,7 +29,7 @@ export function planSeed(
   if (!answer.hasPlan) {
     // Recorded as a definite NO, which is what suppresses the bill-of-quantities
     // prompt on the final step. `null` would leave it showing.
-    return { hasArchitecturePlan: false, bqTotalUsd: null };
+    return { hasArchitecturePlan: false, bqTotalUsd: null, boqBudget: null };
   }
   const facts = answer.floorPlanFacts ?? [];
   const detectedFloors = facts
@@ -108,6 +108,12 @@ export function planSeed(
     ...(detectedLivingRooms.length ? { livingRooms: Math.max(...detectedLivingRooms) } : {}),
     ...(detectedKitchens.length ? { kitchens: Math.max(...detectedKitchens) } : {}),
     bqTotalUsd: totalUsd,
+    boqBudget: answer.bq ? {
+      amount: sourceReading?.confidence === 'grand' ? sourceReading.sourceAmount ?? String(sourceReading.total) : null,
+      currencyCode: sourceReading?.currencyCode ?? conversion.localCurrencyCode,
+      sourceLabel: sourceReading?.confidence === 'grand' ? sourceReading.label : null,
+      fileName: answer.bq.name,
+    } : null,
   };
 }
 

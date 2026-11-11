@@ -119,6 +119,7 @@ function OverviewBar({
   distributes = false,
   derivation,
   stageConstructionTotal,
+  stageBasis,
 }: {
   label: string;
   pct: number;
@@ -131,6 +132,7 @@ function OverviewBar({
   derivation?: SliceDerivation | null;
   /** Full-construction basis for the stage split on joined projects. */
   stageConstructionTotal?: number | null;
+  stageBasis?: StageBasis;
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
@@ -228,7 +230,7 @@ function OverviewBar({
                       <span className="flex shrink-0 items-baseline gap-2">
                         <span className="text-brand-border-grey tabular-nums">{formatShare(stage.budget_pct)}</span>
                         <span className="w-16 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
-                          {money(stageBase * ((stage.budget_pct ?? 0) / 100))}
+                          {money(stageScheduleUsd(stage, stageBasis ?? { wholeProject: false, base: stageBase }), stage.milestone_amount)}
                         </span>
                       </span>
                     </div>
@@ -282,7 +284,7 @@ function StageBar({
           <StatusBadge status={stage.status} />
         </div>
         <span className="shrink-0 text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-          {money(shownMilestone)}{' '}
+          {money(shownMilestone, stage.milestone_amount)}{' '}
           <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           {historical && <span className="ml-1 text-[10px]">{t('project.costing.historicalLabel')}</span>}
         </span>
@@ -421,7 +423,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   // An uploaded Bill of Quantities already is the whole figure, so each stage is its
   // percentage of the project total. A build from scratch keeps the fees (permit, project
   // manager, contingency, ...) on top, and its stages are shares of construction alone.
-  const basis = stageBasisFor(project, sortedStages, hasBoq);
+  const basis = stageBasisFor(project, sortedStages, project.budget_source === 'boq' || hasBoq);
   const stageConstructionTotal = basis.base;
 
   const released  = sumMilestones(sortedStages, s => s.status === 'complete', basis);
@@ -460,7 +462,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
         </div>
 
         <div className="flex flex-col">
-          {BUDGET_SLICES.map((slice, i) => (
+          {BUDGET_SLICES.filter(slice => project.budget_source !== 'boq' || slice.key === 'construction').map((slice, i) => (
             <OverviewBar
               key={slice.key}
               label={t(slice.labelKey)}
@@ -471,6 +473,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
               distributes={slice.key === 'construction'}
               derivation={sliceDerivation(slice.key, budget, builtAreaSqm)}
               stageConstructionTotal={slice.key === 'construction' ? stageConstructionTotal : null}
+              stageBasis={basis}
             />
           ))}
         </div>
@@ -562,7 +565,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     {isComplete ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#22c55e' }}>
-                          {money(shownMilestone)}
+                          {money(shownMilestone, stage.milestone_amount)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">
                             {historical ? t('project.costing.completedBeforeTracking') : t('project.costing.releasedLabel')}
                           </span>
@@ -575,7 +578,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : isActive ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#3b82f6' }}>
-                          {money(shownMilestone)}
+                          {money(shownMilestone, stage.milestone_amount)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.heldInProgress')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
@@ -583,7 +586,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : isReview ? (
                       <>
                         <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
-                          {money(shownMilestone)}
+                          {money(shownMilestone, stage.milestone_amount)}
                           <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.awaitingApproval')}</span>
                         </p>
                         <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
@@ -591,7 +594,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
                     ) : (
                       <>
                         <p className="text-sm font-medium tabular-nums text-brand-mid-grey leading-none">
-                          {money(shownMilestone)}
+                          {money(shownMilestone, stage.milestone_amount)}
                           <span className="text-xs font-normal ml-1.5">{t('project.costing.lockedLabel')}</span>
                         </p>
                         <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stageLabel(stage)}</p>

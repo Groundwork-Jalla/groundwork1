@@ -57,7 +57,7 @@ describe('offered to the contractor, never demanded of them', () => {
   it('it reaches the server', () => {
     // ...alongside the screen language, so the client's first email is in the language
     // the contractor is actually using (11 Nov 2026).
-    expect(lib).toMatch(/JSON\.stringify\(\{ fullName, email, phone, lang: detectLang\(\) \}\)/);
+    expect(lib).toMatch(/JSON\.stringify\(\{ fullName, email, phone, lang \}\)/);
   });
 
   it('which checks what it was given rather than trusting the browser', () => {

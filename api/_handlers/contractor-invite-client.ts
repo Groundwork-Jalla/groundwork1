@@ -30,8 +30,8 @@ import { logEmailToCrm } from '../ghl/_email-log.js';
  * contractor's client got French and nothing here could change it. Now the single-use
  * link comes from `generateLink` (the same `/auth/v1/verify?type=invite` link, so the
  * callback is unchanged) and the message goes through Resend in the language
- * `resolveRecipientLang` settles on — the contractor's stored choice, then the screen
- * they are reading, then the country. That language is also written to the new
+ * `resolveRecipientLang` settles on — their current screen, then their stored choice,
+ * then the country. That language is also written to the new
  * account's `preferred_lang`, exactly as admin provisioning does: the person creating
  * an account chooses its language, and every later email to this client follows it.
  *
@@ -175,8 +175,7 @@ export async function handler(req: any, res: any): Promise<void> {
   if (existing?.id) { res.status(409).json({ error: 'client_exists' }); return; }
 
   // The language this client will be written to. They have no account yet, so it is
-  // the contractor's: what they chose, else the screen they are reading (sent in the
-  // body, validated to the two values), else the country they signed up from.
+  // the contractor's current screen, then their stored preference, then signup country.
   const uiLang = (req.body as { lang?: unknown } | undefined)?.lang;
   const { data: contractor } = await admin
     .from('profiles').select('full_name, preferred_lang, signup_country').eq('id', caller.id).maybeSingle();

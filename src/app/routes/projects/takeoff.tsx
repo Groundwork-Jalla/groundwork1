@@ -125,7 +125,7 @@ export default function TakeoffList() {
     // on 29 October: "it will be different figures, and I don't know what exchange rate
     // it is using." It was dollars; the take-off beneath it is francs. One provider now
     // puts both in the same currency at the same rate.
-    <ProjectMoneyProvider country={project.country}>
+    <ProjectMoneyProvider project={project}>
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}

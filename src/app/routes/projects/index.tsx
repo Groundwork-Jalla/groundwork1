@@ -6,9 +6,9 @@ import {
   MapPin, Building2, ChevronRight, HardHat, Eye,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
-import { fetchClientProjects }   from '@/lib/supabase/projects';
-import { fetchContractorProjects } from '@/lib/supabase/invites';
-import { formatUSDFull, projectBudget } from '@/lib/budget';
+import { fetchParticipantProjects } from '@/lib/supabase/participant-projects';
+import { projectBudget } from '@/lib/budget';
+import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import type { ProjectRow }       from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
@@ -46,9 +46,10 @@ function SkeletonCard() {
   );
 }
 
-function ProjectCard({ project, shared }: { project: ProjectRow; shared: boolean }) {
+function ProjectCard({ project, shared, assigned }: { project: ProjectRow; shared: boolean; assigned: boolean }) {
   const labels = useDomainLabels();
   const t = useT();
+  const money = useProjectMoney(project);
   const status = STATUS_META[project.status] ?? STATUS_META.active;
   const done   = completedStages(project);
   const pct    = Math.round((done / TOTAL_STAGES) * 100);
@@ -58,7 +59,7 @@ function ProjectCard({ project, shared }: { project: ProjectRow; shared: boolean
   const budget = projectBudget(project).total;
 
   return (
-    <Link to={`/projects/${project.id}`}
+    <Link to={`${assigned ? '/work/projects' : '/projects'}/${project.id}`}
       className="group block rounded-2xl border border-brand-border-grey bg-white p-5 hover:border-brand-near-black hover:shadow-sm transition-all duration-200">
       <div className="flex items-center justify-between gap-2 mb-3">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.badge}`}>
@@ -88,7 +89,7 @@ function ProjectCard({ project, shared }: { project: ProjectRow; shared: boolean
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('projects.estBudget')}</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">{budget > 0 ? formatUSDFull(budget) : '—'}</p>
+          <p className="text-sm font-bold text-brand-near-black tabular-nums">{budget > 0 ? money.local(budget) : '—'}</p>
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
           {t('common.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -118,8 +119,11 @@ export default function ProjectsIndex() {
   // The ids of the builds somebody else owns (112, 166). Kept beside the list rather
   // than folded into it: `ProjectRow` is the database row and this is not a column.
   const [sharedIds,  setSharedIds]  = useState<Set<string>>(() => new Set());
+  const [assignedIds, setAssignedIds] = useState<Set<string>>(() => new Set());
   const [ownedCount, setOwnedCount] = useState(0);
   const [loading,    setLoading]    = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [filter,     setFilter]     = useState('all');
 
   const filtered = filter === 'all' ? projects : projects.filter(p => p.status === filter);
@@ -131,22 +135,24 @@ export default function ProjectsIndex() {
     // A client has builds by two routes — created, and invited onto. This page asked
     // only for the first until 9 Nov 2026, so a client whose contractor set the build
     // up (166) opened "My Builds" and was told they had none.
-    const loader = isContractor
-      ? fetchContractorProjects(user.id).then(rows => ({ all: rows, shared: [], owned: rows }))
-      : fetchClientProjects(user.id);
+    setLoading(true);
+    setLoadFailed(false);
+    const loader = fetchParticipantProjects(user.id, isContractor);
 
     loader
-      .then(({ all, shared, owned }) => {
+      .then(({ all, shared, owned, assigned, loadFailed: failed }) => {
         if (!live) return;
         setProjects(all);
         setSharedIds(new Set(shared.map(p => p.id)));
         setOwnedCount(owned.length);
+        setAssignedIds(new Set(assigned.map(p => p.id)));
+        setLoadFailed(!!failed);
       })
-      .catch(() => {})
+      .catch(() => { if (live) setLoadFailed(true); })
       .finally(() => { if (live) setLoading(false); });
 
     return () => { live = false; };
-  }, [user, isContractor]);
+  }, [user, isContractor, loadAttempt]);
 
   // Every build on this page belongs to somebody else, so there is nothing here to
   // create one with. See the dashboard for the reasoning — it is the same test.
@@ -173,6 +179,14 @@ export default function ProjectsIndex() {
         )}
       </div>
 
+      {loadFailed && (
+        <div role="alert" className="rounded-xl border border-brand-border-grey p-4 text-sm">
+          <p>{t('projects.loadFailed')}</p>
+          <button type="button" onClick={() => setLoadAttempt(n => n + 1)}
+            className="mt-2 font-semibold underline underline-offset-4">{t('common.retry')}</button>
+        </div>
+      )}
+
       {/* Filters */}
       {!loading && projects.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -193,7 +207,7 @@ export default function ProjectsIndex() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : loadFailed && filtered.length === 0 ? null : filtered.length === 0 ? (
         isContractor
           ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">{t('projects.empty.contractor')}</div>
           : (
@@ -217,7 +231,7 @@ export default function ProjectsIndex() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((p, i) => (
               <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                <ProjectCard project={p} shared={sharedIds.has(p.id)} />
+                <ProjectCard project={p} shared={sharedIds.has(p.id)} assigned={assignedIds.has(p.id)} />
               </motion.div>
             ))}
             {!isContractor && !viewerOnly && (

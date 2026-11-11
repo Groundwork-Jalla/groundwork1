@@ -16,6 +16,8 @@ import { PasswordStrength } from "@/components/ui/PasswordStrength";
 import { isPasswordAcceptable } from "@/lib/auth/password-policy";
 import { useT } from "@/lib/i18n";
 import { PasswordField } from '@/components/ui/PasswordField';
+import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import { projectInvitationError, projectInvitationPath, readProjectInvitation } from '@/lib/auth/project-invitation';
 
 /**
  * Set a new password, reached from a reset email.
@@ -37,6 +39,7 @@ export default function NewPassword() {
   // `?first=1`: an admin-provisioned account replacing the temporary password it was
   // handed. Same mechanics as a reset; the words have to say why it is being asked.
   const [searchParams] = useSearchParams();
+  const [invitation] = useState(() => readProjectInvitation(searchParams.toString()));
   const firstSignIn = searchParams.get('first') === '1';
   // `?reason=google`: a Google account adding its first password. Not a reset — nothing
   // is being replaced — and not compulsory: "Not now" goes on into the app.
@@ -184,7 +187,19 @@ export default function NewPassword() {
     });
   }
 
-  function handleContinue() {
+  async function handleContinue() {
+    if (invitation) {
+      setSubmitting(true);
+      setError(null);
+      try {
+        const path = await completeProjectInvitation(invitation);
+        window.location.href = path;
+      } catch (err) {
+        setError(t(projectInvitationError(err)));
+        setSubmitting(false);
+      }
+      return;
+    }
     navigate(postAuthPath({
       isAdmin: isAdminUser,
       isVerifier: isVerifierUser,
@@ -220,7 +235,13 @@ export default function NewPassword() {
           </p>
         )}
 
-        <Button onClick={handleContinue} className="mt-6 w-full">
+        {error && <p role="alert" className="mt-4 text-sm text-state-alert">{error}</p>}
+        {error && invitation && (
+          <Link to={projectInvitationPath(invitation)} className="mt-3 block text-sm underline underline-offset-4">
+            {t(invitation.kind === 'viewer' ? 'share.accept' : 'invite.accept')}
+          </Link>
+        )}
+        <Button onClick={handleContinue} disabled={submitting} className="mt-6 w-full">
           {t('auth.newPassword.doneCta')}
         </Button>
       </motion.div>

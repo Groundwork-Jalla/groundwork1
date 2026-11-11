@@ -110,10 +110,10 @@ describe('the invitation reaches somebody with no account', () => {
   it('the token is parked, so signing up finishes the job', () => {
     expect(page).toMatch(/rememberShare\(token\)/);
     const cb = stripTs(read('src/app/routes/auth/callback.tsx'));
-    expect(cb).toMatch(/takeRememberedShare\(\)/);
-    expect(cb).toMatch(/acceptProjectViewer\(share\)/);
+    expect(cb).toMatch(/readProjectInvitation\(/);
+    expect(cb).toMatch(/completeProjectInvitation\(invitation\)/);
     // Ahead of the role doors: a family member is not signing up to work.
-    expect(cb.indexOf('takeRememberedShare()')).toBeLessThan(cb.indexOf('registerContractorAccount()'));
+    expect(cb.indexOf('completeProjectInvitation(invitation)')).toBeLessThan(cb.indexOf('registerContractorAccount()'));
   });
 
   it('re-inviting the same address reuses the link already in their inbox', () => {

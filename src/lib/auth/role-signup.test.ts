@@ -426,7 +426,7 @@ describe('a freshly granted role is visible to the surface it unlocks', () => {
     'registerContractorAccount()',
     'claimVerifierAccount(verifierClaim)',
     'registerVerifierAccount()',
-    'acceptInvite(token)',
+    'completeProjectInvitation(invitation)',
   ];
 
   it.each(grants)('%s hands off with a reload, never a client-side navigate', (call) => {

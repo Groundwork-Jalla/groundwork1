@@ -403,10 +403,10 @@ function BuildRow({ assigned, client, hasRework }: {
 }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
-  const money = useProjectMoney(assigned.project.country);
+  const money = useProjectMoney(assigned.project);
   const { project, stages, activeStage } = assigned;
 
-  const due = money.pair(activeStage?.payment_milestone_usd ?? null);
+  const due = money.pair(activeStage?.payment_milestone_usd ?? null, activeStage?.milestone_amount);
 
   // A verifier's findings outrank everything else a row could say: that is the one
   // thing on this build waiting on the contractor.

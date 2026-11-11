@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useT } from '@/lib/i18n';
+import { useLanguage, useT } from '@/lib/i18n';
 
 // =========================================================
 // The owner shares their build with their family (112).
@@ -35,6 +35,7 @@ export function ShareProject(
   { projectId, asClient = false }: { projectId: string; asClient?: boolean },
 ) {
   const t = useT();
+  const { lang } = useLanguage();
   const [rows, setRows] = useState<ProjectViewer[] | null>(null);
   const [email, setEmail]               = useState('');
   const [relationship, setRelationship] = useState('');
@@ -64,7 +65,7 @@ export function ShareProject(
       // told mail had gone out when none ever had.
       const token = await inviteProjectViewer(
         projectId, address, relationship.trim() || undefined, asClient);
-      const delivered = await sendShareInviteEmail(token);
+      const delivered = await sendShareInviteEmail(token, lang);
       if (delivered) setSent(address);
       else setFallback({ email: address, link: shareLinkFor(token) });
       setEmail(''); setRelationship('');

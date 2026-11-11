@@ -77,7 +77,7 @@ describe('the claim survives account creation', () => {
     // A contractor claiming an account has no project yet; running the invite branch
     // first would send them to a project that does not exist.
     expect(callback.indexOf('takeRememberedClaim()'))
-      .toBeLessThan(callback.indexOf('localStorage.getItem("pendingInvite")'));
+      .toBeLessThan(callback.indexOf('completeProjectInvitation(invitation)'));
   });
 
   it('a used or stolen token falls through instead of stranding them', () => {

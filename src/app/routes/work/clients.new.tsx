@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { isValidPhone } from '@/lib/phone';
-import { useT } from '@/lib/i18n';
+import { useLanguage, useT } from '@/lib/i18n';
 
 // =========================================================
 // /work/clients/new — a partner contractor brings their own client (109)
@@ -46,6 +46,7 @@ import { useT } from '@/lib/i18n';
 
 export default function WorkNewClient() {
   const t = useT();
+  const { lang } = useLanguage();
   const { user } = useAuth();
   const contractorId = user?.id;
   const activeActor = useRef(contractorId);
@@ -188,7 +189,7 @@ export default function WorkNewClient() {
     const isCurrent = () => mounted.current && activeActor.current === owner && inviteOperation.current === operation;
     setBusy(true);
     try {
-      const { clientId } = await inviteMyClient(name, address, phone);
+      const { clientId } = await inviteMyClient(name, address, phone, lang);
       // Save before showing Next, so leaving immediately never strands the new account.
       saveClientOnboardingDraft(owner, {
         clientId, fullName: name, email: address, phase: 'confirmation',

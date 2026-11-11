@@ -1,4 +1,4 @@
-import { parseAmount, readBqLineItems, readBqTotal, type BqLineItem, type BqReading } from './read-bq-total';
+import { parseAmount, readBqLineItems, readBqTotal, readBqTotalRows, type BqLineItem, type BqReading, type BqSourceRow } from './read-bq-total';
 import type { ModelPlanReading } from './model-plan-reading';
 import { readPlanDocument, type SheetReading } from '@/lib/documents/plan-sheet';
 
@@ -30,22 +30,32 @@ function rowsToText(rows: unknown[][]): string {
     .join('\n');
 }
 
-/** Every sheet in a workbook, flattened. A BQ is often split a section per tab. */
-async function fromSpreadsheet(file: File): Promise<string> {
+/** Preserve workbook cell types and coordinates; formatted text only supplies currency. */
+async function fromSpreadsheet(file: File): Promise<{ text: string; reading: BqReading | null }> {
   const XLSX = await import('xlsx');
   const data = new Uint8Array(await file.arrayBuffer());
   const book = XLSX.read(data, { type: 'array' });
-
+  const sourceRows: BqSourceRow[] = [];
   const parts: string[] = [];
+  const formatted: string[] = [];
   for (const name of book.SheetNames) {
     const sheet = book.Sheets[name];
     if (!sheet) continue;
-    // `header: 1` gives raw rows rather than guessing a header line — a BQ's first
-    // row is as often a title as a set of column names.
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false });
+    const rows = XLSX.utils.sheet_to_json<Array<string | number | null>>(sheet, {
+      header: 1, blankrows: true, raw: true, range: 0, defval: null,
+    });
     parts.push(rowsToText(rows));
+    rows.forEach((cells, row) => sourceRows.push({
+      cells, sheet: name, row: row + 1,
+      addresses: cells.map((_, column) => XLSX.utils.encode_cell({ r: row, c: column })),
+    }));
+    // A number format may name FCFA even when the numeric cell's value does not.
+    formatted.push(...Object.entries(sheet)
+      .filter(([address]) => !address.startsWith('!'))
+      .map(([, cell]) => String((cell as { w?: string }).w ?? '')));
   }
-  return parts.join('\n');
+  const text = parts.join('\n');
+  return { text, reading: readBqTotalRows(sourceRows, text + '\n' + formatted.join('\n')) };
 }
 
 /**
@@ -234,9 +244,12 @@ export async function extractBqTotal(file: File): Promise<BqExtraction> {
   try {
     let text = '';
     let ocr = false;
+    let spreadsheetReading: BqReading | null = null;
 
     if (source === 'spreadsheet') {
-      text = await fromSpreadsheet(file);
+      const out = await fromSpreadsheet(file);
+      text = out.text;
+      spreadsheetReading = out.reading;
     } else if (source === 'pdf') {
       const out = await fromPdf(file);
       text = out.text;
@@ -257,7 +270,7 @@ export async function extractBqTotal(file: File): Promise<BqExtraction> {
     if (!text.trim()) return { reading: null, lineItems: [], statedFloors: null, source, readable: false, ocr };
 
     return {
-      reading: readBqTotal(text), lineItems: readBqLineItems(text),
+      reading: source === 'spreadsheet' ? spreadsheetReading : readBqTotal(text), lineItems: readBqLineItems(text),
       statedFloors: readStatedFloors(text).value,
       source, readable: true, ocr,
     };

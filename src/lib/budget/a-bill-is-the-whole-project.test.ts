@@ -33,8 +33,8 @@ describe('what the contractor confirmed is what the project holds', () => {
   it('only treats a total as a bill when a bill was actually attached', () => {
     // Narrower than the architecture-plan path on purpose: somebody can arrive with
     // drawings and no bill, and then the figure is an estimate like any other.
-    expect(STEP11).toMatch(
-      /hasBillOfQuantities\s*=\s*\(pendingDocuments \?\? \[\]\)\.some\(doc => doc\.category === 'boq'\)/);
+    expect(STEP11).toContain('hasBillOfQuantities = !!data.boqBudget');
+    expect(STEP11).toContain("(pendingDocuments ?? []).some(doc => doc.category === 'boq')");
   });
 
   it('distributes the confirmed TOTAL across the stages, not the carved-down construction', () => {
@@ -66,9 +66,9 @@ describe('what the contractor confirmed is what the project holds', () => {
      * The stages already built are still recorded and still never billed; what changes
      * is only the number the project is said to be worth.
      */
-    expect(STEP11).toMatch(/pricedJoin\s*=\s*hasBillOfQuantities/);
-    expect(STEP11).toMatch(/total: priced\.total/);
-    expect(STEP11).toMatch(/adminStartProjectAtStage\(project\.id, pricedJoin,/);
+    expect(STEP11).toMatch(/if \(hasBillOfQuantities\) \{\s*await confirmBoqBudget\(project\.id, \{/);
+    expect(STEP11).toContain('amount: raw, currencyCode, fxRate: fxRate!');
+    expect(STEP11).toMatch(/\}, startStage\);\s*\} else if \(joined\)/);
   });
 
   it('sends the same priced breakdown down every creation branch', () => {

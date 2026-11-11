@@ -36,6 +36,19 @@ export interface BqReading {
   confidence: 'grand' | 'sum';
   /** Explicitly detected currency. Null means the document did not identify one. */
   currencyCode?: string | null;
+  /** Decimal source value before currency conversion or payment rounding. */
+  sourceAmount?: string;
+  source?: { sheet?: string; cell?: string; row?: number; page?: number };
+}
+
+/** Keep numeric spreadsheet cells numeric, together with their original coordinates. */
+export interface BqSourceRow {
+  cells: Array<string | number | null>;
+  sheet?: string;
+  row?: number;
+  page?: number;
+  addresses?: string[];
+  stableColumns?: boolean;
 }
 
 export interface BqLineItem {
@@ -43,7 +56,6 @@ export interface BqLineItem {
   amount: number;
 }
 
-/** Rows that name themselves as the whole job. Ordered: earlier wins. */
 /**
  * Lower-case and strip accents before matching.
  *
@@ -57,15 +69,13 @@ function normalise(line: string): string {
 }
 
 /**
- * Rows that name themselves as the whole job, best first.
+ * Labels used for project totals. `totalTier` assigns their semantic priority.
  *
  * English and French together, because a Cameroonian QS writes in whichever the
  * client reads and the document does not say which it will be. Tested against the
  * NORMALISED line, so these carry no accents.
  *
- * Order matters where a document has several: a French BQ often lists TOTAL HT, then
- * TVA, then TOTAL TTC. TTC is what the client pays, so it is sought before the bare
- * "total ht" further down.
+ * French bills commonly list HT, TVA, then TTC. TTC names the final payable amount.
  */
 const GRAND_TOTAL = [
   // ── What is actually payable ──
@@ -165,43 +175,56 @@ function findAmountColumn(row: string[]): number | null {
     .sort((a, b) => rank(a.name) - rank(b.name) || b.index - a.index)[0].index;
 }
 
-/** Pull a number out of a cell: "12,500,000.00", "XAF 12 500 000", "(1 234)". */
-export function parseAmount(cell: string): number | null {
+/** Parse a monetary cell without fusing unrelated words, percentages or digits. */
+export function parseAmount(cell: string | number): number | null {
+  if (typeof cell === 'number') {
+    if (!Number.isFinite(cell) || cell <= 0) return null;
+    const cents = Math.round(cell * 100) / 100;
+    return Math.abs(cell - cents) <= Number.EPSILON * Math.max(1, cell) * 2 ? cents : cell;
+  }
   const raw = cell.trim();
   if (!raw) return null;
-
-  // Strip currency words and symbols, keep digits and separators.
+  if (/^\s*\(/.test(raw)) return null; // Accounting parentheses represent a negative value.
   const cleaned = raw
-    .replace(/[A-Za-z $€£₦]/g, ' ')
-    .replace(/[()]/g, ' ')
+    .replace(/\b(?:XAF|XOF|FCFA|CFA|USD|EUR|GBP|NGN|GHS|KES|UGX|TZS|RWF|ETB|ZAR|ZMW|MZN|BWP|CDF|MAD|EGP)\b/gi, '')
+    .replace(/[$€£₦]/g, '')
+    .replace(/[()]/g, '')
     .trim();
-  if (!/\d/.test(cleaned)) return null;
+  if (!/^[+]?\d[\d\s.,'’]*$/.test(cleaned)) return null;
+  const numericText = cleaned.replace(/[\s'’]/g, '');
 
-  // Spreadsheet formulas can serialize an integral result as e.g.
-  // `880000.0000000001`. Treat only floating-point noise around a cent as noise;
-  // ordinary separators and meaningful decimal places continue through the parser.
-  const numericText = cleaned.replace(/\s/g, '');
+  // Formula caches occasionally contain IEEE-754 residue. Only remove actual noise.
   if (/^\d+\.\d{3,}$/.test(numericText)) {
     const numeric = Number(numericText);
     const cents = Math.round(numeric * 100) / 100;
-    const tolerance = Number.EPSILON * Math.max(1, Math.abs(numeric)) * 2;
-    if (Number.isFinite(numeric) && Math.abs(numeric - cents) <= tolerance) return cents;
+    if (Number.isFinite(numeric)
+        && Math.abs(numeric - cents) <= Number.EPSILON * Math.max(1, numeric) * 2) return cents;
   }
 
-  // Which separator is the decimal point? The LAST one, if it leaves 1–2 digits after
-  // it. "1.234.567,89" and "1,234,567.89" both resolve correctly this way, and
-  // "1,234,567" (no decimals) is left whole rather than read as 1.234567.
-  const lastDot = cleaned.lastIndexOf('.');
-  const lastComma = cleaned.lastIndexOf(',');
-  const sep = Math.max(lastDot, lastComma);
-  let normalised: string;
-  if (sep > -1 && /^\d{1,2}$/.test(cleaned.slice(sep + 1).replace(/\s/g, ''))) {
-    normalised = cleaned.slice(0, sep).replace(/[^\d]/g, '')
-      + '.' + cleaned.slice(sep + 1).replace(/[^\d]/g, '');
-  } else {
-    normalised = cleaned.replace(/[^\d]/g, '');
+  const lastDot = numericText.lastIndexOf('.');
+  const lastComma = numericText.lastIndexOf(',');
+  const separator = Math.max(lastDot, lastComma);
+  let decimal = false;
+  if (separator >= 0) {
+    const fraction = numericText.slice(separator + 1);
+    const whole = numericText.slice(0, separator);
+    const bothSeparators = lastDot >= 0 && lastComma >= 0;
+    const sameSeparatorCount = (numericText.match(lastDot > lastComma ? /\./g : /,/g) ?? []).length;
+    // A single 3-digit group such as 1,234 is ambiguous: retain the established
+    // thousands convention. A long ungrouped integer or a separately grouped integer
+    // makes 1414073374.524 / 1 414 073 374,524 unambiguous decimals.
+    decimal = /^\d{1,6}$/.test(fraction) && (fraction.length !== 3 || bothSeparators
+      || (sameSeparatorCount === 1 && (whole.length > 3 || /[\s'’]/.test(cleaned))));
   }
-
+  const normalised = decimal
+    ? numericText.slice(0, separator).replace(/[.,]/g, '') + '.' + numericText.slice(separator + 1)
+    : numericText.replace(/[.,]/g, '');
+  // Repeated punctuation is grouping only when every group has three digits.
+  // Reject malformed numbers instead of joining e.g. 1.2.3 into 123.
+  const integerText = decimal ? numericText.slice(0, separator) : numericText;
+  if (/[.,]/.test(integerText)
+      && !/^\+?\d{1,3}(?:,\d{3})+$/.test(integerText)
+      && !/^\+?\d{1,3}(?:\.\d{3})+$/.test(integerText)) return null;
   const n = Number(normalised);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
@@ -214,7 +237,9 @@ export function parseAmount(cell: string): number | null {
  * digit and exactly three more digits, and see whether any comma is left.
  */
 function commaSeparates(line: string): boolean {
-  return line.replace(/(?<=\d),(?=\d{3}(?!\d))/g, '').includes(',');
+  // Numeric commas can be grouping marks or French decimal separators. A real CSV
+  // row still has a comma beside a label, quote, or another delimiter.
+  return line.replace(/(?<=\d),(?=\d)/g, '').includes(',');
 }
 
 /**
@@ -237,9 +262,13 @@ function cells(line: string): string[] {
   if (line.includes('\t')) return splitOn(line, '\t');
   if (line.includes(';'))  return splitOn(line, ';');
   if (commaSeparates(line)) return splitOn(line, ',');
-  // Whitespace runs. `parseAmount` puts the number back together from one cell, so
-  // over-splitting a description costs nothing and under-splitting a number costs
-  // the total.
+  // OCR emits French grouped amounts separated only by spaces. Keep the complete
+  // numeric tail of a labelled total together; otherwise 1 414 073 374,524 would
+  // become an apparently confident total of 374,524.
+  if (totalTier(normalise(line)) !== null) {
+    const groupedTail = line.match(/^(.*?\D)\s+(\d{1,3}(?:[\s'’]+\d{3})+(?:[.,]\d{1,6})?)(?:\s*(XAF|XOF|FCFA|CFA|USD|EUR|GBP|NGN|GHS|KES|UGX|TZS|RWF|ETB|ZAR|ZMW|MZN|BWP|CDF|MAD|EGP))?\s*$/i);
+    if (groupedTail) return [groupedTail[1], groupedTail[2] + (groupedTail[3] ? ` ${groupedTail[3]}` : '')];
+  }
   return line.split(/\s+/).filter(Boolean);
 }
 
@@ -344,90 +373,90 @@ function lastAmount(row: string[]): number | null {
  */
 export function readBqTotal(text: string): BqReading | null {
   if (!text || !/\d/.test(text)) return null;
+  return readBqTotalRows(text.split(/\r?\n/).map((line, index) => ({
+    cells: cells(line), row: index + 1,
+    stableColumns: line.includes('\t') || line.includes(';') || commaSeparates(line),
+  })), text);
+}
 
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length === 0) return null;
+/** A semantic tier, rather than regex declaration order deciding the payable sum. */
+function totalTier(label: string): number | null {
+  const structuralSubtotal = /\b(?:sub[\s-]?total|sous[\s-]?total|total\s+partiel|page\s+total|carried|brought\s+forward|a\s+reporter|reporte)\b/.test(label);
+  if (structuralSubtotal) return null;
+  if (!GRAND_TOTAL.some(pattern => pattern.test(label))
+      && !/^\s*total\b.*\b(?:h\.?t\.?|ttc)\s*(?:\t|$)/.test(label)) return null;
+  // A payable total can explicitly say that tax or a discount is included. Those
+  // words exclude standalone adjustment rows, not the final total they describe.
+  const explicitOverall = /\b(?:grand\s*total|total\s+(?:general|global)|net\s+payable|(?:amount|total|sum)\s+payable|net\s+a\s+payer|montant\s+net|total\s+a\s+payer)\b/.test(label);
+  const inclusiveTax = /\b(?:incl(?:uding|usive)?\s+(?:vat|tax(?:es)?)|(?:vat|tax(?:es)?)\s+included|tva\s+(?:comprise|incluse)|toutes?\s+taxes?\s+comprises?)\b/.test(label);
+  if (NOT_THE_TOTAL.test(label) && !explicitOverall && !inclusiveTax) return null;
+  if (/\b(?:ttc|t\.t\.c\.?|payable)\b|\bnet\s+(?:total|a\s+payer)\b|\bmontant\s+net\b|\btotal\s+a\s+payer\b/.test(label)) return 0;
+  if (/\bh\.?t\.?\b|\bhors\s+taxes?\b/.test(label)) return 3;
+  if (/(?:^|\t)total(?:\t|$)/.test(label)) return 2;
+  return 1;
+}
 
-  /** Matched against the accent-stripped, lower-cased line; shown as written. */
-  const normalised = lines.map(normalise);
-
-  /** Track each table's priced column, so quantity/rate cannot win by being larger. */
-  const amountColumns: Array<number | null> = [];
+/** Read workbook rows without a lossy numeric-to-locale-text round trip. */
+export function readBqTotalRows(rows: BqSourceRow[], currencyText?: string): BqReading | null {
+  const text = currencyText ?? rows.map(row => row.cells.join('\t')).join('\n');
   let amountColumn: number | null = null;
-  for (const line of lines) {
-    const row = cells(line);
-    const detectedColumn = findAmountColumn(row);
-    // Whitespace-separated OCR has no stable cell positions: description words
-    // shift the amount column from row to row. Use a detected index only for genuine
-    // table delimiters; plain OCR lines use their final numeric value instead.
-    if (detectedColumn !== null
-        && (line.includes('\t') || line.includes(';') || commaSeparates(line))) {
-      amountColumn = detectedColumn;
+  let currentSheet: string | undefined;
+  const candidates: Array<{ row: BqSourceRow; label: string; tier: number; amount: number | null; column: number | null }> = [];
+  let guess: BqReading | null = null;
+
+  for (const row of rows) {
+    if (row.sheet !== currentSheet) { amountColumn = null; currentSheet = row.sheet; }
+    const values = row.cells;
+    const label = values.map(value => value == null ? '' : String(value)).join('\t');
+    if (!label.trim()) continue;
+    const normalised = normalise(label);
+    const detected = findAmountColumn(values.map(value => value == null ? '' : String(value)));
+    if (detected !== null) {
+      if (row.stableColumns !== false) amountColumn = detected;
+      continue;
     }
-    amountColumns.push(amountColumn);
-  }
-
-  const rowAmount = (line: string, index: number, allowFallback = false): number | null => {
-    const row = cells(line);
-    const column = amountColumns[index];
-    const columnAmount = column !== null && row.length > column
-      ? parseAmount(row[column] ?? '')
-      : null;
-    return columnAmount ?? (column === null || allowFallback ? lastAmount(row) : null);
-  };
-
-  // ── First choice: a row that calls itself the grand total ──
-  for (const pattern of GRAND_TOTAL) {
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!pattern.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
-      const amount = rowAmount(line, i, true);
-      if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL) {
-        return {
-          total: amount, label: line.trim().slice(0, 120), confidence: 'grand',
-          currencyCode: detectCurrencyCode(line) ?? detectCurrencyCode(text),
-        };
+    const tier = totalTier(normalised);
+    let column = amountColumn;
+    let amount = column !== null ? parseAmount(values[column] ?? '') : null;
+    // Merged summary rows need not share the detailed table's column positions.
+    if (amount === null && (column === null || tier !== null)) {
+      for (let i = values.length - 1; i >= 0; i--) {
+        const parsed = parseAmount(values[i] ?? '');
+        if (parsed !== null) { amount = parsed; column = i; break; }
       }
     }
+    if (tier !== null) {
+      candidates.push({ row, label, tier, amount, column });
+      continue;
+    }
+    if (NOT_THE_TOTAL.test(normalised) || amount === null
+        || amount < MIN_PLAUSIBLE_TOTAL || amount > MAX_PLAUSIBLE_TOTAL) continue;
+    if (!guess || amount > guess.total) guess = makeReading(row, label, amount, column, 'sum', text);
   }
 
-  // ── A lot total with words between "TOTAL" and "HT" ──
-  //
-  // "TOTAL LOT I INSTALLATIONS ... GROS ŒUVRE HT 1,714,737,411" sits beside "TOTAL II
-  // GROS ŒUVRE ELEVATIONS HT" and "TOTAL III ETANCHEITE HT", which are its sections.
-  // None of the patterns above allow words between TOTAL and HT, so this row was
-  // skipped and a stray figure from a quantities sheet was read instead. Of the rows
-  // that open with TOTAL and close with HT/TTC, the largest is the whole.
-  let lotTotal: { total: number; label: string } | null = null;
-  for (let i = 0; i < lines.length; i++) {
-    if (!/^\s*total\b.*\b(?:h\.?t\.?|ttc)\s*(?:\t|$)/.test(normalised[i]) || NOT_THE_TOTAL.test(normalised[i])) continue;
-    const amount = rowAmount(lines[i], i, true);
-    if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL
-        && (lotTotal === null || amount > lotTotal.total)) {
-      lotTotal = { total: amount, label: lines[i].replace(/\t+/g, '  ').trim().slice(0, 120) };
-    }
+  if (candidates.length) {
+    const strongest = Math.min(...candidates.map(candidate => candidate.tier));
+    // Equivalent totals later in the document supersede earlier summaries, even if
+    // the final value is unreadable. Never silently substitute an earlier HT figure.
+    const chosen = candidates.filter(candidate => candidate.tier === strongest).at(-1)!;
+    if (chosen.amount === null || chosen.amount < MIN_PLAUSIBLE_TOTAL || chosen.amount > MAX_PLAUSIBLE_TOTAL) return null;
+    return makeReading(chosen.row, chosen.label, chosen.amount, chosen.column, 'grand', text);
   }
-  if (lotTotal) {
-    return { ...lotTotal, confidence: 'grand', currencyCode: detectCurrencyCode(text) };
-  }
+  return guess;
+}
 
-  // ── Otherwise: the largest figure that is not an excluded row ──
-  //
-  // A guess, flagged as one. On a well-formed BQ the biggest number IS the total, but
-  // on a BQ whose sections were never summed it is merely the biggest section.
-  let best: { total: number; label: string } | null = null;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (NOT_THE_TOTAL.test(normalised[i])) continue;
-    const amount = rowAmount(line, i);
-    if (amount !== null && amount >= MIN_PLAUSIBLE_TOTAL && amount <= MAX_PLAUSIBLE_TOTAL
-        && (best === null || amount > best.total)) {
-      best = { total: amount, label: line.trim().slice(0, 120) };
-    }
-  }
-  return best ? {
-    ...best, confidence: 'sum', currencyCode: detectCurrencyCode(best.label) ?? detectCurrencyCode(text),
-  } : null;
+function makeReading(row: BqSourceRow, label: string, total: number, column: number | null,
+  confidence: BqReading['confidence'], text: string): BqReading {
+  return {
+    total, sourceAmount: String(total), label: label.trim().slice(0, 120), confidence,
+    currencyCode: detectCurrencyCode(label) ?? detectCurrencyCode(text),
+    source: {
+      ...(row.sheet ? { sheet: row.sheet } : {}),
+      ...(row.row ? { row: row.row } : {}),
+      ...(row.page ? { page: row.page } : {}),
+      ...(column !== null && row.addresses?.[column] ? { cell: row.addresses[column] } : {}),
+    },
+  };
 }
 
 /**

@@ -191,7 +191,7 @@ describe('the client never lets this break an upload', () => {
     // `heldByRead` since 11 Nov, not `scanning`: the read still runs in full, it just
     // stops holding the button once the grace period is out. Both documents are still
     // required, which is what this assertion is about.
-    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead\}/);
+    expect(gate).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning\}/);
     expect(gate).not.toMatch(/\|\| looking\}/);
   });
 

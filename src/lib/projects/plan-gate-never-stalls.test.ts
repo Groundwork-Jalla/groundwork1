@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
+import { createDocumentReadRequests } from '@/components/wizard/ArchitecturePlanGate';
 
 /**
  * Uploading both documents must never leave Continue dead with nothing said.
@@ -45,14 +46,28 @@ describe('the read runs in full', () => {
     expect(body).toMatch(/const out = await extractBqTotal\(file\);/);
   });
 
-  it('a late answer cannot overwrite a newer pick', () => {
-    // Releasing the button means a read can still be running when the person changes
-    // the file. Without this the older read lands last and wins.
-    expect(body).toMatch(/const generation = \+\+readGeneration\.current;/);
-    // Four: the plan's facts and its slower model read, and the bill's success and
-    // failure paths. A read that threw late could otherwise clear a newer file's figures.
-    expect(body.match(/if \(generation !== readGeneration\.current\) return;/g) ?? [])
-      .toHaveLength(4);
+  it('tracks the bill and drawings independently', () => {
+    const requests = createDocumentReadRequests();
+    const billCurrent = requests.begin('boq');
+    const planCurrent = requests.begin('floorPlan');
+    expect(billCurrent()).toBe(true);
+    expect(planCurrent()).toBe(true);
+    requests.begin('floorPlan');
+    expect(planCurrent()).toBe(false);
+    expect(billCurrent()).toBe(true);
+    expect(body).toContain("readRequests.begin('floorPlan')");
+    expect(body).toContain("readRequests.begin('boq')");
+  });
+
+  it.each(['floorPlan', 'boq'] as const)('removing or replacing %s invalidates its pending result', kind => {
+    const requests = createDocumentReadRequests();
+    const first = requests.begin(kind);
+    requests.invalidate(kind);
+    expect(first()).toBe(false);
+    const replacement = requests.begin(kind);
+    expect(replacement()).toBe(true);
+    expect(first()).toBe(false);
+    expect(body).toContain(`readRequests.invalidate('${kind}')`);
   });
 
   it('the counter is always brought back down', () => {
@@ -65,9 +80,12 @@ describe('the read runs in full', () => {
 describe('and it never silently holds the button', () => {
   const body = code(GATE);
 
-  it('Continue is held by the grace period, not by scanning itself', () => {
+  it('normal Continue waits for the bill, while a slow bill offers explicit manual entry', () => {
     expect(body).toMatch(/const heldByRead = scanning && readSeconds < READ_GRACE_SECONDS;/);
-    expect(body).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead\}/);
+    expect(body).toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| heldByRead \|\| boqScanning\}/);
+    expect(body).toContain('boqReadSeconds >= READ_GRACE_SECONDS');
+    expect(body).toContain("t('planGate.enterTotalManually')");
+    expect(body).toContain('floorPlans, bq, reading: null, lineItems: []');
     // The old condition is what stranded it.
     expect(body).not.toMatch(/disabled=\{!floorPlans\.length \|\| !bq \|\| scanning\}/);
   });
@@ -80,7 +98,7 @@ describe('and it never silently holds the button', () => {
 
   it('it says why a scan is slow, and when you may go on without it', () => {
     expect(body).toMatch(/planGate\.readingScanned/);
-    expect(body).toMatch(/!heldByRead && \(/);
+    expect(body).toMatch(/!heldByRead && !boqScanning && \(/);
     expect(body).toMatch(/planGate\.readingContinueAnyway/);
   });
 
@@ -94,7 +112,7 @@ describe('and it never silently holds the button', () => {
 });
 
 describe('both languages say all three things', () => {
-  for (const key of ['readingElapsed', 'readingScanned', 'readingContinueAnyway'] as const) {
+  for (const key of ['readingElapsed', 'readingScanned', 'readingContinueAnyway', 'boqStillReading', 'enterTotalManually'] as const) {
     it(`planGate.${key}`, () => {
       const e = (en.planGate as Record<string, unknown>)[key];
       const f = (fr.planGate as Record<string, unknown>)[key];

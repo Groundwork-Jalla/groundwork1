@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { formatUSDFull } from '@/lib/budget';
 import { useProjectMoney, type ProjectMoney } from './use-project-money';
+import type { ProjectMoneySource } from './project-money';
 
 // =========================================================
 // One project, one currency, one rate.
@@ -33,12 +34,13 @@ import { useProjectMoney, type ProjectMoney } from './use-project-money';
 
 const ProjectMoneyContext = createContext<ProjectMoney | null>(null);
 
-export function ProjectMoneyProvider({ country, children }: {
+export function ProjectMoneyProvider({ country, project, children }: {
   /** `projects.country` — a two-letter code. */
-  country: string | null | undefined;
+  country?: string | null;
+  project?: ProjectMoneySource;
   children: ReactNode;
 }) {
-  const money = useProjectMoney(country);
+  const money = useProjectMoney(project ?? country);
   return <ProjectMoneyContext.Provider value={money}>{children}</ProjectMoneyContext.Provider>;
 }
 
@@ -50,13 +52,13 @@ export function ProjectMoneyProvider({ country, children }: {
  * project whose currency it could be, and a screen that crashes is worse than one that
  * says $ where it has nothing better to say.
  */
-export function useMoney(): (usd: number | null | undefined) => string {
+export function useMoney(): (usd: number | null | undefined, sourceAmount?: number | null) => string {
   const money = useContext(ProjectMoneyContext);
   return useMemo(
-    () => (usd: number | null | undefined) => {
+    () => (usd: number | null | undefined, sourceAmount?: number | null) => {
       const value = Number(usd ?? 0);
       if (!Number.isFinite(value)) return formatUSDFull(0);
-      return money?.local(value) ?? formatUSDFull(value);
+      return money?.local(value, sourceAmount) ?? formatUSDFull(value);
     },
     [money],
   );

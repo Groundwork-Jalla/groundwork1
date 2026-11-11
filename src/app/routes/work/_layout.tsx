@@ -120,8 +120,9 @@ export default function WorkLayout() {
   useEffect(() => {
     if (!gate || onOnboarding) return;
     if (through(gate)) return;
-    navigate('/work/onboarding', { replace: true });
-  }, [gate, onOnboarding, navigate]);
+    const destination = `${location.pathname}${location.search}`;
+    navigate(`/work/onboarding?redirect=${encodeURIComponent(destination)}`, { replace: true });
+  }, [gate, onOnboarding, navigate, location.pathname, location.search]);
 
   // Hold the spinner until the gate has answered, so an unsigned contractor never sees
   // a flash of the dashboard before being moved on.

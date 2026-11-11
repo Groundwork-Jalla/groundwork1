@@ -20,6 +20,13 @@ describe('reading an amount out of a cell', () => {
     ['$1,234.56', 1234.56],
     ['880000.0000000001', 880_000],  // spreadsheet formula floating-point residue
     ['  450000  ', 450_000],
+    ['1414073374.524', 1_414_073_374.524],
+    ['1,414,073,374.524 FCFA', 1_414_073_374.524],
+    ['1.414.073.374,524', 1_414_073_374.524],
+    ['1\u202f414\u00a0073 374,524 FCFA', 1_414_073_374.524],
+    ['1.234567', 1.234567],
+    ['1414073374.524123', 1_414_073_374.524123],
+    ['1,414,073,374.524123 FCFA', 1_414_073_374.524123],
   ])('%s -> %s', (cell, want) => {
     expect(parseAmount(cell)).toBe(want);
   });
@@ -31,6 +38,11 @@ describe('reading an amount out of a cell', () => {
   it('refuses zero and negatives, which are never a construction total', () => {
     expect(parseAmount('0')).toBeNull();
     expect(parseAmount('0.00')).toBeNull();
+    expect(parseAmount('-1200000')).toBeNull();
+    expect(parseAmount('VAT 19.25%')).toBeNull();
+    expect(parseAmount('Section 12 notes 34')).toBeNull();
+    expect(parseAmount('(1200000)')).toBeNull();
+    expect(parseAmount('1.2.3')).toBeNull();
   });
 });
 
@@ -271,5 +283,47 @@ describe('French bills of quantities', () => {
     const out = readBqTotal(head + rows);
     expect(out?.total).toBe(expected);
     expect(out?.confidence).toBe('grand');
+  });
+});
+
+
+describe('the final overall amount is authoritative', () => {
+  it.each([
+    'TOTAL GENERAL TTC 1 414 073 374,524 FCFA',
+    'TOTAL GENERAL TTC 1\u202f414\u00a0073 374,524',
+    'TOTAL GENERAL TTC 1414073374,524',
+    'TOTAL GENERAL TTC 1414073374,52',
+  ])('retains the full amount in French OCR output: %s', line => {
+    expect(readBqTotal(line)?.total).toBe(line.endsWith(',52') ? 1_414_073_374.52 : 1_414_073_374.524);
+  });
+
+  it.each([
+    'TOTAL GENERAL TTC (TVA comprise)',
+    'GRAND TOTAL including VAT',
+    'NET PAYABLE after discount',
+  ])('retains the final overall amount labelled %s', label => {
+    const out = readBqTotal(`TOTAL HT\t1000000\n${label}\t1414073374.524`);
+    expect(out?.total).toBe(1_414_073_374.524);
+    expect(out?.confidence).toBe('grand');
+  });
+
+  it('continues to exclude section subtotals even if they mention TTC', () => {
+    expect(readBqTotal('SOUS TOTAL GENERAL TTC\t1414073374.524')).toBeNull();
+  });
+  it('takes the later overall total even when a different equivalent label came first', () => {
+    const reading = readBqTotal('GRAND TOTAL\t1000000\nTOTAL GENERAL\t1414073374.524');
+    expect(reading?.total).toBe(1_414_073_374.524);
+    expect(reading?.sourceAmount).toBe('1414073374.524');
+    expect(reading?.source?.row).toBe(2);
+  });
+
+  it('prefers final payable over both a large line and HT total', () => {
+    const reading = readBqTotal('Materials\t11858705765\nTOTAL HORS TAXES\t1185870570.4\nTOTAL GENERAL TTC\t1414073374.524');
+    expect(reading?.total).toBe(1_414_073_374.524);
+    expect(reading?.confidence).toBe('grand');
+  });
+
+  it.each(['unreadable', '99999999999999999'])('does not substitute HT or an earlier total when final TTC is %s', amount => {
+    expect(readBqTotal(`TOTAL HT\t1000000\nTOTAL GENERAL TTC\t1200000\nTOTAL GENERAL TTC\t${amount}`)).toBeNull();
   });
 });

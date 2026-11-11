@@ -99,8 +99,8 @@ describe('no surface turns a zero milestone into money that moved', () => {
     // the construction fee when the milestone is null, which would show money as released
     // that never moved.
     const dash = code('src/app/routes/dashboard.tsx');
-    expect(dash).toContain('if (s.pre_existing) continue;');
-    expect(dash.indexOf('if (s.pre_existing) continue;'))
+    expect(dash).toContain('if (s.pre_existing) {');
+    expect(dash.indexOf('if (s.pre_existing) {'))
       .toBeLessThan(dash.indexOf("if (s.payment_status === 'paid') released += amount;"));
     // and it must actually fetch the column it now branches on
     expect(dash).toContain('payment_status, pre_existing');

@@ -26,7 +26,7 @@ export interface MoneyPair {
   rate: string | null;
 }
 
-const group = (value: number, maxFractionDigits = 0) =>
+const group = (value: number, maxFractionDigits = 6) =>
   value.toLocaleString('en-US', { maximumFractionDigits: maxFractionDigits });
 
 /**
@@ -62,7 +62,7 @@ export function moneyPair(
 
   return {
     local: `${group(amount)} ${code}`,
-    usd: `$${group(amount / fxRate)}`,
+    usd: `$${group(amount / fxRate, 0)}`,
     rate: `${group(fxRate, 2)} ${code} = $1`,
   };
 }

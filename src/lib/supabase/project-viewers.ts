@@ -3,6 +3,7 @@ import { detectLang } from '@/lib/i18n';
 import type { Lang } from '@/lib/i18n/types';
 import { trackFunnel } from '@/lib/analytics/funnel';
 import { trackLifecycle } from '@/lib/analytics/lifecycle';
+import { rememberProjectInvitation } from '@/lib/auth/project-invitation';
 
 // =========================================================
 // Sharing a build with the people who care about it (112).
@@ -110,7 +111,7 @@ export class ShareFailed extends Error {
 
 function fail(message: string): never {
   const known = ['not_owner', 'invalid_email', 'self_invite', 'no_project', 'revoked',
-                 'already_accepted', 'invalid_token', 'not_permitted']
+                 'already_accepted', 'invalid_token', 'not_permitted', 'invite_email_mismatch']
     .find(c => message.includes(c));
   throw new ShareFailed(known ?? 'failed');
 }
@@ -245,13 +246,12 @@ export async function revokeProjectViewer(viewerId: string): Promise<void> {
 export const PENDING_SHARE_KEY = 'pendingProjectShare';
 
 export function rememberShare(token: string): void {
-  try { localStorage.setItem(PENDING_SHARE_KEY, token); } catch { /* private mode */ }
+  rememberProjectInvitation({ kind: 'viewer', token });
 }
 
 export function takeRememberedShare(): string | null {
   try {
     const t = localStorage.getItem(PENDING_SHARE_KEY);
-    if (t) localStorage.removeItem(PENDING_SHARE_KEY);
     return t;
   } catch { return null; }
 }

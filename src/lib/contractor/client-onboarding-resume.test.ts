@@ -50,6 +50,7 @@ vi.mock('react', async importOriginal => ({
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: h.actor } }) }));
 vi.mock('@/lib/i18n', () => ({
+  useLanguage: () => ({ lang: 'en' }),
   useT: () => (key: string, params?: Record<string, string>) => params ? `${key} ${JSON.stringify(params)}` : key,
 }));
 vi.mock('@/lib/supabase/contractor-clients', () => ({
@@ -212,7 +213,7 @@ describe('contractor client onboarding route resume', () => {
     await first.submit();
     first.render();
     expect(text(first.tree)).toContain('contractorClient.continueToWizard');
-    expect(h.invite).toHaveBeenCalledExactlyOnceWith(clientA.fullName, clientA.email, '+237670000001');
+    expect(h.invite).toHaveBeenCalledExactlyOnceWith(clientA.fullName, clientA.email, '+237670000001', 'en');
     expect(readClientOnboardingDraft(h.actor)?.phase).toBe('confirmation');
 
     first.unmount();

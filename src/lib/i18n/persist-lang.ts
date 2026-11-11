@@ -1,28 +1,17 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Lang } from './types';
 
-/**
- * Store an explicit language choice on the user's profile.
- *
- * Only explicit choices reach here — `suggestLangForCountry` deliberately does not
- * call it. That distinction is the whole point of the column: NULL means "never told
- * us", and the email path falls back through the build country. If a suggestion were
- * persisted, an anglophone Cameroonian who simply opened a project would be recorded
- * as having chosen French, and there would be no way to tell that apart from a real
- * preference.
- *
- * Fire-and-forget and best-effort. A failed write costs the user nothing in this
- * session — localStorage already holds the choice — and it will be rewritten the next
- * time they touch the toggle.
- */
-export async function persistPreferredLang(lang: Lang): Promise<void> {
+/** Save the language actually used by the account, including its initial UI language. */
+export async function persistPreferredLang(lang: Lang): Promise<boolean> {
   try {
     const { data } = await supabase.auth.getUser();
     const id = data.user?.id;
-    if (!id) return;   // signed out: nothing to write to
-    await supabase.from('profiles').update({ preferred_lang: lang }).eq('id', id);
+    if (!id) return false;
+    const { error } = await supabase.from('profiles').update({ preferred_lang: lang }).eq('id', id);
+    return !error;
   } catch {
-    /* offline, blocked, or the column is not migrated yet — never surface this */
+    // The next auth refresh reconciles again; invitations also carry the current UI.
+    return false;
   }
 }
 
@@ -36,18 +25,18 @@ export async function persistPreferredLang(lang: Lang): Promise<void> {
  * clearing site data silently reverted them. Only `resolveRecipientLang` consulted
  * it, so their *email* was French while the screen in front of them was not.
  */
-export async function fetchPreferredLang(userId: string): Promise<Lang | null> {
+export async function fetchPreferredLang(userId: string): Promise<Lang | null | undefined> {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('preferred_lang')
       .eq('id', userId)
       .maybeSingle();
-    if (error) return null;
+    if (error) return undefined;
     const v = data?.preferred_lang;
     return v === 'en' || v === 'fr' ? v : null;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -82,9 +71,9 @@ export function onAuthUser(cb: (userId: string | null) => void): () => void {
  * the effect that calls it so the precedence is actually testable.
  */
 export function reconcileLang(
-  local: Lang | null, remote: Lang | null,
+  local: Lang | null, remote: Lang | null, detected: Lang = 'en',
 ): { adopt?: Lang; push?: Lang } {
-  if (local === null) return remote ? { adopt: remote } : {};
+  if (local === null) return remote ? { adopt: remote } : { push: detected };
   if (local !== remote) return { push: local };
   return {};
 }

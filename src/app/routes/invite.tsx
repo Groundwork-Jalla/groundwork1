@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Loader2, Building2, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getInviteByToken, acceptInvite } from '@/lib/supabase/invites';
+import { getInviteByToken } from '@/lib/supabase/invites';
 import type { InviteDetails } from '@/lib/supabase/invites';
 import { useT } from '@/lib/i18n';
-import { errorMessage } from '@/lib/errors';
+import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
+import { projectInvitationError, rememberProjectInvitation, withProjectInvitation } from '@/lib/auth/project-invitation';
 
 export default function InvitePage() {
   const { token }    = useParams<{ token: string }>();
   const navigate     = useNavigate();
-  const { user }     = useAuth();
+  const { user, signOut } = useAuth();
   const t            = useT();
 
   const [invite,    setInvite]    = useState<InviteDetails | null>(null);
@@ -36,12 +37,10 @@ export default function InvitePage() {
     setAccepting(true);
     setAcceptErr(null);
     try {
-      const projectId = await acceptInvite(token);
-      // A contractor's surface is /work, not the owner's project page (086 lets them
-      // read it either way, but the client view assumes an owner).
-      navigate(`/work/projects/${projectId}`, { replace: true });
+      const path = await completeProjectInvitation({ kind: 'contractor', token });
+      window.location.href = path;
     } catch (err) {
-      setAcceptErr(errorMessage(err, t('invite.acceptError')));
+      setAcceptErr(t(projectInvitationError(err)));
       setAccepting(false);
     }
   }
@@ -49,7 +48,13 @@ export default function InvitePage() {
   // Store token in localStorage so callback.tsx can process it
   // even if the user opens the confirmation email in a different tab.
   function storeToken() {
-    if (token) localStorage.setItem('pendingInvite', token);
+    if (token) rememberProjectInvitation({ kind: 'contractor', token });
+  }
+
+  async function changeAccount() {
+    storeToken();
+    await signOut();
+    navigate(withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null));
   }
 
   if (loading) {
@@ -94,12 +99,21 @@ export default function InvitePage() {
         <p className="text-sm text-brand-mid-grey mb-6 leading-relaxed">
           {t('invite.acceptedBody')}
         </p>
-        <Link
-          to="/auth/login"
-          className="inline-flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 hover:bg-black transition-colors"
-        >
-          {t('common.logIn')}
-        </Link>
+        {user ? (
+          <button type="button" onClick={handleAcceptNow} disabled={accepting}
+            className="rounded-xl bg-brand-near-black px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+            {t('invite.accept')}
+          </button>
+        ) : (
+          <Link to={withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null)}
+            className="inline-flex items-center justify-center rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 hover:bg-black transition-colors">
+            {t('common.logIn')}
+          </Link>
+        )}
+        {acceptErr && <p role="alert" className="mt-3 text-sm text-state-alert">{acceptErr}</p>}
+        {user && <button type="button" onClick={changeAccount} className="mt-3 block text-sm underline underline-offset-4">
+          {t('common.switchAccount')}
+        </button>}
       </div>
     );
   }
@@ -152,6 +166,9 @@ export default function InvitePage() {
           {acceptErr && (
             <p className="mt-3 text-xs text-center text-state-alert">{acceptErr}</p>
           )}
+          <button type="button" onClick={changeAccount} className="mt-3 w-full text-sm underline underline-offset-4">
+            {t('common.switchAccount')}
+          </button>
         </>
       ) : (
         <>

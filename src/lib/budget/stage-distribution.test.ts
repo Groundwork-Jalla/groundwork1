@@ -262,7 +262,7 @@ describe('the Overview card adds up to the schedule underneath it', () => {
     // mid-build has design and permit dropped and the rest pro-rated, so running the
     // formula backwards produced a Construction line that no stage added up to — on
     // TAMSO, $2,242,660 against a stage column of about $2.35m.
-    expect(overview).toMatch(/const plannedBySlice: BudgetBreakdown = hasObligations \? \{/);
+    expect(overview).toMatch(/const plannedBySlice: BudgetBreakdown = project\.budget_source === 'boq' \? budget : hasObligations \? \{/);
     expect(overview).toMatch(/const plannedConstruction = stagesPaid \+ stagesUnpaid/);
     expect(overview).toMatch(/<CostBreakdownCard\s+budget=\{plannedBySlice\}/);
   });
