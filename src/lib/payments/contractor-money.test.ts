@@ -48,7 +48,7 @@ describe('the Money tab separates the schedule from the ledger', () => {
     // Not "contract minus approved": a zeroed pre-existing stage would otherwise
     // inflate what is still owed.
     expect(MONEY).toMatch(/const outstanding = stages\.filter\(s => s\.status !== 'complete'\)/);
-    expect(MONEY).toMatch(/toCome\s*=\s*money\.pair\(sum\(outstanding\)\)/);
+    expect(MONEY).toMatch(/toCome\s*=\s*money\.pair\(sum\(outstanding\),/);
   });
 
   it('counts only money that actually left, so it needs no footnote', () => {

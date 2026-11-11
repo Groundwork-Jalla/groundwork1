@@ -349,7 +349,10 @@ export function TourGuide({ tour }: { tour: TourId }) {
           </button>
           <button
             type="button" onClick={advance}
-            className="rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-black"
+            // In dark mode the button is white on black. A plain `hover:bg-black` still
+            // fires there, so on hover the text (black) sat on a black background and
+            // the label vanished — Favour, 11 Nov 2026. The dark hover is its own rule.
+            className="rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-black dark:bg-white dark:text-black dark:hover:bg-brand-off-white dark:hover:text-black"
           >
             {remaining > 1 ? t('tour.next') : t('tour.done')}
           </button>

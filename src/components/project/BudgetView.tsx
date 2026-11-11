@@ -13,6 +13,7 @@ import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import type { ConstructionRate } from '@/types/project';
 import { TakeoffComparison } from '@/components/takeoff/TakeoffComparison';
 import { exportBudgetPDF } from '@/lib/pdf/export-budget';
+import { sumBillAmounts } from '@/lib/budget/bill-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fetchProjectDocuments } from '@/lib/supabase/contractor-work';
@@ -333,10 +334,12 @@ function MetricBox({
   label,
   value,
   dimmed,
+  sourceAmount,
 }: {
   label: string;
   value: number;
   dimmed?: boolean;
+  sourceAmount?: number | null;
 }) {
   const money = useMoney();
   return (
@@ -348,7 +351,7 @@ function MetricBox({
           dimmed ? 'text-brand-mid-grey' : 'text-brand-near-black',
         )}
       >
-        {value > 0 ? money(value) : '—'}
+        {value > 0 ? money(value, sourceAmount) : '—'}
       </span>
     </div>
   );
@@ -426,7 +429,9 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
   const basis = stageBasisFor(project, sortedStages, project.budget_source === 'boq' || hasBoq);
   const stageConstructionTotal = basis.base;
 
-  const released  = sumMilestones(sortedStages, s => s.status === 'complete', basis);
+  const historicalStages = sortedStages.filter(s => s.pre_existing);
+  const historical = sumPayableUsd(historicalStages, basis);
+  const released  = sumMilestones(sortedStages, s => s.status === 'complete' && !s.pre_existing, basis);
   const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review', basis);
   const remaining = sumMilestones(sortedStages, s => s.status === 'locked', basis);
 
@@ -471,7 +476,7 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
               index={i}
               stages={sortedStages}
               distributes={slice.key === 'construction'}
-              derivation={sliceDerivation(slice.key, budget, builtAreaSqm)}
+              derivation={project.budget_source === 'boq' ? undefined : sliceDerivation(slice.key, budget, builtAreaSqm)}
               stageConstructionTotal={slice.key === 'construction' ? stageConstructionTotal : null}
               stageBasis={basis}
             />
@@ -506,6 +511,8 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <MetricBox label={t('project.costing.totalBudget')} value={budget.total} />
+        {historical > 0 && <MetricBox label={t('project.overview.historicalValue')} value={historical}
+          sourceAmount={project.budget_precision != null ? sumBillAmounts(historicalStages.map(s => s.milestone_amount), project.budget_precision) : null} />}
         {showMilestoneBuckets && (
           <>
             <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />

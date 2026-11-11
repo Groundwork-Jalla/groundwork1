@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { parseAmount, readBqLineItems, readBqTotal, looksReadable } from './read-bq-total';
+import { parseAmount, readBqLineItems, readBqTotal, readBqTotalRows, looksReadable } from './read-bq-total';
+
+describe('workbook summary scope', () => {
+  it('keeps the overall summary when detail tabs carry their own grand totals', () => {
+    const reading = readBqTotalRows([
+      { sheet: 'SUMMARY', row: 2, cells: ['TOTAL GENERAL', 1500000] },
+      { sheet: 'Foundation', row: 30, cells: ['GRAND TOTAL', 400000] },
+      { sheet: 'Structure', row: 50, cells: ['GRAND TOTAL', 1100000] },
+    ]);
+    expect(reading?.total).toBe(1500000);
+    expect(reading?.source?.sheet).toBe('SUMMARY');
+  });
+
+  it('excludes the priced-posts subtotal from individual work items', () => {
+    expect(readBqLineItems('Description\tAmount\nFoundation\t1000000\nTOTAL DES POSTES\t1000000\nTOTAL GENERAL TTC\t1192500'))
+      .toEqual([{ label: 'Foundation', amount: 1000000 }]);
+  });
+});
 
 /**
  * Reading a bill of quantities.

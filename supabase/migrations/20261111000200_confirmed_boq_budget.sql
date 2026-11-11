@@ -30,6 +30,7 @@ ALTER TABLE public.project_fees ADD COLUMN IF NOT EXISTS boq_waived_amount_usd n
 UPDATE public.projects p SET budget_source = 'boq'
  WHERE p.budget_source IS NULL AND EXISTS (SELECT 1 FROM public.project_documents d
    WHERE d.project_id = p.id AND d.category = 'boq');
+UPDATE public.projects SET budget_source = 'estimate' WHERE budget_source IS NULL;
 -- Keep the previous amount and payment markers as evidence; waive the fee itself.
 UPDATE public.project_fees f SET boq_waived_amount_usd = coalesce(f.boq_waived_amount_usd, f.amount_usd), amount_usd = 0
  FROM public.projects p WHERE p.id = f.project_id AND p.budget_source = 'boq' AND f.amount_usd <> 0;
@@ -119,6 +120,10 @@ BEGIN
   END IF;
 END $$;
 REVOKE ALL ON FUNCTION public.allocate_boq_stages(uuid) FROM PUBLIC, anon, authenticated;
+
+DELETE FROM public.payments pay USING public.project_stages s
+ WHERE pay.stage_id = s.id AND s.pre_existing
+   AND pay.direction = 'in' AND pay.state = 'expected';
 
 CREATE OR REPLACE FUNCTION public.confirm_boq_budget(
   p_project_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric,

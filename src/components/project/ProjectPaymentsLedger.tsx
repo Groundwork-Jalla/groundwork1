@@ -329,7 +329,7 @@ export default function ProjectPaymentsLedger({ project, stages }: {
       </section>
 
       {/* ── Fees: a separate financial domain, never summed into the above ── */}
-      {fees.length > 0 && (
+      {project.budget_source !== 'boq' && fees.length > 0 && (
         <section>
           <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand-mid-grey">{t('project.pay.feesTitle')}</h3>
           <dl className="mt-3 divide-y divide-brand-border-grey rounded-2xl border border-brand-border-grey bg-white text-sm">

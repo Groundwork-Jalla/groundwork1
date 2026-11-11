@@ -25,7 +25,7 @@ import { availableFunds } from '@/lib/lifecycle/stage';
 export type FundingLabel = 'awaiting' | 'confirmed' | 'notScheduled';
 export type ReleaseLabel = 'none' | 'approved' | 'processing' | 'paid' | 'issue' | 'review';
 
-export interface StageRowLike { id: string; stage_number: number; payment_milestone_usd: number | null }
+export interface StageRowLike { id: string; stage_number: number; payment_milestone_usd: number | null; pre_existing?: boolean | null }
 
 export interface Totals {
   /** `in` rows whose receipt has been established. */
@@ -98,7 +98,7 @@ export type NextPayment =
  * point a client at the wrong stage.
  */
 export function nextPayment(rows: Payment[], stages: StageRowLike[]): NextPayment {
-  const scheduled = stages.filter(s => (s.payment_milestone_usd ?? 0) > 0);
+  const scheduled = stages.filter(s => !s.pre_existing && (s.payment_milestone_usd ?? 0) > 0);
   if (scheduled.length === 0) return { kind: 'noMilestones' };
 
   for (const stage of [...scheduled].sort((a, b) => a.stage_number - b.stage_number)) {

@@ -34,11 +34,12 @@ own device and send invitations to password setup rather than the dashboard. Con
 the Supabase Site URL to the application origin, and include
 `/auth/callback?flow=client-invite` under that origin in **Authentication → URL
 Configuration → Redirect URLs**. Set `PUBLIC_SITE_URL` to the same origin on the server.
-Supabase's SMTP sender must be configured for invitation delivery.
+Supabase's SMTP sender must be configured for its authentication emails.
 
 For contractor onboarding, the server reserves a new unconfirmed account without
 choosing or exposing a password, records its required password setup and contractor
-link, then calls `inviteUserByEmail`. The contractor receives only the account id and
+link, then generates the authentication link and sends a translated application email
+through Resend. The contractor receives only the account id and
 email. They can build the client's project immediately on Self Verify, with no plan
 selection step. The client must follow the invitation and save their own password before
 entering the app. Existing accounts are refused and retain the flow where the owner

@@ -91,8 +91,9 @@ export async function createProject(
       offices:             formData.offices,
       floor_rooms:         formData.floorRooms.length ? formData.floorRooms : null,
       budget_usd:          budget.total,
+      budget_source:       opts.bill ? 'boq' : 'estimate',
       ...(opts.bill ? {
-        budget_source: 'boq', budget_amount: opts.bill.amount,
+        budget_amount: opts.bill.amount,
         budget_currency: opts.bill.currencyCode, budget_fx_rate: opts.bill.fxRate,
         budget_precision: amountPrecision(opts.bill.amount),
         budget_source_label: opts.bill.sourceLabel ?? null, budget_source_file: opts.bill.fileName ?? null,

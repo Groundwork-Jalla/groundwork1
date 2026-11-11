@@ -141,6 +141,7 @@ const NOT_THE_TOTAL = new RegExp(
     // ── French ──
     'sous[\\s-]?total',      // the commonest false positive of all
     'total\\s+partiel',
+    'total\\s+des\\s+postes',
     't\\.?v\\.?a\\.?',           // taxe sur la valeur ajoutee
     'a\\s+reporter', 'report\\b', 'reporte',   // carried forward
     'provision', 'imprevus',  // contingency
@@ -435,10 +436,14 @@ export function readBqTotalRows(rows: BqSourceRow[], currencyText?: string): BqR
   }
 
   if (candidates.length) {
-    const strongest = Math.min(...candidates.map(candidate => candidate.tier));
+    // An explicit workbook summary describes the job, even if detail tabs follow it.
+    const summary = candidates.filter(candidate => /^(?:summary|recap(?:itulatif)?(?:general)?|sommaire|synthese)$/
+      .test(normalise(candidate.row.sheet ?? '').replace(/[\s_-]/g, '')));
+    const scoped = summary.length ? summary : candidates;
+    const strongest = Math.min(...scoped.map(candidate => candidate.tier));
     // Equivalent totals later in the document supersede earlier summaries, even if
     // the final value is unreadable. Never silently substitute an earlier HT figure.
-    const chosen = candidates.filter(candidate => candidate.tier === strongest).at(-1)!;
+    const chosen = scoped.filter(candidate => candidate.tier === strongest).at(-1)!;
     if (chosen.amount === null || chosen.amount < MIN_PLAUSIBLE_TOTAL || chosen.amount > MAX_PLAUSIBLE_TOTAL) return null;
     return makeReading(chosen.row, chosen.label, chosen.amount, chosen.column, 'grand', text);
   }
