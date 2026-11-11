@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileSpreadsheet, Loader2, Plus, Lock } from 'lucide-react';
+import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
 import { createTakeoff, fetchTakeoffs, priceTakeoff, type ProjectTakeoffRow } from '@/lib/supabase/takeoffs';
 import { formatLocalCurrency, projectBudget } from '@/lib/budget';
-import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-context';
+import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+import { MoneyValue } from '@/components/project/MoneyValue';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
@@ -38,20 +40,12 @@ function StatusPill({ status }: { status: ProjectTakeoffRow['status'] }) {
 
 /** The client budget, in the project's own currency. See `ManagedEstimate` for why it
  *  is a component: `useMoney()` must run inside the provider this route renders. */
-function ClientBudgetFigure({ usd }: { usd: number }) {
-  const money = useMoney();
-  return (
-    <p className="mt-0.5 text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
-      {money(usd)}
-    </p>
-  );
-}
-
 export default function TakeoffList() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const t = useT();
   const navigate = useNavigate();
+  const { access, error: accessError, refresh: refreshAccess } = useProjectTeamAccess(id ?? '');
 
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [rate, setRate]       = useState<ConstructionRate | null>(null);
@@ -84,7 +78,7 @@ export default function TakeoffList() {
   useEffect(() => { void load(); }, [load]);
 
   async function handleCreate() {
-    if (!id || !user || !project) return;
+    if (!id || !user || !project || project.id !== id || !access?.canEditBoq || creating) return;
     setCreating(true);
     setError(null);
     try {
@@ -111,10 +105,12 @@ export default function TakeoffList() {
     }
   }
 
-  if (loading) {
+  if (accessError) return <div className="p-6 text-sm"><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
+  if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><Link to={`/projects/${id}`} className="font-semibold underline">{t('project.backToDashboard')}</Link></div>;
+  if (loading || !access) {
     return <div className="flex justify-center py-20"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
-  if (!project) {
+  if (!project || project.id !== id) {
     return <p className="py-20 text-center text-sm text-brand-mid-grey">{t('takeoff.notFound')}</p>;
   }
 
@@ -142,8 +138,8 @@ export default function TakeoffList() {
 
       <div className="rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 dark:border-[#2c2c2c] dark:bg-[#1a1a1a]">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">{t('takeoff.clientBudget')}</p>
-        <ClientBudgetFigure usd={budget.construction} />
-        <p className="mt-0.5 text-[11px] text-brand-mid-grey">{t('takeoff.clientBudgetNote')}</p>
+        <MoneyValue usd={budget.construction} className="mt-1 text-lg font-bold" />
+        <p className="mt-0.5 text-[11px] text-brand-mid-grey">{t(project.budget_source === 'boq' ? 'takeoff.boqBudgetNote' : 'takeoff.clientBudgetNote')}</p>
       </div>
 
       {error && (
@@ -187,10 +183,10 @@ export default function TakeoffList() {
         type="button"
         onClick={handleCreate}
         disabled={creating}
-        className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-brand-near-black"
+        className="inline-flex w-fit items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
       >
         {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-        {t('takeoff.newTakeoff')}
+        {t('takeoff.editBoq')}
       </button>
     </motion.div>
     </ProjectMoneyProvider>

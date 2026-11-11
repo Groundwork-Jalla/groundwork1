@@ -50,6 +50,11 @@ CREATE TABLE public.project_viewers(
  CHECK((accepted_at IS NULL)=(user_id IS NULL)),CHECK((revoked_at IS NULL)=(revoked_by IS NULL)));
 CREATE UNIQUE INDEX project_viewers_one_client ON project_viewers(project_id) WHERE is_client AND revoked_at IS NULL;
 CREATE UNIQUE INDEX project_viewers_one_open_per_email ON project_viewers(project_id,lower(email)) WHERE revoked_at IS NULL;
+CREATE TABLE public.project_takeoffs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid REFERENCES projects,created_by uuid,status text DEFAULT 'draft',inputs jsonb DEFAULT '{}',overrides jsonb DEFAULT '{}');
+ALTER TABLE project_takeoffs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY admins_all_takeoffs ON project_takeoffs FOR ALL USING(public.is_admin()) WITH CHECK(public.is_admin());
+CREATE POLICY owners_select_takeoffs ON project_takeoffs FOR SELECT USING(status<>'draft' AND EXISTS(SELECT 1 FROM projects p WHERE p.id=project_id AND p.user_id=auth.uid()));
+INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(1));
 CREATE TABLE public.project_verifiers(project_id uuid,user_id uuid,status text);
 CREATE TABLE public.contractor_clients(client_id uuid,contractor_id uuid,client_was_created boolean,accepted_at timestamptz);
 CREATE TABLE public.test_activity(project_id uuid,event text,details jsonb);
@@ -234,6 +239,28 @@ SELECT test_assert((SELECT is_client AND accepted FROM project_viewer_preview(cu
 SELECT test_assert((SELECT array_agg(k ORDER BY k) FROM project_viewer_preview(current_setting('test.preview')::uuid) p,
  jsonb_object_keys(to_jsonb(p)) k)=ARRAY['accepted','invited_by_name','is_client','project_name'],'preview contains no finance or recipient data');
 RESET ROLE;
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_assert(NOT can_edit_project_boq(test_id(101)), 'client creator cannot edit BQ');
+SELECT test_refused($q$INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(1))$q$,'new row violates row-level security policy');
+DO $$ DECLARE n int; BEGIN
+ UPDATE project_takeoffs SET inputs='{"sqm":999}' WHERE project_id=test_id(101); GET DIAGNOSTICS n=ROW_COUNT;
+ PERFORM test_assert(n=0,'old client-authored drafts cannot be changed');
+END $$;
+SELECT set_config('test.actor',test_id(2)::text,false);
+SELECT test_assert(can_edit_project_boq(test_id(101)) AND project_team_access(test_id(101))->>'can_edit_boq'='true','assigned contractor can edit BQ');
+INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(2));
+UPDATE project_takeoffs SET inputs='{"sqm":150}' WHERE project_id=test_id(101) AND created_by=test_id(2);
+SELECT test_assert((SELECT count(*) FROM project_takeoffs WHERE project_id=test_id(101) AND inputs='{"sqm":150}')=1,'contractor saves their BQ');
+SELECT test_refused($q$INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(110),test_id(2))$q$,'new row violates row-level security policy');
+SELECT set_config('test.actor',test_id(3)::text,false);
+SELECT test_assert(NOT can_edit_project_boq(test_id(101)),'observer cannot edit BQ');
+SELECT set_config('test.actor',test_id(4)::text,false);
+SELECT test_assert(can_edit_project_boq(test_id(101)),'admin may review BQ');
+INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(4));
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_assert((SELECT budget_amount FROM projects WHERE id=test_id(101))=141407337.524,'BQ draft editing does not change confirmed project budget');
+RESET ROLE;
 SELECT 'PROJECT_TEAM_OK' AS result;
 `;
   const sql = [setup,
@@ -243,7 +270,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     fn('supabase/migrations/086_verifiers.sql', 'is_contractor_on'),
     fn('supabase/migrations/110_contractor_client_consent.sql', 'is_my_clients_project'),
     fn('supabase/migrations/101_primary_contractor_payout.sql', 'contractor_invites_clear_primary'),
-    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), tests,
+    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), tests,
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);

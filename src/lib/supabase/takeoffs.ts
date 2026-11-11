@@ -91,11 +91,12 @@ export async function saveDraft(
   id: string,
   patch: { inputs?: DetailedTakeoffInput; overrides?: OverrideMap; note?: string },
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_takeoffs')
     .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id).select('id').maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('not_permitted: this bill can no longer be edited');
 }
 
 /**
@@ -110,7 +111,7 @@ export async function submitTakeoff(
   priced: { lines: TakeoffLine[]; totalLocal: number; cityRate: CityRate },
   fxRate: number,
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('project_takeoffs')
     .update({
       status: 'submitted',
@@ -124,14 +125,16 @@ export async function submitTakeoff(
       fx_rate: fxRate,
       engine_version: CM_TAKEOFF.version,
     })
-    .eq('id', id);
+    .eq('id', id).select('id').maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('not_permitted: this bill can no longer be edited');
   trackEvent('takeoff_submitted', { takeoff_id: id });
 }
 
 export async function deleteDraft(id: string): Promise<void> {
-  const { error } = await supabase.from('project_takeoffs').delete().eq('id', id);
+  const { data, error } = await supabase.from('project_takeoffs').delete().eq('id', id).select('id').maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('not_permitted: this bill can no longer be edited');
 }
 
 /**

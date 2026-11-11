@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { AnimatePresence } from 'framer-motion';
 import { Banknote } from 'lucide-react';
 import type { LoadedWorkspace } from '@/lib/supabase/workspace';
 import { listPaymentEvents, type Payment, type PaymentEvent } from '@/lib/supabase/payments';
 import { LedgerModal, type Contractor, type LedgerModalState, type StageRef } from '@/components/admin/ledger/LedgerModal';
+import { Link } from 'react-router';
 import BudgetView from '@/components/project/BudgetView';
 import { domainStateOf, workspaceHref } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
@@ -342,7 +342,8 @@ function BudgetSection({ ws, onChanged }: { ws: LoadedWorkspace['workspace']; on
         <div className="px-5 py-4">
           {/* Costing only. BudgetView's Released/Held/Remaining are stage-status buckets — the
               client's estimate — and the ledger above is the record; one "released" per screen. */}
-          <BudgetView project={ws.project} stages={ws.stages.map(s => s.stage)} showMilestoneBuckets={false} />
+          <Link to={`/projects/${ws.project.id}/takeoff`} className="mb-4 inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">{t('takeoff.editBoq')}</Link>
+          <BudgetView project={ws.project} stages={ws.stages.map(s => s.stage)} showMilestoneBuckets={false} allowBoqEditing />
         </div>
       </Section>
     </>

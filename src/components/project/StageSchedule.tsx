@@ -1,5 +1,5 @@
 import { Check, Clock, Lock } from 'lucide-react';
-import { useT } from '@/lib/i18n';
+import { useLanguage, useT } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { stageScheduleUsd, type StageBasis } from '@/lib/budget/stage-amounts';
 import { formatShare } from '@/lib/budget/stage-shares';
@@ -13,6 +13,7 @@ export function StageSchedule({ project, stages, basis, payments }: {
   project: ProjectRow; stages: ProjectStageRow[]; basis: StageBasis; payments?: Map<string, StagePayment>;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { stageLabel } = useStageLabels();
   return <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
     <h3 className="text-sm font-semibold text-brand-near-black dark:text-white">{t('project.review.schedule')}</h3>
@@ -37,7 +38,7 @@ export function StageSchedule({ project, stages, basis, payments }: {
               <div>
                 <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stageLabel(stage)}</p>
                 <p className="mt-1 text-xs text-brand-mid-grey">{t(historical ? 'project.costing.completedBeforeTracking' : complete ? 'project.review.approved' : stage.status === 'pending_review' ? 'project.costing.awaitingApproval' : current ? 'project.costing.statusActive' : 'project.costing.statusLocked')}</p>
-                {stage.completed_at && <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">{new Date(stage.completed_at).toLocaleDateString()}</p>}
+                {stage.completed_at && <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">{new Date(stage.completed_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB')}</p>}
               </div>
               <div className="text-right">
                 <MoneyValue usd={scheduled} amount={stage.milestone_amount} className="text-sm font-semibold text-brand-near-black dark:text-white" />

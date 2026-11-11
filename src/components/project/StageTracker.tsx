@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,8 @@ import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { useMoney } from '@/lib/budget/project-money-context';
 import { MoneyValue } from './MoneyValue';
+import { DocumentViewer } from './DocumentViewer';
+import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase/certificates';
 import { formatShare } from '@/lib/budget/stage-shares';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
@@ -16,9 +18,7 @@ import { useStageLabels } from '@/lib/stage-labels';
 import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
 
 // Lazy-loaded so the certificate HTML is not bundled into the main chunk
-const StageCertificateModal = lazy(() =>
-  import('./StageCertificateModal').then(m => ({ default: m.StageCertificateModal })),
-);
+
 
 // ── Stage circle (horizontal pipeline) ───────────────────
 
@@ -417,7 +417,13 @@ export function StageTracker({
    * This is the display half. The half that matters is migration 079, which stops any
    * signed-in user inserting a certificate row at all; a button is not a boundary.
    */
-  const canCertify = tier === 'jalla_verify' || tier === 'jalla_management';
+  const [issued, setIssued] = useState<{ projectId: string; rows: Map<string, IssuedCertificate> }>({ projectId, rows: new Map() });
+  useEffect(() => {
+    let active = true;
+    void fetchProjectCertificates(projectId, { strict: true }).then(rows => { if (active) setIssued({ projectId, rows }); })
+      .catch(() => { if (active) setIssued({ projectId, rows: new Map() }); });
+    return () => { active = false; };
+  }, [projectId, stages]);
   const [selection, setSelection] = useState<{ projectId: string; stageId: string | null; follow: boolean }>({
     projectId, stageId: null, follow: true,
   });
@@ -433,7 +439,7 @@ export function StageTracker({
   useEffect(() => {
     if (handoff?.projectId === projectId && projectReflectsApproval(stages, handoff)) setHandoff(null);
   }, [handoff, stages, projectId]);
-  const [certStage, setCertStage] = useState<ProjectStageRow | null>(null);
+  const [certificate, setCertificate] = useState<{ projectId: string; name: string; url: string } | null>(null);
 
   // The approval response is authoritative even if the refresh is still arriving.
   // Release this local handoff as soon as the saved completed row reaches the page.
@@ -530,10 +536,10 @@ export function StageTracker({
                     * production holds no certificate rows at all — but a button that
                     * offers one is the claim, whether or not it is pressed.
                     */}
-                  {stage.status === 'complete' && canCertify && !stage.pre_existing && (
+                  {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && (
                     <button
                       type="button"
-                      onClick={() => setCertStage(stage)}
+                      onClick={() => setCertificate({ projectId, name: `${stageLabel(stage)}.pdf`, url: issued.rows.get(stage.id)!.pdfUrl! })}
                       className="inline-flex items-center gap-1 text-[10px] font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors mt-0.5"
                     >
                       <Download className="size-3" /> {t('project.stages.certificate')}
@@ -572,24 +578,8 @@ export function StageTracker({
         </div>
       </div>
 
-      {/* Stage certificate modal */}
-      <AnimatePresence>
-        {certStage && (
-          <Suspense fallback={null}>
-            <StageCertificateModal
-              stage={certStage}
-              project={{
-                name: projectName,
-                country: projectCountry,
-                city: projectCity,
-                tier,
-              }}
-              ownerName={ownerName}
-              onClose={() => setCertStage(null)}
-            />
-          </Suspense>
-        )}
-      </AnimatePresence>
+      {certificate?.projectId === projectId && <DocumentViewer name={certificate.name} url={certificate.url} onClose={() => setCertificate(null)} />}
+
     </div>
   );
 }

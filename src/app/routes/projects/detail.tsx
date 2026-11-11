@@ -84,13 +84,14 @@ const CONTRACTOR_TABS: { id: Tab; labelKey: TKey }[] = [
 ];
 
 function TabBar({
-  active, onChange, isContractor, projectId, canInviteContractor,
+  active, onChange, isContractor, projectId, canInviteContractor, canEditBoq,
 }: {
   active: Tab;
   onChange: (t: Tab) => void;
   isContractor: boolean;
   projectId: string;
   canInviteContractor: boolean;
+  canEditBoq: boolean;
 }) {
   const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
   const t = useT();
@@ -118,12 +119,12 @@ function TabBar({
         fit inside this page's max-w-5xl column, and a contractor sends "here's my BQ" as
         a URL, which needs somewhere to point.
       */}
-      <Link
+      {canEditBoq && <Link
         to={`/projects/${projectId}/takeoff`}
         className="shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black"
       >
-        {t('project.tabs.takeoff')}
-      </Link>
+        {t('takeoff.editBoq')}
+      </Link>}
     </div>
   );
 }
@@ -560,7 +561,7 @@ export default function ProjectDetail() {
               already `locked`, so nothing here is actionable until start_project_tracking
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
-          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} />
+          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} canEditBoq={teamAccess?.canEditBoq === true} />
 
           {/* Somebody else built this project for them — an admin, or the partner
               contractor who brought them on (109). The client was told nothing before:

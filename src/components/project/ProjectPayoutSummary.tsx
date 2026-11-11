@@ -76,18 +76,18 @@ export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'defa
           </div>
         ))}
       </div>
-      {state === 'loading' && <p role="status" className="text-xs text-brand-mid-grey">{t('common.loading')}</p>}
+      {state === 'loading' && <p role="status" className={tone === 'hero' ? 'text-xs text-white/75' : 'text-xs text-brand-mid-grey'}>{t('common.loading')}</p>}
       {state === 'error' && (
-        <p role="alert" className="text-xs text-state-alert">
+        <p role="alert" className={tone === 'hero' ? 'text-xs font-medium text-white' : 'text-xs text-state-alert'}>
           {t('project.costing.payoutsLoadFailed')}{' '}
           <button type="button" onClick={() => setAttempt(value => value + 1)} className="font-semibold underline">{t('project.costing.retryPayouts')}</button>
         </p>
       )}
       {summary && (summary.missingConfirmedCount > 0 || summary.missingPendingCount > 0) && (
-        <p role="status" className="text-xs text-brand-mid-grey">{t('project.costing.receiptAmountsMissing')}</p>
+        <p role="status" className={tone === 'hero' ? 'text-xs text-white/75' : 'text-xs text-brand-mid-grey'}>{t('project.costing.receiptAmountsMissing')}</p>
       )}
       {summary?.overBudget && summary.overBudget.amount > 0 && (
-        <p role="status" className="text-xs text-state-alert">{t('project.costing.overBudget', { amount: format(summary.overBudget.amount) })}</p>
+        <p role="status" className={tone === 'hero' ? 'text-xs font-medium text-white' : 'text-xs text-state-alert'}>{t('project.costing.overBudget', { amount: format(summary.overBudget.amount) })}</p>
       )}
       <p className={`text-[11px] leading-relaxed ${tone === 'hero' ? 'text-white/75' : 'text-brand-mid-grey'}`}>{t('project.costing.payoutsNote')}</p>
     </section>

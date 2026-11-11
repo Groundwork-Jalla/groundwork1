@@ -256,6 +256,8 @@ export const fr: Mirror<EnDict> = {
     '999': 'Imprévus',
   },
   takeoff: {
+    editBoq: 'Modifier le devis quantitatif',
+    boqBudgetNote: 'Le total confirmé du devis constitue le budget du projet. Aucun frais Groundwork n’est ajouté. Les brouillons ne modifient pas le total convenu du projet.',
     section: {
       preliminary:  'Installation & préliminaires',
       foundation:   'Fondations',
@@ -275,7 +277,7 @@ export const fr: Mirror<EnDict> = {
     clientBudget:     'Budget construction du client',
     clientBudgetNote: 'Construction uniquement — la conception, le permis et les honoraires sont facturés à part et ne font pas partie de votre devis.',
     empty:        'Aucun devis pour le moment.',
-    newTakeoff:   'Commencer un devis',
+    newTakeoff:   'Modifier le devis quantitatif',
     notFound:     'Devis introuvable, ou vous n\'y avez pas accès.',
     yourTotal:    'Votre total',
     indicativeUsd:'USD indicatif, converti à un taux arrondi',
@@ -5755,6 +5757,13 @@ export const fr: Mirror<EnDict> = {
       noActive: 'Aucun projet actif ne correspond à ce filtre.',
       noCompleted: 'Aucun projet terminé pour le moment.',
       editorRestricted: 'La modification du devis quantitatif est réservée aux prestataires affectés au chantier et à Groundwork.',
+      documents: 'Documents du projet',
+      documentsLoadFailed: 'Certains fichiers du projet n’ont pas pu être chargés. Réessayez pour actualiser les mises à jour et les certificats.',
+      spreadsheetFailed: 'Impossible de prévisualiser ce tableur. Réessayez ou téléchargez le fichier original.',
+      sheets: 'Feuilles du classeur',
+      emptySheet: 'Cette feuille ne contient aucune cellule à afficher.',
+      spreadsheetTruncated: 'Cet aperçu est limité aux 200 premières lignes, 40 colonnes et 12 feuilles. Téléchargez l’original pour consulter tout le classeur.',
+      savedValues: 'Les valeurs sont celles enregistrées dans le fichier. Les formules ne sont pas recalculées.',
     },
     evidence: {
       video: 'Vidéo',

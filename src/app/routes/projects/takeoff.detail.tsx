@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, Lock, Save, Send, TriangleAlert } from 'lucide-react';
+import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
 import { getConstructionRate } from '@/lib/supabase/construction-rates';
@@ -61,6 +62,7 @@ export default function TakeoffDetail() {
   const { id, takeoffId } = useParams<{ id: string; takeoffId: string }>();
   const { user } = useAuth();
   const t = useT();
+  const { access, error: accessError, refresh: refreshAccess } = useProjectTeamAccess(id ?? '');
 
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [rate, setRate]       = useState<ConstructionRate | null>(null);
@@ -78,7 +80,7 @@ export default function TakeoffDetail() {
     try {
       const [p, r] = await Promise.all([fetchProject(id), fetchTakeoff(takeoffId)]);
       setProject(p);
-      setRow(r);
+      setRow(r?.project_id === id ? r : null);
       if (r) {
         setOverrides(r.overrides ?? {});
         setDims({ lengthM: r.inputs.lengthM, widthM: r.inputs.widthM });
@@ -94,7 +96,7 @@ export default function TakeoffDetail() {
   useEffect(() => { void load(); }, [load]);
 
   const effectiveRate = rate ?? (project ? buildLegacyRate({ country: project.country }) : null);
-  const readOnly = !row || row.status !== 'draft' || row.created_by !== user?.id;
+  const readOnly = !access?.canEditBoq || !row || row.status !== 'draft' || (row.created_by !== user?.id && !access.canChangeRoles);
 
   // Live pricing. A draft recomputes on every keystroke; a submitted row renders from its
   // frozen snapshot via priceTakeoff.
@@ -113,7 +115,7 @@ export default function TakeoffDetail() {
   }, [row, effectiveRate, dims]);
 
   async function handleSave() {
-    if (!row) return;
+    if (!row || readOnly || row.project_id !== id || busy) return;
     setBusy('save'); setError(null);
     try {
       await saveDraft(row.id, { inputs: { ...row.inputs, ...dims }, overrides });
@@ -125,7 +127,7 @@ export default function TakeoffDetail() {
   }
 
   async function handleSubmit() {
-    if (!row || !priced || !effectiveRate) return;
+    if (!row || readOnly || row.project_id !== id || busy || !priced || !effectiveRate) return;
     setBusy('submit'); setError(null);
     try {
       await saveDraft(row.id, { inputs: { ...row.inputs, ...dims }, overrides });
@@ -136,10 +138,12 @@ export default function TakeoffDetail() {
     } finally { setBusy(null); }
   }
 
-  if (loading) {
+  if (accessError) return <div className="p-6 text-sm"><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
+  if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><Link to={`/projects/${id}`} className="font-semibold underline">{t('project.backToDashboard')}</Link></div>;
+  if (loading || !access) {
     return <div className="flex justify-center py-20"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
-  if (!project || !row || !priced || !effectiveRate) {
+  if (!project || project.id !== id || !row || row.project_id !== id || !priced || !effectiveRate) {
     return <p className="py-20 text-center text-sm text-brand-mid-grey">{t('takeoff.notFound')}</p>;
   }
 

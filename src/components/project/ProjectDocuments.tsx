@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { formatDate } from '@/lib/format';
+import { useDomainLabels } from '@/lib/domain-labels';
 import { useStageLabels } from '@/lib/stage-labels';
 import { supabase } from '@/lib/supabase/client';
 import { getSignedDocumentUrl, signedUrlIn } from '@/lib/supabase/documents';
@@ -24,6 +25,7 @@ export function ProjectDocuments({ projectId, stages, documents, toolbar, emptyL
   toolbar?: ReactNode; emptyLabel?: string;
 }) {
   const t = useT();
+  const labels = useDomainLabels();
   const { stageLabel } = useStageLabels();
   const [filter, setFilter] = useState<'all' | 'drawings' | 'boq' | 'site' | 'certificates'>('all');
   const [query, setQuery] = useState('');
@@ -101,7 +103,7 @@ export function ProjectDocuments({ projectId, stages, documents, toolbar, emptyL
   const show = (group: typeof filter) => filter === 'all' || filter === group;
   const visible = filter === 'all' ? counts.all : counts[filter];
   const renderFile = (doc: typeof files[number]) => <FileRow key={doc.id} kind={fileKind(doc.file_name)} name={doc.file_name}
-    sub={doc.category === 'boq' ? t('contractorDocs.billOfQuantities') : t(`project.documents.categories.${doc.category}` as never)}
+    sub={doc.category === 'boq' ? t('contractorDocs.billOfQuantities') : labels.docCategory(doc.category)}
     when={formatDate(doc.created_at)} action={t('contractorDocs.view')} busy={opening === doc.id}
     onOpen={() => { void openFile({ id: doc.id, name: doc.file_name, path: doc.file_path, bucket: 'documents' }); }} />;
   const renderMedia = (item: ProjectMedia) => item.path ? <FileRow key={item.id} kind={fileKind(item.name)} name={item.name}
@@ -119,7 +121,7 @@ export function ProjectDocuments({ projectId, stages, documents, toolbar, emptyL
         <input type="search" value={query} onChange={event => setQuery(event.target.value)} aria-label={t('contractorDocs.search')}
           placeholder={t('contractorDocs.search')} className="w-full rounded-xl border border-brand-border-grey bg-white py-2 pl-9 pr-3 text-sm dark:bg-[#1e1e1e] dark:text-white" />
       </div>
-      <select aria-label={t('contractorDocs.sort')} value={sort} onChange={event => setSort(event.target.value as typeof sort)} className="rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-xs dark:bg-[#1e1e1e] dark:text-white">
+      <select aria-label={t('contractorDocs.sortBy')} value={sort} onChange={event => setSort(event.target.value as typeof sort)} className="rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-xs dark:bg-[#1e1e1e] dark:text-white">
         <option value="newest">{t('contractorDocs.sortNewest')}</option><option value="oldest">{t('contractorDocs.sortOldest')}</option><option value="name">{t('contractorDocs.sortName')}</option>
       </select>
       {toolbar}

@@ -35,6 +35,7 @@ export interface BudgetViewProps {
   payments?: Map<string, StagePayment>;
   /** Admin's provider ledger is separate from direct client-to-contractor receipts. */
   showMilestoneBuckets?: boolean;
+  allowBoqEditing?: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -233,7 +234,7 @@ function MetricBox({
 
 // ── Main component ───────────────────────────────────────────
 
-export default function BudgetView({ project, stages, payments, showMilestoneBuckets = true }: BudgetViewProps) {
+export default function BudgetView({ project, stages, payments, showMilestoneBuckets = true, allowBoqEditing = false }: BudgetViewProps) {
   const { stageLabel } = useStageLabels();
   const { lang } = useLanguage();
   const t = useT();
@@ -379,6 +380,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
       */}
 
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
+      {allowBoqEditing && <TakeoffComparison project={project} />}
       <div className="grid grid-cols-2 gap-3">
         <MetricBox label={t('project.costing.totalBudget')} value={budget.total} />
         {historical > 0 && <MetricBox label={t('project.overview.historicalValue')} value={historical}

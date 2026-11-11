@@ -55,6 +55,7 @@ function render(component: () => any) {
 const flush = () => new Promise<void>(resolve => setImmediate(resolve));
 const caps: ProjectTeamAccess = { canInvite: true, primaryClient: true, primaryContractor: false,
   assignedContractor: false,
+  canEditBoq: false,
   canInviteClient: false, canInviteContractor: true, hasClientInvitation: false, hasContractor: false,
   hasPendingContractor: false, canChangeRoles: false, needsPrimaryReview: false };
 const observer = { id: 'observer', email: 'observer@example.com', relationship: 'Family', invitedAt: 'now', acceptedAt: 'now', isClient: false };

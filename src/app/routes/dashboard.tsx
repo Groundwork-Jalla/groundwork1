@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Plus,
   ChevronRight, HardHat,
-  UserCircle, Check, Upload, MessageSquare, FolderArchive, Eye, Camera,
+  UserCircle, Check, MessageSquare, FolderArchive, Eye,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
 import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
@@ -67,10 +67,6 @@ function greetingKey(): TKey {
   if (h < 12) return 'dashboard.goodMorning';
   if (h < 17) return 'dashboard.goodAfternoon';
   return 'dashboard.goodEvening';
-}
-
-function pctToDollars(pct: number | null, total: number): number {
-  return ((pct ?? 0) / 100) * total;
 }
 
 // ── Shared progress bar ────────────────────────────────────
@@ -371,9 +367,10 @@ function OtherProjectRow({ project, shared, assigned }: { project: ProjectRow; s
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
-          {total > 0 ? money.local(total) : '—'}
+        <p className="font-mono text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
+          {total > 0 ? money.pair(total).local : '—'}
         </p>
+        {total > 0 && money.pair(total).usd && <p className="mt-1 font-mono text-xs text-brand-mid-grey">{money.pair(total).usd}</p>}
       </div>
       <ChevronRight className="size-4 shrink-0 text-brand-border-grey" />
     </Link>
@@ -479,7 +476,7 @@ export default function Dashboard() {
     setStagesLoading(true);
     supabase
       .from('project_stages')
-      .select('id, stage_number, stage_key, name, status, budget_pct, completed_at, payment_milestone_usd, milestone_amount, payment_status, pre_existing')
+      .select('*')
       .eq('project_id', activeProject.id)
       .order('stage_number')
       .then(({ data }) => {
