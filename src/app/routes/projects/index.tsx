@@ -28,7 +28,7 @@ function completedStages(p: ProjectRow) {
 function HorizBar({ pct }: { pct: number }) {
   return (
     <div className="h-1.5 w-full rounded-full bg-brand-light-grey overflow-hidden">
-      <motion.div className="h-full rounded-full bg-brand-near-black"
+      <motion.div className="h-full rounded-full bg-brand-green"
         initial={{ width: 0 }} animate={{ width: `${pct}%` }}
         transition={{ duration: 0.8, ease: 'easeOut' }} />
     </div>
@@ -194,7 +194,7 @@ export default function ProjectsIndex() {
           {FILTERS.map(f => (
             <button key={f.id} type="button" onClick={() => setFilter(f.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                filter === f.id ? 'bg-brand-near-black text-white' : 'bg-white border border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black hover:border-brand-near-black'
+                filter === f.id ? 'bg-brand-green text-white' : 'bg-white border border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black hover:border-brand-near-black'
               }`}>
               {t(f.labelKey)}
               {f.id !== 'all' && <span className="ml-1.5 opacity-60">{projects.filter(p => p.status === f.id).length}</span>}

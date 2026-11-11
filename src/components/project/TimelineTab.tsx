@@ -331,8 +331,6 @@ function GanttView({
           {([
             { color: 'var(--color-brand-green)', key: 'project.timeline.legendCompleted'  as TKey },
             { color: 'var(--color-ink)', key: 'project.timeline.legendInProgress' as TKey },
-            // Same reason as the pill: on Self Verify the amber band is the owner's own
-            // queue, not a wait on Jalla.
             { color: 'var(--color-ink-60)', key: 'project.timeline.legendYourApproval' as TKey },
             { color: '#d1d5db', key: 'project.timeline.legendUpcoming'   as TKey },
           ]).map(item => (

@@ -28,8 +28,8 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
   }
   if (status === 'pending_review') {
     return (
-      <span className={cn(box, 'border-state-held bg-brand-off-white')}>
-        <Clock className="size-2.5 text-state-held" />
+      <span className={cn(box, 'border-brand-near-black bg-brand-off-white')}>
+        <Clock className="size-2.5 text-brand-near-black" />
       </span>
     );
   }
@@ -39,13 +39,8 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
   if (hasEvidence) {
     return <span className={cn(box, 'border-brand-near-black')}><Camera className="size-2.5 text-brand-near-black" /></span>;
   }
-  // pending / in_progress — an empty box, pulsing so the next action is findable.
-  return (
-    <span className="relative flex size-4 shrink-0 items-center justify-center">
-      <span className="hidden" />
-      <span className={cn(box, 'relative border-brand-border-grey')} />
-    </span>
-  );
+  // No evidence yet: keep the cue quiet until there is something to review.
+  return <span className={cn(box, 'border-brand-border-grey')} />;
 }
 
 // ── Evidence thumbnails (inline, compact) ─────────────────

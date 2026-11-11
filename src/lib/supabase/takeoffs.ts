@@ -94,7 +94,7 @@ export async function saveDraft(
   const { data, error } = await supabase
     .from('project_takeoffs')
     .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('id', id).select('id').maybeSingle();
+    .eq('id', id).eq('status', 'draft').select('id').maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('not_permitted: this bill can no longer be edited');
 }
@@ -125,14 +125,14 @@ export async function submitTakeoff(
       fx_rate: fxRate,
       engine_version: CM_TAKEOFF.version,
     })
-    .eq('id', id).select('id').maybeSingle();
+    .eq('id', id).eq('status', 'draft').select('id').maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('not_permitted: this bill can no longer be edited');
   trackEvent('takeoff_submitted', { takeoff_id: id });
 }
 
 export async function deleteDraft(id: string): Promise<void> {
-  const { data, error } = await supabase.from('project_takeoffs').delete().eq('id', id).select('id').maybeSingle();
+  const { data, error } = await supabase.from('project_takeoffs').delete().eq('id', id).eq('status', 'draft').select('id').maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('not_permitted: this bill can no longer be edited');
 }

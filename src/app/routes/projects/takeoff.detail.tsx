@@ -122,7 +122,8 @@ export default function TakeoffDetail() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError(errorMessage(err, t('takeoff.errSave')));
+      const message = errorMessage(err, t('takeoff.errSave'));
+      setError(message.startsWith('not_permitted') ? t('project.review.editorRestricted') : message);
     } finally { setBusy(null); }
   }
 
@@ -134,7 +135,8 @@ export default function TakeoffDetail() {
       await submitTakeoff(row.id, priced, effectiveRate.approx_fx_rate);
       await load();
     } catch (err) {
-      setError(errorMessage(err, t('takeoff.errSubmit')));
+      const message = errorMessage(err, t('takeoff.errSubmit'));
+      setError(message.startsWith('not_permitted') ? t('project.review.editorRestricted') : message);
     } finally { setBusy(null); }
   }
 

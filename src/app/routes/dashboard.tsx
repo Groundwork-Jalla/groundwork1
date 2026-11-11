@@ -20,26 +20,7 @@ import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Types ──────────────────────────────────────────────────
 
-type StageStatus = 'locked' | 'active' | 'pending_review' | 'complete';
-
-interface ProjectStage {
-  id: string;
-  stage_number: number;
-  /** i18n key (migration 024); null falls back to `name`. */
-  stage_key: string | null;
-  name: string;
-  status: StageStatus;
-  budget_pct: number | null;
-  completed_at: string | null;
-  /** Stored milestone. Null on older rows — fall back to budget_pct × total. */
-  payment_milestone_usd: number | null;
-  payment_status: 'unpaid' | 'partial' | 'paid' | null;
-  milestone_amount?: number | null;
-  /** Built before this project joined Groundwork (103). Complete, but never paid through us. */
-  pre_existing?: boolean | null;
-}
-
-// ── Stage status helpers ───────────────────────────────────
+type ProjectStage = ProjectStageRow;
 
 const isComplete = (s: ProjectStage) => s.status === 'complete';
 const isActive   = (s: ProjectStage) => s.status === 'active' || s.status === 'pending_review';
@@ -157,8 +138,8 @@ function ProfileCompletion({ nameSet, hasProject }: {
 // statistics, so the active project gets the whole top of the page and everything
 // else is secondary.
 
-function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }: {
-  project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean;
+function ActiveProjectHero({ project, stages, stagesLoading, stagesError, onRetryStages, shared, assigned }: {
+  project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean; stagesError: boolean; onRetryStages: () => void;
   /** Somebody else owns this build and invited this person onto it (112, 166). */
   shared: boolean;
   assigned: boolean;
@@ -225,7 +206,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-white/40">
-          <span className="tabular-nums">{t('dashboard.hero.percentComplete', { pct })}</span>
+          <span className="tabular-nums">{stagesLoading ? '—' : t('dashboard.hero.percentComplete', { pct })}</span>
           <span className="truncate pl-3">
             {current ? stageLabel(current) : t('dashboard.stageProgress.notStarted')}
           </span>
@@ -233,7 +214,10 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
       </div>
 
       <div className="mt-5">
-        <ProjectPayoutSummary project={project} stages={stages as ProjectStageRow[]} tone="hero" />
+        {stagesError ? <p role="alert" className="text-xs text-white">{t('project.review.stagesLoadFailed')}{' '}
+          <button type="button" className="font-semibold underline" onClick={onRetryStages}>{t('common.retry')}</button></p>
+          : stagesLoading ? <p role="status" className="text-xs text-white/75">{t('common.loading')}</p>
+          : <ProjectPayoutSummary project={project} stages={stages} tone="hero" />}
       </div>
 
       <Link
@@ -248,8 +232,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
 }
 
 // ── Quick actions (Design B) ───────────────────────────────
-// Four destinations with a live subtitle each, so the tile says what is waiting
-// rather than merely where it goes. Monochrome icons — no emoji anywhere.
+// Messages and documents open the current project directly.
 
 function QuickActions({ project, unread, documentCount, shared, assigned }: {
   project: ProjectRow | undefined;
@@ -312,35 +295,13 @@ function QuickActions({ project, unread, documentCount, shared, assigned }: {
   );
 }
 
-// ── Costing allocation donut (Materials / Labor / Fees / Permits) ──
-
-// Shares the roll-up used by the project Overview donut. These two showed different
-// numbers for the same project before — 34%/2% here against 27%/9% there.
-//
-// Greyscale, not a hue per slice. Colour on this platform marks status — paid,
-// held, overdue — and spending it on four categories that carry no status makes
-// the one signal that does mean something harder to see. The ramp runs dark to
-// light in the same order as the legend, so a slice is identified by position and
-// by its label, and the chart survives being printed or read by a colourblind user.
-const COST_SHADES = ['#1f2937', '#4b5563', '#9ca3af', '#d1d5db'];
-
-// Descriptions and shades are static; the percentages are not. Three of the four lines
-// are not a percentage of the total — design is per m², professional is flat, permit is a
-// percentage of construction — so the shares depend on the project and are derived from
-// its own amounts by `sliceShares`.
-const COST_CATS = [
-  { key: 'construction', descKey: 'dashboard.costCats.construction.desc', shade: COST_SHADES[0] },
-  { key: 'design',       descKey: 'dashboard.costCats.design.desc',       shade: COST_SHADES[1] },
-  { key: 'professional', descKey: 'dashboard.costCats.professional.desc', shade: COST_SHADES[2] },
-  { key: 'permit',       descKey: 'dashboard.costCats.permit.desc',       shade: COST_SHADES[3] },
-] satisfies { key: BudgetSliceKey; descKey: TKey; shade: string }[];
-
 function OtherProjectRow({ project, shared, assigned }: { project: ProjectRow; shared: boolean; assigned: boolean }) {
   const t = useT();
   const money = useProjectMoney(project);
   const { buildingType } = useDomainLabels();
   const { total } = projectBudget(project);
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
+  const budgetPair = money.pair(total);
 
   return (
     <Link
@@ -368,9 +329,9 @@ function OtherProjectRow({ project, shared, assigned }: { project: ProjectRow; s
       </div>
       <div className="shrink-0 text-right">
         <p className="font-mono text-sm font-bold tabular-nums text-brand-near-black dark:text-white">
-          {total > 0 ? money.pair(total).local : '—'}
+          {total > 0 ? budgetPair?.local : '—'}
         </p>
-        {total > 0 && money.pair(total).usd && <p className="mt-1 font-mono text-xs text-brand-mid-grey">{money.pair(total).usd}</p>}
+        {total > 0 && budgetPair?.usd && <p className="mt-1 font-mono text-xs text-brand-mid-grey">{budgetPair.usd}</p>}
       </div>
       <ChevronRight className="size-4 shrink-0 text-brand-border-grey" />
     </Link>
@@ -425,8 +386,8 @@ export default function Dashboard() {
   const [loading,       setLoading]       = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [activeStages,  setActiveStages]  = useState<ProjectStage[]>([]);
-  const [stagesLoading, setStagesLoading] = useState(false);
+  const [stageAttempt, setStageAttempt] = useState(0);
+  const [stageRead, setStageRead] = useState<{ projectId: string; status: 'loading' | 'ready' | 'error'; rows: ProjectStage[] }>({ projectId: '', status: 'loading', rows: [] });
   const [unreadCount,      setUnreadCount]      = useState(0);
   const [documentCount,    setDocumentCount]    = useState(0);
 
@@ -472,18 +433,23 @@ export default function Dashboard() {
   }, [user, isContractor, loadAttempt]);
 
   useEffect(() => {
-    if (!activeProject?.id) { setActiveStages([]); return; }
-    setStagesLoading(true);
-    supabase
-      .from('project_stages')
-      .select('*')
-      .eq('project_id', activeProject.id)
-      .order('stage_number')
-      .then(({ data }) => {
-        setActiveStages((data ?? []) as ProjectStage[]);
-        setStagesLoading(false);
-      });
-  }, [activeProject?.id]);
+    const projectId = activeProject?.id;
+    if (!projectId) return;
+    let live = true;
+    setStageRead({ projectId, status: 'loading', rows: [] });
+    void (async () => {
+      try {
+        const { data, error } = await supabase.from('project_stages').select('*')
+          .eq('project_id', projectId).order('stage_number');
+        if (error) throw error;
+        if (live) setStageRead({ projectId, status: 'ready', rows: data ?? [] });
+      } catch {
+        if (live) setStageRead({ projectId, status: 'error', rows: [] });
+      }
+    })();
+    return () => { live = false; };
+  }, [activeProject?.id, stageAttempt]);
+  const currentStages = stageRead.projectId === activeProject?.id ? stageRead : null;
 
   // Counts behind the quick-action subtitles. Head-only queries — we want the
   // number, never the rows. Failures leave the count at 0 and the tile still
@@ -571,8 +537,10 @@ export default function Dashboard() {
         <>
           <ActiveProjectHero
             project={activeProject}
-            stages={activeStages}
-            stagesLoading={stagesLoading}
+            stages={currentStages?.rows ?? []}
+            stagesLoading={currentStages?.status !== 'ready'}
+            stagesError={currentStages?.status === 'error'}
+            onRetryStages={() => setStageAttempt(value => value + 1)}
             shared={sharedIds.has(activeProject.id)}
             assigned={assignedIds.has(activeProject.id)}
           />

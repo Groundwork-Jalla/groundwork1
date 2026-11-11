@@ -100,7 +100,7 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
             stroke="currentColor" className="text-brand-border-grey dark:text-[#2c2c2c]"
             strokeDasharray={`${arc} ${circ}`} />
           <circle cx="44" cy="44" r={R} fill="none" strokeWidth="5.5" strokeLinecap="round"
-            stroke="currentColor" className="text-brand-near-black dark:text-white transition-all duration-700"
+            stroke="currentColor" className="text-brand-green transition-all duration-700"
             strokeDasharray={`${filled} ${circ}`} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pb-1">
@@ -115,13 +115,12 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 
 // ── Cost breakdown ────────────────────────────────────────
 
-function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, historical, remaining, historicalAmount, remainingAmount }: {
+function CostBreakdownCard({ budget, project, stages, payments, boq, historical, remaining, historicalAmount, remainingAmount }: {
   budget: BudgetBreakdown;
   project: ProjectRow;
   stages: ProjectStageRow[];
   payments: Map<string, StagePayment>;
   /** Renders a stored USD figure in the project's own currency. See `useProjectMoney`. */
-  fmt: (usd: number, sourceAmount?: number | null) => string;
   boq?: boolean;
   historical?: number;
   remaining?: number;
@@ -175,6 +174,17 @@ function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, histor
 }
 
 const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
+
+interface OverviewTabProps {
+  project: ProjectRow;
+  stages: ProjectStageRow[];
+  substages: ProjectSubstageRow[];
+  budget: BudgetBreakdown;
+  payments: Map<string, StagePayment>;
+  fees: ProjectFeeRow[];
+  onViewCosting: () => void;
+  onViewStage: () => void;
+}
 
 export default function OverviewTab({
   project, stages, substages, budget, payments, fees, onViewCosting, onViewStage,
@@ -339,7 +349,6 @@ export default function OverviewTab({
             project={project}
             stages={stages}
             payments={payments}
-            fmt={fmt}
             boq={project.budget_source === 'boq'}
             historical={sortedStages.filter(s => s.pre_existing).reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}
             remaining={sortedStages.filter(s => s.status !== 'complete').reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}

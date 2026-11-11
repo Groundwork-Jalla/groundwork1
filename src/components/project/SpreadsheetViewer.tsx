@@ -13,7 +13,10 @@ function column(index: number): string {
 /** Bounded download as well as bounded rendering; parsing stays off the UI thread. */
 async function download(url: string, signal: AbortSignal) {
   const response = await fetch(url, { signal });
-  if (!response.ok || Number(response.headers.get('content-length')) > MAX_FILE_BYTES) throw new Error('download_failed');
+  if (!response.ok || Number(response.headers.get('content-length')) > MAX_FILE_BYTES) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error('download_failed');
+  }
   if (!response.body) {
     const buffer = await response.arrayBuffer();
     if (buffer.byteLength > MAX_FILE_BYTES) throw new Error('file_size');
@@ -45,18 +48,19 @@ export function SpreadsheetViewer({ url }: { url: string }) {
     const controller = new AbortController();
     const timer = setTimeout(() => {
       controller.abort(); worker?.terminate();
-      if (active) setState({ url, status: 'error' });
+      if (active) { setState({ url, status: 'error' }); active = false; }
     }, PARSE_TIMEOUT);
     setState({ url, status: 'loading' }); setSelected(0);
     void download(url, controller.signal).then(buffer => {
       if (!active || controller.signal.aborted) return;
       worker = new Worker(new URL('../../lib/documents/spreadsheet.worker.ts', import.meta.url), { type: 'module' });
       worker.onmessage = (event: MessageEvent<{ ok: boolean; preview?: SpreadsheetPreview }>) => {
-        clearTimeout(timer); worker?.terminate();
-        if (active) setState(event.data.ok && event.data.preview?.sheets.length
+        if (!active) return;
+        active = false; clearTimeout(timer); worker?.terminate();
+        setState(event.data.ok && event.data.preview?.sheets.length
           ? { url, status: 'ready', preview: event.data.preview } : { url, status: 'error' });
       };
-      worker.onerror = () => { clearTimeout(timer); worker?.terminate(); if (active) setState({ url, status: 'error' }); };
+      worker.onerror = () => { clearTimeout(timer); worker?.terminate(); if (active) { setState({ url, status: 'error' }); active = false; } };
       worker.postMessage({ buffer }, [buffer]);
     }).catch(() => { clearTimeout(timer); if (active) setState({ url, status: 'error' }); });
     return () => { active = false; clearTimeout(timer); controller.abort(); worker?.terminate(); };

@@ -34,13 +34,13 @@ describe('isSelfVerify', () => {
 
 describe('no client screen shows a Self Verify owner a wait that does not exist', () => {
   it('stage badges use client approval for all tiers', () => {
-    expect(tracker).toContain("return <span className={base}>{t('project.stages.badgeYourApproval')}</span>");
+    expect(tracker).toContain("labelKey: 'project.stages.badgeYourApproval'");
     expect(tracker).not.toContain("'project.stages.badgeReview'");
   });
 
   it('timeline pills and legend use approval rather than verification', () => {
     expect(timeline).toContain("return 'project.costing.awaitingApproval'");
-    expect(timeline).toContain("t('project.timeline.legendYourApproval')");
+    expect(timeline).toContain("key: 'project.timeline.legendYourApproval'");
     expect(timeline).not.toContain("t('project.timeline.selfVerified')");
     expect(timeline).not.toContain("t('project.timeline.jallaVerified')");
   });

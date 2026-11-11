@@ -20,7 +20,7 @@ import {
   approveStage,
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
-import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-context';
+import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';

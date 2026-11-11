@@ -5879,6 +5879,7 @@ export const en = {
   },
   project: {
     review: {
+      stagesLoadFailed: 'The project stages could not be loaded.',
       clientApproval: 'Client approval',
       schedule: 'Stages and payments',
       scheduledAmount: 'Scheduled',

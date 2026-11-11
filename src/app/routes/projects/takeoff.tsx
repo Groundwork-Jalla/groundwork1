@@ -100,7 +100,8 @@ export default function TakeoffList() {
       }, null);
       navigate(`/projects/${id}/takeoff/${row.id}`);
     } catch (err) {
-      setError(errorMessage(err, t('takeoff.errCreate')));
+      const message = errorMessage(err, t('takeoff.errCreate'));
+      setError(message.startsWith('not_permitted') ? t('project.review.editorRestricted') : message);
       setCreating(false);
     }
   }

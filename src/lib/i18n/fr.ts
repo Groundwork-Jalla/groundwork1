@@ -5737,6 +5737,7 @@ export const fr: Mirror<EnDict> = {
   },
   project: {
     review: {
+      stagesLoadFailed: 'Les étapes du projet n’ont pas pu être chargées.',
       clientApproval: 'Approbation du client',
       schedule: 'Étapes et paiements',
       scheduledAmount: 'Montant prévu',
