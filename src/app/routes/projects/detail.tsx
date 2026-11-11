@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import {
@@ -22,13 +22,13 @@ import {
 import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-context';
 import { StageTracker }          from '@/components/project/StageTracker';
-import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
+import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import BudgetView                from '@/components/project/BudgetView';
 import { ClientDocuments }       from '@/components/project/ClientDocuments';
 import { ProjectConversations }  from '@/components/project/ProjectConversations';
-import ContractorInvite          from '@/components/project/ContractorInvite';
-import { ShareProject }          from '@/components/project/ShareProject';
+import { ProjectTeam }           from '@/components/project/ProjectTeam';
+import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import OverviewTab               from '@/components/project/OverviewTab';
 import TimelineTab               from '@/components/project/TimelineTab';
 import StartTrackingGate         from '@/components/project/StartTrackingGate';
@@ -52,7 +52,7 @@ const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
 
 // ── Tab bar ───────────────────────────────────────────────
 
-type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'documents' | 'messages';
+type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'documents' | 'messages' | 'team';
 
 /**
  * `?tab=` to a Tab, or the default.
@@ -61,7 +61,7 @@ type Tab = 'overview' | 'stages' | 'costing' | 'timeline' | 'documents' | 'messa
  * resolves to the overview rather than selecting a tab that renders nothing.
  */
 const ALL_TABS: Tab[] =
-  ['overview', 'stages', 'costing', 'timeline', 'documents', 'messages'];
+  ['overview', 'stages', 'costing', 'timeline', 'documents', 'messages', 'team'];
 
 function tabFromUrl(value: string | null): Tab {
   return ALL_TABS.includes(value as Tab) ? (value as Tab) : 'overview';
@@ -70,6 +70,7 @@ function tabFromUrl(value: string | null): Tab {
 const OWNER_TABS: { id: Tab; labelKey: TKey }[] = [
   { id: 'overview',   labelKey: 'project.tabs.overview'  },
   { id: 'stages',     labelKey: 'project.tabs.stages'    },
+  { id: 'team',       labelKey: 'project.tabs.team'      },
   { id: 'costing',    labelKey: 'project.tabs.costing'   },
   { id: 'timeline',   labelKey: 'project.tabs.timeline'  },
   { id: 'documents',  labelKey: 'project.tabs.documents' },
@@ -79,15 +80,17 @@ const OWNER_TABS: { id: Tab; labelKey: TKey }[] = [
 const CONTRACTOR_TABS: { id: Tab; labelKey: TKey }[] = [
   { id: 'stages',   labelKey: 'project.tabs.stages'   },
   { id: 'messages', labelKey: 'project.tabs.messages' },
+  { id: 'team',     labelKey: 'project.tabs.team'     },
 ];
 
 function TabBar({
-  active, onChange, isContractor, projectId,
+  active, onChange, isContractor, projectId, canInviteContractor,
 }: {
   active: Tab;
   onChange: (t: Tab) => void;
   isContractor: boolean;
   projectId: string;
+  canInviteContractor: boolean;
 }) {
   const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
   const t = useT();
@@ -98,6 +101,8 @@ function TabBar({
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
+          aria-current={active === tab.id ? 'page' : undefined}
+          data-tour={tab.id === 'team' && active !== 'team' && canInviteContractor ? 'invite-contractor' : undefined}
           className={`shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
             active === tab.id
               ? 'text-brand-near-black border-b-2 border-brand-near-black -mb-px'
@@ -163,8 +168,18 @@ export default function ProjectDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
   const { user, isContractor: hasContractorRole } = useAuth();
+  const scope = `${id ?? ''}:${user?.id ?? ''}`;
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+  const loadSequence = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; loadSequence.current++; };
+  }, []);
   const [contractorProjectId, setContractorProjectId] = useState<string | null>(null);
   const isContractor = contractorProjectId === id;
+  const { access: teamAccess } = useProjectTeamAccess(id ?? '');
   const t        = useT();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
@@ -188,9 +203,8 @@ export default function ProjectDetail() {
    * Kept in the URL as it changes, so the address bar matches the screen and a link
    * somebody copies opens where they are looking.
    */
-  const [activeTab, setActiveTabState] = useState<Tab>(() => tabFromUrl(searchParams.get('tab')));
+  const activeTab = tabFromUrl(searchParams.get('tab'));
   const setActiveTab = useCallback((tab: Tab) => {
-    setActiveTabState(tab);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       if (tab === 'overview') next.delete('tab'); else next.set('tab', tab);
@@ -200,7 +214,9 @@ export default function ProjectDetail() {
   // ── Data fetching ──────────────────────────────────────
 
   const loadAll = useCallback(async () => {
-    if (!id) return;
+    if (!id || !mounted.current || currentScope.current !== scope) return;
+    const sequence = ++loadSequence.current;
+    const isCurrent = () => mounted.current && currentScope.current === scope && sequence === loadSequence.current;
     try {
       // The document count went with the delete confirmation it was counting for (053).
       const [p, s, sub, pay, fee, assignment] = await Promise.all([
@@ -213,23 +229,30 @@ export default function ProjectDetail() {
           .eq('project_id', id).eq('contractor_user_id', user.id).eq('status', 'accepted').limit(1)
           : Promise.resolve({ data: [], error: null }),
       ]);
+      if (!isCurrent()) return;
       if (assignment.error) throw assignment.error;
-      if (!p) { setError(t('project.notFound')); return; }
+      if (!p) { setProject(null); setError(t('project.notFound')); return; }
+      setError(null);
       setProject(p);
       setStages(s);
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
       setContractorProjectId(assignment.data?.length ? id : null);
+      return;
     } catch {
-      setError(t('project.loadFailed'));
+      if (isCurrent()) setError(t('project.loadFailed'));
+      return;
     }
     // `t` is a dependency now that the messages come from the dictionary: without it
     // a toggle after mount would leave this closure reporting in the old language.
-  }, [id, t, hasContractorRole, user?.id]);
+  }, [id, t, hasContractorRole, user?.id, scope]);
 
   useEffect(() => {
-    loadAll().finally(() => setLoading(false));
+    let active = true;
+    setLoading(true);
+    void loadAll().finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [loadAll]);
 
   // Real-time: update stage payment_status when it changes in Supabase
@@ -247,6 +270,11 @@ export default function ProjectDetail() {
           );
         },
       )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${id}` }, payload => {
+        const updated = payload.new as ProjectSubstageRow;
+        setSubstages(prev => prev.map(substage => substage.id === updated.id ? { ...substage, ...updated } : substage));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, () => { void loadAll(); })
       .subscribe();
     const refresh = () => { void loadAll(); };
@@ -256,21 +284,38 @@ export default function ProjectDetail() {
 
   // ── Event handlers ─────────────────────────────────────
 
+  const applyApproval = useCallback((result: ApproveStageResult) => {
+    // The database already committed this transition. Keep its result visible if
+    // the following refresh fails, and never apply an old project's response.
+    if (!mounted.current || currentScope.current !== scope || result.projectId !== id) return;
+    setStages(prev => prev.map(stage => stage.id === result.stageId ? { ...stage, status: 'complete' }
+      : stage.id === result.nextStageId && result.nextStageStatus ? { ...stage, status: result.nextStageStatus }
+      : stage.id === result.nextStageId && stage.status === 'locked' && !result.awaitingPayment && !result.alreadyApproved
+        ? { ...stage, status: 'active' } : stage));
+    setProject(prev => prev?.id === result.projectId ? {
+      ...prev, current_stage: result.nextStageNumber ?? result.stageNumber,
+      status: result.isFinal && !result.alreadyApproved ? 'completed' : prev.status,
+    } : prev);
+  }, [id, scope]);
+
   const handleMarkSubstageComplete = useCallback(async (substageId: string) => {
-    if (!user || !project) return;
-    await markSubstageComplete(substageId, project.tier, user.id);
-    const isSelfVerify = project.tier === 'self_verify' || (project.tier as string) === 'starter';
+    if (!user || !project || project.id !== id || !teamAccess?.primaryClient) return;
+    const result = await markSubstageComplete(substageId, project.tier, user.id);
+    if (!mounted.current || currentScope.current !== scope) return;
     setSubstages(prev => prev.map(s =>
       s.id === substageId
         ? {
             ...s,
-            status:      isSelfVerify ? 'complete' : 'pending_review',
-            approved_by: isSelfVerify ? user.id : null,
-            approved_at: isSelfVerify ? new Date().toISOString() : null,
+            status: 'complete',
+            approved_by: user.id,
+            approved_at: new Date().toISOString(),
           }
         : s,
     ));
-  }, [user, project]);
+    if (result) applyApproval(result);
+    void loadAll();
+    return result;
+  }, [user, project, id, scope, teamAccess, applyApproval, loadAll]);
 
   const handleEvidenceUploaded = useCallback((substageId: string, urls: string[]) => {
     setSubstages(prev => prev.map(s =>
@@ -279,10 +324,13 @@ export default function ProjectDetail() {
   }, []);
 
   const handleApproveStage = useCallback(async (stageId: string, stageNumber: number) => {
-    if (!user || !project) return;
-    await approveStage(project.id, stageId, stageNumber, user.id, project.tier);
-    await loadAll();
-  }, [user, project, loadAll]);
+    if (!user || !project || project.id !== id || !teamAccess?.primaryClient) return;
+    const result = await approveStage(project.id, stageId, stageNumber, user.id, project.tier);
+    if (!mounted.current || currentScope.current !== scope) return;
+    applyApproval(result);
+    void loadAll();
+    return result;
+  }, [user, project, id, scope, teamAccess, applyApproval, loadAll]);
 
   // Render prop — passes EvidenceUpload down without creating circular imports
   const renderEvidenceUpload = useCallback((props: {
@@ -290,7 +338,7 @@ export default function ProjectDetail() {
     existingUrls: string[];
     onUploadComplete: (urls: string[]) => void;
   }) => {
-    if (!project) return null;
+    if (!project || (!isContractor && !teamAccess?.primaryClient)) return null;
     const stageId = substages.find(sub => sub.id === props.substageId)?.stage_id ?? '';
     // Through the dictionary, not the stored English. `name` is the persisted seed
     // string; `stage_key` is what makes it read in the client's own language.
@@ -311,7 +359,7 @@ export default function ProjectDetail() {
         substageName={substageName}
       />
     );
-  }, [project, stages, substages, stageLabel, substageLabel]);
+  }, [project, stages, substages, stageLabel, substageLabel, isContractor, teamAccess]);
 
   // ── Loading / error ────────────────────────────────────
 
@@ -323,7 +371,7 @@ export default function ProjectDetail() {
     );
   }
 
-  if (error || !project) {
+  if (!project || project.id !== id) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
         <p className="text-sm text-brand-mid-grey">{error ?? t('project.notFound')}</p>
@@ -396,6 +444,13 @@ export default function ProjectDetail() {
 
       {/* Main — wider for overview, narrow for detail tabs */}
       <div className="mx-auto px-4 sm:px-6 py-8 sm:py-10 max-w-5xl">
+
+        {error && (
+          <p role="alert" className="mb-4 rounded-xl border border-state-alert/30 px-4 py-3 text-sm text-state-alert">
+            {t('project.refreshFailed')}{' '}
+            <button type="button" onClick={() => { void loadAll(); }} className="font-semibold underline">{t('project.retryRefresh')}</button>
+          </p>
+        )}
 
         {/* The wizard could not store the costing they attached. Said here because this
             is where they land, and because the alternative — the old behaviour — was to
@@ -505,20 +560,12 @@ export default function ProjectDetail() {
               already `locked`, so nothing here is actionable until start_project_tracking
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
-          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} />
+          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} />
 
           {/* Somebody else built this project for them — an admin, or the partner
               contractor who brought them on (109). The client was told nothing before:
               a project simply appeared. Saying so, and saying plainly that they own it,
               is the difference between a surprise and a service. */}
-          {/* Only the owner shares their own build (112). Not an admin and not a
-              contractor: who may see a person's finances is that person's decision. */}
-          {activeTab === 'overview' && isOwner && (
-            <div className="mb-4">
-              <ShareProject projectId={project.id} />
-            </div>
-          )}
-
           {activeTab === 'overview' && project.created_by && (
             <p className="mb-4 rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-sm text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white">
               {t('project.overview.setUpForYou')}
@@ -542,16 +589,6 @@ export default function ProjectDetail() {
           {/* Tab: Stages */}
           {activeTab === 'stages' && (
             <div className="space-y-6">
-              {!isContractor && (
-                <div data-tour="invite-contractor"
-                     className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
-                  <ContractorInvite
-                    projectId={project.id}
-                    userId={user?.id ?? ''}
-                    projectName={project.name}
-                  />
-                </div>
-              )}
               {/* A plain wrapper, deliberately unstyled: `display: contents` measures
                   as a zero-sized box, so the tour would have nothing to point at. One
                   child of a `space-y-6` parent either way, so the spacing is unchanged. */}
@@ -562,6 +599,7 @@ export default function ProjectDetail() {
                 tier={project.tier}
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
+                canApprove={teamAccess?.primaryClient === true}
                 projectId={project.id}
                 payments={payments}
                 onPaymentChanged={loadAll}
@@ -583,9 +621,12 @@ export default function ProjectDetail() {
           {/* Tab: Costing */}
           {activeTab === 'costing' && (
             <div>
-              <BudgetView project={project} stages={stages} />
+              <BudgetView project={project} stages={stages} payments={payments} />
             </div>
           )}
+
+          {/* Tab: Team */}
+          {activeTab === 'team' && <ProjectTeam key={scope} project={project} />}
 
           {/* Tab: Timeline */}
           {activeTab === 'timeline' && (

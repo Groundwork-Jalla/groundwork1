@@ -1,5 +1,5 @@
 import { supabase } from './client';
-import { approveStageRpc } from './verifications';
+import { approveStageRpc, approveSubstageRpc, type ApproveStageResult } from './verifications';
 import { isMissingRpc, requestRework } from './activity';
 import { sendEmail } from '../email/send-email';
 import { buildStageApprovedHtml, stageApprovedSubject } from '../email/stage-approved-html';
@@ -9,6 +9,12 @@ import { buildReworkHtml, reworkSubject } from '../email/rework-requested-html';
 import { issueCertificate } from './certificates';
 import { trackEvent } from '@/lib/analytics';
 
+function trackApproval(result: ApproveStageResult, tier: string): void {
+  if (result.alreadyApproved) return;
+  try { trackEvent('stage_approved', { stage_number: result.stageNumber, tier }); }
+  catch { /* Analytics cannot interrupt an approval already saved by the database. */ }
+}
+
 // =========================================================
 // markSubstageComplete
 // Free mode: every project uses direct completion (no verification queue).
@@ -17,25 +23,19 @@ export async function markSubstageComplete(
   substageId: string,
   tier: string,
   userId: string,
-): Promise<void> {
-  void tier;
-
-  const { error } = await supabase
-    .from('project_substages')
-    .update({
-      status:      'complete',
-      approved_by: userId,
-      approved_at: new Date().toISOString(),
-    })
-    .eq('id', substageId);
-
-  if (error) throw error;
+): Promise<ApproveStageResult | undefined> {
+  void userId;
+  // The server checks the actor, funding and evidence and completes the stage
+  // atomically when this was its last required update. No browser-side status write.
+  const result = await approveSubstageRpc(substageId);
+  if (result) trackApproval(result, tier);
+  return result;
 }
 
 // =========================================================
 // approveStage (homeowner action)
-// self_verify  → immediately marks stage complete, unlocks next
-// jalla_verify → submits stage for Jalla admin review + notifies admins
+// All client tiers use direct approval while independent verification is paused.
+// The returned progression directs the client to the next stage's payment step.
 // =========================================================
 export async function approveStage(
   projectId: string,
@@ -43,41 +43,15 @@ export async function approveStage(
   stageNumber: number,
   userId: string,
   tier: string,
-): Promise<void> {
-  void tier;
-
-  // 0. Verify stage has been paid for
-  const { data: stageRow, error: stageFetchErr } = await supabase
-    .from('project_stages')
-    .select('payment_status')
-    .eq('id', stageId)
-    .single();
-  if (stageFetchErr) throw stageFetchErr;
-  if (stageRow.payment_status !== 'paid') {
-    throw new Error('This stage has not been paid for. Record payment in the Payments tab before approving.');
-  }
-
-  // 1. Verify all substages ready
-  const { data: substages, error: subFetchErr } = await supabase
-    .from('project_substages')
-    .select('status')
-    .eq('stage_id', stageId);
-
-  if (subFetchErr) throw subFetchErr;
-
-  const allReady = (substages ?? []).every(s => s.status === 'complete');
-
-  if (!allReady) throw new Error('Not all substages are ready for approval.');
-
-  // self_verify: approve — in the database (087). `approve_stage()` re-checks that the
-  // caller owns a Self Verify project, that the stage is paid and every substage complete
-  // (the same two checks this function made above, now enforced where they cannot be
-  // skipped), completes the stage, activates the next one, advances the project and
-  // writes the audit row, all in one transaction. A trigger refuses `status = 'complete'`
-  // from anywhere else, so this is no longer a client decision.
-  await approveStageRpc(stageId);
-  trackEvent('stage_approved', { stage_number: stageNumber, tier: 'self_verify' });
+): Promise<ApproveStageResult> {
+  // Preconditions and the transition share one project lock in the database.
+  // Separate browser reads would leave a race between checking and approving.
+  const result = await approveStageRpc(stageId);
+  trackApproval(result, tier);
+  void projectId;
+  void stageNumber;
   void userId;
+  return result;
 }
 
 /**

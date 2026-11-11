@@ -56,9 +56,9 @@ describe('the pages read the tab the link names', () => {
   it.each([
     ['client',     'src/app/routes/projects/detail.tsx'],
     ['contractor', 'src/app/routes/work/projects.detail.tsx'],
-  ])('%s project page initialises its tab from ?tab=', (_who, file) => {
+  ])('%s project page reads its tab from ?tab=', (_who, file) => {
     const src = read(file);
-    expect(src).toMatch(/useState<Tab>\(\(\) => tabFromUrl\(searchParams\.get\('tab'\)\)\)/);
+    expect(src).toMatch(/tabFromUrl\(searchParams\.get\('tab'\)\)/);
   });
 
   it.each([

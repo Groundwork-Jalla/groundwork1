@@ -28,6 +28,7 @@ export function buildShareHtml(
   projectName: string,
   relationship: string | null,
   shareToken: string,
+  isClient = false,
 ): string {
   const t = translator(lang);
   const n = esc(inviterName);
@@ -45,7 +46,7 @@ export function buildShareHtml(
         : t('email.share.body',   { inviter: n, project: p })}
     </p>
     <p style="margin:0 0 28px;font-size:14px;color:#666;line-height:1.65;">
-      ${esc(t('email.share.explain'))}
+      ${esc(t(isClient ? 'email.share.clientExplain' : 'email.share.explain'))}
     </p>
     ${primaryButton(link, t('email.share.cta'))}
     <p style="margin:20px 0 0;font-size:13px;color:#777;line-height:1.6;">

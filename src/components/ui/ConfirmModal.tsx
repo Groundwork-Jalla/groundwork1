@@ -9,6 +9,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   destructive?: boolean;
   loading?: boolean;
+  error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +20,7 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   destructive = false,
   loading = false,
+  error,
   onConfirm, onCancel,
 }: ConfirmModalProps) {
   return (
@@ -46,6 +48,7 @@ export function ConfirmModal({
           >
             <h2 className="text-sm font-bold text-brand-near-black mb-2">{title}</h2>
             <p className="text-xs text-brand-mid-grey leading-relaxed mb-6">{description}</p>
+            {error && <p role="alert" className="mb-4 text-xs text-state-alert">{error}</p>}
 
             <div className="flex flex-col-reverse sm:flex-row gap-2">
               <Button

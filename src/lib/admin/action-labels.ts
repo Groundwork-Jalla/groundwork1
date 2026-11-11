@@ -44,6 +44,7 @@ export function entityTab(entityType: string | null | undefined):
     case 'conversation':
     case 'decision':          return 'conversations';
     case 'contractor_invite':
+    case 'project_viewer':
     case 'project_verifier':  return 'team';
     // Two entity types deliberately have no workspace tab:
     //   `support_ticket` (091)     — a ticket is Support's, not a project's.

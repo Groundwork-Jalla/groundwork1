@@ -72,11 +72,12 @@ describe('only the owner shares their own project', () => {
     expect(body).not.toMatch(/is_admin\(\)/);
   });
 
-  it('the panel is shown on real ownership, not on browser metadata', () => {
-    // `user_metadata.role` is browser-set, and since 112 "not a contractor" no longer
-    // means "the owner" — a viewer is neither.
+  it('the panel checks accepted project roles, including an invited primary client', () => {
     expect(detail).toMatch(/const isOwner = !!user\?\.id && user\.id === project\?\.user_id;/);
-    expect(detail).toMatch(/activeTab === 'overview' && isOwner &&/);
+    expect(detail).toMatch(/activeTab === 'team' && <ProjectTeam/);
+    expect(panel).toContain('useProjectTeamAccess(projectId)');
+    expect(panel).toContain('access?.canInvite === true');
+    expect(panel).not.toMatch(/user_metadata/);
   });
 
   it('a viewer, or the owner, may end the access', () => {

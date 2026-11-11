@@ -105,13 +105,13 @@ describe('payment_status: only here, only labelled, never an input', () => {
   });
 });
 
-describe('one "released" per screen', () => {
-  it('the costing view is rendered without its stage-status money buckets, and the client page keeps them', () => {
+describe('direct receipts stay separate from the provider ledger', () => {
+  it('the admin keeps its ledger and the client receives the shared receipt summary', () => {
     expect(code(TAB)).toContain('showMilestoneBuckets={false}');
     const bv = code('src/components/project/BudgetView.tsx');
     expect(bv).toContain('showMilestoneBuckets = true');
-    // The client's own page passes nothing, so it renders exactly as before.
-    expect(code('src/app/routes/projects/detail.tsx')).toContain('<BudgetView project={project} stages={stages} />');
+    // A stage ledger refresh also refreshes the client's actual receipt summary.
+    expect(code('src/app/routes/projects/detail.tsx')).toContain('<BudgetView project={project} stages={stages} payments={payments} />');
   });
 });
 

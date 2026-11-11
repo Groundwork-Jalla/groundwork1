@@ -17,6 +17,8 @@ import { sumBillAmounts } from '@/lib/budget/bill-budget';
 import type { ProjectRow, ProjectStageRow, StageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { fetchProjectDocuments } from '@/lib/supabase/contractor-work';
+import type { StagePayment } from '@/lib/supabase/verifications';
+import { ProjectPayoutSummary } from './ProjectPayoutSummary';
 // One definition of what a stage is worth, shared with the contractor's screens.
 // They print the same payment and used to disagree about it — see stage-amounts.ts.
 import {
@@ -28,35 +30,12 @@ import {
 export interface BudgetViewProps {
   project: ProjectRow;
   stages: ProjectStageRow[];
-  /**
-   * The Released / Held / Remaining boxes are milestone buckets by STAGE STATUS — an
-   * owner-facing estimate of where the budget stands, not money that moved. The admin
-   * workspace shows the ledger (090) beside this view and passes `false` so two different
-   * "released" figures never share a screen. Default keeps the client page as it is.
-   */
+  payments?: Map<string, StagePayment>;
+  /** Admin's provider ledger is separate from direct client-to-contractor receipts. */
   showMilestoneBuckets?: boolean;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-/**
- * Released / held / still to come.
- *
- * PAYABLE, not schedule. These three buckets are about money, so a stage that was
- * already standing when the build joined Groundwork contributes nothing to them — it was
- * "never approved, verified or funded by us" (103). The per-stage rows below DO show
- * what such a stage was worth, because there the question is what the building cost.
- *
- * Derived rather than summed off the column, so these totals cannot disagree with the
- * rows printed directly above them on the same page.
- */
-function sumMilestones(
-  stages: ProjectStageRow[],
-  predicate: (s: ProjectStageRow) => boolean,
-  basis: StageBasis,
-): number {
-  return sumPayableUsd(stages.filter(predicate), basis);
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {
@@ -359,7 +338,7 @@ function MetricBox({
 
 // ── Main component ───────────────────────────────────────────
 
-export default function BudgetView({ project, stages, showMilestoneBuckets = true }: BudgetViewProps) {
+export default function BudgetView({ project, stages, payments, showMilestoneBuckets = true }: BudgetViewProps) {
   const { stageLabel } = useStageLabels();
   const { lang } = useLanguage();
   const t = useT();
@@ -431,9 +410,6 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
 
   const historicalStages = sortedStages.filter(s => s.pre_existing);
   const historical = sumPayableUsd(historicalStages, basis);
-  const released  = sumMilestones(sortedStages, s => s.status === 'complete' && !s.pre_existing, basis);
-  const held      = sumMilestones(sortedStages, s => s.status === 'active' || s.status === 'pending_review', basis);
-  const remaining = sumMilestones(sortedStages, s => s.status === 'locked', basis);
 
   return (
     <motion.div
@@ -513,14 +489,8 @@ export default function BudgetView({ project, stages, showMilestoneBuckets = tru
         <MetricBox label={t('project.costing.totalBudget')} value={budget.total} />
         {historical > 0 && <MetricBox label={t('project.overview.historicalValue')} value={historical}
           sourceAmount={project.budget_precision != null ? sumBillAmounts(historicalStages.map(s => s.milestone_amount), project.budget_precision) : null} />}
-        {showMilestoneBuckets && (
-          <>
-            <MetricBox label={t('project.costing.released')}    value={released} dimmed={released === 0} />
-            <MetricBox label={t('project.costing.held')}        value={held}     dimmed={held === 0} />
-            <MetricBox label={t('project.costing.remaining')}   value={remaining} dimmed={remaining === 0} />
-          </>
-        )}
       </div>
+      {showMilestoneBuckets && <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} />}
 
       {/* ── Section 4: Per-Stage Budget Bars ───────────────── */}
       {sortedStages.length > 0 && (

@@ -87,38 +87,19 @@ describe('the client is quoted in the project currency', () => {
   });
 });
 
-describe('outstanding is what is left, not what it all costs', () => {
-  const overview = code('src/components/project/OverviewTab.tsx');
+describe('both participants read the same actual receipt payouts', () => {
+  it('shares the receipt summary across client overview, costing and contractor money', () => {
+    for (const path of [
+      'src/components/project/OverviewTab.tsx',
+      'src/components/project/BudgetView.tsx',
+      'src/app/routes/work/projects.detail.tsx',
+    ]) expect(code(path), path).toContain('<ProjectPayoutSummary');
 
-  it('is summed from the obligations, never derived as total minus paid', () => {
-    // `total - paid` left the four fee lines in "outstanding" permanently, because they
-    // hang off no stage and so could never be subtracted by a stage being paid. On a
-    // project where nothing had been paid the card printed the budget total twice.
-    expect(overview).not.toMatch(/Math\.max\(0, totalBudget - paidTotal\)/);
-    expect(overview).toMatch(/const outstanding = stagesUnpaid \+ feesUnpaid;/);
-    expect(overview).toMatch(/const paidTotal\s+= stagesPaid \+ feesPaid;/);
-  });
-
-  it('counts the fee rows that carry no stage', () => {
-    // permit, professional, verification, contingency — 036 and 072. Miss them and the
-    // three cards stop adding up, which is the first thing a client checks.
-    expect(overview).toMatch(/fees\.filter\(f => f\.payment_status === 'paid'\)/);
-    expect(overview).toMatch(/fees\.filter\(f => f\.payment_status !== 'paid'\)/);
-    expect(code('src/app/routes/projects/detail.tsx')).toMatch(/fetchProjectFees\(id\)/);
-  });
-
-  it('reads the ledger before the legacy projection', () => {
-    expect(overview).toMatch(/const tranche = payments\.get\(s\.id\);/);
-    expect(overview).toMatch(/tranche\.state === 'funded' \|\| tranche\.state === 'reconciled'/);
-  });
-
-  it('shows what was actually settled per line, not the pricing formula run backwards', () => {
-    // `decomposeBudget(paidTotal, …)` answered "if this sum were a whole budget, how
-    // would it have been composed?" — so the permit bar filled before any permit had
-    // been paid for. Each line is now read off a stage or a fee row.
-    expect(overview).not.toMatch(/decomposeBudget\(paidTotal/);
-    expect(overview).toMatch(/const constructionPaid = stagesPaid - designPaid;/);
-    expect(overview).toMatch(/const feePaid = \(kind: ProjectFeeRow\['kind'\]\)/);
+    const overview = code('src/components/project/OverviewTab.tsx');
+    // Neither fee status nor the value of a completed stage is a receipt amount.
+    expect(overview).not.toContain('boq_waived_amount_usd');
+    expect(overview).not.toContain('paidTotal={paidTotal}');
+    expect(overview).not.toContain('paid={paidBySlice}');
   });
 });
 

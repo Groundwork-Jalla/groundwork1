@@ -263,13 +263,13 @@ describe('the Overview card adds up to the schedule underneath it', () => {
     // formula backwards produced a Construction line that no stage added up to — on
     // TAMSO, $2,242,660 against a stage column of about $2.35m.
     expect(overview).toMatch(/const plannedBySlice: BudgetBreakdown = project\.budget_source === 'boq' \? budget : hasObligations \? \{/);
-    expect(overview).toMatch(/const plannedConstruction = stagesPaid \+ stagesUnpaid/);
+    expect(overview).toMatch(/const plannedConstruction = scheduledStages - scheduledDesign/);
     expect(overview).toMatch(/<CostBreakdownCard\s+budget=\{plannedBySlice\}/);
   });
 
-  it('planned equals paid plus outstanding by construction', () => {
-    // The property a client checks first, and the one that was missing.
-    expect(overview).toMatch(/total:\s+paidTotal \+ outstanding,/);
+  it('planned stays the stage schedule plus fee obligations when receipts differ', () => {
+    expect(overview).toContain('total: scheduledStages + fees.reduce(');
+    expect(overview).not.toContain('total: paidTotal + outstanding');
   });
 
   it('the fee lines are the fee rows, not a formula', () => {
@@ -282,8 +282,8 @@ describe('the Overview card adds up to the schedule underneath it', () => {
   it('pre-existing stages stay out of the planned side too', () => {
     // 103 zeroes them, but they must not be counted as obligations at all — they are not
     // money anybody will be asked for.
-    expect(overview).toMatch(/const billableStages = sortedStages\.filter\(s => !s\.pre_existing\)/);
-    expect(overview).toMatch(/const plannedConstruction = stagesPaid \+ stagesUnpaid/);
+    expect(overview).toMatch(/const billableStages = sortedStages\.filter\(stage => !stage\.pre_existing\)/);
+    expect(overview).toMatch(/const plannedConstruction = scheduledStages - scheduledDesign/);
   });
 
   it('a project with no schedule yet still shows its estimate', () => {

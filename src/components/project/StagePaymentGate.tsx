@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Loader2, Receipt, Check, ExternalLink, Clock } from 'lucide-react';
-import { useT } from '@/lib/i18n';
-import { useMoney } from '@/lib/budget/project-money-context';
+import { useT, useLanguage } from '@/lib/i18n';
+import { useMoney, useProjectMoneyContext } from '@/lib/budget/project-money-context';
+import { confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import {
   uploadStagePaymentReceipt, confirmStagePayment, signReceiptUrl,
   type StagePayment,
@@ -42,13 +43,26 @@ export function StagePaymentGate({
   projectId, stageId, stageNumber, payment, isContractor, onChanged,
 }: Props) {
   const t = useT();
+  const { lang } = useLanguage();
   // The figure the client is about to transfer, in the currency they will transfer it
   // in. This read `formatUSDFull` — dollars — on the one screen whose whole job is to
   // name an amount somebody must pay. Rendered from StageTracker, inside the provider.
   const money = useMoney();
+  const currency = useProjectMoneyContext();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy]   = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const scope = `${projectId}:${stageId}`;
+  const currentScope = useRef(scope);
+  currentScope.current = scope;
+  const inFlight = useRef<string | null>(null);
+  const [working, setWorking] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
+  const [draft, setDraft] = useState<{ scope: string; amount: string; file: File | null }>({ scope, amount: '', file: null });
+  const amount = draft.scope === scope ? draft.amount : '';
+  const file = draft.scope === scope ? draft.file : null;
+  const busy = working === scope;
+  const error = failure?.scope === scope ? failure.message : null;
+  const code = currency?.code ?? 'USD';
+  const fxRate = currency?.rate ?? 1;
 
   // Nothing owed, or already settled: there is no handshake to show. A stage with no
   // incoming tranche at all is free (amount is CHECKed > 0, so a free stage has no
@@ -56,34 +70,70 @@ export function StagePaymentGate({
   if (!payment || payment.state === 'funded' || payment.state === 'reconciled') return null;
 
   const awaitingReceipt = payment.state === 'expected';
+  const hasReceiptAmount = payment.receiptAmount != null && Number.isFinite(payment.receiptAmount)
+    && payment.receiptAmount > 0 && !!payment.receiptCurrency;
+  const hasReceiptSnapshot = hasReceiptAmount && !!payment.receiptPath && !!payment.receiptUploadedAt;
+  const shownReceiptAmount = hasReceiptAmount
+    ? `${payment.receiptAmount!.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 })} ${payment.receiptCurrency}`
+    : null;
+  const shownReceiptUsd = hasReceiptAmount && payment.receiptCurrency !== 'USD'
+    && payment.receiptAmountUsd != null && Number.isFinite(payment.receiptAmountUsd)
+    ? new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', {
+      style: 'currency', currency: 'USD', maximumFractionDigits: 2,
+    }).format(payment.receiptAmountUsd) : null;
 
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
-    setBusy(true);
-    setError(null);
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (inFlight.current === scope) return;
+    if (confirmedBillAmount(amount) === null) {
+      setFailure({ scope, message: t('project.stages.receiptAmountInvalid') });
+      return;
+    }
+    if (!file) {
+      setFailure({ scope, message: t('project.stages.receiptFileRequired') });
+      return;
+    }
+    inFlight.current = scope;
+    setWorking(scope);
+    setFailure(null);
     try {
-      await uploadStagePaymentReceipt(projectId, stageId, file);
-      await onChanged();
+      await uploadStagePaymentReceipt(projectId, stageId, file, { amount, currency: code, fxRate });
+      if (currentScope.current === scope) {
+        await onChanged();
+        if (currentScope.current === scope) {
+          setDraft({ scope, amount: '', file: null });
+          if (fileRef.current) fileRef.current.value = '';
+        }
+      }
     } catch {
-      setError(t('project.stages.receiptFailed'));
+      if (currentScope.current === scope) setFailure({ scope, message: t('project.stages.receiptFailed') });
     } finally {
-      setBusy(false);
-      // Cleared so choosing the same file again still fires a change event, which is
-      // the ordinary way a retry after a failure is attempted.
-      if (fileRef.current) fileRef.current.value = '';
+      if (inFlight.current === scope) inFlight.current = null;
+      if (currentScope.current === scope) setWorking(null);
     }
   }
 
   async function handleConfirm() {
-    setBusy(true);
-    setError(null);
+    if (inFlight.current === scope || !hasReceiptSnapshot) return;
+    inFlight.current = scope;
+    setWorking(scope);
+    setFailure(null);
     try {
-      await confirmStagePayment(stageId);
-      await onChanged();
-    } catch {
-      setError(t('project.stages.confirmFailed'));
+      await confirmStagePayment(stageId, undefined, { path: payment!.receiptPath!, uploadedAt: payment!.receiptUploadedAt! });
+      if (currentScope.current === scope) await onChanged();
+    } catch (error) {
+      if (currentScope.current === scope) {
+        const stale = /stale_receipt/.test((error as { message?: string } | null)?.message ?? '');
+        if (stale) {
+          try { await onChanged(); } catch { /* Keep the original reason visible. */ }
+        }
+        if (currentScope.current === scope) {
+          setFailure({ scope, message: t(stale ? 'project.stages.receiptChanged' : 'project.stages.confirmFailed') });
+        }
+      }
     } finally {
-      setBusy(false);
+      if (inFlight.current === scope) inFlight.current = null;
+      if (currentScope.current === scope) setWorking(null);
     }
   }
 
@@ -92,6 +142,7 @@ export function StagePaymentGate({
     const url = await signReceiptUrl(payment.receiptPath);
     // A private bucket hands back a signed URL or nothing. Opening a dead tab would be
     // worse than the button appearing to do nothing, so it does nothing.
+    if (currentScope.current !== scope) return;
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
   }
 
@@ -111,6 +162,9 @@ export function StagePaymentGate({
         </div>
       );
     }
+    if (!hasReceiptSnapshot) {
+      return <div className={shell}><p className="text-xs leading-relaxed text-brand-mid-grey">{t('project.stages.receiptAmountMissing')}</p></div>;
+    }
     return (
       <div className={shell}>
         <p className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
@@ -120,6 +174,8 @@ export function StagePaymentGate({
         <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
           {t('project.stages.confirmBody')}
         </p>
+        <p className="mt-3 text-base font-semibold tabular-nums text-brand-near-black dark:text-white">{shownReceiptAmount}</p>
+        {shownReceiptUsd && <p className="text-xs tabular-nums text-brand-mid-grey">{shownReceiptUsd}</p>}
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
@@ -145,13 +201,15 @@ export function StagePaymentGate({
   }
 
   // ── The client's side ─────────────────────────────────────────────────────────────
-  if (!awaitingReceipt) {
+  if (!awaitingReceipt && hasReceiptSnapshot) {
     return (
       <div className={shell}>
         <p className="flex items-start gap-2 text-xs leading-relaxed text-brand-mid-grey">
           <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           {t('project.stages.receiptSent')}
         </p>
+        <p className="mt-3 text-base font-semibold tabular-nums text-brand-near-black dark:text-white">{shownReceiptAmount}</p>
+        {shownReceiptUsd && <p className="text-xs tabular-nums text-brand-mid-grey">{shownReceiptUsd}</p>}
       </div>
     );
   }
@@ -167,24 +225,58 @@ export function StagePaymentGate({
         {t('project.stages.receiptBody', { amount: money(payment.amount) })}
       </p>
 
+      {!awaitingReceipt && <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.stages.receiptAmountMissing')}</p>}
+      <form onSubmit={handleSubmit} className="mt-3 space-y-3">
+      <div>
+        <label htmlFor={`receipt-amount-${stageId}`} className="block text-xs font-medium text-brand-near-black dark:text-white">
+          {t('project.stages.receiptAmountLabel', { currency: code })}
+        </label>
+        <input
+          id={`receipt-amount-${stageId}`}
+          name="receipt-amount"
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          value={amount}
+          disabled={busy}
+          onChange={e => {
+            const raw = e.target.value;
+            const next = /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw;
+            setDraft({ scope, amount: next, file });
+            setFailure(null);
+          }}
+          className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm tabular-nums text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+        />
+        <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">{t('project.stages.receiptAmountHint')}</p>
+      </div>
       <input
         ref={fileRef}
         type="file"
         accept="image/*,application/pdf"
         className="hidden"
         aria-label={t('project.stages.receiptChoose')}
-        onChange={e => void handleFile(e.target.files?.[0])}
+        disabled={busy}
+        onChange={e => { setDraft({ scope, amount, file: e.target.files?.[0] ?? null }); setFailure(null); }}
       />
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={busy}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 dark:bg-white dark:text-brand-near-black"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-border-grey bg-white py-2.5 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white disabled:opacity-50 dark:border-[#2c2c2c] dark:bg-[#141414] dark:text-white"
+      >
+        {t('project.stages.receiptFileChoose')}
+      </button>
+      {file && <p className="break-all text-xs text-brand-mid-grey">{file.name}</p>}
+      <button
+        type="submit"
+        disabled={busy}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-near-black py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 dark:bg-white dark:text-brand-near-black"
       >
         {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
         {busy ? t('project.stages.receiptUploading') : t('project.stages.receiptChoose')}
       </button>
-      {error && <p className="mt-2 text-xs text-state-alert">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-xs text-state-alert">{error}</p>}
+      </form>
     </div>
   );
 }

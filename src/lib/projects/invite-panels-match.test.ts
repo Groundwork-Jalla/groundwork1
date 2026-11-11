@@ -49,7 +49,7 @@ describe('both panels are built from the same pieces', () => {
   it.each(panels)('%s shows its form straight away', (_name, src) => {
     // The whole complaint: a form you have to ask for is a form people do not find.
     expect(src).toMatch(/<form onSubmit=\{invite\} noValidate className="mt-4 grid gap-3 sm:grid-cols-\[/);
-    expect(src).toMatch(/<Label htmlFor="\w+" className="text-xs">/);
+    expect(src).toMatch(/<Label htmlFor=(?:"\w+"|\{`\$\{inputId\}-\w+`\}) className="text-xs">/);
     expect(src).toMatch(/<Button type="submit" disabled=\{busy\} className="h-9 text-xs">/);
   });
 

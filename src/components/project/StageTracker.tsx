@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,8 +10,9 @@ import { formatShare } from '@/lib/budget/stage-shares';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
-import type { StagePayment } from '@/lib/supabase/verifications';
+import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
+import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
 
 // Lazy-loaded so the certificate HTML is not bundled into the main chunk
 const StageCertificateModal = lazy(() =>
@@ -115,10 +116,7 @@ function ApproveButton({
   loading: boolean;
 }) {
   const t = useT();
-  const label =
-    isSelfVerify(tier)
-      ? t('project.stages.approveStage', { n: stageNumber })
-      : t('project.stages.requestVerify');
+  const label = t('project.stages.approveStage', { n: stageNumber });
 
   return (
     <button
@@ -141,9 +139,12 @@ interface StageDetailProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  canApprove: boolean;
   projectId: string;
   /** The incoming tranche on THIS stage, if one is owed (175). */
   payment?: StagePayment;
+  canAct: boolean;
+  isFinalStage: boolean;
   onPaymentChanged: () => void | Promise<void>;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
@@ -161,8 +162,11 @@ function StageDetail({
   tier,
   userId,
   isContractor,
+  canApprove,
   projectId,
   payment,
+  canAct,
+  isFinalStage,
   onPaymentChanged,
   onMarkSubstageComplete,
   onEvidenceUploaded,
@@ -175,36 +179,45 @@ function StageDetail({
   const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const approvalBusy = useRef(false);
+  const scope = `${projectId}:${stage.id}`;
+  const liveScope = useRef<string | null>(scope);
+  liveScope.current = scope;
+  useEffect(() => () => { if (liveScope.current === scope) liveScope.current = null; }, [scope]);
 
-  const allSubstagesReady =
-    substages.length > 0 &&
-    substages.every(sub =>
-      isSelfVerify(tier)
-        ? sub.status === 'complete'
-        : sub.status === 'pending_review' || sub.status === 'complete',
-    );
+  const approvalsRemaining = substages.filter(sub => sub.status !== 'complete').length;
+  const allSubstagesReady = approvalsRemaining === 0;
 
   // Funded through Groundwork, not merely 'nothing outstanding'. A pre-existing stage
   // reads 'paid' on the legacy projection because its milestone is 0 (103), and must not
   // unlock anything on that basis. Such a stage is `complete`, so these gates are already
   // unreachable; saying it here means a future status change cannot quietly open them.
-  const stagePaid = stage.payment_status === 'paid' && !stage.pre_existing;
+  const stagePaid = stagePaymentAcknowledged(stage, payment);
 
   const showApproveButton =
-    !isContractor &&
-    stage.status === 'active' &&
+    canApprove &&
+    canAct &&
+    (stage.status === 'active' || stage.status === 'pending_review') &&
     allSubstagesReady &&
-    stagePaid &&
-    tier !== 'jalla_management' &&
-    tier !== 'enterprise';
+    stagePaid;
+  const paymentPending = payment?.state === 'expected' || payment?.state === 'receipt_submitted';
+  const missingPayment = canAct && !stagePaid && !payment
+    && (stage.payment_milestone_usd == null || stage.payment_milestone_usd > 0);
 
   async function handleApprove() {
+    if (approvalBusy.current) return;
+    approvalBusy.current = true;
+    setApprovalError(null);
     setApproving(true);
     try {
       await onApproveStage(stage.id, stage.stage_number);
+      if (liveScope.current === scope) setConfirmOpen(false);
+    } catch {
+      if (liveScope.current === scope) setApprovalError(t('project.stages.approvalFailed'));
     } finally {
-      setApproving(false);
-      setConfirmOpen(false);
+      approvalBusy.current = false;
+      if (liveScope.current === scope) setApproving(false);
     }
   }
 
@@ -237,7 +250,9 @@ function StageDetail({
       {stage.status === 'locked' ? (
         <>
           <p className="text-sm text-brand-mid-grey">
-            {t('project.stages.lockedBody')}
+            {t(!canAct ? 'project.stages.lockedBody'
+              : missingPayment ? 'project.stages.paymentDetailsMissing'
+              : paymentPending ? 'project.stages.paymentBeforeWork' : 'project.stages.stageReady')}
           </p>
           {/*
             A locked stage is exactly where the money conversation belongs. The client
@@ -245,17 +260,26 @@ function StageDetail({
             and one only — it has not been paid for — and the thing to do about that
             is the thing to show here. Renders nothing when nothing is owed (175).
           */}
-          <StagePaymentGate
+          {canAct && (isContractor || canApprove) && <StagePaymentGate
             projectId={projectId}
             stageId={stage.id}
             stageNumber={stage.stage_number}
             payment={payment}
             isContractor={!!isContractor}
             onChanged={onPaymentChanged}
-          />
+          />}
         </>
       ) : (
         <>
+          {!canAct && stage.status !== 'complete' && <p className="mb-3 text-sm text-brand-mid-grey">{t('project.stages.lockedBody')}</p>}
+          {canAct && (isContractor || canApprove) && <StagePaymentGate
+            projectId={projectId}
+            stageId={stage.id}
+            stageNumber={stage.stage_number}
+            payment={payment}
+            isContractor={!!isContractor}
+            onChanged={onPaymentChanged}
+          />}
           <div className="divide-y divide-brand-border-grey/60">
             {substages.map(sub => (
               <SubstageRow
@@ -263,9 +287,9 @@ function StageDetail({
                 substage={sub}
                 tier={tier}
                 userId={userId}
-                isStageActive={stage.status === 'active'}
+                isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
                 stagePaid={stagePaid}
-                onMarkComplete={isContractor ? undefined : onMarkSubstageComplete}
+                onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
                 onEvidenceUploaded={onEvidenceUploaded}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
@@ -276,40 +300,37 @@ function StageDetail({
             <ApproveButton
               tier={tier}
               stageNumber={stage.stage_number}
-              onApprove={() => setConfirmOpen(true)}
+              onApprove={() => { setApprovalError(null); setConfirmOpen(true); }}
               loading={approving}
             />
           )}
 
-          {(tier === 'jalla_management' || tier === 'enterprise') &&
-            stage.status === 'active' && (
-              <p className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
-                {t('project.stages.managedNote')}
-              </p>
-            )}
+          {canApprove && canAct && stagePaid && approvalsRemaining > 0 && (
+            <p role="status" className="mt-3 text-xs text-brand-mid-grey leading-relaxed">
+              {t('project.stages.approvalsRemaining', { count: approvalsRemaining })}
+            </p>
+          )}
         </>
+      )}
+
+      {missingPayment && (
+        <p role="status" className="mt-3 text-xs text-brand-mid-grey">
+          {t('project.stages.paymentDetailsMissing')}{' '}
+          <button type="button" className="font-semibold underline" onClick={() => {
+            void Promise.resolve(onPaymentChanged()).catch(() => {});
+          }}>{t('project.stages.refreshProject')}</button>
+        </p>
       )}
 
       <ConfirmModal
         open={confirmOpen}
-        title={
-          isSelfVerify(tier)
-            ? t('project.stages.confirmApproveTitle')
-            : t('project.stages.confirmVerifyTitle')
-        }
-        description={
-          isSelfVerify(tier)
-            ? t('project.stages.confirmApproveBody')
-            : t('project.stages.confirmVerifyBody')
-        }
-        confirmLabel={
-          isSelfVerify(tier)
-            ? t('project.stages.confirmApproveCta')
-            : t('project.stages.confirmVerifyCta')
-        }
+        title={t('project.stages.confirmApproveTitle')}
+        description={t(isFinalStage ? 'project.stages.confirmFinalApproveBody' : 'project.stages.confirmApproveBody')}
+        confirmLabel={t('project.stages.confirmApproveCta')}
+        error={approvalError}
         loading={approving}
         onConfirm={handleApprove}
-        onCancel={() => setConfirmOpen(false)}
+        onCancel={() => { if (!approvalBusy.current) setConfirmOpen(false); }}
       />
     </motion.div>
   );
@@ -323,6 +344,7 @@ export interface StageTrackerProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  canApprove: boolean;
   projectId: string;
   projectName: string;
   projectCountry: string;
@@ -331,9 +353,9 @@ export interface StageTrackerProps {
   /** Incoming tranches keyed by stage id (175). */
   payments?: Map<string, StagePayment>;
   onPaymentChanged: () => void | Promise<void>;
-  onMarkSubstageComplete: (substageId: string) => Promise<void>;
+  onMarkSubstageComplete: (substageId: string) => Promise<ApproveStageResult | undefined>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
-  onApproveStage: (stageId: string, stageNumber: number) => Promise<void>;
+  onApproveStage: (stageId: string, stageNumber: number) => Promise<ApproveStageResult | undefined>;
   renderEvidenceUpload: (props: {
     substageId: string;
     existingUrls: string[];
@@ -367,6 +389,7 @@ export function StageTracker({
   tier,
   userId,
   isContractor,
+  canApprove,
   projectId,
   payments,
   onPaymentChanged,
@@ -394,16 +417,52 @@ export function StageTracker({
    * signed-in user inserting a certificate row at all; a button is not a boundary.
    */
   const canCertify = tier === 'jalla_verify' || tier === 'jalla_management';
-  const activeStage = stages.find(
-    s => s.status === 'active' || s.status === 'pending_review',
-  );
-  const [selectedNum, setSelectedNum] = useState<number>(
-    activeStage?.stage_number ?? stages[0]?.stage_number ?? 1,
-  );
+  const [selection, setSelection] = useState<{ projectId: string; stageId: string | null; follow: boolean }>({
+    projectId, stageId: null, follow: true,
+  });
+  const [handoff, setHandoff] = useState<ApproveStageResult | null>(null);
+  const navigation = useRef({ projectId, version: 0, mounted: true });
+  if (navigation.current.projectId !== projectId) {
+    navigation.current = { projectId, version: navigation.current.version + 1, mounted: true };
+  }
+  useEffect(() => {
+    navigation.current.mounted = true;
+    return () => { if (navigation.current.projectId === projectId) navigation.current.mounted = false; };
+  }, [projectId]);
+  useEffect(() => {
+    if (handoff?.projectId === projectId && projectReflectsApproval(stages, handoff)) setHandoff(null);
+  }, [handoff, stages, projectId]);
   const [certStage, setCertStage] = useState<ProjectStageRow | null>(null);
 
-  const selectedStage = stages.find(s => s.stage_number === selectedNum);
-  const completedCount = stages.filter(s => s.status === 'complete').length;
+  // The approval response is authoritative even if the refresh is still arriving.
+  // Release this local handoff as soon as the saved completed row reaches the page.
+  const orderedStages = projectStagesAfterApproval(stages, handoff?.projectId === projectId ? handoff : null);
+  const currentStage = currentProjectStage(orderedStages);
+  const fallback = currentStage ?? orderedStages[orderedStages.length - 1];
+  const selectedStage = selection.projectId === projectId && !selection.follow
+    ? orderedStages.find(stage => stage.id === selection.stageId) ?? fallback : fallback;
+  const selectedNum = selectedStage?.stage_number;
+  const completedCount = orderedStages.filter(s => s.status === 'complete').length;
+
+  function captureNavigation() {
+    return { projectId, version: navigation.current.version };
+  }
+  function followApproval(result: ApproveStageResult | undefined, captured: ReturnType<typeof captureNavigation>) {
+    if (!result || result.projectId !== captured.projectId || captured.projectId !== navigation.current.projectId
+        || captured.version !== navigation.current.version || !navigation.current.mounted) return;
+    setHandoff(result);
+    setSelection({ projectId: captured.projectId, stageId: result.nextStageId ?? result.stageId, follow: true });
+  }
+  async function handleStageApproval(stageId: string, stageNumber: number) {
+    const captured = captureNavigation();
+    const result = await onApproveStage(stageId, stageNumber);
+    followApproval(result, captured);
+  }
+  async function handleSubstageApproval(substageId: string) {
+    const captured = captureNavigation();
+    const result = await onMarkSubstageComplete(substageId);
+    followApproval(result, captured);
+  }
 
   return (
     <div>
@@ -421,7 +480,7 @@ export function StageTracker({
         {/* Horizontal pipeline row */}
         <div className="overflow-x-auto border-b border-brand-border-grey bg-brand-off-white/40 px-4 pt-4 pb-3">
           <div className="flex items-start min-w-max">
-            {stages.map((stage, i) => (
+            {orderedStages.map((stage, i) => (
               <div key={stage.id} className="flex items-start">
                 {/* Connector line */}
                 {i > 0 && (
@@ -434,7 +493,10 @@ export function StageTracker({
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
-                    onClick={() => setSelectedNum(stage.stage_number)}
+                    onClick={() => {
+                      navigation.current.version++;
+                      setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id });
+                    }}
                     className={cn(
                       'flex flex-col items-center gap-1.5 rounded-lg px-2 py-1 transition-colors',
                       'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-near-black focus-visible:ring-offset-1',
@@ -493,12 +555,15 @@ export function StageTracker({
                 tier={tier}
                 userId={userId}
                 isContractor={isContractor}
+                canApprove={canApprove}
                 projectId={projectId}
                 payment={payments?.get(selectedStage.id)}
+                canAct={canActOnProjectStage(selectedStage, orderedStages)}
+                isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
-                onMarkSubstageComplete={onMarkSubstageComplete}
+                onMarkSubstageComplete={handleSubstageApproval}
                 onEvidenceUploaded={onEvidenceUploaded}
-                onApproveStage={onApproveStage}
+                onApproveStage={handleStageApproval}
                 renderEvidenceUpload={renderEvidenceUpload}
               />
             )}

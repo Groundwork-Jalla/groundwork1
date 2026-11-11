@@ -41,6 +41,7 @@ import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow, Bu
 import type { StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { ProjectPayoutSummary } from './ProjectPayoutSummary';
 
 // The predicted duration used to be `const PREDICTED_DAYS = 196` — the same seven months
 // for a bungalow and an eight-storey block, which is what beta testers who had actually
@@ -114,11 +115,11 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 
 // ── Cost breakdown ────────────────────────────────────────
 
-function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt, boq, historical, remaining, historicalAmount, remainingAmount }: {
+function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, historical, remaining, historicalAmount, remainingAmount }: {
   budget: BudgetBreakdown;
-  paid: BudgetBreakdown;
-  paidTotal: number;
-  outstanding: number;
+  project: ProjectRow;
+  stages: ProjectStageRow[];
+  payments: Map<string, StagePayment>;
   /** Renders a stored USD figure in the project's own currency. See `useProjectMoney`. */
   fmt: (usd: number, sourceAmount?: number | null) => string;
   boq?: boolean;
@@ -129,33 +130,25 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt, boq, his
 }) {
   const t = useT();
   const total = budget.total;
-  const paidPct = total > 0 ? Math.min(Math.round((paidTotal / total) * 100), 100) : 0;
 
   const rows = [
-    { label: t('project.overview.costConstruction'), planned: budget.construction, paid: paid.construction },
-    { label: t('project.overview.costDesign'),       planned: budget.design,       paid: paid.design },
-    { label: t('project.overview.costProfessional'), planned: budget.professional, paid: paid.professional },
-    { label: t('project.overview.costPermit'),       planned: budget.permit,       paid: paid.permit },
-    { label: t('project.overview.costVerification'), planned: budget.verification, paid: paid.verification },
-    { label: t('project.overview.costContingency'),  planned: budget.contingency,  paid: paid.contingency },
+    { label: t('project.overview.costConstruction'), planned: budget.construction },
+    { label: t('project.overview.costDesign'),       planned: budget.design },
+    { label: t('project.overview.costProfessional'), planned: budget.professional },
+    { label: t('project.overview.costPermit'),       planned: budget.permit },
+    { label: t('project.overview.costVerification'), planned: budget.verification },
+    { label: t('project.overview.costContingency'),  planned: budget.contingency },
   ].filter(r => r.planned > 0);
 
   return (
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
       <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.costTitle')}</p>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {[
-          { label: t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned'), value: fmt(total), cls: '' },
-          { label: t('project.overview.costPaid'), value: fmt(paidTotal), cls: 'text-state-complete' },
-          { label: outstanding > 0 ? t('project.overview.costOutstanding') : t('project.overview.costUnder'), value: fmt(outstanding), cls: 'text-state-held' },
-        ].map(c => (
-          <div key={c.label} className="rounded-lg border border-brand-border-grey dark:border-[#2c2c2c] px-2 py-2 text-center">
-            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-brand-mid-grey">{c.label}</p>
-            <p className={cn('text-sm font-bold tabular-nums', c.cls || 'text-brand-near-black dark:text-white')}>{c.value}</p>
-          </div>
-        ))}
+      <div className="mt-3 mb-4">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned')}</p>
+        <p className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{fmt(total)}</p>
       </div>
+      <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} />
 
       {boq && (
         <dl className="mt-3 space-y-1 text-xs text-brand-mid-grey">
@@ -164,17 +157,12 @@ function CostBreakdownCard({ budget, paid, paidTotal, outstanding, fmt, boq, his
         </dl>
       )}
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
-        <div className="h-full rounded-full bg-brand-near-black dark:bg-white" style={{ width: `${paidPct}%` }} />
-      </div>
-      <p className="mt-1.5 text-center text-[10px] text-brand-mid-grey">{t('project.overview.costFunded', { pct: paidPct })}</p>
-
       <div className="mt-4 space-y-2.5">
         {rows.map(r => (
           <div key={r.label} className="flex items-center gap-3">
             <span className="w-28 shrink-0 text-[11px] text-brand-mid-grey">{r.label}</span>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
-              <div className="h-full rounded-full bg-state-complete" style={{ width: `${Math.min(Math.round((r.paid / r.planned) * 100), 100)}%` }} />
+              <div className="h-full rounded-full bg-state-complete" style={{ width: `${total > 0 ? Math.min(Math.round((r.planned / total) * 100), 100) : 0}%` }} />
             </div>
             <span className="w-28 shrink-0 text-right text-[11px] font-medium tabular-nums text-brand-near-black dark:text-white">
               {fmt(r.planned)}
@@ -317,135 +305,27 @@ export default function OverviewTab({
     s => s.status !== 'complete' && !s.pre_existing && s.payment_status !== 'paid',
   );
 
-  /**
-   * What has been paid, and what is still owed.
-   *
-   * ── Why this is not `total − paid` any more ────────────────────────────────────────
-   * Philip, 9 Nov 2026: the outstanding balance should "reflect only the remaining
-   * project funds rather than the total amount". It read as the total because the two
-   * halves of the arithmetic did not meet. Stage milestones cover the construction and
-   * design fees ONLY — the permit, professional, verification and contingency lines
-   * live in `project_fees` and hang off no stage at all (036, 072). So subtracting the
-   * stages that had been paid from a budget that also contained four fee lines left
-   * those fees in "outstanding" permanently, and on a project where nothing had been
-   * paid yet the figure was the whole budget, printed a second time beside "Planned".
-   *
-   * Both figures are now summed from the obligations themselves — every stage and every
-   * fee row, each counted once, on one side or the other. They therefore add up to the
-   * planned total, which is the property that was missing and the thing a client checks.
-   *
-   * ── Why the ledger is asked first ─────────────────────────────────────────────────
-   * `project_stages.payment_status` is 090's legacy projection. The ledger's `state` is
-   * what the money did: `funded` means the contractor confirmed receipt, `reconciled`
-   * that it was matched off. A stage whose tranche is funded but whose projection was
-   * never written back would otherwise still be counted as owing. The projection is
-   * kept as the fallback for projects that predate the ledger entirely.
-   *
-   * `pre_existing` stages are excluded from both sides: they read 'paid' because nothing
-   * was ever owed on them, which is not the same as money having moved (103).
-   */
-  const stageIsPaid = (s: ProjectStageRow) => {
-    const tranche = payments.get(s.id);
-    if (tranche) return tranche.state === 'funded' || tranche.state === 'reconciled';
-    return s.payment_status === 'paid';
-  };
-
-  const billableStages = sortedStages.filter(s => !s.pre_existing);
-  const stagesPaid   = billableStages.filter(stageIsPaid)
-    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-  const stagesUnpaid = billableStages.filter(s => !stageIsPaid(s))
-    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-
-  const feesPaid   = fees.filter(f => f.payment_status === 'paid')
-    .reduce((acc, f) => acc + Number(f.boq_waived_amount_usd ?? f.amount_usd ?? 0), 0);
-  const feesUnpaid = fees.filter(f => f.payment_status !== 'paid')
-    .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
-
-  const paidTotal   = stagesPaid + feesPaid;
-  const outstanding = stagesUnpaid + feesUnpaid;
-
-  /**
-   * The same money, split the way the cost rows below are split.
-   *
-   * This used to be `decomposeBudget(paidTotal, …)` — the inverse of the pricing
-   * formula, run over the amount paid so far. That answers "if this sum were a whole
-   * budget, how would it have been composed?", which is not a question anybody asked:
-   * payments are made against stages and fee lines, in an order, and the first money a
-   * client sends is not 2% permit and 5% project manager. It produced a permit bar part
-   * filled before any permit had been paid for.
-   *
-   * Each line is now read off what was actually settled. The design fee rides on its own
-   * stage (036), so it is pulled out of the construction figure rather than estimated.
-   * `material` and `labor` are views of construction — 60/40 — not additions to it, so
-   * they follow it rather than being tracked separately.
-   */
-  const feePaid = (kind: ProjectFeeRow['kind']) =>
-    fees.filter(f => f.kind === kind && f.payment_status === 'paid')
-        .reduce((acc, f) => acc + Number(f.boq_waived_amount_usd ?? f.amount_usd ?? 0), 0);
-
-  const designPaid = billableStages
-    .filter(s => s.stage_key === 'designCompleted' && stageIsPaid(s))
-    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-  const constructionPaid = stagesPaid - designPaid;
-
-  /**
-   * The PLANNED column, summed from the same obligations as the paid one.
-   *
-   * It used to be `decomposeBudget(project.budget_usd, shape)` — the pricing formula run
-   * backwards over the confirmed total. The paid side was taken off that formula on
-   * 9 Nov; this side was left on it, and the two then answered different questions.
-   *
-   * On TAMSO (Douala, 13 floors) that gap is visible on the screen Philip read out:
-   * the stage column sums to about $2.35m while this card printed Construction
-   * $2,242,660 against a planned total of $2,525,187. Neither number is reachable from
-   * the other, and the one a client is actually asked to pay — the stages — was not the
-   * one being shown. A project that joined mid-build (103) is where it bites hardest:
-   * `budget_usd` is what THIS client pays for the remaining work, while the milestones
-   * are written from the whole house's construction fee, so the card and the schedule
-   * are two different buildings.
-   *
-   * Summed from the rows instead, Planned = Paid + Outstanding by construction, and
-   * every line is a figure somebody can point at in the Stages tab.
-   */
-  const plannedConstruction = stagesPaid + stagesUnpaid
-    - billableStages.filter(s => s.stage_key === 'designCompleted')
-        .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0);
-  const feePlanned = (kind: ProjectFeeRow['kind']) =>
-    fees.filter(f => f.kind === kind)
-        .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
-
-  /**
-   * Before tracking starts there are no obligations to sum — no milestones written, no
-   * fee rows. The priced estimate is all there is, and showing zeros on the screen where
-   * a client decides whether to go ahead would be worse than showing the estimate.
-   */
+  // Planned costs come from the saved schedule. Actual payouts are read separately
+  // by ProjectPayoutSummary; a paid flag or completed stage cannot supply a receipt amount.
+  const billableStages = sortedStages.filter(stage => !stage.pre_existing);
+  const scheduledDesign = billableStages.filter(stage => stage.stage_key === 'designCompleted')
+    .reduce((sum, stage) => sum + (stage.payment_milestone_usd ?? 0), 0);
+  const scheduledStages = billableStages.reduce((sum, stage) => sum + (stage.payment_milestone_usd ?? 0), 0);
+  const plannedConstruction = scheduledStages - scheduledDesign;
+  const feePlanned = (kind: ProjectFeeRow['kind']) => fees.filter(fee => fee.kind === kind)
+    .reduce((sum, fee) => sum + Number(fee.amount_usd ?? 0), 0);
   const hasObligations = billableStages.length > 0 || fees.length > 0;
-
   const plannedBySlice: BudgetBreakdown = project.budget_source === 'boq' ? budget : hasObligations ? {
-    total:        paidTotal + outstanding,
+    total: scheduledStages + fees.reduce((sum, fee) => sum + Number(fee.amount_usd ?? 0), 0),
     construction: plannedConstruction,
-    material:     plannedConstruction * MATERIAL_PCT,
-    labor:        plannedConstruction * LABOR_PCT,
-    design:       billableStages.filter(s => s.stage_key === 'designCompleted')
-                    .reduce((acc, s) => acc + (s.payment_milestone_usd ?? 0), 0),
-    permit:       feePlanned('permit'),
+    material: plannedConstruction * MATERIAL_PCT,
+    labor: plannedConstruction * LABOR_PCT,
+    design: scheduledDesign,
+    permit: feePlanned('permit'),
     professional: feePlanned('professional'),
     verification: feePlanned('verification'),
-    contingency:  feePlanned('contingency'),
+    contingency: feePlanned('contingency'),
   } : budget;
-
-  const paidBySlice: BudgetBreakdown = {
-    total:        paidTotal,
-    construction: constructionPaid,
-    material:     constructionPaid * MATERIAL_PCT,
-    labor:        constructionPaid * LABOR_PCT,
-    design:       designPaid,
-    permit:       feePaid('permit'),
-    professional: feePaid('professional'),
-    verification: feePaid('verification'),
-    contingency:  feePaid('contingency'),
-  };
-
 
   const country     = findCountry(project.country);
   const projStart   = new Date(project.target_start ? `${project.target_start}T00:00:00` : project.created_at);
@@ -543,9 +423,9 @@ export default function OverviewTab({
 
           <CostBreakdownCard
             budget={plannedBySlice}
-            paid={paidBySlice}
-            paidTotal={paidTotal}
-            outstanding={outstanding}
+            project={project}
+            stages={stages}
+            payments={payments}
             fmt={fmt}
             boq={project.budget_source === 'boq'}
             historical={sortedStages.filter(s => s.pre_existing).reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}

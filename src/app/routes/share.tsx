@@ -88,7 +88,7 @@ export default function ShareInvite() {
       <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
         {t('share.body', { project: preview.projectName })}
       </p>
-      <p className="mt-3 text-xs text-brand-mid-grey">{t('share.readOnly')}</p>
+      <p className="mt-3 text-xs text-brand-mid-grey">{t(preview.isClient ? 'share.clientAccess' : 'share.readOnly')}</p>
 
       {error && <p role="alert" className="mt-4 text-sm text-brand-near-black dark:text-white">{error}</p>}
 

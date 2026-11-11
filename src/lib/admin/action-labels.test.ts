@@ -97,7 +97,7 @@ describe('entityTab', () => {
     }
     expect([...written].sort()).toEqual([
       'contractor', 'contractor_application', 'contractor_invite', 'conversation', 'decision',
-      'payment', 'payout_destination', 'profile', 'project', 'project_stage', 'project_verifier',
+      'payment', 'payout_destination', 'profile', 'project', 'project_stage', 'project_verifier', 'project_viewer',
       'site_update', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
@@ -108,6 +108,7 @@ describe('entityTab', () => {
     expect(entityTab('decision')).toBe('conversations');
     expect(entityTab('contractor_invite')).toBe('team');
     expect(entityTab('project_verifier')).toBe('team');
+    expect(entityTab('project_viewer')).toBe('team');
     // Support tickets are Support's, not a workspace tab: no link, by decision.
     expect(entityTab('support_ticket')).toBeNull();
     // A verifier's invitation, like a contractor's application, exists before the

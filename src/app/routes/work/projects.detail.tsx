@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Camera, Check, FileText, Loader2, Lock, Search, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
@@ -33,6 +33,9 @@ import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verificati
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
+import { ProjectPayoutSummary } from '@/components/project/ProjectPayoutSummary';
+import { canActOnProjectStage, currentProjectStage, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
+import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 
 // =========================================================
 // One assigned project, from the contractor's side.
@@ -71,6 +74,7 @@ export default function ContractorProjectDetail() {
   const t = useT();
   const { user } = useAuth();
   const { projectId } = useParams<{ projectId: string }>();
+  const { access: teamAccess, error: teamError, refresh: refreshTeam } = useProjectTeamAccess(projectId ?? '');
   const { stageLabel, substageLabel } = useStageLabels();
 
   const [assigned, setAssigned] = useState<AssignedProject | null | 'denied'>(null);
@@ -141,6 +145,8 @@ export default function ContractorProjectDetail() {
     const channel = supabase.channel(`contractor-project-money-${projectId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${projectId}` }, refresh)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${projectId}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${projectId}` }, refresh)
       .subscribe();
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
@@ -153,7 +159,19 @@ export default function ContractorProjectDetail() {
     [assigned, substages],
   );
 
-  if (assigned === null) {
+  // RLS also permits observers to read this project. A global contractor account
+  // does not establish a work assignment on this particular build.
+  if (teamAccess && !teamAccess.assignedContractor && projectId) {
+    return <Navigate to={`/projects/${projectId}`} replace />;
+  }
+  if (teamError && assigned !== 'denied') {
+    return <div className="flex flex-col items-start gap-4">
+      <Back />
+      <p role="alert" className="text-sm text-state-alert">{t('teamAccess.loadFailed')}</p>
+      <button type="button" className="text-sm underline underline-offset-4" onClick={() => { void refreshTeam(); }}>{t('common.retry')}</button>
+    </div>;
+  }
+  if (assigned === null || (!teamAccess && assigned !== 'denied')) {
     // The way back renders immediately. A bare spinner on a slow site connection
     // leaves somebody on a page with no heading and no way off it.
     return (
@@ -244,7 +262,7 @@ export default function ContractorProjectDetail() {
       )}
 
       {tab === 'money' && (
-        <MoneyTab assigned={assigned} payments={payments} hasBoq={hasBoq} />
+        <MoneyTab assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} />
       )}
 
       {tab === 'people' && (
@@ -443,10 +461,11 @@ function SubmitWork({ projectId, stage, substages, fixedSubstageId, substageLabe
  * provider holds and moves the money. There is no confirm, authorise or reconcile
  * here, and nothing on this tab says Groundwork is holding anything.
  */
-function MoneyTab({ assigned, payments, hasBoq }: {
+function MoneyTab({ assigned, payments, stagePayments, hasBoq }: {
   hasBoq: boolean;
   assigned: AssignedProject;
   payments: { rows: ContractorPayment[]; available: boolean } | null;
+  stagePayments: Map<string, StagePayment>;
 }) {
   const t = useT();
   const { stageLabel } = useStageLabels();
@@ -504,13 +523,14 @@ function MoneyTab({ assigned, payments, hasBoq }: {
     <div className="flex flex-col gap-5">
       <div className="grid gap-3 sm:grid-cols-3">
         <Figure label={t('contractorMoney.contractValue')} pair={contract} />
-        <FigureText label={t('contractorMoney.releasedToYou')} value={releasedLabel} tone="complete"
+        <FigureText label={t('contractorMoney.providerTransfers')} value={releasedLabel} tone="complete"
                     hint={ledger === null
                       ? t('contractorPayments.unavailable')
                       : t('contractorMoney.paymentsRecorded', { n: ledger.length })} />
         <Figure label={t('contractorMoney.stillToCome')} pair={toCome}
                 hint={t('contractorMoney.stagesToCome', { n: outstanding.length })} />
       </div>
+      <ProjectPayoutSummary project={assigned.project} stages={stages} refreshKey={stagePayments} />
 
       <section>
         <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
@@ -661,6 +681,7 @@ function Figure({ label, pair, hint, tone }: {
  */
 function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean }) {
   const t = useT();
+  const { access } = useProjectTeamAccess(project.id);
   const [viewers, setViewers] = useState<ProjectViewer[] | null>(null);
 
   useEffect(() => {
@@ -669,7 +690,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
       .then(rows => { if (alive) setViewers(rows); })
       .catch(() => { if (alive) setViewers([]); });
     return () => { alive = false; };
-  }, [project.id]);
+  }, [project.id, access]);
 
   /**
    * Who can do what. The VERIFIER column is hidden with the rest of verification
@@ -683,7 +704,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
     { label: t('contractorPeople.canDoc'),     you: true,  client: true },
     { label: t('contractorPeople.canEvidence'),you: true,  client: false },
     { label: t('contractorPeople.canRelease'), you: false, client: false },
-    { label: t('contractorPeople.canInvite'),  you: isOwner, client: false },
+    { label: t('contractorPeople.canInvite'),  you: access?.canInvite === true, client: true },
   ];
 
   return (
@@ -731,7 +752,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
                   </span>
                   <span className={cn('shrink-0 text-[11px] font-semibold',
                     v.acceptedAt ? 'text-state-complete' : 'text-state-held')}>
-                    {v.acceptedAt ? t('contractorPeople.watching') : t('contractorPeople.pending')}
+                    {v.acceptedAt ? t(v.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer') : t('contractorPeople.pending')}
                   </span>
                 </li>
               ))}
@@ -773,26 +794,8 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
       </div>
 
       <div className="flex min-w-0 flex-col gap-4">
-        {/* Invite the client to watch their own build.
-            
-            Only when the CONTRACTOR owns the project — which happens when they set it
-            up themselves rather than for a client who already has an account. In that
-            case the build is managed end to end by the contractor, and the client is
-            the person it is for: they should be able to follow it.
-            
-            `invite_project_viewer` (112) already allows exactly this and nothing more.
-            Its guard is "only the owner may share", and here the owner IS the
-            contractor, so no new permission is involved. */}
-        {isOwner ? (
-          <ShareProject projectId={project.id} asClient />
-        ) : (
-          <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">
-              {t('contractorPeople.inviteTitle')}
-            </h2>
-            <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.notYoursToShare')}</p>
-          </section>
-        )}
+        <ShareProject projectId={project.id} asClient />
+        <ShareProject projectId={project.id} />
       </div>
     </div>
   );
@@ -823,7 +826,9 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
   const t = useT();
   const { stageLabel, substageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project);
-  const { project, stages, activeStage } = assigned;
+  const { project, stages } = assigned;
+  const current = currentProjectStage(stages);
+  const activeStage = current && (current.status === 'active' || current.status === 'pending_review') ? current : undefined;
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
@@ -861,6 +866,10 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
         const isOpen = stage.id === activeStage?.id;
         const due = money.pair(stagePayableUsd(stage, basis), stage.milestone_amount);
         const sent = rework.filter(r => r.stageId === stage.id);
+        const tranche = stagePayments.get(stage.id);
+        const showGate = canActOnProjectStage(stage, stages) && !!tranche;
+        const funded = stagePaymentAcknowledged(stage, tranche);
+        const canWork = canActOnProjectStage(stage, stages) && funded;
 
         if (!isOpen) {
           /*
@@ -873,9 +882,6 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
            * about" is the first thing anybody confirming a payment needs to know, and
            * a list of receipts somewhere else makes that a lookup.
            */
-          const tranche = stagePayments.get(stage.id);
-          const showGate = stage.status === 'locked' && !!tranche;
-
           const row = (
             <div
               className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -955,6 +961,13 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                 </span>
               )}
             </div>
+            {showGate && (
+              <ProjectMoneyProvider project={project}>
+                <StagePaymentGate projectId={project.id} stageId={stage.id} stageNumber={stage.stage_number}
+                  payment={tranche} isContractor onChanged={onSubmitted} />
+              </ProjectMoneyProvider>
+            )}
+            {!funded && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t('project.stages.paymentBeforeWork')}</p>}
             <p className="ml-[34px] mt-1 text-xs text-brand-mid-grey">{t('contractorWork.ticksItself')}</p>
 
             {/* What a verifier sent back belongs to the stage it is about, not to a
@@ -1014,7 +1027,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                           {t('contractorDocs.view')}
                         </span>
                       ) : (
-                        <button type="button" onClick={() => setUploadFor(item.id)}
+                        <button type="button" onClick={() => setUploadFor(item.id)} disabled={!canWork}
                           data-tour="upload-evidence"
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black">
                           <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
@@ -1025,7 +1038,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                       {/* Opened against the item it belongs to, so the camera and
                           the file picker are under the thumb that pressed Upload —
                           not at the bottom of a ten-item list. */}
-                      {uploadFor === item.id && (
+                      {uploadFor === item.id && canWork && (
                         <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3.5 dark:bg-[#141414]">
                           <SubmitWork projectId={project.id} stage={stage} substages={openItems}
                                       fixedSubstageId={item.id}
@@ -1108,7 +1121,7 @@ function WorkRail({ assigned, isOwner, hasBoq }: {
           people list, reasoning that what belongs beneath a list is the way to add
           to it. That is tidy and it is not the point: getting a client onto the
           build is what this screen is for, so it goes first. */}
-      {isOwner && <ShareProject projectId={project.id} asClient />}
+      <ShareProject projectId={project.id} asClient />
 
       <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">

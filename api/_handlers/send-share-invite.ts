@@ -68,7 +68,7 @@ export async function handler(req: any, res: any) {
     // Service role, so RLS is bypassed — the token match is the authorisation.
     const { data: viewer } = await admin
       .from('project_viewers')
-      .select('email, relationship, project_id, invited_by, accepted_at, revoked_at')
+      .select('email, relationship, project_id, invited_by, accepted_at, revoked_at, is_client')
       .eq('token', shareToken)
       .maybeSingle();
 
@@ -102,7 +102,7 @@ export async function handler(req: any, res: any) {
     const projectName = project?.name?.trim() || 'a Groundwork project';
 
     const subject = shareSubject(lang, inviterName, projectName);
-    const html = buildShareHtml(lang, inviterName, projectName, viewer.relationship, shareToken);
+    const html = buildShareHtml(lang, inviterName, projectName, viewer.relationship, shareToken, viewer.is_client === true);
 
     const sent = await sendViaResend({ from: FROM, to: viewer.email, subject, html });
 
@@ -159,36 +159,32 @@ export async function handler(req: any, res: any) {
      * the email has already gone out and the invitation stands whatever the CRM says.
      */
     let crmEvent = false;
-    try {
-      const fwd = await forwardToGhl('client_invited', {
-        email: viewer.email,
-        // No name to give: an invitation is sent to an address, and inventing one from
-        // the local part would write "Ada.Okafor" into a field a human reads.
-        lang,
-        country: project?.country ?? null,
-      }, {
-        ...routingFields({
-          userRole:         'client',
-          entrySource:      'client_invitation',
-          projectId:        viewer.project_id,
-          projectName:      project?.name ?? null,
-          inviterUserId:    viewer.invited_by,
-          inviterName,
-          inviterRole:      'contractor',
-          invitationStatus: 'sent',
-          activationStage:  'awaiting_invitation_response',
-          stageEnteredAt:   new Date(),
-        }),
-        invite_path: `/share/${shareToken}`,
-      }, {
-        // Per invitation, not per person: re-inviting the same address to a SECOND
-        // build is a new invitation with its own reminder clock. The token is unique
-        // per row (112) and is already what the link is keyed on.
-        dedupeKey: `client_invited:${shareToken}`,
-      });
-      crmEvent = fwd.ok;
-    } catch (e) {
-      console.error('[share] could not tell the CRM about the invitation:', e);
+    // Observers receive the email, without primary-client onboarding/reminders.
+    if (viewer.is_client === true) {
+      try {
+        const fwd = await forwardToGhl('client_invited', {
+          email: viewer.email,
+          lang,
+          country: project?.country ?? null,
+        }, {
+          ...routingFields({
+            userRole:         'client',
+            entrySource:      'client_invitation',
+            projectId:        viewer.project_id,
+            projectName:      project?.name ?? null,
+            inviterUserId:    viewer.invited_by,
+            inviterName,
+            inviterRole:      'contractor',
+            invitationStatus: 'sent',
+            activationStage:  'awaiting_invitation_response',
+            stageEnteredAt:   new Date(),
+          }),
+          invite_path: `/share/${shareToken}`,
+        }, { dedupeKey: `client_invited:${shareToken}` });
+        crmEvent = fwd.ok;
+      } catch (e) {
+        console.error('[share] could not tell the CRM about the invitation:', e);
+      }
     }
 
     res.status(200).json({ success: true, notedInCrm: noted.ok, crmSurface: noted.surface, crmEvent });

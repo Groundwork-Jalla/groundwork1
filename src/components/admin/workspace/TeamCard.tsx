@@ -140,7 +140,7 @@ export function TeamCard({ ws, available, onChanged, onNotice }: {
       )}
 
       <dl className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-        <Row icon={<UserRound className="size-3.5" />} label={t('admin.workspace.team.client')}>
+        <Row icon={<UserRound className="size-3.5" />} label={t('teamAccess.projectCreator')}>
           {owner ? (
             <span className="text-brand-near-black dark:text-white">{owner.name || owner.email}
               {owner.name && owner.email && <span className="text-brand-mid-grey"> · {owner.email}</span>}

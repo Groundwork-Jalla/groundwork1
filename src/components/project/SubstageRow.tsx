@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Check, Lock, Clock, Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -104,15 +104,18 @@ export function SubstageRow({
   const { substageLabel } = useStageLabels();
   const [marking, setMarking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const markingRef = useRef(false);
 
   const hasEvidence = substage.evidence_urls.length > 0;
   const isLocked    = substage.status === 'locked';
   const t           = useT();
   const isComplete  = substage.status === 'complete';
   const isPendingReview = substage.status === 'pending_review';
-  const canMarkComplete = !!onMarkComplete && hasEvidence && !isComplete && !isPendingReview && isStageActive;
+  const canMarkComplete = !!onMarkComplete && hasEvidence && !isComplete && !isLocked && isStageActive && stagePaid;
 
   async function handleMarkComplete() {
+    if (markingRef.current) return;
+    markingRef.current = true;
     setError(null);
     setMarking(true);
     try {
@@ -120,6 +123,7 @@ export function SubstageRow({
     } catch (err) {
       setError(errorMessage(err, t('project.stages.updateFailed')));
     } finally {
+      markingRef.current = false;
       setMarking(false);
     }
   }
@@ -149,12 +153,12 @@ export function SubstageRow({
           {/* Status chips */}
           {isPendingReview && (
             <span className="shrink-0 inline-flex items-center rounded-full border border-state-held/30 bg-brand-off-white px-2 py-px text-[9px] font-medium text-state-held whitespace-nowrap">
-              {t('project.stages.awaitingReview')}
+              {t('project.stages.badgeYourApproval')}
             </span>
           )}
           {tier !== 'starter' && tier !== 'pro' && isComplete && substage.approved_by && (
             <span className="shrink-0 text-[9px] text-brand-mid-grey whitespace-nowrap">
-              {t('project.stages.verified')}
+              {t('project.stages.approved')}
             </span>
           )}
         </div>
@@ -206,9 +210,7 @@ export function SubstageRow({
                     nobody else reviews it — the client is signing off their own
                     evidence — and calling that "ready for review" implies a reviewer who
                     does not exist. `starter` keeps its plainer wording. */}
-                {tier === 'starter'      ? t('project.stages.markComplete')
-                 : tier === 'self_verify' ? t('project.stages.approveEvidence')
-                 : t('project.stages.markReady')}
+                {t('project.stages.approveEvidence')}
               </button>
             </motion.div>
           )}

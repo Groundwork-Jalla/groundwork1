@@ -14,8 +14,8 @@ import { rememberProjectInvitation } from '@/lib/auth/project-invitation';
 //
 // ── Read, and only read ──────────────────────────────────────────────────────────────
 // A viewer is the fourth kind of `project_member()`, and every policy behind that gate is
-// FOR SELECT. They can see the build; they cannot approve a stage, move money, invite
-// anybody or change a figure. The server decides that, not this file.
+// FOR SELECT. Observers cannot approve, move money or invite anybody. The explicit
+// is_client role is separate: the named primary client may approve and invite.
 // =========================================================
 
 export interface ProjectViewer {
@@ -25,6 +25,8 @@ export interface ProjectViewer {
   invitedAt: string;
   /** Null until they open the link and accept. */
   acceptedAt: string | null;
+  /** The named client can approve work; other viewers are observers. */
+  isClient: boolean;
 }
 
 interface Row {
@@ -33,6 +35,7 @@ interface Row {
   relationship: string | null;
   invited_at: string;
   accepted_at: string | null;
+  is_client: boolean;
 }
 
 /**
@@ -44,7 +47,7 @@ interface Row {
 export async function fetchProjectViewers(projectId: string): Promise<ProjectViewer[]> {
   const { data, error } = await supabase
     .from('project_viewers')
-    .select('id, email, relationship, invited_at, accepted_at')
+    .select('id, email, relationship, invited_at, accepted_at, is_client')
     .eq('project_id', projectId)
     .is('revoked_at', null)
     .order('invited_at', { ascending: false });
@@ -56,6 +59,7 @@ export async function fetchProjectViewers(projectId: string): Promise<ProjectVie
   return (data ?? []).map((r: Row) => ({
     id: r.id, email: r.email, relationship: r.relationship,
     invitedAt: r.invited_at, acceptedAt: r.accepted_at,
+    isClient: r.is_client === true,
   }));
 }
 
@@ -87,6 +91,7 @@ export async function fetchViewerSummaries(
     .from('project_viewers')
     .select('project_id, email, relationship, accepted_at')
     .in('project_id', projectIds)
+    .eq('is_client', true)
     .is('revoked_at', null)
     .order('invited_at', { ascending: true });
   // A deployment without 112 has no table. An absent panel beats a broken page.
@@ -94,7 +99,7 @@ export async function fetchViewerSummaries(
 
   for (const row of (data ?? []) as { project_id: string; email: string;
                                       relationship: string | null; accepted_at: string | null }[]) {
-    // The FIRST invitation is the client; later ones are family the client added.
+    // Only the explicit client role may label a project as belonging to this person.
     if (out.has(row.project_id)) continue;
     const named = row.relationship?.trim();
     out.set(row.project_id, {
@@ -111,13 +116,14 @@ export class ShareFailed extends Error {
 
 function fail(message: string): never {
   const known = ['not_owner', 'invalid_email', 'self_invite', 'no_project', 'revoked',
-                 'already_accepted', 'invalid_token', 'not_permitted', 'invite_email_mismatch']
+                 'already_accepted', 'invalid_token', 'not_permitted', 'invite_email_mismatch',
+                 'role_change_requires_admin', 'already_member']
     .find(c => message.includes(c));
   throw new ShareFailed(known ?? 'failed');
 }
 
 /**
- * Invite somebody to watch. Owner only — the server refuses anybody else.
+ * Primary client/contractor only. Additional participants receive observer access.
  *
  * `isClient` says which of the two kinds of invitation this is. 112 built the table for
  * family; 166 reused it for the client of a contractor-run build, and 174 made that
@@ -136,7 +142,7 @@ export async function inviteProjectViewer(
   // An invitation was SENT. Philip asked for "sent invitations along with their
   // acceptance status", so the pair is the project: one invitation per project is
   // the unit being followed up, and the acceptance below closes the same subject.
-  trackFunnel('client_invitation', 'started', projectId);
+  if (isClient) trackFunnel('client_invitation', 'started', projectId);
   return String(data);
 }
 
@@ -189,6 +195,7 @@ export interface ViewerInvitePreview {
   projectName: string;
   invitedByName: string;
   accepted: boolean;
+  isClient: boolean;
 }
 
 /**
@@ -206,6 +213,7 @@ export async function getViewerInvitePreview(token: string): Promise<ViewerInvit
     projectName:   String(row.project_name ?? ''),
     invitedByName: String(row.invited_by_name ?? ''),
     accepted:      row.accepted === true,
+    isClient:      row.is_client === true,
   };
 }
 
@@ -214,12 +222,20 @@ export async function acceptProjectViewer(token: string): Promise<string> {
   const { data, error } = await supabase.rpc('accept_project_viewer', { p_token: token });
   if (error) fail(error.message);
   const projectId = String(data);
+  // Observers use the same acceptance link, but must not start or close the
+  // primary-client CRM sequence. Membership is already saved if this read fails.
+  let isClient = false;
+  try {
+    const { data: viewer } = await supabase.from('project_viewers')
+      .select('is_client').eq('token', token).maybeSingle();
+    isClient = viewer?.is_client === true;
+  } catch { /* Analytics must never undo a successful acceptance. */ }
   // Accepted. This is the step that moves a project from qualified toward verified
   // (169), which is why Philip wanted the acceptance tracked and not just the send.
   //
   // Recorded against the CLIENT, who is the person signed in here — so the pair is
   // "this client was invited to this project and joined it", not the contractor's.
-  trackFunnel('client_invitation', 'completed', projectId);
+  if (isClient) trackFunnel('client_invitation', 'completed', projectId);
 
   /**
    * And close the reminder track.
@@ -230,8 +246,10 @@ export async function acceptProjectViewer(token: string): Promise<string> {
    * reminders are cancelled on (§9.3 rule 3), `project_membership_active` is the entry
    * condition for "connected", which is the outcome the whole document exists to reach.
    */
-  trackLifecycle('invitation_accepted', projectId);
-  trackLifecycle('project_membership_active', projectId);
+  if (isClient) {
+    trackLifecycle('invitation_accepted', projectId);
+    trackLifecycle('project_membership_active', projectId);
+  }
 
   return projectId;
 }

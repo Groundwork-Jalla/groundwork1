@@ -1,5 +1,7 @@
 import { supabase } from './client';
 import { isMissingTable } from '@/lib/errors';
+import type { StageStatus } from '@/types/project';
+import { confirmedBillAmount } from '@/lib/budget/bill-budget';
 
 // =========================================================
 // Stage verifications (migration 087).
@@ -125,6 +127,31 @@ export interface ApproveStageResult {
    * second round trip, and the database has just done it, so it says so (175).
    */
   awaitingPayment: boolean;
+  /** An acknowledged retry returns the same progression without approving twice. */
+  alreadyApproved?: boolean;
+  /** The saved successor state; a paid stage can still be locked on a paused project. */
+  nextStageStatus?: StageStatus;
+}
+
+function stageApprovalResult(data: unknown): ApproveStageResult {
+  const r = (data ?? {}) as Record<string, unknown>;
+  if (typeof r.project_id !== 'string' || typeof r.stage_id !== 'string'
+      || !Number.isInteger(Number(r.stage_number)) || Number(r.stage_number) < 1) {
+    throw new Error('invalid_approval_response');
+  }
+  return {
+    projectId: r.project_id,
+    stageId: r.stage_id,
+    stageNumber: Number(r.stage_number),
+    isFinal: r.is_final === true,
+    nextStageId: (r.next_stage_id as string | null) ?? null,
+    nextStageNumber: r.next_stage_number == null ? null : Number(r.next_stage_number),
+    verificationId: (r.verification_id as string | null) ?? null,
+    awaitingPayment: r.awaiting_payment === true,
+    alreadyApproved: r.already_approved === true,
+    nextStageStatus: ['locked', 'active', 'pending_review', 'complete'].includes(String(r.next_stage_status))
+      ? r.next_stage_status as StageStatus : undefined,
+  };
 }
 
 /**
@@ -136,17 +163,18 @@ export interface ApproveStageResult {
 export async function approveStageRpc(stageId: string): Promise<ApproveStageResult> {
   const { data, error } = await supabase.rpc('approve_stage', { p_stage: stageId });
   if (error) throw error;
-  const r = (data ?? {}) as Record<string, unknown>;
-  return {
-    projectId:       r.project_id as string,
-    stageId:         r.stage_id as string,
-    stageNumber:     Number(r.stage_number),
-    isFinal:         r.is_final === true,
-    nextStageId:     (r.next_stage_id as string | null) ?? null,
-    nextStageNumber: r.next_stage_number == null ? null : Number(r.next_stage_number),
-    verificationId:  (r.verification_id as string | null) ?? null,
-    awaitingPayment: r.awaiting_payment === true,
-  };
+  return stageApprovalResult(data);
+}
+
+/** The last substage approval completes its stage in the same database transaction. */
+export async function approveSubstageRpc(substageId: string): Promise<ApproveStageResult | undefined> {
+  const { data, error } = await supabase.rpc('approve_substage', { p_substage: substageId });
+  if (error) throw error;
+  const result = (data ?? {}) as Record<string, unknown>;
+  if (result.substage_id !== substageId || !('stage_approval' in result)) {
+    throw new Error('invalid_approval_response');
+  }
+  return result.stage_approval == null ? undefined : stageApprovalResult(result.stage_approval);
 }
 
 // =========================================================
@@ -163,20 +191,38 @@ export async function approveStageRpc(stageId: string): Promise<ApproveStageResu
 // with `no_receipt`, and a client confirming their own payment with `not_contractor`.
 // =========================================================
 
-/** The client attaches proof they paid. Does NOT open the stage. */
-export async function submitStagePaymentReceipt(stageId: string, path: string): Promise<void> {
+/** The amount on the receipt, never inferred from the stage's scheduled amount. */
+export interface ReceiptPaymentInput {
+  amount: string;
+  currency: string;
+  fxRate: number;
+}
+
+function validateReceiptInput(input: ReceiptPaymentInput): void {
+  if (confirmedBillAmount(input.amount) === null) throw new Error('invalid_receipt_amount');
+  if (!/^[A-Z]{3}$/.test(input.currency) || !Number.isFinite(input.fxRate)
+      || input.fxRate <= 0 || input.fxRate > 1e12 || (input.currency === 'USD' && input.fxRate !== 1)) {
+    throw new Error('invalid_receipt_currency');
+  }
+}
+
+/** The client attaches proof and its actual amount. Does NOT open the stage. */
+export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput): Promise<void> {
+  validateReceiptInput(input);
   const { error } = await supabase.rpc('submit_stage_payment_receipt', {
-    p_stage: stageId, p_path: path,
+    p_stage: stageId, p_path: path, p_amount: input.amount,
+    p_currency: input.currency, p_fx_rate: input.fxRate,
   });
   if (error) throw error;
 }
 
 /** The contractor confirms the money arrived. This is what opens the stage. */
 export async function confirmStagePayment(
-  stageId: string, note?: string,
+  stageId: string, note?: string, receipt?: { path: string; uploadedAt: string },
 ): Promise<{ opened: boolean; tranches: number }> {
   const { data, error } = await supabase.rpc('confirm_stage_payment', {
     p_stage: stageId, p_note: note ?? null,
+    ...(receipt ? { p_receipt_path: receipt.path, p_receipt_uploaded_at: receipt.uploadedAt } : {}),
   });
   if (error) throw error;
   const r = (data ?? {}) as Record<string, unknown>;
@@ -197,6 +243,11 @@ export interface StagePayment {
   /** The client's proof. A storage path in the `evidence` bucket, not a URL. */
   receiptPath: string | null;
   receiptUploadedAt: string | null;
+  /** Nullable for older receipts whose actual amount was never recorded. */
+  receiptAmount?: number | null;
+  receiptCurrency?: string | null;
+  receiptFxRate?: number | null;
+  receiptAmountUsd?: number | null;
 }
 
 /**
@@ -211,14 +262,15 @@ export interface StagePayment {
  * indistinguishable here from a project whose ledger has not been written yet. Neither
  * is an error, and neither should stop a build rendering.
  */
-export async function fetchStagePayments(projectId: string): Promise<Map<string, StagePayment>> {
+export async function fetchStagePayments(projectId: string, options: { strict?: boolean } = {}): Promise<Map<string, StagePayment>> {
   const out = new Map<string, StagePayment>();
   const { data, error } = await supabase
     .from('payments')
-    .select('id, stage_id, state, amount, receipt_path, receipt_uploaded_at')
+    .select('id, stage_id, state, amount, receipt_path, receipt_uploaded_at, receipt_amount, receipt_currency, receipt_fx_rate, receipt_amount_usd')
     .eq('project_id', projectId)
     .eq('direction', 'in');
 
+  if (error && options.strict) throw error;
   if (error || !data) return out;
 
   for (const row of data as Record<string, unknown>[]) {
@@ -231,9 +283,18 @@ export async function fetchStagePayments(projectId: string): Promise<Map<string,
       amount:            Number(row.amount ?? 0),
       receiptPath:       (row.receipt_path as string | null) ?? null,
       receiptUploadedAt: (row.receipt_uploaded_at as string | null) ?? null,
+      receiptAmount:    row.receipt_amount == null ? null : Number(row.receipt_amount),
+      receiptCurrency:  (row.receipt_currency as string | null) ?? null,
+      receiptFxRate:    row.receipt_fx_rate == null ? null : Number(row.receipt_fx_rate),
+      receiptAmountUsd: row.receipt_amount_usd == null ? null : Number(row.receipt_amount_usd),
     });
   }
   return out;
+}
+
+/** Money summaries must distinguish an unreadable ledger from a genuine zero. */
+export async function fetchStagePaymentsStrict(projectId: string): Promise<Map<string, StagePayment>> {
+  return fetchStagePayments(projectId, { strict: true });
 }
 
 /** The client's receipt, as something a contractor can actually open. */
@@ -251,11 +312,22 @@ export async function signReceiptUrl(path: string): Promise<string | null> {
  * includes the invited client — so this needs no new storage policy.
  */
 export async function uploadStagePaymentReceipt(
-  projectId: string, stageId: string, file: File,
+  projectId: string, stageId: string, file: File, input: ReceiptPaymentInput,
 ): Promise<void> {
+  validateReceiptInput(input);
   const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${projectId}/receipts/${Date.now()}_${safe}`;
+  const path = `${projectId}/receipts/${crypto.randomUUID()}_${safe}`;
   const { error } = await supabase.storage.from('evidence').upload(path, file, { upsert: false });
   if (error) throw error;
-  await submitStagePaymentReceipt(stageId, path);
+  try {
+    await submitStagePaymentReceipt(stageId, path, input);
+  } catch (error) {
+    // Only a definite rejected transaction is safe to clean up. A lost response may
+    // follow a successful commit, in which case deleting the proof would break it.
+    const code = (error as { code?: string } | null)?.code;
+    if (code && ['P0001', '42501', '23514', '22003', '22P02', 'PGRST202', 'PGRST203'].includes(code)) {
+      try { await supabase.storage.from('evidence').remove([path]); } catch { /* Retain the original refusal. */ }
+    }
+    throw error;
+  }
 }

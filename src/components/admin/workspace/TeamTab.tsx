@@ -1,5 +1,6 @@
 import type { LoadedWorkspace } from '@/lib/supabase/workspace';
 import { TeamCard } from './TeamCard';
+import { PrimaryClientCard } from './PrimaryClientCard';
 import { DomainNote } from './DomainNote';
 import { formatRelative } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
@@ -26,10 +27,14 @@ export function TeamTab({ loaded, onChanged, onNotice }: {
   const ws = loaded.workspace;
   const verifiersAvailable = ws.available.verifiers;
   const invitesAvailable = ws.available.invites;
+  const ownerClientName = !invitesAvailable ? undefined
+    : ws.team.contractors.some(c => c.status === 'accepted' && c.contractor_user_id === ws.project.user_id) ? null
+    : ws.team.owner?.name || ws.team.owner?.email || null;
 
   return (
     <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:p-8">
       <TeamCard ws={ws} available={verifiersAvailable} onChanged={onChanged} onNotice={onNotice} />
+      <PrimaryClientCard key={ws.project.id} projectId={ws.project.id} ownerClientName={ownerClientName} onChanged={onChanged} onNotice={onNotice} />
 
       {/* ── When each person joined, and on whose authority ───────────────────────── */}
       <section className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

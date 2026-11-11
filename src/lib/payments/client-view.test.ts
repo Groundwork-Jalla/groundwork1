@@ -90,8 +90,9 @@ describe('budget is not money', () => {
       expect(screen, `${banned} must not appear`).not.toContain(banned);
     }
     expect(detail).not.toContain('EscrowWallet');
-    // And the retired component is no longer on the client's route.
-    expect(detail).toContain('ProjectPaymentsLedger');
+    // The project costing view now hosts the shared direct-receipt payout summary.
+    expect(detail).toContain('<BudgetView');
+    expect(readFileSync('src/components/project/BudgetView.tsx', 'utf8')).toContain('<ProjectPayoutSummary');
     expect(detail).not.toMatch(/from '@\/components\/project\/ProjectPayments'/);
   });
 });

@@ -14,7 +14,7 @@ export interface InviteResult {
 
 export async function inviteContractor(
   projectId: string,
-  invitedBy: string,
+  _invitedBy: string,
   email: string,
   projectName: string,
   inviterName: string,
@@ -31,24 +31,14 @@ export async function inviteContractor(
   // 10 Nov 2026, from an English account, all in French. The server still ranks every
   // stored choice above this — see resolveRecipientLang.
   const lang = senderLang;
-  const { data, error } = await supabase
-    .from('contractor_invites')
-    .insert({
-      project_id: projectId,
-      invited_by: invitedBy,
-      email:      email.toLowerCase().trim(),
-      role:       'contractor',
-      status:     'pending',
-    })
-    .select()
-    .single<ContractorInviteRow>();
-
-  if (error) {
-    if (error.message?.includes('starter_limit') || error.message?.includes('self_verify_limit')) {
-      throw new Error('Self Verify plan allows 1 contractor per project. Upgrade to Jalla Verify for unlimited.');
-    }
-    throw error;
-  }
+  // The RPC chooses the inviter and permits only an initial primary assignment.
+  // Subsequent project participants are invited as observers through project_viewers.
+  const { data, error } = await supabase.rpc('invite_project_contractor', {
+    p_project: projectId, p_email: email.toLowerCase().trim(),
+  });
+  if (error) throw error;
+  const invite = (Array.isArray(data) ? data[0] : data) as ContractorInviteRow;
+  if (!invite?.token) throw new Error('Invitation was not created');
 
   // Attempt to send email — always resolve, never block the invite from being shown.
   let emailSent = false;
@@ -65,7 +55,7 @@ export async function inviteContractor(
         toEmail:     email.toLowerCase().trim(),
         projectName,
         inviterName,
-        inviteToken: data.token,
+        inviteToken: invite.token,
         lang,
       }),
     });
@@ -78,7 +68,7 @@ export async function inviteContractor(
     console.error('[invite] email fetch error:', err);
   }
 
-  return { invite: data, emailSent };
+  return { invite, emailSent };
 }
 
 // =========================================================
@@ -128,10 +118,7 @@ export async function fetchTeam(projectIds: string[]): Promise<TeamMember[]> {
 // revokeInvite
 // =========================================================
 export async function revokeInvite(inviteId: string): Promise<void> {
-  const { error } = await supabase
-    .from('contractor_invites')
-    .delete()
-    .eq('id', inviteId);
+  const { error } = await supabase.rpc('cancel_project_contractor_invite', { p_invite: inviteId });
 
   if (error) throw error;
 }

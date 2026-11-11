@@ -117,11 +117,13 @@ describe('there must be something to review', () => {
 describe('the app marks the client invitation as such', () => {
   it('the contractor surface invites a client, the homeowner surface does not', () => {
     const work = readFileSync('src/app/routes/work/projects.detail.tsx', 'utf8');
-    const client = readFileSync('src/app/routes/projects/detail.tsx', 'utf8');
+    const client = readFileSync('src/components/project/ProjectTeam.tsx', 'utf8');
     // Both ShareProject renders on the contractor page carry it.
     expect(work.match(/<ShareProject projectId=\{project\.id\} asClient \/>/g) ?? []).toHaveLength(2);
-    // The homeowner's own page is family, and must not pass it.
+    // Observer sharing keeps the default; only an actual primary contractor may
+    // open the initial client invitation in the project Team tab.
     expect(client).toMatch(/<ShareProject projectId=\{project\.id\} \/>/);
+    expect(client).toContain('access.primaryContractor && <ShareProject projectId={project.id} asClient />');
   });
 
   it('and the flag reaches the RPC', () => {

@@ -131,7 +131,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
     measure();
     schedule();
     const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Permission reads can add/remove the Team invitation cue on an existing
+    // tab button. Observe that attribute without watching animated styles/classes.
+    observer.observe(document.body, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['data-tour'],
+    });
     return () => {
       observer.disconnect();
       if (frame.current != null) { cancelAnimationFrame(frame.current); frame.current = null; }
