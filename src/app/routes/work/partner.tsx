@@ -19,7 +19,9 @@ import {
 import { bookingUrl, needsVanessa, markBookingShown } from '@/lib/supabase/partner-booking';
 import {
   partnerDraftId, clearPartnerDraftId, markPartnerDraftSubmitted, saveApplicationDraft,
+  fetchDraftPayload,
 } from '@/lib/supabase/application-drafts';
+import { restorePartnerDraft } from '@/lib/contractor/partner-draft';
 import { notifyAdmins } from '@/lib/supabase/notifications';
 
 /**
@@ -197,6 +199,37 @@ export default function PartnerApplication() {
         if (!live) return;
         setPrefill(p);
         setState(summary.state);
+        /*
+         * Resume where they left off. The draft below has been saved every two seconds
+         * since the partner form got a follow-up list — and never read back, so leaving
+         * the page and returning opened an empty form: "even if you were at the end, it
+         * takes you back to square one" (Favour, 11 Nov 2026). The page is set directly,
+         * not through `continueTo`, so resuming is not counted as starting again.
+         */
+        if (summary.state === 'none') {
+          void fetchDraftPayload(partnerDraftId(user.id)).then(payload => {
+            if (!live) return;
+            const restored = restorePartnerDraft(payload);
+            if (!restored) return;
+            setCallLang(restored.callLang);
+            setYears(restored.years);
+            setOperatesAs(restored.operatesAs);
+            setCapacity(restored.capacity);
+            setRegions(restored.regions);
+            setHistory(restored.history);
+            setWhyJoin(restored.whyJoin);
+            setDifferentiator(restored.differentiator);
+            setProjectStatus(restored.projectStatus);
+            setProjectStage(restored.projectStage);
+            setStartWindow(restored.startWindow);
+            setClientOnSiteDaily(restored.clientOnSiteDaily);
+            setOffsiteReason(restored.offsiteReason);
+            setOffsiteOther(restored.offsiteOther);
+            setUseGroundwork(restored.useGroundwork);
+            setPageStack(restored.pageStack);
+            setPage(restored.page);
+          });
+        }
         // Coming back to a qualified application that is already in the queue: show the
         // calendar again. Without this, closing the tab before booking was a dead end —
         // the status card rendered with nothing under it and no way to reach a slot.
@@ -231,7 +264,7 @@ export default function PartnerApplication() {
   const progressPct = Math.round((100 * answered) / 11);
   const draftState = JSON.stringify([callLang, years, operatesAs, capacity,
     regions, workedDiaspora, history, whyJoin, differentiator, projectStatus, projectStage, startWindow,
-    clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork]);
+    clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork, page, pageStack]);
 
   useEffect(() => {
     // Nothing answered yet means they only opened the page. Writing then would put every
@@ -252,6 +285,8 @@ export default function PartnerApplication() {
           whyJoin: whyJoin.trim(), differentiator: differentiator.trim(),
           projectStatus, projectStage, startWindow,
           clientOnSiteDaily, offsiteReason, offsiteOther, useGroundwork,
+          // Where they are, so coming back lands on this page and Back still works.
+          page, pageStack,
         },
         progressPct,
       });
