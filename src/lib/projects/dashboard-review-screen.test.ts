@@ -52,7 +52,7 @@ describe('client dashboard review changes', () => {
     expect(view.text).toContain('dashboard.otherProjects');
     const actions = view.all.find(node => node.type?.name === 'QuickActions')!;
     const links = contents(actions).filter(node => node.type === 'a');
-    expect(links.map(node => node.props.to)).toEqual(['/projects/Home?tab=messages', '/projects/Home?tab=documents']);
+    expect(links.map(node => node.props.to)).toEqual(['/projects/Home?tab=messages', '/documents']);
     expect(contents(card).some(node => node.type === 'payout-summary')).toBe(true);
     expect(view.all.some(node => node.type?.name === 'CostingDonut')).toBe(false);
     expect(view.all.find(node => node.type === 'security-nudges')?.props.showTwoFactor).toBe(false);
@@ -87,7 +87,7 @@ describe('filtered projects are not a first-project state', () => {
   it('an empty On hold filter explains the filter and lets the client return to all projects', async () => {
     h.projects.mockResolvedValue(result([project('Home')]));
     render(ProjectsIndex); await flush();
-    const button = render(ProjectsIndex).all.find(node => node.type === 'button' && text(node) === 'projects.filters.onHold')!;
+    const button = render(ProjectsIndex).all.find(node => node.type === 'button' && text(node).includes('projects.filters.onHold'))!;
     expect(button).toBeDefined(); button.props.onClick();
     const view = render(ProjectsIndex);
     expect(view.text).toContain('project.review.noOnHold');

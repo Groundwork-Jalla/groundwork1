@@ -3,6 +3,7 @@ import type { ProjectDocumentRow } from '@/types/project';
 
 const h = vi.hoisted(() => ({ hooks: [] as any[], index: 0, effects: [] as (() => void)[],
   certificates: vi.fn(), updates: vi.fn(), substages: vi.fn(), documentUrl: vi.fn(), evidenceUrl: vi.fn(),
+  projects: vi.fn(), vault: {} as Record<string, any>, filters: [] as any[],
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const i = h.index++; if (!(i in h.hooks)) h.hooks[i] = typeof initial === 'function' ? initial() : initial;
@@ -19,10 +20,20 @@ vi.mock('@/lib/supabase/certificates', () => ({ fetchProjectCertificates: h.cert
 vi.mock('@/lib/supabase/site-updates', () => ({ listSiteUpdates: h.updates }));
 vi.mock('@/lib/supabase/contractor-work', () => ({ fetchSubstages: h.substages }));
 vi.mock('@/lib/supabase/documents', () => ({ getSignedDocumentUrl: h.documentUrl, signedUrlIn: h.evidenceUrl }));
+vi.mock('@/lib/supabase/projects', () => ({ fetchClientProjects: h.projects }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'actor' } }) }));
+vi.mock('react-router', () => ({ Link: 'a' }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: {
+  from: (table: string) => ({
+    select() { return this; }, in() { return this; },
+    is(...values: any[]) { h.filters.push([table, 'is', ...values]); return this; },
+    not(...values: any[]) { h.filters.push([table, 'not', ...values]); return this; },
+    order: () => Promise.resolve(h.vault[table]),
+  }),
   channel: () => ({ on() { return this; }, subscribe() { return this; } }), removeChannel: vi.fn(),
 } }));
 vi.mock('@/components/project/DocumentViewer', () => ({ DocumentViewer: 'viewer' }));
+import DocumentsPage from '@/app/routes/documents';
 import { ProjectDocuments } from '@/components/project/ProjectDocuments';
 import { FileRow, Group } from '@/components/project/DocumentList';
 
@@ -42,7 +53,9 @@ const viewer = () => render().all.find(node => node.type === 'viewer');
 beforeEach(() => {
   for (const hook of h.hooks) hook?.cleanup?.();
   h.hooks = []; h.index = 0; h.effects = []; vi.clearAllMocks();
-  projectId = 'project'; documents = [];
+  projectId = 'project'; documents = []; h.filters = [];
+  h.projects.mockResolvedValue({ all: [{ id: 'project', name: 'Home', tier: 'self_verify' }] });
+  h.vault = { project_documents: { data: [], error: null }, certificates: { data: [], error: null } };
   h.certificates.mockResolvedValue(new Map()); h.updates.mockResolvedValue({ rows: [], available: true }); h.substages.mockResolvedValue([]);
   h.documentUrl.mockResolvedValue('https://files.test/bill'); h.evidenceUrl.mockResolvedValue('https://files.test/photo');
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
@@ -107,5 +120,35 @@ describe('one actual-file view for every project participant', () => {
     else { projectId = 'other'; documents = []; render(); }
     finish('https://files.test/old-bill'); await flush();
     expect(viewer()).toBeUndefined();
+  });
+});
+
+
+function renderVault() {
+  h.index = 0; h.effects = []; const tree = DocumentsPage();
+  for (const effect of h.effects) effect();
+  return { all: nodes(tree), text: text(tree) };
+}
+describe('the dashboard document vault uses the same issued-file rules', () => {
+  it('requests only unrevoked issued PDFs and does not promise certificates by plan', async () => {
+    renderVault(); await flush();
+    expect(h.filters).toContainEqual(['certificates', 'is', 'revoked_at', null]);
+    expect(h.filters).toContainEqual(['certificates', 'not', 'pdf_url', 'is', null]);
+    const chip = renderVault().all.find(node => node.type === 'button' && text(node).startsWith('contractorDocs.chipCerts'))!;
+    chip.props.onClick();
+    expect(renderVault().text).toContain('project.review.certificatesEmpty');
+    expect(renderVault().text).not.toContain('documents.certsSelfVerify');
+  });
+  it('keeps real documents openable when a certificate read fails, with retry and no fake empty claim', async () => {
+    h.vault = { certificates: { data: null, error: new Error('offline') }, project_documents: { error: null,
+      data: [{ id: 'bill', project_id: 'project', file_name: 'Bill.xlsx', file_path: 'project/bill.xlsx', category: 'boq', created_at: '2026-11-12' }] } };
+    renderVault(); await flush();
+    let view = renderVault();
+    expect(view.text).toContain('project.review.documentsLoadFailed');
+    expect(view.text).not.toContain('documents.noDocuments');
+    view.all.find(node => node.type === FileRow)!.props.onOpen(); await flush();
+    view = renderVault();
+    expect(view.all.find(node => node.type === 'viewer')?.props.url).toBe('https://files.test/bill');
+    expect(h.documentUrl).toHaveBeenCalledWith('project/bill.xlsx');
   });
 });

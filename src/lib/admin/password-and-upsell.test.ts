@@ -44,17 +44,13 @@ describe('a password can be looked at before it is submitted', () => {
   });
 });
 
-describe('self-verify users are told why they have no certificate', () => {
+describe('certificate empty states reflect actual issuance', () => {
   const page = read('src/app/routes/documents.tsx');
 
-  it('the empty state distinguishes "not yet" from "never"', () => {
-    /**
-     * An approval certificate records an INDEPENDENT check. On self_verify the client
-     * approves their own stages, so none is ever issued — which, with the old wording,
-     * read as "yours haven't arrived yet". It is a plan boundary, not a delay.
-     */
-    expect(page).toMatch(/allSelfVerify \? 'documents\.certsSelfVerifyTitle' : 'documents\.noCertificates'/);
-    expect(page).toMatch(/allSelfVerify \? 'documents\.certsSelfVerifyBody' : 'documents\.certsEarnBody'/);
+  it('uses issued files rather than plan-based promises', () => {
+    expect(page).toContain(".is('revoked_at', null).not('pdf_url', 'is', null)");
+    expect(page).toContain("t('project.review.certificatesEmpty')");
+    expect(page).not.toContain('allSelfVerify');
   });
 
   it('does not send them to the removed plan comparison screen', () => {
@@ -62,11 +58,7 @@ describe('self-verify users are told why they have no certificate', () => {
     expect(page).not.toMatch(/to="\/upgrade"/);
   });
 
-  it('it says what Jalla Verify actually adds, not just "upgrade"', () => {
-    const body = (en as any).documents.certsSelfVerifyBody as string;
-    expect(body).toMatch(/independent/i);
-    expect(body).toMatch(/Jalla Verify/);
-  });
+
 
   it('every new string is in both languages', () => {
     for (const d of [en, fr]) {

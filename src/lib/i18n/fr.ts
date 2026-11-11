@@ -5737,6 +5737,7 @@ export const fr: Mirror<EnDict> = {
   },
   project: {
     review: {
+      certificatesEmpty: 'Les certificats apparaissent ici uniquement après un contrôle indépendant enregistré et leur délivrance officielle.',
       stagesLoadFailed: 'Les étapes du projet n’ont pas pu être chargées.',
       clientApproval: 'Approbation du client',
       schedule: 'Étapes et paiements',

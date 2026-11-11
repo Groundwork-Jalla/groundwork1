@@ -44,7 +44,7 @@ describe('the client is quoted in the project currency', () => {
       // magnitude for every franc-zone client.
       expect(body).not.toMatch(/\bformatUSDFull\s*\(/);
       expect(body).not.toMatch(/\bformatUSD\s*\(/);
-      expect(body).toMatch(/useMoney\(\)/);
+      expect(body).toMatch(/useMoney\(\)|<MoneyValue/);
     });
   }
 

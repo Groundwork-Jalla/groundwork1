@@ -5879,6 +5879,7 @@ export const en = {
   },
   project: {
     review: {
+      certificatesEmpty: 'Certificates appear here only after an independent review has been recorded and a certificate has been formally issued.',
       stagesLoadFailed: 'The project stages could not be loaded.',
       clientApproval: 'Client approval',
       schedule: 'Stages and payments',

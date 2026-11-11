@@ -232,7 +232,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, stagesError, onRetr
 }
 
 // ── Quick actions (Design B) ───────────────────────────────
-// Messages and documents open the current project directly.
+// Messages open the current project; documents open the shared file vault.
 
 function QuickActions({ project, unread, documentCount, shared, assigned }: {
   project: ProjectRow | undefined;

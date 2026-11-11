@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { Search } from 'lucide-react';
 import { useAuth }       from '@/contexts/AuthContext';
@@ -77,63 +77,43 @@ export default function DocumentsPage() {
   const [certs,        setCerts]        = useState<Certificate[]>([]);
   const [projects,     setProjects]     = useState<ProjectRow[]>([]);
   const [loading,      setLoading]      = useState(true);
-  const [certsErr,     setCertsErr]     = useState(false);
+  const [readError, setReadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const openRequest = useRef(0);
 
   useEffect(() => {
     if (!user) return;
-
-    // Owned AND shared. The certificates and documents below are filtered by project
-    // id, and RLS has always returned both to a viewer (112) — this page simply never
-    // asked for the shared ones, so an invited client's vault was empty.
-    fetchClientProjects(user.id).then(async ({ all: projs }) => {
-      setProjects(projs);
-
-      if (projs.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const projectIds = projs.map(p => p.id);
-      const projectMap = Object.fromEntries(projs.map(p => [p.id, p]));
-
-      // ── Certificates ───────────────────────────────────
-      supabase
-        .from('certificates')
-        .select('id, project_id, stage_number, project_name, stage_name, pdf_url, issued_at, issued_to')
-        .in('project_id', projectIds)
-        .order('issued_at', { ascending: false })
-        .then(({ data, error }) => {
-          if (error) setCertsErr(true);
-          else setCerts((data ?? []) as Certificate[]);
-        });
-
-      // ── Documents ──────────────────────────────────────
-      supabase
-        .from('project_documents')
-        .select('id, project_id, file_name, file_path, file_size, category, created_at')
-        .in('project_id', projectIds)
-        .order('created_at', { ascending: false })
-        .then(({ data }) => {
-          setDocs((data ?? []) as DocRow[]);
-          setLoading(false);
-        });
-    });
-  }, [user]);
+    let live = true;
+    setLoading(true); setReadError(false); setDocs([]); setCerts([]); setViewing(null); ++openRequest.current;
+    void (async () => {
+      try {
+        const { all: projs, loadFailed } = await fetchClientProjects(user.id);
+        if (!live) return;
+        setProjects(projs);
+        if (loadFailed) setReadError(true);
+        if (!projs.length) return;
+        const projectIds = projs.map(project => project.id);
+        const [documents, certificates] = await Promise.allSettled([
+          supabase.from('project_documents')
+            .select('id, project_id, file_name, file_path, file_size, category, created_at')
+            .in('project_id', projectIds).order('created_at', { ascending: false }),
+          supabase.from('certificates')
+            .select('id, project_id, stage_number, project_name, stage_name, pdf_url, issued_at, issued_to')
+            .in('project_id', projectIds).is('revoked_at', null).not('pdf_url', 'is', null)
+            .order('issued_at', { ascending: false }),
+        ]);
+        if (!live) return;
+        if (documents.status === 'fulfilled' && !documents.value.error) setDocs(documents.value.data ?? []);
+        else setReadError(true);
+        if (certificates.status === 'fulfilled' && !certificates.value.error) setCerts(certificates.value.data ?? []);
+        else setReadError(true);
+      } catch { if (live) setReadError(true); }
+      finally { if (live) setLoading(false); }
+    })();
+    return () => { live = false; ++openRequest.current; };
+  }, [user?.id, attempt]);
 
   const projectName = (id: string) => projects.find(p => p.id === id)?.name ?? '';
-
-  /**
-   * Nobody on a self-verifying plan will ever see a certificate here.
-   *
-   * An approval certificate records an INDEPENDENT check. On self_verify and starter the
-   * client approves their own stages, so there is nothing independent to certify and no
-   * certificate is issued — which, with the old empty state, read as "yours haven't
-   * arrived yet". It is a plan boundary, not a delay, and saying so is also where Jalla
-   * Verify is worth mentioning.
-   */
-  // `starter` is self-verifying too in SQL (086), but it is not in the app's
-  // `ProjectTier` union, so there is nothing here that could hold it.
-  const allSelfVerify = projects.length > 0 && projects.every(p => p.tier === 'self_verify');
 
   /**
    * What the filters leave.
@@ -155,19 +135,19 @@ export default function DocumentsPage() {
   const kindLabel = (c: string | null) =>
     c === 'boq' ? t('contractorDocs.billOfQuantities') : c === 'site_photo' ? t('contractorDocs.siteEvidence') : t('contractorDocs.drawing');
 
+  function closeViewer() { ++openRequest.current; setViewing(null); setOpening(null); }
   async function openDocument(doc: DocRow) {
+    const version = ++openRequest.current;
     setOpening(doc.id); setOpenError(null);
     setViewing({ name: doc.file_name, url: null });
     try {
       const url = await getSignedDocumentUrl(doc.file_path);
-      if (!url) { setViewing(null); setOpenError(t('contractorDocs.openFailed')); return; }
+      if (version !== openRequest.current) return;
+      if (!url) throw new Error('unavailable');
       setViewing({ name: doc.file_name, url });
     } catch {
-      setViewing(null);
-      setOpenError(t('contractorDocs.openFailed'));
-    } finally {
-      setOpening(null);
-    }
+      if (version === openRequest.current) { setViewing(null); setOpenError(t('contractorDocs.openFailed')); }
+    } finally { if (version === openRequest.current) setOpening(null); }
   }
 
   const q = query.trim().toLowerCase();
@@ -185,7 +165,7 @@ export default function DocumentsPage() {
     { id: 'documents' as const,    label: t('documents.tabDocuments'),   n: sortedDocs.length },
     { id: 'certificates' as const, label: t('contractorDocs.chipCerts'), n: shownCerts.length },
   ];
-  const nothing = !loading && (!showDocs || sortedDocs.length === 0) && (!showCerts || shownCerts.length === 0);
+  const nothing = !loading && !readError && (!showDocs || sortedDocs.length === 0) && (!showCerts || shownCerts.length === 0);
 
   return (
     <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 pb-24 sm:px-6 md:pb-8">
@@ -227,9 +207,10 @@ export default function DocumentsPage() {
       {openError && (
         <p role="alert" className="rounded-xl border border-state-alert/30 bg-brand-off-white px-4 py-3 text-xs dark:bg-[#1e1e1e]">{openError}</p>
       )}
-      {certsErr && (
-        <p className="rounded-xl border border-state-held/30 bg-brand-off-white px-4 py-3 text-xs text-state-held dark:bg-[#1e1e1e]">
-          {t('documents.certsTableMissing')}
+      {readError && (
+        <p role="alert" className="rounded-xl border border-brand-border-grey bg-brand-off-white px-4 py-3 text-xs dark:bg-[#1e1e1e]">
+          {t('project.review.documentsLoadFailed')}{' '}
+          <button type="button" className="font-semibold underline" onClick={() => setAttempt(value => value + 1)}>{t('common.retry')}</button>
         </p>
       )}
 
@@ -238,7 +219,7 @@ export default function DocumentsPage() {
           <button key={c.id} type="button" onClick={() => setTab(c.id)} aria-pressed={tab === c.id}
             className={cn('rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               tab === c.id
-                ? 'border-brand-near-black bg-brand-near-black font-semibold text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                ? 'border-brand-green bg-brand-green font-semibold text-white'
                 : 'border-brand-border-grey bg-white text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]')}>
             {c.label}
             <span className={cn('ml-1.5 font-mono text-[10px] tabular-nums', tab === c.id ? 'opacity-60' : 'text-brand-mid-grey')}>{c.n}</span>
@@ -251,10 +232,10 @@ export default function DocumentsPage() {
       {nothing && (
         <div className="rounded-2xl border border-dashed border-brand-border-grey px-4 py-12 text-center dark:border-[#2c2c2c]">
           <p className="text-sm font-semibold text-brand-near-black dark:text-white">
-            {q || projectId ? t('documents.noMatches') : tab === 'certificates' ? t(allSelfVerify ? 'documents.certsSelfVerifyTitle' : 'documents.noCertificates') : t('documents.noDocuments')}
+            {q || projectId ? t('documents.noMatches') : tab === 'certificates' ? t('documents.noCertificates') : t('documents.noDocuments')}
           </p>
           <p className="mx-auto mt-1 max-w-xs text-xs text-brand-mid-grey">
-            {q || projectId ? t('documents.noMatchesBody') : tab === 'certificates' ? t(allSelfVerify ? 'documents.certsSelfVerifyBody' : 'documents.certsEarnBody') : t('documents.noDocumentsBody')}
+            {q || projectId ? t('documents.noMatchesBody') : tab === 'certificates' ? t('project.review.certificatesEmpty') : t('documents.noDocumentsBody')}
           </p>
           {projects.length === 0 && (
             <Link to="/projects/new" className="mt-4 inline-flex rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white">
@@ -286,7 +267,7 @@ export default function DocumentsPage() {
                        sub={[c.project_name, t('contractorDocs.issuedByGroundwork')].join(' · ')}
                        when={formatDate(c.issued_at)}
                        action={c.pdf_url ? t('contractorDocs.view') : undefined}
-                       onOpen={c.pdf_url ? () => setViewing({ name: name + '.pdf', url: c.pdf_url }) : undefined} />
+                       onOpen={c.pdf_url ? () => { ++openRequest.current; setOpening(null); setViewing({ name: name + '.pdf', url: c.pdf_url }); } : undefined} />
             );
           })}
         </Group>
@@ -294,7 +275,7 @@ export default function DocumentsPage() {
 
       {viewing && (
         <DocumentViewer name={viewing.name} url={viewing.url} loading={viewing.url === null}
-                        onClose={() => setViewing(null)} />
+                        onClose={closeViewer} />
       )}
     </div>
   );

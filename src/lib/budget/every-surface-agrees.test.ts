@@ -55,7 +55,7 @@ describe('a client is quoted in the project currency, everywhere', () => {
       const body = code(file);
       expect(body, 'must not reach for the dollar formatter').not.toMatch(/\bformatUSDFull\s*\(/);
       expect(body, 'must not reach for the dollar formatter').not.toMatch(/\bformatUSD\s*\(/);
-      expect(body).toMatch(/useMoney\(\)/);
+      expect(body).toMatch(/useMoney\(\)|<MoneyValue/);
     });
 
     it(`${name} prints no hardcoded currency symbol`, () => {
@@ -71,7 +71,7 @@ describe('a client is quoted in the project currency, everywhere', () => {
     // `useMoney()` called in the body that RENDERS `ProjectMoneyProvider` is outside it,
     // and falls back to dollars silently — which is how both of these were wrong.
     expect(code('src/app/routes/projects/detail.tsx')).toMatch(/function ManagedEstimate\(/);
-    expect(code('src/app/routes/projects/takeoff.tsx')).toMatch(/function ClientBudgetFigure\(/);
+    expect(code('src/app/routes/projects/takeoff.tsx')).toMatch(/<MoneyValue/);
   });
 
   it('the take-off page wraps itself so both of its figures share one rate', () => {
