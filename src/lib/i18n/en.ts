@@ -2792,6 +2792,13 @@ export const en = {
     next: 'Got it',
     done: 'Done',
     skip: 'Skip',
+    look: 'Look {where} \u2014 it is outlined.',
+    where: {
+      topLeft: 'at the top left', topRight: 'at the top right',
+      bottomLeft: 'at the bottom left', bottomRight: 'at the bottom right',
+      top: 'at the top', bottom: 'at the bottom', left: 'on the left', right: 'on the right',
+      centre: 'in the middle of the page',
+    },
     budgetCheck: {
       title: 'Check this against your bill before you confirm',
       body: "Everything below is built from this one figure \u2014 every stage becomes its percentage of it, and nothing is added on top. If you uploaded a bill of quantities, this should be its total, exactly. If it is not, type the total from your bill here before you confirm.",
@@ -2820,8 +2827,8 @@ export const en = {
     },
     client: {
       start: {
-        title: 'Start here',
-        body: 'Setting up a build takes about five minutes. You can stop partway and come back \u2014 what you have filled in is kept.',
+        title: 'Create your project with the New project button',
+        body: 'The outlined New project button starts it. Setting up a build takes about five minutes, and you can stop partway and come back \u2014 what you have filled in is kept.',
       },
       invite: {
         title: 'Now bring your contractor in',
@@ -2834,8 +2841,8 @@ export const en = {
     },
     contractor: {
       client: {
-        title: 'Click here to create a new project',
-        body: 'New project takes you through setting up a build, step by step. Along the way you name the person you are building for \u2014 they get access to the same project and see every stage you update.',
+        title: 'Create your first project with the New project button',
+        body: 'The outlined New project button takes you through setting up a build, step by step. Along the way you name the person you are building for \u2014 they get access to the same project and see every stage you update.',
       },
       evidence: {
         title: 'Upload the evidence as you go',

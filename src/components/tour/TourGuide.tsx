@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, X } from 'lucide-react';
-import { useT } from '@/lib/i18n';
+import {
+  ArrowDown, ArrowDownLeft, ArrowDownRight, ArrowLeft, ArrowRight, ArrowUp, ArrowUpLeft, ArrowUpRight, X,
+} from 'lucide-react';
+import { useT, type TKey } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { nextStep, stepsFor, tourComplete, type TourId, type TourStep } from '@/lib/tour/steps';
 import { dismissTour, markSeen, readSeen } from '@/lib/tour/seen';
@@ -265,6 +268,27 @@ export function TourGuide({ tour }: { tour: TourId }) {
   placed.current = { top };
   const beside = !phone && side !== 'docked';
 
+  /*
+   * Where the ringed control is, in words, for a tip that is not beside it.
+   *
+   * Favour, 11 Nov 2026: "as a new user that just signed up, I don't even know where the
+   * New project button is." A docked tip saying "click here" points at nothing. So when
+   * the tip is away from its target it says which part of the screen to look at —
+   * worked out from where the ring actually is, in thirds of the viewport, so it stays
+   * true when a layout moves the button.
+   */
+  const cx = (box.left + box.width / 2) / vw;
+  const cy = (box.top + box.height / 2) / vh;
+  const vert = cy < 1 / 3 ? 'top' : cy > 2 / 3 ? 'bottom' : '';
+  const horiz = cx < 1 / 3 ? 'left' : cx > 2 / 3 ? 'right' : '';
+  const where = (vert && horiz ? `${vert}${horiz[0].toUpperCase()}${horiz.slice(1)}`
+    : vert || horiz || 'centre') as 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
+    | 'top' | 'bottom' | 'left' | 'right' | 'centre';
+  const Locator = where === 'topLeft' ? ArrowUpLeft : where === 'topRight' ? ArrowUpRight
+    : where === 'bottomLeft' ? ArrowDownLeft : where === 'bottomRight' ? ArrowDownRight
+    : where === 'top' ? ArrowUp : where === 'bottom' ? ArrowDown
+    : where === 'left' ? ArrowLeft : where === 'right' ? ArrowRight : null;
+
   const Arrow = side === 'below' ? ArrowUp : side === 'above' ? ArrowDown
     : side === 'right' ? ArrowLeft : ArrowRight;
   const remaining = steps.filter(s => !seen.includes(s.anchor)).length;
@@ -278,7 +302,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
         */}
       <div
         aria-hidden
-        className="pointer-events-none fixed z-[90] rounded-xl ring-2 ring-brand-near-black ring-offset-2 ring-offset-white dark:ring-white dark:ring-offset-[#121212]"
+        className={cn(
+          'pointer-events-none fixed z-[90] rounded-xl ring-2 ring-brand-near-black ring-offset-2 ring-offset-white dark:ring-white dark:ring-offset-[#121212]',
+          // Away from its tip, the ring has to be found: it pulses, unless motion is reduced.
+          !beside && 'animate-pulse motion-reduce:animate-none',
+        )}
         style={{ top: box.top - 4, left: box.left - 4, width: box.width + 8, height: box.height + 8 }}
       />
       <div
@@ -295,6 +323,12 @@ export function TourGuide({ tour }: { tour: TourId }) {
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
               {t(step.titleKey)}
             </p>
+            {!beside && (
+              <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-brand-near-black dark:text-white">
+                {Locator && <Locator className="size-3.5 shrink-0" aria-hidden />}
+                {t('tour.look', { where: t(`tour.where.${where}` as TKey) })}
+              </p>
+            )}
             <p className="mt-1 text-xs leading-relaxed text-brand-mid-grey">
               {t(step.bodyKey)}
             </p>

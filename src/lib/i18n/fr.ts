@@ -2733,6 +2733,13 @@ export const fr: Mirror<EnDict> = {
     next: "C'est compris",
     done: 'Termin\u00e9',
     skip: 'Passer',
+    look: 'Regardez {where} \u2014 c\u2019est encadr\u00e9.',
+    where: {
+      topLeft: 'en haut \u00e0 gauche', topRight: 'en haut \u00e0 droite',
+      bottomLeft: 'en bas \u00e0 gauche', bottomRight: 'en bas \u00e0 droite',
+      top: 'en haut', bottom: 'en bas', left: '\u00e0 gauche', right: '\u00e0 droite',
+      centre: 'au milieu de la page',
+    },
     budgetCheck: {
       title: 'V\u00e9rifiez ce montant sur votre devis avant de confirmer',
       body: "Tout ce qui suit est calcul\u00e9 \u00e0 partir de ce seul montant \u2014 chaque \u00e9tape en devient un pourcentage, et rien n'est ajout\u00e9 par-dessus. Si vous avez t\u00e9l\u00e9vers\u00e9 un devis quantitatif, ce doit \u00eatre son total, exactement. Sinon, saisissez ici le total de votre devis avant de confirmer.",
@@ -2761,8 +2768,8 @@ export const fr: Mirror<EnDict> = {
     },
     client: {
       start: {
-        title: 'Commencez ici',
-        body: "Cr\u00e9er un projet prend environ cinq minutes. Vous pouvez vous arr\u00eater en chemin et revenir \u2014 ce que vous avez saisi est conserv\u00e9.",
+        title: 'Cr\u00e9ez votre projet avec le bouton Nouveau projet',
+        body: "Le bouton Nouveau projet, encadr\u00e9, lance la cr\u00e9ation. Cela prend environ cinq minutes, et vous pouvez vous arr\u00eater en chemin et revenir \u2014 ce que vous avez saisi est conserv\u00e9.",
       },
       invite: {
         title: 'Invitez maintenant votre entrepreneur',
@@ -2775,8 +2782,8 @@ export const fr: Mirror<EnDict> = {
     },
     contractor: {
       client: {
-        title: 'Cliquez ici pour cr\u00e9er un nouveau projet',
-        body: "Nouveau projet vous guide dans la cr\u00e9ation d'un chantier, \u00e9tape par \u00e9tape. En chemin, vous indiquez la personne pour qui vous construisez \u2014 elle acc\u00e8de au m\u00eame projet et voit chaque \u00e9tape que vous mettez \u00e0 jour.",
+        title: 'Cr\u00e9ez votre premier projet avec le bouton Nouveau projet',
+        body: "Le bouton Nouveau projet, encadr\u00e9, vous guide dans la cr\u00e9ation d'un chantier, \u00e9tape par \u00e9tape. En chemin, vous indiquez la personne pour qui vous construisez \u2014 elle acc\u00e8de au m\u00eame projet et voit chaque \u00e9tape que vous mettez \u00e0 jour.",
       },
       evidence: {
         title: 'T\u00e9l\u00e9versez les preuves au fur et \u00e0 mesure',

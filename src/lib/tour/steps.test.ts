@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { stepsFor, nextStep, onRoute, tourComplete } from './steps';
 
@@ -110,6 +112,20 @@ describe('the two tours', () => {
         expect(step.bodyKey).toBeTruthy();
       }
     }
+  });
+});
+
+describe('no tip says "here"', () => {
+  /*
+   * Favour, 11 Nov 2026: "as a new user that just signed up, I don't even know where the
+   * New project button is." A tip can be docked anywhere the text is not, so "here"
+   * points at nothing. A tip names the control by its label, and the component adds
+   * where on the screen to look whenever it is not beside it.
+   */
+  it.each(['src/lib/i18n/en.ts', 'src/lib/i18n/fr.ts'])('%s', file => {
+    const dict = readFileSync(resolve(__dirname, '..', '..', '..', file), 'utf8');
+    const tour = dict.slice(dict.indexOf('\n  tour: {'), dict.indexOf('\n  planGate: {'));
+    expect(tour).not.toMatch(/click here|cliquez ici|tap here|appuyez ici/i);
   });
 });
 
