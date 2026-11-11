@@ -24,6 +24,7 @@ import { ProjectMoneyProvider, useMoney } from '@/lib/budget/project-money-conte
 import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
+import { MoneyValue } from '@/components/project/MoneyValue';
 import BudgetView                from '@/components/project/BudgetView';
 import { ClientDocuments }       from '@/components/project/ClientDocuments';
 import { ProjectConversations }  from '@/components/project/ProjectConversations';
@@ -40,15 +41,7 @@ import { useDomainLabels } from '@/lib/domain-labels';
 
 // ── Label maps ────────────────────────────────────────────
 
-const TIER_META: Record<string, { labelKey: TKey; icon: React.ReactNode }> = {
-  self_verify:      { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3.5" />  },
-  jalla_verify:     { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3.5" /> },
-  jalla_management: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3.5" />   },
-  // legacy values
-  starter:    { labelKey: 'tiers.selfVerify',      icon: <BadgeCheck className="size-3.5" />  },
-  pro:        { labelKey: 'tiers.jallaVerify',     icon: <ShieldCheck className="size-3.5" /> },
-  enterprise: { labelKey: 'tiers.jallaManagement', icon: <Briefcase className="size-3.5" />   },
-};
+
 
 // ── Tab bar ───────────────────────────────────────────────
 
@@ -153,12 +146,7 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
  * the figure a Management client is quoted.
  */
 function ManagedEstimate({ usd }: { usd: number | null }) {
-  const money = useMoney();
-  return (
-    <p className="text-lg font-bold tabular-nums text-brand-near-black dark:text-white">
-      {usd ? money(usd) : '\u2014'}
-    </p>
-  );
+  return <MoneyValue usd={usd} className="text-lg font-bold text-brand-near-black dark:text-white" />;
 }
 
 export default function ProjectDetail() {
@@ -388,7 +376,6 @@ export default function ProjectDetail() {
   // Resolves the owner's confirmed budget_usd, falling back to the engine estimate.
   const budget  = projectBudget(project);
 
-  const tier       = TIER_META[project.tier];
   const scaleStr   = [
     `${project.num_floors} floor${project.num_floors > 1 ? 's' : ''}`,
     `${project.sqm} sqm`,
@@ -499,8 +486,7 @@ export default function ProjectDetail() {
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-brand-near-black dark:text-white">
-                {tier.icon}
-                {t(tier.labelKey)}
+                {t('project.review.clientApproval')}
               </div>
               {stages.length > 0 && (
                 <span className="text-[10px] text-brand-mid-grey tabular-nums">

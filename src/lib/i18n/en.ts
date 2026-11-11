@@ -5879,6 +5879,7 @@ export const en = {
   },
   project: {
     review: {
+      clientApproval: 'Client approval',
       schedule: 'Stages and payments',
       scheduledAmount: 'Scheduled',
       scheduledNote: 'Stage amounts are the agreed schedule. Actual payments come from receipts confirmed by your contractor; approving work does not record a payment.',

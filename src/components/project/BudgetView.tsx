@@ -94,7 +94,6 @@ function OverviewBar({
   const t = useT();
   // Every figure on this page is shown in the project's currency — 9 Nov 2026.
   // See project-money-context.tsx: the conversion is a rendering decision only.
-  const money = useMoney();
   const [open, setOpen] = useState(false);
   const color = SLICE_SHADES[index % SLICE_SHADES.length];
 
@@ -216,7 +215,6 @@ function MetricBox({
   dimmed?: boolean;
   sourceAmount?: number | null;
 }) {
-  const money = useMoney();
   return (
     <div className="rounded-xl border border-brand-border-grey p-4 flex flex-col gap-1">
       <span className="text-xs text-brand-mid-grey">{label}</span>
@@ -238,7 +236,6 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
   const { stageLabel } = useStageLabels();
   const { lang } = useLanguage();
   const t = useT();
-  const money = useMoney();
   // The same currency and rate the page is rendering with, so the downloaded report
   // cannot disagree with the screen it came from.
   const fx = useProjectMoneyContext();

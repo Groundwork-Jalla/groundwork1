@@ -13,9 +13,8 @@ import { SpreadsheetViewer } from './SpreadsheetViewer';
 // a different app screen.
 //
 // ── What can and cannot be shown ────────────────────────────────────────────────────
-// PDFs and images render here. A spreadsheet or a Word file cannot be drawn by a
-// browser, so for those this says so plainly and offers the download rather than
-// showing an empty grey frame, which is what an <iframe> of an .xlsx looks like.
+// PDFs and images render directly. Spreadsheets use a bounded worker preview;
+// other formats retain a download link.
 //
 // ── Why the URL is passed in ────────────────────────────────────────────────────────
 // Signing is the caller's job: project documents need a signed Storage URL that expires

@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, Lock, AlertCircle, BadgeCheck, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -86,7 +85,7 @@ function StatusPill({ status, tier }: { status: string; tier: string }) {
   if (status === 'active')
     return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   if (status === 'pending_review')
-    return <span className={cn(base, 'bg-brand-off-white dark:bg-state-held/30 border border-state-held/30 dark:border-state-held text-state-held dark:text-state-held')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
+    return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-near-black/30 dark:border-white/30 text-brand-near-black dark:text-white')}><AlertCircle className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   return <span className={cn(base, 'border border-brand-border-grey dark:border-[#2c2c2c] text-brand-border-grey')}><Lock className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
 }
 
@@ -100,7 +99,6 @@ function ListView({
 }) {
   const { stageLabel } = useStageLabels();
   const t = useT();
-  const selfVerify = isSelfVerify(project.tier);
   const verificationLabel = t('project.review.approved');
   const VerifyIcon = CheckCircle2;
 

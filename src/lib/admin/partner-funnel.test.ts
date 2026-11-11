@@ -158,13 +158,14 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
     expect(onboarding).toMatch(/haveClient/);
     expect(onboarding).not.toMatch(/contractorOnboarding\.partnerQ/);
     expect(onboarding).toMatch(/const wantsPartner = intent === 'onboard_client'/);
-    expect(onboarding).toMatch(/window\.location\.href = wantsPartner \? '\/work\/partner' : '\/work'/);
+    expect(onboarding).toContain("const destination = intent === 'onboard_client' ? '/work/partner'");
+    expect(onboarding).toContain('navigate(invitedProject ?? destination, { replace: true })');
   });
 
   it('but the client-intent answer is still what unlocks the sidebar', () => {
     // Routing around it would leave somebody locked out of the app they just joined.
     const onboarding = read('src/app/routes/work/onboarding.tsx');
-    expect(onboarding).toMatch(/await setClientIntent\(intent\)/);
+    expect(onboarding).toMatch(/await setClientIntent\(wantsPartner \? 'onboard_client' : 'no_client'\)/);
     // And nothing stands in front of it now.
     expect(onboarding).not.toMatch(/partner === null/);
   });
@@ -227,7 +228,7 @@ describe('two calendars, and Vanessa co-hosts the French one', () => {
   it('one question with one answer, so nothing is guessed', () => {
     // A multi-select left "both" to be interpreted, and a guess here is exactly the
     // blindness this is meant to remove.
-    expect(page).toMatch(/setCallLang\(l\)/);
+    expect(page).toMatch(/setCallLang\(language\)/);
     expect(page).not.toMatch(/setLanguages\(/);
   });
 

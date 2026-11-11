@@ -51,43 +51,8 @@ describe('one component, both roles', () => {
   });
 });
 
-describe('the shared view keeps what the contractor had', () => {
-  const body = code(SHARED);
-
-  it('search, sort and the five chips', () => {
-    expect(body).toMatch(/contractorDocs\.search/);
-    expect(body).toMatch(/contractorDocs\.sortNewest/);
-    for (const chip of ['chipAll', 'chipDrawings', 'chipBoq', 'chipSite', 'chipCerts']) {
-      expect(body, chip).toMatch(new RegExp(`contractorDocs\\.${chip}`));
-    }
-  });
-
-  it('the three groups, in order', () => {
-    const build = body.indexOf('contractorDocs.theBuild');
-    const site  = body.indexOf('contractorDocs.siteUpdatesFiled');
-    const certs = body.indexOf('contractorDocs.certificatesIssued');
-    expect(build).toBeGreaterThan(-1);
-    expect(site).toBeGreaterThan(build);
-    expect(certs).toBeGreaterThan(site);
-  });
-
-  it('counts the chips from what the search left', () => {
-    // Otherwise the first chip claims six while the five beside it add up to none.
-    expect(body).toMatch(/const inScope = documents\.filter\(d => hit\(d\.file_name\)\)\.sort\(order\)/);
-    expect(body).toMatch(/n: inScope\.length \+ certificates\.length/);
-  });
-
-  it('offers a certificate only where one was really issued', () => {
-    // A stage approved before certificates existed has no file, and gets no button
-    // rather than a dead one.
-    expect(body).toMatch(/const cert = certs\.get\(st\.id\)/);
-    expect(body).toMatch(/action=\{cert\?\.pdfUrl \? t\('contractorDocs\.view'\) : undefined\}/);
-  });
-
-  it('signs a URL per open rather than exposing the bucket', () => {
-    expect(body).toMatch(/await getSignedDocumentUrl\(doc\.file_path\)/);
-  });
-});
+// Catalogue filtering, actual evidence, issuance and signed-URL races are exercised
+// by documents/project-documents-screen.test.ts; these checks protect role wiring.
 
 describe('what stays role-specific', () => {
   it('uploading is passed in, not built into the shared view', () => {

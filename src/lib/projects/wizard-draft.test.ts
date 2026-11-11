@@ -159,7 +159,7 @@ describe('wizard draft lifecycle', () => {
     storage.setItem.mockClear();
     expect(renderProvider()).toContain('1:');
     h.effects.forEach(effect => effect());
-    expect(h.current?.data).toEqual(WIZARD_DEFAULT_DATA);
+    expect(h.current?.data).toEqual({ ...WIZARD_DEFAULT_DATA, country: '' });
     // In-memory only: the summary step needs it to hold the confirmed budget.
     expect(h.current?.confirmationDraft).toBeNull();
     expect(h.current?.updateConfirmationDraft).toBeTypeOf('function');
@@ -187,7 +187,7 @@ describe('wizard draft lifecycle', () => {
   it('falls back to a fresh wizard for invalid saved state', () => {
     entries.set(key, '{broken-json');
     expect(renderProvider(key)).toContain('1:');
-    expect(h.current?.data).toEqual(WIZARD_DEFAULT_DATA);
+    expect(h.current?.data).toEqual({ ...WIZARD_DEFAULT_DATA, country: '' });
   });
 });
 

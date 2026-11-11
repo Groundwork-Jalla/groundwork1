@@ -5,19 +5,15 @@ import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
-import { useMoney } from '@/lib/budget/project-money-context';
 import { MoneyValue } from './MoneyValue';
 import { DocumentViewer } from './DocumentViewer';
 import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase/certificates';
 import { formatShare } from '@/lib/budget/stage-shares';
-import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
-
-// Lazy-loaded so the certificate HTML is not bundled into the main chunk
 
 
 // ── Stage circle (horizontal pipeline) ───────────────────
@@ -176,7 +172,6 @@ function StageDetail({
 }: StageDetailProps) {
   const { stageLabel } = useStageLabels();
   // The milestone in the project's currency (9 Nov 2026) — project-money-context.tsx.
-  const money = useMoney();
   const t = useT();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [approving, setApproving]     = useState(false);
@@ -406,17 +401,7 @@ export function StageTracker({
   const t = useT();
   const { stageLabel } = useStageLabels();
 
-  /**
-   * Who may print a stage certificate.
-   *
-   * Was `stage.status === 'complete'` and nothing else, so a Self Verify project could
-   * print a document headed "Verified Completion" with "Self-Verified" in the Verified-by
-   * field — a certificate for work nobody from Jalla ever looked at. Philip's answer on
-   * 4 Sep 2026 was to revoke those and stop issuing them.
-   *
-   * This is the display half. The half that matters is migration 079, which stops any
-   * signed-in user inserting a certificate row at all; a button is not a boundary.
-   */
+  // Only an actual, unrevoked issued PDF offers a certificate action.
   const [issued, setIssued] = useState<{ projectId: string; rows: Map<string, IssuedCertificate> }>({ projectId, rows: new Map() });
   useEffect(() => {
     let active = true;
@@ -527,15 +512,6 @@ export function StageTracker({
                     </span>
                   </button>
 
-                  {/*
-                    * Never for a stage that was already built when the project joined
-                    * (103). It is `complete`, which is why this used to show for it — and
-                    * what it offered was a certificate for work nobody from Jalla ever
-                    * saw. Philip, 10 Nov 2026: "certificates must depend on verification
-                    * rather than stage completion." Nothing was ever actually issued —
-                    * production holds no certificate rows at all — but a button that
-                    * offers one is the claim, whether or not it is pressed.
-                    */}
                   {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && (
                     <button
                       type="button"

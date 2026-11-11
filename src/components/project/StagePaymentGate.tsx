@@ -224,6 +224,7 @@ export function StagePaymentGate({
         {/* The full figure, not a rounded one: somebody is about to transfer this. */}
         {t('project.stages.receiptBody', { amount: money(payment.amount) })}
       </p>
+      {currency?.pair?.(payment.amount)?.usd && <p className="mt-1 font-mono text-xs text-brand-mid-grey">≈ {currency.pair(payment.amount)?.usd}</p>}
 
       {!awaitingReceipt && <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.stages.receiptAmountMissing')}</p>}
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">

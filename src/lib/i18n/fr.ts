@@ -5737,6 +5737,7 @@ export const fr: Mirror<EnDict> = {
   },
   project: {
     review: {
+      clientApproval: 'Approbation du client',
       schedule: 'Étapes et paiements',
       scheduledAmount: 'Montant prévu',
       scheduledNote: 'Les montants des étapes suivent le budget convenu. Les paiements réels proviennent des reçus confirmés par votre prestataire ; valider les travaux ne comptabilise pas un paiement.',

@@ -116,9 +116,10 @@ export async function fetchProjectCertificates(projectId: string, options: { str
   const { data, error } = await supabase
     .from('certificates')
     .select('id, stage_id, pdf_url')
-    .eq('project_id', projectId);
-  // A project with no certificates, or a deployment without the table, is an empty
-  // map: the tab then shows the stages with no button, which is the truth.
+    .eq('project_id', projectId)
+    .is('revoked_at', null);
+  // Legacy callers may hide unavailable certificates. Catalogue views use strict
+  // reads so an error is shown as an error rather than an empty list.
   if (error) { if (options.strict) throw error; return out; }
   for (const row of (data ?? []) as { id: string; stage_id: string; pdf_url: string | null }[]) {
     if (row.stage_id) out.set(String(row.stage_id), {

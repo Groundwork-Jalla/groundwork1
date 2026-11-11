@@ -202,18 +202,16 @@ describe('the invited client is not offered what the server will refuse', () => 
     expect(dash).not.toContain('hasProject={projects.length > 0}');
   });
 
-  it('does not offer a site update on a build they cannot file one against', () => {
-    // 088: "only the owner, a contractor or an administrator may submit a site
-    // update". A viewer is none of those. The card goes to the Timeline instead —
-    // reading what was filed is what they came for.
-    expect(dash).toContain("shared && project ? {");
-    expect(dash).toContain("?tab=timeline");
-    expect(dash).toContain("'dashboard.quick.updates'");
+  it('offers only messages and documents as dashboard quick actions', () => {
+    expect(dash).toContain("'dashboard.quick.messages'");
+    expect(dash).toContain("'dashboard.quick.documents'");
+    expect(dash).not.toContain("'dashboard.quick.upload'");
+    expect(dash).not.toContain("'dashboard.quick.updates'");
   });
 
-  it('says why, rather than leaving them to infer it from missing buttons', () => {
-    expect(dash).toContain("t('dashboard.shared.readOnly')");
+  it('marks shared projects without falsely making the primary client read-only', () => {
     expect(dash).toContain("t('dashboard.shared.badge')");
+    expect(dash).not.toContain("t('dashboard.shared.readOnly')");
   });
 
   it('marks which builds are somebody else’s wherever builds are listed', () => {

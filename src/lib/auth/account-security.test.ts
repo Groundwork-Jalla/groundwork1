@@ -92,8 +92,8 @@ describe('the flows are wired', () => {
     expect(src).toMatch(/dismissPasswordPrompt\(/);
   });
 
-  it('the dashboard shows the warnings and the Account tab is deep-linkable', () => {
-    expect(read('src/app/routes/dashboard.tsx')).toMatch(/<SecurityNudges user=\{user\} \/>/);
+  it('the dashboard retains password recovery and hides the MFA nudge; account security remains reachable', () => {
+    expect(read('src/app/routes/dashboard.tsx')).toMatch(/<SecurityNudges user=\{user\} showTwoFactor=\{false\} \/>/);
     expect(read('src/components/dashboard/SecurityNudges.tsx')).toMatch(/to="\/profile\?tab=account"/);
     expect(read('src/app/routes/profile.tsx')).toMatch(/searchParams\.get\('tab'\)/);
   });

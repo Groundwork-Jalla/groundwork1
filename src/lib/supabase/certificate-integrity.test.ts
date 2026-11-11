@@ -85,11 +85,11 @@ describe('a certificate can be withdrawn, and stays withdrawable', () => {
 });
 
 describe('the UI agrees with the database', () => {
-  it('offers the print button only on the verified tiers', () => {
+  it('offers only a stored issued PDF and does not generate from completion or tier', () => {
     const tracker = read('src/components/project/StageTracker.tsx');
-    expect(tracker).toMatch(/canCertify\s*=\s*tier === 'jalla_verify' \|\| tier === 'jalla_management'/);
-    expect(tracker, 'the print button must be gated on the tier, not just on completion')
-      .toMatch(/stage\.status === 'complete' && canCertify/);
+    expect(tracker).toContain('issued.rows.get(stage.id)?.pdfUrl');
+    expect(tracker).not.toContain('StageCertificateModal');
+    expect(tracker).not.toContain('canCertify');
   });
 
   it('answers a revoked certificate rather than 404ing it', () => {

@@ -138,6 +138,7 @@ describe('one answer can end the page', () => {
   it('and the page gating reads exactly that', () => {
     const page = readFileSync(
       resolve(__dirname, '..', '..', 'app', 'routes', 'work', 'partner.tsx'), 'utf8');
-    expect(page).toMatch(/if \(disqualifiedBy\(answers\)\) return true;/);
+    expect(page).toContain('const ready = qualifiesForCall(answers)');
+    for (const reason of ['no_project', 'client_on_site_daily', 'not_using_groundwork']) expect(page).toContain(`stopHere('${reason}'`);
   });
 });

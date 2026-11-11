@@ -6,19 +6,7 @@ import { lookup } from '@/lib/i18n/translate';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
 
-/**
- * Self Verify has no reviewer.
- *
- * That is the whole plan: the owner uploads their evidence and approves it themselves.
- * Nobody at Jalla looks at it, so a screen that says "In Review" or "Awaiting Approval"
- * is describing a wait that cannot end — and a plan the owner did not buy.
- *
- * The write paths already fork on tier (`markSubstageComplete`, `approveStage`), so a
- * Self Verify stage should never reach `pending_review` at all. These pins are about the
- * READ path, which had no tier check: a legacy row, or a project whose plan changed,
- * would have been drawn with verification wording regardless. Three components render
- * that state, and each one now has to know the plan before it picks a word.
- */
+// Client sign-off is approval across all tiers while paid verification gates are paused.
 const ROOT = resolve(__dirname, '..', '..');
 const src = (f: string) => readFileSync(resolve(ROOT, f), 'utf8');
 /** Comments explain the rule; they must not be what satisfies the assertion. */
@@ -45,18 +33,16 @@ describe('isSelfVerify', () => {
 });
 
 describe('no client screen shows a Self Verify owner a wait that does not exist', () => {
-  it('the stage badge picks its word from the tier', () => {
-    expect(tracker).toContain("isSelfVerify(tier) ? 'project.stages.badgeYourApproval' : 'project.stages.badgeReview'");
-    // The badge cannot answer without the tier, so it has to be handed one.
-    expect(tracker).toMatch(/function StageBadge\(\{ status, tier \}/);
-    expect(tracker).toContain('<StageBadge status={stage.status} tier={tier} />');
+  it('stage badges use client approval for all tiers', () => {
+    expect(tracker).toContain("return <span className={base}>{t('project.stages.badgeYourApproval')}</span>");
+    expect(tracker).not.toContain("'project.stages.badgeReview'");
   });
 
-  it('the timeline pill and its legend both fork', () => {
-    expect(timeline).toContain("isSelfVerify(tier) ? 'project.timeline.statusYourApproval' : 'project.timeline.statusAwaiting'");
-    expect(timeline).toContain("? 'project.timeline.legendYourApproval'");
-    expect(timeline).toMatch(/function statusLabelKey\(status: string, tier: string\)/);
-    expect(timeline).toContain('<StatusPill status={stage.status} tier={project.tier} />');
+  it('timeline pills and legend use approval rather than verification', () => {
+    expect(timeline).toContain("return 'project.costing.awaitingApproval'");
+    expect(timeline).toContain("t('project.timeline.legendYourApproval')");
+    expect(timeline).not.toContain("t('project.timeline.selfVerified')");
+    expect(timeline).not.toContain("t('project.timeline.jallaVerified')");
   });
 
   it('the overview no longer states a stage status at all, so it cannot state a wrong one', () => {
@@ -74,18 +60,8 @@ describe('no client screen shows a Self Verify owner a wait that does not exist'
     expect(overview).not.toContain('project.overview.statusYourApproval');
   });
 
-  it('no client component decides this with a hand-written tier comparison', () => {
-    // Fourteen copies of `tier === 'self_verify' || tier === 'starter'` is how one of
-    // them eventually forgets `starter`. One predicate, imported.
-    // The components that DO fork on the tier must do it through the predicate.
-    for (const [name, body] of [['StageTracker', tracker], ['TimelineTab', timeline]] as const) {
-      expect(body, `${name} must import the predicate`).toContain("from '@/lib/tier'");
-      expect(body, `${name} must not re-derive the tier check`).not.toContain("=== 'starter'");
-    }
-    // OverviewTab no longer forks at all (2 Nov 2026). It is held to the second half
-    // only: if it ever starts caring about the tier again, it does so through the
-    // predicate rather than by growing a fifteenth copy of the comparison.
-    expect(overview, 'OverviewTab must not re-derive the tier check').not.toContain("=== 'starter'");
+  it('client labels do not reintroduce tier-specific verification', () => {
+    for (const body of [tracker, timeline, overview]) expect(body).not.toContain("=== 'starter'");
   });
 });
 

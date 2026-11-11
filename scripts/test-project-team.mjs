@@ -26,7 +26,7 @@ CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
 CREATE PUBLICATION supabase_realtime;
 CREATE FUNCTION public.test_id(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('00000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid $$;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('test.actor',true),'')::uuid $$;
-CREATE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(auth.uid()=test_id(4),false) $$;
+CREATE FUNCTION public.is_admin() RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(auth.uid()=public.test_id(4),false) $$;
 CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz);
 INSERT INTO auth.users SELECT test_id(n),n||'@test.example',CASE WHEN n=9 THEN NULL ELSE now() END FROM generate_series(1,10) n;
 CREATE TABLE public.profiles(id uuid PRIMARY KEY,full_name text);

@@ -33,7 +33,6 @@ import {
   QUANTITY_SURVEYOR_XAF_PER_MONTH,
   SITE_MANAGER_XAF_PER_MONTH,
 } from '@/lib/budget';
-import { useMoney } from '@/lib/budget/project-money-context';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { MoneyValue } from './MoneyValue';
@@ -197,7 +196,6 @@ export default function OverviewTab({
    * Nothing here moves money. The ledger is still denominated in USD and the budget
    * engine still divides by the stored rate; this only changes what is shown.
    */
-  const fmt = useMoney();
 
   const sortedStages = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
 
@@ -286,7 +284,7 @@ export default function OverviewTab({
             : completedCount === sortedStages.length
               ? t('project.overview.nowComplete')
               : t('project.overview.nowStarting')}
-          sub={activeStage?.name ?? nextStage?.name ?? ''}
+          sub={activeStage ? stageLabel(activeStage) : nextStage ? stageLabel(nextStage) : ''}
           valueSize="text-xl"
           icon={<CheckCircle2 className="size-4 text-brand-near-black dark:text-white" />}
         />

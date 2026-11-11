@@ -4,7 +4,7 @@ import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verificati
 
 const h = vi.hoisted(() => ({
   scope: 'tracker', index: 0, hooks: new Map<string, any[]>(), pendingEffects: [] as (() => void)[],
-  approve: vi.fn(), mark: vi.fn(), changed: vi.fn(),
+  approve: vi.fn(), mark: vi.fn(), changed: vi.fn(), certificates: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: unknown) => {
@@ -38,6 +38,8 @@ vi.mock('@/lib/budget/project-money-context', () => ({ useMoney: () => String,
 vi.mock('@/lib/supabase/verifications', () => ({
   uploadStagePaymentReceipt: vi.fn(), confirmStagePayment: vi.fn(), signReceiptUrl: vi.fn(),
 }));
+vi.mock('@/lib/supabase/certificates', () => ({ fetchProjectCertificates: h.certificates }));
+vi.mock('@/components/project/DocumentViewer', () => ({ DocumentViewer: 'document-viewer' }));
 vi.mock('@/components/project/EvidenceThumbs', () => ({ EvidenceThumbs: () => null }));
 
 import { StageTracker, type StageTrackerProps } from '@/components/project/StageTracker';
@@ -94,6 +96,7 @@ function chooseStage(number: number) {
 }
 beforeEach(() => {
   vi.clearAllMocks(); h.scope = 'tracker'; h.index = 0; h.hooks.clear(); h.pendingEffects = [];
+  h.certificates.mockResolvedValue(new Map());
   h.approve.mockResolvedValue(result()); h.mark.mockResolvedValue(undefined); h.changed.mockResolvedValue(undefined);
   props = { stages: [stage(1, 'active'), stage(2), stage(3)], substages: [substage()], tier: 'self_verify',
     canApprove: true,
@@ -275,5 +278,26 @@ describe('client review of pending legacy updates', () => {
     const el = detail().find(node => node.type === SubstageRow)!;
     const elements = component(SubstageRow, { ...el.props, substage: substage('pending_review'), stagePaid: false }, 'substage');
     expect(elements.some(node => node.type === 'button' && node.props.onClick?.name === 'handleMarkComplete')).toBe(false);
+  });
+});
+
+
+describe('stage certificates reflect actual issuance', () => {
+  const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+  it.each(['self_verify', 'jalla_verify', 'jalla_management'])('completion in %s never invents a certificate', async tier => {
+    props.tier = tier as typeof props.tier;
+    props.stages = [stage(1, 'complete', { pre_existing: true }), stage(2, 'complete'), stage(3, 'active')];
+    tracker(); await flush();
+    expect(tracker().filter(node => node.type === 'button' && text(node).includes('project.stages.certificate'))).toHaveLength(0);
+  });
+  it('opens the formally issued PDF rather than generating one from stage status', async () => {
+    props.stages = [stage(1, 'complete'), stage(2, 'active')];
+    h.certificates.mockResolvedValue(new Map([['s1', { id: 'cert', stageId: 's1', pdfUrl: 'https://files.test/certificate.pdf' }]]));
+    tracker(); await flush();
+    const button = tracker().find(node => node.type === 'button' && text(node).includes('project.stages.certificate'))!;
+    expect(button).toBeDefined(); button.props.onClick();
+    expect(tracker().find(node => node.type === 'document-viewer')?.props.url).toBe('https://files.test/certificate.pdf');
+    props.projectId = 'other-project';
+    expect(tracker().find(node => node.type === 'document-viewer')).toBeUndefined();
   });
 });

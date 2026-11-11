@@ -11,7 +11,7 @@ export interface PreviewSheet {
 }
 export interface SpreadsheetPreview { sheets: PreviewSheet[]; truncated: boolean }
 
-/** Runs in a worker. Uses saved/formatted values; never evaluates workbook formulas or HTML. */
+/** Runs in a worker. Uses saved values at their original numeric precision; never evaluates workbook formulas or HTML. */
 export function readSpreadsheetPreview(buffer: ArrayBuffer): SpreadsheetPreview {
   if (!buffer.byteLength || buffer.byteLength > MAX_FILE_BYTES) throw new Error('file_size');
   const index = read(buffer, { type: 'array', bookSheets: true });
@@ -26,7 +26,7 @@ export function readSpreadsheetPreview(buffer: ArrayBuffer): SpreadsheetPreview 
     const full = utils.decode_range(sheet['!fullref'] || sheet['!ref']);
     const columns = Math.min(PREVIEW_COLUMNS, used.e.c + 1);
     const end = { r: Math.min(PREVIEW_ROWS - 1, used.e.r), c: columns - 1 };
-    const values = utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false, defval: '', blankrows: true,
+    const values = utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: true, defval: '', blankrows: true,
       range: { s: { r: 0, c: 0 }, e: end } });
     let truncated = full.e.r >= PREVIEW_ROWS || full.e.c >= PREVIEW_COLUMNS;
     const rows = values.slice(0, PREVIEW_ROWS).map(row => row.slice(0, PREVIEW_COLUMNS).map(value => {
