@@ -63,7 +63,7 @@ export function TakeoffComparison({ project }: { project: ProjectRow }) {
           <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">{t('takeoff.compareSub')}</p>
         </div>
         <Link
-          to={`/projects/${project.id}/takeoff`}
+          to={`/admin/projects/${project.id}/takeoff`}
           className="inline-flex shrink-0 items-center gap-1 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white"
         >
           {t('takeoff.viewAll')} <ArrowRight className="size-3" />
@@ -83,7 +83,7 @@ export function TakeoffComparison({ project }: { project: ProjectRow }) {
           return (
             <Link
               key={row.id}
-              to={`/projects/${project.id}/takeoff/${row.id}`}
+              to={`/admin/projects/${project.id}/takeoff/${row.id}`}
               className="rounded-xl border border-brand-border-grey p-4 transition-colors hover:bg-brand-off-white dark:border-[#2c2c2c] dark:hover:bg-[#252525]"
             >
               <div className="flex items-center justify-between gap-3">

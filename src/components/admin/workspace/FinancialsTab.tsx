@@ -342,7 +342,7 @@ function BudgetSection({ ws, onChanged }: { ws: LoadedWorkspace['workspace']; on
         <div className="px-5 py-4">
           {/* Costing only. BudgetView's Released/Held/Remaining are stage-status buckets — the
               client's estimate — and the ledger above is the record; one "released" per screen. */}
-          <Link to={`/projects/${ws.project.id}/takeoff`} className="mb-4 inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">{t('takeoff.editBoq')}</Link>
+          <Link to={`/admin/projects/${ws.project.id}/takeoff`} className="mb-4 inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">{t('takeoff.editBoq')}</Link>
           <BudgetView project={ws.project} stages={ws.stages.map(s => s.stage)} showMilestoneBuckets={false} allowBoqEditing />
         </div>
       </Section>

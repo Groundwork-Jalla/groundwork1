@@ -89,6 +89,8 @@ export default [
     route("work",                   "routes/work/index.tsx"),
     route("work/projects",          "routes/work/projects.tsx"),
     route("work/projects/:projectId","routes/work/projects.detail.tsx"),
+    route("work/projects/:id/takeoff", "routes/work/projects.takeoff.tsx"),
+    route("work/projects/:id/takeoff/:takeoffId", "routes/work/projects.takeoff.detail.tsx"),
     // Where this contractor is paid. On the account, not on an assignment (099) — given
     // once, used on every project.
     route("work/payouts",           "routes/work/payouts.tsx"),
@@ -144,6 +146,8 @@ export default [
     // The Project Workspace (Phase 5). Declared after /new so the literal segment wins;
     // tab, stage and conversation are search params, never nested routes (05 §5).
     route("admin/projects/:id",   "routes/admin/projects.detail.tsx"),
+    route("admin/projects/:id/takeoff", "routes/admin/projects.takeoff.tsx"),
+    route("admin/projects/:id/takeoff/:takeoffId", "routes/admin/projects.takeoff.detail.tsx"),
     route("admin/users",         "routes/admin/users.tsx"),
     route("admin/users/new",     "routes/admin/users.new.tsx"),
     route("admin/clients",       "routes/admin/clients.tsx"),

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, Navigate, useLocation, useParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Check, Loader2, Lock, Save, Send, TriangleAlert } from 'lucide-react';
+import { boqEditorPaths } from '@/lib/projects/boq-editor-paths';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
@@ -63,6 +64,9 @@ export default function TakeoffDetail() {
   const { user } = useAuth();
   const t = useT();
   const { access, error: accessError, refresh: refreshAccess } = useProjectTeamAccess(id ?? '');
+  const { pathname } = useLocation();
+  const paths = boqEditorPaths(id ?? '', pathname, access?.canChangeRoles === true);
+  const loadRequest = useRef(0);
 
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [rate, setRate]       = useState<ConstructionRate | null>(null);
@@ -76,24 +80,32 @@ export default function TakeoffDetail() {
 
   const load = useCallback(async () => {
     if (!id || !takeoffId) return;
-    setLoading(true);
+    const version = ++loadRequest.current;
+    setLoading(true); setError(null);
     try {
       const [p, r] = await Promise.all([fetchProject(id), fetchTakeoff(takeoffId)]);
+      if (version !== loadRequest.current) return;
       setProject(p);
       setRow(r?.project_id === id ? r : null);
       if (r) {
         setOverrides(r.overrides ?? {});
         setDims({ lengthM: r.inputs.lengthM, widthM: r.inputs.widthM });
       }
-      if (p) setRate(await getConstructionRate(p.country).catch(() => null));
+      if (p) {
+        const rate = await getConstructionRate(p.country).catch(() => null);
+        if (version === loadRequest.current) setRate(rate);
+      }
     } catch (err) {
-      setError(errorMessage(err, t('takeoff.errLoad')));
+      if (version === loadRequest.current) setError(errorMessage(err, t('takeoff.errLoad')));
     } finally {
-      setLoading(false);
+      if (version === loadRequest.current) setLoading(false);
     }
   }, [id, takeoffId, t]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (access?.canEditBoq && !paths.legacy) void load();
+    return () => { ++loadRequest.current; };
+  }, [load, access?.canEditBoq, paths.legacy]);
 
   const effectiveRate = rate ?? (project ? buildLegacyRate({ country: project.country }) : null);
   const readOnly = !access?.canEditBoq || !row || row.status !== 'draft' || (row.created_by !== user?.id && !access.canChangeRoles);
@@ -142,6 +154,7 @@ export default function TakeoffDetail() {
 
   if (accessError) return <div className="p-6 text-sm"><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
   if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><Link to={`/projects/${id}`} className="font-semibold underline">{t('project.backToDashboard')}</Link></div>;
+  if (access?.canEditBoq && paths.legacy) return <Navigate to={`${paths.list}/${takeoffId}`} replace />;
   if (loading || !access) {
     return <div className="flex justify-center py-20"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
@@ -161,7 +174,7 @@ export default function TakeoffDetail() {
       transition={{ duration: 0.3 }}
       className="mx-auto flex max-w-5xl flex-col gap-5"
     >
-      <Link to={`/projects/${project.id}/takeoff`} className="inline-flex w-fit items-center gap-1.5 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
+      <Link to={paths.list} className="inline-flex w-fit items-center gap-1.5 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
         <ArrowLeft className="size-3.5" /> {t('takeoff.title')}
       </Link>
 

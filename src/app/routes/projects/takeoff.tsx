@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileSpreadsheet, Loader2, Plus, Lock } from 'lucide-react';
+import { boqEditorPaths } from '@/lib/projects/boq-editor-paths';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchProject } from '@/lib/supabase/projects';
@@ -46,6 +47,9 @@ export default function TakeoffList() {
   const t = useT();
   const navigate = useNavigate();
   const { access, error: accessError, refresh: refreshAccess } = useProjectTeamAccess(id ?? '');
+  const { pathname } = useLocation();
+  const paths = boqEditorPaths(id ?? '', pathname, access?.canChangeRoles === true);
+  const loadRequest = useRef(0);
 
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [rate, setRate]       = useState<ConstructionRate | null>(null);
@@ -56,26 +60,32 @@ export default function TakeoffList() {
 
   const load = useCallback(async () => {
     if (!id) return;
-    setLoading(true);
+    const version = ++loadRequest.current;
+    setLoading(true); setError(null);
     try {
       const p = await fetchProject(id);
+      if (version !== loadRequest.current) return;
       setProject(p);
       if (p) {
         const [r, list] = await Promise.all([
           getConstructionRate(p.country).catch(() => null),
           fetchTakeoffs(id),
         ]);
+        if (version !== loadRequest.current) return;
         setRate(r);
         setRows(list);
       }
     } catch (err) {
-      setError(errorMessage(err, t('takeoff.errLoad')));
+      if (version === loadRequest.current) setError(errorMessage(err, t('takeoff.errLoad')));
     } finally {
-      setLoading(false);
+      if (version === loadRequest.current) setLoading(false);
     }
   }, [id, t]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (access?.canEditBoq && !paths.legacy) void load();
+    return () => { ++loadRequest.current; };
+  }, [load, access?.canEditBoq, paths.legacy]);
 
   async function handleCreate() {
     if (!id || !user || !project || project.id !== id || !access?.canEditBoq || creating) return;
@@ -98,7 +108,7 @@ export default function TakeoffList() {
         kitchens: project.kitchens,
         offices: project.offices ?? 0,
       }, null);
-      navigate(`/projects/${id}/takeoff/${row.id}`);
+      navigate(`${paths.list}/${row.id}`);
     } catch (err) {
       const message = errorMessage(err, t('takeoff.errCreate'));
       setError(message.startsWith('not_permitted') ? t('project.review.editorRestricted') : message);
@@ -108,6 +118,7 @@ export default function TakeoffList() {
 
   if (accessError) return <div className="p-6 text-sm"><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
   if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><Link to={`/projects/${id}`} className="font-semibold underline">{t('project.backToDashboard')}</Link></div>;
+  if (access?.canEditBoq && paths.legacy) return <Navigate to={paths.list} replace />;
   if (loading || !access) {
     return <div className="flex justify-center py-20"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
@@ -128,7 +139,7 @@ export default function TakeoffList() {
       transition={{ duration: 0.3 }}
       className="mx-auto flex max-w-4xl flex-col gap-5"
     >
-      <Link to={`/projects/${project.id}`} className="inline-flex w-fit items-center gap-1.5 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
+      <Link to={paths.project} className="inline-flex w-fit items-center gap-1.5 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
         <ArrowLeft className="size-3.5" /> {project.name}
       </Link>
 
@@ -156,7 +167,7 @@ export default function TakeoffList() {
           return (
             <Link
               key={row.id}
-              to={`/projects/${project.id}/takeoff/${row.id}`}
+              to={`${paths.list}/${row.id}`}
               className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-brand-off-white dark:hover:bg-[#1e1e1e]"
             >
               <FileSpreadsheet className="size-4 shrink-0 text-brand-mid-grey" />

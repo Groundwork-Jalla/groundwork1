@@ -263,7 +263,7 @@ export default function ContractorProjectDetail() {
 
       {tab === 'money' && (
         <div className="space-y-4">
-          {teamAccess?.canEditBoq && <Link to={`/projects/${project.id}/takeoff`} className="inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">{t('takeoff.editBoq')}</Link>}
+          {teamAccess?.canEditBoq && <Link to={`/work/projects/${project.id}/takeoff`} className="inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">{t('takeoff.editBoq')}</Link>}
           <MoneyTab assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} />
         </div>
       )}
