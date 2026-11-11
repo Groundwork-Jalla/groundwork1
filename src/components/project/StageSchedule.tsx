@@ -45,7 +45,7 @@ export function StageSchedule({ project, stages, basis, payments }: {
                 <p className="mt-1 text-[11px] text-brand-mid-grey">{t('project.review.scheduledAmount')} · {formatShare(stage.budget_pct)}</p>
               </div>
             </div>
-            {!historical && <div className="mt-3 text-xs text-brand-mid-grey">
+            {!historical && payments && <div className="mt-3 text-xs text-brand-mid-grey">
               {confirmed || pending ? <>
                 <p>{t(confirmed ? 'project.review.receiptConfirmed' : 'project.review.receiptSubmitted')}</p>
                 {unknown || !actual ? <p>{t('project.costing.receiptAmountsMissing')}</p>

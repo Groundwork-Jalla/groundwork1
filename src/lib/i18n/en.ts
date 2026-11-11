@@ -5879,6 +5879,9 @@ export const en = {
   },
   project: {
     review: {
+      confirmedBillTotal: 'Confirmed bill total',
+      savedUsdRate: 'USD at the confirmed project rate',
+      confirmedBillNote: 'Stage allocations add up to the confirmed bill total. Groundwork fees are not added.',
       certificatesEmpty: 'Certificates appear here only after an independent review has been recorded and a certificate has been formally issued.',
       stagesLoadFailed: 'The project stages could not be loaded.',
       clientApproval: 'Client approval',

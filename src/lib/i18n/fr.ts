@@ -5737,6 +5737,9 @@ export const fr: Mirror<EnDict> = {
   },
   project: {
     review: {
+      confirmedBillTotal: 'Total confirmé du devis',
+      savedUsdRate: 'USD au taux confirmé du projet',
+      confirmedBillNote: 'La somme des étapes correspond au total confirmé du devis. Aucun frais Groundwork n’est ajouté.',
       certificatesEmpty: 'Les certificats apparaissent ici uniquement après un contrôle indépendant enregistré et leur délivrance officielle.',
       stagesLoadFailed: 'Les étapes du projet n’ont pas pu être chargées.',
       clientApproval: 'Approbation du client',

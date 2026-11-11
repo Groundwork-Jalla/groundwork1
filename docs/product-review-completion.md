@@ -35,7 +35,8 @@ the earlier BOQ, invitation and receipt fixes. The requirements checklist is in
   deadline and a visible truncation notice. The original download stays available.
   SheetJS uses its [official distribution](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/).
 - BQ authoring is available to assigned contractors and admins, with matching route
-  and database permissions. Client access to uploaded BOQ documents remains. Clients
+  and database permissions. The editor remains in the contractor/admin workspace;
+  legacy links redirect there. Client access to uploaded BOQ documents remains. Clients
   and observers cannot author drafts; revoked contractors lose editing access even
   to their own rows. Contractor submissions freeze their figures; subsequent
   revisions require a new draft. Draft authoring never changes the agreed budget.

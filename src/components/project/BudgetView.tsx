@@ -314,9 +314,9 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
       {/* ── Section 1: Budget Overview Card ────────────────── */}
       <div className="rounded-xl border border-brand-border-grey p-5">
         <div className="flex items-center justify-between mb-1 gap-3">
-          <p className="text-sm font-medium text-brand-near-black">{t('project.costing.budgetEstimate')}</p>
+          <p className="text-sm font-medium text-brand-near-black">{t(project.budget_source === 'boq' ? 'project.review.confirmedBillTotal' : 'project.costing.budgetEstimate')}</p>
           <div className="flex items-center gap-3 shrink-0">
-            <p className="text-xs text-brand-mid-grey">{t('project.costing.usdIndicative')}</p>
+            <p className="text-xs text-brand-mid-grey">{t(project.budget_source === 'boq' ? 'project.review.savedUsdRate' : 'project.costing.usdIndicative')}</p>
             <button
               type="button"
               onClick={handleExportPDF}
@@ -367,7 +367,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
         )}
 
         <p className="mt-4 text-[11px] text-brand-mid-grey leading-relaxed">
-          {t('project.costing.disclaimer')}
+          {t(project.budget_source === 'boq' ? 'project.review.confirmedBillNote' : 'project.costing.disclaimer')}
         </p>
       </div>
 

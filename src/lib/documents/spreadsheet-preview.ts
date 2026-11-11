@@ -38,4 +38,3 @@ export function readSpreadsheetPreview(buffer: ArrayBuffer): SpreadsheetPreview 
   });
   return { sheets, truncated: index.SheetNames.length > PREVIEW_SHEETS || sheets.some(sheet => sheet.truncated) };
 }
-

@@ -54,10 +54,11 @@ describe('the URL is the state', () => {
     expect(workspaceHref('p1', { tab: 'conversations', conversationId: 'c1' })).toBe('/admin/projects/p1?tab=conversations&conversation=c1');
   });
 
-  it('is one route with search params, not nested routes', () => {
+  it('keeps workspace tabs in search params while allowing the separate BQ authoring tool', () => {
     const routes = src('src/app/routes.ts');
     expect(routes).toMatch(/route\("admin\/projects\/:id",\s*"routes\/admin\/projects\.detail\.tsx"\)/);
-    expect(routes).not.toMatch(/admin\/projects\/:id\//);
+    const children = [...routes.matchAll(/route\("(admin\/projects\/:id\/[^"]+)"/g)].map(hit => hit[1]);
+    expect(children).toEqual(['admin/projects/:id/takeoff', 'admin/projects/:id/takeoff/:takeoffId']);
     // /new is a literal segment and must stay declared; the router prefers it over :id.
     expect(routes).toMatch(/route\("admin\/projects\/new"/);
   });

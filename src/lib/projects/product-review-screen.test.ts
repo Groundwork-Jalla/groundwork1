@@ -14,6 +14,7 @@ vi.mock('@/lib/budget/project-money-context', () => ({
   useProjectMoneyContext: () => ({ pair: (usd: number, amount?: number) => projectMoneyPair(h.project, usd, undefined, amount) }),
 }));
 vi.mock('@/contexts/WizardContext', () => ({ useWizard: () => ({ data: h.data, update: h.update }) }));
+import BudgetView from '@/components/project/BudgetView';
 import { StageSchedule } from '@/components/project/StageSchedule';
 import { BuildingTypeField } from '@/components/wizard/BuildingTypeField';
 import { useResources } from '@/lib/resources-labels';
@@ -102,4 +103,23 @@ describe('available resources', () => {
     for (const row of unpublished) expect(resources.bySlug(row.slug)).toBeUndefined();
     expect(resources.all.some(row => row.category === 'videos')).toBe(false);
   });
+});
+
+
+it('labels a confirmed BOQ as the agreed bill total, without estimate or extra-fee wording', () => {
+  const html = renderToStaticMarkup(createElement(BudgetView, { project: h.project, stages: [], showMilestoneBuckets: false }));
+  expect(html).toContain('1,000.125 XAF');
+  expect(html).toContain('project.review.confirmedBillTotal');
+  expect(html).toContain('project.review.confirmedBillNote');
+  expect(html).not.toContain('project.costing.disclaimer');
+  expect(html).not.toContain('project.costing.budgetEstimate');
+});
+
+
+it('does not claim that a receipt is unconfirmed when no payment ledger was supplied', () => {
+  const html = renderToStaticMarkup(createElement(StageSchedule, { project: h.project, stages: [stage('Wall', 1)],
+    basis: { wholeProject: true, base: h.project.budget_usd } }));
+  expect(html).toContain('100 XAF');
+  expect(html).not.toContain('project.review.receiptExpected');
+  expect(html).not.toContain('project.review.receiptConfirmed');
 });
