@@ -2792,6 +2792,10 @@ export const en = {
     next: 'Got it',
     done: 'Done',
     skip: 'Skip',
+    budgetCheck: {
+      title: 'Check this against your bill before you confirm',
+      body: "Everything below is built from this one figure \u2014 every stage becomes its percentage of it, and nothing is added on top. If you uploaded a bill of quantities, this should be its total, exactly. If it is not, type the total from your bill here before you confirm.",
+    },
     planQuestion: {
       title: 'This question decides the next five minutes',
       body: "If your architect has given you drawings and a priced bill of quantities, choose Yes \u2014 upload them and your budget is read straight off your own documents. If you do not have them yet, choose No: we work out the size, the layout and the cost with you, step by step. Neither answer is the better one. They are two different starting points.",

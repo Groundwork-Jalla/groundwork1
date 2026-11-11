@@ -60,6 +60,16 @@ describe('the two tours', () => {
     expect(stepsFor('contractor-setup')[0].anchor).toBe('add-client');
   });
 
+  it('both check the confirmed figure against the bill, on the wizard, after the plan question', () => {
+    // Philip, 10 Nov 2026: a walkthrough on the budget confirmation page.
+    for (const tour of ['client-setup', 'contractor-setup'] as const) {
+      const anchors = stepsFor(tour).map(s => s.anchor);
+      expect(anchors).toContain('confirm-budget');
+      expect(anchors.indexOf('confirm-budget')).toBeGreaterThan(anchors.indexOf('plan-question'));
+      expect(stepsFor(tour).find(s => s.anchor === 'confirm-budget')?.route).toBe('/projects/new');
+    }
+  });
+
   it('both explain the plan question, in the same words', () => {
     const client = stepsFor('client-setup').find(s => s.anchor === 'plan-question');
     const contractor = stepsFor('contractor-setup').find(s => s.anchor === 'plan-question');

@@ -458,7 +458,16 @@ export function StageTracker({
                     </span>
                   </button>
 
-                  {stage.status === 'complete' && canCertify && (
+                  {/*
+                    * Never for a stage that was already built when the project joined
+                    * (103). It is `complete`, which is why this used to show for it — and
+                    * what it offered was a certificate for work nobody from Jalla ever
+                    * saw. Philip, 10 Nov 2026: "certificates must depend on verification
+                    * rather than stage completion." Nothing was ever actually issued —
+                    * production holds no certificate rows at all — but a button that
+                    * offers one is the claim, whether or not it is pressed.
+                    */}
+                  {stage.status === 'complete' && canCertify && !stage.pre_existing && (
                     <button
                       type="button"
                       onClick={() => setCertStage(stage)}

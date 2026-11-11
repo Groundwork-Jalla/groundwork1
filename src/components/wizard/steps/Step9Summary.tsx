@@ -394,6 +394,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
         </span>
         <input
           id="final-budget"
+          data-tour="confirm-budget"
           inputMode="numeric"
           // Grouped for reading — 26,687,728, not 26687728. A construction budget here
           // runs to eight digits and an ungrouped one cannot be checked at a glance

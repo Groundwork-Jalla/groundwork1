@@ -2733,6 +2733,10 @@ export const fr: Mirror<EnDict> = {
     next: "C'est compris",
     done: 'Termin\u00e9',
     skip: 'Passer',
+    budgetCheck: {
+      title: 'V\u00e9rifiez ce montant sur votre devis avant de confirmer',
+      body: "Tout ce qui suit est calcul\u00e9 \u00e0 partir de ce seul montant \u2014 chaque \u00e9tape en devient un pourcentage, et rien n'est ajout\u00e9 par-dessus. Si vous avez t\u00e9l\u00e9vers\u00e9 un devis quantitatif, ce doit \u00eatre son total, exactement. Sinon, saisissez ici le total de votre devis avant de confirmer.",
+    },
     planQuestion: {
       title: 'Cette question d\u00e9termine les cinq prochaines minutes',
       body: "Si votre architecte vous a remis des plans et un devis quantitatif chiffr\u00e9, choisissez Oui \u2014 t\u00e9l\u00e9versez-les et votre budget est lu directement dans vos propres documents. Si vous ne les avez pas encore, choisissez Non : nous \u00e9tablirons avec vous la surface, la distribution et le co\u00fbt, \u00e9tape par \u00e9tape. Aucune des deux r\u00e9ponses n'est meilleure. Ce sont deux points de d\u00e9part diff\u00e9rents.",

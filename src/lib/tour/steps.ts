@@ -68,6 +68,15 @@ const CLIENT_STEPS: TourStep[] = [
     bodyKey: 'tour.planQuestion.body',
   },
   {
+    // Philip, 10 Nov 2026: "a walkthrough popup on the budget confirmation page to
+    // match the BOQ." The figure here becomes the whole schedule, so this is the one
+    // place a mismatch with the bill must be caught before it is created.
+    anchor: 'confirm-budget',
+    route: '/projects/new',
+    titleKey: 'tour.budgetCheck.title',
+    bodyKey: 'tour.budgetCheck.body',
+  },
+  {
     anchor: 'invite-contractor',
     route: '/projects',
     titleKey: 'tour.client.invite.title',
@@ -101,6 +110,15 @@ const CONTRACTOR_STEPS: TourStep[] = [
     route: '/projects/new',
     titleKey: 'tour.planQuestion.title',
     bodyKey: 'tour.planQuestion.body',
+  },
+  {
+    // Philip, 10 Nov 2026: "a walkthrough popup on the budget confirmation page to
+    // match the BOQ." The figure here becomes the whole schedule, so this is the one
+    // place a mismatch with the bill must be caught before it is created.
+    anchor: 'confirm-budget',
+    route: '/projects/new',
+    titleKey: 'tour.budgetCheck.title',
+    bodyKey: 'tour.budgetCheck.body',
   },
   {
     anchor: 'upload-evidence',

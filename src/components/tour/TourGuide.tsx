@@ -153,30 +153,76 @@ export function TourGuide({ tour }: { tour: TourId }) {
     if (h && h !== bubbleHeight) setBubbleHeight(h);
   });
 
+  /*
+   * If the sheet still covers the anchor on a phone — an anchor taller than the space
+   * either edge leaves — scroll the page by exactly the shortfall, once per step. Once,
+   * so it never fights a person who then scrolls back; and only on a phone, because on
+   * a wide screen the bubble sits beside the anchor and never over it.
+   */
+  const nudgedFor = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!step || !box || window.innerWidth >= 640) return;
+    if (nudgedFor.current === step.anchor) return;
+    const mid = box.top + box.height / 2;
+    const sheetTop = mid > window.innerHeight / 2 ? GUTTER : window.innerHeight - bubbleHeight - GUTTER;
+    const sheetBottom = sheetTop + bubbleHeight;
+    const overlaps = !(box.top >= sheetBottom + GAP || box.top + box.height <= sheetTop - GAP);
+    if (!overlaps) return;
+    nudgedFor.current = step.anchor;
+    // Sheet at the top → bring the anchor down below it; sheet at the bottom → up above it.
+    const delta = sheetTop === GUTTER
+      ? -(sheetBottom + GAP - box.top)
+      : (box.top + box.height) - (sheetTop - GAP);
+    window.scrollBy({ top: delta, behavior: 'smooth' });
+  }, [step, box, bubbleHeight]);
+
   if (!step || !box || !user?.id) return null;
 
   const advance = () => setSeen(markSeen(user.id, tour, step.anchor));
   const skip = () => setSeen(dismissTour(user.id, tour, steps.map(s => s.anchor)));
 
+  /*
+   * On a phone the tip is a sheet along the bottom edge, not a bubble beside the anchor.
+   *
+   * Philip, 10 Nov 2026: "the modal popup design blocks critical content and hinders
+   * user interaction during setup." On a 390px screen the longest tip — the plan
+   * question, which has to explain both ways a project can start — is ~300px tall, and
+   * floated above or below its anchor it sat over the question itself. There is no
+   * placement on that screen that covers nothing, so the honest one is a fixed strip
+   * at the bottom: the ring still marks the thing to press, the page above it stays
+   * readable and scrollable, and the arrow — which would point at nothing — is gone.
+   */
+  const phone = window.innerWidth < 640;
+
   // Below the anchor, unless there is more room above it. Compared both ways rather
-  // than only testing "does it fit below": on a phone a long tip fits in NEITHER
-  // direction, and the right answer then is the side with more space, not the default.
+  // than only testing "does it fit below": a long tip can fit in NEITHER direction, and
+  // the right answer then is the side with more space, not the default.
   const roomBelow = window.innerHeight - (box.top + box.height) - GAP - GUTTER;
   const roomAbove = box.top - GAP - GUTTER;
   const side: Side = bubbleHeight <= roomBelow || roomBelow >= roomAbove ? 'below' : 'above';
 
-  // Clamped to a gutter on every edge so the bubble never hangs off the screen, which is
-  // where most of this market reads the product.
-  const width = Math.min(320, window.innerWidth - GUTTER * 2);
-  const left = Math.max(GUTTER, Math.min(
+  // Clamped to a gutter on every edge so the bubble never hangs off the screen.
+  const width = phone ? window.innerWidth - GUTTER * 2 : Math.min(320, window.innerWidth - GUTTER * 2);
+  const left = phone ? GUTTER : Math.max(GUTTER, Math.min(
     box.left + box.width / 2 - width / 2, window.innerWidth - width - GUTTER));
   const unclamped = side === 'below'
     ? box.top + box.height + GAP
     : box.top - GAP - bubbleHeight;
   // The last resort: a tip taller than the viewport is pinned to the top gutter and
   // scrolls with its own content rather than being cut off at the bottom.
-  const top = Math.max(GUTTER,
-    Math.min(unclamped, window.innerHeight - bubbleHeight - GUTTER));
+  /*
+   * On a phone: the edge FARTHER from the anchor, not always the bottom. Measured on a
+   * 390×844 screen, the plan question's two cards span 335–589 and a bottom sheet of
+   * 274px starts at 554 — over the second card by 35px, the exact complaint. The cards
+   * sit in the lower half, so the sheet belongs at the top, where it ends at 290 and
+   * covers nothing. An anchor in the upper half gets the bottom edge for the same
+   * reason. Only an anchor tall enough to collide with both is nudged — see below.
+   */
+  const anchorMid = box.top + box.height / 2;
+  const phoneEdge: 'top' | 'bottom' = anchorMid > window.innerHeight / 2 ? 'top' : 'bottom';
+  const top = phone
+    ? (phoneEdge === 'top' ? GUTTER : Math.max(GUTTER, window.innerHeight - bubbleHeight - GUTTER))
+    : Math.max(GUTTER, Math.min(unclamped, window.innerHeight - bubbleHeight - GUTTER));
 
   const Arrow = side === 'below' ? ArrowUp : ArrowDown;
   const remaining = steps.filter(s => !seen.includes(s.anchor)).length;
@@ -198,11 +244,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
         role="dialog"
         aria-live="polite"
         aria-label={t(step.titleKey)}
-        className="fixed z-[91] max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl border border-brand-border-grey bg-white p-4 shadow-lg dark:border-[#2a2a2a] dark:bg-[#1a1a1a]"
+        className="fixed z-[91] max-h-[45vh] overflow-y-auto rounded-2xl border border-brand-border-grey bg-white p-4 shadow-lg sm:max-h-[calc(100vh-32px)] dark:border-[#2a2a2a] dark:bg-[#1a1a1a]"
         style={{ top, left, width }}
       >
         <div className="flex items-start gap-2.5">
-          <Arrow className="mt-0.5 size-4 shrink-0 text-brand-near-black dark:text-white" aria-hidden />
+          {!phone && <Arrow className="mt-0.5 size-4 shrink-0 text-brand-near-black dark:text-white" aria-hidden />}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
               {t(step.titleKey)}
