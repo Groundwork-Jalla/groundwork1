@@ -320,7 +320,7 @@ export default function OverviewTab({
           {/* What it takes to open the next stage */}
           <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
             <p className="text-sm font-medium text-brand-near-black dark:text-white">
-              {t('project.overview.unlockTitle')}
+              {t('project.review.nextAction')}
             </p>
 
             {project.status === 'on_hold' ? <p className="mt-3 text-sm text-brand-mid-grey">{t('project.review.paused')}</p>

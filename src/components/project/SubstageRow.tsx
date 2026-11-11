@@ -21,7 +21,7 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
 
   if (status === 'complete') {
     return (
-      <span className={cn(box, 'border-brand-near-black bg-brand-near-black')}>
+      <span className={cn(box, 'border-brand-green bg-brand-green')}>
         <Check className="size-2.5 text-white" strokeWidth={3.5} />
       </span>
     );

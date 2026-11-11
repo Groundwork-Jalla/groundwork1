@@ -41,7 +41,8 @@ export function FileRow({ kind, name, sub, when, action, state, onOpen, busy }: 
         {kind}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold text-brand-near-black dark:text-white">{name}</span>
+        {onOpen ? <button type="button" onClick={onOpen} disabled={busy} className="block max-w-full truncate text-left text-[13px] font-semibold text-brand-near-black underline-offset-4 hover:underline dark:text-white">{name}</button>
+          : <span className="block truncate text-[13px] font-semibold text-brand-near-black dark:text-white">{name}</span>}
         <span className="block text-[11px] text-brand-mid-grey">{sub}</span>
       </span>
       {when && <span className="shrink-0 font-mono text-[11px] text-brand-mid-grey">{when}</span>}

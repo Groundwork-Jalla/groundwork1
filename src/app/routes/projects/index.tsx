@@ -90,7 +90,7 @@ function ProjectCard({ project, shared, assigned }: { project: ProjectRow; share
         <div>
           <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('projects.estBudget')}</p>
           <p className="text-sm font-mono font-semibold text-brand-near-black tabular-nums">{budget > 0 ? money.local(budget, project.budget_amount) : '—'}</p>
-          {money.pair(budget, project.budget_amount)?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {money.pair(budget, project.budget_amount)?.usd}</p>
+          {money.pair(budget, project.budget_amount)?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {money.pair(budget, project.budget_amount)?.usd}</p>}
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
           {t('common.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />

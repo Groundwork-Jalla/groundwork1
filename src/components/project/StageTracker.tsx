@@ -6,6 +6,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { useMoney } from '@/lib/budget/project-money-context';
+import { MoneyValue } from './MoneyValue';
 import { formatShare } from '@/lib/budget/stage-shares';
 import { isSelfVerify } from '@/lib/tier';
 import { useT, type TKey } from '@/lib/i18n';
@@ -38,7 +39,7 @@ function StageCircle({
     return (
       <span
         className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-near-black transition-all',
+          'flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-green transition-all',
           ring,
         )}
       >
@@ -81,12 +82,12 @@ function StageCircle({
 function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
   const t = useT();
   const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
-    active:         { labelKey: 'project.stages.badgeActive',   className: 'bg-brand-green text-white' },
+    active:         { labelKey: 'project.stages.badgeActive', className: 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' },
     pending_review: {
-      labelKey:  isSelfVerify(tier) ? 'project.stages.badgeYourApproval' : 'project.stages.badgeReview',
+      labelKey: 'project.stages.badgeYourApproval',
       className: 'border border-brand-border-grey text-brand-mid-grey',
     },
-    complete:       { labelKey: 'project.stages.badgeComplete', className: 'bg-brand-off-white border border-brand-border-grey text-brand-mid-grey' },
+    complete:       { labelKey: 'project.review.approved', className: 'bg-brand-green text-white' },
     locked:         { labelKey: 'project.stages.badgeLocked',   className: 'text-brand-mid-grey' },
   };
   const { labelKey, className } = map[status];
@@ -240,7 +241,7 @@ function StageDetail({
         </div>
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
           <span className="text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-            {money(stage.payment_milestone_usd ?? 0, stage.milestone_amount)}{' '}
+            <MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} />{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
           <StageBadge status={stage.status} tier={tier} />

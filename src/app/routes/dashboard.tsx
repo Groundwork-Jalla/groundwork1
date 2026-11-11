@@ -217,7 +217,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
       <h2 className="text-xl font-bold text-white sm:text-2xl">{project.name}</h2>
       <p className="mt-1 text-xs text-white/75">{meta}</p>
       <p className="mt-2 font-mono text-lg font-semibold text-white">{money.local(total, project.budget_amount)}</p>
-      {money.pair(total, project.budget_amount)?.usd && <p className="font-mono text-xs text-white/75">≈ {money.pair(total, project.budget_amount)?.usd}</p>
+      {money.pair(total, project.budget_amount)?.usd && <p className="font-mono text-xs text-white/75">≈ {money.pair(total, project.budget_amount)?.usd}</p>}
 
       <div className="mt-5">
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">

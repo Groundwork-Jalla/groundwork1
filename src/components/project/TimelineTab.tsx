@@ -102,7 +102,7 @@ function ListView({
   const t = useT();
   const selfVerify = isSelfVerify(project.tier);
   const verificationLabel = t('project.review.approved');
-  const VerifyIcon = selfVerify ? BadgeCheck : ShieldCheck;
+  const VerifyIcon = CheckCircle2;
 
   return (
     <div className="flex flex-col divide-y divide-brand-off-white dark:divide-[#2c2c2c]">
@@ -131,10 +131,10 @@ function ListView({
                 )}>
                   {stageLabel(stage)}
                 </span>
-                <div className="flex items-center gap-1 text-[9px] text-brand-mid-grey border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-1.5 py-0.5 shrink-0">
+                {stage.status === 'complete' && <div className="flex items-center gap-1 text-[9px] text-brand-mid-grey border border-brand-border-grey dark:border-[#2c2c2c] rounded-full px-1.5 py-0.5 shrink-0">
                   <VerifyIcon className="size-2.5" />
-                  {verificationLabel}
-                </div>
+                  {stage.pre_existing ? t('project.costing.completedBeforeTracking') : verificationLabel}
+                </div>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[10px] text-brand-mid-grey whitespace-nowrap">
@@ -335,9 +335,7 @@ function GanttView({
             { color: 'var(--color-ink)', key: 'project.timeline.legendInProgress' as TKey },
             // Same reason as the pill: on Self Verify the amber band is the owner's own
             // queue, not a wait on Jalla.
-            { color: 'var(--color-ink-60)', key: (isSelfVerify(project.tier)
-                ? 'project.timeline.legendYourApproval'
-                : 'project.timeline.legendAwaiting') as TKey },
+            { color: 'var(--color-ink-60)', key: 'project.timeline.legendYourApproval' as TKey },
             { color: '#d1d5db', key: 'project.timeline.legendUpcoming'   as TKey },
           ]).map(item => (
             <div key={item.key} className="flex items-center gap-1.5">

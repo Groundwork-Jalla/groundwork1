@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Download, Loader2, X } from 'lucide-react';
 import { useT } from '@/lib/i18n';
+import { SpreadsheetViewer } from './SpreadsheetViewer';
 
 // =========================================================
 // Open a document without leaving the project.
@@ -22,13 +23,14 @@ import { useT } from '@/lib/i18n';
 // and does not know or care which it got.
 // =========================================================
 
-export type ViewerKind = 'pdf' | 'image' | 'other';
+export type ViewerKind = 'pdf' | 'image' | 'spreadsheet' | 'other';
 
 /** What a browser can draw, decided from the file name rather than a stored MIME type,
  *  because `mime_type` is null on plenty of older rows. */
 export function viewerKindFor(fileName: string): ViewerKind {
   const ext = (fileName.split('.').pop() ?? '').toLowerCase();
   if (ext === 'pdf') return 'pdf';
+  if (['xlsx', 'xls', 'csv', 'ods'].includes(ext)) return 'spreadsheet';
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp', 'svg'].includes(ext)) return 'image';
   return 'other';
 }
@@ -91,7 +93,7 @@ export function DocumentViewer({ name, url, loading, onClose }: {
             <p className="flex items-center gap-2 text-sm text-brand-mid-grey">
               <Loader2 className="size-4 animate-spin" aria-hidden />{t('common.loading')}
             </p>
-          ) : kind === 'pdf' ? (
+          ) : kind === 'spreadsheet' ? <SpreadsheetViewer key={url} url={url} /> : kind === 'pdf' ? (
             <iframe src={url} title={name} className="h-full w-full border-0" />
           ) : kind === 'image' ? (
             <img src={url} alt={name} className="max-h-full max-w-full object-contain" />

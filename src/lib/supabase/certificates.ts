@@ -111,7 +111,7 @@ export interface IssuedCertificate {
   pdfUrl: string | null;
 }
 
-export async function fetchProjectCertificates(projectId: string): Promise<Map<string, IssuedCertificate>> {
+export async function fetchProjectCertificates(projectId: string, options: { strict?: boolean } = {}): Promise<Map<string, IssuedCertificate>> {
   const out = new Map<string, IssuedCertificate>();
   const { data, error } = await supabase
     .from('certificates')
@@ -119,7 +119,7 @@ export async function fetchProjectCertificates(projectId: string): Promise<Map<s
     .eq('project_id', projectId);
   // A project with no certificates, or a deployment without the table, is an empty
   // map: the tab then shows the stages with no button, which is the truth.
-  if (error) return out;
+  if (error) { if (options.strict) throw error; return out; }
   for (const row of (data ?? []) as { id: string; stage_id: string; pdf_url: string | null }[]) {
     if (row.stage_id) out.set(String(row.stage_id), {
       id: String(row.id), stageId: String(row.stage_id), pdfUrl: row.pdf_url ?? null,
