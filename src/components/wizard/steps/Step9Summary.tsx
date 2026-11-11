@@ -13,10 +13,11 @@ import { checkEstimate } from '@/lib/budget/sanity';
 import { floorCountPatch, MAX_FLOORS, MIN_FLOORS } from '@/lib/projects/floors';
 import { calculateBudget } from '@/lib/budget';
 import { moneyPair } from '@/lib/budget/money-pair';
+import { billTotalSuggestion, confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { useUsdRate } from '@/lib/budget/live-fx';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 import { cn } from '@/lib/utils';
-import { useT } from '@/lib/i18n';
+import { useT, useLanguage } from '@/lib/i18n';
 import { useDomainLabels } from '@/lib/domain-labels';
 
 // Was `const PREDICTED_DAYS = 196` — the fifth copy of that number, and the one a client
@@ -302,15 +303,16 @@ function SummaryRow({ icon, label, value }: { icon: React.ReactNode; label: stri
 }
 
 /** "26687728" -> "26,687,728". Display only; the draft keeps the bare digits. */
-function grouped(value: string): string {
+function grouped(value: string, lang: 'en' | 'fr'): string {
   if (!value) return '';
   const [whole, ...rest] = value.split('.');
-  const withCommas = (whole ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return rest.length ? `${withCommas}.${rest.join('.')}` : withCommas;
+  const groupedWhole = (whole ?? '').replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'fr' ? '\u202f' : ',');
+  return rest.length ? `${groupedWhole}${lang === 'fr' ? ',' : '.'}${rest.join('.')}` : groupedWhole;
 }
 
 function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; onConfirmed: (v: boolean) => void }) {
   const t = useT();
+  const { lang } = useLanguage();
   const { data, constructionRate, cityRate, confirmationDraft, updateConfirmationDraft,
     documentExtraction, pendingDocuments, planDocumentsSeen } = useWizard();
   // An unreadable bill requires its amount to be entered; an estimate cannot replace it.
@@ -360,8 +362,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
   const hasBill = !!data.boqBudget || (pendingDocuments ?? []).some(d => d.category === 'boq')
     || (data.hasArchitecturePlan === true && planDocumentsSeen);
   const reading = documentExtraction?.bqReading;
-  const billTotal = data.boqBudget?.amount != null ? Number(data.boqBudget.amount)
-    : reading?.confidence === 'grand' ? reading.total : null;
+  const billTotal = billTotalSuggestion(data.boqBudget, reading);
   const estimate = billTotal ?? (hasBill ? 0
     : Math.round((data.bqTotalUsd ?? calculateBudget(data, constructionRate, cityRate).total)
         * (fxRate > 0 ? fxRate : 1)));
@@ -380,7 +381,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
     previousEstimate.current = estimate;
   }, [raw, estimate, updateConfirmationDraft]);
 
-  const amount = /^\d+(?:\.\d{1,6})?$/.test(raw) && Number(raw) <= 1e12 ? Number(raw) : 0;
+  const amount = confirmedBillAmount(raw) ?? 0;
   useEffect(() => { onConfirmed(false); }, [raw, currencyCode, onConfirmed]);
   return (
     <div className="mt-5 rounded-xl border border-brand-border-grey px-5 py-4 space-y-1.5">
@@ -400,10 +401,10 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
           // runs to eight digits and an ungrouped one cannot be checked at a glance
           // against the bill it came from. Stored ungrouped: the separators are display
           // only, and are stripped straight back out below.
-          value={grouped(raw)}
+          value={grouped(raw, lang)}
           onChange={e => {
             touchedByUser.current = true;
-            updateConfirmationDraft?.({ raw: e.target.value.replace(/[^0-9.]/g, '') });
+            updateConfirmationDraft?.({ raw: normaliseBudgetInput(e.target.value, lang) });
           }}
           placeholder="0"
           className="w-full rounded-xl border border-brand-border-grey bg-white pl-16 pr-4 py-3 text-lg font-bold tabular-nums text-brand-near-black focus:outline-none focus:border-brand-near-black"

@@ -185,7 +185,7 @@ END $$;
 -- checks allow the confirmation RPC to update the complete schedule atomically.
 CREATE OR REPLACE FUNCTION public.check_boq_budget_schedule()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_id uuid; p public.projects%ROWTYPE;
+DECLARE v_id uuid; p public.projects%ROWTYPE; v_pct numeric;
 BEGIN
   IF TG_TABLE_NAME = 'projects' THEN
     v_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END;
@@ -199,12 +199,17 @@ BEGIN
   END IF;
   -- Legacy projects have no verified source amount yet. Do not invent that evidence.
   IF p.budget_amount IS NULL THEN RETURN NULL; END IF;
+  SELECT sum(budget_pct) INTO v_pct FROM public.project_stages WHERE project_id = v_id;
   IF p.budget_usd <> round(p.budget_amount / p.budget_fx_rate, 9)
+     OR v_pct IS NULL OR abs(v_pct - 100) > 0.0001
      OR coalesce((SELECT sum(milestone_amount) FROM public.project_stages WHERE project_id = v_id),0) <> p.budget_amount
      OR coalesce((SELECT sum(payment_milestone_usd) FROM public.project_stages WHERE project_id = v_id),0) <> p.budget_usd
      OR EXISTS (SELECT 1 FROM public.project_stages WHERE project_id = v_id
        AND (milestone_amount IS NULL OR payment_milestone_usd IS NULL OR milestone_amount < 0
-         OR payment_milestone_usd < 0 OR (budget_pct = 0 AND (milestone_amount <> 0 OR payment_milestone_usd <> 0)))) THEN
+         OR payment_milestone_usd < 0 OR budget_pct < 0
+         OR abs(payment_milestone_usd - round(milestone_amount / p.budget_fx_rate, 9)) > 0.000000001
+         OR abs(milestone_amount - p.budget_amount * budget_pct / nullif(v_pct,0)) > power(10::numeric,-p.budget_precision)
+         OR (budget_pct = 0 AND (milestone_amount <> 0 OR payment_milestone_usd <> 0)))) THEN
     RAISE EXCEPTION 'boq_stage_total_mismatch: stages must reconcile to the confirmed bill';
   END IF;
   RETURN NULL;

@@ -1,4 +1,5 @@
-import type { BudgetBreakdown, ProjectRow } from '@/types/project';
+import type { BudgetBreakdown, ProjectRow, WizardFormData } from '@/types/project';
+import type { BqReading } from './read-bq-total';
 
 export interface BillBudgetSnapshot {
   amount: string;
@@ -17,6 +18,27 @@ export function confirmedBillAmount(raw: string): number | null {
   if (!/^\d+(?:\.\d{1,6})?$/.test(raw)) return null;
   const amount = Number(raw);
   return Number.isFinite(amount) && amount > 0 && amount <= 1e12 ? amount : null;
+}
+
+export function billTotalSuggestion(bill: WizardFormData['boqBudget'], reading?: BqReading | null): number | null {
+  if (bill?.amount != null) return confirmedBillAmount(bill.amount);
+  return reading?.confidence === 'grand' ? confirmedBillAmount(reading.sourceAmount ?? String(reading.total)) : null;
+}
+
+/** Preserve the unfinished decimal while typing, including a French decimal comma. */
+export function normaliseBudgetInput(value: string, lang: 'en' | 'fr'): string {
+  const clean = value.replace(/[^\d.,\s]/g, '').replace(/\s/g, '');
+  const dot = clean.lastIndexOf('.'), comma = clean.lastIndexOf(',');
+  if (dot >= 0 && comma >= 0) {
+    const at = Math.max(dot, comma);
+    return clean.slice(0, at).replace(/[.,]/g, '') + '.' + clean.slice(at + 1).replace(/[.,]/g, '');
+  }
+  if (comma >= 0) {
+    if (/^\d{1,3}(?:,\d{3})+$/.test(clean) && (lang === 'en' || clean.indexOf(',') !== comma)) return clean.replace(/,/g, '');
+    return clean.replace(',', '.');
+  }
+  if (dot >= 0 && /^\d{1,3}(?:\.\d{3}){2,}$/.test(clean)) return clean.replace(/\./g, '');
+  return clean;
 }
 
 /** Sum native allocations in integer source units rather than adding binary floats. */

@@ -162,7 +162,9 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
-  const { user, isContractor } = useAuth();
+  const { user, isContractor: hasContractorRole } = useAuth();
+  const [contractorProjectId, setContractorProjectId] = useState<string | null>(null);
+  const isContractor = contractorProjectId === id;
   const t        = useT();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
@@ -201,25 +203,30 @@ export default function ProjectDetail() {
     if (!id) return;
     try {
       // The document count went with the delete confirmation it was counting for (053).
-      const [p, s, sub, pay, fee] = await Promise.all([
+      const [p, s, sub, pay, fee, assignment] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
         fetchStagePayments(id),
         fetchProjectFees(id),
+        hasContractorRole && user?.id ? supabase.from('contractor_invites').select('id')
+          .eq('project_id', id).eq('contractor_user_id', user.id).eq('status', 'accepted').limit(1)
+          : Promise.resolve({ data: [], error: null }),
       ]);
+      if (assignment.error) throw assignment.error;
       if (!p) { setError(t('project.notFound')); return; }
       setProject(p);
       setStages(s);
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
+      setContractorProjectId(assignment.data?.length ? id : null);
     } catch {
       setError(t('project.loadFailed'));
     }
     // `t` is a dependency now that the messages come from the dictionary: without it
     // a toggle after mount would leave this closure reporting in the old language.
-  }, [id, t]);
+  }, [id, t, hasContractorRole, user?.id]);
 
   useEffect(() => {
     loadAll().finally(() => setLoading(false));

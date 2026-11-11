@@ -381,7 +381,7 @@ export default function OverviewTab({
    */
   const feePaid = (kind: ProjectFeeRow['kind']) =>
     fees.filter(f => f.kind === kind && f.payment_status === 'paid')
-        .reduce((acc, f) => acc + Number(f.amount_usd ?? 0), 0);
+        .reduce((acc, f) => acc + Number(f.boq_waived_amount_usd ?? f.amount_usd ?? 0), 0);
 
   const designPaid = billableStages
     .filter(s => s.stage_key === 'designCompleted' && stageIsPaid(s))

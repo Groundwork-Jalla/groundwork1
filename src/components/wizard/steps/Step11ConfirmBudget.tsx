@@ -50,6 +50,7 @@ export default function Step11ConfirmBudget() {
   const f         = useFormat();
   const fileRef   = useRef<HTMLInputElement>(null);
   const attachmentGeneration = useRef(0);
+  useEffect(() => () => { attachmentGeneration.current++; }, []);
 
   /**
    * What the budget starts at.

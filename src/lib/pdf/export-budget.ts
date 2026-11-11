@@ -44,7 +44,7 @@ export async function exportBudgetPDF(
   const locale = localeFor(lang);
   const converts = !!fx && fx.code !== 'USD' && Number.isFinite(fx.rate) && fx.rate > 0;
   const money = project.budget_source === 'boq'
-    ? (n: number) => projectMoneyPair(project, n)?.local ?? formatMoney(n, 'USD', locale)
+    ? (n: number, sourceAmount?: number | null) => projectMoneyPair(project, n, null, sourceAmount)?.local ?? formatMoney(n, 'USD', locale)
     : converts
     ? (n: number) => moneyPair(Math.round(n * fx!.rate), fx!.code, fx!.rate).local
     : (n: number) => formatMoney(n, 'USD', locale);
@@ -198,11 +198,11 @@ export async function exportBudgetPDF(
       doc.setFillColor(245, 245, 245);
       doc.rect(MARGIN, y, COL, 6, 'F');
     }
-    const payKey = PAY_LABEL[stage.payment_status];
+    const payKey = stage.pre_existing ? null : PAY_LABEL[stage.payment_status];
     doc.text(`${stage.stage_number}. ${stageLabel(lang, stage)}`, MARGIN + 2,   y + 4);
     doc.text(formatShare(stage.budget_pct),                    MARGIN + 95,  y + 4);
-    doc.text(money(stage.payment_milestone_usd ?? 0),             MARGIN + 110, y + 4);
-    doc.text(payKey ? t(payKey) : '—',                            MARGIN + 155, y + 4);
+    doc.text(money(stage.payment_milestone_usd ?? 0, stage.milestone_amount), MARGIN + 110, y + 4);
+    doc.text(stage.pre_existing ? t('project.overview.historicalValue') : payKey ? t(payKey) : '—', MARGIN + 155, y + 4);
     y += 6;
     rowShade = !rowShade;
   }
