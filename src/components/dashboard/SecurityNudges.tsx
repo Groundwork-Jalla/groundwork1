@@ -14,22 +14,22 @@ import { useT } from '@/lib/i18n';
 // until the checks have answered, so the page never flashes a warning it then retracts.
 // =========================================================
 
-export function SecurityNudges({ user }: { user: User | null }) {
+export function SecurityNudges({ user, showTwoFactor = true }: { user: User | null; showTwoFactor?: boolean }) {
   const t = useT();
   const [twoFactor, setTwoFactor] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !showTwoFactor) return;
     let alive = true;
     secondFactorEnabled(user.id)
       .then(v => { if (alive) setTwoFactor(v); })
       .catch(() => { if (alive) setTwoFactor(true); });   // unknown ≠ missing; stay quiet
     return () => { alive = false; };
-  }, [user]);
+  }, [user, showTwoFactor]);
 
-  if (!user || twoFactor === null) return null;
+  if (!user || (showTwoFactor && twoFactor === null)) return null;
   const needsPassword = googleWithoutPassword(user);
-  if (twoFactor && !needsPassword) return null;
+  if ((!showTwoFactor || twoFactor) && !needsPassword) return null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -42,7 +42,7 @@ export function SecurityNudges({ user }: { user: User | null }) {
           cta={t('dashboard.security.passwordCta')}
         />
       )}
-      {!twoFactor && (
+      {showTwoFactor && !twoFactor && (
         <Nudge
           icon={<ShieldAlert className="size-4" />}
           title={t('dashboard.security.twoFactorTitle')}

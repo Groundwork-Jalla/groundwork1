@@ -17,6 +17,8 @@
   /* ── Foundations v1 · ink and paper ──────────────────────
      Semantic, not decorative. A colour means one thing and only that thing. */
   --color-ink:      #0a0a0a;  /* primary text, active nav, primary button fill */
+  --color-brand-green: #1f4d36;
+  --color-brand-green-hover: #173c2a;
   --color-ink-60:   #5a5a57;  /* supporting lines, column headers, descriptions */
   --color-ink-35:   #9a9a96;  /* timestamps, eyebrows, locked figures */
   --color-paper:    #ffffff;  /* anything holding content or a figure */
@@ -26,7 +28,7 @@
   /* ── Foundations v1 · state ──────────────────────────────
      Five states carry every status in the product. No tinted backgrounds —
      state is a 6px dot plus the figure's own colour, never a pastel pill. */
-  --color-state-complete: #1f4d36; /* stage verified, funds released */
+  --color-state-complete: #1f4d36; /* completed work; payment is recorded separately */
   --color-state-active:   #0a0a0a; /* in progress / in transit */
   --color-state-held:     #8a6a2c; /* with the platform, awaiting verification */
   --color-state-locked:   #d6d4ce; /* not yet reachable; pairs with --color-ink-35 */

@@ -17,6 +17,8 @@ export type ResourceCategory = 'guides' | 'checklists' | 'legalFinance' | 'video
 export type ResourceTag = 'popular' | 'essential' | 'new' | 'important' | 'startHere';
 
 export interface ResourceMeta {
+  /** Keep unfinished resources out of navigation and direct resource pages. */
+  available?: boolean;
   slug: string;
   /** Dictionary sub-key under `resources.articles`. */
   key: string;
@@ -41,8 +43,8 @@ export const RESOURCE_META: ResourceMeta[] = [
   { slug: 'title-deed-verification',         key: 'titleDeedVerification',        category: 'legalFinance', stage: 1,    tag: 'important', minutes: 7,  paragraphs: 5 },
   { slug: 'building-permit-process',         key: 'buildingPermitProcess',        category: 'legalFinance', stage: 1,    tag: null,        minutes: 5,  paragraphs: 2 },
   { slug: 'currency-transfer-tips',          key: 'currencyTransferTips',         category: 'legalFinance', stage: null, tag: null,        minutes: 4,  paragraphs: 2 },
-  { slug: 'groundwork-walkthrough',          key: 'groundworkWalkthrough',        category: 'videos',       stage: null, tag: 'startHere', minutes: 5,  paragraphs: 5 },
-  { slug: 'reading-site-evidence',           key: 'readingSiteEvidence',          category: 'videos',       stage: null, tag: null,        minutes: 8,  paragraphs: 2 },
+  { slug: 'groundwork-walkthrough',          key: 'groundworkWalkthrough',        category: 'videos', available: false,       stage: null, tag: 'startHere', minutes: 5,  paragraphs: 5 },
+  { slug: 'reading-site-evidence',           key: 'readingSiteEvidence',          category: 'videos', available: false,       stage: null, tag: null,        minutes: 8,  paragraphs: 2 },
   { slug: 'roof-types-explained',            key: 'roofTypesExplained',           category: 'guides',       stage: 5,    tag: null,        minutes: 6,  paragraphs: 2 },
 ];
 

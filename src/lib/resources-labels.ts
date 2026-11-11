@@ -57,7 +57,7 @@ export function useResources() {
     [t, categoryLabel, tagLabel],
   );
 
-  const all = useMemo(() => RESOURCE_META.map(resolve), [resolve]);
+  const all = useMemo(() => RESOURCE_META.filter(meta => meta.available !== false).map(resolve), [resolve]);
 
   const bySlug = useCallback(
     (slug: string | undefined) => all.find(r => r.slug === slug),

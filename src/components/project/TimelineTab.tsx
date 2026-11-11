@@ -74,7 +74,7 @@ function statusLabelKey(status: string, tier: string): TKey {
   if (status === 'complete')       return 'project.timeline.statusCompleted';
   if (status === 'active')         return 'project.timeline.statusInProgress';
   if (status === 'pending_review')
-    return isSelfVerify(tier) ? 'project.timeline.statusYourApproval' : 'project.timeline.statusAwaiting';
+    return 'project.costing.awaitingApproval';
   return 'project.timeline.statusUpcoming';
 }
 
@@ -82,7 +82,7 @@ function StatusPill({ status, tier }: { status: string; tier: string }) {
   const t = useT();
   const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide';
   if (status === 'complete')
-    return <span className={cn(base, 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black')}><CheckCircle2 className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
+    return <span className={cn(base, 'bg-brand-green text-white')}><CheckCircle2 className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   if (status === 'active')
     return <span className={cn(base, 'bg-brand-off-white dark:bg-[#282828] border border-brand-border-grey dark:border-[#3d3d3d] text-brand-near-black dark:text-white')}><Clock className="size-2.5" />{t(statusLabelKey(status, tier))}</span>;
   if (status === 'pending_review')
@@ -101,7 +101,7 @@ function ListView({
   const { stageLabel } = useStageLabels();
   const t = useT();
   const selfVerify = isSelfVerify(project.tier);
-  const verificationLabel = t(selfVerify ? 'project.timeline.selfVerified' : 'project.timeline.jallaVerified');
+  const verificationLabel = t('project.review.approved');
   const VerifyIcon = selfVerify ? BadgeCheck : ShieldCheck;
 
   return (
@@ -149,7 +149,7 @@ function ListView({
               {stage.status === 'complete' && (
                 <motion.div
                   className="h-full rounded-full"
-                  style={{ backgroundColor: '#22c55e' }}
+                  style={{ backgroundColor: 'var(--color-brand-green)' }}
                   initial={{ width: 0 }}
                   animate={{ width: '100%' }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -158,7 +158,7 @@ function ListView({
               {stage.status === 'active' && (
                 <motion.div
                   className="h-full rounded-full"
-                  style={{ backgroundColor: '#3b82f6', width: '50%' }}
+                  style={{ backgroundColor: 'var(--color-ink)', width: '50%' }}
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 />
@@ -166,7 +166,7 @@ function ListView({
               {stage.status === 'pending_review' && (
                 <motion.div
                   className="h-full rounded-full"
-                  style={{ backgroundColor: '#f59e0b', width: '75%' }}
+                  style={{ backgroundColor: 'var(--color-ink-60)', width: '75%' }}
                   animate={{ opacity: [0.6, 1, 0.6] }}
                   transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                 />
@@ -266,9 +266,9 @@ function GanttView({
             const isActive   = stage.status === 'active';
             const isReview   = stage.status === 'pending_review';
 
-            const barColor = isComplete ? '#22c55e'
-              : isActive   ? '#3b82f6'
-              : isReview   ? '#f59e0b'
+            const barColor = isComplete ? 'var(--color-brand-green)'
+              : isActive   ? 'var(--color-ink)'
+              : isReview   ? 'var(--color-ink-60)'
               : '#d1d5db';
 
             const textColor = (isComplete || isActive || isReview) ? '#fff' : '#6b7280';
@@ -290,7 +290,7 @@ function GanttView({
                   {todayPct > 0 && todayPct < 100 && (
                     <div
                       className="absolute top-0 bottom-0 w-0.5 z-10 opacity-70"
-                      style={{ left: `${todayPct}%`, backgroundColor: '#ef4444' }}
+                      style={{ left: `${todayPct}%`, backgroundColor: 'var(--color-ink-60)' }}
                     />
                   )}
 
@@ -331,11 +331,11 @@ function GanttView({
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-brand-off-white dark:border-[#2c2c2c]">
           {([
-            { color: '#22c55e', key: 'project.timeline.legendCompleted'  as TKey },
-            { color: '#3b82f6', key: 'project.timeline.legendInProgress' as TKey },
+            { color: 'var(--color-brand-green)', key: 'project.timeline.legendCompleted'  as TKey },
+            { color: 'var(--color-ink)', key: 'project.timeline.legendInProgress' as TKey },
             // Same reason as the pill: on Self Verify the amber band is the owner's own
             // queue, not a wait on Jalla.
-            { color: '#f59e0b', key: (isSelfVerify(project.tier)
+            { color: 'var(--color-ink-60)', key: (isSelfVerify(project.tier)
                 ? 'project.timeline.legendYourApproval'
                 : 'project.timeline.legendAwaiting') as TKey },
             { color: '#d1d5db', key: 'project.timeline.legendUpcoming'   as TKey },
@@ -392,7 +392,7 @@ export default function TimelineTab({ project, stages, onGoToStages }: TimelineT
               className={cn(
                 'px-3 py-1.5 text-xs font-medium capitalize transition-colors',
                 view === v
-                  ? 'bg-brand-near-black dark:bg-white text-white dark:text-brand-near-black'
+                  ? 'bg-brand-green text-white'
                   : 'text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >

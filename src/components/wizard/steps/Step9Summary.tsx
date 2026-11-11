@@ -4,6 +4,7 @@ import {
   MapPin, Building2, Layers, Home, Ruler, ShieldCheck, Info, CalendarDays, TriangleAlert, ChevronDown,
 } from 'lucide-react';
 import WizardShell from '../WizardShell';
+import { BuildingTypeField } from '../BuildingTypeField';
 import { useWizard } from '@/contexts/WizardContext';
 import {
   BUDGET_SLICES, calculateBudgetDetail, formatUSDFull, formatLocalCurrency,
@@ -509,8 +510,8 @@ export default function Step9Summary() {
         <div className="mt-7 rounded-xl border border-brand-border-grey divide-y divide-brand-border-grey overflow-hidden">
           <SummaryRow icon={<MapPin className="size-3.5" />}    label="Location"
             value={[data.city, labels.country(data.country)].filter(Boolean).join(', ')} />
-          <SummaryRow icon={<Building2 className="size-3.5" />} label="Type"
-            value={`${labels.projectType(data.projectType)} · ${labels.buildingType(data.buildingType)}`} />
+          <SummaryRow icon={<Building2 className="size-3.5" />} label={t('preview.sub.buildingType')}
+            value={<BuildingTypeField />} />
           {/* Floors are editable in BOTH flows. When the documents did not give the
               count up, the row that reports the gap is also the place you close it —
               "Floor count not extracted" on its own reads as a dead end. When they DID,

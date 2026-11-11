@@ -19,6 +19,8 @@ import { useStageLabels } from '@/lib/stage-labels';
 import { fetchProjectDocuments } from '@/lib/supabase/contractor-work';
 import type { StagePayment } from '@/lib/supabase/verifications';
 import { ProjectPayoutSummary } from './ProjectPayoutSummary';
+import { StageSchedule } from './StageSchedule';
+import { MoneyValue } from './MoneyValue';
 // One definition of what a stage is worth, shared with the contractor's screens.
 // They print the same payment and used to disagree about it — see stage-amounts.ts.
 import {
@@ -36,33 +38,6 @@ export interface BudgetViewProps {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-
-// ── Status badge ─────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: StageStatus }) {
-  const t = useT();
-  const base = 'inline-flex items-center rounded-full px-1.5 py-px text-[9px] uppercase tracking-wide';
-
-  if (status === 'complete') {
-    return <span className={cn(base, 'border border-brand-border-grey bg-brand-off-white font-medium text-brand-mid-grey')}>{t('project.costing.statusComplete')}</span>;
-  }
-  if (status === 'active') {
-    return <span className={cn(base, 'bg-brand-near-black font-semibold text-white')}>{t('project.costing.statusActive')}</span>;
-  }
-  if (status === 'pending_review') {
-    return <span className={cn(base, 'border border-brand-border-grey font-medium text-brand-mid-grey')}>{t('project.costing.statusInReview')}</span>;
-  }
-  return <span className={cn(base, 'border border-brand-border-grey bg-white font-medium text-brand-border-grey')}>{t('project.costing.statusLocked')}</span>;
-}
 
 // Six shades, dark to light in slice order. Not six hues: these are shares of one
 // budget, not six independent things, and a ramp says "parts of a whole" where a
@@ -155,7 +130,7 @@ function OverviewBar({
           />
         </span>
         <span className="w-20 shrink-0 text-right text-xs font-medium tabular-nums text-brand-near-black dark:text-white">
-          {money(amount)}
+          <MoneyValue usd={amount} />
         </span>
         <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-brand-mid-grey">
           {pct}%
@@ -182,7 +157,7 @@ function OverviewBar({
                       <span className="min-w-0 text-brand-mid-grey">{t(row.labelKey, row.params)}</span>
                       {row.amount != null && (
                         <span className="w-20 shrink-0 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
-                          {money(row.amount)}
+                          <MoneyValue usd={row.amount} />
                         </span>
                       )}
                     </div>
@@ -210,7 +185,7 @@ function OverviewBar({
                       <span className="flex shrink-0 items-baseline gap-2">
                         <span className="text-brand-border-grey tabular-nums">{formatShare(stage.budget_pct)}</span>
                         <span className="w-16 text-right font-medium tabular-nums text-brand-near-black dark:text-white">
-                          {money(stageScheduleUsd(stage, stageBasis ?? { wholeProject: false, base: stageBase }), stage.milestone_amount)}
+                          <MoneyValue usd={stageScheduleUsd(stage, stageBasis ?? { wholeProject: false, base: stageBase })} amount={stage.milestone_amount} />
                         </span>
                       </span>
                     </div>
@@ -228,86 +203,6 @@ function OverviewBar({
 }
 
 // ── Per-stage bar ────────────────────────────────────────────
-
-function StageBar({
-  stage,
-  basis,
-}: {
-  stage: ProjectStageRow;
-  basis: StageBasis;
-}) {
-  const { stageLabel } = useStageLabels();
-  const t = useT();
-  const money = useMoney();
-  const isComplete = stage.status === 'complete';
-  const isActive   = stage.status === 'active';
-  const isReview   = stage.status === 'pending_review';
-  const historical = stage.pre_existing && isComplete;
-  // What the stage is WORTH. The client's costing page asks what the building cost, so
-  // work already standing still shows its value — see stage-amounts.ts.
-  const shownMilestone = stageScheduleUsd(stage, basis);
-
-  const barColor = isComplete ? '#22c55e' : isActive ? '#3b82f6' : isReview ? '#f59e0b' : undefined;
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={cn(
-              'text-sm font-medium truncate',
-              stage.status === 'locked' ? 'text-brand-mid-grey' : 'text-brand-near-black dark:text-white',
-            )}
-          >
-            {stageLabel(stage)}
-          </span>
-          <StatusBadge status={stage.status} />
-        </div>
-        <span className="shrink-0 text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
-          {money(shownMilestone, stage.milestone_amount)}{' '}
-          <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
-          {historical && <span className="ml-1 text-[10px]">{t('project.costing.historicalLabel')}</span>}
-        </span>
-      </div>
-
-      {/* Bar track */}
-      <div className="relative h-1.5 w-full rounded-full bg-brand-light-grey dark:bg-[#282828] overflow-hidden">
-        {(isComplete || isActive || isReview) && (
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            style={{ originX: 0, backgroundColor: barColor }}
-            className="absolute inset-0 rounded-full"
-          />
-        )}
-        {/* locked: no fill, grey track only */}
-      </div>
-    </div>
-  );
-}
-
-// ── Timeline dot ─────────────────────────────────────────────
-
-function TimelineDot({ status }: { status: StageStatus }) {
-  if (status === 'complete') {
-    return <span className="flex size-3 rounded-full shrink-0" style={{ backgroundColor: '#22c55e' }} />;
-  }
-  if (status === 'active') {
-    return (
-      <span className="relative flex size-3 shrink-0 items-center justify-center">
-        <span className="relative inline-flex size-3 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
-      </span>
-    );
-  }
-  if (status === 'pending_review') {
-    return <span className="flex size-3 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />;
-  }
-  // locked
-  return <span className="flex size-3 rounded-full border-2 border-brand-border-grey dark:border-[#444] bg-white dark:bg-[#1e1e1e] shrink-0" />;
-}
-
-// ── Metric box ───────────────────────────────────────────────
 
 function MetricBox({
   label,
@@ -330,7 +225,7 @@ function MetricBox({
           dimmed ? 'text-brand-mid-grey' : 'text-brand-near-black',
         )}
       >
-        {value > 0 ? money(value, sourceAmount) : '—'}
+        <MoneyValue usd={value} amount={sourceAmount} />
       </span>
     </div>
   );
@@ -437,8 +332,8 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
         </div>
 
         <div className="mb-5">
-          <span className="text-3xl font-black text-brand-near-black tabular-nums">
-            {money(budget.total)}
+          <span className="text-3xl font-mono font-semibold text-brand-near-black tabular-nums">
+            <MoneyValue usd={budget.total} amount={project.budget_amount} />
           </span>
         </div>
 
@@ -459,7 +354,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
           ))}
         </div>
 
-        {sanity.low && (
+        {project.budget_source !== 'boq' && sanity.low && (
           <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5">
             <TriangleAlert className="size-4 shrink-0 mt-px text-amber-600" aria-hidden />
             <div>
@@ -482,7 +377,6 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
         What contractors actually quoted, beside what we estimated. Renders nothing until
         a take-off has been submitted, so the tab is unchanged for projects with none.
       */}
-      <TakeoffComparison project={project} />
 
       {/* ── Section 2: 2×2 Summary Grid ────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
@@ -492,98 +386,8 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
       </div>
       {showMilestoneBuckets && <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} />}
 
-      {/* ── Section 4: Per-Stage Budget Bars ───────────────── */}
-      {sortedStages.length > 0 && (
-        <div className="rounded-xl border border-brand-border-grey p-5">
-          <p className="text-sm font-medium text-brand-near-black mb-4">{t('project.costing.stageBreakdown')}</p>
-          <div className="flex flex-col gap-4">
-            {sortedStages.map(stage => (
-              <StageBar
-                key={stage.id}
-                stage={stage}
-                basis={basis}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {sortedStages.length > 0 && <StageSchedule project={project} stages={sortedStages} basis={basis} payments={payments} />}
 
-      {/* ── Section 5: Payment Timeline ────────────────────── */}
-      {sortedStages.length > 0 && (
-        <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] p-5">
-          <p className="text-sm font-medium text-brand-near-black dark:text-white mb-5">{t('project.costing.paymentTimeline')}</p>
-
-          <div className="flex flex-col">
-            {sortedStages.map((stage, i) => {
-              const isLast = i === sortedStages.length - 1;
-              const isComplete = stage.status === 'complete';
-              const isActive   = stage.status === 'active';
-              const isReview   = stage.status === 'pending_review';
-              const historical = !!stage.pre_existing && isComplete;
-              const shownMilestone = stageScheduleUsd(stage, basis);
-
-              return (
-                <div key={stage.id} className="flex gap-4">
-                  {/* Left: dot + connector line */}
-                  <div className="flex flex-col items-center">
-                    <div className="pt-0.5">
-                      <TimelineDot status={stage.status} />
-                    </div>
-                    {!isLast && (
-                      <div className="w-px flex-1 mt-1.5 mb-1" style={{
-                        backgroundColor: isComplete ? '#22c55e' : '#e5e7eb',
-                        minHeight: 28,
-                      }} />
-                    )}
-                  </div>
-
-                  {/* Right: content */}
-                  <div className={cn('flex-1 pb-5', isLast && 'pb-0')}>
-                    {isComplete ? (
-                      <>
-                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#22c55e' }}>
-                          {money(shownMilestone, stage.milestone_amount)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">
-                            {historical ? t('project.costing.completedBeforeTracking') : t('project.costing.releasedLabel')}
-                          </span>
-                        </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
-                        {stage.completed_at && (
-                          <p className="text-[10px] text-brand-mid-grey mt-0.5">{formatDate(stage.completed_at)}</p>
-                        )}
-                      </>
-                    ) : isActive ? (
-                      <>
-                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#3b82f6' }}>
-                          {money(shownMilestone, stage.milestone_amount)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.heldInProgress')}</span>
-                        </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
-                      </>
-                    ) : isReview ? (
-                      <>
-                        <p className="text-sm font-semibold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
-                          {money(shownMilestone, stage.milestone_amount)}
-                          <span className="text-xs font-normal text-brand-mid-grey ml-1.5">{t('project.costing.awaitingApproval')}</span>
-                        </p>
-                        <p className="text-xs text-brand-near-black dark:text-white mt-0.5">{stageLabel(stage)}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm font-medium tabular-nums text-brand-mid-grey leading-none">
-                          {money(shownMilestone, stage.milestone_amount)}
-                          <span className="text-xs font-normal ml-1.5">{t('project.costing.lockedLabel')}</span>
-                        </p>
-                        <p className="text-[10px] text-brand-border-grey dark:text-[#555] mt-0.5">{stageLabel(stage)}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 }

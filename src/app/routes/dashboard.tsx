@@ -10,10 +10,11 @@ import { useAuth }                    from '@/contexts/AuthContext';
 import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
 import { supabase }                   from '@/lib/supabase/client';
 import { fetchParticipantProjects } from '@/lib/supabase/participant-projects';
-import { BUDGET_SLICES, projectBudget, sliceShares, type BudgetSliceKey } from '@/lib/budget';
+import { projectBudget } from '@/lib/budget';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useT, type TKey } from '@/lib/i18n';
-import type { ProjectRow } from '@/types/project';
+import type { ProjectRow, ProjectStageRow } from '@/types/project';
+import { ProjectPayoutSummary } from '@/components/project/ProjectPayoutSummary';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
 
@@ -33,6 +34,7 @@ interface ProjectStage {
   /** Stored milestone. Null on older rows — fall back to budget_pct × total. */
   payment_milestone_usd: number | null;
   payment_status: 'unpaid' | 'partial' | 'paid' | null;
+  milestone_amount?: number | null;
   /** Built before this project joined Groundwork (103). Complete, but never paid through us. */
   pre_existing?: boolean | null;
 }
@@ -159,40 +161,6 @@ function ProfileCompletion({ nameSet, hasProject }: {
 // statistics, so the active project gets the whole top of the page and everything
 // else is secondary.
 
-interface MoneySplit { released: number; held: number; remaining: number; historical: number }
-
-/**
- * Where this project's money currently sits.
- *
- * Derived from stage payment state rather than from a running total, so it stays
- * correct when a stage is approved out of order or a payment is reversed:
- *   · released  — milestones actually paid out
- *   · held      — milestones for stages under way but not yet released
- *   · remaining — everything still locked ahead
- */
-function moneySplit(project: ProjectRow, stages: ProjectStage[]): MoneySplit {
-  // `total` is what the owner owes overall; `construction` is what the stage percentages
-  // are shares OF. Using the total in the fallback would overstate every stage by the
-  // design, permit and professional fees stacked on top of it.
-  const { total, construction } = projectBudget(project);
-
-  let released = 0, held = 0, historical = 0;
-  for (const s of stages) {
-    const amount = s.payment_milestone_usd ?? pctToDollars(s.budget_pct, construction);
-    // Work that predates Groundwork is complete but was never paid THROUGH us (103).
-    // Checked before the projection rather than relying on its milestone being 0: the
-    // `??` above would otherwise fall back to a percentage of the construction fee and
-    // show money as released that never moved.
-    if (s.pre_existing) {
-      if (project.budget_source === 'boq') historical += amount;
-      continue;
-    }
-    if (s.payment_status === 'paid') released += amount;
-    else if (isActive(s)) held += amount;
-  }
-  return { released, held, historical, remaining: Math.max(total - historical - released - held, 0) };
-}
-
 function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }: {
   project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean;
   /** Somebody else owns this build and invited this person onto it (112, 166). */
@@ -207,13 +175,11 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
   const done    = stages.filter(isComplete).length;
   const current = stages.find(isActive);
   const pct     = stages.length ? Math.round((done / stages.length) * 100) : 0;
-  const { released, held, remaining, historical } = moneySplit(project, stages);
   const { total } = projectBudget(project);
 
   const meta = [
     buildingType(project.building_type),
     [project.city, project.country].filter(Boolean).join(', '),
-    total > 0 ? money.local(total) : null,
   ].filter(Boolean).join(' · ');
 
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
@@ -223,7 +189,7 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="rounded-2xl border border-[#333] bg-brand-near-black p-6 sm:p-7"
+      className="rounded-2xl border border-brand-green bg-brand-green p-6 sm:p-7"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -249,7 +215,9 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
       </div>
 
       <h2 className="text-xl font-bold text-white sm:text-2xl">{project.name}</h2>
-      <p className="mt-1 text-xs text-white/45">{meta}</p>
+      <p className="mt-1 text-xs text-white/75">{meta}</p>
+      <p className="mt-2 font-mono text-lg font-semibold text-white">{money.local(total, project.budget_amount)}</p>
+      {money.pair(total, project.budget_amount)?.usd && <p className="font-mono text-xs text-white/75">≈ {money.pair(total, project.budget_amount)?.usd}</p>
 
       <div className="mt-5">
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -268,31 +236,9 @@ function ActiveProjectHero({ project, stages, stagesLoading, shared, assigned }:
         </div>
       </div>
 
-      <div className={`mt-5 grid gap-2.5 ${historical > 0 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
-        {([
-          ...(historical > 0 ? [['dashboard.hero.historical', historical] as const] : []),
-          ['dashboard.hero.released',  released],
-          ['dashboard.hero.held',      held],
-          ['dashboard.hero.remaining', remaining],
-        ] as const).map(([labelKey, amount]) => (
-          <div key={labelKey} className="rounded-xl bg-white/6 px-3 py-2.5">
-            <p className="text-[9px] font-semibold text-white/40">{t(labelKey)}</p>
-            <p className="mt-0.5 text-base font-bold tabular-nums text-white">
-              {stagesLoading ? '—' : money.local(amount)}
-            </p>
-          </div>
-        ))}
+      <div className="mt-5">
+        <ProjectPayoutSummary project={project} stages={stages as ProjectStageRow[]} tone="hero" />
       </div>
-
-      {/* Said once, here, rather than left for the person to deduce from buttons that
-          are missing. A client paying for a house wants to know why they cannot
-          approve a stage; the answer is that somebody else is running the build, and
-          it is not a fault. */}
-      {shared && (
-        <p className="mt-4 rounded-xl bg-white/6 px-3.5 py-3 text-[11px] leading-relaxed text-white/55">
-          {t('dashboard.shared.readOnly')}
-        </p>
-      )}
 
       <Link
         to={`${assigned ? '/work/projects' : '/projects'}/${project.id}`}
@@ -321,26 +267,6 @@ function QuickActions({ project, unread, documentCount, shared, assigned }: {
   const projectPath = project ? `${assigned ? '/work/projects' : '/projects'}/${project.id}` : '/projects';
 
   const actions = [
-    // Upload, or read what was uploaded.
-    //
-    // 088 names who may file a site update — the owner, an accepted contractor, an
-    // administrator — and refuses everybody else with `not_member`. An invited client
-    // is none of those, so "Upload Updates" is a card that leads to a refusal. What
-    // they came for is on the same screen anyway: the photographs and reports from
-    // site, which is the Timeline tab.
-    shared && project ? {
-      to: `/projects/${project.id}?tab=timeline`,
-      icon: Camera,
-      labelKey: 'dashboard.quick.updates' as TKey,
-      sub: t('dashboard.quick.updatesSub'),
-    } : {
-      to: projectPath,
-      icon: Upload,
-      labelKey: 'dashboard.quick.evidence' as TKey,
-      sub: project
-        ? t('dashboard.quick.evidenceSub', { project: project.name })
-        : t('dashboard.quick.evidenceNone'),
-    },
     // Straight into the conversation. This said "Messages" and went to
     // /notifications — a list of things that had happened, not the thread. With a
     // build open it opens THAT build's messages, because that is the conversation
@@ -413,94 +339,6 @@ const COST_CATS = [
   { key: 'permit',       descKey: 'dashboard.costCats.permit.desc',       shade: COST_SHADES[3] },
 ] satisfies { key: BudgetSliceKey; descKey: TKey; shade: string }[];
 
-function CostingDonut({ project }: { project: ProjectRow }) {
-  const t = useT();
-  const money = useProjectMoney(project);
-  // projectBudget resolves budget_usd ?? engine estimate — so a project the owner
-  // has not yet confirmed a budget for still shows its allocation instead of "no
-  // budget", and the amounts here can never disagree with the total beside them.
-  const budget  = projectBudget(project);
-  const total   = budget.total;
-  const shares  = sliceShares(budget);
-  const cats    = COST_CATS.map(c => ({
-    ...c,
-    pct:      shares[c.key],
-    labelKey: BUDGET_SLICES.find(s => s.key === c.key)!.labelKey,
-  }));
-  const biggest = cats[0];
-
-  const r = 68, cx = 100, cy = 100, circ = 2 * Math.PI * r, GAP = 3;
-  let acc = 0;
-
-  return (
-    <div className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-      <h3 className="mb-0.5 text-sm font-semibold text-brand-near-black dark:text-white">{t('dashboard.costingAllocation')}</h3>
-      <p className="mb-4 text-xs text-brand-mid-grey">
-        {total > 0
-          ? <>{t('dashboard.biggestCostPre')} <strong className="text-brand-near-black dark:text-white">{t(biggest.labelKey)}</strong> {biggest.pct}% {t('dashboard.biggestCostPost')}</>
-          : t('dashboard.costing.byCategory')}
-      </p>
-
-      <div className="mb-4 flex justify-center">
-        <svg viewBox="0 0 200 200" className="h-40 w-40" role="img"
-          aria-label={cats.map(c => `${t(c.labelKey)} ${c.pct}%`).join(', ')}>
-          <g transform={`rotate(-90, ${cx}, ${cy})`}>
-            {cats.map((cat) => {
-              const fraction = cat.pct / 100;
-              const vis = fraction * circ - GAP;
-              const off = -acc;
-              acc += fraction * circ;
-              return (
-                <circle key={cat.key}
-                  cx={cx} cy={cy} r={r} fill="none"
-                  stroke={cat.shade} strokeWidth="26"
-                  strokeDasharray={`${Math.max(vis, 0)} ${circ}`}
-                  strokeDashoffset={off} strokeLinecap="butt"
-                />
-              );
-            })}
-          </g>
-          <circle cx={cx} cy={cy} r="55" fill="var(--color-donut-bg, white)" />
-          {total > 0 ? (
-            <>
-              <text x={cx} y={cy - 8} textAnchor="middle" style={{ fontSize: '9px', fill: '#9ca3af' }}>{t('dashboard.totalBudget')}</text>
-              <text x={cx} y={cy + 9} textAnchor="middle" style={{ fontSize: '13px', fontWeight: 700 }} fill="var(--color-brand-near-black, #111)">
-                {money.local(total)}
-              </text>
-            </>
-          ) : (
-            <text x={cx} y={cy + 4} textAnchor="middle" style={{ fontSize: '11px', fill: '#9ca3af' }}>{t('dashboard.noBudget')}</text>
-          )}
-        </svg>
-      </div>
-
-      <div className="space-y-2.5">
-        {cats.map(cat => (
-          <div key={cat.key} className="flex items-center gap-2">
-            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.shade }} />
-            <div className="min-w-0 flex-1">
-              <span className="text-xs font-medium text-brand-near-black dark:text-white">{t(cat.labelKey)}</span>
-              <span className="ml-1 text-[10px] text-brand-mid-grey">· {t(cat.descKey)}</span>
-            </div>
-            <span className="text-[10px] font-semibold tabular-nums text-brand-mid-grey">{cat.pct}%</span>
-          </div>
-        ))}
-      </div>
-
-      {total > 0 && (
-        <p className="mt-4 border-t border-brand-border-grey pt-3 text-[10px] text-brand-mid-grey dark:border-[#2c2c2c]">
-          {t('dashboard.costing.totalEstimated', { amount: money.local(total) ?? '—' })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ── Other projects row (Design B) ──────────────────────────
-// Deliberately quieter than the hero: one line, no progress bar, no imagery. These
-// are builds you are not working on right now, and the page's job is to keep the
-// active one unambiguous.
-
 function OtherProjectRow({ project, shared, assigned }: { project: ProjectRow; shared: boolean; assigned: boolean }) {
   const t = useT();
   const money = useProjectMoney(project);
@@ -562,7 +400,7 @@ function EmptyBuilds() {
           {t('dashboard.empty.body')}
         </p>
       </div>
-      <span className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3 group-hover:bg-black transition-colors">
+      <span className="inline-flex items-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-6 py-3 group-hover:bg-brand-green-hover transition-colors">
         <Plus className="size-4" /> {t('dashboard.empty.cta')}
       </span>
     </Link>
@@ -706,7 +544,7 @@ export default function Dashboard() {
           {!isContractor && !viewerOnly && (
             <Link to="/projects/new"
               data-tour="new-project"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-near-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black">
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover">
               <Plus className="size-4" /> {t('dashboard.newProject')}
             </Link>
           )}
@@ -716,7 +554,7 @@ export default function Dashboard() {
       {/* Above everything else, for everyone: an account that cannot be recovered or
           that anyone with the password can enter is a bigger problem than an empty
           profile. Renders nothing once both are handled. */}
-      <SecurityNudges user={user} />
+      <SecurityNudges user={user} showTwoFactor={false} />
 
       {loadFailed && (
         <div role="alert" className="rounded-xl border border-brand-border-grey p-4 text-sm">
@@ -750,7 +588,6 @@ export default function Dashboard() {
             assigned={assignedIds.has(activeProject.id)}
           />
 
-          <CostingDonut project={activeProject} />
         </>
       ) : loadFailed ? null : isContractor ? (
         <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">

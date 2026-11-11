@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -36,7 +36,8 @@ import {
 import { useMoney } from '@/lib/budget/project-money-context';
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
-import { getSignedEvidenceUrl } from '@/lib/supabase/approvals';
+import { MoneyValue } from './MoneyValue';
+import { currentProjectStage, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
 import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow, BudgetBreakdown } from '@/types/project';
 import type { StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -70,7 +71,7 @@ function fmtDate(d: Date): string {
 function StatCard({
   label, value, sub, icon, valueSize = 'text-2xl',
 }: {
-  label: string; value: string; sub?: string; icon?: React.ReactNode; valueSize?: string;
+  label: string; value: React.ReactNode; sub?: string; icon?: React.ReactNode; valueSize?: string;
 }) {
   return (
     <div className="flex-1 min-w-0 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4 flex flex-col">
@@ -79,7 +80,7 @@ function StatCard({
           {icon}
         </div>
       )}
-      <p className={cn('font-black tabular-nums leading-tight text-brand-near-black dark:text-white', valueSize)}>{value}</p>
+      <p className={cn('font-mono font-semibold tabular-nums leading-tight text-brand-near-black dark:text-white', valueSize)}>{value}</p>
       <p className="text-[10px] font-semibold text-brand-mid-grey uppercase tracking-widest mt-1">{label}</p>
       {sub && <p className="text-[11px] text-brand-mid-grey mt-1 leading-snug">{sub}</p>}
     </div>
@@ -146,14 +147,14 @@ function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, histor
 
       <div className="mt-3 mb-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned')}</p>
-        <p className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">{fmt(total)}</p>
+        <p className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white"><MoneyValue usd={total} amount={project.budget_amount} /></p>
       </div>
       <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} />
 
       {boq && (
         <dl className="mt-3 space-y-1 text-xs text-brand-mid-grey">
-          {!!historical && <div className="flex justify-between gap-3"><dt>{t('project.overview.historicalValue')}</dt><dd className="font-semibold tabular-nums">{fmt(historical, historicalAmount)}</dd></div>}
-          <div className="flex justify-between gap-3"><dt>{t('contractorMoney.stillToCome')}</dt><dd className="font-semibold tabular-nums">{fmt(remaining ?? 0, remainingAmount)}</dd></div>
+          {!!historical && <div className="flex justify-between gap-3"><dt>{t('project.overview.historicalValue')}</dt><dd className="font-semibold tabular-nums"><MoneyValue usd={historical} amount={historicalAmount} /></dd></div>}
+          <div className="flex justify-between gap-3"><dt>{t('contractorMoney.stillToCome')}</dt><dd className="font-semibold tabular-nums"><MoneyValue usd={remaining ?? 0} amount={remainingAmount} /></dd></div>
         </dl>
       )}
 
@@ -165,7 +166,7 @@ function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, histor
               <div className="h-full rounded-full bg-state-complete" style={{ width: `${total > 0 ? Math.min(Math.round((r.planned / total) * 100), 100) : 0}%` }} />
             </div>
             <span className="w-28 shrink-0 text-right text-[11px] font-medium tabular-nums text-brand-near-black dark:text-white">
-              {fmt(r.planned)}
+              <MoneyValue usd={r.planned} />
             </span>
           </div>
         ))}
@@ -175,83 +176,6 @@ function CostBreakdownCard({ budget, project, stages, payments, fmt, boq, histor
 }
 
 const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
-
-function LatestFromSite({ substages }: { substages: ProjectSubstageRow[] }) {
-  const t = useT();
-  const [signedUrls, setSignedUrls] = useState<string[]>([]);
-  const [signing, setSigning] = useState(false);
-
-  const imagePaths = useMemo(() => {
-    const paths: string[] = [];
-    for (const sub of substages) {
-      for (const url of sub.evidence_urls ?? []) {
-        if (IMG_RE.test(url.split('?')[0])) {
-          paths.push(url);
-          if (paths.length === 4) return paths;
-        }
-      }
-    }
-    return paths;
-  }, [substages]);
-
-  useEffect(() => {
-    if (imagePaths.length === 0) { setSignedUrls([]); return; }
-    let cancelled = false;
-    setSigning(true);
-    Promise.all(imagePaths.map(p => getSignedEvidenceUrl(p)))
-      .then(results => { if (!cancelled) setSignedUrls(results.filter(Boolean) as string[]); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setSigning(false); });
-    return () => { cancelled = true; };
-  }, [imagePaths]);
-
-  if (imagePaths.length === 0) return null;
-
-  const colClass = imagePaths.length === 1 ? 'grid-cols-1' : imagePaths.length === 2 ? 'grid-cols-2' : imagePaths.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4';
-  return (
-    <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-brand-near-black dark:text-white">{t('project.overview.latestFromSite')}</p>
-        <span className="text-[10px] text-brand-mid-grey">{imagePaths.length} photo{imagePaths.length !== 1 ? 's' : ''}</span>
-      </div>
-      {signing ? (
-        <div className={cn('grid gap-2', colClass)}>
-          {imagePaths.map((_, i) => (
-            <div key={i} className="w-full aspect-video rounded-lg bg-brand-light-grey dark:bg-[#282828] animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <div className={cn('grid gap-2', colClass)}>
-          {signedUrls.map((url, i) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-              <img
-                src={url}
-                alt={`Site photo ${i + 1}`}
-                className="w-full aspect-video object-cover rounded-lg hover:opacity-90 transition-opacity"
-                loading="lazy"
-              />
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────
-
-interface OverviewTabProps {
-  project: ProjectRow;
-  stages: ProjectStageRow[];
-  substages: ProjectSubstageRow[];
-  budget: BudgetBreakdown;
-  /** The incoming ledger rows, by stage — what actually arrived, not what was projected. */
-  payments: Map<string, StagePayment>;
-  /** Permit, professional, verification, contingency. Carry no stage of their own. */
-  fees: ProjectFeeRow[];
-  onViewCosting: () => void;
-  onViewStage: () => void;
-}
 
 export default function OverviewTab({
   project, stages, substages, budget, payments, fees, onViewCosting, onViewStage,
@@ -285,7 +209,7 @@ export default function OverviewTab({
   const completedPct   = sortedStages.length > 0 ? Math.round((completedCount / sortedStages.length) * 100) : 0;
 
   const activeStage = sortedStages.find(s => s.status === 'active' || s.status === 'pending_review');
-  const nextStage   = sortedStages.find(s => s.status !== 'complete');
+  const nextStage = currentProjectStage(sortedStages);
 
   // What is happening on the stage in play right now. The overview names it and sends
   // the reader into the stage to act, rather than hosting the action itself.
@@ -301,9 +225,9 @@ export default function OverviewTab({
    * moved, and asking a client to pay for work that predates their arrival is the
    * worst version of this card being wrong.
    */
-  const unlockStage = sortedStages.find(
-    s => s.status !== 'complete' && !s.pre_existing && s.payment_status !== 'paid',
-  );
+  const nextPayment = nextStage ? payments.get(nextStage.id) : undefined;
+  const unlockStage = nextStage && !stagePaymentAcknowledged(nextStage, nextPayment) ? nextStage : undefined;
+
 
   // Planned costs come from the saved schedule. Actual payouts are read separately
   // by ProjectPayoutSummary; a paid flag or completed stage cannot supply a receipt amount.
@@ -368,7 +292,7 @@ export default function OverviewTab({
         />
         <StatCard
           label={t('project.overview.nextMilestone')}
-          value={nextStage ? fmt(nextStage.payment_milestone_usd ?? 0, nextStage.milestone_amount) : '—'}
+          value={nextStage ? <MoneyValue usd={nextStage.payment_milestone_usd} amount={nextStage.milestone_amount} /> : '—'}
           sub={nextStage ? t('project.overview.nextStarts', { date: fmtDate(projStart) }) : t('project.overview.allDone')}
           valueSize="text-lg"
           icon={<Landmark className="size-4 text-brand-near-black dark:text-white" />}
@@ -376,7 +300,6 @@ export default function OverviewTab({
       </div>
 
       {/* Latest from Site — full-width, alone below the stat cards */}
-      <LatestFromSite substages={substages} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
 
@@ -400,25 +323,17 @@ export default function OverviewTab({
               {t('project.overview.unlockTitle')}
             </p>
 
-            {unlockStage ? (
-              <>
-                <p className="mt-2 text-2xl font-semibold tabular-nums text-brand-near-black dark:text-white">
-                  {t('project.overview.unlockAmount', {
-                    // The full figure, not the compact one: a client about to transfer money
-                    // needs the exact amount, and $1k is not an amount anybody can pay.
-                    amount: fmt(unlockStage.payment_milestone_usd ?? 0, unlockStage.milestone_amount),
-                    stage:  stageLabel(unlockStage),
-                  })}
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
-                  {t('project.overview.unlockHowTo')}
-                </p>
-              </>
-            ) : (
-              <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
-                {t('project.overview.unlockAllPaid')}
-              </p>
-            )}
+            {project.status === 'on_hold' ? <p className="mt-3 text-sm text-brand-mid-grey">{t('project.review.paused')}</p>
+              : unlockStage ? <>
+                <p className="mt-3 text-sm text-brand-near-black dark:text-white">{t('project.review.paymentFor', { stage: stageLabel(unlockStage) })}</p>
+                <MoneyValue usd={unlockStage.payment_milestone_usd} amount={unlockStage.milestone_amount} className="mt-2 text-2xl font-semibold" />
+                <p className="mt-2 text-xs text-brand-mid-grey">{t(nextPayment?.state === 'receipt_submitted' ? 'project.review.pendingReceipt' : 'project.overview.unlockHowTo')}</p>
+              </> : <p className="mt-3 text-sm text-brand-mid-grey">{t(nextStage ? (awaitingReview > 0 ? 'project.review.reviewUpdates' : 'project.review.awaitingUpdates') : 'project.overview.allDone')}</p>}
+            {nextStage && project.status !== 'on_hold' && <button type="button" onClick={onViewStage}
+              className="mt-4 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">
+              {t(unlockStage && nextPayment?.state !== 'receipt_submitted' ? 'project.stages.receiptChoose' : 'project.review.openStage')}
+            </button>}
+
           </div>
 
           <CostBreakdownCard
@@ -435,25 +350,6 @@ export default function OverviewTab({
           />
 
           {/* The latest on the stage in play, with a way into it. */}
-          {activeStage && (
-            <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-              <p className="text-sm font-medium text-brand-near-black dark:text-white">
-                {t('project.overview.latestTitle')}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">
-                {awaitingReview > 0
-                  ? t('project.overview.latestReview', { count: awaitingReview, stage: stageLabel(activeStage) })
-                  : t('project.overview.latestProgress', { done: activeDone, total: activeSubs.length, stage: stageLabel(activeStage) })}
-              </p>
-              <button
-                type="button"
-                onClick={onViewStage}
-                className="mt-4 w-full rounded-xl border border-brand-border-grey py-2.5 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white dark:border-[#2c2c2c] dark:text-white dark:hover:bg-[#2c2c2c]"
-              >
-                {awaitingReview > 0 ? t('project.overview.latestReviewCta') : t('project.overview.latestOpenCta')}
-              </button>
-            </div>
-          )}
 
           {/* The Stage Progress card was here. Removed 7 Nov 2026 at Favour's
               request, finishing what the 2 Nov cleanup started: the ten circles and

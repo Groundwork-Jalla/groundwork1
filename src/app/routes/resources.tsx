@@ -93,7 +93,7 @@ export default function ResourcesPage() {
           <Pill active={activeCategory === 'All'} onClick={() => setActiveCategory('All')}>
             {t('resources.all')}
           </Pill>
-          {RESOURCE_CATEGORIES.map(cat => (
+          {RESOURCE_CATEGORIES.filter(cat => all.some(resource => resource.category === cat)).map(cat => (
             <Pill
               key={cat}
               active={activeCategory === cat}

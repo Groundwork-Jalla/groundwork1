@@ -42,7 +42,7 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
   // pending / in_progress — an empty box, pulsing so the next action is findable.
   return (
     <span className="relative flex size-4 shrink-0 items-center justify-center">
-      <span className="absolute size-4 rounded border-[1.5px] border-brand-near-black opacity-30 animate-ping" />
+      <span className="hidden" />
       <span className={cn(box, 'relative border-brand-border-grey')} />
     </span>
   );
@@ -156,13 +156,14 @@ export function SubstageRow({
               {t('project.stages.badgeYourApproval')}
             </span>
           )}
-          {tier !== 'starter' && tier !== 'pro' && isComplete && substage.approved_by && (
+          {isComplete && substage.approved_by && (
             <span className="shrink-0 text-[9px] text-brand-mid-grey whitespace-nowrap">
               {t('project.stages.approved')}
             </span>
           )}
         </div>
 
+        {!hasEvidence && !isComplete && !isLocked && <p className="mt-1 text-xs text-brand-mid-grey">{t('project.review.updatesWillAppear')}</p>}
         {/* Evidence pills */}
         <EvidencePills urls={substage.evidence_urls} />
 

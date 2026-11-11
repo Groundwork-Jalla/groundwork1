@@ -10,10 +10,11 @@ interface Props {
   stages: ProjectStageRow[];
   /** A refreshed stage ledger also refreshes these figures after an upload/confirmation. */
   refreshKey?: unknown;
+  tone?: 'default' | 'hero';
 }
 
 /** Direct client-to-contractor payments, shown identically to both participants. */
-export function ProjectPayoutSummary({ project, stages, refreshKey }: Props) {
+export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'default' }: Props) {
   const t = useT();
   const { lang } = useLanguage();
   const [attempt, setAttempt] = useState(0);
@@ -64,13 +65,13 @@ export function ProjectPayoutSummary({ project, stages, refreshKey }: Props) {
     <section aria-label={t('project.costing.payouts')} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         {metrics.map(metric => (
-          <div key={metric.key} className="flex flex-col gap-1 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
-            <span className="text-xs text-brand-mid-grey">{t(`project.costing.${metric.key}`)}</span>
-            <span className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white">
+          <div key={metric.key} className={tone === 'hero' ? 'flex flex-col gap-1 rounded-xl bg-white/10 p-3' : 'flex flex-col gap-1 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]'}>
+            <span className={tone === 'hero' ? 'text-xs text-white/75' : 'text-xs text-brand-mid-grey'}>{t(`project.costing.${metric.key}`)}</span>
+            <span className={`font-mono text-lg font-semibold tabular-nums ${tone === 'hero' ? 'text-white' : 'text-brand-near-black dark:text-white'}`}>
               {metric.value ? format(metric.value.amount) : '—'}
             </span>
             {metric.value && summary?.currency !== 'USD' && (
-              <span className="font-mono text-xs text-brand-mid-grey">≈ ${number(metric.value.usd, 2)}</span>
+              <span className={`font-mono text-xs ${tone === 'hero' ? 'text-white/70' : 'text-brand-mid-grey'}`}>≈ ${number(metric.value.usd, 2)}</span>
             )}
           </div>
         ))}
@@ -88,7 +89,7 @@ export function ProjectPayoutSummary({ project, stages, refreshKey }: Props) {
       {summary?.overBudget && summary.overBudget.amount > 0 && (
         <p role="status" className="text-xs text-state-alert">{t('project.costing.overBudget', { amount: format(summary.overBudget.amount) })}</p>
       )}
-      <p className="text-[11px] leading-relaxed text-brand-mid-grey">{t('project.costing.payoutsNote')}</p>
+      <p className={`text-[11px] leading-relaxed ${tone === 'hero' ? 'text-white/75' : 'text-brand-mid-grey'}`}>{t('project.costing.payoutsNote')}</p>
     </section>
   );
 }

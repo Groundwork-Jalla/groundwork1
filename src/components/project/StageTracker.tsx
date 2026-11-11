@@ -81,7 +81,7 @@ function StageCircle({
 function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
   const t = useT();
   const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
-    active:         { labelKey: 'project.stages.badgeActive',   className: 'bg-brand-near-black text-white' },
+    active:         { labelKey: 'project.stages.badgeActive',   className: 'bg-brand-green text-white' },
     pending_review: {
       labelKey:  isSelfVerify(tier) ? 'project.stages.badgeYourApproval' : 'project.stages.badgeReview',
       className: 'border border-brand-border-grey text-brand-mid-grey',
@@ -123,7 +123,7 @@ function ApproveButton({
       type="button"
       onClick={onApprove}
       disabled={loading}
-      className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold py-3 hover:bg-black transition-colors disabled:opacity-50"
+      className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold py-3 hover:bg-brand-green-hover transition-colors disabled:opacity-50"
     >
       {loading && <Loader2 className="size-4 animate-spin" />}
       {label}

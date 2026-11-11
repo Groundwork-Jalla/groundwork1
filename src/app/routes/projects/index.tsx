@@ -89,7 +89,8 @@ function ProjectCard({ project, shared, assigned }: { project: ProjectRow; share
       <div className="flex items-end justify-between">
         <div>
           <p className="text-[10px] text-brand-mid-grey mb-0.5">{t('projects.estBudget')}</p>
-          <p className="text-sm font-bold text-brand-near-black tabular-nums">{budget > 0 ? money.local(budget) : '—'}</p>
+          <p className="text-sm font-mono font-semibold text-brand-near-black tabular-nums">{budget > 0 ? money.local(budget, project.budget_amount) : '—'}</p>
+          {money.pair(budget, project.budget_amount)?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {money.pair(budget, project.budget_amount)?.usd}</p>
         </div>
         <span className="flex items-center gap-1 text-xs font-semibold text-brand-mid-grey group-hover:text-brand-near-black transition-colors">
           {t('common.open')} <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -208,7 +209,12 @@ export default function ProjectsIndex() {
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
       ) : loadFailed && filtered.length === 0 ? null : filtered.length === 0 ? (
-        isContractor
+        filter !== 'all' ? (
+          <div className="rounded-2xl border border-dashed border-brand-border-grey p-8 text-center">
+            <p className="text-sm text-brand-mid-grey">{t(filter === 'on_hold' ? 'project.review.noOnHold' : filter === 'completed' ? 'project.review.noCompleted' : 'project.review.noActive')}</p>
+            <button type="button" onClick={() => setFilter('all')} className="mt-3 text-sm font-semibold text-brand-green underline">{t('common.viewAll')}</button>
+          </div>
+        ) : isContractor
           ? <div className="rounded-2xl border border-dashed border-brand-border-grey p-6 text-sm text-brand-mid-grey">{t('projects.empty.contractor')}</div>
           : (
             <Link to="/projects/new"
