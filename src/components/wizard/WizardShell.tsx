@@ -155,6 +155,11 @@ export default function WizardShell({
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
+                // One anchor per screen, so the tour can say what to do on THIS step —
+                // "for each stage in the project creation, it should tell them" (Favour,
+                // 11 Nov 2026). The plan question renders outside this shell and keeps
+                // its own anchor, so the two never collide.
+                data-tour={`wizard-step-${step}`}
                 custom={direction}
                 variants={variants}
                 initial="enter"

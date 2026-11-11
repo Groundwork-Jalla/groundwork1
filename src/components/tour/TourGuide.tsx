@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, X } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { nextStep, stepsFor, tourComplete, type TourId, type TourStep } from '@/lib/tour/steps';
@@ -30,7 +30,7 @@ import { dismissTour, markSeen, readSeen } from '@/lib/tour/seen';
 // =========================================================
 
 /** Where the bubble sits relative to the anchor, decided by which way there is room. */
-type Side = 'above' | 'below';
+type Side = 'above' | 'below' | 'left' | 'right' | 'docked';
 
 interface Box { top: number; left: number; width: number; height: number }
 
@@ -46,6 +46,14 @@ const BUBBLE_GUESS = 180;
 const GAP = 12;
 /** Never closer than this to any edge, on any screen. */
 const GUTTER = 16;
+
+/** Does this element itself carry visible words — not merely contain something that does? */
+function holdsText(el: Element): boolean {
+  for (const node of el.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim().length > 0) return true;
+  }
+  return false;
+}
 
 export function TourGuide({ tour }: { tour: TourId }) {
   const t = useT();
@@ -160,11 +168,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
    * a wide screen the bubble sits beside the anchor and never over it.
    */
   const nudgedFor = useRef<string | null>(null);
+  const placed = useRef<{ top: number } | null>(null);
   useLayoutEffect(() => {
-    if (!step || !box || window.innerWidth >= 640) return;
+    if (!step || !box || window.innerWidth >= 640 || !placed.current) return;
     if (nudgedFor.current === step.anchor) return;
-    const mid = box.top + box.height / 2;
-    const sheetTop = mid > window.innerHeight / 2 ? GUTTER : window.innerHeight - bubbleHeight - GUTTER;
+    const sheetTop = placed.current.top;
     const sheetBottom = sheetTop + bubbleHeight;
     const overlaps = !(box.top >= sheetBottom + GAP || box.top + box.height <= sheetTop - GAP);
     if (!overlaps) return;
@@ -182,49 +190,83 @@ export function TourGuide({ tour }: { tour: TourId }) {
   const skip = () => setSeen(dismissTour(user.id, tour, steps.map(s => s.anchor)));
 
   /*
-   * On a phone the tip is a sheet along the bottom edge, not a bubble beside the anchor.
+   * ── WHERE THE TIP GOES: ON WHATEVER IS NOT TEXT ────────────────────────────────────
    *
-   * Philip, 10 Nov 2026: "the modal popup design blocks critical content and hinders
-   * user interaction during setup." On a 390px screen the longest tip — the plan
-   * question, which has to explain both ways a project can start — is ~300px tall, and
-   * floated above or below its anchor it sat over the question itself. There is no
-   * placement on that screen that covers nothing, so the honest one is a fixed strip
-   * at the bottom: the ring still marks the thing to press, the page above it stays
-   * readable and scrollable, and the arrow — which would point at nothing — is gone.
+   * Favour, 11 Nov 2026: the tip must not sit "on top of something that they need to
+   * read." Philip the day before: "the popup blocks critical content." A rule like
+   * "below the anchor, else above" cannot promise that, because it never looks at what
+   * is underneath. So this looks.
+   *
+   * Every candidate position is scored by sampling a grid of points inside it and
+   * asking the document what is there. A point on an element that holds text costs
+   * one; a point on the anchor itself costs ten, because covering the thing we are
+   * pointing at is the one failure worse than covering prose. The cheapest candidate
+   * wins; ties go to the conventional order, below first. On a wide screen the
+   * candidates are the four sides of the anchor; on a phone, where a bubble beside a
+   * 320px-wide anchor has nowhere to be, they are the top and bottom edges of the
+   * screen — and if even the cheaper edge collides, the page is nudged once (above).
+   *
+   * The arrow is drawn only when the tip is actually beside its anchor; a sheet pinned
+   * to a screen edge would point at nothing.
    */
   const phone = window.innerWidth < 640;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const width = phone ? vw - GUTTER * 2 : Math.min(320, vw - GUTTER * 2);
+  const clampTop  = (t: number) => Math.max(GUTTER, Math.min(t, vh - bubbleHeight - GUTTER));
+  const clampLeft = (l: number) => Math.max(GUTTER, Math.min(l, vw - width - GUTTER));
+  const centredLeft = clampLeft(box.left + box.width / 2 - width / 2);
 
-  // Below the anchor, unless there is more room above it. Compared both ways rather
-  // than only testing "does it fit below": a long tip can fit in NEITHER direction, and
-  // the right answer then is the side with more space, not the default.
-  const roomBelow = window.innerHeight - (box.top + box.height) - GAP - GUTTER;
-  const roomAbove = box.top - GAP - GUTTER;
-  const side: Side = bubbleHeight <= roomBelow || roomBelow >= roomAbove ? 'below' : 'above';
+  type Candidate = { side: Side; top: number; left: number };
+  const candidates: Candidate[] = phone
+    ? [
+        { side: 'below', top: clampTop(vh - bubbleHeight - GUTTER), left: GUTTER },
+        { side: 'above', top: GUTTER, left: GUTTER },
+      ]
+    : [
+        { side: 'below', top: clampTop(box.top + box.height + GAP), left: centredLeft },
+        { side: 'above', top: clampTop(box.top - GAP - bubbleHeight), left: centredLeft },
+        { side: 'right', top: clampTop(box.top), left: clampLeft(box.left + box.width + GAP) },
+        { side: 'left',  top: clampTop(box.top), left: clampLeft(box.left - GAP - width) },
+        /*
+         * Docked to a lower corner, pointing at nothing: the ring alone says where to
+         * look. On a dense dashboard every side of the anchor can touch text — on /work
+         * the four sides of "New project" scored 6, 10+, 10+ and 6 — while the lower
+         * half of the page is empty. Listed last so that, costs being equal, a position
+         * beside the anchor still wins.
+         */
+        { side: 'docked', top: clampTop(vh - bubbleHeight - GUTTER), left: clampLeft(vw - width - GUTTER) },
+        { side: 'docked', top: clampTop(vh - bubbleHeight - GUTTER), left: GUTTER },
+      ];
 
-  // Clamped to a gutter on every edge so the bubble never hangs off the screen.
-  const width = phone ? window.innerWidth - GUTTER * 2 : Math.min(320, window.innerWidth - GUTTER * 2);
-  const left = phone ? GUTTER : Math.max(GUTTER, Math.min(
-    box.left + box.width / 2 - width / 2, window.innerWidth - width - GUTTER));
-  const unclamped = side === 'below'
-    ? box.top + box.height + GAP
-    : box.top - GAP - bubbleHeight;
-  // The last resort: a tip taller than the viewport is pinned to the top gutter and
-  // scrolls with its own content rather than being cut off at the bottom.
-  /*
-   * On a phone: the edge FARTHER from the anchor, not always the bottom. Measured on a
-   * 390×844 screen, the plan question's two cards span 335–589 and a bottom sheet of
-   * 274px starts at 554 — over the second card by 35px, the exact complaint. The cards
-   * sit in the lower half, so the sheet belongs at the top, where it ends at 290 and
-   * covers nothing. An anchor in the upper half gets the bottom edge for the same
-   * reason. Only an anchor tall enough to collide with both is nudged — see below.
-   */
-  const anchorMid = box.top + box.height / 2;
-  const phoneEdge: 'top' | 'bottom' = anchorMid > window.innerHeight / 2 ? 'top' : 'bottom';
-  const top = phone
-    ? (phoneEdge === 'top' ? GUTTER : Math.max(GUTTER, window.innerHeight - bubbleHeight - GUTTER))
-    : Math.max(GUTTER, Math.min(unclamped, window.innerHeight - bubbleHeight - GUTTER));
+  const cost = (c: Candidate): number => {
+    let total = 0;
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 4; j++) {
+        const x = c.left + (width * (i + 0.5)) / 5;
+        const y = c.top + (bubbleHeight * (j + 0.5)) / 4;
+        const onAnchor = x >= box.left && x <= box.left + box.width
+                      && y >= box.top && y <= box.top + box.height;
+        if (onAnchor) { total += 10; continue; }
+        const el = document.elementFromPoint(x, y);
+        if (!el || bubble.current?.contains(el)) continue;
+        // Text is what a person has to read. Only an element that DIRECTLY holds a
+        // text node counts: a wrapper whose descendants hold text is, at this point,
+        // padding or background — the first version counted those and found "text"
+        // under every candidate on a dense dashboard, so it could never choose.
+        if (holdsText(el)) total += 1;
+      }
+    }
+    return total;
+  };
+  const chosen = candidates.reduce((best, c) => (cost(c) < cost(best) ? c : best), candidates[0]);
+  const side: Side = chosen.side;
+  const top = chosen.top;
+  const left = chosen.left;
+  placed.current = { top };
+  const beside = !phone && side !== 'docked';
 
-  const Arrow = side === 'below' ? ArrowUp : ArrowDown;
+  const Arrow = side === 'below' ? ArrowUp : side === 'above' ? ArrowDown
+    : side === 'right' ? ArrowLeft : ArrowRight;
   const remaining = steps.filter(s => !seen.includes(s.anchor)).length;
 
   return createPortal(
@@ -248,7 +290,7 @@ export function TourGuide({ tour }: { tour: TourId }) {
         style={{ top, left, width }}
       >
         <div className="flex items-start gap-2.5">
-          {!phone && <Arrow className="mt-0.5 size-4 shrink-0 text-brand-near-black dark:text-white" aria-hidden />}
+          {beside && <Arrow className="mt-0.5 size-4 shrink-0 text-brand-near-black dark:text-white" aria-hidden />}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-brand-near-black dark:text-white">
               {t(step.titleKey)}

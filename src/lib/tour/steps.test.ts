@@ -78,9 +78,26 @@ describe('the two tours', () => {
 
   it('stay short enough to be read', () => {
     // Four steps is an introduction. Twelve is a person pressing Skip, and a skipped
-    // tour teaches nothing at all.
+    // tour teaches nothing at all. The wizard cues are counted apart: one per screen,
+    // and never two on one screen — see WIZARD_CUES.
     for (const tour of ['client-setup', 'contractor-setup'] as const) {
-      expect(stepsFor(tour).length).toBeLessThanOrEqual(5);
+      const outsideWizard = stepsFor(tour).filter(s => !s.anchor.startsWith('wizard-step-'));
+      expect(outsideWizard.length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('give every wizard screen one cue, except the summary, which has the budget check', () => {
+    // "For each stage in the project creation, it should tell them" (11 Nov 2026).
+    for (const tour of ['client-setup', 'contractor-setup'] as const) {
+      const anchors = stepsFor(tour).map(s => s.anchor);
+      for (const n of [1, 2, 3, 4, 5, 6, 7, 9]) expect(anchors).toContain(`wizard-step-${n}`);
+      expect(anchors).not.toContain('wizard-step-8');
+      // In screen order, with the budget check sitting where step 8 is.
+      const order = anchors.filter(a => a.startsWith('wizard-step-') || a === 'confirm-budget');
+      expect(order).toEqual(['wizard-step-1', 'wizard-step-2', 'wizard-step-3', 'wizard-step-4',
+        'wizard-step-5', 'wizard-step-6', 'wizard-step-7', 'confirm-budget', 'wizard-step-9']);
+      // And never two cues sharing a screen.
+      expect(new Set(order).size).toBe(order.length);
     }
   });
 

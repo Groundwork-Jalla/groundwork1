@@ -134,8 +134,39 @@ const CONTRACTOR_STEPS: TourStep[] = [
   },
 ];
 
+/**
+ * One cue per wizard screen — "for each stage in the project creation, it should tell
+ * them what to do" (Favour, 11 Nov 2026).
+ *
+ * Nine screens; eight cues. The summary (step 8) already carries the budget check,
+ * which IS its cue, and a second tip on the same screen would be two things asking to
+ * be read at once. Anchored on the screen's own content (`WizardShell`), so the ring
+ * marks the question being asked and the tip docks wherever it covers nothing. On the
+ * document path most of these screens are skipped, and a cue for a screen that never
+ * renders is simply never shown.
+ */
+const WIZARD_CUES: TourStep[] = ([1, 2, 3, 4, 5, 6, 7, 9] as const).map(n => ({
+  anchor: `wizard-step-${n}`,
+  route: '/projects/new',
+  titleKey: `tour.wizard.s${n}.title` as TKey,
+  bodyKey: `tour.wizard.s${n}.body` as TKey,
+}));
+
+/** The wizard cues spliced in after the plan question, where the wizard begins. */
+function withWizardCues(steps: TourStep[]): TourStep[] {
+  const at = steps.findIndex(s => s.anchor === 'plan-question') + 1;
+  const before = steps.slice(0, at);
+  const after = steps.slice(at);
+  // The budget check belongs on step 8, between the step-7 and step-9 cues.
+  const budget = after.find(s => s.anchor === 'confirm-budget');
+  const rest = after.filter(s => s.anchor !== 'confirm-budget');
+  const cues = WIZARD_CUES.flatMap(c =>
+    c.anchor === 'wizard-step-9' && budget ? [budget, c] : [c]);
+  return [...before, ...cues, ...rest];
+}
+
 export function stepsFor(tour: TourId): TourStep[] {
-  return tour === 'contractor-setup' ? CONTRACTOR_STEPS : CLIENT_STEPS;
+  return withWizardCues(tour === 'contractor-setup' ? CONTRACTOR_STEPS : CLIENT_STEPS);
 }
 
 /** Prefix match, on path segments. `/projects` covers `/projects/abc`, never `/projectsfoo`. */

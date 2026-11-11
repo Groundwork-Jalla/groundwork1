@@ -2737,6 +2737,24 @@ export const fr: Mirror<EnDict> = {
       title: 'V\u00e9rifiez ce montant sur votre devis avant de confirmer',
       body: "Tout ce qui suit est calcul\u00e9 \u00e0 partir de ce seul montant \u2014 chaque \u00e9tape en devient un pourcentage, et rien n'est ajout\u00e9 par-dessus. Si vous avez t\u00e9l\u00e9vers\u00e9 un devis quantitatif, ce doit \u00eatre son total, exactement. Sinon, saisissez ici le total de votre devis avant de confirmer.",
     },
+    wizard: {
+      s1: { title: 'Choisissez o\u00f9 la maison sera construite',
+            body: 'Le pays du chantier, pas celui o\u00f9 vous vivez \u2014 les co\u00fbts et la v\u00e9rification en d\u00e9pendent. Puis Continuer.' },
+      s2: { title: 'Indiquez le type de projet',
+            body: 'Choisissez le plus proche des plans. Vous pourrez encore le modifier sur le r\u00e9capitulatif avant toute cr\u00e9ation.' },
+      s3: { title: 'Choisissez le type de b\u00e2timent',
+            body: 'Une maison, un immeuble, une boutique\u2026 Cela d\u00e9termine les \u00e9tapes du chantier et la r\u00e9partition du co\u00fbt entre elles.' },
+      s4: { title: 'Comptez les niveaux',
+            body: 'Le rez-de-chauss\u00e9e plus les \u00e9tages : R+1 fait deux niveaux. Chaque \u00e9tape est chiffr\u00e9e \u00e0 partir de ce nombre ; une erreur les d\u00e9place toutes.' },
+      s5: { title: 'Ajoutez les pi\u00e8ces de chaque niveau',
+            body: 'Chambres, salles de bain, cuisine, salon \u2014 niveau par niveau. Une approximation suffit ; le r\u00e9capitulatif montre le total.' },
+      s6: { title: 'Choisissez la toiture',
+            body: 'Le type de toiture change le co\u00fbt de l\u2019\u00e9tape toiture. Pas s\u00fbr ? Gardez la suggestion et voyez avec votre entrepreneur.' },
+      s7: { title: 'Nommez-le, situez-le, mesurez-le',
+            body: 'Un nom que vous reconna\u00eetrez dans une liste, la ville, et l\u2019emprise au sol \u2014 la surface que le b\u00e2timent occupe. Le budget est chiffr\u00e9 \u00e0 partir de cette emprise.' },
+      s9: { title: 'Indiquez o\u00f9 en est le chantier',
+            body: 'Si les travaux ont d\u00e9j\u00e0 commenc\u00e9, choisissez l\u2019\u00e9tape atteinte : les \u00e9tapes pr\u00e9c\u00e9dentes sont enregistr\u00e9es comme d\u00e9j\u00e0 construites et jamais factur\u00e9es. Puis confirmez pour cr\u00e9er le projet.' },
+    },
     planQuestion: {
       title: 'Cette question d\u00e9termine les cinq prochaines minutes',
       body: "Si votre architecte vous a remis des plans et un devis quantitatif chiffr\u00e9, choisissez Oui \u2014 t\u00e9l\u00e9versez-les et votre budget est lu directement dans vos propres documents. Si vous ne les avez pas encore, choisissez Non : nous \u00e9tablirons avec vous la surface, la distribution et le co\u00fbt, \u00e9tape par \u00e9tape. Aucune des deux r\u00e9ponses n'est meilleure. Ce sont deux points de d\u00e9part diff\u00e9rents.",
@@ -2757,8 +2775,8 @@ export const fr: Mirror<EnDict> = {
     },
     contractor: {
       client: {
-        title: 'Commencez par votre client',
-        body: "Ajoutez la personne pour qui vous construisez, puis cr\u00e9ez son projet. Elle acc\u00e8de au m\u00eame projet et voit chaque \u00e9tape que vous mettez \u00e0 jour.",
+        title: 'Cliquez ici pour cr\u00e9er un nouveau projet',
+        body: "Nouveau projet vous guide dans la cr\u00e9ation d'un chantier, \u00e9tape par \u00e9tape. En chemin, vous indiquez la personne pour qui vous construisez \u2014 elle acc\u00e8de au m\u00eame projet et voit chaque \u00e9tape que vous mettez \u00e0 jour.",
       },
       evidence: {
         title: 'T\u00e9l\u00e9versez les preuves au fur et \u00e0 mesure',

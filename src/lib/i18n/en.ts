@@ -2796,6 +2796,24 @@ export const en = {
       title: 'Check this against your bill before you confirm',
       body: "Everything below is built from this one figure \u2014 every stage becomes its percentage of it, and nothing is added on top. If you uploaded a bill of quantities, this should be its total, exactly. If it is not, type the total from your bill here before you confirm.",
     },
+    wizard: {
+      s1: { title: 'Choose where the house will stand',
+            body: 'The country of the build, not where you live \u2014 costs and verification follow it. Then Continue.' },
+      s2: { title: 'Say what kind of project this is',
+            body: 'Pick the one closest to the drawings. It can still be changed on the summary before anything is created.' },
+      s3: { title: 'Pick the type of building',
+            body: 'A house, a block of flats, a shop\u2026 This decides which stages the build gets and how the cost is shared between them.' },
+      s4: { title: 'Count the floors',
+            body: 'Ground floor plus the floors above it: G+1 is two. Every stage is priced from this, so a wrong count moves all of them.' },
+      s5: { title: 'Add the rooms on each floor',
+            body: 'Bedrooms, bathrooms, kitchen, sitting room \u2014 floor by floor. Close enough is fine; the summary shows what it adds up to.' },
+      s6: { title: 'Choose the roof',
+            body: 'The roof type changes the roofing stage\u2019s cost. Not sure? Keep the suggestion and settle it with your contractor.' },
+      s7: { title: 'Name it, place it, measure it',
+            body: 'A name you will recognise in a list, the town, and the ground-floor footprint \u2014 the area the building covers. The budget is priced from that footprint.' },
+      s9: { title: 'Say how far the build has got',
+            body: 'If building has already started, choose the stage you are at: the earlier stages are recorded as already built and never billed. Then confirm to create the project.' },
+    },
     planQuestion: {
       title: 'This question decides the next five minutes',
       body: "If your architect has given you drawings and a priced bill of quantities, choose Yes \u2014 upload them and your budget is read straight off your own documents. If you do not have them yet, choose No: we work out the size, the layout and the cost with you, step by step. Neither answer is the better one. They are two different starting points.",
@@ -2816,8 +2834,8 @@ export const en = {
     },
     contractor: {
       client: {
-        title: 'Start with your client',
-        body: 'Add the person you are building for, then set their build up. They get access to the same project and see every stage you update.',
+        title: 'Click here to create a new project',
+        body: 'New project takes you through setting up a build, step by step. Along the way you name the person you are building for \u2014 they get access to the same project and see every stage you update.',
       },
       evidence: {
         title: 'Upload the evidence as you go',
