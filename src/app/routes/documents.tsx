@@ -238,7 +238,7 @@ export default function DocumentsPage() {
             {q || projectId ? t('documents.noMatchesBody') : tab === 'certificates' ? t('project.review.certificatesEmpty') : t('documents.noDocumentsBody')}
           </p>
           {projects.length === 0 && (
-            <Link to="/projects/new" className="mt-4 inline-flex rounded-xl bg-brand-near-black px-5 py-2.5 text-sm font-semibold text-white">
+            <Link to="/projects/new" className="mt-4 inline-flex rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white">
               {t('documents.startBuild')}
             </Link>
           )}

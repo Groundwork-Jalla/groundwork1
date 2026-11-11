@@ -174,7 +174,7 @@ export default function ProjectsIndex() {
         </div>
         {!isContractor && !viewerOnly && (
           <Link to="/projects/new"
-            className="flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-4 py-2 hover:bg-black transition-colors">
+            className="flex items-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-4 py-2 hover:bg-brand-green-hover transition-colors">
             <Plus className="size-4" /> {t('projects.newBuild')}
           </Link>
         )}
@@ -227,7 +227,7 @@ export default function ProjectsIndex() {
                 <p className="text-base font-semibold text-brand-near-black mb-1">{t('projects.empty.title')}</p>
                 <p className="text-sm text-brand-mid-grey max-w-xs mx-auto leading-relaxed">{t('projects.empty.body')}</p>
               </div>
-              <span className="inline-flex items-center gap-2 rounded-xl bg-brand-near-black text-white text-sm font-semibold px-6 py-3">
+              <span className="inline-flex items-center gap-2 rounded-xl bg-brand-green text-white text-sm font-semibold px-6 py-3">
                 <Plus className="size-4" /> {t('projects.empty.cta')}
               </span>
             </Link>

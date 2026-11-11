@@ -75,7 +75,7 @@ function StageCircle({
 // `tier` is not decoration here. On Self Verify nobody at Jalla reviews a stage, so
 // "In Review" would name a wait that does not exist — the stage is the owner's own to
 // approve. Anything that renders a stage state has to know which plan it is on.
-function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
+function StageBadge({ status, tier, historical }: { status: StageStatus; tier: string; historical?: boolean }) {
   const t = useT();
   const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
     active:         { labelKey: 'project.stages.badgeActive', className: 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' },
@@ -87,6 +87,7 @@ function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
     locked:         { labelKey: 'project.stages.badgeLocked',   className: 'text-brand-mid-grey' },
   };
   const { labelKey, className } = map[status];
+  const label = historical ? 'project.costing.completedBeforeTracking' : labelKey;
   return (
     <span
       className={cn(
@@ -94,7 +95,7 @@ function StageBadge({ status, tier }: { status: StageStatus; tier: string }) {
         className,
       )}
     >
-      {t(labelKey)}
+      {t(label)}
     </span>
   );
 }
@@ -239,7 +240,7 @@ function StageDetail({
             <MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} />{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
-          <StageBadge status={stage.status} tier={tier} />
+          <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} />
         </div>
       </div>
 

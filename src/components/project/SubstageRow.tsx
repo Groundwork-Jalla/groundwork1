@@ -147,7 +147,7 @@ export function SubstageRow({
 
           {/* Status chips */}
           {isPendingReview && (
-            <span className="shrink-0 inline-flex items-center rounded-full border border-state-held/30 bg-brand-off-white px-2 py-px text-[9px] font-medium text-state-held whitespace-nowrap">
+            <span className="shrink-0 inline-flex items-center rounded-full border border-brand-border-grey bg-brand-off-white px-2 py-px text-[9px] font-medium text-brand-near-black whitespace-nowrap">
               {t('project.stages.badgeYourApproval')}
             </span>
           )}
@@ -193,19 +193,13 @@ export function SubstageRow({
                 type="button"
                 onClick={handleMarkComplete}
                 disabled={marking}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-near-black px-3 py-1.5 text-[11px] font-semibold text-brand-near-black hover:bg-brand-near-black hover:text-white transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-green bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-green-hover transition-colors disabled:opacity-50"
               >
                 {marking ? (
                   <Loader2 className="size-3 animate-spin" />
                 ) : (
                   <Check className="size-3" strokeWidth={3} />
                 )}
-                {/* What the button does depends on who checks the work.
-                    On `jalla_verify` / `jalla_management` an independent verifier looks
-                    at it, so "ready for review" is literally true. On `self_verify`
-                    nobody else reviews it — the client is signing off their own
-                    evidence — and calling that "ready for review" implies a reviewer who
-                    does not exist. `starter` keeps its plainer wording. */}
                 {t('project.stages.approveEvidence')}
               </button>
             </motion.div>

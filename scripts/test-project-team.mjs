@@ -252,12 +252,30 @@ SELECT test_assert(can_edit_project_boq(test_id(101)) AND project_team_access(te
 INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(2));
 UPDATE project_takeoffs SET inputs='{"sqm":150}' WHERE project_id=test_id(101) AND created_by=test_id(2);
 SELECT test_assert((SELECT count(*) FROM project_takeoffs WHERE project_id=test_id(101) AND inputs='{"sqm":150}')=1,'contractor saves their BQ');
+UPDATE project_takeoffs SET status='submitted' WHERE project_id=test_id(101) AND created_by=test_id(2);
+DO $$ DECLARE n int; BEGIN
+ UPDATE project_takeoffs SET inputs='{"sqm":999}',status='draft' WHERE project_id=test_id(101) AND created_by=test_id(2); GET DIAGNOSTICS n=ROW_COUNT;
+ PERFORM test_assert(n=0,'submitted BQ figures cannot be rewritten by the author');
+ DELETE FROM project_takeoffs WHERE project_id=test_id(101) AND created_by=test_id(2); GET DIAGNOSTICS n=ROW_COUNT;
+ PERFORM test_assert(n=0,'submitted BQ cannot be deleted');
+END $$;
+INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(2));
 SELECT test_refused($q$INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(110),test_id(2))$q$,'new row violates row-level security policy');
 SELECT set_config('test.actor',test_id(3)::text,false);
 SELECT test_assert(NOT can_edit_project_boq(test_id(101)),'observer cannot edit BQ');
 SELECT set_config('test.actor',test_id(4)::text,false);
 SELECT test_assert(can_edit_project_boq(test_id(101)),'admin may review BQ');
 INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(4));
+RESET ROLE;
+SELECT set_config('test.actor',test_id(4)::text,false);
+UPDATE contractor_invites SET status='rejected' WHERE project_id=test_id(101) AND contractor_user_id=test_id(2);
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(2)::text,false);
+SELECT test_assert(NOT can_edit_project_boq(test_id(101)),'revoked contractor loses BQ access');
+DO $$ DECLARE n int; BEGIN
+ UPDATE project_takeoffs SET inputs='{"sqm":999}' WHERE project_id=test_id(101) AND status='draft'; GET DIAGNOSTICS n=ROW_COUNT;
+ PERFORM test_assert(n=0,'row ownership does not preserve revoked BQ editing rights');
+END $$;
 SELECT set_config('test.actor',test_id(1)::text,false);
 SELECT test_assert((SELECT budget_amount FROM projects WHERE id=test_id(101))=141407337.524,'BQ draft editing does not change confirmed project budget');
 RESET ROLE;
@@ -288,7 +306,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS and unchanged BOQ allocations.');
+  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access and unchanged BOQ allocations.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

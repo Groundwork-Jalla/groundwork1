@@ -301,3 +301,14 @@ describe('stage certificates reflect actual issuance', () => {
     expect(tracker().find(node => node.type === 'document-viewer')).toBeUndefined();
   });
 });
+
+it('a historical stage keeps its allocation and says completed before tracking', () => {
+  props.stages = [stage(1, 'complete', { pre_existing: true, milestone_amount: 300.025, payment_milestone_usd: 60.005 }), stage(2, 'active')];
+  chooseStage(1);
+  const elements = detail();
+  const badge = elements.find(node => node.type?.name === 'StageBadge')!;
+  expect(text(badge.type(badge.props))).toBe('project.costing.completedBeforeTracking');
+  const amount = elements.find(node => node.type?.name === 'MoneyValue')!;
+  expect(amount.props).toMatchObject({ amount: 300.025, usd: 60.005 });
+  expect(elements.find(node => node.type === StagePaymentGate)).toBeUndefined();
+});

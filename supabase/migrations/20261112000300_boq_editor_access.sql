@@ -46,7 +46,7 @@ CREATE POLICY "authors_insert_takeoffs" ON public.project_takeoffs FOR INSERT TO
   WITH CHECK(created_by=auth.uid() AND public.can_edit_project_boq(project_id) AND status IN('draft','submitted'));
 DROP POLICY IF EXISTS "authors_update_takeoffs" ON public.project_takeoffs;
 CREATE POLICY "authors_update_takeoffs" ON public.project_takeoffs FOR UPDATE TO authenticated
-  USING(created_by=auth.uid() AND public.can_edit_project_boq(project_id) AND status IN('draft','submitted'))
+  USING(created_by=auth.uid() AND public.can_edit_project_boq(project_id) AND status='draft')
   WITH CHECK(created_by=auth.uid() AND public.can_edit_project_boq(project_id) AND status IN('draft','submitted'));
 DROP POLICY IF EXISTS "authors_delete_takeoffs" ON public.project_takeoffs;
 CREATE POLICY "authors_delete_takeoffs" ON public.project_takeoffs FOR DELETE TO authenticated
