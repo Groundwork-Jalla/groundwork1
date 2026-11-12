@@ -71,6 +71,7 @@ SELECT set_config('test.actor',actor(2)::text,false);
 SELECT test_refused($q$UPDATE project_substages SET evidence_urls=jsonb_build_array(proof(302,'extra.jpg')) WHERE id=test_sub(302,1,1)$q$,'evidence_reviewed:');
 -- Clients can read/approve but cannot remove, replace, or rename the contractor's proof.
 SELECT set_config('test.actor',actor(1)::text,false);
+SELECT test_refused($q$SELECT submit_site_update(test_id(301,1),test_sub(301,1,1),'Replay contractor submission','[]',NULL,actor(100))$q$,'not_submitter:');
 SELECT test_assert((SELECT evidence_urls @> jsonb_build_array(proof(301)) FROM project_substages WHERE id=test_sub(301,1,1)) AND (SELECT count(*) FROM storage.objects WHERE name=proof(301))=1,'client can open contractor proof');
 SELECT test_refused($q$UPDATE project_substages SET evidence_urls='[]' WHERE id=test_sub(301,1,1)$q$,'contractor_evidence_only:');
 SELECT test_refused($q$DELETE FROM project_substages WHERE id=test_sub(301,1,1)$q$,'contractor_evidence_only:');
@@ -80,6 +81,11 @@ UPDATE storage.objects SET name=test_id(301)::text||'/receipts/renamed.jpg' WHER
 SELECT test_assert((SELECT count(*) FROM storage.objects WHERE name=proof(301) AND version='v1')=1,'storage policies block client deletion, overwrite and rename');
 SELECT approve_substage(test_sub(301,1,1));
 SELECT test_assert((SELECT status FROM project_stages WHERE id=test_id(301,1))='complete','client approval remains available and follows existing progression');
+SELECT set_config('test.actor',actor(2)::text,false);
+DELETE FROM storage.objects WHERE name=proof(301);
+UPDATE storage.objects SET version='changed-after-approval' WHERE name=proof(301);
+SELECT test_assert((SELECT count(*) FROM storage.objects WHERE name=proof(301) AND version='v1')=1,'approved proof stays intact even for the assigned contractor');
+SELECT test_refused($q$SELECT submit_site_update(test_id(302,1),test_sub(302,1,1),'Wrong reference','[]',NULL,actor(100))$q$,'client_ref_conflict:');
 -- Revoked, pending, verifier and unassigned staff roles do not gain evidence authorship.
 SELECT set_config('test.actor',actor(7)::text,false);
 SELECT test_assert(NOT project_evidence_writer(test_id(301)),'revoked contractor cannot author evidence');

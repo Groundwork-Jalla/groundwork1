@@ -170,3 +170,11 @@ project. Check the file/camera flow on a phone.
   feature or authorization to send messages/calendar invitations.
 - No production migration, deployment, external email or meeting invitation is
   performed by this local implementation.
+
+## Client evidence permission clarification
+
+Clients review construction evidence; accepted project contractors upload it. The
+client-side uploader and removal controls have been removed, and migration 008
+closes the matching submission, evidence-index and storage permissions. Client
+payment receipt uploads keep their own permission. See
+[contractor-stage-evidence.md](contractor-stage-evidence.md) for release and tests.

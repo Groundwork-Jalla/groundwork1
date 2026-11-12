@@ -54,8 +54,7 @@ export async function listSiteUpdates(projectId: string): Promise<{ rows: SiteUp
 }
 
 /**
- * Submit. The database decides who may (owner, accepted contractor, admin — never a
- * verifier), that the stage is open, that the substage belongs to it, and that every path
+ * Submit. The database requires an accepted project contractor, that the stage is open, that the substage belongs to it, and that every path
  * is under this project. Refusals arrive prefixed: `not_member:`, `not_submitter:`,
  * `wrong_state:`, `substage_mismatch:`, `path_mismatch:`, `empty_update:`.
  *

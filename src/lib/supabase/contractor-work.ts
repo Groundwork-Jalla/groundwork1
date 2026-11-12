@@ -252,8 +252,8 @@ export async function fetchMyPayments(): Promise<{ rows: ContractorPayment[]; av
  *      policy (012) checks `path_tokens[1]` against the caller's accepted invites, so a
  *      contractor physically cannot write into another project's folder.
  *   2. `submit_site_update` (088) records it. That definer function re-checks who may
- *      report work — owner, accepted contractor, admin — and explicitly refuses a
- *      verifier, who must not file the evidence they will later assess. It also appends
+ *      report work — an accepted contractor on this project. Clients and observers
+ *      read and review evidence instead of filing it. It also appends
  *      to the substage's `evidence_urls`, which the contractor cannot update directly
  *      (only `owner_update_substages` exists).
  *

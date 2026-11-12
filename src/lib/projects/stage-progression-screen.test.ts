@@ -287,6 +287,43 @@ describe('stage approval can fail and retry safely', () => {
 });
 
 describe('client review of pending legacy updates', () => {
+  it.each([false, true])('clients can review pending evidence without upload or removal controls (global contractor=%s)', hasContractorRole => {
+    props.isContractor = hasContractorRole;
+    props.canUploadEvidence = false;
+    const editor = vi.fn(() => 'evidence-uploader');
+    props.renderEvidenceUpload = editor;
+    const row = detail().find(node => node.type === SubstageRow)!;
+    const elements = component(SubstageRow, { ...row.props, substage: substage('pending') }, 'substage');
+    expect(row.props.canUploadEvidence).toBe(false);
+    expect(editor).not.toHaveBeenCalled();
+    expect(elements.some(node => node.type?.name === 'EvidencePills')).toBe(true);
+    expect(elements.some(node => node.type === 'button' && text(node).includes('approveEvidence'))).toBe(true);
+  });
+
+  it('keeps a client’s empty substage as a waiting-for-contractor message', () => {
+    props.renderEvidenceUpload = vi.fn(() => 'evidence-uploader');
+    const row = detail().find(node => node.type === SubstageRow)!;
+    const elements = component(SubstageRow, { ...row.props, substage: { ...substage('pending'), evidence_urls: [] } }, 'substage');
+    expect(elements.some(node => text(node).includes('project.review.updatesWillAppear'))).toBe(true);
+    expect(props.renderEvidenceUpload).not.toHaveBeenCalled();
+    expect(elements.some(node => node.type === 'button')).toBe(false);
+  });
+
+  it('offers evidence authoring only to an assigned contractor on an open funded stage', () => {
+    props.canApprove = false; props.isContractor = true; props.canUploadEvidence = true;
+    const editor = vi.fn(() => 'evidence-uploader'); props.renderEvidenceUpload = editor;
+    const row = detail().find(node => node.type === SubstageRow)!;
+    const elements = component(SubstageRow, { ...row.props, substage: substage('pending') }, 'substage');
+    expect(row.props.canUploadEvidence).toBe(true);
+    expect(editor).toHaveBeenCalledOnce();
+    expect(elements.some(node => node.type === 'button' && text(node).includes('approveEvidence'))).toBe(false);
+    props.payments!.set('s1', payment('s1', 'expected'));
+    expect(detail().find(node => node.type === SubstageRow)!.props.canUploadEvidence).toBe(false);
+    props.payments!.set('s1', payment('s1'));
+    props.projectPaused = true;
+    expect(detail().find(node => node.type === SubstageRow)!.props.canUploadEvidence).toBe(false);
+  });
+
   it('allows pending_review evidence to be approved and guards double clicks', async () => {
     const el = detail().find(node => node.type === SubstageRow)!;
     const subProps = { ...el.props, substage: substage('pending_review') };
