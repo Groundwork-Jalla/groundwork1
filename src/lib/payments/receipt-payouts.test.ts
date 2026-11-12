@@ -23,6 +23,19 @@ const receipt = (id = 'receipt', stageId = 'stage', native = 80, patch: Partial<
 });
 
 describe('actual receipts are the project payouts', () => {
+  it('counts partial receipts independently of work permission and preserves subsequent top-ups', () => {
+    const first = { id: 'first', stageId: 'stage', path: 'one', submittedAt: '', amount: 30,
+      currency: 'USD', fxRate: 1, amountUsd: 30, decision: 'received' as const, allowsWork: false,
+      requestedTopUp: 70, decisionNote: null, decidedAt: null, legacyUnknown: false };
+    const second = { ...first, id: 'second', path: 'two', amount: 50, amountUsd: 50, decision: 'pending' as const, requestedTopUp: null };
+    const flagged = { ...first, id: 'flagged', path: 'flagged', decision: 'flagged' as const, amount: 100, amountUsd: 100 };
+    const parent = receipt('ledger', 'stage', 50, { state: 'receipt_submitted', receipts: [first, second, flagged] });
+    const before = receiptPayoutSummary(bill(), [stage()], [parent, parent]);
+    expect([before.payouts.amount, before.pending.amount, before.remaining?.amount]).toEqual([30, 50, 970]);
+    const after = receiptPayoutSummary(bill(), [stage()], [{ ...parent, state: 'funded', receipts: [first, { ...second, decision: 'received', allowsWork: true }, flagged] }]);
+    expect([after.payouts.amount, after.pending.amount, after.remaining?.amount]).toEqual([80, 0, 920]);
+    expect(after.confirmedCount).toBe(2);
+  });
   it.each([80, 120])('uses receipt %s instead of the scheduled stage amount', actual => {
     const allocation = stage();
     const summary = receiptPayoutSummary(bill(), [allocation], [receipt('receipt', 'stage', actual)]);

@@ -65,8 +65,23 @@ deployment, real invitation or external email was performed during this local wo
 
 ## Validation
 
-Final typecheck, build, regression-suite and database results are recorded below
-after execution. Database checks use temporary local PostgreSQL instances.
+Verified locally on 12 November 2026:
+
+| Check | Result |
+| --- | --- |
+| `pnpm test --maxWorkers=2` | 4,390 passed; zero failed or skipped |
+| `pnpm typecheck` | Passed |
+| `pnpm build` | Passed, including the spreadsheet worker and contractor/admin editor routes |
+| `pnpm test:boq-db` | Passed: exact totals, fee/zero rules, history, FX and invitations |
+| `pnpm test:receipts-db` | Passed: actual amounts, acknowledgment, precision and receipt identity |
+| `pnpm test:stages-db` | Passed: ordered approval, funding gates, historical and zero stages |
+| `pnpm test:team-db` | Passed: role access, invitations, frozen submissions, revoked BQ access and unchanged budget |
+| Whitespace check against the starting revision | Passed |
+
+Database checks use temporary local PostgreSQL instances. The production build emits
+Vite's non-fatal large-chunk advisory. Tests include the supplied BOQ fixture,
+spreadsheet formats/precision/limits, worker cancellation, real-file catalogues,
+certificate issuance/revocation, role-specific navigation and filtered empty states.
 
 ## Live acceptance after release
 
@@ -85,3 +100,8 @@ have not been represented as completed by unit or local database tests.
 
 Philip's invitation-copy review and Ruth's follow-up meeting are external review
 actions from the meeting notes. No messages or meeting invitations were sent.
+
+The follow-up review and new receipt-reading/top-up workflow are recorded separately
+in [product-review-follow-up.md](product-review-follow-up.md), including migrations
+004–007 and their additional release requirements. The verification counts above
+refer to the earlier implementation.

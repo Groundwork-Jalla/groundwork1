@@ -60,9 +60,11 @@ export function projectInvitationPath(invitation: ProjectInvitation): string {
   return `/${invitation.kind === 'viewer' ? 'share' : 'invite'}/${encodeURIComponent(invitation.token)}`;
 }
 
-export function projectInvitationError(error: unknown): 'invite.emailMismatch' | 'invite.acceptError' {
+export function projectInvitationError(error: unknown): 'invite.emailMismatch' | 'invite.acceptError' | 'invite.projectPreparing' {
   const detail = error as { code?: string; message?: string } | null;
-  return `${detail?.code ?? ''} ${detail?.message ?? ''}`.includes('invite_email_mismatch')
+  const message = `${detail?.code ?? ''} ${detail?.message ?? ''}`;
+  if (message.includes('invitation_access_pending')) return 'invite.projectPreparing';
+  return message.includes('invite_email_mismatch')
     ? 'invite.emailMismatch' : 'invite.acceptError';
 }
 

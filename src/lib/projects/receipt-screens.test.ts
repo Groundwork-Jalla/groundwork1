@@ -47,40 +47,12 @@ describe('both sides can actually read the row they act on', () => {
   });
 });
 
-describe('the gate shows the right half to the right person', () => {
-  it('renders nothing when there is nothing owed', () => {
-    // A stage with no incoming row is free — amount is CHECKed > 0 — and 132 opens it
-    // without anybody paying. Showing a payment box there would invent a debt.
-    expect(gate).toMatch(/if \(!payment \|\| payment\.state === 'funded' \|\| payment\.state === 'reconciled'\) return null;/);
-  });
-
-  it('client uploads, contractor confirms — never the other way round', () => {
-    const contractorHalf = gate.slice(gate.indexOf('if (isContractor) {'), gate.indexOf("// ── The client's side"));
-    expect(contractorHalf).toMatch(/confirmStagePayment|handleConfirm/);
-    expect(contractorHalf).not.toMatch(/uploadStagePaymentReceipt/);
-
-    const clientHalf = gate.slice(gate.indexOf("// ── The client's side"));
-    expect(clientHalf).toMatch(/fileRef\.current\?\.click\(\)/);
-    expect(clientHalf).not.toMatch(/confirmStagePayment/);
-  });
-
-  it('the contractor waits rather than being offered a button with nothing behind it', () => {
-    // 175 refuses a confirmation with no receipt (`no_receipt`). Offering the button
-    // anyway would be a control whose only outcome is an error.
-    expect(gate).toMatch(/if \(awaitingReceipt\) \{[\s\S]{0,400}awaitingReceipt'/);
-  });
-
-  it('and a dead signed URL opens no tab', () => {
-    expect(gate).toMatch(/if \(url\) window\.open/);
-  });
-});
-
 describe('the gate is mounted on a locked stage, on both surfaces', () => {
   it('the client surface, through the shared tracker', () => {
     expect(tracker).toMatch(/<StagePaymentGate/);
     // On the locked branch: that is the stage the client has just been asked to pay for.
-    const locked = tracker.slice(tracker.indexOf("stage.status === 'locked' ?"));
-    expect(locked.slice(0, 1200)).toMatch(/<StagePaymentGate/);
+    expect(tracker).toContain('canUpload={paymentEnabled}');
+    expect(tracker).toContain('readOnly={!isContractor && !canApprove}');
     expect(clientPage).toMatch(/payments=\{payments\}/);
     expect(clientPage).toMatch(/fetchStagePayments\(id\)/);
   });

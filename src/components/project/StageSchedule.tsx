@@ -24,20 +24,20 @@ export function StageSchedule({ project, stages, basis, payments }: {
         const complete = stage.status === 'complete';
         const current = stage.status === 'active' || stage.status === 'pending_review';
         const payment = !historical ? payments?.get(stage.id) : undefined;
-        const confirmed = payment?.state === 'funded' || payment?.state === 'reconciled';
-        const pending = payment?.state === 'receipt_submitted';
-        const receipt = payment && (confirmed || pending) ? receiptPayoutSummary(project, [stage], [payment]) : null;
-        const actual = confirmed ? receipt?.payouts : receipt?.pending;
-        const unknown = confirmed ? receipt?.missingConfirmedCount : receipt?.missingPendingCount;
+        const receipt = payment ? receiptPayoutSummary(project, [stage], [payment]) : null;
+        const confirmed = !!receipt?.confirmedCount;
+        const pending = !!receipt?.pendingCount;
+        const requestedTopUp = payment?.receipts?.some(row => row.decision === 'received' && row.requestedTopUp != null && !row.allowsWork)
+          && payment.state !== 'funded' && payment.state !== 'reconciled';
         const scheduled = stageScheduleUsd(stage, basis);
         const Icon = complete ? Check : current ? Clock : Lock;
         return <li key={stage.id} data-stage-status={stage.status} className="flex items-start gap-3 py-4">
-          <span className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border ${complete ? 'border-brand-green bg-brand-green text-white' : current ? 'border-brand-near-black text-brand-near-black dark:border-white dark:text-white' : 'border-brand-border-grey text-brand-mid-grey'}`}><Icon className="size-3.5" aria-hidden /></span>
+          <span className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border ${complete ? 'border-brand-green bg-brand-green text-white' : current ? 'border-brand-green text-brand-green' : 'border-brand-border-grey text-brand-mid-grey'}`}><Icon className="size-3.5" aria-hidden /></span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-brand-near-black dark:text-white">{stageLabel(stage)}</p>
-                <p className="mt-1 text-xs text-brand-mid-grey">{t(historical ? 'project.costing.completedBeforeTracking' : complete ? 'project.review.approved' : stage.status === 'pending_review' ? 'project.costing.awaitingApproval' : current ? 'project.costing.statusActive' : 'project.costing.statusLocked')}</p>
+                <p className="mt-1 text-xs text-brand-mid-grey">{t(historical ? 'project.costing.completedBeforeTracking' : complete ? 'project.review.approved' : stage.review_payment_pending ? 'project.receiptFlow.reviewedPaymentBadge' : stage.status === 'pending_review' ? 'project.costing.awaitingApproval' : current ? 'project.costing.statusActive' : 'project.costing.statusLocked')}</p>
                 {stage.completed_at && <p className="mt-1 font-mono text-[11px] text-brand-mid-grey">{new Date(stage.completed_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB')}</p>}
               </div>
               <div className="text-right">
@@ -46,11 +46,18 @@ export function StageSchedule({ project, stages, basis, payments }: {
               </div>
             </div>
             {!historical && payments && <div className="mt-3 text-xs text-brand-mid-grey">
-              {confirmed || pending ? <>
-                <p>{t(confirmed ? 'project.review.receiptConfirmed' : 'project.review.receiptSubmitted')}</p>
-                {unknown || !actual ? <p>{t('project.costing.receiptAmountsMissing')}</p>
-                  : <MoneyValue usd={actual.usd} amount={actual.amount} className="mt-1 text-sm" />}
-              </> : t(scheduled === 0 ? 'project.review.freeStage' : 'project.review.receiptExpected')}
+              {confirmed && <div>
+                <p>{t('project.review.receiptConfirmed')}</p>
+                {receipt?.missingConfirmedCount ? <p>{t('project.costing.receiptAmountsMissing')}</p>
+                  : receipt && <MoneyValue usd={receipt.payouts.usd} amount={receipt.payouts.amount} className="mt-1 text-sm" />}
+              </div>}
+              {pending && <div className={confirmed ? 'mt-2' : undefined}>
+                <p>{t('project.review.receiptSubmitted')}</p>
+                {receipt?.missingPendingCount ? <p>{t('project.costing.receiptAmountsMissing')}</p>
+                  : receipt && <MoneyValue usd={receipt.pending.usd} amount={receipt.pending.amount} className="mt-1 text-sm" />}
+              </div>}
+              {requestedTopUp && <p className="mt-2">{t('project.receiptFlow.topUpNext')}</p>}
+              {!confirmed && !pending && t(scheduled === 0 ? 'project.review.freeStage' : 'project.review.receiptExpected')}
             </div>}
           </div>
         </li>;

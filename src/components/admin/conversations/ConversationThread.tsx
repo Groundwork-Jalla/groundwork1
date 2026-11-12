@@ -281,7 +281,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           }
           const outbound = memberView ? m.senderId === currentUserId : m.direction === 'outbound';
           const bubbleClass = cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-left text-sm',
-            outbound ? 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' : 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#252525] dark:text-white',
+            outbound ? 'bg-brand-green text-white' : 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#252525] dark:text-white',
             mine && 'ring-2 ring-offset-1 ring-brand-mid-grey');
           return (
             <div key={m.id} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
@@ -357,7 +357,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           <VoiceRecorder disabled={busy !== null || uploading} onRecorded={clip => void attach(clip, 'voice')} />
 
           <button type="button" disabled={busy !== null || uploading || (!draft.trim() && pending.length === 0)} onClick={() => send('outbound')}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-near-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
             {busy === 'send' && <Loader2 className="size-3.5 animate-spin" />}{t('admin.workspace.conversations.send')}
           </button>
           {!memberView && <button type="button" disabled={busy !== null || uploading || (!draft.trim() && pending.length === 0)} onClick={() => send('internal')}

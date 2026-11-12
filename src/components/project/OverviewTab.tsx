@@ -36,7 +36,7 @@ import {
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { MoneyValue } from './MoneyValue';
-import { currentProjectStage, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
+import { currentProjectStage, stageWorkReady } from '@/lib/projects/stage-progression';
 import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow, BudgetBreakdown } from '@/types/project';
 import type { StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
@@ -115,11 +115,12 @@ function CompletionCard({ pct, count, total }: { pct: number; count: number; tot
 
 // ── Cost breakdown ────────────────────────────────────────
 
-function CostBreakdownCard({ budget, project, stages, payments, boq, historical, remaining, historicalAmount, remainingAmount }: {
+function CostBreakdownCard({ budget, project, stages, payments, onViewCosting, boq, historical, remaining, historicalAmount, remainingAmount }: {
   budget: BudgetBreakdown;
   project: ProjectRow;
   stages: ProjectStageRow[];
   payments: Map<string, StagePayment>;
+  onViewCosting: () => void;
   /** Renders a stored USD figure in the project's own currency. See `useProjectMoney`. */
   boq?: boolean;
   historical?: number;
@@ -130,24 +131,16 @@ function CostBreakdownCard({ budget, project, stages, payments, boq, historical,
   const t = useT();
   const total = budget.total;
 
-  const rows = [
-    { label: t('project.overview.costConstruction'), planned: budget.construction },
-    { label: t('project.overview.costDesign'),       planned: budget.design },
-    { label: t('project.overview.costProfessional'), planned: budget.professional },
-    { label: t('project.overview.costPermit'),       planned: budget.permit },
-    { label: t('project.overview.costVerification'), planned: budget.verification },
-    { label: t('project.overview.costContingency'),  planned: budget.contingency },
-  ].filter(r => r.planned > 0);
 
   return (
     <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
-      <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.overview.costTitle')}</p>
+      <p className="text-sm font-medium text-brand-near-black dark:text-white">{t('project.reviewFollowUp.costSummary')}</p>
 
       <div className="mt-3 mb-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned')}</p>
         <p className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white"><MoneyValue usd={total} amount={project.budget_amount} /></p>
       </div>
-      <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} />
+      <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} compact />
 
       {boq && (
         <dl className="mt-3 space-y-1 text-xs text-brand-mid-grey">
@@ -156,19 +149,9 @@ function CostBreakdownCard({ budget, project, stages, payments, boq, historical,
         </dl>
       )}
 
-      <div className="mt-4 space-y-2.5">
-        {rows.map(r => (
-          <div key={r.label} className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-[11px] text-brand-mid-grey">{r.label}</span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-light-grey dark:bg-[#282828]">
-              <div className="h-full rounded-full bg-state-complete" style={{ width: `${total > 0 ? Math.min(Math.round((r.planned / total) * 100), 100) : 0}%` }} />
-            </div>
-            <span className="w-28 shrink-0 text-right text-[11px] font-medium tabular-nums text-brand-near-black dark:text-white">
-              <MoneyValue usd={r.planned} />
-            </span>
-          </div>
-        ))}
-      </div>
+      <button type="button" onClick={onViewCosting} className="mt-4 text-xs font-semibold text-brand-green underline underline-offset-4">
+        {t('project.reviewFollowUp.fullCosting')}
+      </button>
     </div>
   );
 }
@@ -193,20 +176,7 @@ export default function OverviewTab({
   const labels = useDomainLabels();
   const t = useT();
 
-  /**
-   * Money, in the currency the client actually pays in.
-   *
-   * Every figure Groundwork stores is USD. Philip, 9 Nov 2026: the project currency is
-   * "mistakenly displayed in USD instead of CFA Franc". It is not a label — the stored
-   * number really is dollars — so it is converted here, at the rate `useProjectMoney`
-   * fetches today, with `construction_rates.approx_fx_rate` as the fallback. That is the
-   * same hook and the same rate the contractor's Work screens have used since 29 October,
-   * so client and contractor cannot be quoted different conversions of one stage.
-   *
-   * Nothing here moves money. The ledger is still denominated in USD and the budget
-   * engine still divides by the stored rate; this only changes what is shown.
-   */
-
+  // Saved native BOQ amounts and the project's saved FX basis are shared by both views.
   const sortedStages = useMemo(() => [...stages].sort((a, b) => a.stage_number - b.stage_number), [stages]);
 
   const daysActive = Math.max(0, Math.floor(
@@ -234,7 +204,9 @@ export default function OverviewTab({
    * worst version of this card being wrong.
    */
   const nextPayment = nextStage ? payments.get(nextStage.id) : undefined;
-  const unlockStage = nextStage && !stagePaymentAcknowledged(nextStage, nextPayment) ? nextStage : undefined;
+  const receiptWaiting = nextPayment?.receipts?.length ? nextPayment.receipts.some(row => row.decision === 'pending') : nextPayment?.state === 'receipt_submitted';
+  const requestedTopUp = nextPayment?.receipts?.some(row => row.decision === 'received' && row.requestedTopUp != null && !row.allowsWork);
+  const unlockStage = nextStage && !stageWorkReady(nextStage, sortedStages, nextPayment, project.workflow_origin) ? nextStage : undefined;
 
 
   // Planned costs come from the saved schedule. Actual payouts are read separately
@@ -335,11 +307,11 @@ export default function OverviewTab({
               : unlockStage ? <>
                 <p className="mt-3 text-sm text-brand-near-black dark:text-white">{t('project.review.paymentFor', { stage: stageLabel(unlockStage) })}</p>
                 <MoneyValue usd={unlockStage.payment_milestone_usd} amount={unlockStage.milestone_amount} className="mt-2 text-2xl font-semibold" />
-                <p className="mt-2 text-xs text-brand-mid-grey">{t(nextPayment?.state === 'receipt_submitted' ? 'project.review.pendingReceipt' : 'project.overview.unlockHowTo')}</p>
+                <p className="mt-2 text-xs text-brand-mid-grey">{t(receiptWaiting ? 'project.review.pendingReceipt' : requestedTopUp ? 'project.receiptFlow.topUpNext' : unlockStage.review_payment_pending ? 'project.receiptFlow.reviewedStagePayment' : 'project.overview.unlockHowTo')}</p>
               </> : <p className="mt-3 text-sm text-brand-mid-grey">{t(nextStage ? (awaitingReview > 0 ? 'project.review.reviewUpdates' : 'project.review.awaitingUpdates') : 'project.overview.allDone')}</p>}
             {nextStage && project.status !== 'on_hold' && <button type="button" onClick={onViewStage}
               className="mt-4 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">
-              {t(unlockStage && nextPayment?.state !== 'receipt_submitted' ? 'project.stages.receiptChoose' : 'project.review.openStage')}
+              {t(unlockStage && !receiptWaiting ? 'project.stages.receiptChoose' : 'project.review.openStage')}
             </button>}
 
           </div>
@@ -349,6 +321,7 @@ export default function OverviewTab({
             project={project}
             stages={stages}
             payments={payments}
+            onViewCosting={onViewCosting}
             boq={project.budget_source === 'boq'}
             historical={sortedStages.filter(s => s.pre_existing).reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}
             remaining={sortedStages.filter(s => s.status !== 'complete').reduce((sum, s) => sum + (s.payment_milestone_usd ?? 0), 0)}

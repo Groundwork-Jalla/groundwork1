@@ -25,6 +25,7 @@ function actionsWrittenByTheDatabase(): Set<string> {
     const sql = readFileSync(join(MIGRATIONS, f), 'utf8');
     // The first argument may itself be a call with commas (091: `COALESCE(p_project, …)`).
     for (const m of sql.matchAll(/log_activity\(\s*(?:[^,()]|\([^)]*\))+,\s*'([a-z_.]+)'/g)) out.add(m[1]);
+    for (const m of sql.matchAll(/'(funding\.receipt_[a-z_]+)'/g)) out.add(m[1]);
     // Direct inserts with a literal action in second position (060/062 `tier_changed`).
     for (const m of sql.matchAll(/INSERT INTO public\.project_audit_log\s*\([^)]*\)\s*VALUES\s*\(\s*[^,]+,\s*'([a-z_.]+)'/g)) out.add(m[1]);
     // 090: `CASE WHEN v_next = 'funded' THEN 'funding.received' ELSE 'payment.' || v_next END`
@@ -44,7 +45,7 @@ function actionsWrittenByTheApp(): Set<string> {
       if (!/\.tsx?$/.test(e.name) || /\.test\.tsx?$/.test(e.name)) continue;
       const src = readFileSync(p, 'utf8');
       // `action: 'x'` in an audit-row literal; `send` is the CRM's, not the audit log's.
-      for (const m of src.matchAll(/\baction:\s*'([a-z_]+(?:\.[a-z_]+)?)'/g)) if (m[1] !== 'send') out.add(m[1]);
+      for (const m of src.matchAll(/\baction:\s*'([a-z_]+(?:\.[a-z_]+)?)'(?!\s*\|)/g)) if (m[1] !== 'send') out.add(m[1]);
     }
   };
   walk(join(ROOT, 'src'));
@@ -98,12 +99,13 @@ describe('entityTab', () => {
     expect([...written].sort()).toEqual([
       'contractor', 'contractor_application', 'contractor_invite', 'conversation', 'decision',
       'payment', 'payout_destination', 'profile', 'project', 'project_stage', 'project_verifier', 'project_viewer',
-      'site_update', 'stage_verification', 'support_ticket', 'verifier_invite',
+      'site_update', 'stage_payment_receipt', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
     expect(entityTab('project_stage')).toBe('stages');
     expect(entityTab('stage_verification')).toBe('stages');
     expect(entityTab('site_update')).toBe('stages');
     expect(entityTab('payment')).toBe('financials');
+    expect(entityTab('stage_payment_receipt')).toBe('financials');
     expect(entityTab('conversation')).toBe('conversations');
     expect(entityTab('decision')).toBe('conversations');
     expect(entityTab('contractor_invite')).toBe('team');

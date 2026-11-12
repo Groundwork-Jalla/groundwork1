@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Loader2, Building2, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,10 @@ export default function InvitePage() {
   const navigate     = useNavigate();
   const { user, signOut } = useAuth();
   const t            = useT();
+  const scope = `${token ?? ''}:${user?.id ?? ''}`;
+  const current = useRef(scope); current.current = scope;
+  const inFlight = useRef<string | null>(null);
+  const [resolvedToken, setResolvedToken] = useState<string | undefined>();
 
   const [invite,    setInvite]    = useState<InviteDetails | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -22,27 +26,31 @@ export default function InvitePage() {
 
   useEffect(() => {
     if (!token) { setInvalid(true); setLoading(false); return; }
-
+    let live = true;
+    setLoading(true); setInvalid(false); setInvite(null); setAcceptErr(null);
     getInviteByToken(token)
       .then((data) => {
+        if (!live) return;
         if (!data) { setInvalid(true); return; }
         setInvite(data);
       })
-      .catch(() => setInvalid(true))
-      .finally(() => setLoading(false));
+      .catch(() => { if (live) setInvalid(true); })
+      .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
+    return () => { live = false; };
   }, [token]);
+  useEffect(() => { setAccepting(false); setAcceptErr(null); }, [scope]);
 
   async function handleAcceptNow() {
-    if (!token) return;
+    if (!token || inFlight.current === scope) return;
+    inFlight.current = scope;
     setAccepting(true);
     setAcceptErr(null);
     try {
       const path = await completeProjectInvitation({ kind: 'contractor', token });
-      window.location.href = path;
+      if (current.current === scope) window.location.href = path;
     } catch (err) {
-      setAcceptErr(t(projectInvitationError(err)));
-      setAccepting(false);
-    }
+      if (current.current === scope) { setAcceptErr(t(projectInvitationError(err))); setAccepting(false); }
+    } finally { if (inFlight.current === scope) inFlight.current = null; }
   }
 
   // Store token in localStorage so callback.tsx can process it
@@ -52,12 +60,13 @@ export default function InvitePage() {
   }
 
   async function changeAccount() {
+    current.current = 'switching-account';
     storeToken();
     await signOut();
     navigate(withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null));
   }
 
-  if (loading) {
+  if (loading || resolvedToken !== token) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="size-6 animate-spin text-brand-mid-grey" />

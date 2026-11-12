@@ -157,6 +157,7 @@ export async function acceptInvite(token: string): Promise<string> {
     throw error;
   }
 
+  if (typeof projectId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(projectId)) throw new Error('invitation_access_pending');
   // Tag the user's session so UI can detect contractor role without an extra DB call.
   // Also mark onboarding_complete so returning contractors go to dashboard, not onboarding.
   await supabase.auth.updateUser({

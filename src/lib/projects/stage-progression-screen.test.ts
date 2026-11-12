@@ -107,6 +107,22 @@ beforeEach(() => {
 });
 
 describe('approval leads directly to the next stage', () => {
+  it('requests payment for the reviewed first contractor-created stage before advancing', async () => {
+    props.workflowOrigin = 'contractor'; props.payments!.set('s1', payment('s1', 'expected'));
+    h.approve.mockResolvedValue(result({ nextStageId: 's1', nextStageNumber: 1, nextStageStatus: 'pending_review', awaitingReviewedStagePayment: true }));
+    await detailElement().props.onApproveStage('s1', 1);
+    const selected = detailElement();
+    expect(selected.props.stage).toMatchObject({ id: 's1', status: 'pending_review', review_payment_pending: true });
+    expect(selected.props.workAllowed).toBe(false);
+    const gate = detail().find(node => node.type === StagePaymentGate)!;
+    expect(gate.props).toMatchObject({ stageId: 's1', canUpload: true, workReviewed: true });
+    expect(detail().some(node => node.type?.name === 'ApproveButton')).toBe(false);
+    chooseStage(2);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
+    props.stages = [stage(1, 'complete'), stage(2)];
+    chooseStage(1); // Payment confirmation arrives through realtime/full project refresh.
+    expect(detailElement().props.stage.status).toBe('complete');
+  });
   it('shows the next receipt form after the final substage approval, before the refresh arrives', async () => {
     props.substages = [substage('pending_review')]; h.mark.mockResolvedValue(result());
     const before = detailElement();
@@ -135,7 +151,7 @@ describe('approval leads directly to the next stage', () => {
     await detailElement().props.onApproveStage('s1', 1);
     expect(detailElement().props.stage.status).toBe('active');
     const gate = detail().find(node => node.type === StagePaymentGate)!;
-    expect(component(StagePaymentGate, gate.props, 'gate')).toEqual([]);
+    expect(component(StagePaymentGate, gate.props, 'gate').some(node => node.type === 'form')).toBe(false);
   });
 
   it('shows final completion without a new payment prompt', async () => {
@@ -143,7 +159,7 @@ describe('approval leads directly to the next stage', () => {
       nextStageId: null, nextStageNumber: null, awaitingPayment: false }));
     await detailElement().props.onMarkSubstageComplete('sub-one');
     expect(detailElement().props.stage.status).toBe('complete');
-    expect(detail().some(node => node.type === StagePaymentGate)).toBe(false);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
   });
 
   it('follows a realtime transition when the user is viewing the current stage', () => {
@@ -184,17 +200,27 @@ describe('only the current stage offers actions', () => {
     props.canApprove = false;
     props.substages = [substage('pending_review')];
     const elements = detail();
-    expect(elements.some(node => node.type === StagePaymentGate)).toBe(false);
+    expect(elements.find(node => node.type === StagePaymentGate)?.props.readOnly).toBe(true);
     expect(elements.find(node => node.type === SubstageRow)!.props.onMarkComplete).toBeUndefined();
     expect(elements.some(node => node.type?.name === 'ApproveButton')).toBe(false);
     props.substages = [substage()];
     expect(detail().some(node => node.type?.name === 'ApproveButton')).toBe(false);
   });
-  it('hides the payment gate on a future locked stage', () => {
+  it('shows payment disabled on a future locked stage', () => {
     chooseStage(3);
     expect(detailElement().props.canAct).toBe(false);
-    expect(detail().some(node => node.type === StagePaymentGate)).toBe(false);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
     expect(detail().some(node => text(node).includes('project.stages.lockedBody'))).toBe(true);
+  });
+
+  it('starts contractor-created projects with evidence while leaving payment facts unpaid', () => {
+    props.workflowOrigin = 'contractor'; props.payments!.set('s1', payment('s1', 'expected'));
+    expect(detailElement().props.workAllowed).toBe(true);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
+    props.stages[0].status = 'complete';
+    expect(detailElement().props.stage.id).toBe('s2');
+    expect(detailElement().props.workAllowed).toBe(false);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(true);
   });
 
   it('exposes funding on an initially active unpaid stage and keeps its work blocked', () => {
@@ -228,8 +254,7 @@ describe('only the current stage offers actions', () => {
     props.substages = []; props.payments = new Map();
     const elements = detail();
     expect(elements.some(node => node.type?.name === 'ApproveButton')).toBe(true);
-    const gate = elements.find(node => node.type === StagePaymentGate)!;
-    expect(component(StagePaymentGate, gate.props, 'gate')).toEqual([]);
+    expect(elements.some(node => node.type === StagePaymentGate)).toBe(false);
   });
 });
 

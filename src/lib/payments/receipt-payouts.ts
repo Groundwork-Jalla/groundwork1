@@ -72,12 +72,20 @@ export function receiptPayoutSummary(
   // A refresh can carry the old and new snapshot of the same row. The most
   // advanced state wins, and a payment is still counted exactly once.
   const unique = new Map<string, StagePayment>();
-  for (const payment of payments) {
+  for (const parent of payments) {
+    const rows: StagePayment[] = parent.receipts?.length ? parent.receipts.map(receipt => ({
+      id: receipt.id, stageId: receipt.stageId, amount: parent.amount,
+      state: receipt.decision === 'received' ? 'funded' : receipt.decision === 'pending' ? 'receipt_submitted' : 'expected',
+      receiptPath: receipt.path, receiptUploadedAt: receipt.submittedAt, receiptAmount: receipt.amount,
+      receiptCurrency: receipt.currency, receiptFxRate: receipt.fxRate, receiptAmountUsd: receipt.amountUsd,
+    })) : [parent];
+    for (const payment of rows) {
     const stage = byStage.get(payment.stageId);
     if (!payment.id || !stage || stage.pre_existing || !(payment.state in stateOrder)) continue;
     const previous = unique.get(payment.id);
     if (!previous || stateOrder[payment.state] > stateOrder[previous.state]) {
       unique.set(payment.id, payment);
+    }
     }
   }
 

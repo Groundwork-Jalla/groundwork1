@@ -15,7 +15,7 @@ Already implemented and retained:
   verified acceptance, role controls and recipient language.
 - [x] Project Team tab with sharing moved out of Overview/Stages.
 
-Completed implementation; final verification in progress:
+Completed implementation and local verification:
 
 - [x] Confirm building type can be corrected before project creation without changing a confirmed BOQ total.
 - [x] Match client fonts, green actions and progress colours to the contractor design.
@@ -33,11 +33,18 @@ Completed implementation; final verification in progress:
 - [x] Make actual documents openable and show only uploaded media/formally issued certificates.
 - [x] Restrict BQ editing to assigned contractors/admins while preserving client access to uploaded BOQ documents.
 - [x] Rename take-off actions to Edit bill of quantities and sharing to Share this project.
-- [ ] Run meaningful client/contractor, BOQ, permission and document regressions; reconcile stale tests with agreed behaviour.
-- [ ] Typecheck/build and document deployment prerequisites and any manual acceptance steps.
+- [x] Run meaningful client/contractor, BOQ, permission and document regressions; reconcile stale tests with agreed behaviour.
+- [x] Typecheck/build and document deployment prerequisites and any manual acceptance steps.
 
 Production migrations and live account acceptance tests remain separate release
 steps until actually executed. No external messages or production changes are
 part of this local implementation.
 
 Implementation details and release steps: [product-review-completion.md](product-review-completion.md).
+
+Verified: 4,390 tests passed, all four local PostgreSQL regression suites passed,
+and typecheck/production build passed. See the completion record for release-only
+steps and the real-account acceptance checklist.
+
+The subsequent 11/12 November review has its own observations, implementation
+status and release checklist in [product-review-follow-up.md](product-review-follow-up.md).

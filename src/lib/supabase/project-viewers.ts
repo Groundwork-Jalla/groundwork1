@@ -221,7 +221,8 @@ export async function getViewerInvitePreview(token: string): Promise<ViewerInvit
 export async function acceptProjectViewer(token: string): Promise<string> {
   const { data, error } = await supabase.rpc('accept_project_viewer', { p_token: token });
   if (error) fail(error.message);
-  const projectId = String(data);
+  if (typeof data !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(data)) throw new Error('invitation_access_pending');
+  const projectId = data;
   // Observers use the same acceptance link, but must not start or close the
   // primary-client CRM sequence. Membership is already saved if this read fails.
   let isClient = false;

@@ -90,7 +90,7 @@ describe('clients and observers are distinct memberships', () => {
     const client = buildShareHtml(lang, 'Builder', 'Home', 'Client', 'token', true);
     const observer = buildShareHtml(lang, 'Client', 'Home', null, 'token');
     expect(client).toContain(lang === 'en' ? 'approve work and invite observers' : 'validez les travaux et invitez des observateurs');
-    expect(observer).toContain(lang === 'en' ? 'You cannot approve work' : 'Vous ne pouvez ni valider');
-    expect(client).not.toContain(lang === 'en' ? 'You cannot approve work' : 'Vous ne pouvez ni valider');
+    expect(observer).toContain(lang === 'en' ? 'Follow project stages' : 'Suivez les étapes du chantier');
+    expect(client).not.toContain(lang === 'en' ? 'Follow project stages' : 'Suivez les étapes du chantier');
   });
 });

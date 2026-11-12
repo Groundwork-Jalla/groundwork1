@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { StageMarker } from './StageMarker';
 import { SubstageRow } from './SubstageRow';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { MoneyValue } from './MoneyValue';
@@ -13,61 +14,23 @@ import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
-import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
+import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged, stageWorkReady, stageStartsWithEvidence, canSubmitStageReceipt } from '@/lib/projects/stage-progression';
 
 
 // ── Stage circle (horizontal pipeline) ───────────────────
 
 function StageCircle({
-  status,
+  status, current = false,
   number,
   selected,
 }: {
   status: StageStatus;
+  current?: boolean;
   number: number;
   selected: boolean;
 }) {
-  const ring = selected
-    ? 'ring-2 ring-offset-2 ring-brand-near-black'
-    : '';
-
-  if (status === 'complete') {
-    return (
-      <span
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-green transition-all',
-          ring,
-        )}
-      >
-        <Check className="size-3.5 text-white" strokeWidth={3} />
-      </span>
-    );
-  }
-
-  if (status === 'active' || status === 'pending_review') {
-    return (
-      <span
-        className={cn(
-          'relative flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-near-black transition-all',
-          ring,
-        )}
-      >
-        <span className="relative text-[11px] font-bold text-white tabular-nums">{number}</span>
-      </span>
-    );
-  }
-
-  // locked
-  return (
-    <span
-      className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-brand-border-grey bg-white transition-all',
-        selected && 'border-brand-near-black ring-2 ring-offset-2 ring-brand-near-black',
-      )}
-    >
-      <span className="text-[11px] font-medium text-brand-border-grey tabular-nums">{number}</span>
-    </span>
-  );
+  return <StageMarker position={status === 'complete' ? 'done' : current || status === 'active' || status === 'pending_review' ? 'current' : 'future'}
+    number={number} selected={selected} size="lg" />;
 }
 
 // ── Stage badge ────────────────────────────────────────────
@@ -75,10 +38,10 @@ function StageCircle({
 // `tier` is not decoration here. On Self Verify nobody at Jalla reviews a stage, so
 // "In Review" would name a wait that does not exist — the stage is the owner's own to
 // approve. Anything that renders a stage state has to know which plan it is on.
-function StageBadge({ status, tier, historical }: { status: StageStatus; tier: string; historical?: boolean }) {
+function StageBadge({ status, tier, historical, reviewPaymentPending }: { status: StageStatus; tier: string; historical?: boolean; reviewPaymentPending?: boolean }) {
   const t = useT();
   const map: Record<StageStatus, { labelKey: TKey; className: string }> = {
-    active:         { labelKey: 'project.stages.badgeActive', className: 'bg-brand-near-black text-white dark:bg-white dark:text-brand-near-black' },
+    active:         { labelKey: 'project.stages.badgeActive', className: 'border border-state-complete text-state-complete bg-state-complete/5' },
     pending_review: {
       labelKey: 'project.stages.badgeYourApproval',
       className: 'border border-brand-border-grey text-brand-mid-grey',
@@ -87,7 +50,7 @@ function StageBadge({ status, tier, historical }: { status: StageStatus; tier: s
     locked:         { labelKey: 'project.stages.badgeLocked',   className: 'text-brand-mid-grey' },
   };
   const { labelKey, className } = map[status];
-  const label = historical ? 'project.costing.completedBeforeTracking' : labelKey;
+  const label = historical ? 'project.costing.completedBeforeTracking' : reviewPaymentPending ? 'project.receiptFlow.reviewedPaymentBadge' : labelKey;
   return (
     <span
       className={cn(
@@ -142,6 +105,9 @@ interface StageDetailProps {
   /** The incoming tranche on THIS stage, if one is owed (175). */
   payment?: StagePayment;
   canAct: boolean;
+  workAllowed: boolean;
+  paymentEnabled: boolean;
+  paymentBlockedReason: string;
   isFinalStage: boolean;
   onPaymentChanged: () => void | Promise<void>;
   onMarkSubstageComplete: (substageId: string) => Promise<void>;
@@ -163,7 +129,7 @@ function StageDetail({
   canApprove,
   projectId,
   payment,
-  canAct,
+  canAct, workAllowed, paymentEnabled, paymentBlockedReason,
   isFinalStage,
   onPaymentChanged,
   onMarkSubstageComplete,
@@ -190,11 +156,12 @@ function StageDetail({
   // reads 'paid' on the legacy projection because its milestone is 0 (103), and must not
   // unlock anything on that basis. Such a stage is `complete`, so these gates are already
   // unreachable; saying it here means a future status change cannot quietly open them.
-  const stagePaid = stagePaymentAcknowledged(stage, payment);
+  const stagePaid = workAllowed;
 
   const showApproveButton =
     canApprove &&
     canAct &&
+    !stage.review_payment_pending &&
     (stage.status === 'active' || stage.status === 'pending_review') &&
     allSubstagesReady &&
     stagePaid;
@@ -240,7 +207,7 @@ function StageDetail({
             <MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} />{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
-          <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} />
+          <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} reviewPaymentPending={stage.review_payment_pending} />
         </div>
       </div>
 
@@ -257,26 +224,12 @@ function StageDetail({
             and one only — it has not been paid for — and the thing to do about that
             is the thing to show here. Renders nothing when nothing is owed (175).
           */}
-          {canAct && (isContractor || canApprove) && <StagePaymentGate
-            projectId={projectId}
-            stageId={stage.id}
-            stageNumber={stage.stage_number}
-            payment={payment}
-            isContractor={!!isContractor}
-            onChanged={onPaymentChanged}
-          />}
+
         </>
       ) : (
         <>
           {!canAct && stage.status !== 'complete' && <p className="mb-3 text-sm text-brand-mid-grey">{t('project.stages.lockedBody')}</p>}
-          {canAct && (isContractor || canApprove) && <StagePaymentGate
-            projectId={projectId}
-            stageId={stage.id}
-            stageNumber={stage.stage_number}
-            payment={payment}
-            isContractor={!!isContractor}
-            onChanged={onPaymentChanged}
-          />}
+
           <div className="divide-y divide-brand-border-grey/60">
             {substages.map(sub => (
               <SubstageRow
@@ -309,6 +262,13 @@ function StageDetail({
           )}
         </>
       )}
+
+      {!stage.pre_existing && payment && <StagePaymentGate
+        projectId={projectId} stageId={stage.id} stageNumber={stage.stage_number} payment={payment}
+        isContractor={!!isContractor} readOnly={!isContractor && !canApprove} canUpload={paymentEnabled}
+        blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
+        workReviewed={stage.review_payment_pending}
+      />}
 
       {missingPayment && (
         <p role="status" className="mt-3 text-xs text-brand-mid-grey">
@@ -358,6 +318,8 @@ export interface StageTrackerProps {
     existingUrls: string[];
     onUploadComplete: (urls: string[]) => void;
   }) => React.ReactNode;
+  workflowOrigin?: 'client' | 'contractor';
+  projectPaused?: boolean;
 }
 
 /**
@@ -381,7 +343,7 @@ function shortLabel(label: string): string {
 }
 
 export function StageTracker({
-  stages,
+  stages, workflowOrigin = 'client', projectPaused = false,
   substages,
   tier,
   userId,
@@ -498,6 +460,7 @@ export function StageTracker({
                   >
                     <StageCircle
                       status={stage.status}
+                      current={stage.id === currentStage?.id}
                       number={stage.stage_number}
                       selected={selectedNum === stage.stage_number}
                     />
@@ -542,7 +505,10 @@ export function StageTracker({
                 canApprove={canApprove}
                 projectId={projectId}
                 payment={payments?.get(selectedStage.id)}
-                canAct={canActOnProjectStage(selectedStage, orderedStages)}
+                canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
+                workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
+                paymentEnabled={!projectPaused && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
+                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')}
                 isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
                 onMarkSubstageComplete={handleSubstageApproval}

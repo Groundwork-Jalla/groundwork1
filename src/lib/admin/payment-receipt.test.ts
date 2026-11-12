@@ -16,10 +16,10 @@ describe('the mounted receipt and approval flow', () => {
   });
   it('records an actual amount and file, and gives the contractor an acknowledgment action', () => {
     const gate = read('src/components/project/StagePaymentGate.tsx');
-    expect(gate).toContain('uploadStagePaymentReceipt(projectId, stageId, file, { amount, currency: code, fxRate })');
-    expect(gate).toContain('confirmStagePayment(stageId, undefined, { path: payment!.receiptPath!');
+    expect(gate).toContain('uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: code, fxRate })');
+    expect(gate).toContain('decideStagePaymentReceipt(receipt.id, action, note, topUp)');
     expect(gate).toContain('receiptAmountInvalid');
-    expect(gate).toContain('receiptFileRequired');
+    expect(gate).toContain('project.receiptFlow.pickFile');
   });
   it('client sign-off says approval in every tier', () => {
     const row = read('src/components/project/SubstageRow.tsx');

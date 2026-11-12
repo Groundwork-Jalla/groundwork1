@@ -82,6 +82,22 @@ CREATE POLICY owner_all_invites ON contractor_invites FOR ALL USING(EXISTS(SELEC
 CREATE POLICY contractors_read_own_invites ON contractor_invites FOR SELECT USING(contractor_user_id=auth.uid());
 CREATE POLICY admins_read_invites ON contractor_invites FOR SELECT USING(public.is_admin());
 CREATE POLICY owner_reads_project_viewers ON project_viewers FOR SELECT USING(user_id=auth.uid() OR public.is_admin());
+
+CREATE TABLE public.project_substages(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid);
+CREATE TABLE public.project_documents(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid);
+CREATE TABLE public.project_fees(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid);
+CREATE TABLE public.payments(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid,direction text);
+ALTER TABLE project_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_substages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_fees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+INSERT INTO project_stages VALUES(test_id(503),test_id(110),123.456,'locked',false);
+INSERT INTO project_substages(project_id) VALUES(test_id(110));
+INSERT INTO project_documents(project_id) VALUES(test_id(110));
+INSERT INTO project_fees(project_id) VALUES(test_id(110));
+INSERT INTO payments(project_id,direction) VALUES(test_id(110),'in'),(test_id(110),'out');
+
 GRANT USAGE ON SCHEMA public,auth TO authenticated,anon;
 GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
 `;
@@ -279,6 +295,36 @@ END $$;
 SELECT set_config('test.actor',test_id(1)::text,false);
 SELECT test_assert((SELECT budget_amount FROM projects WHERE id=test_id(101))=141407337.524,'BQ draft editing does not change confirmed project budget');
 RESET ROLE;
+
+-- An account with a global contractor role accepts only observer membership here.
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT invite_project_viewer(test_id(110),'7@test.example',NULL,false);
+DO $$ BEGIN
+ PERFORM set_config('test.actor',test_id(7)::text,true);
+ PERFORM accept_project_viewer((SELECT token FROM project_viewers WHERE project_id=test_id(110)));
+END $$;
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(7)::text,false);
+SELECT test_assert(project_member(test_id(110)) AND NOT is_project_client(test_id(110)) AND NOT is_contractor_on(test_id(110),test_id(7)),'global contractor remains observer on shared project');
+SELECT test_assert((SELECT budget_amount FROM projects WHERE id=test_id(110))=141407337.524,'observer sees canonical exact project budget');
+SELECT test_assert((SELECT count(*) FROM project_stages WHERE project_id=test_id(110))=1,'observer sees stages');
+SELECT test_assert((SELECT count(*) FROM project_substages WHERE project_id=test_id(110))=1,'observer sees work items');
+SELECT test_assert((SELECT count(*) FROM project_documents WHERE project_id=test_id(110))=1,'observer sees documents');
+SELECT test_assert((SELECT count(*) FROM project_fees WHERE project_id=test_id(110))=1,'observer sees costing');
+SELECT test_assert((SELECT count(*) FROM payments WHERE project_id=test_id(110))=1 AND NOT EXISTS(SELECT 1 FROM payments WHERE project_id=test_id(110) AND direction='out'),'observer sees incoming receipts without exposing outgoing releases');
+DO $$ DECLARE n int; BEGIN
+ UPDATE project_stages SET milestone_amount=999 WHERE project_id=test_id(110); GET DIAGNOSTICS n=ROW_COUNT;
+ PERFORM test_assert(n=0,'read membership grants no stage editing');
+END $$;
+SELECT set_config('test.actor',test_id(8)::text,false);
+SELECT test_assert(NOT EXISTS(SELECT 1 FROM projects WHERE id=test_id(110)) AND NOT EXISTS(SELECT 1 FROM project_documents WHERE project_id=test_id(110)) AND NOT EXISTS(SELECT 1 FROM payments WHERE project_id=test_id(110)),'unrelated account cannot read shared project');
+RESET ROLE;
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT revoke_project_viewer((SELECT id FROM project_viewers WHERE project_id=test_id(110)));
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(7)::text,false);
+SELECT test_assert(NOT EXISTS(SELECT 1 FROM projects WHERE id=test_id(110)) AND NOT EXISTS(SELECT 1 FROM project_stages WHERE project_id=test_id(110)) AND NOT EXISTS(SELECT 1 FROM payments WHERE project_id=test_id(110)),'revocation removes read access');
+RESET ROLE;
 SELECT 'PROJECT_TEAM_OK' AS result;
 `;
   const sql = [setup,
@@ -288,7 +334,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     fn('supabase/migrations/086_verifiers.sql', 'is_contractor_on'),
     fn('supabase/migrations/110_contractor_client_consent.sql', 'is_my_clients_project'),
     fn('supabase/migrations/101_primary_contractor_payout.sql', 'contractor_invites_clear_primary'),
-    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), tests,
+    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), read('supabase/migrations/20261112000400_invitation_project_read_access.sql'), tests,
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);

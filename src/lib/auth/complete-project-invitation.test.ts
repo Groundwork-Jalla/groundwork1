@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const accept = vi.hoisted(() => ({ viewer: vi.fn(), contractor: vi.fn() }));
+const accept = vi.hoisted(() => ({ viewer: vi.fn(), contractor: vi.fn(), read: vi.fn() }));
 vi.mock('@/lib/supabase/project-viewers', () => ({ acceptProjectViewer: accept.viewer }));
 vi.mock('@/lib/supabase/invites', () => ({ acceptInvite: accept.contractor }));
+vi.mock('@/lib/supabase/projects', () => ({ fetchProject: accept.read }));
 
 import { completeProjectInvitation } from './complete-project-invitation';
 import { readProjectInvitation, rememberProjectInvitation } from './project-invitation';
@@ -16,10 +17,25 @@ beforeEach(() => {
   });
   accept.viewer.mockReset().mockResolvedValue('same-project');
   accept.contractor.mockReset().mockResolvedValue('same-project');
+  accept.read.mockReset().mockResolvedValue({ id: 'same-project' });
 });
 afterEach(() => vi.unstubAllGlobals());
 
 describe('authenticated membership acceptance', () => {
+  it('keeps the continuation when membership saves but this session cannot read the project yet', async () => {
+    accept.read.mockRejectedValueOnce(new Error('RLS read unavailable'));
+    const invitation = { kind: 'viewer' as const, token: 'token' };
+    await expect(completeProjectInvitation(invitation)).rejects.toThrow('invitation_access_pending');
+    expect(readProjectInvitation()).toEqual(invitation);
+    expect(await completeProjectInvitation(invitation)).toBe('/projects/same-project');
+    expect(accept.read).toHaveBeenCalledWith('same-project');
+  });
+
+  it.each([null, { id: 'another-project' }])('does not clear context for an incorrect project read: %j', async project => {
+    accept.read.mockResolvedValueOnce(project);
+    await expect(completeProjectInvitation({ kind: 'viewer', token: 'token' })).rejects.toThrow('invitation_access_pending');
+    expect(readProjectInvitation()?.token).toBe('token');
+  });
   it.each([
     ['viewer', '/projects/same-project'],
     ['contractor', '/work/projects/same-project'],

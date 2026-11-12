@@ -81,7 +81,7 @@ function MessageBubble({ message, isOwn, showSenderName }: MessageBubbleProps) {
           className={cn(
             'px-4 py-2.5 text-sm leading-relaxed break-words',
             isOwn
-              ? 'bg-brand-near-black text-white rounded-2xl rounded-br-sm'
+              ? 'bg-brand-green text-white rounded-2xl rounded-br-sm'
               : 'bg-brand-off-white border border-brand-border-grey text-brand-near-black rounded-2xl rounded-bl-sm',
           )}
         >

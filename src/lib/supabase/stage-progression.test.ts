@@ -38,6 +38,14 @@ describe('approval returns the next action instead of discarding it', () => {
     expect(h.track).toHaveBeenCalledWith('stage_approved', { stage_number: 4, tier: 'jalla_verify' });
   });
 
+  it('preserves the same-stage payment requirement returned after initial contractor work approval', async () => {
+    h.rpc.mockResolvedValue({ data: { substage_id: 'last-update', stage_approval: { ...next,
+      next_stage_id: next.stage_id, next_stage_number: next.stage_number, next_stage_status: 'pending_review',
+      awaiting_reviewed_stage_payment: true } }, error: null });
+    expect(await approveSubstageRpc('last-update')).toMatchObject({ stageId: next.stage_id,
+      nextStageId: next.stage_id, awaitingReviewedStagePayment: true, awaitingPayment: true });
+  });
+
   it('does not request payment again when the successor was already funded', async () => {
     h.rpc.mockResolvedValue({ data: { substage_id: 'last-update', stage_approval: { ...next, awaiting_payment: false } }, error: null });
     expect(await approveSubstageRpc('last-update')).toMatchObject({ nextStageId: 'structure', awaitingPayment: false });

@@ -1,3 +1,4 @@
+import { SharedProjects } from '@/components/contractor/SharedProjects';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { AlertTriangle, ArrowRight, Camera, Check, Handshake, Landmark, Loader2, Plus, Search } from 'lucide-react';
@@ -259,6 +260,8 @@ export default function ContractorDashboard() {
           <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
         </p>
       )}
+
+      <SharedProjects assignedIds={(projects ?? []).map(row => row.project.id)} />
 
       {projects !== null && !error && <>
         {/* Three across at every width, as the designs show. The figures are

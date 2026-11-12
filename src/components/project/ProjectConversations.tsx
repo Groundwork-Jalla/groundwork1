@@ -11,8 +11,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 /** WhatsApp keeps its own green glyph — a brand people recognise at a glance, where a
- *  grey bubble read as "one more message icon". Groundwork stays monochrome beside it,
- *  so the green means "this one reaches a phone". */
+ *  grey bubble read as "one more message icon". Groundwork uses the shared brand green beside it. */
 function ChannelIcon({ channel }: { channel: 'jalla' | 'whatsapp' }) {
   return channel === 'whatsapp'
     ? <WhatsAppIcon className="size-3.5 shrink-0" />
@@ -120,7 +119,7 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
             className={cn(
               'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
               channel === c
-                ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
+                ? 'border-brand-green bg-brand-green text-white'
                 : 'border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#444]',
             )}
           >

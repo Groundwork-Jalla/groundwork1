@@ -1,28 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ rpc: vi.fn(), upload: vi.fn(), remove: vi.fn(), from: vi.fn() }));
+const h = vi.hoisted(() => ({ rpc: vi.fn(), upload: vi.fn(), remove: vi.fn(), from: vi.fn(), read: vi.fn() }));
 vi.mock('./client', () => ({ supabase: { rpc: h.rpc, from: h.from,
   storage: { from: () => ({ upload: h.upload, remove: h.remove }) } } }));
+vi.mock('./receipt-reader', () => ({ readUploadedReceipt: h.read }));
 import { submitStagePaymentReceipt, uploadStagePaymentReceipt, fetchStagePayments, fetchStagePaymentsStrict, confirmStagePayment } from './verifications';
 
 const input = { amount: '750.125', currency: 'XAF', fxRate: 600 };
-const file = new File(['receipt'], 'receipt.png', { type: 'image/png' });
+const freshFile = () => new File(['receipt'], 'receipt.png', { type: 'image/png' });
+let file: File;
 function query(result: { data: unknown; error: unknown }) {
   const chain = { select: vi.fn(), eq: vi.fn() };
   chain.select.mockReturnValue(chain);
   chain.eq.mockReturnValueOnce(chain).mockResolvedValueOnce(result);
-  h.from.mockReturnValue(chain);
+  const history = { select: vi.fn(), eq: vi.fn(), order: vi.fn().mockResolvedValue({ data: [], error: null }) };
+  history.select.mockReturnValue(history); history.eq.mockReturnValue(history);
+  h.from.mockImplementation(table => table === 'stage_payment_receipts' ? history : chain);
 }
 beforeEach(() => {
-  vi.clearAllMocks(); h.rpc.mockResolvedValue({ error: null });
+  file = freshFile(); vi.clearAllMocks(); h.read.mockImplementation(async (stage, path) => ({ readingId: 'reading', path })); h.rpc.mockResolvedValue({ error: null });
   h.upload.mockResolvedValue({ error: null }); h.remove.mockResolvedValue({ error: null });
 });
 
 describe('actual receipt amount persistence', () => {
   it('sends the exact native amount, currency and conversion snapshot to the RPC', async () => {
-    await submitStagePaymentReceipt('stage', 'project/receipts/proof.png', input);
+    await submitStagePaymentReceipt('stage', 'project/receipts/proof.png', input, 'reading');
     expect(h.rpc).toHaveBeenCalledWith('submit_stage_payment_receipt', {
-      p_stage: 'stage', p_path: 'project/receipts/proof.png', p_amount: '750.125', p_currency: 'XAF', p_fx_rate: 600,
+      p_stage: 'stage', p_path: 'project/receipts/proof.png', p_amount: '750.125', p_currency: 'XAF', p_fx_rate: 600, p_reading: 'reading',
     });
   });
 
@@ -49,13 +53,27 @@ describe('actual receipt amount persistence', () => {
     expect(h.remove).not.toHaveBeenCalled();
   });
 
-  it('cleans the new receipt file after a definite transaction rejection', async () => {
+  it('keeps staged proof available for a corrected retry after a transaction rejection', async () => {
     const refusal = { code: 'P0001', message: 'not_client' };
     h.rpc.mockResolvedValueOnce({ error: refusal });
     await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toEqual(refusal);
     const path = h.upload.mock.calls[0][0];
     expect(path).toMatch(/^project\/receipts\//);
-    expect(h.remove).toHaveBeenCalledWith([path]);
+    expect(h.remove).not.toHaveBeenCalled();
+  });
+
+  it('requires a matched server reading before any receipt submission', async () => {
+    h.read.mockRejectedValueOnce(new Error('receipt_amount_mismatch'));
+    await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toThrow('receipt_amount_mismatch');
+    expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it('retries an ambiguous commit with the same file and reading identity', async () => {
+    h.rpc.mockRejectedValueOnce(new TypeError('connection lost'));
+    await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toThrow();
+    await uploadStagePaymentReceipt('project', 'stage', file, input);
+    expect(h.upload).toHaveBeenCalledOnce(); expect(h.read).toHaveBeenCalledOnce();
+    expect(h.rpc.mock.calls[0]).toEqual(h.rpc.mock.calls[1]);
   });
 
   it('reads native receipt values separately from the scheduled ledger amount', async () => {

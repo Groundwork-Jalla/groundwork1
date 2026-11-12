@@ -11,10 +11,11 @@ interface Props {
   /** A refreshed stage ledger also refreshes these figures after an upload/confirmation. */
   refreshKey?: unknown;
   tone?: 'default' | 'hero';
+  compact?: boolean;
 }
 
 /** Direct client-to-contractor payments, shown identically to both participants. */
-export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'default' }: Props) {
+export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'default', compact = false }: Props) {
   const t = useT();
   const { lang } = useLanguage();
   const [attempt, setAttempt] = useState(0);
@@ -40,6 +41,7 @@ export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'defa
     void refresh();
     const channel = supabase.channel(`receipt-payouts-${project.id}-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${project.id}` }, () => { void refresh(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${project.id}` }, () => { void refresh(); })
       .subscribe();
     const onFocus = () => { void refresh(); };
     window.addEventListener('focus', onFocus);
@@ -65,9 +67,9 @@ export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'defa
     <section aria-label={t('project.costing.payouts')} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         {metrics.map(metric => (
-          <div key={metric.key} className={tone === 'hero' ? 'flex flex-col gap-1 rounded-xl bg-white/10 p-3' : 'flex flex-col gap-1 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]'}>
+          <div key={metric.key} className={tone === 'hero' ? 'flex flex-col gap-1 rounded-xl bg-white/10 p-3' : compact ? 'flex min-w-0 flex-col gap-1 py-2' : 'flex flex-col gap-1 rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]'}>
             <span className={tone === 'hero' ? 'text-xs text-white/75' : 'text-xs text-brand-mid-grey'}>{t(`project.costing.${metric.key}`)}</span>
-            <span className={`font-mono text-lg font-semibold tabular-nums ${tone === 'hero' ? 'text-white' : 'text-brand-near-black dark:text-white'}`}>
+            <span className={`font-mono ${compact ? 'text-sm' : 'text-lg'} font-semibold tabular-nums ${tone === 'hero' ? 'text-white' : 'text-brand-near-black dark:text-white'}`}>
               {metric.value ? format(metric.value.amount) : '—'}
             </span>
             {metric.value && summary?.currency !== 'USD' && (

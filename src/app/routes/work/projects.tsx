@@ -1,3 +1,4 @@
+import { SharedProjects } from '@/components/contractor/SharedProjects';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, Plus } from 'lucide-react';
@@ -102,6 +103,8 @@ export default function ContractorProjects() {
           {error}
         </p>
       )}
+
+      <SharedProjects assignedIds={(projects ?? []).map(row => row.project.id)} />
 
       {/* The chrome is rendered before the data arrives. It used to return a bare
           spinner, so on a slow connection a contractor saw a page with no heading

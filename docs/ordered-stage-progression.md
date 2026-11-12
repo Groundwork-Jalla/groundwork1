@@ -53,3 +53,13 @@ handling and navigation races. Run `pnpm typecheck` and `pnpm build` as well.
 No production migration or deployment has been executed by this change.
 Primary-client/contractor invitation permissions are covered by the following
 change, documented in [project-team-permissions.md](project-team-permissions.md).
+
+## Contractor-created first-stage clarification
+
+Migration `20261112000700_reviewed_first_stage_payment.sql`, after 005/006, keeps the
+first live contractor-created stage current after client work approval. Its receipt
+pays that reviewed stage. Contractor acceptance then completes it and selects the
+next stage, which follows the ordinary funding cycle. The pending state also covers
+partial payments, top-ups and paused projects without changing BOQ allocations.
+Zero-cost first stages continue directly after work approval. See
+[product-review-follow-up.md](product-review-follow-up.md) for release and tests.

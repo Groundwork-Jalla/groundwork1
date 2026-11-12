@@ -32,6 +32,10 @@ export function stagePaymentAcknowledged(stage: ProjectStageRow, payment?: Stage
 /** Reflect a committed server response while the full project refresh is arriving. */
 export function projectStagesAfterApproval(stages: ProjectStageRow[], result: ApproveStageResult | null): ProjectStageRow[] {
   if (!result) return orderedProjectStages(stages);
+  if (result.awaitingReviewedStagePayment) {
+    return orderedProjectStages(stages).map(stage => stage.id === result.stageId && stage.status !== 'complete'
+      ? { ...stage, status: 'pending_review', review_payment_pending: true } : stage);
+  }
   const nextNumber = result.nextStageNumber ?? stages.find(stage => stage.id === result.nextStageId)?.stage_number;
   return orderedProjectStages(stages).map<ProjectStageRow>(stage => {
     if (result.isFinal || stage.id === result.stageId || (nextNumber != null && stage.stage_number < nextNumber)) {
@@ -48,10 +52,29 @@ export function projectStagesAfterApproval(stages: ProjectStageRow[], result: Ap
 /** Stop overlaying the response once saved rows show that progress or something later. */
 export function projectReflectsApproval(stages: ProjectStageRow[], result: ApproveStageResult): boolean {
   if (stages.length === 0) return false;
+  if (result.awaitingReviewedStagePayment) {
+    const reviewed = stages.find(stage => stage.id === result.stageId);
+    return reviewed?.review_payment_pending === true || reviewed?.status === 'complete';
+  }
   if (result.isFinal) return stages.every(stage => stage.status === 'complete');
   const target = stages.find(stage => stage.id === result.nextStageId);
   if (!target || !stages.every(stage => stage.stage_number >= target.stage_number || stage.status === 'complete')) return false;
   if (result.nextStageStatus && target.status === result.nextStageStatus) return true;
   return target.status === 'complete' || target.status === 'active' || target.status === 'pending_review'
     || (result.awaitingPayment && target.status === 'locked');
+}
+
+
+/** Contractor-led projects review their first live stage before requesting its payment. */
+export function stageStartsWithEvidence(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
+  return origin === 'contractor' && !stage.pre_existing
+    && orderedProjectStages(stages).find(row => !row.pre_existing)?.id === stage.id;
+}
+export function stageWorkReady(stage: ProjectStageRow, stages: ProjectStageRow[], payment?: StagePayment, origin?: 'client' | 'contractor'): boolean {
+  return stagePaymentAcknowledged(stage, payment)
+    || (stageStartsWithEvidence(stage, stages, origin) && !stage.review_payment_pending && stage.status !== 'complete');
+}
+export function canSubmitStageReceipt(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
+  return canActOnProjectStage(stage, stages)
+    && (!stageStartsWithEvidence(stage, stages, origin) || stage.review_payment_pending === true);
 }

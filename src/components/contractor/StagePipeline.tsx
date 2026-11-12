@@ -1,4 +1,5 @@
-import { Check } from 'lucide-react';
+import { currentProjectStage } from '@/lib/projects/stage-progression';
+import { StageMarker } from '@/components/project/StageMarker';
 import type { ProjectStageRow } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
@@ -32,15 +33,9 @@ function positionOf(stage: ProjectStageRow, currentNumber: number | null): Posit
   return 'todo';
 }
 
-/**
- * The stage a contractor is standing in: the active one, else the one waiting on a
- * verifier. Mirrors `activeOf()` in contractor-work.ts — a build with neither (all
- * complete, or not started) simply has no lit dot.
- */
+/** The first unfinished live stage stays current while its payment is reviewed. */
 export function currentStageNumber(stages: ProjectStageRow[]): number | null {
-  const current = stages.find(s => s.status === 'active')
-               ?? stages.find(s => s.status === 'pending_review');
-  return current?.stage_number ?? null;
+  return currentProjectStage(stages)?.stage_number ?? null;
 }
 
 export function StagePipeline({ stages, labels = false, size = 'sm', className }: {
@@ -57,7 +52,6 @@ export function StagePipeline({ stages, labels = false, size = 'sm', className }
   // strip of grey dots would claim a shape this build does not have.
   if (stages.length === 0) return null;
 
-  const dot = size === 'md' ? 'size-5 text-[10px]' : 'size-[18px] text-[9px]';
   const railTop = size === 'md' ? 'top-[9px]' : 'top-2';
 
   return (
@@ -76,17 +70,7 @@ export function StagePipeline({ stages, labels = false, size = 'sm', className }
                 at === 'todo' ? 'bg-brand-border-grey dark:bg-[#2c2c2c]' : 'bg-state-complete',
               )} />
             )}
-            <span className={cn(
-              'relative z-[1] mx-auto flex items-center justify-center rounded-full border-2 font-mono font-semibold tabular-nums',
-              dot,
-              at === 'done' && 'border-state-complete bg-state-complete text-white',
-              at === 'now'  && 'border-state-complete bg-white text-state-complete ring-[3px] ring-state-complete/15 dark:bg-[#1e1e1e]',
-              at === 'todo' && 'border-brand-border-grey bg-white text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]',
-            )}>
-              {at === 'done'
-                ? <Check className="size-2.5 stroke-[3]" aria-hidden />
-                : stage.stage_number}
-            </span>
+            <StageMarker position={at === 'done' ? 'done' : at === 'now' ? 'current' : 'future'} number={stage.stage_number} size={size} />
             {labels && (
               <span className={cn(
                 'mt-1.5 block break-words px-px text-[9px] leading-tight',

@@ -126,10 +126,10 @@ describe('the invitation reaches somebody with no account', () => {
 });
 
 describe('what the people involved are told', () => {
-  it('the invitee is told plainly that they cannot act', () => {
+  it('the invitee sees the useful actions available to observers', () => {
     const en = read('src/lib/i18n/en.ts');
     const block = en.slice(en.indexOf('  share: {'), en.indexOf('\n  },', en.indexOf('  share: {')));
-    expect(block).toMatch(/cannot change anything, approve anything or move any money/);
+    expect(block).toMatch(/Follow progress, view site photos, review payments and documents/);
   });
 
   it('the owner is told what the invitation is for', () => {

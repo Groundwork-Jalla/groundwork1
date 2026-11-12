@@ -272,9 +272,20 @@ export default function AuthCallback() {
       return;
     }
 
-    // An approved applicant who just created their account finishes the claim here, so
-    // they are never asked to press anything twice (100). Before the project invite
-    // below: a contractor claiming their account has no project yet.
+    // The invitation being accepted takes precedence over an older account claim.
+    if (invitation) {
+      try {
+        const path = await completeProjectInvitation(invitation);
+        leaveForRoleSurface(path);
+        return;
+      } catch (err) {
+        setError(t(projectInvitationError(err)));
+        return;
+      }
+    }
+
+    // An approved applicant finishes an account claim when no project invitation
+    // is taking them directly to a build.
     const claim = takeRememberedClaim();
     if (claim) {
       try {
@@ -299,20 +310,6 @@ export default function AuthCallback() {
     // which read as "it signed me up as the wrong thing". `signup_intent` is the
     // durable half; the marker stays because it is the only signal when an existing
     // account signs up again at a role door.
-    // Somebody invited to watch a build (112). Before the role doors below: a family
-    // member is not signing up to work, and sending them to /work or /verifiers would be
-    // the wrong surface entirely. Theirs is the project they were shown.
-    if (invitation) {
-      try {
-        const path = await completeProjectInvitation(invitation);
-        leaveForRoleSurface(path);
-        return;
-      } catch (err) {
-        setError(t(projectInvitationError(err)));
-        return;
-      }
-    }
-
     const intent = signupIntentOf(session.user?.user_metadata?.signup_intent);
     if (takeRememberedContractorRegistration() || intent === 'contractor') {
       try {

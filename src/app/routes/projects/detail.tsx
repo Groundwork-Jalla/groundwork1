@@ -21,6 +21,7 @@ import {
 }                                from '@/lib/supabase/approvals';
 import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+import { projectStagesAfterApproval } from '@/lib/projects/stage-progression';
 import { StageTracker }          from '@/components/project/StageTracker';
 import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
@@ -253,6 +254,7 @@ export default function ProjectDetail() {
         setSubstages(prev => prev.map(substage => substage.id === updated.id ? { ...substage, ...updated } : substage));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${id}` }, () => { void loadAll(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${id}` }, () => { void loadAll(); })
       .subscribe();
     const refresh = () => { void loadAll(); };
@@ -266,12 +268,9 @@ export default function ProjectDetail() {
     // The database already committed this transition. Keep its result visible if
     // the following refresh fails, and never apply an old project's response.
     if (!mounted.current || currentScope.current !== scope || result.projectId !== id) return;
-    setStages(prev => prev.map(stage => stage.id === result.stageId ? { ...stage, status: 'complete' }
-      : stage.id === result.nextStageId && result.nextStageStatus ? { ...stage, status: result.nextStageStatus }
-      : stage.id === result.nextStageId && stage.status === 'locked' && !result.awaitingPayment && !result.alreadyApproved
-        ? { ...stage, status: 'active' } : stage));
+    setStages(prev => projectStagesAfterApproval(prev, result));
     setProject(prev => prev?.id === result.projectId ? {
-      ...prev, current_stage: result.nextStageNumber ?? result.stageNumber,
+      ...prev, current_stage: result.awaitingReviewedStagePayment ? Math.max(prev.current_stage, result.stageNumber) : result.nextStageNumber ?? result.stageNumber,
       status: result.isFinal && !result.alreadyApproved ? 'completed' : prev.status,
     } : prev);
   }, [id, scope]);
@@ -575,6 +574,8 @@ export default function ProjectDetail() {
                 tier={project.tier}
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
+                workflowOrigin={project.workflow_origin}
+                projectPaused={project.status !== 'active'}
                 canApprove={teamAccess?.primaryClient === true}
                 projectId={project.id}
                 payments={payments}

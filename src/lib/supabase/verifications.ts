@@ -1,3 +1,5 @@
+import { readUploadedReceipt } from './receipt-reader';
+import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib/payments/receipt-reading';
 import { supabase } from './client';
 import { isMissingTable } from '@/lib/errors';
 import type { StageStatus } from '@/types/project';
@@ -127,6 +129,8 @@ export interface ApproveStageResult {
    * second round trip, and the database has just done it, so it says so (175).
    */
   awaitingPayment: boolean;
+  /** The receipt belongs to the reviewed current stage; construction has not advanced. */
+  awaitingReviewedStagePayment?: boolean;
   /** An acknowledged retry returns the same progression without approving twice. */
   alreadyApproved?: boolean;
   /** The saved successor state; a paid stage can still be locked on a paused project. */
@@ -148,6 +152,7 @@ function stageApprovalResult(data: unknown): ApproveStageResult {
     nextStageNumber: r.next_stage_number == null ? null : Number(r.next_stage_number),
     verificationId: (r.verification_id as string | null) ?? null,
     awaitingPayment: r.awaiting_payment === true,
+    ...(r.awaiting_reviewed_stage_payment === true ? { awaitingReviewedStagePayment: true } : {}),
     alreadyApproved: r.already_approved === true,
     nextStageStatus: ['locked', 'active', 'pending_review', 'complete'].includes(String(r.next_stage_status))
       ? r.next_stage_status as StageStatus : undefined,
@@ -207,11 +212,11 @@ function validateReceiptInput(input: ReceiptPaymentInput): void {
 }
 
 /** The client attaches proof and its actual amount. Does NOT open the stage. */
-export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput): Promise<void> {
+export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput, readingId?: string): Promise<void> {
   validateReceiptInput(input);
   const { error } = await supabase.rpc('submit_stage_payment_receipt', {
     p_stage: stageId, p_path: path, p_amount: input.amount,
-    p_currency: input.currency, p_fx_rate: input.fxRate,
+    p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
   });
   if (error) throw error;
 }
@@ -233,6 +238,21 @@ export async function confirmStagePayment(
 // What each stage is waiting on, money-wise (175, readable since 176)
 // =========================================================
 
+export interface StagePaymentReceipt {
+  id: string; stageId: string; path: string; submittedAt: string;
+  amount: number | null; currency: string | null; fxRate: number | null; amountUsd: number | null;
+  decision: 'pending' | 'received' | 'flagged'; allowsWork: boolean;
+  requestedTopUp: number | null; decisionNote: string | null; decidedAt: string | null;
+}
+
+export async function decideStagePaymentReceipt(receiptId: string, decision: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string) {
+  const { data, error } = await supabase.rpc('decide_stage_payment_receipt', {
+    p_receipt: receiptId, p_decision: decision, p_note: note?.trim() || null, p_top_up: topUp || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export type StagePaymentState = 'expected' | 'receipt_submitted' | 'funded' | 'reconciled';
 
 export interface StagePayment {
@@ -248,6 +268,7 @@ export interface StagePayment {
   receiptCurrency?: string | null;
   receiptFxRate?: number | null;
   receiptAmountUsd?: number | null;
+  receipts?: StagePaymentReceipt[];
 }
 
 /**
@@ -273,6 +294,21 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
   if (error && options.strict) throw error;
   if (error || !data) return out;
 
+  const { data: history, error: historyError } = await supabase.from('stage_payment_receipts')
+    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at')
+    .eq('project_id', projectId).order('submitted_at', { ascending: true });
+  if (historyError && options.strict) throw historyError;
+  if (historyError) throw historyError;
+  const receipts = new Map<string, StagePaymentReceipt[]>();
+  for (const row of history ?? []) {
+    const items = receipts.get(row.stage_id) ?? [];
+    items.push({ id: row.id, stageId: row.stage_id, path: row.path, submittedAt: row.submitted_at,
+      amount: row.amount == null ? null : Number(row.amount), currency: row.currency, fxRate: row.fx_rate == null ? null : Number(row.fx_rate),
+      amountUsd: row.amount_usd == null ? null : Number(row.amount_usd), decision: row.decision, allowsWork: row.allows_work === true,
+      requestedTopUp: row.requested_top_up == null ? null : Number(row.requested_top_up), decisionNote: row.decision_note, decidedAt: row.decided_at });
+    receipts.set(row.stage_id, items);
+  }
+
   for (const row of data as Record<string, unknown>[]) {
     const stageId = row.stage_id as string | null;
     if (!stageId) continue;
@@ -281,6 +317,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
       stageId,
       state:             row.state as StagePaymentState,
       amount:            Number(row.amount ?? 0),
+      receipts: receipts.get(stageId) ?? [],
       receiptPath:       (row.receipt_path as string | null) ?? null,
       receiptUploadedAt: (row.receipt_uploaded_at as string | null) ?? null,
       receiptAmount:    row.receipt_amount == null ? null : Number(row.receipt_amount),
@@ -311,23 +348,35 @@ export async function signReceiptUrl(path: string): Promise<string | null> {
  * already member-readable (092) and member-writable (131), and `project_member()`
  * includes the invited client — so this needs no new storage policy.
  */
+const stagedReceipts = new WeakMap<File, Map<string, { path: string; reading?: { readingId: string; path: string; amount: string; currency: string } }>>();
+
 export async function uploadStagePaymentReceipt(
   projectId: string, stageId: string, file: File, input: ReceiptPaymentInput,
 ): Promise<void> {
   validateReceiptInput(input);
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `${projectId}/receipts/${crypto.randomUUID()}_${safe}`;
-  const { error } = await supabase.storage.from('evidence').upload(path, file, { upsert: false });
-  if (error) throw error;
+  if (!file.size || file.size > MAX_RECEIPT_BYTES) throw new Error('receipt_file_size');
+  if (!RECEIPT_ACCEPT.split(',').includes(file.type)) throw new Error('receipt_file_type');
+  const key = `${projectId}:${stageId}`;
+  let slots = stagedReceipts.get(file);
+  if (!slots) { slots = new Map(); stagedReceipts.set(file, slots); }
+  let staged = slots.get(key);
+  if (!staged) {
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
+    const path = `${projectId}/receipts/${crypto.randomUUID()}_${safe}`;
+    const { error } = await supabase.storage.from('evidence').upload(path, file, { upsert: false });
+    if (error) throw error;
+    staged = { path }; slots.set(key, staged);
+  }
+  const amount = canonicalReceiptAmount(input.amount)!;
+  if (!staged.reading || staged.reading.amount !== amount || staged.reading.currency !== input.currency) {
+    const reading = await readUploadedReceipt(stageId, staged.path, amount, input.currency);
+    staged.reading = { ...reading, amount, currency: input.currency };
+  }
+  // Stable file/proof identity makes retries safe even after a lost commit response.
   try {
-    await submitStagePaymentReceipt(stageId, path, input);
+    await submitStagePaymentReceipt(stageId, staged.reading.path, input, staged.reading.readingId);
   } catch (error) {
-    // Only a definite rejected transaction is safe to clean up. A lost response may
-    // follow a successful commit, in which case deleting the proof would break it.
-    const code = (error as { code?: string } | null)?.code;
-    if (code && ['P0001', '42501', '23514', '22003', '22P02', 'PGRST202', 'PGRST203'].includes(code)) {
-      try { await supabase.storage.from('evidence').remove([path]); } catch { /* Retain the original refusal. */ }
-    }
+    if (/receipt_reading_expired|receipt_file_changed|receipt_reading_required/.test((error as Error)?.message ?? '')) staged.reading = undefined;
     throw error;
   }
 }

@@ -40,7 +40,8 @@ export function entityTab(entityType: string | null | undefined):
     case 'project_stage':
     case 'stage_verification':
     case 'site_update':       return 'stages';
-    case 'payment':           return 'financials';
+    case 'payment':
+    case 'stage_payment_receipt': return 'financials';
     case 'conversation':
     case 'decision':          return 'conversations';
     case 'contractor_invite':

@@ -407,6 +407,7 @@ export interface ProjectRow {
   floor_rooms: FloorRoom[] | null;
   budget_usd: number | null;
   budget_source?: 'boq' | 'estimate' | null;
+  workflow_origin?: 'client' | 'contractor';
   budget_amount?: number | null;
   budget_currency?: string | null;
   /** Contract currency units per USD, fixed when the budget is confirmed. */
@@ -444,6 +445,8 @@ export interface ProjectStageRow {
   payment_milestone_usd: number | null;
   /** Exact allocation in the confirmed bill's currency. */
   milestone_amount?: number | null;
+  /** First live contractor-created stage: work approved, own payment still awaiting acceptance. */
+  review_payment_pending?: boolean;
   /**
    * LEGACY PROJECTION (090): derived by a trigger from the ledger, kept for the older
    * screens that still read it. Never an input to `stageLifecycle()`.

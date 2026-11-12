@@ -31,20 +31,19 @@ describe('the stage a contractor is standing in', () => {
     ])).toBe(2);
   });
 
-  it('prefers an active stage over one awaiting review', () => {
-    // Both can exist at once on a build where an earlier stage is still being checked
-    // while the next has opened. The one to work on wins.
+  it('keeps the earlier review current when a legacy snapshot has two open stages', () => {
+    // Both views follow construction order; a stale future active flag cannot skip review.
     expect(currentStageNumber([
       stage(1, 'pending_review'), stage(2, 'active'),
-    ])).toBe(2);
+    ])).toBe(1);
   });
 
   it('lights nothing on a finished build', () => {
     expect(currentStageNumber([stage(1, 'complete'), stage(2, 'complete')])).toBeNull();
   });
 
-  it('lights nothing on a build that has not started', () => {
-    expect(currentStageNumber([stage(1, 'locked'), stage(2, 'locked')])).toBeNull();
+  it('marks the first live stage current while initial payment is pending', () => {
+    expect(currentStageNumber([stage(1, 'locked'), stage(2, 'locked')])).toBe(1);
   });
 
   it('has nothing to say about a project with no stages yet', () => {

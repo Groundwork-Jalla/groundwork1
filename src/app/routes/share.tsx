@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Loader2, Users } from 'lucide-react';
 import {
@@ -28,6 +28,10 @@ export default function ShareInvite() {
   const navigate = useNavigate();
   const t = useT();
 
+  const scope = `${token ?? ''}:${session?.user.id ?? ''}`;
+  const current = useRef(scope); current.current = scope;
+  const accepting = useRef<string | null>(null);
+  const [resolvedToken, setResolvedToken] = useState<string | undefined>();
   const [preview, setPreview] = useState<ViewerInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy]       = useState(false);
@@ -35,34 +39,39 @@ export default function ShareInvite() {
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
+    let live = true;
+    setLoading(true); setPreview(null); setError(null);
     getViewerInvitePreview(token)
-      .then(setPreview)
-      .catch(() => setPreview(null))
-      .finally(() => setLoading(false));
+      .then(value => { if (live) setPreview(value); })
+      .catch(() => { if (live) setPreview(null); })
+      .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
+    return () => { live = false; };
   }, [token]);
+  useEffect(() => { setBusy(false); setError(null); }, [scope]);
 
   // Park it before they leave to sign up, so /auth/callback can finish the job and they
   // never have to come back and press anything a second time.
   useEffect(() => { if (token) rememberShare(token); }, [token]);
 
   async function accept() {
-    if (!token) return;
+    if (!token || accepting.current === scope) return;
+    accepting.current = scope;
     setBusy(true); setError(null);
     try {
       const path = await completeProjectInvitation({ kind: 'viewer', token });
-      window.location.href = path;
+      if (current.current === scope) window.location.href = path;
     } catch (err) {
-      setError(t(projectInvitationError(err)));
-      setBusy(false);
-    }
+      if (current.current === scope) { setError(t(projectInvitationError(err))); setBusy(false); }
+    } finally { if (accepting.current === scope) accepting.current = null; }
   }
 
   async function changeAccount() {
+    current.current = 'switching-account';
     await signOut();
     navigate(withProjectInvitation('/auth/login', token ? { kind: 'viewer', token } : null));
   }
 
-  if (loading || authLoading) {
+  if (loading || authLoading || resolvedToken !== token) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
   }
 

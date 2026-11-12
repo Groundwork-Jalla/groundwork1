@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 import { ProjectPayoutSummary } from '@/components/project/ProjectPayoutSummary';
-import { canActOnProjectStage, currentProjectStage, stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
+import { canActOnProjectStage, currentProjectStage, stagePaymentAcknowledged, stageWorkReady, canSubmitStageReceipt, stageStartsWithEvidence } from '@/lib/projects/stage-progression';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 
 // =========================================================
@@ -147,6 +147,7 @@ export default function ContractorProjectDetail() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${projectId}` }, refresh)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_substages', filter: `project_id=eq.${projectId}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${projectId}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${projectId}` }, refresh)
       .subscribe();
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
@@ -871,8 +872,8 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
         const sent = rework.filter(r => r.stageId === stage.id);
         const tranche = stagePayments.get(stage.id);
         const showGate = canActOnProjectStage(stage, stages) && !!tranche;
-        const funded = stagePaymentAcknowledged(stage, tranche);
-        const canWork = canActOnProjectStage(stage, stages) && funded;
+        const funded = stageWorkReady(stage, stages, tranche, project.workflow_origin);
+        const canWork = project.status === 'active' && canActOnProjectStage(stage, stages) && funded;
 
         if (!isOpen) {
           /*
@@ -938,6 +939,10 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     stageId={stage.id}
                     stageNumber={stage.stage_number}
                     payment={tranche}
+                    workReviewed={stage.review_payment_pending}
+                    canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
+                    scheduledAmount={stage.milestone_amount}
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')}
                     isContractor
                     onChanged={onSubmitted}
                   />
@@ -950,7 +955,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
 
         return (
           <section key={stage.id}
-            className="rounded-2xl border-[1.5px] border-brand-near-black bg-white p-5 dark:border-white dark:bg-[#1e1e1e]">
+            className="rounded-2xl border-[1.5px] border-state-complete bg-white p-5 dark:bg-[#1e1e1e]">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 border-state-complete font-mono text-[10px] font-semibold text-state-complete">
                 {stage.stage_number}
@@ -964,13 +969,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                 </span>
               )}
             </div>
-            {showGate && (
-              <ProjectMoneyProvider project={project}>
-                <StagePaymentGate projectId={project.id} stageId={stage.id} stageNumber={stage.stage_number}
-                  payment={tranche} isContractor onChanged={onSubmitted} />
-              </ProjectMoneyProvider>
-            )}
-            {!funded && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t('project.stages.paymentBeforeWork')}</p>}
+            {!funded && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t(stage.review_payment_pending ? 'project.receiptFlow.reviewedStagePayment' : 'project.stages.paymentBeforeWork')}</p>}
             <p className="ml-[34px] mt-1 text-xs text-brand-mid-grey">{t('contractorWork.ticksItself')}</p>
 
             {/* What a verifier sent back belongs to the stage it is about, not to a
@@ -1056,6 +1055,17 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
               </ul>
             )}
 
+
+            {showGate && (
+              <ProjectMoneyProvider project={project}>
+                <StagePaymentGate projectId={project.id} stageId={stage.id} stageNumber={stage.stage_number}
+                  payment={tranche}
+                    workReviewed={stage.review_payment_pending}
+                    canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
+                    scheduledAmount={stage.milestone_amount}
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')} isContractor onChanged={onSubmitted} />
+              </ProjectMoneyProvider>
+            )}
 
             {/* "Released when this stage is approved" was here, with the stage figure
                 and a line about verification. Removed 30 Oct 2026 at Favour's request.

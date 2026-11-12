@@ -73,11 +73,9 @@ describe('the claim survives account creation', () => {
     expect(callback).toContain('leaveForRoleSurface("/work")');
   });
 
-  it('the claim is handled before the project invite', () => {
-    // A contractor claiming an account has no project yet; running the invite branch
-    // first would send them to a project that does not exist.
-    expect(callback.indexOf('takeRememberedClaim()'))
-      .toBeLessThan(callback.indexOf('completeProjectInvitation(invitation)'));
+  it('prioritises an explicit project invitation over an older remembered account claim', () => {
+    expect(callback.indexOf('completeProjectInvitation(invitation)'))
+      .toBeLessThan(callback.indexOf('takeRememberedClaim()'));
   });
 
   it('a used or stolen token falls through instead of stranding them', () => {

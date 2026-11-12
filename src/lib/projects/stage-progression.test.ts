@@ -4,6 +4,7 @@ import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verificati
 import {
   canActOnProjectStage, currentProjectStage, orderedProjectStages,
   projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged,
+  stageWorkReady, canSubmitStageReceipt,
 } from './stage-progression';
 
 const stage = (number: number, status: ProjectStageRow['status'] = 'locked', extra: Partial<ProjectStageRow> = {}): ProjectStageRow => ({
@@ -19,6 +20,26 @@ const payment = (state: StagePayment['state']): StagePayment => ({
 });
 
 describe('the current project stage', () => {
+  it('offers the reviewed first stage receipt and keeps later stages blocked until acceptance', () => {
+    const rows = [stage(1, 'pending_review', { review_payment_pending: true }), stage(2)];
+    expect(currentProjectStage(rows)?.id).toBe('s1');
+    expect(canSubmitStageReceipt(rows[0], rows, 'contractor')).toBe(true);
+    expect(canSubmitStageReceipt(rows[1], rows, 'contractor')).toBe(false);
+    expect(stageWorkReady(rows[0], rows, payment('receipt_submitted'), 'contractor')).toBe(false);
+    expect(rows[0].milestone_amount).toBe(60000);
+  });
+
+  it('keeps approved work on the first stage while a same-stage payment response awaits refresh', () => {
+    const rows = [stage(1, 'active'), stage(2)];
+    const response = approval({ nextStageId: 's1', nextStageNumber: 1, nextStageStatus: 'pending_review', awaitingReviewedStagePayment: true });
+    const saved = projectStagesAfterApproval(rows, response);
+    expect(saved[0]).toMatchObject({ status: 'pending_review', review_payment_pending: true });
+    expect(saved[1].status).toBe('locked');
+    expect(projectReflectsApproval(rows, response)).toBe(false);
+    expect(projectReflectsApproval(saved, response)).toBe(true);
+    expect(projectReflectsApproval([stage(1, 'complete'), stage(2, 'active')], response)).toBe(true);
+    expect(projectStagesAfterApproval([stage(1, 'complete'), stage(2, 'active')], response)[0].status).toBe('complete');
+  });
   it('uses construction order and skips historical completed work without losing its value', () => {
     const historical = stage(1, 'complete', { pre_existing: true });
     const current = stage(2, 'active');

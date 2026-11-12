@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { stageLifecycle } from '@/lib/lifecycle/stage';
-import { stagePaymentAcknowledged } from '@/lib/projects/stage-progression';
+import { stagePaymentAcknowledged, stageWorkReady } from '@/lib/projects/stage-progression';
 import type { ProjectStageRow } from '@/types/project';
 
 /**
@@ -122,8 +122,7 @@ describe('no surface turns a zero milestone into money that moved', () => {
   it('a pre-existing stage unlocks no payment-gated affordance', () => {
     const historical = { pre_existing: true, payment_status: 'paid', payment_milestone_usd: 1000 } as ProjectStageRow;
     expect(stagePaymentAcknowledged(historical)).toBe(false);
-    expect(code('src/components/project/StageTracker.tsx'))
-      .toContain('stagePaymentAcknowledged(stage, payment)');
+    expect(stageWorkReady(historical, [historical], undefined, 'contractor')).toBe(false);
   });
 });
 

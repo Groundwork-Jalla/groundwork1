@@ -39,7 +39,7 @@ describe('invitation emails reflect the actual project role', () => {
     expect((await send()).status).toHaveBeenCalledWith(200);
     expect(h.send).toHaveBeenCalledOnce();
     const email = h.send.mock.calls[0][0];
-    expect(email.html).toContain(isClient ? 'approve work and invite observers' : 'You cannot approve work');
+    expect(email.html).toContain(isClient ? 'approve work and invite observers' : 'Follow project stages');
     expect(email.to).toBe('recipient@example.com');
     expect(h.crm).toHaveBeenCalledTimes(isClient ? 1 : 0);
     expect(h.note).toHaveBeenCalledOnce();
