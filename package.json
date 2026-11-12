@@ -16,6 +16,7 @@
     "test:stages-db": "node scripts/test-stage-progression.mjs",
     "test:team-db": "node scripts/test-project-team.mjs",
     "test:review-db": "node scripts/test-review-payments.mjs",
+    "test:evidence-db": "node scripts/test-evidence-permissions.mjs",
     "test:watch": "vitest",
     "agent:queue": "node --env-file=.env scripts/agent-queue.mjs",
     "media:setup": "python3 -m venv --system-site-packages .venv && .venv/bin/pip install -q imageio-ffmpeg python-pptx python-docx && .venv/bin/python -c \"import imageio_ffmpeg,pptx,docx,websocket,PIL;print('media pipeline ready')\"",
