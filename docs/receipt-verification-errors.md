@@ -18,11 +18,12 @@ Read-only checks during this fix established that:
 - The connected Supabase database has the receipt-reading, currency conversion and
   pricing revision fields. Its receipt-reading table has no attempts.
 - No connected browser or Vercel authentication was available to inspect the
-  Production environment variables or deployment logs.
+  Production environment variables or deployment logs. A Vercel integration was
+  found and offered; installation and authorization were not confirmed.
 
 This points to a failure before reservation/extraction in the tested deployment.
-It does **not** prove that the Production reader key is missing. Production key
-confirmation was requested separately. No receipt contents, file URLs, user IDs,
+It does **not** prove that the Production reader key is missing. The user answered
+“Not sure” when asked about Production configuration. No receipt contents, file URLs, user IDs,
 API key values or entered amounts were printed by these checks. No production
 data was changed.
 
@@ -95,6 +96,16 @@ identifies the required database setup; `provider_credentials_or_model` and
 `provider_billing` identify different provider setup problems. These details remain
 in server logs rather than becoming implementation instructions in the client
 payment flow.
+
+## Local verification
+
+- Full Vitest suite: **4,573 tests passed across 260 files**.
+- Final typecheck and production build: passed.
+- `git diff --check`: passed.
+- Receipt regressions cover document classification, NGN 13,000 matching,
+  amount/currency mismatches, missing configuration and migrations, provider
+  credentials/rate limits/timeouts, malformed/truncated responses, support-reference
+  redaction, retained form values and reuse of a reading after conversion failure.
 
 Automated checks use fixture model responses. Live recognition and acceptance of
 the user's receipt remain dependent on confirming and enabling Production reader
