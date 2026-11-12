@@ -5893,6 +5893,7 @@ export const en = {
   },
   project: {
     priceChanges: {
+      reviewNeeded: 'Your contractor has proposed revised stage prices', review: 'Review proposed prices',
       title: 'Stage pricing', hint: 'Your contractor can propose revised stage prices. Current prices apply until the client approves a proposal.',
       propose: 'Propose revised prices', send: 'Send prices for client approval', note: 'Reason for the change (optional)',
       held: 'Confirmed, historical or fixed by project pricing rules', proposedTotal: 'Proposed project total: {amount}',

@@ -6,7 +6,7 @@ CREATE FUNCTION public.test_price_start(n int,p_source text DEFAULT 'boq') RETUR
  INSERT INTO project_stages(id,project_id,stage_number,status,pre_existing,budget_pct,payment_milestone_usd,milestone_amount,fixed_amount_usd)
  VALUES(test_id(n,1),test_id(n),1,'complete',true,0,0,0,0),
  (test_id(n,2),test_id(n),2,'complete',true,33.333334,100,60000,NULL),
- (test_id(n,3),test_id(n),3,'locked',false,33.333333,100,60000,NULL),
+ (test_id(n,3),test_id(n),3,'locked',false,33.333333,CASE WHEN p_source='boq' THEN 100 ELSE 80 END,CASE WHEN p_source='boq' THEN 60000 ELSE 48000 END,NULL),
  (test_id(n,4),test_id(n),4,'locked',false,33.333333,100,60000,NULL);
  INSERT INTO project_fees VALUES(test_id(n),'professional',CASE WHEN p_source='boq' THEN 0 ELSE 20 END);
  UPDATE projects SET tracking_started_at=now() WHERE id=test_id(n);
@@ -39,9 +39,11 @@ SELECT test_assert((SELECT milestone_amount=0 AND payment_milestone_usd=0 FROM p
 SELECT test_assert((SELECT amount FROM payments WHERE stage_id=test_id(91,3) AND direction='in')=120,'unfunded ledger expectation follows the approved price without inventing a receipt');
 SELECT test_assert((SELECT sum(amount_usd) FROM project_fees WHERE project_id=test_id(91))=0,'BOQ fees remain zero after revision');
 RESET ROLE;
+SELECT test_refused($q$INSERT INTO projects(id,pricing_revision) VALUES(test_id(99),1)$q$,'prices_require_client_approval');
 SELECT test_refused($q$UPDATE projects SET budget_amount=1 WHERE id=test_id(91)$q$,'prices_require_client_approval');
 SELECT test_refused($q$UPDATE project_stages SET milestone_amount=1 WHERE id=test_id(91,3)$q$,'prices_require_client_approval');
 SELECT test_refused($q$UPDATE stage_price_amendments SET new_total=1 WHERE project_id=test_id(91)$q$,'price_proposal_immutable');
+SELECT test_refused($q$INSERT INTO project_stages(id,project_id) VALUES(test_id(91,5),test_id(91))$q$,'prices_require_client_approval');
 SET ROLE authenticated;
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
 SELECT test_price_propose(91,4,'48000.125');
@@ -65,7 +67,7 @@ SELECT test_price_propose(94,4,'66000');
 SELECT test_price_propose(92,3,'72000');
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
 SELECT decide_stage_prices(id,'approved') FROM stage_price_amendments WHERE project_id=test_id(92);
-SELECT test_assert((SELECT budget_usd=320 AND budget_amount=192000 AND (pricing_budget_breakdown->>'construction')::numeric=300 AND (pricing_budget_breakdown->>'professional')::numeric=20 FROM projects WHERE id=test_id(92)),'estimate variation uses revised construction and preserved existing fees');
+SELECT test_assert((SELECT budget_usd=340 AND budget_amount=204000 AND (pricing_budget_breakdown->>'construction')::numeric=320 AND (pricing_budget_breakdown->>'professional')::numeric=20 FROM projects WHERE id=test_id(92)),'estimate variation uses revised construction and preserved existing fees');
 SELECT test_assert((SELECT count(*) FROM project_audit_log WHERE project_id=test_id(91) AND action='stage_prices.approved')=2,'each approval recorded once');
 RESET ROLE;
 SELECT 'STAGE_PRICING_OK';

@@ -56,7 +56,7 @@ BEGIN
    'total',v_total,'usd',p.budget_usd,'state',p.status,'stages',v_rows)::text);
  SELECT coalesce(jsonb_agg(item ORDER BY proposed_at DESC,id),'[]'::jsonb) INTO v_history FROM
  (SELECT id,proposed_at,jsonb_build_object('id',id,'status',status,'proposed_at',proposed_at,'note',note,'currency',currency,
- 'old_total',old_total::text,'new_total',new_total::text,'changes',changes,'decided_at',decided_at,'stale',base_hash<>v_hash,'can_withdraw',proposed_by=auth.uid() AND status='pending') AS item
+ 'old_total',old_total::text,'new_total',new_total::text,'changes',changes,'decided_at',decided_at,'stale',base_hash<>v_hash OR NOT EXISTS(SELECT 1 FROM public.contractor_invites ci WHERE ci.project_id=p_project AND ci.contractor_user_id=proposed_by AND ci.status='accepted' AND ci.is_primary),'can_withdraw',proposed_by=auth.uid() AND status='pending') AS item
  FROM public.stage_price_amendments WHERE project_id=p_project ORDER BY proposed_at DESC,id LIMIT 50) history;
  RETURN jsonb_build_object('project_id',p_project,'currency',v_code,'fx_rate',v_rate::text,'total',v_total::text,'base_hash',v_hash,'stages',v_rows,'history',v_history,
    'can_propose',public.is_primary_project_contractor(p_project) AND NOT public.is_project_client(p_project) AND p.status='active',
@@ -101,7 +101,7 @@ GRANT EXECUTE ON FUNCTION public.propose_stage_prices(uuid,jsonb,text,text) TO a
 
 CREATE FUNCTION public.decide_stage_prices(p_proposal uuid,p_decision text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE a public.stage_price_amendments%ROWTYPE;p public.projects%ROWTYPE;c jsonb;r jsonb;v_project uuid;v_total_usd numeric;v_delta_usd numeric:=0;v_rounding numeric;v_last uuid;v_scale int;v_sum numeric;v_fees jsonb;v_design numeric;v_build numeric;v_breakdown jsonb;
+DECLARE a public.stage_price_amendments%ROWTYPE;p public.projects%ROWTYPE;c jsonb;r jsonb;v_project uuid;v_total_usd numeric;v_delta_usd numeric:=0;v_rounding numeric;v_last uuid;v_scale int;v_sum numeric;v_fees jsonb;v_design numeric;v_build numeric;v_breakdown jsonb;v_pool numeric;
 BEGIN
  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not_signed_in'; END IF;
  SELECT project_id INTO v_project FROM public.stage_price_amendments WHERE id=p_proposal;
@@ -149,10 +149,13 @@ BEGIN
    -- Freeze native values for earlier estimate stages without changing their USD history.
    UPDATE public.project_stages SET milestone_amount=round(payment_milestone_usd*a.fx_rate,6) WHERE project_id=v_project AND milestone_amount IS NULL;
    IF p.budget_source='boq' THEN
-     UPDATE public.project_stages SET budget_pct=CASE WHEN milestone_amount=0 THEN 0 ELSE greatest(0.000001,round(milestone_amount/a.new_total*100,6)) END WHERE project_id=v_project;
-     SELECT sum(budget_pct) INTO v_sum FROM public.project_stages WHERE project_id=v_project;
-     UPDATE public.project_stages SET budget_pct=budget_pct+100-v_sum WHERE id=(SELECT id FROM public.project_stages WHERE project_id=v_project ORDER BY milestone_amount DESC,id LIMIT 1);
+     v_pool:=a.new_total;
+   ELSE
+     SELECT sum(milestone_amount) INTO v_pool FROM public.project_stages WHERE project_id=v_project AND budget_pct>0;
    END IF;
+   UPDATE public.project_stages SET budget_pct=CASE WHEN milestone_amount=0 THEN 0 ELSE greatest(0.000001,round(milestone_amount/v_pool*100,6)) END WHERE project_id=v_project AND (p.budget_source='boq' OR budget_pct>0);
+   SELECT sum(budget_pct) INTO v_sum FROM public.project_stages WHERE project_id=v_project;
+   UPDATE public.project_stages SET budget_pct=budget_pct+100-v_sum WHERE id=(SELECT id FROM public.project_stages WHERE project_id=v_project AND budget_pct>0 ORDER BY milestone_amount DESC,id LIMIT 1);
    UPDATE public.projects SET budget_original_amount=coalesce(budget_original_amount,a.old_total),budget_original_usd=coalesce(budget_original_usd,p.budget_usd),
      budget_amount=a.new_total,budget_currency=a.currency,budget_fx_rate=a.fx_rate,budget_precision=least(6,v_scale),budget_usd=v_total_usd,
      stage_price_adjustment_usd=stage_price_adjustment_usd+v_total_usd-p.budget_usd,pricing_budget_breakdown=v_breakdown,pricing_revision=pricing_revision+1 WHERE id=v_project;
@@ -178,19 +181,27 @@ CREATE TRIGGER stage_price_decision_guard BEFORE UPDATE ON public.stage_price_am
 CREATE FUNCTION public.guard_approved_project_prices() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE v_revision int; BEGIN
  IF TG_TABLE_NAME='projects' THEN
+   IF TG_OP='INSERT' THEN
+     IF NEW.pricing_revision<>0 OR NEW.budget_original_amount IS NOT NULL OR NEW.budget_original_usd IS NOT NULL OR NEW.stage_price_adjustment_usd<>0 OR NEW.pricing_budget_breakdown IS NOT NULL THEN RAISE EXCEPTION 'prices_require_client_approval'; END IF;
+     RETURN NEW;
+   END IF;
    IF (OLD.pricing_revision>0 OR NEW.pricing_revision>0 OR NEW.budget_original_amount IS DISTINCT FROM OLD.budget_original_amount OR NEW.budget_original_usd IS DISTINCT FROM OLD.budget_original_usd OR NEW.stage_price_adjustment_usd IS DISTINCT FROM OLD.stage_price_adjustment_usd OR NEW.pricing_budget_breakdown IS DISTINCT FROM OLD.pricing_budget_breakdown)
    AND ROW(NEW.pricing_revision,NEW.budget_amount,NEW.budget_currency,NEW.budget_fx_rate,NEW.budget_precision,NEW.budget_usd,NEW.budget_original_amount,NEW.budget_original_usd,NEW.stage_price_adjustment_usd,NEW.budget_source,NEW.pricing_budget_breakdown)
    IS DISTINCT FROM ROW(OLD.pricing_revision,OLD.budget_amount,OLD.budget_currency,OLD.budget_fx_rate,OLD.budget_precision,OLD.budget_usd,OLD.budget_original_amount,OLD.budget_original_usd,OLD.stage_price_adjustment_usd,OLD.budget_source,OLD.pricing_budget_breakdown)
    AND current_setting('app.stage_pricing_write',true) IS DISTINCT FROM 'on' THEN RAISE EXCEPTION 'prices_require_client_approval'; END IF;
  ELSE
-   SELECT pricing_revision INTO v_revision FROM public.projects WHERE id=OLD.project_id;
+   SELECT pricing_revision INTO v_revision FROM public.projects WHERE id=NEW.project_id;
+   IF TG_OP='INSERT' THEN
+     IF v_revision>0 AND current_setting('app.stage_pricing_write',true) IS DISTINCT FROM 'on' THEN RAISE EXCEPTION 'prices_require_client_approval'; END IF;
+     RETURN NEW;
+   END IF;
    IF v_revision>0 AND ROW(NEW.milestone_amount,NEW.payment_milestone_usd,NEW.budget_pct,NEW.fixed_amount_usd) IS DISTINCT FROM ROW(OLD.milestone_amount,OLD.payment_milestone_usd,OLD.budget_pct,OLD.fixed_amount_usd)
    AND current_setting('app.stage_pricing_write',true) IS DISTINCT FROM 'on' THEN RAISE EXCEPTION 'prices_require_client_approval'; END IF;
  END IF;
  RETURN NEW;
 END $$;
-CREATE TRIGGER approved_project_prices BEFORE UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.guard_approved_project_prices();
-CREATE TRIGGER approved_stage_prices BEFORE UPDATE OF milestone_amount,payment_milestone_usd,budget_pct,fixed_amount_usd ON public.project_stages FOR EACH ROW EXECUTE FUNCTION public.guard_approved_project_prices();
+CREATE TRIGGER approved_project_prices BEFORE INSERT OR UPDATE ON public.projects FOR EACH ROW EXECUTE FUNCTION public.guard_approved_project_prices();
+CREATE TRIGGER approved_stage_prices BEFORE INSERT OR UPDATE OF milestone_amount,payment_milestone_usd,budget_pct,fixed_amount_usd ON public.project_stages FOR EACH ROW EXECUTE FUNCTION public.guard_approved_project_prices();
 
 -- Exact native prices now govern approved variations; percentages describe their shares.
 CREATE OR REPLACE FUNCTION public.check_boq_budget_schedule()

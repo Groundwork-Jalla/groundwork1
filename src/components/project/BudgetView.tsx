@@ -345,7 +345,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
               index={i}
               stages={sortedStages}
               distributes={slice.key === 'construction'}
-              derivation={project.budget_source === 'boq' ? undefined : sliceDerivation(slice.key, budget, builtAreaSqm)}
+              derivation={project.budget_source === 'boq' || (project.pricing_revision ?? 0)>0 ? undefined : sliceDerivation(slice.key, budget, builtAreaSqm)}
               stageConstructionTotal={slice.key === 'construction' ? stageConstructionTotal : null}
               stageBasis={basis}
             />

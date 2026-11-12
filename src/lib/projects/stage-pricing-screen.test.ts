@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectRow } from '@/types/project';
 import type { StagePriceContext } from '@/lib/supabase/stage-pricing';
-const h = vi.hoisted(() => ({ index: 0, hooks: [] as any[], effects: [] as (() => unknown)[], fetch: vi.fn(), propose: vi.fn(), decide: vi.fn(), changed: vi.fn() }));
+const h = vi.hoisted(() => ({ index: 0, hooks: [] as any[], effects: [] as (() => unknown)[], fetch: vi.fn(), propose: vi.fn(), decide: vi.fn(), changed: vi.fn(), setType: vi.fn(), savedType: vi.fn(), close: vi.fn() }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const at = h.index++; if (!(at in h.hooks)) h.hooks[at] = initial; return [h.hooks[at], (value: any) => { h.hooks[at] = typeof value === 'function' ? value(h.hooks[at]) : value; }]; },
   useRef: (initial: any) => { const at = h.index++; return h.hooks[at] ?? (h.hooks[at] = { current: initial }); },
@@ -11,7 +11,10 @@ vi.mock('@/lib/i18n', () => ({ useT: () => (key: string, values?: any) => key + 
 vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: (stage: any) => stage.name }) }));
 vi.mock('@/lib/supabase/stage-pricing', async original => ({ ...await original<typeof import('@/lib/supabase/stage-pricing')>(), fetchStagePriceContext: h.fetch, proposeStagePrices: h.propose, decideStagePrices: h.decide }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: { channel: () => ({ on() { return this; }, subscribe() { return this; } }), removeChannel: vi.fn() } }));
+vi.mock('@/lib/supabase/admin-users', () => ({ accountType: (roles: string) => roles.split(',').some(role => role.trim()==='contractor') ? 'contractor' : 'client', setAccountType: h.setType }));
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
+import { AccountTypeEditor } from '@/components/admin/AccountTypeEditor';
+import type { AdminUser } from '@/lib/supabase/admin-users';
 type Element = { type: unknown; props: any };
 function nodes(value: any): Element[] { return Array.isArray(value) ? value.flatMap(nodes) : value?.props ? [value, ...nodes(value.props.children)] : []; }
 function text(value: any): string { return Array.isArray(value) ? value.map(text).join(' ') : value?.props ? text(value.props.children) : typeof value === 'string' ? value : ''; }
@@ -54,5 +57,24 @@ describe('stage price proposals and client decisions', () => {
   it('does not display a previous project’s budget when the route changes', async () => {
     await load({ ...context, history: [proposal] }); expect(text(render())).toContain('192,000 XAF');
     expect(text(render({ ...project, id: 'other' }))).not.toContain('192,000 XAF');
+  });
+});
+
+function accountEditor() { h.index=0; return nodes(AccountTypeEditor({ user: { id: 'user', email: 'person@test.example', roles: 'verifier' } as AdminUser, onSaved: h.savedType, onClose: h.close })); }
+describe('the admin account-type editor', () => {
+  it('offers client and contractor types while preserving special roles on the server', async () => {
+    expect(accountEditor().filter(node => node.type==='option').map(node => node.props.value)).toEqual(['client','contractor']);
+    h.setType.mockResolvedValue('contractor,verifier');
+    accountEditor().find(node => node.type==='select')!.props.onChange({target:{value:'contractor'}});
+    accountEditor().find(node => node.type==='form')!.props.onSubmit({preventDefault(){}});
+    await Promise.resolve();await Promise.resolve();
+    expect(h.setType).toHaveBeenCalledWith('user','contractor','client');expect(h.savedType).toHaveBeenCalledWith('contractor,verifier');
+  });
+  it('shows an assignment refusal instead of claiming a contractor became a client', async () => {
+    h.setType.mockRejectedValue({message:'contractor_assignments_exist'});
+    accountEditor().find(node => node.type==='select')!.props.onChange({target:{value:'contractor'}});
+    accountEditor().find(node => node.type==='form')!.props.onSubmit({preventDefault(){}});
+    await Promise.resolve();await Promise.resolve();
+    expect(text(accountEditor())).toContain('admin.accountTypeEdit.assignments');expect(h.savedType).not.toHaveBeenCalled();
   });
 });

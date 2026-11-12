@@ -539,6 +539,7 @@ export default function ProjectDetail() {
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
           <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} />
+          {activeTab !== 'costing' && <StagePricingPanel project={project} onChanged={loadAll} compact onOpen={() => setActiveTab('costing')} />}
 
           {/* Somebody else built this project for them — an admin, or the partner
               contractor who brought them on (109). The client was told nothing before:

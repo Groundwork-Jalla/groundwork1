@@ -5751,6 +5751,7 @@ export const fr: Mirror<EnDict> = {
   },
   project: {
     priceChanges: {
+      reviewNeeded: 'Votre entrepreneur propose de nouveaux prix', review: 'Examiner les prix proposés',
       title: 'Prix des étapes', hint: 'Votre entrepreneur peut proposer des prix révisés. Les prix actuels s’appliquent jusqu’à la validation du client.',
       propose: 'Proposer de nouveaux prix', send: 'Envoyer les prix au client', note: 'Motif de la modification (facultatif)',
       held: 'Prix confirmé, historique ou fixé par les règles du projet', proposedTotal: 'Total proposé du projet : {amount}',

@@ -103,7 +103,7 @@ describe('receipt reading endpoint', () => {
     const res = await request({ amount: '50', currency: 'USD' });
     expect(res.code).toBe(200); expect(res.payload).toMatchObject({ fxRate: '1.000000000000', projectCurrency: 'XAF' });
     expect(h.rate).toHaveBeenCalledWith('USD', expect.any(AbortSignal));
-    expect(h.convert).toHaveBeenCalledWith('attach_receipt_conversion', expect.objectContaining({ p_rate: '1', p_project_currency: 'XAF', p_project_rate: 600 }));
+    expect(h.convert).toHaveBeenCalledWith('attach_receipt_conversion', expect.objectContaining({ p_rate: '1', p_project_currency: 'XAF', p_project_rate: '600' }));
   });
 
   it('attests an external currency only after its receipt amount and currency match', async () => {

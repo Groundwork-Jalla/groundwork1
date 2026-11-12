@@ -8,12 +8,13 @@ import { fetchStagePriceContext, stagePricePreview, proposeStagePrices, decideSt
 import type { ProjectRow } from '@/types/project';
 
 /** The same proposal, approval and saved history in both participants' project views. */
-export function StagePricingPanel({ project, onChanged }: { project: ProjectRow; onChanged: () => void | Promise<void> }) {
+export function StagePricingPanel({ project, onChanged, compact = false, onOpen }: { project: ProjectRow; onChanged: () => void | Promise<void>; compact?: boolean; onOpen?: () => void }) {
   const t = useT(); const { lang } = useLanguage(); const { stageLabel } = useStageLabels();
   const [loaded, setLoaded] = useState<{ scope: string; context: StagePriceContext } | null>(null);
   const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
   const [draft, setDraft] = useState<{ scope: string; context: StagePriceContext; amounts: Record<string, string>; note: string } | null>(null);
-  const [busy, setBusy] = useState(false); const inFlight = useRef(false); const request = useRef(0);
+  const [working, setWorking] = useState<string | null>(null); const inFlight = useRef<string | null>(null); const request = useRef(0);
+  const busy = working === project.id;
   const scope = useRef<string | null>(project.id); scope.current = project.id;
   const context = loaded?.scope === project.id ? loaded.context : null;
   const editing = draft?.scope === project.id ? draft : null;
@@ -27,6 +28,7 @@ export function StagePricingPanel({ project, onChanged }: { project: ProjectRow;
       if (scope.current === project.id && request.current === turn) { setLoaded({ scope: project.id, context: value }); setFailure(null); }
     } catch (error) {
       if (scope.current !== project.id || request.current !== turn) return;
+      setLoaded(null);
       const message = (error as { message?: string })?.message ?? '';
       fail(t(/pricing_not_started|bill_confirmation_required/.test(message) ? 'project.priceChanges.notStarted' : 'project.priceChanges.loadFailed'));
     }
@@ -38,29 +40,35 @@ export function StagePricingPanel({ project, onChanged }: { project: ProjectRow;
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_price_amendments', filter: `project_id=eq.${project.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${project.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${project.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_invites', filter: `project_id=eq.${project.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_viewers', filter: `project_id=eq.${project.id}` }, refresh)
       .subscribe();
     window.addEventListener('focus', refresh);
     return () => { scope.current = null; ++request.current; window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
-  }, [load]);
-  useEffect(() => { void load(); }, [project.pricing_revision]);
+  }, [load, project.pricing_revision]);
 
   async function mutate(action: () => Promise<unknown>) {
-    if (inFlight.current) return;
-    inFlight.current = true; setBusy(true); setFailure(null);
+    if (inFlight.current === project.id) return;
+    inFlight.current = project.id; setWorking(project.id); setFailure(null);
     try {
       await action();
-      if (scope.current === project.id) { setDraft(null); await onChanged(); await load(); }
+      if (scope.current === project.id) { setDraft(null); await onChanged(); if (scope.current === project.id) await load(); }
     } catch (error) {
       if (scope.current === project.id) {
         await load();
         const message = (error as { message?: string })?.message ?? '';
         fail(t(/stale_stage_prices|stage_price_locked|proposer_assignment_changed/.test(message) ? 'project.priceChanges.stale' : /price_proposal_pending/.test(message) ? 'project.priceChanges.pendingExists' : 'project.priceChanges.saveFailed'));
       }
-    } finally { inFlight.current = false; if (scope.current === project.id) setBusy(false); }
+    } finally { if (inFlight.current === project.id) inFlight.current = null; if (scope.current === project.id) setWorking(null); }
   }
   const pending = context?.history.find(item => item.status === 'pending');
   const preview = editing ? stagePricePreview(editing.context, editing.amounts) : null;
   const stale = editing && editing.context.base_hash !== context?.base_hash;
+  if (compact) return context?.can_approve && pending ? <section className="mb-4 space-y-2 rounded-xl border border-brand-green bg-white p-4 dark:bg-[#1e1e1e]">
+    <p className="text-sm font-semibold">{t('project.priceChanges.reviewNeeded')}</p>
+    <p className="text-xs text-brand-mid-grey">{t('project.priceChanges.proposedTotal', { amount: format(pending.new_total, pending.currency) })}</p>
+    <button type="button" onClick={onOpen} className="text-xs font-semibold text-brand-green underline">{t('project.priceChanges.review')}</button>
+  </section> : null;
   if (!context && !error) return null;
   return <section className="space-y-4 rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
     <h3 className="text-sm font-semibold">{t('project.priceChanges.title')}</h3>

@@ -40,13 +40,14 @@ export async function handler(req: any, res: any) {
     const configured = countryMoney((project.country ?? '').toUpperCase());
     const locked = (project.budget_source === 'boq' || project.pricing_revision > 0) && project.budget_currency && Number(project.budget_fx_rate) > 0;
     const projectCode = locked ? project.budget_currency : configured.code;
+    const projectRate = locked ? project.budget_fx_rate : configured.rate;
     if (!isReceiptCurrency(body.currency) && body.currency !== projectCode) { res.status(422).json({ error: 'receipt_currency_unsupported' }); return; }
     async function conversion(readingId: string, existing?: any) {
       const quote = existing?.fx_rate != null || body.currency === projectCode
         ? { rate: null, source: 'project', asOf: new Date().toISOString() }
         : await receiptExchangeRate(body.currency as string, controller.signal);
       const saved = await admin!.rpc('attach_receipt_conversion', { p_reading: readingId,
-        p_rate: quote.rate, p_project_currency: locked ? project.budget_currency : configured.code, p_project_rate: locked ? project.budget_fx_rate : configured.rate,
+        p_rate: quote.rate, p_project_currency: projectCode, p_project_rate: projectRate,
         p_source: quote.source, p_as_of: quote.asOf });
       if (saved.error || typeof saved.data?.fx_rate !== 'string' || !(Number(saved.data.fx_rate) > 0)) throw new Error('receipt_rate_unavailable');
       return { fxRate: saved.data.fx_rate, projectCurrency: saved.data.project_currency,
