@@ -6,6 +6,7 @@ vi.mock('./client', () => ({ supabase: { rpc: h.rpc, from: h.from } }));
 vi.mock('@/lib/i18n', () => ({ detectLang: () => 'en' }));
 vi.mock('@/lib/analytics/funnel', () => ({ trackFunnel: h.funnel }));
 vi.mock('@/lib/analytics/lifecycle', () => ({ trackLifecycle: h.lifecycle }));
+import { createProjectInvitationLink } from './project-invitation-links';
 import { fetchProjectTeamAccess, setProjectClient } from './project-team';
 import { inviteContractor, revokeInvite } from './invites';
 import { acceptProjectViewer, fetchProjectViewers, fetchViewerSummaries, getViewerInvitePreview, inviteProjectViewer } from './project-viewers';
@@ -18,6 +19,18 @@ function query(data: unknown) {
 beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('fetch', h.fetch); h.fetch.mockResolvedValue({ ok: true }); });
 
 describe('team RPC boundaries', () => {
+  it('creates a server-issued shareable link without email delivery', async () => {
+    h.rpc.mockResolvedValue({ data: { token: 'opaque-token', expires_at: '2026-11-20T00:00:00Z' }, error: null });
+    await createProjectInvitationLink('project', 'observer');
+    expect(h.rpc).toHaveBeenCalledWith('create_project_invitation_link', { p_project: 'project', p_role: 'observer' });
+    expect(h.fetch).not.toHaveBeenCalled();
+  });
+  it('reports denied or incomplete link creation without inventing a token', async () => {
+    h.rpc.mockResolvedValueOnce({ error: new Error('not_permitted') }).mockResolvedValueOnce({ data: { token: null } });
+    await expect(createProjectInvitationLink('project', 'client')).rejects.toThrow('not_permitted');
+    await expect(createProjectInvitationLink('project', 'client')).rejects.toThrow('invitation_link_unavailable');
+  });
+
   it('reads explicit project capabilities and denies missing or nonboolean flags', async () => {
     h.rpc.mockResolvedValue({ data: { primary_client: true, can_invite: true, primary_contractor: 'true' }, error: null });
     const access = await fetchProjectTeamAccess('project');
@@ -56,9 +69,20 @@ describe('team RPC boundaries', () => {
 });
 
 describe('clients and observers are distinct memberships', () => {
+  it('maps an unclaimed link without inventing a participant email or name', async () => {
+    query([{ id: 'link', email: null, relationship: null, invited_at: 'now', accepted_at: null, is_client: false,
+      token: 'opaque', is_share_link: true, expires_at: '2026-11-20T00:00:00Z' }]);
+    expect(await fetchProjectViewers('project')).toEqual([{ id: 'link', email: '', relationship: null, invitedAt: 'now', acceptedAt: null,
+      isClient: false, token: 'opaque', isShareLink: true, expiresAt: '2026-11-20T00:00:00Z' }]);
+  });
+  it('does not display a link placeholder as the project client', async () => {
+    query([{ project_id: 'project', email: null, relationship: null, accepted_at: null }]);
+    expect((await fetchViewerSummaries(['project'])).has('project')).toBe(false);
+  });
+
   it('maps explicit viewer roles and uses only the named client for project labels', async () => {
     const q = query([{ id: 'v', email: 'a@example.com', relationship: 'Ada', invited_at: 'now', accepted_at: null, is_client: false }]);
-    expect(await fetchProjectViewers('project')).toEqual([{ id: 'v', email: 'a@example.com', relationship: 'Ada', invitedAt: 'now', acceptedAt: null, isClient: false }]);
+    expect(await fetchProjectViewers('project')).toEqual([{ id: 'v', email: 'a@example.com', relationship: 'Ada', invitedAt: 'now', acceptedAt: null, isClient: false, token: undefined, isShareLink: false, expiresAt: null }]);
     q.order.mockResolvedValue({ data: [{ project_id: 'project', email: 'client@example.com', relationship: 'Client', accepted_at: 'now' }], error: null });
     expect((await fetchViewerSummaries(['project'])).get('project')?.label).toBe('Client');
     expect(q.eq).toHaveBeenCalledWith('is_client', true);

@@ -86,7 +86,11 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
   useEffect(() => { void load(); }, [load]);
 
   // Separately: a failure here costs the role labels, and must not cost the conversation.
-  useEffect(() => { void listProjectRoles(projectId).then(setRoles); }, [projectId]);
+  useEffect(() => {
+    let live = true; setRoles({});
+    void listProjectRoles(projectId).then(value => { if (live) setRoles(value); });
+    return () => { live = false; };
+  }, [projectId]);
 
   if (loading) {
     return <p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-mid-grey">

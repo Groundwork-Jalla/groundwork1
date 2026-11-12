@@ -88,3 +88,13 @@ describe('project invitation continuation', () => {
     expect(projectInvitationError(new Error('network failed'))).toBe('invite.acceptError');
   });
 });
+
+
+describe('clear project-link errors', () => {
+  it.each(['invitation_expired', 'revoked', 'already_accepted', 'invite_invalid: another account accepted', 'invalid_token'])('explains %s without claiming a temporary outage', message => {
+    expect(projectInvitationError({ message })).toBe('projectLinks.unavailable');
+  });
+  it.each([['invitation_email_unverified', 'projectLinks.verifyEmail'], ['invitation_pending', 'projectLinks.pendingForAccount'], ['already_member', 'teamAccess.alreadyMember']])('explains %s', (message, key) => {
+    expect(projectInvitationError({ message })).toBe(key);
+  });
+});

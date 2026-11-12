@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir, userInfo } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const root = resolve(import.meta.dirname, '..');
 const bin = process.env.GROUNDWORK_PG_BIN
@@ -22,7 +22,7 @@ try {
   const init = spawnSync(join(bin, 'initdb'), ['-D', dir, '-A', 'trust', '--no-locale', '--no-sync'], { encoding: 'utf8', timeout: 30000 });
   if (init.status !== 0) throw new Error(init.stderr || init.stdout);
   const setup = `
-CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth;
+CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth;
 CREATE PUBLICATION supabase_realtime;
 CREATE FUNCTION public.test_id(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('00000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid $$;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('test.actor',true),'')::uuid $$;
@@ -58,7 +58,10 @@ INSERT INTO project_takeoffs(project_id,created_by) VALUES(test_id(101),test_id(
 CREATE TABLE public.project_verifiers(project_id uuid,user_id uuid,status text);
 CREATE TABLE public.contractor_clients(client_id uuid,contractor_id uuid,client_was_created boolean,accepted_at timestamptz);
 CREATE TABLE public.test_activity(project_id uuid,event text,details jsonb);
-CREATE FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) RETURNS void LANGUAGE sql AS $$ INSERT INTO test_activity VALUES($1,$2,$6) $$;
+CREATE FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) RETURNS void LANGUAGE plpgsql AS $$ BEGIN
+ IF ($3 IS NULL)<>($4 IS NULL) THEN RAISE EXCEPTION 'bad_entity'; END IF;
+ IF $1 IS NULL AND $5 IS NULL THEN RAISE EXCEPTION 'no_subject'; END IF;
+ INSERT INTO test_activity VALUES($1,$2,$6); END $$;
 CREATE FUNCTION public.test_assert(ok boolean,description text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'TEST_FAILED: %',description; END IF; END $$;
 CREATE FUNCTION public.test_refused(statement text,prefix text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN
  BEGIN EXECUTE statement; RAISE EXCEPTION 'TEST_EXPECTED_REFUSAL: %',prefix;
@@ -334,7 +337,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     fn('supabase/migrations/086_verifiers.sql', 'is_contractor_on'),
     fn('supabase/migrations/110_contractor_client_consent.sql', 'is_my_clients_project'),
     fn('supabase/migrations/101_primary_contractor_payout.sql', 'contractor_invites_clear_primary'),
-    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), read('supabase/migrations/20261112000400_invitation_project_read_access.sql'), tests,
+    policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), read('supabase/migrations/20261112000400_invitation_project_read_access.sql'), tests, read('supabase/migrations/20261113000200_project_invitation_links.sql'), read('supabase/migrations/20261113000200_project_invitation_links.sql'), read('scripts/fixtures/project-invitation-links.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -352,7 +355,31 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access and unchanged BOQ allocations.');
+  const psql = ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres'];
+  const query = sql => new Promise((resolve, reject) => {
+    const child = spawn(join(bin, 'psql'), [...psql, '-c', sql]);
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    child.on('error', reject);
+    child.on('close', code => resolve({ code, output }));
+  });
+  for (const [project, kind] of [[206, 'viewer'], [207, 'contractor'], [208, 'viewer']]) {
+    const accept = kind === 'contractor' ? 'accept_contractor_invite' : 'accept_project_viewer';
+    const outcomes = await Promise.all([6, 8].map(actor => query(`BEGIN; SET ROLE authenticated;
+      SELECT set_config('test.actor',test_id(${actor})::text,false);
+      SELECT ${accept}((SELECT token FROM test_links WHERE project_id=test_id(${project})));
+      SELECT test_assert(EXISTS(SELECT 1 FROM projects WHERE id=test_id(${project})),'race winner can read project');
+      SELECT pg_sleep(0.15); COMMIT;`)));
+    if (outcomes.filter(r => r.code === 0).length !== 1 || !outcomes.some(r => /already_accepted|invite_invalid/.test(r.output))) {
+      throw new Error(`Single-use ${kind} claim race failed: ${JSON.stringify(outcomes)}`);
+    }
+    const table = kind === 'contractor' ? 'contractor_invites' : 'project_viewers';
+    const predicate = kind === 'contractor' ? "status='accepted' AND is_primary" : 'accepted_at IS NOT NULL AND revoked_at IS NULL';
+    const final = await query(`SELECT test_assert((SELECT count(*) FROM ${table} WHERE project_id=test_id(${project}) AND ${predicate})=1,'exactly one race claimant has membership');`);
+    if (final.code !== 0) throw new Error(final.output);
+  }
+  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, single-use links, expiry, email/link reservation and concurrent claim races.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

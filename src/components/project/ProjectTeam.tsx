@@ -16,6 +16,8 @@ export function ProjectTeam({ project }: { project: Pick<ProjectRow, 'id' | 'nam
   const roleKey = access?.primaryClient ? 'teamAccess.primaryClient'
     : access?.primaryContractor ? 'teamAccess.primaryContractor'
     : access?.assignedContractor ? 'adminRole.contractor'
+    : access?.projectRole === 'verifier' ? 'project.chat.role.verifier'
+    : access?.projectRole === 'observer' ? 'teamAccess.observer'
     : access?.canChangeRoles ? 'adminRole.admin' : 'teamAccess.observer';
 
   return (

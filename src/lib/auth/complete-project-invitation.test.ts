@@ -73,3 +73,22 @@ describe('authenticated membership acceptance', () => {
     expect(readProjectInvitation()?.token).toBe('later');
   });
 });
+
+
+describe('retiring unavailable project links', () => {
+  it.each(['viewer', 'contractor'] as const)('clears a permanently expired %s invitation before a later ordinary sign-in', async kind => {
+    accept[kind].mockRejectedValue(new Error('invitation_expired'));
+    await expect(completeProjectInvitation({ kind, token: 'expired' })).rejects.toThrow('invitation_expired');
+    expect(readProjectInvitation()).toBeNull();
+    expect(accept.read).not.toHaveBeenCalled();
+  });
+  it('preserves a newer link when an earlier acceptance is rejected', async () => {
+    let fail!: (reason: Error) => void;
+    accept.viewer.mockReturnValue(new Promise((_resolve, reject) => { fail = reject; }));
+    const work = completeProjectInvitation({ kind: 'viewer', token: 'earlier' });
+    rememberProjectInvitation({ kind: 'viewer', token: 'later' });
+    fail(new Error('already_accepted'));
+    await expect(work).rejects.toThrow('already_accepted');
+    expect(readProjectInvitation()?.token).toBe('later');
+  });
+});

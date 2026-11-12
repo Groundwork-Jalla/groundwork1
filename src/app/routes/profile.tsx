@@ -946,10 +946,10 @@ export default function ProfilePage() {
                           className="flex items-center gap-3 rounded-xl border border-brand-border-grey bg-white p-3.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
                         >
                           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-off-white text-[11px] font-bold text-brand-near-black dark:bg-[#252525] dark:text-white">
-                            {m.email.slice(0, 2).toUpperCase()}
+                            {(m.email || t('projectLinks.title')).slice(0, 2).toUpperCase()}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-brand-near-black dark:text-white">{m.email}</p>
+                            <p className="truncate text-sm font-medium text-brand-near-black dark:text-white">{m.email || t('projectLinks.title')}</p>
                             <p className="truncate text-xs text-brand-mid-grey">
                               {m.project_name || t('profile.team.unknownProject')}
                             </p>

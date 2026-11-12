@@ -1,6 +1,7 @@
 import { supabase } from './client';
 
 export interface ProjectTeamAccess {
+  projectRole?: 'primary_client' | 'primary_contractor' | 'contractor' | 'observer' | 'verifier' | 'staff' | null;
   canInvite: boolean;
   primaryClient: boolean;
   primaryContractor: boolean;
@@ -21,6 +22,7 @@ export async function fetchProjectTeamAccess(projectId: string): Promise<Project
   if (error) throw error;
   if (!data || typeof data !== 'object') throw new Error('Project permissions unavailable');
   return {
+    projectRole: ['primary_client', 'primary_contractor', 'contractor', 'observer', 'verifier', 'staff'].includes(data.project_role) ? data.project_role : null,
     canInvite: data.can_invite === true,
     primaryClient: data.primary_client === true,
     primaryContractor: data.primary_contractor === true,

@@ -60,10 +60,14 @@ export function projectInvitationPath(invitation: ProjectInvitation): string {
   return `/${invitation.kind === 'viewer' ? 'share' : 'invite'}/${encodeURIComponent(invitation.token)}`;
 }
 
-export function projectInvitationError(error: unknown): 'invite.emailMismatch' | 'invite.acceptError' | 'invite.projectPreparing' {
+export function projectInvitationError(error: unknown): 'invite.emailMismatch' | 'invite.acceptError' | 'invite.projectPreparing' | 'projectLinks.unavailable' | 'projectLinks.verifyEmail' | 'projectLinks.pendingForAccount' | 'teamAccess.alreadyMember' {
   const detail = error as { code?: string; message?: string } | null;
   const message = `${detail?.code ?? ''} ${detail?.message ?? ''}`;
   if (message.includes('invitation_access_pending')) return 'invite.projectPreparing';
+  if (/invitation_expired|revoked|already_accepted|invite_invalid|invalid_token/.test(message)) return 'projectLinks.unavailable';
+  if (message.includes('invitation_email_unverified')) return 'projectLinks.verifyEmail';
+  if (message.includes('invitation_pending')) return 'projectLinks.pendingForAccount';
+  if (message.includes('already_member')) return 'teamAccess.alreadyMember';
   return message.includes('invite_email_mismatch')
     ? 'invite.emailMismatch' : 'invite.acceptError';
 }

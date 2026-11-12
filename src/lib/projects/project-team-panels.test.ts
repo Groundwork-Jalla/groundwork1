@@ -6,7 +6,7 @@ const h = vi.hoisted(() => ({
   effects: [] as { index: number; effect: () => any }[], si: 0, ri: 0, mi: 0, ei: 0,
   team: {} as any, viewers: vi.fn(), invites: vi.fn(), inviteViewer: vi.fn(), send: vi.fn(),
   revokeViewer: vi.fn(), inviteContractor: vi.fn(), revokeInvite: vi.fn(), refresh: vi.fn(),
-  setClient: vi.fn(),
+  setClient: vi.fn(), createLink: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const i = h.si++; if (!(i in h.state)) h.state[i] = typeof initial === 'function' ? initial() : initial;
@@ -24,11 +24,13 @@ vi.mock('@/lib/supabase/project-viewers', () => ({ fetchProjectViewers: h.viewer
   ShareFailed: class extends Error { constructor(public code: string) { super(code); } } }));
 vi.mock('@/lib/supabase/invites', () => ({ fetchInvites: h.invites, inviteContractor: h.inviteContractor, revokeInvite: h.revokeInvite }));
 vi.mock('@/lib/supabase/project-team', () => ({ setProjectClient: h.setClient }));
+vi.mock('@/lib/supabase/project-invitation-links', async original => ({ ...await original<typeof import('@/lib/supabase/project-invitation-links')>(), createProjectInvitationLink: h.createLink }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: {} }));
 vi.mock('@/components/ui/button', () => ({ Button: 'button' }));
 vi.mock('@/components/ui/input', () => ({ Input: 'input' }));
 vi.mock('@/components/ui/label', () => ({ Label: 'label' }));
 vi.mock('@/components/ui/ConfirmModal', () => ({ ConfirmModal: 'confirm-modal' }));
+import { ProjectInvitationLink } from '@/components/project/ProjectInvitationLink';
 import { ShareProject } from '@/components/project/ShareProject';
 import { ContractorInvite } from '@/components/project/ContractorInvite';
 import { PrimaryClientCard } from '@/components/admin/workspace/PrimaryClientCard';
@@ -67,8 +69,104 @@ beforeEach(() => {
   h.viewers.mockResolvedValue([]); h.invites.mockResolvedValue([]); h.refresh.mockResolvedValue(undefined);
   h.inviteViewer.mockResolvedValue('token'); h.send.mockResolvedValue(true);
   h.inviteContractor.mockResolvedValue({ invite: { token: 'token' }, emailSent: true });
-  h.setClient.mockResolvedValue(undefined);
+  h.setClient.mockResolvedValue(undefined); h.createLink.mockResolvedValue(undefined);
   vi.stubGlobal('window', { location: { origin: 'https://example.test' } });
+});
+
+describe('shareable links are the primary invitation option', () => {
+  it.each(['observer', 'client', 'contractor'] as const)('creates a %s link without sending email', async role => {
+    if (role === 'client') h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true };
+    const component = role === 'contractor'
+      ? () => ContractorInvite({ projectId: 'project', userId: 'actor', projectName: 'Home' })
+      : () => ShareProject({ projectId: 'project', asClient: role === 'client' });
+    render(component); await flush();
+    const view = render(component);
+    const link = view.all.find(n => n.type === ProjectInvitationLink)!;
+    expect(link.props.canCreate).toBe(true);
+    expect(view.all.findIndex(n => n === link)).toBeLessThan(view.all.findIndex(n => n.type === 'details'));
+    expect(view.all.find(n => n.type === 'details')!.props.open).toBeUndefined();
+    link.props.onCreate(); await flush();
+    expect(h.createLink).toHaveBeenCalledWith('project', role);
+    expect(h.send).not.toHaveBeenCalled(); expect(h.inviteContractor).not.toHaveBeenCalled();
+    expect(h.refresh).toHaveBeenCalled();
+  });
+
+  it('reopens an existing client link when a primary invitation already reserves the role', async () => {
+    h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: false, hasClientInvitation: true };
+    h.viewers.mockResolvedValue([{ ...client, email: '', acceptedAt: null, isShareLink: true, token: 'existing', expiresAt: '2099-01-01T00:00:00Z' }]);
+    const component = () => ShareProject({ projectId: 'project', asClient: true });
+    render(component); await flush();
+    const link = render(component).all.find(n => n.type === ProjectInvitationLink)!;
+    expect(link.props.canCreate).toBe(false);
+    expect(link.props.link.token).toBe('existing');
+    expect(h.createLink).not.toHaveBeenCalled(); expect(h.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps an observer identity visible alongside pending status', async () => {
+    h.viewers.mockResolvedValue([{ ...observer, acceptedAt: null }]);
+    const component = () => ShareProject({ projectId: 'project' });
+    render(component); await flush();
+    const view = render(component);
+    expect(view.text).toContain('teamAccess.observer');
+    expect(view.text).toContain('projectShare.pending');
+  });
+
+  it('does not show an expired pending link as copyable', async () => {
+    h.viewers.mockResolvedValue([{ ...observer, email: '', acceptedAt: null, isShareLink: true, token: 'expired', expiresAt: '2001-01-01T00:00:00Z' }]);
+    const component = () => ShareProject({ projectId: 'project' });
+    render(component); await flush();
+    const view = render(component);
+    expect(view.all.find(n => n.type === ProjectInvitationLink)!.props.link).toBeUndefined();
+    expect(view.text).toContain('projectLinks.expired');
+  });
+
+  it('discards a link-creation result after changing project', async () => {
+    let finish!: () => void;
+    h.createLink.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+    let projectId = 'project'; const component = () => ShareProject({ projectId });
+    render(component); await flush();
+    render(component).all.find(n => n.type === ProjectInvitationLink)!.props.onCreate();
+    projectId = 'other'; h.team.scope = 'actor:other'; render(component); await flush();
+    finish(); await flush();
+    expect(h.refresh).not.toHaveBeenCalled();
+    expect(render(component).text).not.toContain('projectLinks.createFailed');
+  });
+});
+
+describe('copying a project invitation', () => {
+  const props = { scope: 'actor:project', role: 'observer' as const, busy: false, canCreate: true, onCreate: vi.fn(),
+    link: { token: 'token', expiresAt: '2099-01-01T00:00:00Z' } };
+
+  it('copies the intended project route and confirms success', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    const component = () => ProjectInvitationLink(props);
+    const view = render(component);
+    await view.all.find(n => n.type === 'button')!.props.onClick(); await flush();
+    expect(writeText).toHaveBeenCalledWith('https://example.test/share/token');
+    expect(render(component).text).toContain('projectLinks.copied');
+    expect(view.text).toContain('teamAccess.observer');
+  });
+
+  it('offers manual copying if clipboard permission is unavailable', async () => {
+    vi.stubGlobal('navigator', {});
+    const component = () => ProjectInvitationLink({ ...props, role: 'contractor' });
+    const view = render(component);
+    view.all.find(n => n.type === 'button')!.props.onClick(); await flush();
+    const updated = render(component);
+    expect(updated.text).toContain('projectLinks.copyFailed');
+    expect(updated.all.find(n => n.type === 'input')!.props.value).toBe('https://example.test/invite/token');
+    expect(updated.text).not.toContain('projectLinks.copied');
+  });
+
+  it('discards a clipboard result when the project changes', async () => {
+    let finish!: () => void;
+    vi.stubGlobal('navigator', { clipboard: { writeText: vi.fn(() => new Promise<void>(resolve => { finish = resolve; })) } });
+    let scope = 'actor:project'; const component = () => ProjectInvitationLink({ ...props, scope });
+    render(component).all.find(n => n.type === 'button')!.props.onClick();
+    scope = 'actor:other'; render(component); finish(); await flush();
+    expect(render(component).text).not.toContain('projectLinks.copied');
+  });
 });
 
 describe('the client project Team tab reuses the role-checked invitation panels', () => {

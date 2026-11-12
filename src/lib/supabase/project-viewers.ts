@@ -27,12 +27,18 @@ export interface ProjectViewer {
   acceptedAt: string | null;
   /** The named client can approve work; other viewers are observers. */
   isClient: boolean;
+  token?: string;
+  isShareLink?: boolean;
+  expiresAt?: string | null;
 }
 
 interface Row {
   id: string;
-  email: string;
+  email: string | null;
   relationship: string | null;
+  token?: string;
+  is_share_link?: boolean;
+  expires_at?: string | null;
   invited_at: string;
   accepted_at: string | null;
   is_client: boolean;
@@ -47,7 +53,7 @@ interface Row {
 export async function fetchProjectViewers(projectId: string): Promise<ProjectViewer[]> {
   const { data, error } = await supabase
     .from('project_viewers')
-    .select('id, email, relationship, invited_at, accepted_at, is_client')
+    .select('id, email, relationship, invited_at, accepted_at, is_client, token, is_share_link, expires_at')
     .eq('project_id', projectId)
     .is('revoked_at', null)
     .order('invited_at', { ascending: false });
@@ -57,9 +63,10 @@ export async function fetchProjectViewers(projectId: string): Promise<ProjectVie
     throw error;
   }
   return (data ?? []).map((r: Row) => ({
-    id: r.id, email: r.email, relationship: r.relationship,
+    id: r.id, email: r.email ?? '', relationship: r.relationship,
     invitedAt: r.invited_at, acceptedAt: r.accepted_at,
     isClient: r.is_client === true,
+    token: r.token, isShareLink: r.is_share_link === true, expiresAt: r.expires_at ?? null,
   }));
 }
 
@@ -100,7 +107,7 @@ export async function fetchViewerSummaries(
   for (const row of (data ?? []) as { project_id: string; email: string;
                                       relationship: string | null; accepted_at: string | null }[]) {
     // Only the explicit client role may label a project as belonging to this person.
-    if (out.has(row.project_id)) continue;
+    if (out.has(row.project_id) || !row.email) continue;
     const named = row.relationship?.trim();
     out.set(row.project_id, {
       label: named && named !== '' ? named : row.email.split('@')[0],
@@ -117,7 +124,7 @@ export class ShareFailed extends Error {
 function fail(message: string): never {
   const known = ['not_owner', 'invalid_email', 'self_invite', 'no_project', 'revoked',
                  'already_accepted', 'invalid_token', 'not_permitted', 'invite_email_mismatch',
-                 'role_change_requires_admin', 'already_member']
+                 'role_change_requires_admin', 'already_member', 'invitation_expired', 'invitation_pending', 'invitation_email_unverified']
     .find(c => message.includes(c));
   throw new ShareFailed(known ?? 'failed');
 }
@@ -196,6 +203,8 @@ export interface ViewerInvitePreview {
   invitedByName: string;
   accepted: boolean;
   isClient: boolean;
+  isShareLink?: boolean;
+  expiresAt?: string | null;
 }
 
 /**
@@ -214,6 +223,7 @@ export async function getViewerInvitePreview(token: string): Promise<ViewerInvit
     invitedByName: String(row.invited_by_name ?? ''),
     accepted:      row.accepted === true,
     isClient:      row.is_client === true,
+    isShareLink: row.is_share_link === true, expiresAt: typeof row.expires_at === 'string' ? row.expires_at : null,
   };
 }
 

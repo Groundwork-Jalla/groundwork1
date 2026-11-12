@@ -82,7 +82,7 @@ export async function fetchInvites(projectId: string): Promise<ContractorInviteR
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(row => ({ ...row, email: row.email ?? '' }));
 }
 
 // =========================================================
@@ -110,7 +110,7 @@ export async function fetchTeam(projectIds: string[]): Promise<TeamMember[]> {
 
   return (data ?? []).map(row => {
     const { projects, ...invite } = row as ContractorInviteRow & { projects: { name: string } | null };
-    return { ...invite, project_name: projects?.name ?? '' };
+    return { ...invite, email: invite.email ?? '', project_name: projects?.name ?? '' };
   });
 }
 
@@ -128,7 +128,9 @@ export async function revokeInvite(inviteId: string): Promise<void> {
 // =========================================================
 export interface InviteDetails {
   project_id: string;
-  invite_email: string;
+  invite_email: string | null;
+  is_share_link?: boolean;
+  expires_at?: string | null;
   status: string;
   project_name: string;
   inviter_name: string;
@@ -151,9 +153,6 @@ export async function acceptInvite(token: string): Promise<string> {
     .rpc('accept_contractor_invite', { p_token: token });
 
   if (error) {
-    if (error.message?.includes('invite_invalid')) {
-      throw new Error('This invite link is invalid or has already been used.');
-    }
     throw error;
   }
 

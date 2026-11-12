@@ -50,6 +50,7 @@ export default function NewPassword() {
   const [confirm, setConfirm] = useState("");
   const [ready, setReady] = useState(false);
   const [noSession, setNoSession] = useState(false);
+  const [unavailableInvitation, setUnavailableInvitation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // The reset ends on an explicit confirmation, not a redirect. See handleSubmit.
@@ -195,6 +196,7 @@ export default function NewPassword() {
         const path = await completeProjectInvitation(invitation);
         window.location.href = path;
       } catch (err) {
+        setUnavailableInvitation(projectInvitationError(err) === 'projectLinks.unavailable');
         setError(t(projectInvitationError(err)));
         setSubmitting(false);
       }
@@ -236,7 +238,8 @@ export default function NewPassword() {
         )}
 
         {error && <p role="alert" className="mt-4 text-sm text-state-alert">{error}</p>}
-        {error && invitation && (
+        {unavailableInvitation && <Link to="/" className="block text-sm underline underline-offset-4">{t('invite.goToGroundwork')}</Link>}
+        {error && invitation && !unavailableInvitation && (
           <Link to={projectInvitationPath(invitation)} className="mt-3 block text-sm underline underline-offset-4">
             {t(invitation.kind === 'viewer' ? 'share.accept' : 'invite.accept')}
           </Link>

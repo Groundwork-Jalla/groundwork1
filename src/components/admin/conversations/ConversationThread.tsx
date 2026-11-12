@@ -111,7 +111,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
   const senderLabel = (m: { senderId: string | null; senderName: string }): string => {
     const staff = !roleOf || (roleOf(m.senderId) ?? 'staff') === 'staff';
     return displaySenderName(m.senderName,
-      t(staff ? 'project.chat.name.admin' : 'project.chat.name.member'));
+      staff ? t('project.chat.name.admin') : senderRole(m.senderId) ?? t('project.chat.name.member'));
   };
 
   /** The role, unless it would only repeat the name we just showed. */

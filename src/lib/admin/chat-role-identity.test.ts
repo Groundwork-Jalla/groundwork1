@@ -51,7 +51,7 @@ describe('the roles come from the one place that defines them', () => {
   it('and a failure to load them costs the labels, never the conversation', () => {
     expect(convLib).toMatch(/if \(error\) return \{\};/);
     // Loaded in its own effect, so it cannot take the threads down with it.
-    expect(project).toMatch(/useEffect\(\(\) => \{ void listProjectRoles\(projectId\)/);
+    expect(project).toMatch(/void listProjectRoles\(projectId\)\.then\(value => \{ if \(live\) setRoles\(value\);/);
   });
 
   it('the thread it shows is the project\'s own, so a role always means something', () => {
@@ -63,7 +63,7 @@ describe('the roles come from the one place that defines them', () => {
 });
 
 describe('every role has wording in both languages', () => {
-  it.each(['owner', 'contractor', 'verifier', 'staff'])('%s', (role) => {
+  it.each(['owner', 'contractor', 'verifier', 'observer', 'staff'])('%s', (role) => {
     const e = (en as any).project.chat.role[role];
     const f = (fr as any).project.chat.role[role];
     expect(typeof e).toBe('string');
@@ -77,11 +77,11 @@ describe('every role has wording in both languages', () => {
     expect((fr as any).project.chat.role.verifier).toBe('Vérificateur');
   });
 
-  it('the same four roles the phone message uses', () => {
+  it('the same project roles the phone message uses', () => {
     // The label a client reads in the app and the one on their WhatsApp must agree;
     // two vocabularies for one role is worse than none.
     const body = read('src/lib/admin/whatsapp-body.ts');
-    for (const role of ['owner', 'contractor', 'verifier', 'staff']) {
+    for (const role of ['owner', 'contractor', 'verifier', 'observer', 'staff']) {
       expect(body).toContain(`${role}:`);
     }
   });

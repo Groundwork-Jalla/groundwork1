@@ -31,6 +31,7 @@ export default function Login() {
 
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
+  const [unavailableInvitation, setUnavailableInvitation] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // A correct password is not a completed sign-in when the account has a second factor.
@@ -78,6 +79,7 @@ export default function Login() {
         window.location.href = path;
         return;
       } catch (err) {
+        setUnavailableInvitation(projectInvitationError(err) === 'projectLinks.unavailable');
         setError(t(projectInvitationError(err)));
         return;
       }
@@ -180,7 +182,8 @@ export default function Login() {
             {error}
           </motion.p>
         )}
-        {error && invitation && (
+        {unavailableInvitation && <Link to="/" className="block text-sm underline underline-offset-4">{t('invite.goToGroundwork')}</Link>}
+        {error && invitation && !unavailableInvitation && (
           <Link to={projectInvitationPath(invitation)} className="block text-sm underline underline-offset-4">
             {t(invitation.kind === 'viewer' ? 'share.accept' : 'invite.accept')}
           </Link>

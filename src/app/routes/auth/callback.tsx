@@ -86,6 +86,7 @@ function otpType(raw: string | null): EmailOtpType | null {
 export default function AuthCallback() {
   const navigate = useNavigate();
   const t = useT();
+  const [unavailableInvitation, setUnavailableInvitation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
   // What this browser last asked for. A `?code=` link carries no `type`, so without this
@@ -279,6 +280,7 @@ export default function AuthCallback() {
         leaveForRoleSurface(path);
         return;
       } catch (err) {
+        setUnavailableInvitation(projectInvitationError(err) === 'projectLinks.unavailable');
         setError(t(projectInvitationError(err)));
         return;
       }
@@ -453,7 +455,7 @@ export default function AuthCallback() {
             </Link>
           )}
           <Link
-            to={withProjectInvitation('/auth/login', invitation)}
+            to={withProjectInvitation('/auth/login', unavailableInvitation ? null : invitation)}
             className="text-sm text-brand-mid-grey underline underline-offset-4"
           >
             {t('auth.callback.backToLogin')}

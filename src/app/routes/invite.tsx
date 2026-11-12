@@ -11,7 +11,7 @@ import { projectInvitationError, rememberProjectInvitation, withProjectInvitatio
 export default function InvitePage() {
   const { token }    = useParams<{ token: string }>();
   const navigate     = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const t            = useT();
   const scope = `${token ?? ''}:${user?.id ?? ''}`;
   const current = useRef(scope); current.current = scope;
@@ -37,7 +37,7 @@ export default function InvitePage() {
       .catch(() => { if (live) setInvalid(true); })
       .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
     return () => { live = false; };
-  }, [token]);
+  }, [token, user?.id]);
   useEffect(() => { setAccepting(false); setAcceptErr(null); }, [scope]);
 
   async function handleAcceptNow() {
@@ -66,7 +66,7 @@ export default function InvitePage() {
     navigate(withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null));
   }
 
-  if (loading || resolvedToken !== token) {
+  if (loading || authLoading || resolvedToken !== token) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="size-6 animate-spin text-brand-mid-grey" />
@@ -127,7 +127,7 @@ export default function InvitePage() {
     );
   }
 
-  const signupUrl = `/auth/signup?invite=${encodeURIComponent(token ?? '')}&email=${encodeURIComponent(invite.invite_email)}`;
+  const signupUrl = `/auth/signup?invite=${encodeURIComponent(token ?? '')}&email=${encodeURIComponent(invite.invite_email ?? '')}`;
   const loginUrl  = `/auth/login?invite=${encodeURIComponent(token ?? '')}`;
 
   return (
@@ -150,7 +150,7 @@ export default function InvitePage() {
         })}
       </p>
       <p className="text-xs text-brand-mid-grey mb-6">
-        {t('invite.sentTo', { email: invite.invite_email })}
+        {invite.is_share_link ? t('projectLinks.firstClaim') : t('invite.sentTo', { email: invite.invite_email ?? '' })}
       </p>
 
       <p className="text-xs text-brand-mid-grey mb-6 leading-relaxed">

@@ -1,3 +1,5 @@
+import { ProjectInvitationLink } from './ProjectInvitationLink';
+import { createProjectInvitationLink, invitationLinkExpired } from '@/lib/supabase/project-invitation-links';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, HardHat, Loader2, X } from 'lucide-react';
 
@@ -93,6 +95,19 @@ export function ContractorInvite({
   useEffect(() => { if (access?.primaryClient) void load(); }, [access, load]);
   const canSubmit = access?.canInviteContractor === true && rows !== null && !loadError;
 
+  async function createLink() {
+    if (working.current || !canSubmit || current.current !== scope) return;
+    working.current = true; setBusy(true); setError(null);
+    try {
+      await createProjectInvitationLink(projectId, 'contractor');
+      if (mounted.current && current.current === scope) await Promise.all([load(), refresh()]);
+    } catch {
+      if (mounted.current && current.current === scope) setError(t('projectLinks.createFailed'));
+    } finally {
+      if (mounted.current && current.current === scope) { working.current = false; setBusy(false); }
+    }
+  }
+
   async function invite(e: React.FormEvent) {
     e.preventDefault();
     if (working.current || !canSubmit || current.current !== scope) return;
@@ -147,6 +162,7 @@ export function ContractorInvite({
 
   if (access && !access.primaryClient) return null;
   const contractorChosen = access?.hasContractor || access?.hasPendingContractor;
+  const activeLink = rows?.find(v => v.is_share_link && v.status === 'pending' && v.expires_at && !invitationLinkExpired(v.expires_at));
 
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -160,7 +176,11 @@ export function ContractorInvite({
 
       {!access && <p className="mt-3 text-xs text-brand-mid-grey">{t(accessError ? 'teamAccess.loadFailed' : 'common.loading')}</p>}
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}
+      <ProjectInvitationLink scope={scope} role="contractor" busy={busy || removing}
+        canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={() => { void load(); void refresh(); }}
+        link={activeLink?.expires_at ? { token: activeLink.token, expiresAt: activeLink.expires_at } : undefined} />
       {canSubmit && (
+        <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold underline underline-offset-4">{t('projectLinks.byEmail')}</summary>
         <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-1.5">
             <Label htmlFor="contractorEmail" className="text-xs">{t('inviteUi.email')}</Label>
@@ -174,6 +194,7 @@ export function ContractorInvite({
             {busy ? <Loader2 className="size-4 animate-spin" /> : t('inviteUi.invite')}
           </Button>
         </form>
+        </details>
       )}
 
       {sent && (
@@ -206,15 +227,15 @@ export function ContractorInvite({
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-border-grey px-3 py-2 dark:border-[#2c2c2c]">
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-brand-near-black dark:text-white">
-                  {inv.email}
+                  {inv.email || t('projectLinks.title')}
                 </p>
                 <p className="text-[11px] text-brand-mid-grey">
-                  {inv.is_primary && `${t('teamAccess.primaryContractor')} · `}{statusLabel(inv.status)}
+                  {t(inv.is_primary || inv.primary_on_acceptance ? 'teamAccess.primaryContractor' : 'adminRole.contractor')} · {inv.is_share_link && inv.status !== 'accepted' && invitationLinkExpired(inv.expires_at) ? t('projectLinks.expired') : statusLabel(inv.status)}
                 </p>
               </div>
               {inv.status === 'pending' && (
                 <button type="button" disabled={busy || removing} onClick={() => setRemoveTarget(inv)}
-                  aria-label={`${t('inviteUi.remove')} ${inv.email}`}
+                  aria-label={`${t('inviteUi.remove')} ${inv.email || t('projectLinks.title')}`}
                   className="inline-flex shrink-0 items-center gap-1 text-[11px] text-brand-mid-grey underline underline-offset-4 hover:text-brand-near-black dark:hover:text-white">
                   <X className="size-3" aria-hidden />{t('inviteUi.remove')}
                 </button>
@@ -226,7 +247,7 @@ export function ContractorInvite({
       <ConfirmModal
         open={removeTarget !== null}
         title={t('inviteUi.removeTitle')}
-        description={t('inviteUi.removeBody', { email: removeTarget?.email ?? '' })}
+        description={t('inviteUi.removeBody', { email: removeTarget?.email || t('projectLinks.title') })}
         confirmLabel={t('inviteUi.remove')}
         cancelLabel={t('common.cancel')}
         destructive

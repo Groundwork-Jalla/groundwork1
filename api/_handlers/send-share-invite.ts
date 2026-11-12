@@ -72,7 +72,7 @@ export async function handler(req: any, res: any) {
       .eq('token', shareToken)
       .maybeSingle();
 
-    if (!viewer || viewer.revoked_at !== null || viewer.accepted_at !== null) {
+    if (!viewer || !viewer.email || viewer.revoked_at !== null || viewer.accepted_at !== null) {
       res.status(404).json({ error: 'No open invitation for that token' });
       return;
     }

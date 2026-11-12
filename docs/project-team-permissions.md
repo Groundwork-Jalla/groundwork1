@@ -1,5 +1,8 @@
 # Primary project roles and invitations
 
+The later [project-link review](project-links-review.md) adds first-claim,
+single-use links alongside the recipient-bound email invitations described here.
+
 The third product-review fix gives invitation authority to the primary client
 and primary contractor, including when they joined somebody else's project.
 The previous UI and SQL relied on `projects.user_id`, which excluded invited

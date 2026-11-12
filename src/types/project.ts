@@ -562,6 +562,9 @@ export interface ContractorInviteRow {
   accepted_at: string | null;
   created_at: string;
   token: string;
+  is_share_link?: boolean;
+  expires_at?: string | null;
+  primary_on_acceptance?: boolean;
   contractor_user_id: string | null;
   /**
    * The one contractor this project pays by default (101). At most one per project, and

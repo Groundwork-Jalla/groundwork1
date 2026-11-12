@@ -755,10 +755,10 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
               {viewers.map(v => (
                 <li key={v.id} className="flex items-center gap-3 border-t border-brand-border-grey py-3 dark:border-[#2c2c2c]">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-brand-border-grey text-[11px] font-bold text-brand-mid-grey dark:border-[#2c2c2c]">
-                    {v.email.slice(0, 2).toUpperCase()}
+                    {(v.email || t('projectLinks.title')).slice(0, 2).toUpperCase()}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-brand-near-black dark:text-white">{v.email}</span>
+                    <span className="block truncate text-sm font-semibold text-brand-near-black dark:text-white">{v.email || t('projectLinks.title')}</span>
                     <span className="block text-xs text-brand-mid-grey">
                       {v.acceptedAt
                         ? t('contractorPeople.accepted', { date: formatDate(v.acceptedAt) })
@@ -767,7 +767,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
                   </span>
                   <span className={cn('shrink-0 text-[11px] font-semibold',
                     v.acceptedAt ? 'text-state-complete' : 'text-state-held')}>
-                    {v.acceptedAt ? t(v.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer') : t('contractorPeople.pending')}
+                    {t(v.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer')}{!v.acceptedAt && ` · ${t('contractorPeople.pending')}`}
                   </span>
                 </li>
               ))}
@@ -1145,9 +1145,9 @@ function WorkRail({ assigned, isOwner, hasBoq }: {
         <SeenBy initials={t('contractorPeople.you').slice(0, 2).toUpperCase()}
                 name={t('contractorPeople.you')} role={t('contractorPeople.youOwner')} />
         {viewers?.map(v => (
-          <SeenBy key={v.id} initials={v.email.slice(0, 2).toUpperCase()}
-                  name={v.relationship?.trim() || v.email}
-                  role={t(v.acceptedAt ? 'contractorDocs.clientCanView' : 'contractorPeople.pending')} />
+          <SeenBy key={v.id} initials={(v.email || t('projectLinks.title')).slice(0, 2).toUpperCase()}
+                  name={v.relationship?.trim() || v.email || t('projectLinks.title')}
+                  role={`${t(v.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer')}${v.acceptedAt ? '' : ` · ${t('contractorPeople.pending')}`}`} />
         ))}
         {viewers !== null && viewers.length === 0 && (
           <p className="mt-2 text-xs text-brand-mid-grey">{t('contractorPeople.nobodyInvited')}</p>

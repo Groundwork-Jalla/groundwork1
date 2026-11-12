@@ -56,7 +56,7 @@ export function PrimaryClientCard({ projectId, ownerClientName, onChanged, onNot
           {rows.map(viewer => (
             <li key={viewer.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="min-w-0 break-all text-brand-near-black dark:text-white">
-                {viewer.email}{' · '}{t(viewer.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer')}
+                {viewer.email || t('projectLinks.title')}{' · '}{t(viewer.isClient ? 'teamAccess.primaryClient' : 'teamAccess.observer')}
                 {!viewer.acceptedAt && ` · ${t('projectShare.pending')}`}
               </span>
               {viewer.acceptedAt && !viewer.isClient && <Button type="button" variant="outline" className="h-8 text-xs" disabled={busy} onClick={() => setTarget(viewer)}>{t('teamAccess.makeClient')}</Button>}

@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
 import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
-import { projectInvitationError, withProjectInvitation } from '@/lib/auth/project-invitation';
+import { forgetProjectInvitation, projectInvitationError, withProjectInvitation } from '@/lib/auth/project-invitation';
 
 // =========================================================
 // /share/:token — somebody was invited to watch a build (112)
@@ -46,12 +46,16 @@ export default function ShareInvite() {
       .catch(() => { if (live) setPreview(null); })
       .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
     return () => { live = false; };
-  }, [token]);
+  }, [token, session?.user.id]);
   useEffect(() => { setBusy(false); setError(null); }, [scope]);
 
   // Park it before they leave to sign up, so /auth/callback can finish the job and they
   // never have to come back and press anything a second time.
-  useEffect(() => { if (token) rememberShare(token); }, [token]);
+  useEffect(() => {
+    if (!token || resolvedToken !== token) return;
+    if (preview) rememberShare(token);
+    else forgetProjectInvitation({ kind: 'viewer', token });
+  }, [token, resolvedToken, preview]);
 
   async function accept() {
     if (!token || accepting.current === scope) return;
@@ -97,7 +101,9 @@ export default function ShareInvite() {
       <p className="mt-2 text-sm leading-relaxed text-brand-mid-grey">
         {t('share.body', { project: preview.projectName })}
       </p>
-      <p className="mt-3 text-xs text-brand-mid-grey">{t(preview.isClient ? 'share.clientAccess' : 'share.readOnly')}</p>
+      <p className="mt-3 text-xs text-brand-mid-grey">{t(preview.isClient ? 'share.clientAccess' : 'projectLinks.observerAccess')}</p>
+
+      {preview.isShareLink && <p className="mt-3 text-xs text-brand-mid-grey">{t('projectLinks.firstClaim')}</p>}
 
       {error && <p role="alert" className="mt-4 text-sm text-brand-near-black dark:text-white">{error}</p>}
 

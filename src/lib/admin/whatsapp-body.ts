@@ -18,6 +18,7 @@ import { displaySenderName } from './chat-identity.js';
  * membership — which decides who may write on the thread and who gets told about it.
  */
 const ROLE_LABEL: Record<string, { en: string; fr: string }> = {
+  observer:   { en: 'Observer', fr: 'Observateur' },
   owner:      { en: 'Client',     fr: 'Client' },
   contractor: { en: 'Contractor', fr: 'Entrepreneur' },
   verifier:   { en: 'Verifier',   fr: 'Vérificateur' },

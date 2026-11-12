@@ -65,7 +65,7 @@ export default async function handler(req: any, res: any) {
 
     // Same response for "no such token" and "already accepted", so this cannot be
     // used to probe which tokens exist.
-    if (!invite || invite.status !== 'pending') {
+    if (!invite || !invite.email || invite.status !== 'pending') {
       res.status(404).json({ error: 'No pending invite for that token' });
       return;
     }
