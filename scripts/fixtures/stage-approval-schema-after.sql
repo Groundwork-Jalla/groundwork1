@@ -10,3 +10,15 @@ DO $$ BEGIN
    RAISE EXCEPTION 'TEST_FAILED: schema repair changed history or invented approval';
  END IF;
 END $$;
+-- The same real approval RPC now succeeds; a stage that predates the repair is retained.
+DO $$ DECLARE old_actor text:=current_setting('test.actor',true); r jsonb; BEGIN
+ PERFORM set_config('test.actor','00000000-0000-0000-0000-000000000004',true);
+ r:=public.approve_stage(public.test_id(900,2));
+ IF NOT EXISTS(SELECT 1 FROM public.project_stages WHERE id=public.test_id(900,2)
+   AND status='complete' AND approved_by='00000000-0000-0000-0000-000000000004' AND approved_at IS NOT NULL)
+   OR r->>'is_final'<>'true' THEN RAISE EXCEPTION 'TEST_FAILED: approval RPC did not recover after the schema repair'; END IF;
+ PERFORM set_config('test.actor',coalesce(old_actor,''),true);
+END $$;
+
+-- Keep this setup regression out of the later workflow audit-count assertions.
+DELETE FROM public.test_activity WHERE project_id=public.test_id(900);

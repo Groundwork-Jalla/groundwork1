@@ -11,8 +11,9 @@ DO $$ BEGIN
  END;
 END $$;
 INSERT INTO public.projects(id,user_id,country,budget_source,budget_currency,budget_fx_rate,budget_amount,budget_usd,current_stage,status)
- VALUES(public.test_id(900),'00000000-0000-0000-0000-000000000001','US','boq','USD',1,100.125,100.125,1,'completed');
+ VALUES(public.test_id(900),'00000000-0000-0000-0000-000000000001','US','boq','USD',1,100.125,100.125,2,'active');
 INSERT INTO public.project_stages(id,project_id,stage_number,status,payment_milestone_usd,milestone_amount,pre_existing,completed_at)
- VALUES(public.test_id(900,1),public.test_id(900),1,'complete',100.125,100.125,true,'2026-11-01T10:00:00Z');
+ VALUES(public.test_id(900,1),public.test_id(900),1,'complete',100.125,100.125,true,'2026-11-01T10:00:00Z'),
+       (public.test_id(900,2),public.test_id(900),2,'active',0,0,false,NULL);
 CREATE TEMP TABLE stage_schema_legacy_snapshot AS
  SELECT id,status,payment_milestone_usd,milestone_amount,pre_existing,completed_at FROM public.project_stages WHERE id=public.test_id(900,1);

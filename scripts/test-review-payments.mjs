@@ -60,8 +60,6 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
 `;
   const sql = [setup,
     read('scripts/fixtures/stage-approval-schema-before.sql'),
-    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
-    read('scripts/fixtures/stage-approval-schema-after.sql'),
     fn('supabase/migrations/090_payments_ledger.sql', 'payments_guard'),
     fn('supabase/migrations/090_payments_ledger.sql', 'project_payment_status'),
     fn('supabase/migrations/090_payments_ledger.sql', 'payments_project_payment_status'),
@@ -74,6 +72,9 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261112000100_ordered_stage_progression.sql'), read('supabase/migrations/20261112000500_review_payment_workflow.sql'),
     read('supabase/migrations/20261112000600_receipt_amount_reading.sql'),
     read('supabase/migrations/20261112000700_reviewed_first_stage_payment.sql'),
+    read('scripts/fixtures/stage-approval-schema-reproduce.sql'),
+    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
+    read('scripts/fixtures/stage-approval-schema-after.sql'),
     read('scripts/fixtures/review-payments.sql'),
     read('scripts/fixtures/reviewed-first-stage.sql'),
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,

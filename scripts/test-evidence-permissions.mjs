@@ -65,8 +65,6 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
 `;
   const sql = [setup,
     read('scripts/fixtures/stage-approval-schema-before.sql'),
-    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
-    read('scripts/fixtures/stage-approval-schema-after.sql'),
     fn('supabase/migrations/086_verifiers.sql', 'is_contractor_on'),
     fn('supabase/migrations/20261112000200_project_team_permissions.sql', 'is_primary_project_contractor'),
     fn('supabase/migrations/20261112000200_project_team_permissions.sql', 'is_project_client'),
@@ -86,6 +84,9 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261112000600_receipt_amount_reading.sql'),
     read('supabase/migrations/20261112000700_reviewed_first_stage_payment.sql'),
     read('supabase/migrations/20261112000800_contractor_stage_evidence.sql'),
+    read('scripts/fixtures/stage-approval-schema-reproduce.sql'),
+    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
+    read('scripts/fixtures/stage-approval-schema-after.sql'),
     read('scripts/fixtures/contractor-stage-evidence.sql'),
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
