@@ -10,6 +10,7 @@ import { domainStateOf, workspaceHref } from '@/lib/admin/workspace-params';
 import { StageLifecycleBadge } from './StageLifecycleBadge';
 import { MoneyFlow } from './MoneyFlow';
 import { RepriceCard } from './RepriceCard';
+import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { DomainNote } from './DomainNote';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatUSDFull } from '@/lib/budget';
@@ -337,7 +338,8 @@ function BudgetSection({ ws, onChanged }: { ws: LoadedWorkspace['workspace']; on
         {/* Above the costing it changes, and separated from it, because this is a write
             and everything below is a read. */}
         <div className="border-b border-brand-border-grey dark:border-[#2c2c2c]">
-          <RepriceCard projectId={ws.project.id} onChanged={onChanged} />
+          <StagePricingPanel project={ws.project} onChanged={onChanged} />
+          {!(ws.project.pricing_revision ?? 0) && <RepriceCard projectId={ws.project.id} onChanged={onChanged} />}
         </div>
         <div className="px-5 py-4">
           {/* Costing only. BudgetView's Released/Held/Remaining are stage-status buckets — the

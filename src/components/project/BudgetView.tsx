@@ -316,7 +316,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
         <div className="flex items-center justify-between mb-1 gap-3">
           <p className="text-sm font-medium text-brand-near-black">{t((project.pricing_revision ?? 0)>0 ? 'project.priceChanges.approvedTotal' : project.budget_source === 'boq' ? 'project.review.confirmedBillTotal' : 'project.costing.budgetEstimate')}</p>
           <div className="flex items-center gap-3 shrink-0">
-            <p className="text-xs text-brand-mid-grey">{t(project.budget_source === 'boq' ? 'project.review.savedUsdRate' : 'project.costing.usdIndicative')}</p>
+            <p className="text-xs text-brand-mid-grey">{t(project.budget_source === 'boq' || (project.pricing_revision ?? 0)>0 ? 'project.review.savedUsdRate' : 'project.costing.usdIndicative')}</p>
             <button
               type="button"
               onClick={handleExportPDF}
@@ -352,7 +352,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
           ))}
         </div>
 
-        {project.budget_source !== 'boq' && sanity.low && (
+        {project.budget_source !== 'boq' && !(project.pricing_revision ?? 0) && sanity.low && (
           <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5">
             <TriangleAlert className="size-4 shrink-0 mt-px text-amber-600" aria-hidden />
             <div>

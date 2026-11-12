@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Camera, Check, FileText, Loader2, Lock, Search, Upload, UserRound } from 'lucide-react';
 import {
@@ -118,13 +118,17 @@ export default function ContractorProjectDetail() {
     }, { replace: true });
   }, [setSearchParams]);
 
+  const loadSequence = useRef(0);
+  const activeProject = useRef<string | null | undefined>(projectId); activeProject.current = projectId;
   const load = useCallback(async () => {
     if (!projectId) return;
+    const sequence = ++loadSequence.current;
+    const isCurrent = () => activeProject.current === projectId && loadSequence.current === sequence;
     // A project that is not yours returns no row under RLS — the same answer as one that
     // does not exist, which is the answer it should get.
     const a = await fetchAssignedProject(projectId).catch(() => null);
+    if (!isCurrent()) return;
     if (!a) { setAssigned('denied'); return; }
-    setAssigned(a);
     const [subs, docs, rw, pay, stagePay] = await Promise.all([
       fetchSubstages(projectId).catch(() => []),
       fetchProjectDocuments(projectId).catch(() => []),
@@ -132,6 +136,8 @@ export default function ContractorProjectDetail() {
       fetchMyPayments().catch(() => ({ rows: [], available: false })),
       fetchStagePayments(projectId).catch(() => new Map<string, StagePayment>()),
     ]);
+    if (!isCurrent()) return;
+    setAssigned(a);
     setSubstages(subs);
     setDocuments(docs);
     setRework(rw);
@@ -139,7 +145,10 @@ export default function ContractorProjectDetail() {
     setStagePayments(stagePay);
   }, [projectId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    activeProject.current = projectId; setAssigned(null); void load();
+    return () => { activeProject.current = null; ++loadSequence.current; };
+  }, [load, projectId]);
   useEffect(() => {
     if (!projectId) return;
     const refresh = () => { void load(); };
@@ -173,7 +182,7 @@ export default function ContractorProjectDetail() {
       <button type="button" className="text-sm underline underline-offset-4" onClick={() => { void refreshTeam(); }}>{t('common.retry')}</button>
     </div>;
   }
-  if (assigned === null || (!teamAccess && assigned !== 'denied')) {
+  if (assigned === null || (assigned !== 'denied' && assigned.project.id !== projectId) || (!teamAccess && assigned !== 'denied')) {
     // The way back renders immediately. A bare spinner on a slow site connection
     // leaves somebody on a page with no heading and no way off it.
     return (

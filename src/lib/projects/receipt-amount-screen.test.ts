@@ -99,6 +99,19 @@ describe('the receipt upload and contractor review', () => {
     expect(render().some(e => e.props.role === 'alert' && text(e).includes('amountMismatch'))).toBe(true);
     await submit(render()); expect(h.upload).toHaveBeenCalledTimes(2);
   });
+  it.each([
+    ['receipt_not_receipt','notReceipt'],['receipt_payment_not_completed','notCompleted'],['receipt_unreadable','unreadable'],
+    ['receipt_reader_not_configured','readerNeedsAttention'],['receipt_reader_timeout','readerTimeout'],['receipt_reader_response_invalid','processingFailed'],
+    ['receipt_network_error','connectionLost'],['receipt_rate_unavailable','exchangeUnavailable'],
+  ])('shows the specific %s explanation while retaining the selected receipt and amount',async(code,key)=>{
+    h.upload.mockRejectedValueOnce({code,reference:'check-reference-1234'});
+    render().find(e=>e.props.name==='receipt-currency')!.props.onChange({target:{value:'NGN'}});
+    enterAmount(render(),'13000');await chooseFile(render());
+    const elements=render();expect(text(elements.find(e=>e.props.role==='alert'))).toContain(`project.receiptFlow.${key}`);
+    expect(elements.find(e=>e.props.name==='receipt-amount')?.props.value).toBe('13000');expect(text(elements)).toContain(receipt.name);
+    expect(elements.find(e=>e.props.name==='receipt-currency')?.props.value).toBe('NGN');
+    if(key!=='readerUnavailable')expect(text(elements.find(e=>e.props.role==='alert'))).not.toContain('project.receiptFlow.readerUnavailable');
+  });
   it('blocks duplicate submissions while a receipt is in flight', async () => {
     let finish!: () => void; h.upload.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
     enterAmount(render(), '750.125'); const pending = chooseFile(render()); await submit(render());

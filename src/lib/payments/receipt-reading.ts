@@ -12,9 +12,13 @@ export function canonicalReceiptAmount(raw: unknown): string | null {
 }
 
 export type ReceiptMatch = { status: 'matched' | 'amount_mismatch' | 'currency_mismatch'; amount: string; currency: string }
-  | { status: 'unreadable' };
+  | { status: 'unreadable' | 'not_receipt' | 'payment_not_completed' };
 export function matchReceiptReading(reading: unknown, entered: string, currency: string): ReceiptMatch {
-  const value = reading as { amount?: unknown; currency?: unknown; confidence?: unknown; is_payment_receipt?: unknown } | null;
+  const value = reading as { amount?: unknown; currency?: unknown; confidence?: unknown; is_payment_receipt?: unknown; document_status?: unknown } | null;
+  if (value?.document_status === 'not_receipt') return { status: 'not_receipt' };
+  if (value?.document_status === 'payment_not_completed') return { status: 'payment_not_completed' };
+  if (value?.document_status === 'unreadable') return { status: 'unreadable' };
+  if (value?.is_payment_receipt === false && value.confidence === 'high') return { status: 'not_receipt' };
   const amount = canonicalReceiptAmount(value?.amount);
   if (!amount || value?.confidence !== 'high' || value.is_payment_receipt !== true
     || typeof value.currency !== 'string' || !/^[A-Z]{3}$/.test(value.currency)) return { status: 'unreadable' };

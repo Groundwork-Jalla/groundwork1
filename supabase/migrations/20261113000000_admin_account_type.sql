@@ -26,7 +26,7 @@ BEGIN
      UPDATE auth.users SET raw_user_meta_data=raw_user_meta_data-'signup_intent'
        WHERE id=p_user AND raw_user_meta_data->>'signup_intent'='contractor';
    END IF;
-   PERFORM public.log_activity(NULL,'account.type_changed','user',p_user,p_user,
+   PERFORM public.log_activity(NULL,'account.type_changed','profile',p_user,p_user,
      jsonb_build_object('from',v_before,'to',p_type));
  END IF;
  SELECT string_agg(role,',' ORDER BY role) INTO v_roles FROM public.user_roles WHERE user_id=p_user;

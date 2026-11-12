@@ -22,4 +22,16 @@ describe('the verified receipt response', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'receipt_currency_mismatch', amount: '80', currency: 'USD' }) }));
     await expect(readUploadedReceipt('stage', 'project/receipts/proof', '80', 'XAF')).rejects.toMatchObject({ code: 'receipt_currency_mismatch', amount: '80', currency: 'USD' });
   });
+  it('retains a support reference for a service configuration failure',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:503,json:async()=>({error:'receipt_reader_not_configured',reference:'check-reference-1234'})}));
+    await expect(readUploadedReceipt('stage','project/receipts/proof','13000','NGN')).rejects.toMatchObject({code:'receipt_reader_not_configured',reference:'check-reference-1234'});
+  });
+  it.each([[504,'receipt_reader_timeout'],[401,'receipt_sign_in_required'],[403,'receipt_access_denied'],[404,'receipt_reader_not_configured']])('classifies a non-JSON status %s response',async(status,code)=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status,json:async()=>{throw new Error('not JSON');}}));
+    await expect(readUploadedReceipt('stage','project/receipts/proof','13000','NGN')).rejects.toMatchObject({code});
+  });
+  it('reports a browser connection failure rather than claiming the image is not a receipt',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new TypeError('offline')));
+    await expect(readUploadedReceipt('stage','project/receipts/proof','13000','NGN')).rejects.toMatchObject({code:'receipt_network_error'});
+  });
 });

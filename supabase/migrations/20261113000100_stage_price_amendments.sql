@@ -90,7 +90,9 @@ BEGIN
    v_changes:=v_changes||jsonb_build_array(jsonb_build_object('stage_id',v_stage,'stage_number',s->'stage_number','stage_key',s->'stage_key','name',s->'name','before',s->>'amount','after',v_amount::text));
  END LOOP;
  IF jsonb_array_length(v_changes)=0 THEN RAISE EXCEPTION 'no_price_changes'; END IF;
- IF (c->>'total')::numeric+v_delta<=0 OR (c->>'total')::numeric+v_delta>1e12 THEN RAISE EXCEPTION 'invalid_project_total'; END IF;
+ IF (c->>'total')::numeric+v_delta<=0 OR (c->>'total')::numeric+v_delta>1e12
+ OR round(((c->>'total')::numeric+v_delta)/(c->>'fx_rate')::numeric,9)<=0
+ OR round(((c->>'total')::numeric+v_delta)/(c->>'fx_rate')::numeric,9)>=1e15 THEN RAISE EXCEPTION 'invalid_project_total'; END IF;
  INSERT INTO public.stage_price_amendments(project_id,proposed_by,note,currency,fx_rate,old_total,new_total,base_hash,changes)
  VALUES(p_project,auth.uid(),nullif(btrim(p_note),''),c->>'currency',(c->>'fx_rate')::numeric,(c->>'total')::numeric,(c->>'total')::numeric+v_delta,c->>'base_hash',v_changes) RETURNING id INTO v_id;
  PERFORM public.log_activity(p_project,'stage_prices.proposed','stage_price_amendment',v_id,auth.uid(),jsonb_build_object('currency',c->>'currency','old_total',c->>'total','new_total',(c->>'total')::numeric+v_delta,'changes',v_changes));
@@ -101,7 +103,7 @@ GRANT EXECUTE ON FUNCTION public.propose_stage_prices(uuid,jsonb,text,text) TO a
 
 CREATE FUNCTION public.decide_stage_prices(p_proposal uuid,p_decision text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE a public.stage_price_amendments%ROWTYPE;p public.projects%ROWTYPE;c jsonb;r jsonb;v_project uuid;v_total_usd numeric;v_delta_usd numeric:=0;v_rounding numeric;v_last uuid;v_scale int;v_sum numeric;v_fees jsonb;v_design numeric;v_build numeric;v_breakdown jsonb;v_pool numeric;
+DECLARE a public.stage_price_amendments%ROWTYPE;p public.projects%ROWTYPE;c jsonb;r jsonb;v_project uuid;v_total_usd numeric;v_delta_usd numeric:=0;v_rounding numeric;v_last uuid;v_scale int;v_sum numeric;v_fees jsonb;v_design numeric;v_build numeric;v_breakdown jsonb;v_pool numeric;v_details jsonb;
 BEGIN
  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not_signed_in'; END IF;
  SELECT project_id INTO v_project FROM public.stage_price_amendments WHERE id=p_proposal;
@@ -123,7 +125,7 @@ BEGIN
    IF c->>'can_approve'<>'true' THEN RAISE EXCEPTION 'pricing_paused'; END IF;
    IF a.base_hash IS DISTINCT FROM c->>'base_hash' THEN RAISE EXCEPTION 'stale_stage_prices'; END IF;
    IF NOT EXISTS(SELECT 1 FROM public.contractor_invites WHERE project_id=v_project AND contractor_user_id=a.proposed_by AND status='accepted' AND is_primary) THEN RAISE EXCEPTION 'proposer_assignment_changed'; END IF;
-   v_scale:=coalesce(p.budget_precision,0);
+   v_scale:=6;
    FOR r IN SELECT * FROM jsonb_array_elements(a.changes) LOOP
      IF NOT public.stage_price_editable((r->>'stage_id')::uuid) THEN RAISE EXCEPTION 'stage_price_locked'; END IF;
      SELECT v_delta_usd+round((r->>'after')::numeric/a.fx_rate,9)-payment_milestone_usd INTO v_delta_usd FROM public.project_stages WHERE id=(r->>'stage_id')::uuid;
@@ -147,7 +149,12 @@ BEGIN
      payment_milestone_usd=round((entry.value->>'after')::numeric/a.fx_rate,9)+CASE WHEN s.id=v_last THEN v_rounding ELSE 0 END
      FROM jsonb_array_elements(a.changes) entry WHERE s.id=(entry.value->>'stage_id')::uuid;
    -- Freeze native values for earlier estimate stages without changing their USD history.
-   UPDATE public.project_stages SET milestone_amount=round(payment_milestone_usd*a.fx_rate,6) WHERE project_id=v_project AND milestone_amount IS NULL;
+   IF p.budget_source IS DISTINCT FROM 'boq' AND p.pricing_revision=0 THEN
+     UPDATE public.project_stages s SET milestone_amount=round(payment_milestone_usd*a.fx_rate,6) WHERE project_id=v_project
+       AND NOT EXISTS(SELECT 1 FROM jsonb_array_elements(a.changes) changed WHERE (changed.value->>'stage_id')::uuid=s.id);
+   ELSE
+     UPDATE public.project_stages SET milestone_amount=round(payment_milestone_usd*a.fx_rate,6) WHERE project_id=v_project AND milestone_amount IS NULL;
+   END IF;
    IF p.budget_source='boq' THEN
      v_pool:=a.new_total;
    ELSE
@@ -164,7 +171,14 @@ BEGIN
  PERFORM set_config('app.stage_price_decision','on',true);
  UPDATE public.stage_price_amendments SET status=p_decision,decided_by=auth.uid(),decided_at=clock_timestamp() WHERE id=p_proposal;
  PERFORM set_config('app.stage_price_decision','off',true);
- PERFORM public.log_activity(v_project,'stage_prices.'||p_decision,'stage_price_amendment',a.id,auth.uid(),jsonb_build_object('currency',a.currency,'old_total',a.old_total,'new_total',a.new_total));
+ v_details:=jsonb_build_object('currency',a.currency,'old_total',a.old_total,'new_total',a.new_total);
+ IF p_decision='approved' THEN
+   PERFORM public.log_activity(v_project,'stage_prices.approved','stage_price_amendment',a.id,auth.uid(),v_details);
+ ELSIF p_decision='declined' THEN
+   PERFORM public.log_activity(v_project,'stage_prices.declined','stage_price_amendment',a.id,auth.uid(),v_details);
+ ELSE
+   PERFORM public.log_activity(v_project,'stage_prices.withdrawn','stage_price_amendment',a.id,auth.uid(),v_details);
+ END IF;
 END $$;
 REVOKE ALL ON FUNCTION public.decide_stage_prices(uuid,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.decide_stage_prices(uuid,text) TO authenticated;

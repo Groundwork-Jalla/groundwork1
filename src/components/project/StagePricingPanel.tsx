@@ -20,7 +20,7 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
   const editing = draft?.scope === project.id ? draft : null;
   const error = failure?.scope === project.id ? failure.message : null;
   const fail = (message: string) => setFailure({ scope: project.id, message });
-  const format = (amount: string | number, currency: string) => `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(Number(amount))} ${currency}`;
+  const format = (amount: string | number | null, currency: string) => amount == null ? t('project.receiptFlow.amountUnknown') : `${new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(Number(amount))} ${currency}`;
   const load = useCallback(async () => {
     const turn = ++request.current;
     try {
@@ -80,7 +80,7 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
       <fieldset disabled={busy} className="space-y-3 disabled:opacity-40">
         {editing.context.stages.map(stage => <div key={stage.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-border-grey pb-3 text-xs dark:border-[#2c2c2c]">
           <label htmlFor={`stage-price-${stage.id}`} className="min-w-36 flex-1">{stageLabel(stage)}{!stage.editable && <span className="mt-1 block text-brand-mid-grey">{t('project.priceChanges.held')}</span>}</label>
-          {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? stage.amount}
+          {stage.editable ? <input id={`stage-price-${stage.id}`} name={`stage-price-${stage.id}`} inputMode="decimal" value={editing.amounts[stage.id] ?? stage.amount ?? ''}
             onChange={event => { const raw = event.target.value; setDraft({ ...editing, amounts: { ...editing.amounts, [stage.id]: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw } }); }}
             className="w-36 rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono" /> : <span className="font-mono">{format(stage.amount, editing.context.currency)}</span>}
         </div>)}

@@ -2,7 +2,7 @@ import { supabase } from './client';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 
 export interface PriceStage {
-  id: string; stage_number: number; stage_key: string | null; name: string; amount: string; editable: boolean;
+  id: string; stage_number: number; stage_key: string | null; name: string; amount: string | null; editable: boolean;
 }
 export interface StagePriceChange {
   stage_id: string; stage_number: number; stage_key: string | null; name: string; before: string; after: string;
@@ -34,6 +34,7 @@ export function stagePricePreview(context: StagePriceContext, drafts: Record<str
   let total = units(context.total);
   const rows: { stage_id: string; amount: string }[] = [];
   for (const stage of context.stages.filter(stage => stage.editable)) {
+    if (stage.amount == null) return null;
     const amount = canonicalReceiptAmount(drafts[stage.id] ?? stage.amount);
     if (!amount) return null;
     if (units(amount) === units(stage.amount)) continue;

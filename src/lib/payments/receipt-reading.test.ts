@@ -14,11 +14,17 @@ describe('receipt matching uses the amount on the document', () => {
     expect(matchReceiptReading(reading, '141407337.524001', 'XAF')).toEqual({ status: 'amount_mismatch', amount: reading.amount, currency: 'XAF' });
   });
   it('requires a receipt, clear completed-payment amount and explicit matching currency', () => {
-    for (const change of [{ is_payment_receipt: false }, { confidence: 'medium' }, { amount: null }, { currency: 'FCFA' }]) {
+    for (const change of [{ confidence: 'medium' }, { amount: null }, { currency: 'FCFA' }]) {
       expect(matchReceiptReading({ ...reading, ...change }, reading.amount, 'XAF').status).toBe('unreadable');
     }
     expect(matchReceiptReading(reading, reading.amount, 'USD').status).toBe('currency_mismatch');
     expect(matchReceiptReading(null, '1', 'USD').status).toBe('unreadable');
+  });
+  it('distinguishes unrelated files, unfinished payments and unreadable receipts', () => {
+    expect(matchReceiptReading({ ...reading, document_status: 'not_receipt', is_payment_receipt: false }, '500000', 'NGN')).toEqual({ status: 'not_receipt' });
+    expect(matchReceiptReading({ ...reading, document_status: 'payment_not_completed', is_payment_receipt: false }, '13000', 'NGN')).toEqual({ status: 'payment_not_completed' });
+    expect(matchReceiptReading({ ...reading, document_status: 'unreadable', is_payment_receipt: false }, '13000', 'NGN')).toEqual({ status: 'unreadable' });
+    expect(matchReceiptReading({ ...reading, is_payment_receipt: false }, '13000', 'NGN')).toEqual({ status: 'not_receipt' });
   });
   it('checks file signatures and bounds rather than trusting an extension', () => {
     expect(receiptMedia(Uint8Array.from([137,80,78,71,13,10,26,10]))).toBe('image/png');

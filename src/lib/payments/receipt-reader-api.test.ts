@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn(), scoped: vi.fn(), reserve: vi.fn(), convert: vi.fn(), rate: vi.fn(),
-  info: vi.fn(), sign: vi.fn(), download: vi.fn(), read: vi.fn(), cache: null as any,
+  info: vi.fn(), sign: vi.fn(), download: vi.fn(), read: vi.fn(), log: vi.fn(), cache: null as any,
   project: null as any,
   updates: [] as any[], stage: { id: '00000000-0000-0000-0000-000000000002', project_id: '00000000-0000-0000-0000-000000000001' } }));
 vi.mock('../../../api/_lib/stripe.js', () => ({ requireUser: h.user, getSupabaseAdmin: h.admin }));
@@ -9,6 +9,7 @@ vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ rpc: h.scoped }
 vi.mock('../../../api/_lib/payment-receipt-reader.js', () => ({ downloadReceipt: h.download, readPaymentReceipt: h.read }));
 vi.mock('../../../api/_lib/receipt-exchange-rate.js', () => ({ receiptExchangeRate: h.rate }));
 import { handler } from '../../../api/_handlers/read-payment-receipt';
+import { ReceiptProcessingError } from '../../../api/_lib/receipt-errors';
 
 function chain(result: any) {
   const q: any = { then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject) };
@@ -25,6 +26,7 @@ async function request(patch = {}, method = 'POST') {
 }
 beforeEach(() => {
   vi.resetAllMocks(); h.cache = null; h.updates = []; vi.stubEnv('ANTHROPIC_API_KEY', 'fixture-key');
+  vi.spyOn(console,'warn').mockImplementation(h.log);
   h.user.mockResolvedValue({ id: 'client' }); h.scoped.mockResolvedValue({ data: { primary_client: true } });
   h.reserve.mockResolvedValue({ data: 'reading' });
   h.project = { country: 'CM', budget_source: 'boq', budget_currency: 'XAF', budget_fx_rate: '600' };
@@ -40,7 +42,7 @@ beforeEach(() => {
     return { ...chain({ data: h.cache }), update(patch: any) { h.updates.push(patch); return chain({ error: null }); } };
   } });
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe('receipt reading endpoint', () => {
   it('reads the stored private object and issues a proof only for the exact amount and currency', async () => {
     const res = await request();
@@ -59,9 +61,16 @@ describe('receipt reading endpoint', () => {
     expect(h.updates[0].status).not.toBe('matched');
     expect(h.convert).not.toHaveBeenCalled(); expect(h.rate).not.toHaveBeenCalled();
   });
-  it('refuses an unclear/unpaid document', async () => {
+  it('identifies a non-receipt instead of reporting a service outage', async () => {
     h.read.mockResolvedValue({ reading: { is_payment_receipt: false, amount: '750.125', currency: 'XAF', confidence: 'high' }, model: 'fixture' });
-    expect((await request()).payload.error).toBe('receipt_unreadable');
+    expect((await request()).payload.error).toBe('receipt_not_receipt');
+    expect(h.updates[0]).toMatchObject({status:'unreadable',amount:null,amount_text:null,currency:null});
+    expect(h.convert).not.toHaveBeenCalled();
+  });
+  it.each([['not_receipt','receipt_not_receipt'],['payment_not_completed','receipt_payment_not_completed'],['unreadable','receipt_unreadable']])('reports %s without issuing a payment proof',async(document_status,error)=>{
+    h.read.mockResolvedValue({reading:{document_status,is_payment_receipt:false,amount:null,currency:null,confidence:'low'},model:'fixture'});
+    const res=await request();expect(res.code).toBe(422);expect(res.payload.error).toBe(error);expect(res.payload.readingId).toBeUndefined();
+    expect(h.updates[0].status).toBe('unreadable');expect(h.convert).not.toHaveBeenCalled();
   });
   it('requires the project client session, including for global contractor accounts', async () => {
     h.scoped.mockResolvedValue({ data: { assigned_contractor: true, primary_client: false } });
@@ -77,7 +86,10 @@ describe('receipt reading endpoint', () => {
     expect(h.updates.some(patch => patch.status === 'matched')).toBe(false);
   });
   it('reports reader setup and rate limits without pretending the receipt matched', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', ''); expect((await request()).code).toBe(503);
+    vi.stubEnv('ANTHROPIC_API_KEY', ''); const setup=await request();expect(setup.code).toBe(503);
+    expect(setup.payload.error).toBe('receipt_reader_not_configured');expect(setup.payload.reference).toMatch(/^[a-f0-9-]{36}$/);
+    expect(h.reserve).not.toHaveBeenCalled();expect(h.read).not.toHaveBeenCalled();
+    expect(h.log).toHaveBeenCalledWith('[receipt-reader]',expect.objectContaining({reason:'reader_key_missing',reference:setup.payload.reference}));
     vi.stubEnv('ANTHROPIC_API_KEY', 'fixture'); h.reserve.mockResolvedValue({ error: { message: 'receipt_read_rate_limit' } });
     expect((await request()).code).toBe(429); expect(h.read).not.toHaveBeenCalled();
   });
@@ -126,7 +138,27 @@ describe('receipt reading endpoint', () => {
     h.rate.mockRejectedValue(new Error('receipt_rate_unavailable'));
     const res = await request({ amount: '80', currency: 'EUR' });
     expect(res.payload.error).toBe('receipt_rate_unavailable'); expect(res.payload.readingId).toBeUndefined();
-    expect(h.convert).not.toHaveBeenCalled(); expect(h.updates.at(-1)).toMatchObject({ status: 'error' });
+    expect(h.convert).not.toHaveBeenCalled(); expect(h.updates.at(-1)).toMatchObject({ status: 'matched' });
+    expect(h.updates.some(patch=>patch.status==='error')).toBe(false); // Retry reuses the successful reading.
+  });
+
+  it('accepts the exact NGN 13,000 receipt independently of the XAF stage allocation',async()=>{
+    h.read.mockResolvedValue({reading:{document_status:'completed_payment',is_payment_receipt:true,amount:'13000',currency:'NGN',confidence:'high'},model:'fixture'});
+    h.rate.mockResolvedValue({rate:'1600.000000000000',source:'ExchangeRate-API',asOf:'2026-11-13T00:00:00Z'});
+    h.convert.mockResolvedValue({data:{fx_rate:'1600.000000000000',project_currency:'XAF',project_fx_rate:'600.000000000000',fx_source:'ExchangeRate-API',fx_as_of:'2026-11-13T00:00:00Z'}});
+    const res=await request({amount:'13000',currency:'NGN'});expect(res.code).toBe(200);
+    expect(res.payload).toMatchObject({status:'matched',readingId:'reading',fxRate:'1600.000000000000'});
+    expect(h.updates[0]).toMatchObject({status:'matched',amount:'13000',currency:'NGN'});
+  });
+  it('reports a missing receipt-reading migration separately from a temporary reader outage',async()=>{
+    h.reserve.mockResolvedValue({error:{code:'PGRST202',message:'function is missing'}});
+    const res=await request();expect(res.code).toBe(503);expect(res.payload.error).toBe('receipt_reader_not_configured');expect(h.read).not.toHaveBeenCalled();
+    expect(h.log).toHaveBeenCalledWith('[receipt-reader]',expect.objectContaining({phase:'reservation',database_code:'PGRST202',reason:'database_migration_missing'}));
+  });
+  it.each([['receipt_reader_timeout',504],['receipt_reader_busy',503],['receipt_reader_response_invalid',502],['receipt_reader_not_configured',503]])('reports %s with a support reference without exposing provider details',async(code,status)=>{
+    h.read.mockRejectedValue(new ReceiptProcessingError(String(code),{reason:'provider_request_invalid',providerStatus:400,providerRequestId:'req_safe'}));
+    const res=await request();expect(res.code).toBe(status);expect(res.payload).toEqual({error:code,reference:expect.any(String)});
+    const logged=JSON.stringify(h.log.mock.calls);expect(logged).not.toContain('fixture-key');expect(logged).not.toContain(path);expect(logged).not.toContain('750.125');
   });
 
   it('rejects unsupported currency aliases before reading and quoting', async () => {

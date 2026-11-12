@@ -372,7 +372,11 @@ describe('the role survives the email round trip', () => {
       .map(f => read(`supabase/migrations/${f}`)).join('\n')
       .replace(/^\s*--.*$/gm, '');
     expect(all).not.toMatch(/raw_user_meta_data[\s\S]{0,200}?INSERT INTO public\.user_roles/);
-    expect(all).not.toMatch(/signup_intent/);
+    // Admin correction may remove an old intent so a later callback cannot undo a
+    // client conversion. This exact cleanup grants no role; every other SQL use of
+    // signup_intent remains prohibited.
+    const withoutCleanup = all.replace(/UPDATE auth\.users SET raw_user_meta_data=raw_user_meta_data-'signup_intent'\s+WHERE id=p_user AND raw_user_meta_data->>'signup_intent'='contractor';/g, '');
+    expect(withoutCleanup).not.toMatch(/signup_intent/);
   });
 });
 

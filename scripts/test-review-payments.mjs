@@ -109,7 +109,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipt history, partial funds, top-ups, flags, verified readings, authenticated permissions, stage-schema repair and frozen multi-currency conversions.');
+  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipts, partial funds, top-ups, authenticated permissions, stage-schema repair, frozen currency conversions, client-approved stage pricing and admin account-type corrections.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

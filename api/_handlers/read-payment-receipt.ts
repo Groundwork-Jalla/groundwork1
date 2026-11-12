@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { downloadReceipt, readPaymentReceipt } from '../_lib/payment-receipt-reader.js';
@@ -6,6 +6,7 @@ import { canonicalReceiptAmount, matchReceiptReading, MAX_RECEIPT_BYTES } from '
 import { isReceiptCurrency } from '../../src/lib/payments/receipt-currencies.js';
 import { countryMoney } from '../../src/lib/budget/country-money.js';
 import { receiptExchangeRate } from '../_lib/receipt-exchange-rate.js';
+import { ReceiptProcessingError, receiptDatabaseError } from '../_lib/receipt-errors.js';
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
@@ -20,36 +21,45 @@ export async function handler(req: any, res: any) {
     res.status(400).json({ error: 'invalid_receipt_input' }); return;
   }
   let admin: ReturnType<typeof getSupabaseAdmin> | undefined; let attempt: string | null = null;
+  let readingSaved = false; let phase = 'authentication';
+  const reference = randomUUID();
+  res.setHeader('X-Receipt-Check-Id', reference);
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 45_000);
   try {
     const user = await requireUser(req);
     if (!user) { res.status(401).json({ error: 'sign_in_required' }); return; }
     admin = getSupabaseAdmin();
+    phase = 'project_access';
     const { data: stage, error: stageError } = await admin.from('project_stages').select('id,project_id').eq('id', body.stageId).maybeSingle();
-    if (stageError || !stage) { res.status(403).json({ error: 'project_access_required' }); return; }
+    if (stageError) throw receiptDatabaseError(stageError);
+    if (!stage) { res.status(403).json({ error: 'project_access_required' }); return; }
     const rawAuth = req.headers.authorization ?? req.headers.Authorization;
     const authorization = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
     const scoped = createClient(process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL!,
       process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: authorization } } });
     const { data: access, error: accessError } = await scoped.rpc('project_team_access', { p_project: stage.project_id });
+    if (accessError && ['PGRST202','42883'].includes(accessError.code)) throw receiptDatabaseError(accessError);
     if (accessError || access?.primary_client !== true) { res.status(403).json({ error: 'project_client_required' }); return; }
     const { data: project, error: projectError } = await admin.from('projects')
       .select('country,budget_source,budget_currency,budget_fx_rate,pricing_revision').eq('id', stage.project_id).maybeSingle();
-    if (projectError || !project) { res.status(403).json({ error: 'project_access_required' }); return; }
+    if (projectError) throw receiptDatabaseError(projectError);
+    if (!project) { res.status(403).json({ error: 'project_access_required' }); return; }
     const configured = countryMoney((project.country ?? '').toUpperCase());
     const locked = (project.budget_source === 'boq' || project.pricing_revision > 0) && project.budget_currency && Number(project.budget_fx_rate) > 0;
     const projectCode = locked ? project.budget_currency : configured.code;
     const projectRate = locked ? project.budget_fx_rate : configured.rate;
     if (!isReceiptCurrency(body.currency) && body.currency !== projectCode) { res.status(422).json({ error: 'receipt_currency_unsupported' }); return; }
     async function conversion(readingId: string, existing?: any) {
+      phase = 'currency_conversion';
       const quote = existing?.fx_rate != null || body.currency === projectCode
         ? { rate: null, source: 'project', asOf: new Date().toISOString() }
         : await receiptExchangeRate(body.currency as string, controller.signal);
       const saved = await admin!.rpc('attach_receipt_conversion', { p_reading: readingId,
         p_rate: quote.rate, p_project_currency: projectCode, p_project_rate: projectRate,
         p_source: quote.source, p_as_of: quote.asOf });
-      if (saved.error || typeof saved.data?.fx_rate !== 'string' || !(Number(saved.data.fx_rate) > 0)) throw new Error('receipt_rate_unavailable');
+      if (saved.error) throw receiptDatabaseError(saved.error);
+      if (typeof saved.data?.fx_rate !== 'string' || !(Number(saved.data.fx_rate) > 0)) throw new ReceiptProcessingError('receipt_verification_unavailable', { reason: 'conversion_response_invalid' });
       return { fxRate: saved.data.fx_rate, projectCurrency: saved.data.project_currency,
         projectFxRate: saved.data.project_fx_rate, fxSource: saved.data.fx_source, fxAsOf: saved.data.fx_as_of };
     }
@@ -57,12 +67,16 @@ export async function handler(req: any, res: any) {
       || !/^[a-zA-Z0-9._-]+$/.test(body.path.slice(`${stage.project_id}/receipts/`.length))) {
       res.status(400).json({ error: 'receipt_file_path' }); return;
     }
-    if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ error: 'receipt_reader_unavailable' }); return; }
+    phase = 'reader_configuration';
+    if (!process.env.ANTHROPIC_API_KEY?.trim()) throw new ReceiptProcessingError('receipt_reader_not_configured', { reason: 'reader_key_missing' });
+    phase = 'reservation';
     const reservation = await admin.rpc('reserve_receipt_read', { p_stage: stage.id, p_actor: user.id });
     if (reservation.error || typeof reservation.data !== 'string') {
-      res.status(reservation.error?.message?.includes('rate_limit') ? 429 : 503).json({ error: reservation.error?.message?.includes('rate_limit') ? 'receipt_read_rate_limit' : 'receipt_reader_unavailable' }); return;
+      if (reservation.error?.message?.includes('rate_limit')) { res.status(429).json({ error: 'receipt_read_rate_limit', reference }); return; }
+      throw reservation.error ? receiptDatabaseError(reservation.error) : new ReceiptProcessingError('receipt_verification_unavailable', { reason: 'reservation_response_invalid' });
     }
     attempt = reservation.data;
+    phase = 'stored_file';
     const bucket = admin.storage.from('evidence');
     const before = await bucket.info(body.path);
     if (before.error || !before.data?.id || !before.data.version) throw new Error('receipt_file_missing');
@@ -74,48 +88,63 @@ export async function handler(req: any, res: any) {
     const { data: cached, error: cacheError } = await admin.from('receipt_readings').select('*')
       .eq('project_id', stage.project_id).eq('file_sha256', digest).in('status', ['matched','amount_mismatch','currency_mismatch'])
       .order('status', { ascending: false }).order('created_at', { ascending: false }).limit(1).maybeSingle();
-    if (cacheError) throw new Error('receipt_reader_unavailable');
+    if (cacheError) throw receiptDatabaseError(cacheError);
     if (cached && cached.submitted_by !== user.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
     if (cached?.stage_id !== undefined && cached.stage_id !== stage.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
     let result: { reading: unknown; model: string };
     // Keep the extracted decimal string: JSON numeric decoding can round large
     // six-decimal amounts before a retry compares them.
     if (cached) result = { reading: { is_payment_receipt: true, confidence: cached.confidence, amount: cached.amount_text, currency: cached.currency }, model: cached.model };
-    else result = await readPaymentReceipt(bytes, process.env.ANTHROPIC_API_KEY, controller.signal);
+    else { phase = 'document_reading'; result = await readPaymentReceipt(bytes, process.env.ANTHROPIC_API_KEY.trim(), controller.signal); }
+    phase = 'file_validation';
     const after = await bucket.info(body.path);
     if (after.error || after.data?.id !== before.data.id || after.data.version !== before.data.version) throw new Error('receipt_file_changed');
     const match = matchReceiptReading(result.reading, amount, body.currency);
+    const extracted = 'amount' in match ? match : null;
+    // Classification errors have distinct public messages while retaining the
+    // existing database's unreadable status. None can attest a payment.
+    const recordedStatus = match.status === 'not_receipt' || match.status === 'payment_not_completed' ? 'unreadable' : match.status;
     const patch = { path: body.path, object_id: before.data.id, object_version: before.data.version, file_sha256: digest,
-      status: match.status, amount: match.status === 'unreadable' ? null : match.amount,
-      amount_text: match.status === 'unreadable' ? null : match.amount,
-      currency: match.status === 'unreadable' ? null : match.currency, model: result.model,
-      confidence: match.status === 'unreadable' ? 'low' : 'high' };
+      status: recordedStatus, amount: extracted?.amount ?? null, amount_text: extracted?.amount ?? null,
+      currency: extracted?.currency ?? null, model: result.model, confidence: extracted ? 'high' : 'low' };
     // A cached reading may resume an upload whose network response was lost.
     if (cached && match.status === 'matched') {
       const original = await bucket.info(cached.path);
       if (!original.error && original.data?.id === cached.object_id && original.data.version === cached.object_version) {
         const refreshed = await admin.from('receipt_readings').update({ status: 'matched', expires_at: new Date(Date.now()+30*60_000).toISOString() }).eq('id', cached.id);
-        if (refreshed.error) throw new Error('receipt_reader_unavailable');
+        if (refreshed.error) throw receiptDatabaseError(refreshed.error);
         const rate = await conversion(cached.id, cached);
         await admin.from('receipt_readings').update({ status: 'stale' }).eq('id', attempt);
         res.status(200).json({ status: 'matched', readingId: cached.id, path: cached.path, ...rate }); return;
       }
       const invalidated = await admin.from('receipt_readings').update({ status: 'stale' }).eq('id', cached.id);
-      if (invalidated.error) throw new Error('receipt_reader_unavailable');
+      if (invalidated.error) throw receiptDatabaseError(invalidated.error);
     }
+    phase = 'saving_reading';
     const saved = await admin.from('receipt_readings').update(patch).eq('id', attempt);
     if (saved.error) {
       if (saved.error.code === '23505') { res.status(409).json({ error: 'receipt_already_used' }); return; }
-      throw new Error('receipt_reader_unavailable');
+      throw receiptDatabaseError(saved.error);
     }
+    readingSaved = true;
     const rate = match.status === 'matched' ? await conversion(attempt!) : null;
     res.status(match.status === 'matched' ? 200 : 422).json(match.status === 'matched'
       ? { status: 'matched', readingId: attempt, path: body.path, ...rate } : { error: `receipt_${match.status}`, ...match });
   } catch (error) {
     const message = (error as Error)?.message ?? '';
     const known = ['receipt_file_type','receipt_file_size','receipt_page_limit','receipt_unreadable','receipt_file_missing','receipt_file_changed','receipt_rate_unavailable','receipt_currency_unsupported'];
-    const code = known.includes(message) ? message : 'receipt_reader_unavailable';
-    if (admin && attempt) { try { await admin.from('receipt_readings').update({ status: 'error' }).eq('id', attempt); } catch { /* The uncompleted reading cannot attest a payment. */ } }
-    res.status(code === 'receipt_reader_unavailable' || code === 'receipt_rate_unavailable' ? 503 : 422).json({ error: code });
+    const code = error instanceof ReceiptProcessingError ? error.code : known.includes(message) ? message
+      : controller.signal.aborted ? 'receipt_reader_timeout' : 'receipt_reader_unavailable';
+    if (admin && attempt && !readingSaved) { try { await admin.from('receipt_readings').update({ status: 'error' }).eq('id', attempt); } catch { /* No payment proof is issued. */ } }
+    const serviceError = /receipt_reader_|receipt_verification_|receipt_rate_unavailable/.test(code);
+    if (serviceError) {
+      const detail = error instanceof ReceiptProcessingError ? error.diagnostic : {};
+      const safeId = (value?: string) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value) ? value : undefined;
+      console.warn('[receipt-reader]', { reference, phase, code, reason: detail.reason,
+        database_code: detail.databaseCode, provider_status: detail.providerStatus,
+        provider_request_id: safeId(detail.providerRequestId), stop_reason: safeId(detail.stopReason) });
+    }
+    const status = code === 'receipt_reader_timeout' ? 504 : code === 'receipt_reader_response_invalid' ? 502 : serviceError ? 503 : 422;
+    res.status(status).json({ error: code, ...(serviceError ? { reference } : {}) });
   } finally { clearTimeout(timer); controller.abort(); }
 }
