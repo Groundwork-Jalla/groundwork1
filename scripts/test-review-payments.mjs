@@ -97,7 +97,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipt history, partial funds, top-ups, flags, verified readings, idempotence, proof-file protection and authenticated permissions.');
+  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipt history, partial funds, top-ups, flags, verified readings, idempotence, proof-file protection and authenticated permissions., legacy stage-schema repair, approval metadata guards and idempotent schema upgrades');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

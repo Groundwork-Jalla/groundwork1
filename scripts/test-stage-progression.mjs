@@ -276,7 +276,7 @@ SELECT 'STAGE_PROGRESSION_OK' AS result;
   } finally { closeSync(input); }
   const output = result.stdout + result.stderr;
   if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('STAGE_PROGRESSION_OK')) throw new Error(output);
-  console.log('Stage database regressions passed: atomic final-update approval, ordered receipt prompts, paid-only work, prepayment without early opening, historical/zero/sub-cent allocations, idempotent finality, direct-write guards and admin funding paths.');
+  console.log('Stage database regressions passed: atomic final-update approval, ordered receipt prompts, paid-only work, prepayment without early opening, historical/zero/sub-cent allocations, idempotent finality, direct-write guards and admin funding paths., legacy stage-schema repair, approval metadata guards and idempotent schema upgrades');
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

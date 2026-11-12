@@ -108,7 +108,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Stage evidence database regressions passed: contractor-only RPC/index/storage writes, client reviews and receipts, read access, creator and account-role differences, revoked/pending/observer/verifier roles, approved-proof protection, retries and existing stage/payment gates.');
+  console.log('Stage evidence database regressions passed: contractor-only RPC/index/storage writes, client reviews and receipts, read access, creator and account-role differences, revoked/pending/observer/verifier roles, approved-proof protection, retries and existing stage/payment gates., legacy stage-schema repair, approval metadata guards and idempotent schema upgrades');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

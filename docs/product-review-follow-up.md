@@ -178,3 +178,12 @@ client-side uploader and removal controls have been removed, and migration 008
 closes the matching submission, evidence-index and storage permissions. Client
 payment receipt uploads keep their own permission. See
 [contractor-stage-evidence.md](contractor-stage-evidence.md) for release and tests.
+
+## Stage approval schema repair
+
+Migration 009 supplies the stage approval columns omitted by the earlier schema.
+Apply it after 008, refresh the project, and retry the failed approval. Existing
+progress and financial values are retained; no frontend release is needed for this
+SQL repair. The PostgreSQL fixtures now reproduce the reported undefined-column
+failure before applying the repair. See
+[stage-approval-schema-fix.md](stage-approval-schema-fix.md).
