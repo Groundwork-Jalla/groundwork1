@@ -76,6 +76,8 @@ interface SubstageRowProps {
   userId: string;
   isStageActive: boolean;
   stagePaid?: boolean;
+  /** Project assignment permission, independent of the client's approval permission. */
+  canUploadEvidence?: boolean;
   onMarkComplete?: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   /** Render the EvidenceUpload component lazily — passed as a render prop to avoid circular deps */
@@ -92,6 +94,7 @@ export function SubstageRow({
   userId,
   isStageActive,
   stagePaid = true,
+  canUploadEvidence = false,
   onMarkComplete,
   onEvidenceUploaded,
   renderEvidenceUpload,
@@ -164,7 +167,7 @@ export function SubstageRow({
 
         {/* Evidence upload (active, non-complete substages, paid) */}
         <AnimatePresence>
-          {isStageActive && !isComplete && !isPendingReview && stagePaid && (
+          {canUploadEvidence && isStageActive && !isComplete && !isPendingReview && stagePaid && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}

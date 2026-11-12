@@ -101,6 +101,7 @@ interface StageDetailProps {
   userId: string;
   isContractor?: boolean;
   canApprove: boolean;
+  canUploadEvidence: boolean;
   projectId: string;
   /** The incoming tranche on THIS stage, if one is owed (175). */
   payment?: StagePayment;
@@ -127,6 +128,7 @@ function StageDetail({
   userId,
   isContractor,
   canApprove,
+  canUploadEvidence,
   projectId,
   payment,
   canAct, workAllowed, paymentEnabled, paymentBlockedReason,
@@ -239,6 +241,7 @@ function StageDetail({
                 userId={userId}
                 isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
                 stagePaid={stagePaid}
+                canUploadEvidence={canUploadEvidence && canAct && workAllowed}
                 onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
                 onEvidenceUploaded={onEvidenceUploaded}
                 renderEvidenceUpload={renderEvidenceUpload}
@@ -296,6 +299,8 @@ function StageDetail({
 // ── StageTracker ──────────────────────────────────────────
 
 export interface StageTrackerProps {
+  /** Only an assigned project contractor may upload or remove construction evidence. */
+  canUploadEvidence?: boolean;
   stages: ProjectStageRow[];
   substages: ProjectSubstageRow[];
   tier: string;
@@ -343,7 +348,7 @@ function shortLabel(label: string): string {
 }
 
 export function StageTracker({
-  stages, workflowOrigin = 'client', projectPaused = false,
+  stages, workflowOrigin = 'client', projectPaused = false, canUploadEvidence = false,
   substages,
   tier,
   userId,
@@ -503,6 +508,7 @@ export function StageTracker({
                 userId={userId}
                 isContractor={isContractor}
                 canApprove={canApprove}
+                canUploadEvidence={canUploadEvidence}
                 projectId={projectId}
                 payment={payments?.get(selectedStage.id)}
                 canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}

@@ -159,6 +159,7 @@ export default function ProjectDetail() {
   const [contractorProjectId, setContractorProjectId] = useState<string | null>(null);
   const isContractor = contractorProjectId === id;
   const { access: teamAccess } = useProjectTeamAccess(id ?? '');
+  const canUploadEvidence = teamAccess?.assignedContractor === true && teamAccess.primaryClient !== true;
   const t        = useT();
 
   const [project,   setProject]   = useState<ProjectRow | null>(null);
@@ -315,7 +316,7 @@ export default function ProjectDetail() {
     existingUrls: string[];
     onUploadComplete: (urls: string[]) => void;
   }) => {
-    if (!project || (!isContractor && !teamAccess?.primaryClient)) return null;
+    if (!project || project.status !== 'active' || !canUploadEvidence) return null;
     const stageId = substages.find(sub => sub.id === props.substageId)?.stage_id ?? '';
     // Through the dictionary, not the stored English. `name` is the persisted seed
     // string; `stage_key` is what makes it read in the client's own language.
@@ -325,6 +326,7 @@ export default function ProjectDetail() {
     const substageName = sub ? substageLabel(sub) : undefined;
     return (
       <EvidenceUpload
+        canUploadEvidence={canUploadEvidence}
         projectId={project.id}
         stageId={stageId}
         substageId={props.substageId}
@@ -336,7 +338,7 @@ export default function ProjectDetail() {
         substageName={substageName}
       />
     );
-  }, [project, stages, substages, stageLabel, substageLabel, isContractor, teamAccess]);
+  }, [project, stages, substages, stageLabel, substageLabel, canUploadEvidence]);
 
   // ── Loading / error ────────────────────────────────────
 
@@ -577,6 +579,7 @@ export default function ProjectDetail() {
                 workflowOrigin={project.workflow_origin}
                 projectPaused={project.status !== 'active'}
                 canApprove={teamAccess?.primaryClient === true}
+                canUploadEvidence={canUploadEvidence}
                 projectId={project.id}
                 payments={payments}
                 onPaymentChanged={loadAll}

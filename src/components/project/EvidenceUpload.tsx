@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 
 interface EvidenceUploadProps {
+  canUploadEvidence?: boolean;
   projectId: string;
   stageId: string;
   substageId: string;
@@ -112,6 +113,7 @@ function useThumbnails(paths: string[]) {
 }
 
 export function EvidenceUpload({
+  canUploadEvidence = false,
   projectId,
   stageId,
   substageId,
@@ -169,6 +171,7 @@ export function EvidenceUpload({
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!canUploadEvidence) return;
       const fileList = e.target.files;
       if (!fileList || fileList.length === 0) return;
 
@@ -320,11 +323,12 @@ export function EvidenceUpload({
       projectName,
       stageName,
       substageName,
+      canUploadEvidence,
     ]
   );
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!canUploadEvidence || !deleteTarget) return;
     setDeleting(true);
 
     const newUrls = existingUrls.filter((u) => u !== deleteTarget);
@@ -345,7 +349,7 @@ export function EvidenceUpload({
 
     setDeleting(false);
     setDeleteTarget(null);
-  }, [deleteTarget, existingUrls, substageId, onUploadComplete, hasStorageLimit, projectId]);
+  }, [deleteTarget, existingUrls, substageId, onUploadComplete, hasStorageLimit, projectId, canUploadEvidence]);
 
   const handleRetry = useCallback(() => {
     setGlobalError(null);
@@ -354,6 +358,7 @@ export function EvidenceUpload({
     inputRef.current?.click();
   }, []);
 
+  if (!canUploadEvidence) return null;
   return (
     <div className="w-full font-sans">
       {/* Hidden file input */}
