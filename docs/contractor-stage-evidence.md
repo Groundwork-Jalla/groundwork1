@@ -47,7 +47,9 @@ receipt-proof migration. It does not silently skip a failed storage-policy updat
   verifier/staff readers, receipt uploads, approved-proof protection and safe retries.
 - Focused stage/review/receipt UI tests: 64 passed. Clients retain viewing and
   approval controls, and only assigned contractors receive the evidence editor.
-- Full suite, typecheck and production build: final results recorded below.
+- Full suite: 4,450 passed, zero failed or skipped.
+- `pnpm typecheck`, `pnpm build` and `git diff --check`: passed. The build retains
+  its existing non-fatal chunk-size advisory.
 
 After release, use separate client and contractor accounts on one project. Upload
 evidence as the contractor, open it and approve it as the client, and confirm that

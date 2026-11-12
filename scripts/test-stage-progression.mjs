@@ -33,7 +33,7 @@ CREATE TABLE public.test_activity(project_id uuid,event text,details jsonb);
 CREATE FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) RETURNS void LANGUAGE sql AS $$ INSERT INTO test_activity VALUES($1,$2,$6) $$;
 CREATE TABLE storage.objects(bucket_id text,name text,UNIQUE(bucket_id,name));
 CREATE TABLE public.projects(id uuid PRIMARY KEY,user_id uuid,country text,tier text DEFAULT 'jalla_verify',budget_source text,budget_currency text,budget_fx_rate numeric(24,12),budget_amount numeric(24,6),budget_usd numeric(24,9),current_stage integer,status text DEFAULT 'active');
-CREATE TABLE public.project_stages(id uuid PRIMARY KEY,project_id uuid REFERENCES projects,stage_number integer,status text DEFAULT 'locked',payment_milestone_usd numeric(24,9),milestone_amount numeric(24,6),payment_status text DEFAULT 'unpaid',pre_existing boolean DEFAULT false,completed_at timestamptz,approved_by uuid,approved_at timestamptz);
+CREATE TABLE public.project_stages(id uuid PRIMARY KEY,project_id uuid REFERENCES projects,stage_number integer,status text DEFAULT 'locked',payment_milestone_usd numeric(24,9),milestone_amount numeric(24,6),payment_status text DEFAULT 'unpaid',pre_existing boolean DEFAULT false,completed_at timestamptz);
 CREATE TABLE public.project_substages(id uuid PRIMARY KEY,stage_id uuid,status text,evidence_urls jsonb DEFAULT '[]',approved_by uuid,approved_at timestamptz);
 CREATE TABLE public.contractor_invites(project_id uuid,status text);
 CREATE TABLE public.site_updates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),stage_id uuid,description text);
@@ -247,6 +247,9 @@ END $$;
 SELECT 'STAGE_PROGRESSION_OK' AS result;
 `;
   const sql = [setup,
+    read('scripts/fixtures/stage-approval-schema-before.sql'),
+    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
+    read('scripts/fixtures/stage-approval-schema-after.sql'),
     fn('supabase/migrations/090_payments_ledger.sql', 'payments_guard'),
     fn('supabase/migrations/090_payments_ledger.sql', 'project_payment_status'),
     fn('supabase/migrations/090_payments_ledger.sql', 'payments_project_payment_status'),
@@ -257,6 +260,9 @@ SELECT 'STAGE_PROGRESSION_OK' AS result;
     fn('supabase/migrations/132_paid_opens_the_stage.sql', 'open_stage_if_settled'), triggers,
     read('supabase/migrations/20261112000000_receipt_payment_amounts.sql'),
     read('supabase/migrations/20261112000100_ordered_stage_progression.sql'), tests,
+    `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
+    read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
+    read('scripts/fixtures/stage-approval-schema-final.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
