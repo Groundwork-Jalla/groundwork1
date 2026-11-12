@@ -197,7 +197,11 @@ CREATE OR REPLACE FUNCTION public.check_boq_budget_schedule()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE v_id uuid;p public.projects%ROWTYPE;v_pct numeric;v_epsilon numeric;
 BEGIN
- v_id:=CASE WHEN TG_TABLE_NAME='projects' THEN CASE WHEN TG_OP='DELETE' THEN OLD.id ELSE NEW.id END ELSE CASE WHEN TG_OP='DELETE' THEN OLD.project_id ELSE NEW.project_id END END;
+ IF TG_TABLE_NAME='projects' THEN
+   v_id:=CASE WHEN TG_OP='DELETE' THEN OLD.id ELSE NEW.id END;
+ ELSE
+   v_id:=CASE WHEN TG_OP='DELETE' THEN OLD.project_id ELSE NEW.project_id END;
+ END IF;
  SELECT * INTO p FROM public.projects WHERE id=v_id;
  IF NOT FOUND OR p.budget_source IS DISTINCT FROM 'boq' OR p.tracking_started_at IS NULL THEN RETURN NULL; END IF;
  IF EXISTS(SELECT 1 FROM public.project_fees WHERE project_id=v_id AND amount_usd<>0) THEN RAISE EXCEPTION 'boq_has_no_platform_fees'; END IF;

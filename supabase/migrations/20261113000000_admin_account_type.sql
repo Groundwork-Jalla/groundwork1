@@ -10,8 +10,7 @@ BEGIN
  END IF;
  PERFORM 1 FROM auth.users WHERE id=p_user FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'account_not_found'; END IF;
- v_before:=CASE WHEN EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=p_user AND role='contractor')
-   OR EXISTS(SELECT 1 FROM public.contractor_invites WHERE contractor_user_id=p_user AND status='accepted') THEN 'contractor' ELSE 'client' END;
+ v_before:=CASE WHEN EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=p_user AND role='contractor') THEN 'contractor' ELSE 'client' END;
  IF v_before<>p_expected_type THEN RAISE EXCEPTION 'stale_account_type'; END IF;
  IF p_type='client' AND EXISTS(SELECT 1 FROM public.contractor_invites WHERE contractor_user_id=p_user AND status='accepted') THEN
    RAISE EXCEPTION 'contractor_assignments_exist: reassign project contractor responsibilities first';

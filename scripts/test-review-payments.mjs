@@ -79,6 +79,16 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('scripts/fixtures/review-payments.sql'),
     read('scripts/fixtures/reviewed-first-stage.sql'),
     read('scripts/fixtures/multicurrency-receipts.sql'),
+    read('scripts/fixtures/project-edits-setup.sql'),
+    fn('supabase/migrations/009_admin.sql','is_admin'),
+    fn('supabase/migrations/089_activity_model.sql','log_activity'),
+    fn('supabase/migrations/20261112000200_project_team_permissions.sql','is_primary_project_contractor'),
+    fn('supabase/migrations/20261112000200_project_team_permissions.sql','is_project_client'),
+    read('supabase/migrations/20261113000000_admin_account_type.sql'),
+    read('scripts/fixtures/admin-account-types.sql'),
+    read('supabase/migrations/20261111000200_confirmed_boq_budget.sql'),
+    read('supabase/migrations/20261113000100_stage_price_amendments.sql'),
+    read('scripts/fixtures/stage-price-amendments.sql'),
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-final.sql'),
@@ -94,7 +104,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
