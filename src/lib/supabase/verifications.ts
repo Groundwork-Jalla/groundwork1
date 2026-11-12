@@ -200,13 +200,13 @@ export async function approveSubstageRpc(substageId: string): Promise<ApproveSta
 export interface ReceiptPaymentInput {
   amount: string;
   currency: string;
-  fxRate: number;
+  fxRate?: number | string;
 }
 
-function validateReceiptInput(input: ReceiptPaymentInput): void {
+function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): void {
   if (confirmedBillAmount(input.amount) === null) throw new Error('invalid_receipt_amount');
-  if (!/^[A-Z]{3}$/.test(input.currency) || !Number.isFinite(input.fxRate)
-      || input.fxRate <= 0 || input.fxRate > 1e12 || (input.currency === 'USD' && input.fxRate !== 1)) {
+  if (!/^[A-Z]{3}$/.test(input.currency) || ((requireRate || input.fxRate != null) && (!Number.isFinite(Number(input.fxRate))
+      || Number(input.fxRate) <= 0 || Number(input.fxRate) > 1e12 || (input.currency === 'USD' && Number(input.fxRate) !== 1)))) {
     throw new Error('invalid_receipt_currency');
   }
 }
@@ -243,6 +243,7 @@ export interface StagePaymentReceipt {
   amount: number | null; currency: string | null; fxRate: number | null; amountUsd: number | null;
   decision: 'pending' | 'received' | 'flagged'; allowsWork: boolean;
   requestedTopUp: number | null; decisionNote: string | null; decidedAt: string | null;
+  projectCurrency?: string | null; projectFxRate?: number | null; projectAmount?: number | null; fxSource?: string | null; fxAsOf?: string | null;
 }
 
 export async function decideStagePaymentReceipt(receiptId: string, decision: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string) {
@@ -269,6 +270,7 @@ export interface StagePayment {
   receiptFxRate?: number | null;
   receiptAmountUsd?: number | null;
   receipts?: StagePaymentReceipt[];
+  receiptProjectCurrency?: string | null; receiptProjectAmount?: number | null;
 }
 
 /**
@@ -295,7 +297,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
   if (error || !data) return out;
 
   const { data: history, error: historyError } = await supabase.from('stage_payment_receipts')
-    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at')
+    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at,project_currency,project_fx_rate,project_amount,fx_source,fx_as_of')
     .eq('project_id', projectId).order('submitted_at', { ascending: true });
   if (historyError && options.strict) throw historyError;
   if (historyError) throw historyError;
@@ -305,7 +307,9 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
     items.push({ id: row.id, stageId: row.stage_id, path: row.path, submittedAt: row.submitted_at,
       amount: row.amount == null ? null : Number(row.amount), currency: row.currency, fxRate: row.fx_rate == null ? null : Number(row.fx_rate),
       amountUsd: row.amount_usd == null ? null : Number(row.amount_usd), decision: row.decision, allowsWork: row.allows_work === true,
-      requestedTopUp: row.requested_top_up == null ? null : Number(row.requested_top_up), decisionNote: row.decision_note, decidedAt: row.decided_at });
+      requestedTopUp: row.requested_top_up == null ? null : Number(row.requested_top_up), decisionNote: row.decision_note, decidedAt: row.decided_at,
+      projectCurrency: row.project_currency, projectFxRate: row.project_fx_rate == null ? null : Number(row.project_fx_rate),
+      projectAmount: row.project_amount == null ? null : Number(row.project_amount), fxSource: row.fx_source, fxAsOf: row.fx_as_of });
     receipts.set(row.stage_id, items);
   }
 
@@ -344,16 +348,16 @@ export async function signReceiptUrl(path: string): Promise<string | null> {
 /**
  * Put the receipt in the bucket, then record it.
  *
- * The same bucket and the same shape as site evidence (contractor-work.ts): it is
- * already member-readable (092) and member-writable (131), and `project_member()`
- * includes the invited client — so this needs no new storage policy.
+ * Evidence-bucket reads are shared with the project team. The primary client can
+ * write this project's receipts path; construction evidence writes remain reserved
+ * for accepted contractors (migration 008).
  */
-const stagedReceipts = new WeakMap<File, Map<string, { path: string; reading?: { readingId: string; path: string; amount: string; currency: string } }>>();
+const stagedReceipts = new WeakMap<File, Map<string, { path: string; reading?: { readingId: string; path: string; amount: string; currency: string; fxRate: string } }>>();
 
 export async function uploadStagePaymentReceipt(
   projectId: string, stageId: string, file: File, input: ReceiptPaymentInput,
 ): Promise<void> {
-  validateReceiptInput(input);
+  validateReceiptInput(input, false);
   if (!file.size || file.size > MAX_RECEIPT_BYTES) throw new Error('receipt_file_size');
   if (!RECEIPT_ACCEPT.split(',').includes(file.type)) throw new Error('receipt_file_type');
   const key = `${projectId}:${stageId}`;
@@ -374,7 +378,7 @@ export async function uploadStagePaymentReceipt(
   }
   // Stable file/proof identity makes retries safe even after a lost commit response.
   try {
-    await submitStagePaymentReceipt(stageId, staged.reading.path, input, staged.reading.readingId);
+    await submitStagePaymentReceipt(stageId, staged.reading.path, { ...input, fxRate: staged.reading.fxRate }, staged.reading.readingId);
   } catch (error) {
     if (/receipt_reading_expired|receipt_file_changed|receipt_reading_required/.test((error as Error)?.message ?? '')) staged.reading = undefined;
     throw error;

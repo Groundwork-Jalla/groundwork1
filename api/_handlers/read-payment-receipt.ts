@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin, requireUser } from '../_lib/stripe.js';
 import { downloadReceipt, readPaymentReceipt } from '../_lib/payment-receipt-reader.js';
 import { canonicalReceiptAmount, matchReceiptReading, MAX_RECEIPT_BYTES } from '../../src/lib/payments/receipt-reading.js';
+import { isReceiptCurrency } from '../../src/lib/payments/receipt-currencies.js';
+import { countryMoney } from '../../src/lib/budget/country-money.js';
+import { receiptExchangeRate } from '../_lib/receipt-exchange-rate.js';
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
@@ -31,6 +34,23 @@ export async function handler(req: any, res: any) {
       { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: authorization } } });
     const { data: access, error: accessError } = await scoped.rpc('project_team_access', { p_project: stage.project_id });
     if (accessError || access?.primary_client !== true) { res.status(403).json({ error: 'project_client_required' }); return; }
+    const { data: project, error: projectError } = await admin.from('projects')
+      .select('country,budget_source,budget_currency,budget_fx_rate').eq('id', stage.project_id).maybeSingle();
+    if (projectError || !project) { res.status(403).json({ error: 'project_access_required' }); return; }
+    const configured = countryMoney((project.country ?? '').toUpperCase());
+    const projectCode = project.budget_source === 'boq' && project.budget_currency && Number(project.budget_fx_rate) > 0 ? project.budget_currency : configured.code;
+    if (!isReceiptCurrency(body.currency) && body.currency !== projectCode) { res.status(422).json({ error: 'receipt_currency_unsupported' }); return; }
+    async function conversion(readingId: string, existing?: any) {
+      const quote = existing?.fx_rate != null || body.currency === projectCode
+        ? { rate: null, source: 'project', asOf: new Date().toISOString() }
+        : await receiptExchangeRate(body.currency as string, controller.signal);
+      const saved = await admin!.rpc('attach_receipt_conversion', { p_reading: readingId,
+        p_rate: quote.rate, p_project_currency: configured.code, p_project_rate: configured.rate,
+        p_source: quote.source, p_as_of: quote.asOf });
+      if (saved.error || typeof saved.data?.fx_rate !== 'string' || !(Number(saved.data.fx_rate) > 0)) throw new Error('receipt_rate_unavailable');
+      return { fxRate: saved.data.fx_rate, projectCurrency: saved.data.project_currency,
+        projectFxRate: saved.data.project_fx_rate, fxSource: saved.data.fx_source, fxAsOf: saved.data.fx_as_of };
+    }
     if (!body.path.startsWith(`${stage.project_id}/receipts/`) || body.path.length > 512
       || !/^[a-zA-Z0-9._-]+$/.test(body.path.slice(`${stage.project_id}/receipts/`.length))) {
       res.status(400).json({ error: 'receipt_file_path' }); return;
@@ -51,7 +71,7 @@ export async function handler(req: any, res: any) {
     const digest = createHash('sha256').update(bytes).digest('hex');
     const { data: cached, error: cacheError } = await admin.from('receipt_readings').select('*')
       .eq('project_id', stage.project_id).eq('file_sha256', digest).in('status', ['matched','amount_mismatch','currency_mismatch'])
-      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      .order('status', { ascending: false }).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (cacheError) throw new Error('receipt_reader_unavailable');
     if (cached && cached.submitted_by !== user.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
     if (cached?.stage_id !== undefined && cached.stage_id !== stage.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
@@ -74,8 +94,9 @@ export async function handler(req: any, res: any) {
       if (!original.error && original.data?.id === cached.object_id && original.data.version === cached.object_version) {
         const refreshed = await admin.from('receipt_readings').update({ status: 'matched', expires_at: new Date(Date.now()+30*60_000).toISOString() }).eq('id', cached.id);
         if (refreshed.error) throw new Error('receipt_reader_unavailable');
+        const rate = await conversion(cached.id, cached);
         await admin.from('receipt_readings').update({ status: 'stale' }).eq('id', attempt);
-        res.status(200).json({ status: 'matched', readingId: cached.id, path: cached.path }); return;
+        res.status(200).json({ status: 'matched', readingId: cached.id, path: cached.path, ...rate }); return;
       }
       const invalidated = await admin.from('receipt_readings').update({ status: 'stale' }).eq('id', cached.id);
       if (invalidated.error) throw new Error('receipt_reader_unavailable');
@@ -85,13 +106,14 @@ export async function handler(req: any, res: any) {
       if (saved.error.code === '23505') { res.status(409).json({ error: 'receipt_already_used' }); return; }
       throw new Error('receipt_reader_unavailable');
     }
+    const rate = match.status === 'matched' ? await conversion(attempt!) : null;
     res.status(match.status === 'matched' ? 200 : 422).json(match.status === 'matched'
-      ? { status: 'matched', readingId: attempt, path: body.path } : { error: `receipt_${match.status}`, ...match });
+      ? { status: 'matched', readingId: attempt, path: body.path, ...rate } : { error: `receipt_${match.status}`, ...match });
   } catch (error) {
     const message = (error as Error)?.message ?? '';
-    const known = ['receipt_file_type','receipt_file_size','receipt_page_limit','receipt_unreadable','receipt_file_missing','receipt_file_changed'];
+    const known = ['receipt_file_type','receipt_file_size','receipt_page_limit','receipt_unreadable','receipt_file_missing','receipt_file_changed','receipt_rate_unavailable','receipt_currency_unsupported'];
     const code = known.includes(message) ? message : 'receipt_reader_unavailable';
     if (admin && attempt) { try { await admin.from('receipt_readings').update({ status: 'error' }).eq('id', attempt); } catch { /* The uncompleted reading cannot attest a payment. */ } }
-    res.status(code === 'receipt_reader_unavailable' ? 503 : 422).json({ error: code });
+    res.status(code === 'receipt_reader_unavailable' || code === 'receipt_rate_unavailable' ? 503 : 422).json({ error: code });
   } finally { clearTimeout(timer); controller.abort(); }
 }

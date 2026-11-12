@@ -18,7 +18,7 @@ function query(result: { data: unknown; error: unknown }) {
   h.from.mockImplementation(table => table === 'stage_payment_receipts' ? history : chain);
 }
 beforeEach(() => {
-  file = freshFile(); vi.clearAllMocks(); h.read.mockImplementation(async (stage, path) => ({ readingId: 'reading', path })); h.rpc.mockResolvedValue({ error: null });
+  file = freshFile(); vi.clearAllMocks(); h.read.mockImplementation(async (stage, path) => ({ readingId: 'reading', path, fxRate: '600' })); h.rpc.mockResolvedValue({ error: null });
   h.upload.mockResolvedValue({ error: null }); h.remove.mockResolvedValue({ error: null });
 });
 
@@ -66,6 +66,21 @@ describe('actual receipt amount persistence', () => {
     h.read.mockRejectedValueOnce(new Error('receipt_amount_mismatch'));
     await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toThrow('receipt_amount_mismatch');
     expect(h.rpc).not.toHaveBeenCalled();
+  });
+
+  it('submits a foreign receipt with the server conversion instead of a browser rate', async () => {
+    h.read.mockImplementationOnce(async (stage, path) => ({ readingId: 'foreign', path, fxRate: '0.800000000000' }));
+    await uploadStagePaymentReceipt('project', 'stage', file, { amount: '80', currency: 'EUR' });
+    expect(h.read).toHaveBeenCalledWith('stage', expect.any(String), '80', 'EUR');
+    expect(h.rpc).toHaveBeenCalledWith('submit_stage_payment_receipt', expect.objectContaining({
+      p_amount: '80', p_currency: 'EUR', p_fx_rate: '0.800000000000', p_reading: 'foreign',
+    }));
+  });
+
+  it('replaces a supplied local estimate with the attested receipt rate', async () => {
+    h.read.mockImplementationOnce(async (stage, path) => ({ readingId: 'foreign', path, fxRate: '0.800000000000' }));
+    await uploadStagePaymentReceipt('project', 'stage', file, { amount: '80', currency: 'EUR', fxRate: 0.95 });
+    expect(h.rpc.mock.calls[0][1].p_fx_rate).toBe('0.800000000000');
   });
 
   it('retries an ambiguous commit with the same file and reading identity', async () => {

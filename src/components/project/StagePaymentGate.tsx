@@ -1,9 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Camera, FileUp, Loader2, Receipt } from 'lucide-react';
 import { useT, useLanguage } from '@/lib/i18n';
-import { useMoney, useProjectMoneyContext } from '@/lib/budget/project-money-context';
+import { useProjectMoneyContext } from '@/lib/budget/project-money-context';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { canonicalReceiptAmount, MAX_RECEIPT_BYTES, RECEIPT_ACCEPT } from '@/lib/payments/receipt-reading';
+import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
+import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
 import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentReceipt, signReceiptUrl,
   type StagePayment, type StagePaymentReceipt } from '@/lib/supabase/verifications';
 import { DocumentViewer } from './DocumentViewer';
@@ -17,22 +19,24 @@ interface Props {
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
   canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged }: Props) {
-  const t = useT(); const { lang } = useLanguage(); const money = useMoney(); const currency = useProjectMoneyContext();
+  const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null); const cameraRef = useRef<HTMLInputElement>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
-  const [draft, setDraft] = useState<{ scope: string; amount: string; file: File | null }>({ scope, amount: '', file: null });
+  const [draft, setDraft] = useState<{ scope: string; amount: string; currency: string; file: File | null }>({ scope, amount: '', currency: '', file: null });
   const [picker, setPicker] = useState<string | null>(null);
   const [decisionForm, setDecisionForm] = useState<{ scope: string; receipt: string; decision: 'needs_top_up' | 'flag'; amount: string; note: string } | null>(null);
   const [viewer, setViewer] = useState<{ scope: string; name: string; url: string | null } | null>(null);
-  const activeDraft = draft.scope === scope ? draft : { scope, amount: '', file: null };
+  const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
   const form = decisionForm?.scope === scope ? decisionForm : null;
   const busy = working === scope; const error = failure?.scope === scope ? failure.message : null;
-  const code = currency?.code ?? 'USD'; const fxRate = currency?.rate ?? 1;
+  const code = currency?.code ?? 'USD'; const fxRate = currency?.budgetRate ?? currency?.rate ?? 1;
+  const selectedCurrency = activeDraft.currency || code;
   const settled = payment?.state === 'funded' || payment?.state === 'reconciled';
   const receipts = payment?.receipts ?? [];
+  const balance = payment ? stageReceiptBalance(payment, code, fxRate, scheduledAmount) : null;
   const pending = receipts.find(receipt => receipt.decision === 'pending');
   const requested = [...receipts].reverse().find(receipt => receipt.decision === 'received' && receipt.requestedTopUp != null);
   const legacyPending = !receipts.length && payment?.state === 'receipt_submitted'
@@ -53,6 +57,8 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if (/unreadable/.test(reason)) return t('project.receiptFlow.unreadable');
     if (/rate_limit/.test(reason)) return t('project.receiptFlow.rateLimit');
     if (/reader_unavailable/.test(reason)) return t('project.receiptFlow.readerUnavailable');
+    if (/receipt_rate_unavailable|receipt_conversion_required|receipt_rate_mismatch/.test(reason)) return t('project.receiptFlow.exchangeUnavailable');
+    if (/receipt_currency_unsupported/.test(reason)) return t('project.receiptFlow.currencyUnsupported');
     if (/receipt_already_used/.test(reason)) return t('project.receiptFlow.alreadyUsed');
     if (/stale_receipt|receipt_file_changed|receipt_reading_expired|receipt_decided|receipt_accepted|receipt_pending_review/.test(reason)) return t('project.receiptFlow.refreshReceipt');
     return t('project.receiptFlow.tryAgain');
@@ -66,17 +72,18 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if (!canonicalReceiptAmount(activeDraft.amount)) { fail(t('project.stages.receiptAmountInvalid')); return; }
     pendingWork.current = scope; setWorking(scope); setFailure(null); setPicker(null);
     try {
-      await uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: code, fxRate });
+      await uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: selectedCurrency,
+        fxRate: selectedCurrency === code ? fxRate : selectedCurrency === 'USD' ? 1 : undefined });
       if (current.current === scope) {
         await onChanged();
-        if (current.current === scope) setDraft({ scope, amount: '', file: null });
+        if (current.current === scope) setDraft({ scope, amount: '', currency: '', file: null });
       }
     } catch (error) { if (current.current === scope) fail(errorText(error)); }
     finally { if (pendingWork.current === scope) pendingWork.current = null; if (current.current === scope) setWorking(null); }
   }
   async function selectFile(file: File | null) {
     if (!file || !allowed || busy) return;
-    setDraft({ scope, amount: activeDraft.amount, file }); setFailure(null); setPicker(null);
+    setDraft({ scope, amount: activeDraft.amount, currency: activeDraft.currency, file }); setFailure(null); setPicker(null);
     if (canonicalReceiptAmount(activeDraft.amount)) await upload(file);
   }
   function submit(event: FormEvent) { event.preventDefault(); return upload(); }
@@ -112,9 +119,14 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   if (!payment) return null;
   return <section className="mt-5 space-y-3 rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]" aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
     <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white"><Receipt className="size-4" aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
-    {workReviewed && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.reviewedStagePayment')}</p>}
-    <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: money(payment.amount, scheduledAmount) })}</p>
+    {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
+    <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>
     {currency?.pair?.(payment.amount, scheduledAmount)?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {currency.pair(payment.amount, scheduledAmount)?.usd}</p>}
+    {balance && <dl className="grid grid-cols-2 gap-3 text-xs">
+      <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono">{format(balance.received, code)}</dd></div>
+      <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(balance.remaining, code)}</dd></div>
+      {(balance.pending == null || balance.pending > 0) && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.pendingTotal')}</dt><dd className="mt-1 font-mono">{format(balance.pending, code)}</dd></div>}
+    </dl>}
     {!canUpload && !settled && <p className="text-xs text-brand-mid-grey">{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
     {receipts.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#333]">{receipts.map(receipt => <li key={receipt.id} className="py-3 text-xs">
       <div className="flex flex-wrap justify-between gap-2">
@@ -122,6 +134,10 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <span className={receipt.decision === 'received' ? 'text-state-complete' : 'text-brand-mid-grey'}>{t(receipt.decision === 'received' ? 'project.receiptFlow.received' : receipt.decision === 'flagged' ? 'project.receiptFlow.flagged' : 'project.receiptFlow.pending')}</span>
       </div>
       {receipt.amountUsd != null && receipt.currency !== 'USD' && <p className="mt-1 font-mono text-brand-mid-grey">≈ ${receipt.amountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
+      {receipt.projectAmount != null && receipt.projectCurrency !== receipt.currency && <p className="mt-1 font-mono text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: format(receipt.projectAmount, receipt.projectCurrency ?? code) })}</p>}
+      {receipt.fxSource === 'ExchangeRate-API' && <p className="mt-1 text-brand-mid-grey">{t('project.receiptFlow.savedRate', { rate: String(receipt.fxRate), currency: receipt.currency ?? '' })}{' · '}
+        <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer" className="underline">ExchangeRate-API</a>
+        {receipt.fxAsOf && ` · ${new Date(receipt.fxAsOf).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB')}`}</p>}
       {receipt.decisionNote && <p className="mt-1 whitespace-pre-wrap text-brand-mid-grey">{receipt.decisionNote}</p>}
       <button type="button" className="mt-2 font-semibold text-brand-green underline" onClick={() => { void openReceipt(receipt.path); }}>{t('project.stages.confirmView')}</button>
     </li>)}</ol>}
@@ -149,9 +165,15 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <button type="submit" disabled={busy} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t(form.decision === 'flag' ? 'project.receiptFlow.sendFlag' : 'project.receiptFlow.requestTopUp')}</button>
       </form>}
       {canUpload && !pending && !legacyPending && !requested && !settled && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.waitForReceipt')}</p>}
-    </> : readOnly ? null : pending || legacyPending ? <p role="status" className="text-xs text-brand-mid-grey">{t('project.receiptFlow.pending')}</p> : !settled && <form onSubmit={submit} className="space-y-3">
+    </> : readOnly ? null : pending || legacyPending ? <p role="status" className="text-xs text-brand-mid-grey">{t('project.receiptFlow.pending')}</p> : !settled && allowed && <form onSubmit={submit} className="space-y-3">
       <fieldset disabled={!allowed || busy} className="space-y-3 disabled:opacity-40">
-        <label htmlFor={`receipt-amount-${stageId}`} className="block text-xs font-medium">{t('project.stages.receiptAmountLabel', { currency: code })}</label>
+        <label htmlFor={`receipt-currency-${stageId}`} className="block text-xs font-medium">{t('project.receiptFlow.currencyLabel')}</label>
+        <select id={`receipt-currency-${stageId}`} name="receipt-currency" value={selectedCurrency}
+          onChange={event => { setDraft({ ...activeDraft, currency: event.target.value }); setFailure(null); }}
+          className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm dark:bg-[#141414]">
+          {receiptCurrencyChoices(code).map(value => <option key={value} value={value}>{value}{value === code ? ` · ${t('project.receiptFlow.projectCurrency')}` : ''}</option>)}
+        </select>
+        <label htmlFor={`receipt-amount-${stageId}`} className="block text-xs font-medium">{t('project.stages.receiptAmountLabel', { currency: selectedCurrency })}</label>
         <input id={`receipt-amount-${stageId}`} name="receipt-amount" type="text" inputMode="decimal" autoComplete="off" value={activeDraft.amount}
           onChange={event => { const raw = event.target.value; setDraft({ ...activeDraft, amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); setFailure(null); }}
           className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono text-sm dark:bg-[#141414]" />

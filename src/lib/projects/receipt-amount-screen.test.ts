@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StagePayment } from '@/lib/supabase/verifications';
 
 const h = vi.hoisted(() => ({
-  index: 0, hooks: [] as unknown[], lang: 'en' as 'en' | 'fr',
+  index: 0, hooks: [] as unknown[], lang: 'en' as 'en' | 'fr', rate: 600,
   upload: vi.fn(), confirm: vi.fn(), changed: vi.fn(), sign: vi.fn(), decide: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
@@ -25,7 +25,7 @@ vi.mock('@/lib/i18n', () => ({
 }));
 vi.mock('@/lib/budget/project-money-context', () => ({
   useMoney: () => (amount: number) => `${amount * 600} XAF`,
-  useProjectMoneyContext: () => ({ code: 'XAF', rate: 600 }),
+  useProjectMoneyContext: () => ({ code: 'XAF', rate: h.rate, budgetRate: 600 }),
 }));
 vi.mock('@/lib/supabase/verifications', () => ({
   uploadStagePaymentReceipt: h.upload, confirmStagePayment: h.confirm, decideStagePaymentReceipt: h.decide, signReceiptUrl: h.sign,
@@ -63,7 +63,7 @@ function submit(elements: Element[]) {
   return elements.find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
 }
 beforeEach(() => {
-  h.index = 0; h.hooks = []; h.lang = 'en'; vi.clearAllMocks();
+  h.index = 0; h.hooks = []; h.lang = 'en'; h.rate = 600; vi.clearAllMocks();
   h.upload.mockResolvedValue(undefined); h.changed.mockResolvedValue(undefined); h.decide.mockResolvedValue(undefined); h.confirm.mockResolvedValue(undefined);
 });
 
@@ -110,10 +110,45 @@ describe('the receipt upload and contractor review', () => {
     expect(render({ stageId: 'other' }).find(e => e.props.name === 'receipt-amount')?.props.value).toBe('');
     finish(); await pending; expect(h.changed).not.toHaveBeenCalled();
   });
-  it('keeps payment visible but disabled before approval, and gives observers no mutation controls', async () => {
-    expect(render({ canUpload: false }).find(e => e.type === 'fieldset')?.props.disabled).toBe(true);
-    await submit(render({ canUpload: false })); expect(h.upload).not.toHaveBeenCalled();
+  it('shows the payment explanation without premature upload controls, and gives observers no mutation controls', () => {
+    const blocked = render({ canUpload: false, blockedReason: 'Approve updates first' });
+    expect(text(blocked)).toContain('Approve updates first');
+    expect(blocked.some(e => e.type === 'form' || e.type === 'input' || e.type === 'button' || e.type === 'select')).toBe(false);
+    expect(h.upload).not.toHaveBeenCalled();
     expect(render({ readOnly: true }).some(e => e.type === 'form')).toBe(false);
+  });
+
+  it.each([['USD', 1], ['EUR', undefined], ['XAF', 600]])('uploads the selected %s receipt with its original amount', async (currency, fxRate) => {
+    const options = render().find(e => e.props.name === 'receipt-currency')!;
+    expect(nodes(options).filter(e => e.type === 'option').map(e => e.props.value)).toEqual(expect.arrayContaining(['USD', 'EUR', 'XAF']));
+    options.props.onChange({ target: { value: currency } });
+    enterAmount(render(), '50.25'); await chooseFile(render());
+    expect(h.upload).toHaveBeenCalledWith('project', 'stage', receipt, { amount: '50.25', currency, fxRate });
+  });
+
+  it('lets a client correct the selected currency and retry the retained file', async () => {
+    h.upload.mockRejectedValueOnce({ code: 'receipt_currency_mismatch', currency: 'USD' });
+    enterAmount(render(), '50'); await chooseFile(render());
+    expect(text(render())).toContain('currencyMismatch');
+    render().find(e => e.props.name === 'receipt-currency')!.props.onChange({ target: { value: 'USD' } });
+    await submit(render());
+    expect(h.upload).toHaveBeenLastCalledWith('project', 'stage', receipt, { amount: '50', currency: 'USD', fxRate: 1 });
+  });
+
+  it('uses contractor wording while awaiting the client receipt and never asks the contractor to pay', () => {
+    const contractor = render({ isContractor: true, workReviewed: true });
+    expect(text(contractor)).toContain('project.receiptFlow.reviewedStagePaymentContractor');
+    expect(text(contractor)).toContain('project.receiptFlow.waitForReceipt');
+    expect(text(contractor)).not.toMatch(/project\.receiptFlow\.reviewedStagePayment(?:\s|$)/);
+    expect(contractor.some(e => e.type === 'input' || e.type === 'select' || e.type === 'form')).toBe(false);
+    expect(text(render({ workReviewed: true }))).toContain('project.receiptFlow.reviewedStagePayment ');
+  });
+
+  it('keeps the schedule on the same budget basis as saved receipts when a browser display rate changes', () => {
+    h.rate = 700;
+    const elements = render();
+    expect(text(elements)).toContain('60,000 XAF');
+    expect(text(elements)).not.toContain('70,000 XAF');
   });
   it('allows a client to replace a legacy receipt with no actual amount', () => {
     expect(render({ payment: { ...payment, state: 'receipt_submitted', receiptPath: 'old' } }).some(e => e.type === 'form')).toBe(true);

@@ -78,6 +78,7 @@ export function receiptPayoutSummary(
       state: receipt.decision === 'received' ? 'funded' : receipt.decision === 'pending' ? 'receipt_submitted' : 'expected',
       receiptPath: receipt.path, receiptUploadedAt: receipt.submittedAt, receiptAmount: receipt.amount,
       receiptCurrency: receipt.currency, receiptFxRate: receipt.fxRate, receiptAmountUsd: receipt.amountUsd,
+      receiptProjectCurrency: receipt.projectCurrency, receiptProjectAmount: receipt.projectAmount,
     })) : [parent];
     for (const payment of rows) {
     const stage = byStage.get(payment.stageId);
@@ -97,7 +98,8 @@ export function receiptPayoutSummary(
     if (confirmed) result.confirmedCount++;
     else result.pendingCount++;
 
-    const native = payment.receiptCurrency === currency
+    const native = payment.receiptProjectCurrency === currency && payment.receiptProjectAmount != null
+      ? units(payment.receiptProjectAmount, NATIVE_PRECISION) : payment.receiptCurrency === currency
       ? units(payment.receiptAmount, NATIVE_PRECISION)
       : validRate && payment.receiptAmountUsd != null
         ? units(payment.receiptAmountUsd * rate, NATIVE_PRECISION) : null;

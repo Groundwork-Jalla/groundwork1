@@ -1,3 +1,4 @@
+import { countryMoney } from './country-money';
 import type { ConstructionRate, WizardFormData } from '@/types/project';
 import { findCountry } from '@/lib/countries';
 import { CM_RATE_FALLBACK } from './model';
@@ -73,23 +74,9 @@ export function buildLegacyRate(data: Partial<WizardFormData>): ConstructionRate
 }
 
 export function getCurrencyCode(code: string): string {
-  const MAP: Record<string, string> = {
-    CM: 'XAF', CI: 'XOF', SN: 'XOF', TG: 'XOF', BJ: 'XOF',
-    NG: 'NGN', GH: 'GHS', KE: 'KES', UG: 'UGX', TZ: 'TZS',
-    RW: 'RWF', ET: 'ETB', ZA: 'ZAR', ZM: 'ZMW', ZW: 'USD',
-    MZ: 'MZN', BW: 'BWP', CD: 'CDF', MA: 'MAD', EG: 'EGP',
-    GB: 'GBP', US: 'USD',
-  };
-  return MAP[code] ?? 'USD';
+  return countryMoney(code).code;
 }
 
 export function getApproxFx(code: string): number {
-  const MAP: Record<string, number> = {
-    CM: 600, CI: 600, SN: 600, TG: 600, BJ: 600,
-    NG: 1600, GH: 16, KE: 130, UG: 3700, TZ: 2500,
-    RW: 1300, ET: 57, ZA: 18, ZM: 28, ZW: 1,
-    MZ: 64, BW: 14, CD: 2800, MA: 10, EG: 48,
-    GB: 0.79, US: 1,
-  };
-  return MAP[code] ?? 1;
+  return countryMoney(code).rate;
 }

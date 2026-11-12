@@ -24,6 +24,8 @@ export interface ProjectMoney {
   code: string;
   /** Units of `code` per US dollar, today's if we have it. */
   rate: number;
+  /** Canonical budget basis, independent of a browser's live display quote. */
+  budgetRate: number;
   /** A stored USD figure, as the pair the contractor should see. */
   pair: (usd: number | null | undefined, sourceAmount?: number | null) => MoneyPair | null;
   /** Just the local figure, grouped, for tight rows: "6,356,000 XAF". */
@@ -49,5 +51,6 @@ export function useProjectMoney(source: ProjectMoneySource): ProjectMoney {
     [pair],
   );
 
-  return useMemo(() => ({ code, rate, pair, local }), [code, rate, pair, local]);
+  const budgetRate = initial.fallback;
+  return useMemo(() => ({ code, rate, budgetRate, pair, local }), [code, rate, budgetRate, pair, local]);
 }

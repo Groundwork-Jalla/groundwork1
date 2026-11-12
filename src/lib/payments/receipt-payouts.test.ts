@@ -160,6 +160,25 @@ describe('history and repeated reads do not invent payouts', () => {
 });
 
 describe('source currencies and invalid records', () => {
+  it('uses the saved project equivalent for mixed currencies in the shared client and contractor summary', () => {
+    const project = bill({ country: 'CM', budget_currency: 'XAF', budget_fx_rate: 600,
+      budget_amount: 180000, budget_usd: 300, budget_precision: 0 });
+    const history = [
+      { id: 'native', stageId: 'stage', path: 'xaf', submittedAt: '', amount: 18000, currency: 'XAF', fxRate: 600, amountUsd: 30, projectCurrency: 'XAF', projectAmount: 18000, decision: 'received' as const, allowsWork: false, requestedTopUp: null, decisionNote: null, decidedAt: null },
+      { id: 'usd', stageId: 'stage', path: 'usd', submittedAt: '', amount: 50, currency: 'USD', fxRate: 1, amountUsd: 50, projectCurrency: 'XAF', projectAmount: 30000, decision: 'received' as const, allowsWork: false, requestedTopUp: null, decisionNote: null, decidedAt: null },
+      { id: 'eur', stageId: 'stage', path: 'eur', submittedAt: '', amount: 16, currency: 'EUR', fxRate: 0.8, amountUsd: 20, projectCurrency: 'XAF', projectAmount: 12000, decision: 'pending' as const, allowsWork: false, requestedTopUp: null, decisionNote: null, decidedAt: null },
+    ];
+    const rows = [receipt('head', 'stage', 16, { state: 'receipt_submitted', receipts: history })];
+    const client = receiptPayoutSummary(project, [stage()], rows);
+    const contractor = receiptPayoutSummary(project, [stage()], [...rows].reverse());
+    expect(contractor).toEqual(client);
+    expect(client.payouts).toEqual({ amount: 48000, usd: 80 });
+    expect(client.pending).toEqual({ amount: 12000, usd: 20 });
+    expect(client.remaining).toEqual({ amount: 132000, usd: 220 });
+    const laterRate = receiptPayoutSummary({ ...project, budget_fx_rate: 700 }, [stage()], rows);
+    expect(laterRate.payouts).toEqual(client.payouts); expect(laterRate.pending).toEqual(client.pending);
+  });
+
   it('preserves the native receipt and uses saved USD amounts across currencies', () => {
     const project = bill({ country: 'CM', budget_currency: 'XAF', budget_fx_rate: 600,
       budget_amount: 600000, budget_usd: 1000, budget_precision: 0 });

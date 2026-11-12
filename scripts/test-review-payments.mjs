@@ -75,8 +75,10 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('scripts/fixtures/stage-approval-schema-reproduce.sql'),
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-after.sql'),
+    read('supabase/migrations/20261112001000_receipt_multicurrency.sql'),
     read('scripts/fixtures/review-payments.sql'),
     read('scripts/fixtures/reviewed-first-stage.sql'),
+    read('scripts/fixtures/multicurrency-receipts.sql'),
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-final.sql'),
@@ -92,12 +94,12 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipt history, partial funds, top-ups, flags, verified readings, idempotence, proof-file protection and authenticated permissions., legacy stage-schema repair, approval metadata guards and idempotent schema upgrades');
+  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipt history, partial funds, top-ups, flags, verified readings, authenticated permissions, stage-schema repair and frozen multi-currency conversions.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

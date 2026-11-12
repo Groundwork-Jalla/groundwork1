@@ -514,7 +514,7 @@ export function StageTracker({
                 canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
                 workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
                 paymentEnabled={!projectPaused && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
-                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')}
+                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
                 isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
                 onMarkSubstageComplete={handleSubstageApproval}

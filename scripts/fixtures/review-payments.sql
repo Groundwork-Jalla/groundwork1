@@ -22,7 +22,9 @@ RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER AS $$ DECLARE v_id uuid; v_path t
  INSERT INTO storage.objects(bucket_id,name) VALUES('evidence',v_path) ON CONFLICT DO NOTHING;
  INSERT INTO receipt_readings(stage_id,project_id,submitted_by,status,path,object_id,object_version,file_sha256,amount,amount_text,currency,confidence)
  SELECT test_id(p_number,p_stage),test_id(p_number),'00000000-0000-0000-0000-000000000001','matched',v_path,id,version,md5(v_path)||md5(v_path),p_amount,p_amount::text,'USD','high' FROM storage.objects WHERE name=v_path
- RETURNING id INTO v_id; RETURN v_id;
+ RETURNING id INTO v_id;
+ PERFORM public.attach_receipt_conversion(v_id,1,'USD',1,'USD',now());
+ RETURN v_id;
 END $$;
 CREATE FUNCTION public.test_send(p_number int,p_stage int,p_file int,p_amount numeric)
 RETURNS jsonb LANGUAGE plpgsql AS $$ DECLARE proof uuid; BEGIN

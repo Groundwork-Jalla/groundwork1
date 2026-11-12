@@ -49,8 +49,9 @@ stage, while earlier historical stages retain their saved status and allocations
 
 ## Implemented behaviour
 
-- Payment panels follow the stage updates. Future stages show the prerequisite and
-  disabled controls. Client-created projects can upload the first live stage's
+- Payment panels follow the stage updates. Future stages show the prerequisite;
+  upload controls appear when payment is available, as clarified in the later
+  [receipt currency follow-up](receipt-currency-follow-up.md). Client-created projects can upload the first live stage's
   receipt immediately; contractor-created projects start with evidence as above.
 - Each receipt retains its actual native amount, saved FX/USD value, proof file,
   submission identity and contractor decision. A top-up adds a receipt instead of

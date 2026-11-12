@@ -55,7 +55,7 @@ describe('a client is quoted in the project currency, everywhere', () => {
       const body = code(file);
       expect(body, 'must not reach for the dollar formatter').not.toMatch(/\bformatUSDFull\s*\(/);
       expect(body, 'must not reach for the dollar formatter').not.toMatch(/\bformatUSD\s*\(/);
-      expect(body).toMatch(/useMoney\(\)|<MoneyValue/);
+      expect(body).toMatch(/useMoney\(\)|useProjectMoneyContext\(\)|<MoneyValue/);
     });
 
     it(`${name} prints no hardcoded currency symbol`, () => {

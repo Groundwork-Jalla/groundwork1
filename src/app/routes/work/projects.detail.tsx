@@ -922,17 +922,8 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
               {row}
               {showGate && (
                 <div data-tour="confirm-payment">
-                {/*
-                  * The contractor's half of the handshake, in the SAME currency as the
-                  * client's half.
-                  *
-                  * `StagePaymentGate` reads the figure through `useMoney()`, which falls
-                  * back to dollars outside a provider — and these routes format with
-                  * `useProjectMoney` directly rather than providing it. So the client was
-                  * being asked to transfer 25,102,200 XAF while the contractor was asked
-                  * to confirm $41,837: one payment, two currencies, on the one screen
-                  * pair where the two parties have to agree.
-                  */}
+                {/* Share the project's canonical budget basis with the client payment
+                    panel; transaction currencies keep their own saved conversions. */}
                 <ProjectMoneyProvider project={project}>
                   <StagePaymentGate
                     projectId={stage.project_id}
@@ -942,7 +933,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     workReviewed={stage.review_payment_pending}
                     canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
-                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')}
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')}
                     isContractor
                     onChanged={onSubmitted}
                   />
@@ -969,7 +960,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                 </span>
               )}
             </div>
-            {!funded && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t(stage.review_payment_pending ? 'project.receiptFlow.reviewedStagePayment' : 'project.stages.paymentBeforeWork')}</p>}
+            {!funded && !stage.review_payment_pending && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t('project.stages.paymentBeforeWork')}</p>}
             <p className="ml-[34px] mt-1 text-xs text-brand-mid-grey">{t('contractorWork.ticksItself')}</p>
 
             {/* What a verifier sent back belongs to the stage it is about, not to a
@@ -1063,7 +1054,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     workReviewed={stage.review_payment_pending}
                     canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
-                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirst' : 'project.receiptFlow.waitForUpdates')} isContractor onChanged={onSubmitted} />
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor onChanged={onSubmitted} />
               </ProjectMoneyProvider>
             )}
 
