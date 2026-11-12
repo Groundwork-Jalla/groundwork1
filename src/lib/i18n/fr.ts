@@ -409,6 +409,14 @@ export const fr: Mirror<EnDict> = {
     client:     'Client',
   },
   admin: {
+    accountTypeEdit: {
+      title: 'Changer le type de compte', label: 'Type de compte', client: 'Client', contractor: 'Entrepreneur', save: 'Enregistrer le type de compte',
+      hint: 'Choisissez l’espace de ce compte. Les projets et les responsabilités existantes sont conservés, ainsi que les droits du personnel et des vérificateurs.',
+      done: 'Type de compte mis à jour. La personne peut actualiser la page ou se reconnecter pour utiliser son espace.',
+      assignments: 'Réattribuez les projets de cet entrepreneur avant de passer son compte en compte client.',
+      stale: 'Ce compte a changé pendant la modification. Fermez ce formulaire et actualisez la liste.',
+      failed: 'Le type de compte peut être enregistré après une nouvelle tentative.',
+    },
     tiles: {
       all:       'Tous les projets',
       active:    'Actifs',
@@ -5742,6 +5750,21 @@ export const fr: Mirror<EnDict> = {
     },
   },
   project: {
+    priceChanges: {
+      title: 'Prix des étapes', hint: 'Votre entrepreneur peut proposer des prix révisés. Les prix actuels s’appliquent jusqu’à la validation du client.',
+      propose: 'Proposer de nouveaux prix', send: 'Envoyer les prix au client', note: 'Motif de la modification (facultatif)',
+      held: 'Prix confirmé, historique ou fixé par les règles du projet', proposedTotal: 'Total proposé du projet : {amount}',
+      originalBill: 'Total du devis initial : {amount}', originalBudget: 'Budget initial du projet : {amount}',
+      approvedTotal: 'Total approuvé du projet', approvedNote: 'Ce budget comprend les modifications de prix approuvées par le client. Le budget initial et chaque proposition sont conservés dans l’historique.',
+      approve: 'Approuver les nouveaux prix', decline: 'Conserver les prix actuels', withdraw: 'Retirer la proposition',
+      pendingNote: 'Validation du client attendue. Le budget et les paiements actuels restent applicables.',
+      invalidAmount: 'Saisissez un prix positif avec six décimales au maximum et un total dans la plage prise en charge.',
+      stale: 'Le projet a changé depuis la préparation de ces prix. Retirez ou fermez la proposition et préparez-la à nouveau avec les prix actuels.',
+      pendingExists: 'Une proposition attend déjà la validation du client. Actualisez pour la consulter.',
+      notStarted: 'Confirmez le budget et démarrez le suivi pour proposer des prix.',
+      loadFailed: 'Actualisez la page pour consulter les prix des étapes.', saveFailed: 'Les prix peuvent être enregistrés après une actualisation et une nouvelle tentative.',
+      status: { pending: 'Prix proposés · validation du client', approved: 'Prix approuvés', declined: 'Prix actuels conservés', withdrawn: 'Proposition retirée' },
+    },
     receiptFlow: {
       title: 'Paiement de l’étape {n}',
       schedule: 'Montant prévu : {amount}.',

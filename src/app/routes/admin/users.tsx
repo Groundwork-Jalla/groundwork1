@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { CrmBackfillPanel } from '@/components/admin/CrmBackfillPanel';
 import { PersonPreview, usePersonPreview } from '@/components/admin/PersonPreview';
+import { AccountTypeEditor } from '@/components/admin/AccountTypeEditor';
 
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-brand-off-white text-state-active',
@@ -35,6 +36,7 @@ export default function AdminUsers() {
   const [busy, setBusy]       = useState(false);
   const [delError, setDelError] = useState<string | null>(null);
   const [notice, setNotice]   = useState<string | null>(null);
+  const [typeTarget, setTypeTarget] = useState<AdminUser | null>(null);
 
   async function confirmDelete() {
     if (!target) return;
@@ -162,6 +164,9 @@ export default function AdminUsers() {
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${ROLE_STYLES[u.roles] ?? 'bg-brand-off-white text-brand-mid-grey'}`}>
                       {u.roles || t('admin.roleClient')}
                     </span>
+                    <button type="button" onClick={() => setTypeTarget(u)} className="mt-1 block text-xs text-brand-green underline">
+                      {t('admin.accountTypeEdit.title')}
+                    </button>
                   </td>
                   {/* "Plan" is the most recent project's tier, so it is blank for anyone
                       with no projects — which reads as a billing gap when it is really a
@@ -197,6 +202,10 @@ export default function AdminUsers() {
         </div>
       )}
       <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
+      {typeTarget && <AccountTypeEditor key={typeTarget.id} user={typeTarget} onClose={() => setTypeTarget(null)} onSaved={roles => {
+        setUsers(previous => previous.map(row => row.id === typeTarget.id ? { ...row, roles } : row));
+        setNotice(t('admin.accountTypeEdit.done')); setTypeTarget(null);
+      }} />}
       <ConfirmDelete
         open={!!target}
         subject={target?.email ?? ''}

@@ -29,6 +29,7 @@ import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { ShareProject } from '@/components/project/ShareProject';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
@@ -264,6 +265,7 @@ export default function ContractorProjectDetail() {
 
       {tab === 'money' && (
         <div className="space-y-4">
+          <StagePricingPanel project={project} onChanged={load} />
           {teamAccess?.canEditBoq && <Link to={`/work/projects/${project.id}/takeoff`} className="inline-flex rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">{t('takeoff.editBoq')}</Link>}
           <MoneyTab assigned={assigned} payments={payments} stagePayments={stagePayments} hasBoq={hasBoq} />
         </div>

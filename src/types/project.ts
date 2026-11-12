@@ -415,6 +415,11 @@ export interface ProjectRow {
   budget_precision?: number | null;
   budget_source_label?: string | null;
   budget_source_file?: string | null;
+  pricing_revision?: number;
+  budget_original_amount?: number | null;
+  budget_original_usd?: number | null;
+  stage_price_adjustment_usd?: number;
+  pricing_budget_breakdown?: BudgetBreakdown | null;
   tier: ProjectTier;
   status: ProjectStatus;
   current_stage: number;

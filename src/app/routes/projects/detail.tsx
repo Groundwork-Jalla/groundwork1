@@ -27,6 +27,7 @@ import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import { MoneyValue } from '@/components/project/MoneyValue';
 import BudgetView                from '@/components/project/BudgetView';
+import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { ClientDocuments }       from '@/components/project/ClientDocuments';
 import { ProjectConversations }  from '@/components/project/ProjectConversations';
 import { ProjectTeam }           from '@/components/project/ProjectTeam';
@@ -600,7 +601,8 @@ export default function ProjectDetail() {
 
           {/* Tab: Costing */}
           {activeTab === 'costing' && (
-            <div>
+            <div className="space-y-4">
+              <StagePricingPanel project={project} onChanged={loadAll} />
               <BudgetView project={project} stages={stages} payments={payments} />
             </div>
           )}

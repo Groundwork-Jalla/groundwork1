@@ -35,17 +35,18 @@ export async function handler(req: any, res: any) {
     const { data: access, error: accessError } = await scoped.rpc('project_team_access', { p_project: stage.project_id });
     if (accessError || access?.primary_client !== true) { res.status(403).json({ error: 'project_client_required' }); return; }
     const { data: project, error: projectError } = await admin.from('projects')
-      .select('country,budget_source,budget_currency,budget_fx_rate').eq('id', stage.project_id).maybeSingle();
+      .select('country,budget_source,budget_currency,budget_fx_rate,pricing_revision').eq('id', stage.project_id).maybeSingle();
     if (projectError || !project) { res.status(403).json({ error: 'project_access_required' }); return; }
     const configured = countryMoney((project.country ?? '').toUpperCase());
-    const projectCode = project.budget_source === 'boq' && project.budget_currency && Number(project.budget_fx_rate) > 0 ? project.budget_currency : configured.code;
+    const locked = (project.budget_source === 'boq' || project.pricing_revision > 0) && project.budget_currency && Number(project.budget_fx_rate) > 0;
+    const projectCode = locked ? project.budget_currency : configured.code;
     if (!isReceiptCurrency(body.currency) && body.currency !== projectCode) { res.status(422).json({ error: 'receipt_currency_unsupported' }); return; }
     async function conversion(readingId: string, existing?: any) {
       const quote = existing?.fx_rate != null || body.currency === projectCode
         ? { rate: null, source: 'project', asOf: new Date().toISOString() }
         : await receiptExchangeRate(body.currency as string, controller.signal);
       const saved = await admin!.rpc('attach_receipt_conversion', { p_reading: readingId,
-        p_rate: quote.rate, p_project_currency: configured.code, p_project_rate: configured.rate,
+        p_rate: quote.rate, p_project_currency: locked ? project.budget_currency : configured.code, p_project_rate: locked ? project.budget_fx_rate : configured.rate,
         p_source: quote.source, p_as_of: quote.asOf });
       if (saved.error || typeof saved.data?.fx_rate !== 'string' || !(Number(saved.data.fx_rate) > 0)) throw new Error('receipt_rate_unavailable');
       return { fxRate: saved.data.fx_rate, projectCurrency: saved.data.project_currency,

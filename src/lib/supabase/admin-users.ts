@@ -37,6 +37,19 @@ export interface AdminUser {
 type Row = Record<string, unknown>;
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 
+export type AccountType = 'client' | 'contractor';
+export function accountType(roles: string): AccountType {
+  return roles.split(',').some(role => role.trim() === 'contractor') ? 'contractor' : 'client';
+}
+export async function setAccountType(userId: string, type: AccountType, expected: AccountType): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_set_account_type', {
+    p_user: userId, p_type: type, p_expected_type: expected,
+  });
+  if (error) throw error;
+  if (typeof data?.roles !== 'string' || data.account_type !== type) throw new Error('account_type_update_failed');
+  return data.roles;
+}
+
 export async function listAdminUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase.rpc('admin_list_users');
   if (error) throw error;

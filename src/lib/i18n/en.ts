@@ -408,6 +408,14 @@ export const en = {
     client:     'Client',
   },
   admin: {
+    accountTypeEdit: {
+      title: 'Change account type', label: 'Account type', client: 'Client', contractor: 'Contractor', save: 'Save account type',
+      hint: 'Choose the workspace for this account. Existing projects and project responsibilities are retained. Staff and verifier permissions stay as recorded.',
+      done: 'Account type updated. The user can refresh or sign in again to use the updated workspace.',
+      assignments: 'Reassign this account’s contractor projects before switching it to a client account.',
+      stale: 'This account changed while you were editing. Close this form and refresh the user list.',
+      failed: 'The account type could not be saved. Please try again.',
+    },
     tiles: {
       all:       'All projects',
       active:    'Active',
@@ -5884,6 +5892,21 @@ export const en = {
     },
   },
   project: {
+    priceChanges: {
+      title: 'Stage pricing', hint: 'Your contractor can propose revised stage prices. Current prices apply until the client approves a proposal.',
+      propose: 'Propose revised prices', send: 'Send prices for client approval', note: 'Reason for the change (optional)',
+      held: 'Confirmed, historical or fixed by project pricing rules', proposedTotal: 'Proposed project total: {amount}',
+      originalBill: 'Original BOQ total: {amount}', originalBudget: 'Original project budget: {amount}',
+      approvedTotal: 'Approved project total', approvedNote: 'This budget includes stage-price changes approved by the client. The original budget and each proposal remain in the pricing history.',
+      approve: 'Approve revised prices', decline: 'Keep current prices', withdraw: 'Withdraw proposal',
+      pendingNote: 'Awaiting client approval. The current project budget and payments remain in effect.',
+      invalidAmount: 'Enter a positive stage price with up to six decimal places, keeping the total within the supported range.',
+      stale: 'The project changed after these prices were prepared. Withdraw or close this proposal and prepare it again using the current prices.',
+      pendingExists: 'A proposal is already awaiting client review. Refresh to view it.',
+      notStarted: 'Confirm the project budget and start tracking to propose stage prices.',
+      loadFailed: 'Stage prices are available after a successful refresh.', saveFailed: 'The price change could not be saved. Please refresh and try again.',
+      status: { pending: 'Proposed prices · client review', approved: 'Prices approved', declined: 'Current prices retained', withdrawn: 'Proposal withdrawn' },
+    },
     receiptFlow: {
       title: 'Stage {n} payment',
       schedule: 'Scheduled amount: {amount}.',

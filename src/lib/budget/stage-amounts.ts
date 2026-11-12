@@ -54,6 +54,7 @@ export interface StageBasis {
   wholeProject: boolean;
   /** The figure a `budget_pct` is applied to. Null when nothing can be derived. */
   base: number | null;
+  agreed?: boolean;
 }
 
 /**
@@ -99,6 +100,7 @@ export function stageBasisFor(
   hasBoq: boolean,
 ): StageBasis {
   const budget = projectBudget(project);
+  if ((project.pricing_revision ?? 0) > 0) return { wholeProject: project.budget_source === 'boq', base: budget.construction, agreed: true };
   if (project.budget_source === 'boq' || (project.budget_source == null && hasBoq)) {
     return { wholeProject: true, base: budget.total };
   }
@@ -128,6 +130,7 @@ function isHistorical(stage: ProjectStageRow): boolean {
  * on a build from scratch it is what the client confirmed.
  */
 export function stageScheduleUsd(stage: ProjectStageRow, basis: StageBasis): number {
+  if (basis.agreed) return stage.payment_milestone_usd ?? 0;
   const derived = fromPercentage(stage, basis);
   // The database allocated rounding remainders across the complete schedule. Reading
   // that allocation preserves the same figure on client, contractor and payment views.

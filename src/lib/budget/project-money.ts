@@ -3,13 +3,13 @@ import { getApproxFx, getCurrencyCode } from './legacy';
 import { moneyPair, type MoneyPair } from './money-pair';
 
 export type ProjectMoneySource = string | null | undefined | Pick<ProjectRow,
-  'country' | 'budget_source' | 'budget_amount' | 'budget_currency' | 'budget_fx_rate' | 'budget_precision' | 'budget_usd'>;
+  'country' | 'budget_source' | 'budget_amount' | 'budget_currency' | 'budget_fx_rate' | 'budget_precision' | 'budget_usd' | 'pricing_revision'>;
 
 /** A confirmed contract uses one conversion snapshot for all of its participants. */
 export function projectMoneyBasis(source: ProjectMoneySource, liveRate?: number | null) {
   const project = typeof source === 'object' && source !== null ? source : null;
   const country = typeof source === 'string' ? source : project?.country;
-  const locked = project?.budget_source === 'boq' && !!project.budget_currency
+  const locked = (project?.budget_source === 'boq' || (project?.pricing_revision ?? 0) > 0) && !!project?.budget_currency
     && project.budget_fx_rate != null && project.budget_fx_rate > 0;
   const code = locked ? project!.budget_currency! : getCurrencyCode((country ?? '').toUpperCase());
   const fallback = locked ? Number(project!.budget_fx_rate) : getApproxFx((country ?? '').toUpperCase());
