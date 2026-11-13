@@ -9,6 +9,7 @@ import { handler as projectWhatsApp } from './_handlers/project-whatsapp.js';
 import { handler as swychrCallback } from './_handlers/swychr-callback.js';
 import { handler as lifecycleRun } from './_handlers/lifecycle-run.js';
 import { handler as communicationReply } from './_handlers/communication-reply.js';
+import { handler as communicationStatus } from './_handlers/communication-status.js';
 import { handler as communicationUnsubscribe } from './_handlers/communication-unsubscribe.js';
 import { handler as swychrPoll } from './_handlers/swychr-poll.js';
 import { handler as swychrAttach } from './_handlers/swychr-attach.js';
@@ -71,7 +72,7 @@ type Action =
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
   | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt'
-  | 'communication-reply' | 'communication-unsubscribe';
+  | 'communication-reply' | 'communication-unsubscribe' | 'communication-status';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -108,6 +109,7 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'swychr-attach': swychrAttach,
   'lifecycle-run': lifecycleRun,
   'communication-reply': communicationReply,
+  'communication-status': communicationStatus,
   'communication-unsubscribe': communicationUnsubscribe,
   // Reads an uploaded floor plan with a vision model. Costs money per call, so it
   // authenticates the caller rather than trusting the browser that asked.
