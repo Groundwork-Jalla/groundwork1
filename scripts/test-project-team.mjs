@@ -350,6 +350,11 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     read('supabase/migrations/20261113000300_lifecycle_delivery.sql'),read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'),
     read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
     read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('supabase/migrations/20261113001100_communication_schema_repair.sql'),read('scripts/fixtures/project-team-communications.sql'),
+    "ALTER TABLE auth.users ADD COLUMN raw_user_meta_data jsonb DEFAULT '{}'; ALTER TABLE profiles ADD COLUMN updated_at timestamptz DEFAULT now();",
+    read('supabase/migrations/20261113000700_admin_user_roles.sql'),
+    read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
+    read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
+    read('scripts/fixtures/invitation-role-consistency.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -362,7 +367,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK') || !output.includes('INVITATION_ROLES_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
@@ -391,7 +396,14 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     const final = await query(`SELECT test_assert((SELECT count(*) FROM ${table} WHERE project_id=test_id(${project}) AND ${predicate})=1,'exactly one race claimant has membership');`);
     if (final.code !== 0) throw new Error(final.output);
   }
-  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, non-expiring single-use links, communication-trigger upgrade, legacy expiry upgrade, email/link reservation and concurrent claim races.');
+  const correctedRetry = await Promise.all([
+    query(`BEGIN; SET ROLE authenticated; SELECT set_config('test.actor',test_id(4)::text,false); SELECT admin_set_user_role(test_id(24),'verifier','homeowner'); SELECT pg_sleep(0.1); COMMIT;`),
+    query(`BEGIN; SET ROLE authenticated; SELECT set_config('test.actor',test_id(24)::text,false); SELECT accept_contractor_invite((SELECT token FROM test_role_links WHERE project_id=test_id(605))); COMMIT;`),
+  ]);
+  if (correctedRetry.some(result => result.code !== 0)) throw new Error(`Concurrent role correction/link retry failed: ${JSON.stringify(correctedRetry)}`);
+  const correction = await query(`SELECT set_config('test.actor',test_id(24)::text,false); SELECT test_assert(my_account_access()->>'role'='verifier' AND (SELECT count(*)=1 FROM user_roles WHERE user_id=test_id(24)),'concurrent link retry preserves the successful account correction');`);
+  if (correction.code !== 0) throw new Error(correction.output);
+  console.log('Project team database regressions passed: primary roles, observer restrictions, new/existing users, revoked access, unchanged budgets, non-expiring single-use links, concurrent claim races and role corrections preserved across link retries.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

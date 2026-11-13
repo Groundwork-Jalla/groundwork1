@@ -5680,6 +5680,7 @@ export const en = {
   },
   invite: {
     projectPreparing: 'Your invitation has been accepted. Choose Open the project again to finish opening your project.',
+    loadFailed: 'Your invitation could not be loaded. Check your connection and try again; your link is still saved.',
     notFoundTitle: 'Invite not found',
     notFoundBody:  'This invite link is invalid or has already been used.',
     goToGroundwork:'Go to Groundwork',

@@ -31,31 +31,35 @@ export default function ShareInvite() {
   const scope = `${token ?? ''}:${session?.user.id ?? ''}`;
   const current = useRef(scope); current.current = scope;
   const accepting = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [resolvedToken, setResolvedToken] = useState<string | undefined>();
   const [preview, setPreview] = useState<ViewerInvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy]       = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     let live = true;
-    setLoading(true); setPreview(null); setError(null);
+    setLoading(true); setPreview(null); setError(null); setLoadFailed(false);
     getViewerInvitePreview(token)
       .then(value => { if (live) setPreview(value); })
-      .catch(() => { if (live) setPreview(null); })
+      .catch(error => { if (live) { setPreview(null); setLoadFailed(error?.code !== '22P02'); } })
       .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
     return () => { live = false; };
-  }, [token, session?.user.id]);
+  }, [token, session?.user.id, attempt]);
   useEffect(() => { setBusy(false); setError(null); }, [scope]);
 
   // Park it before they leave to sign up, so /auth/callback can finish the job and they
   // never have to come back and press anything a second time.
   useEffect(() => {
-    if (!token || resolvedToken !== token) return;
+    if (!token || resolvedToken !== token || loadFailed || loading) return;
     if (preview) rememberShare(token);
     else forgetProjectInvitation({ kind: 'viewer', token });
-  }, [token, resolvedToken, preview]);
+  }, [token, resolvedToken, preview, loadFailed, loading]);
 
   async function accept() {
     if (!token || accepting.current === scope) return;
@@ -63,9 +67,9 @@ export default function ShareInvite() {
     setBusy(true); setError(null);
     try {
       const path = await completeProjectInvitation({ kind: 'viewer', token });
-      if (current.current === scope) window.location.href = path;
+      if (mounted.current && current.current === scope) window.location.href = path;
     } catch (err) {
-      if (current.current === scope) { setError(t(projectInvitationError(err))); setBusy(false); }
+      if (mounted.current && current.current === scope) { setError(t(projectInvitationError(err))); setBusy(false); }
     } finally { if (accepting.current === scope) accepting.current = null; }
   }
 
@@ -81,6 +85,11 @@ export default function ShareInvite() {
 
   // Unknown, withdrawn or malformed — all the same screen, so this cannot be used to test
   // whether a token is real.
+  if (loadFailed) return <div className="mx-auto max-w-md space-y-4 px-4 py-14 text-center">
+    <p role="alert" className="text-sm text-brand-mid-grey">{t('invite.loadFailed')}</p>
+    <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border px-5 py-3 text-sm font-semibold">{t('common.retry')}</button>
+  </div>;
+
   if (!preview) {
     return (
       <div className="mx-auto max-w-md px-4 py-14 text-center">

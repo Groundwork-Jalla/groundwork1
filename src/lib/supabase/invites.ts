@@ -157,11 +157,9 @@ export async function acceptInvite(token: string): Promise<string> {
   }
 
   if (typeof projectId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(projectId)) throw new Error('invitation_access_pending');
-  // Tag the user's session so UI can detect contractor role without an extra DB call.
-  // Also mark onboarding_complete so returning contractors go to dashboard, not onboarding.
-  await supabase.auth.updateUser({
-    data: { role: 'contractor', onboarding_complete: true },
-  });
+  // The accepted project membership and the saved account role are authoritative.
+  // Retrying a link must not overwrite an admin's role correction or claim that a
+  // newly invited contractor has already completed onboarding.
 
   /**
    * Communication Flow §6.1: accepting ends CI02/03/04 to the contractor and

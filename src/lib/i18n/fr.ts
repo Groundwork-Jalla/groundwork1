@@ -5553,6 +5553,7 @@ export const fr: Mirror<EnDict> = {
   },
   invite: {
     projectPreparing: 'Votre invitation a été acceptée. Sélectionnez à nouveau Ouvrir le projet pour accéder à votre projet.',
+    loadFailed: 'Votre invitation n’a pas pu être chargée. Vérifiez votre connexion et réessayez ; votre lien reste enregistré.',
     notFoundTitle: 'Invitation introuvable',
     notFoundBody:  "Ce lien d'invitation est invalide ou a déjà été utilisé.",
     goToGroundwork:'Aller sur Groundwork',

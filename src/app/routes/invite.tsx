@@ -16,6 +16,8 @@ export default function InvitePage() {
   const scope = `${token ?? ''}:${user?.id ?? ''}`;
   const current = useRef(scope); current.current = scope;
   const inFlight = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [resolvedToken, setResolvedToken] = useState<string | undefined>();
 
   const [invite,    setInvite]    = useState<InviteDetails | null>(null);
@@ -23,21 +25,23 @@ export default function InvitePage() {
   const [invalid,   setInvalid]   = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [acceptErr, setAcceptErr] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) { setInvalid(true); setLoading(false); return; }
     let live = true;
-    setLoading(true); setInvalid(false); setInvite(null); setAcceptErr(null);
+    setLoading(true); setInvalid(false); setInvite(null); setAcceptErr(null); setLoadFailed(false);
     getInviteByToken(token)
       .then((data) => {
         if (!live) return;
         if (!data) { setInvalid(true); return; }
         setInvite(data);
       })
-      .catch(() => { if (live) setInvalid(true); })
+      .catch(error => { if (live) { if (error?.code === '22P02') setInvalid(true); else setLoadFailed(true); } })
       .finally(() => { if (live) { setResolvedToken(token); setLoading(false); } });
     return () => { live = false; };
-  }, [token, user?.id]);
+  }, [token, user?.id, attempt]);
   useEffect(() => { setAccepting(false); setAcceptErr(null); }, [scope]);
 
   async function handleAcceptNow() {
@@ -47,9 +51,9 @@ export default function InvitePage() {
     setAcceptErr(null);
     try {
       const path = await completeProjectInvitation({ kind: 'contractor', token });
-      if (current.current === scope) window.location.href = path;
+      if (mounted.current && current.current === scope) window.location.href = path;
     } catch (err) {
-      if (current.current === scope) { setAcceptErr(t(projectInvitationError(err))); setAccepting(false); }
+      if (mounted.current && current.current === scope) { setAcceptErr(t(projectInvitationError(err))); setAccepting(false); }
     } finally { if (inFlight.current === scope) inFlight.current = null; }
   }
 
@@ -73,6 +77,11 @@ export default function InvitePage() {
       </div>
     );
   }
+
+  if (loadFailed) return <div className="space-y-4 text-center">
+    <p role="alert" className="text-sm text-brand-mid-grey">{t('invite.loadFailed')}</p>
+    <button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-xl border px-5 py-3 text-sm font-semibold">{t('common.retry')}</button>
+  </div>;
 
   if (invalid || !invite) {
     return (
