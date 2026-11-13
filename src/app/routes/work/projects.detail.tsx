@@ -143,7 +143,8 @@ export default function ContractorProjectDetail() {
     setDocuments(docs);
     setRework(rw);
     setPayments({ ...pay, rows: pay.rows.filter(r => r.projectId === projectId) });
-    setStagePayments(stagePay);window.dispatchEvent?.(new Event('groundwork:project-action'));
+    setStagePayments(stagePay);
+    if (typeof window !== 'undefined') window.dispatchEvent?.(new Event('groundwork:project-action'));
   }, [projectId]);
 
   useEffect(() => {
@@ -849,7 +850,15 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
   const linkedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
-  useEffect(()=>{if(!linkedStage)return;const row=stages.find(stage=>String(stage.stage_number)===linkedStage);if(row)document.getElementById('work-stage-'+row.id)?.scrollIntoView({behavior:'smooth',block:'start'});},[project.id,linkedStage,stages]);
+  const scrolledStage = useRef('');
+  useEffect(() => {
+    if (!linkedStage) { scrolledStage.current = ''; return; }
+    const key = `${project.id}:${linkedStage}`;
+    if (scrolledStage.current === key || typeof document === 'undefined') return;
+    const row = stages.find(stage => String(stage.stage_number) === linkedStage);
+    const target = row && document.getElementById('work-stage-' + row.id);
+    if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); scrolledStage.current = key; }
+  }, [project.id, linkedStage, stages]);
 
   if (stages.length === 0) {
     return (
@@ -889,6 +898,14 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
         const showGate = !stage.pre_existing&&(canActOnProjectStage(stage, stages)||stage.status==='complete') && !!tranche;
         const funded = stageWorkReady(stage, stages, tranche, project.workflow_origin);
         const canWork = project.status === 'active' && canActOnProjectStage(stage, stages) && funded;
+        // Why Upload is off, in words. The button used to go quiet with no cue at all —
+        // a contractor on 14 Nov 2026 reported it "not clicking" on a stage whose
+        // approved updates were waiting on the client's payment.
+        const uploadBlocked = canWork ? null
+          : project.status !== 'active' ? t('contractorProject.uploadPaused')
+          : !canActOnProjectStage(stage, stages) ? t('contractorProject.uploadPreviousFirst')
+          : stage.review_payment_pending ? t('contractorProject.uploadAwaitingPayment')
+          : t('project.stages.paymentBeforeWork');
 
         if (!isOpen) {
           /*
@@ -986,7 +1003,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                 </span>
               )}
             </div>
-            {!funded && !stage.review_payment_pending && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{t('project.stages.paymentBeforeWork')}</p>}
+            {uploadBlocked && <p role="status" className="mt-3 text-xs text-brand-mid-grey">{uploadBlocked}</p>}
             <p className="ml-[34px] mt-1 text-xs text-brand-mid-grey">{t('contractorWork.ticksItself')}</p>
 
             {/* What a verifier sent back belongs to the stage it is about, not to a
@@ -1043,8 +1060,8 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                       </span>
                       {!complete && (
                         <button type="button" onClick={() => setUploadFor(item.id)} disabled={!canWork}
-                          data-tour="upload-evidence"
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black">
+                          data-tour="upload-evidence" title={uploadBlocked ?? undefined}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
                           <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
                         </button>
                       )}

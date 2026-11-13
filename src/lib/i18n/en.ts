@@ -1726,6 +1726,7 @@ export const en = {
         client_provisioned:         'created a client account',
         // 090 — the ledger. `payment.<state>` follows the ledger's own state names.
         funding_receipt_submitted:  'uploaded a payment receipt',
+        funding_receipt_replaced: 'replaced an unconfirmed payment receipt',
         funding_receipt_accepted: 'accepted a receipt and agreed to proceed',
         funding_receipt_top_up_requested: 'confirmed a partial payment and requested a top-up',
         funding_receipt_flagged: 'flagged a receipt for review',
@@ -2826,6 +2827,10 @@ export const en = {
     evidenceCount:  '{count} file(s) on this item',
     noEvidence:     'No updates yet',
     upload:         'Upload',
+    // Why Upload is off. Each line names the one thing that reopens it.
+    uploadAwaitingPayment: 'The client approved your updates for this stage. Uploads continue on the next stage once the client pays and you confirm the money arrived.',
+    uploadPaused:          'This project is paused, so updates cannot be added right now.',
+    uploadPreviousFirst:   'Updates open here once the stage before this one is complete.',
     tabPayments:       'Payments',
     tabMessages:       'Messages',
     pipeline:          'Construction pipeline',

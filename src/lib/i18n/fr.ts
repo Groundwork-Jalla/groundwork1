@@ -1718,6 +1718,7 @@ export const fr: Mirror<EnDict> = {
         // 090 — le registre. `payment.<state>` suit les noms d\u2019\u00e9tat du registre.
         funding_receipt_submitted:  'a t\u00e9l\u00e9vers\u00e9 un re\u00e7u de paiement',
         funding_receipt_accepted: 'a accepté un reçu et confirmé la poursuite des travaux',
+        funding_receipt_replaced: 'a remplacé un reçu de paiement non confirmé',
         funding_receipt_top_up_requested: 'a confirmé un paiement partiel et demandé un complément',
         funding_receipt_flagged: 'a signalé un reçu à vérifier',
         funding_received:           'a confirm\u00e9 la r\u00e9ception des fonds',
@@ -2773,6 +2774,9 @@ export const fr: Mirror<EnDict> = {
     evidenceCount:  '{count} fichier(s) sur cet élément',
     noEvidence:     'Aucune mise \u00e0 jour pour l’instant',
     upload:         'Envoyer',
+    uploadAwaitingPayment: 'Le client a approuvé vos mises à jour pour cette étape. Les envois reprennent à l’étape suivante dès que le client paie et que vous confirmez la réception de l’argent.',
+    uploadPaused:          'Ce chantier est en pause : aucune mise à jour ne peut être ajoutée pour le moment.',
+    uploadPreviousFirst:   'Les mises à jour s’ouvrent ici une fois l’étape précédente terminée.',
     tabPayments:       'Paiements',
     tabMessages:       'Messages',
     pipeline:          'Déroulé du chantier',
