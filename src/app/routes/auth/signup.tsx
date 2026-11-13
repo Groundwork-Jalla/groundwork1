@@ -18,7 +18,7 @@ import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
          isExistingAccount } from "@/lib/auth/signup-account";
 import RoleSignup from "@/components/auth/RoleSignup";
 import { PasswordField } from '@/components/ui/PasswordField';
-import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn } from '@/lib/auth/project-invitation';
+import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn, withProjectInvitation } from '@/lib/auth/project-invitation';
 
 export default function Signup() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -373,11 +373,7 @@ export default function Signup() {
       <p className="text-center text-sm text-brand-mid-grey mt-8">
         {t('auth.signup.haveAccount')}{" "}
         <Link
-          to={
-            isInviteFlow
-              ? `/auth/login?invite=${encodeURIComponent(inviteToken)}`
-              : "/auth/login"
-          }
+          to={withProjectInvitation('/auth/login', readProjectInvitation(searchParams.toString()))}
           className="text-brand-near-black underline underline-offset-4"
         >
           {t('auth.signup.logIn')}

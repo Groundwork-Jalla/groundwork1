@@ -87,11 +87,11 @@ export default function WorkLayout() {
   useEffect(() => {
     if (loading) return;
     if (!session) {
-      navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
+      navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname + location.search + (location.hash ?? ''))}`, { replace: true });
       return;
     }
     if (resolved && !allowed) navigate('/dashboard', { replace: true });
-  }, [loading, session, resolved, allowed, navigate, location.pathname]);
+  }, [loading, session, resolved, allowed, navigate, location.pathname, location.search, location.hash]);
 
   // Has the agreement been signed? Asked once the role is settled, and never allowed to
   // fail closed: a read that errors, or a database without 116, leaves the surface open.

@@ -6,6 +6,7 @@ import {
   CalendarDays, BadgeCheck, ShieldCheck, Briefcase,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
+import { projectListForRole } from '@/lib/auth/account-role';
 import { useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { supabase }              from '@/lib/supabase/client';
@@ -146,7 +147,7 @@ export default function ProjectDetail() {
   const { id }   = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
-  const { user, isContractor: hasContractorRole } = useAuth();
+  const { user, accountRole, isContractor: hasContractorRole } = useAuth();
   const scope = `${id ?? ''}:${user?.id ?? ''}`;
   const currentScope = useRef(scope);
   currentScope.current = scope;
@@ -410,7 +411,7 @@ export default function ProjectDetail() {
       {/* Nav */}
       <nav className="border-b border-brand-border-grey dark:border-[#2c2c2c] px-4 sm:px-8 py-4 flex items-center gap-3">
         <Link
-          to={hasContractorRole ? '/work/projects' : '/projects'}
+          to={projectListForRole(accountRole ?? (hasContractorRole ? 'contractor' : 'client'))}
           className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors shrink-0"
         >
           <ArrowLeft className="size-4" />

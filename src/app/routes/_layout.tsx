@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { RoleTour } from '@/components/tour/RoleTour';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { AppShell } from '@/components/shell/AppShell';
-import { CLIENT_NAV } from '@/components/shell/nav-config';
+import { CLIENT_NAV, ADMIN_NAV } from '@/components/shell/nav-config';
+import { WorkShell } from '@/components/shell/WorkShell';
+import { VerifierShell } from '@/components/verifier/VerifierShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { mustChangePassword, FORCED_PASSWORD_PATH } from '@/lib/auth/provisioned';
 import { Button } from '@/components/ui/button';
@@ -15,15 +17,16 @@ import { useT } from '@/lib/i18n';
  */
 export default function ProtectedLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const t = useT();
-  const { user, session, loading, rolesChecked, signOut } = useAuth();
+  const { user, session, loading, rolesChecked, signOut, accountRole } = useAuth();
   const [passwordCheck, setPasswordCheck] = useState<{ userId: string; cleared: boolean } | null>(null);
   const [checkAttempt, setCheckAttempt] = useState(0);
   const userId = session?.user.id;
 
   useEffect(() => {
-    if (!loading && !session) navigate('/auth/login', { replace: true });
-  }, [loading, session, navigate]);
+    if (!loading && !session) navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`, { replace: true });
+  }, [loading, session, navigate, location.pathname, location.search, location.hash]);
 
   // The sign-in pages send a provisioned account to the password form; this is what
   // stops it walking around them by typing /dashboard. Checked once per shell mount —
@@ -73,19 +76,20 @@ export default function ProtectedLayout() {
     navigate('/', { replace: true });
   }
 
+  const content = <><Outlet /><RoleTour /></>;
+  const bell = <NotificationBell userId={user?.id ?? ''} />;
+  if (accountRole === 'contractor') return <WorkShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</WorkShell>;
+  if (accountRole === 'verifier') return <VerifierShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</VerifierShell>;
   return (
     <AppShell
-      nav={CLIENT_NAV}
+      nav={accountRole === 'admin' ? ADMIN_NAV : CLIENT_NAV}
       displayName={displayName}
       profileTo="/profile"
       userCaptionKey="nav.viewProfile"
       onLogout={handleLogout}
-      topBarActions={<NotificationBell userId={user?.id ?? ''} />}
+      topBarActions={bell}
     >
-      <Outlet />
-      {/* Mounted inside the shell, so a tip can point at the sidebar as well as the
-          page. Renders nothing at all once the person has been through it or skipped. */}
-      <RoleTour />
+      {content}
     </AppShell>
   );
 }

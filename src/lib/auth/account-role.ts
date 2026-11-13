@@ -11,6 +11,11 @@ export function accountRoleOf(roles: string): AccountRole {
 export function dashboardForRole(role: AccountRole): string {
   return role === 'admin' ? '/admin' : role === 'verifier' ? '/verifiers' : role === 'contractor' ? '/work' : '/dashboard';
 }
+/** Project responsibilities survive account corrections; Back follows the current workspace. */
+export function projectListForRole(role: AccountRole): string {
+  return role === 'admin' ? '/admin/projects' : role === 'verifier' ? '/verifiers#projects'
+    : role === 'contractor' ? '/work/projects' : '/projects';
+}
 export function roleAssignmentMatches(roles: string, role: AccountRole): boolean {
   const held = roles.split(',').map(value => value.trim()).filter(Boolean);
   return held.length === 1 && held[0] === (role === 'client' ? 'homeowner' : role);

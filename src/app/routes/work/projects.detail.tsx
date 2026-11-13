@@ -28,6 +28,7 @@ import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/acce
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
+import { projectListForRole } from '@/lib/auth/account-role';
 import { ShareProject } from '@/components/project/ShareProject';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
@@ -295,8 +296,9 @@ export default function ContractorProjectDetail() {
 
 function Back() {
   const t = useT();
+  const { accountRole, isContractor } = useAuth();
   return (
-    <Link to="/work/projects"
+    <Link to={projectListForRole(accountRole ?? (isContractor ? 'contractor' : 'client'))}
           className="inline-flex items-center gap-1.5 text-sm text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
       <ArrowLeft className="size-3.5" /> {t('contractorProject.back')}
     </Link>
