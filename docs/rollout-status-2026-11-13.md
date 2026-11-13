@@ -4,6 +4,26 @@ This reconciles the conversation's implemented fixes, the communication release
 and the remaining product work. Implementation and local tests are distinct from
 production acceptance. The user's decisions govern; meeting notes are evidence.
 
+## Urgent project-creation incident
+
+The final creation step reported `record "old" has no field "project_id" (42703)`.
+A shared trigger can produce this exact error when one SQL expression references
+`projects.id` and child-table `project_id`: PostgreSQL resolves record fields in
+the expression even when the incompatible branch will not be taken.
+
+`20261113001200_project_creation_trigger_records.sql` repairs the installed
+trigger definitions attached to projects, stages and fees using safe JSON record
+lookups. It retains the installed validation logic, function permissions and
+trigger attachments, including approved stage-price changes. It changes no
+project rows and is independent of the communication-schema repair.
+
+Local PostgreSQL checks reproduce the exact error before the repair and verify
+creation afterward, exact BOQ totals, zero fees, repeated application, ordered
+stages, partial/multicurrency payments and client-approved stage-price changes.
+Production application and the person's successful retry are still pending.
+Run the complete hotfix in Supabase SQL Editor, then retry the existing wizard's
+confirmation button without refreshing or starting another project.
+
 ## Live checks completed in this review
 
 | Check | Observed result |

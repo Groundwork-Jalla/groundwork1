@@ -126,6 +126,38 @@ EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'invite_invalid:%' THEN RAISE; EN
 END $$;
 SELECT 'INVITATION_MIGRATION_OK' AS result;
 `;
+  const legacySharedCheck = fn('supabase/migrations/20261111000200_confirmed_boq_budget.sql','check_boq_budget_schedule')
+    .replace(/IF TG_TABLE_NAME = 'projects' THEN[\s\S]*?END IF;/,
+      "v_id := CASE WHEN TG_TABLE_NAME='projects' THEN CASE WHEN TG_OP='DELETE' THEN OLD.id ELSE NEW.id END ELSE CASE WHEN TG_OP='DELETE' THEN OLD.project_id ELSE NEW.project_id END END;");
+  const reproduceCreationFailure = `
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+DO $$ BEGIN
+ BEGIN
+  INSERT INTO projects(id,user_id) VALUES('00000000-0000-0000-0000-000000000040',auth.uid());
+  SET CONSTRAINTS ALL IMMEDIATE;
+  RAISE EXCEPTION 'fixture did not reproduce project creation failure';
+ EXCEPTION WHEN undefined_column THEN
+  IF SQLERRM NOT LIKE 'record "old" has no field "project_id"%' THEN RAISE; END IF;
+ END;
+END $$;
+`;
+  const creationRepairChecks = `
+SELECT test_project('00000000-0000-0000-0000-000000000040',auth.uid());
+SELECT confirm_boq_budget('00000000-0000-0000-0000-000000000040',141407337.524,'XAF',600,1,'QA confirmed bill','fixture.xlsx');
+SET CONSTRAINTS ALL IMMEDIATE;
+DO $$ BEGIN
+ IF (SELECT sum(milestone_amount) FROM project_stages WHERE project_id='00000000-0000-0000-0000-000000000040')<>141407337.524 THEN RAISE EXCEPTION 'repair changed BOQ amount'; END IF;
+ BEGIN
+  UPDATE project_stages SET payment_milestone_usd=payment_milestone_usd+1 WHERE project_id='00000000-0000-0000-0000-000000000040' AND stage_number=4;
+  RAISE EXCEPTION 'repair disabled budget reconciliation';
+ EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE 'boq_stage_total_mismatch%' THEN RAISE; END IF; END;
+ BEGIN
+  UPDATE project_fees SET amount_usd=1 WHERE project_id='00000000-0000-0000-0000-000000000040';
+  RAISE EXCEPTION 'repair allowed additional BOQ fee';
+ EXCEPTION WHEN OTHERS THEN IF SQLERRM<>'boq_has_no_platform_fees' THEN RAISE; END IF; END;
+END $$;
+SELECT 'PROJECT_CREATION_REPAIR_OK' AS result;
+`;
   const sql = [setup,
     fn('supabase/migrations/090_payments_ledger.sql', 'stages_seed_expected_funding'),
     `CREATE TRIGGER stages_seed_expected_funding AFTER INSERT OR UPDATE OF payment_milestone_usd
@@ -141,6 +173,8 @@ SELECT 'INVITATION_MIGRATION_OK' AS result;
     fn('supabase/migrations/20261111000000_a_bill_is_the_whole_project.sql', 'admin_start_project_at_stage'),
     read('supabase/migrations/20261111000200_confirmed_boq_budget.sql'), tests,
     invitationSetup, read('supabase/migrations/20261111000300_invitation_acceptance.sql'), invitationTests,
+    legacySharedCheck,reproduceCreationFailure,read('supabase/migrations/20261113001200_project_creation_trigger_records.sql'),
+    read('supabase/migrations/20261113001200_project_creation_trigger_records.sql'),creationRepairChecks,
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -153,10 +187,11 @@ SELECT 'INVITATION_MIGRATION_OK' AS result;
   } finally { closeSync(input); }
   const output = result.stdout + result.stderr;
   if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output)
-      || !output.includes('BOQ_MIGRATION_OK') || !output.includes('INVITATION_MIGRATION_OK')) {
+      || !output.includes('BOQ_MIGRATION_OK') || !output.includes('INVITATION_MIGRATION_OK')
+      || !output.includes('PROJECT_CREATION_REPAIR_OK')) {
     throw new Error(output);
   }
-  console.log('Database regressions passed: exact BoQ allocation, zero stages/fees, historical values, no historical funding, owner/partner/admin access, fixed FX, retries, mutation guards and client/contractor invitation acceptance.');
+  console.log('Database regressions passed: exact BoQ allocation, zero stages/fees, historical values, no historical funding, owner/partner/admin access, fixed FX, retries, mutation guards, client/contractor invitation acceptance and the reproduced project-creation trigger failure repaired without removing budget checks.');
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

@@ -258,6 +258,7 @@ SELECT 'STAGE_PROGRESSION_OK' AS result;
     fn('supabase/migrations/132_paid_opens_the_stage.sql', 'open_stage_if_settled'), triggers,
     read('supabase/migrations/20261112000000_receipt_payment_amounts.sql'),
     read('supabase/migrations/20261112000100_ordered_stage_progression.sql'),
+    read('supabase/migrations/20261113001200_project_creation_trigger_records.sql'),
     read('scripts/fixtures/stage-approval-schema-reproduce.sql'),
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-after.sql'),

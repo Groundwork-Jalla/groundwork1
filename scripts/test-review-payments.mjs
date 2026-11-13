@@ -88,6 +88,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('scripts/fixtures/admin-account-types.sql'),
     read('supabase/migrations/20261111000200_confirmed_boq_budget.sql'),
     read('supabase/migrations/20261113000100_stage_price_amendments.sql'),
+    read('supabase/migrations/20261113001200_project_creation_trigger_records.sql'),
     read('scripts/fixtures/stage-price-amendments.sql'),
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
