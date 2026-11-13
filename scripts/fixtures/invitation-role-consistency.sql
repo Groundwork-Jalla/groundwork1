@@ -33,12 +33,12 @@ DO $$ DECLARE selected text;old_roles text;tok uuid;BEGIN
   PERFORM test_assert(accept_contractor_invite(tok)=test_id(605),'claimant retry is still idempotent after account correction');
   PERFORM test_assert(my_account_access()->>'role'=selected AND (SELECT count(*)=1 FROM user_roles WHERE user_id=test_id(24)),'link retry cannot undo the saved role or add an extra role');
   PERFORM test_assert(is_primary_project_contractor(test_id(605)),'admin correction retains the project assignment');
-  PERFORM test_assert((SELECT raw_user_meta_data->>'role'=selected FROM auth.users WHERE id=test_id(24)),'link retries preserve the admin metadata snapshot');
  END LOOP;
 END $$;
 SELECT set_config('test.actor',test_id(8)::text,false);
 SELECT test_refused($q$SELECT accept_contractor_invite((SELECT token FROM test_role_links WHERE project_id=test_id(605)))$q$,'invite_invalid');
 SELECT test_assert(NOT project_member(test_id(605)),'another account cannot replay the claimed link');
 RESET ROLE;
+SELECT test_assert((SELECT raw_user_meta_data->>'role'='client' FROM auth.users WHERE id=test_id(24)),'link retries preserve the admin metadata snapshot');
 SELECT test_assert((SELECT bool_and(budget_amount=141407337.524) FROM projects WHERE id IN(SELECT project_id FROM test_role_links)),'claims, corrections and retries never change project budgets');
 SELECT 'INVITATION_ROLES_OK' AS result;

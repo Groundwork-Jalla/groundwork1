@@ -350,7 +350,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     read('supabase/migrations/20261113000300_lifecycle_delivery.sql'),read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'),
     read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
     read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('supabase/migrations/20261113001100_communication_schema_repair.sql'),read('scripts/fixtures/project-team-communications.sql'),
-    "ALTER TABLE auth.users ADD COLUMN raw_user_meta_data jsonb DEFAULT '{}'; ALTER TABLE profiles ADD COLUMN updated_at timestamptz DEFAULT now();",
+    "ALTER TABLE auth.users ADD COLUMN raw_user_meta_data jsonb DEFAULT '{}'; ALTER TABLE profiles ADD COLUMN updated_at timestamptz DEFAULT now(); ALTER TABLE user_roles ADD COLUMN id uuid DEFAULT gen_random_uuid() PRIMARY KEY;",
     read('supabase/migrations/20261113000700_admin_user_roles.sql'),
     read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
     read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
