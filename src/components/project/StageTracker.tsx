@@ -100,6 +100,7 @@ interface StageDetailProps {
   tier: string;
   userId: string;
   isContractor?: boolean;
+  canConfirmPayments: boolean;
   canApprove: boolean;
   canUploadEvidence: boolean;
   projectId: string;
@@ -127,6 +128,7 @@ function StageDetail({
   tier,
   userId,
   isContractor,
+  canConfirmPayments,
   canApprove,
   canUploadEvidence,
   projectId,
@@ -268,7 +270,7 @@ function StageDetail({
 
       {!stage.pre_existing && payment && <StagePaymentGate
         projectId={projectId} stageId={stage.id} stageNumber={stage.stage_number} payment={payment}
-        isContractor={!!isContractor} readOnly={!isContractor && !canApprove} canUpload={paymentEnabled}
+        isContractor={!!isContractor} readOnly={isContractor ? !canConfirmPayments : !canApprove} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
       />}
@@ -299,6 +301,7 @@ function StageDetail({
 // ── StageTracker ──────────────────────────────────────────
 
 export interface StageTrackerProps {
+  canConfirmPayments?: boolean;
   /** Only an assigned project contractor may upload or remove construction evidence. */
   canUploadEvidence?: boolean;
   stages: ProjectStageRow[];
@@ -354,6 +357,7 @@ export function StageTracker({
   tier,
   userId,
   isContractor,
+  canConfirmPayments = !!isContractor,
   canApprove,
   projectId,
   payments,
@@ -515,6 +519,7 @@ export function StageTracker({
                 tier={tier}
                 userId={userId}
                 isContractor={isContractor}
+                canConfirmPayments={canConfirmPayments}
                 canApprove={canApprove}
                 canUploadEvidence={canUploadEvidence}
                 projectId={projectId}

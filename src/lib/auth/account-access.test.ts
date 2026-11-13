@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({ rpc: vi.fn(), dispatch: vi.fn() }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: { rpc: h.rpc } }));
 import { readAccountAccess } from './account-access';
-import { ACCOUNT_ROLES, accountRoleOf, dashboardForRole, roleAssignmentMatches } from './account-role';
+import { ACCOUNT_ROLES, accountRoleOf, dashboardForRole, projectListForRole, roleAssignmentMatches } from './account-role';
 import { setUserRole } from '@/lib/supabase/admin-users';
 
 beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('window', { dispatchEvent: h.dispatch }); });
@@ -47,5 +47,6 @@ describe('admin role editing boundary', () => {
     expect(roleAssignmentMatches('homeowner', 'client')).toBe(true);
     expect(roleAssignmentMatches('admin,verifier', 'admin')).toBe(false);
     expect(ACCOUNT_ROLES.map(dashboardForRole)).toEqual(['/dashboard', '/work', '/verifiers', '/admin']);
+    expect(ACCOUNT_ROLES.map(projectListForRole)).toEqual(['/projects', '/work/projects', '/verifiers#projects', '/admin/projects']);
   });
 });

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ index: 0, state: [] as any[], access: null as any, error: false, refresh: vi.fn(), refIndex:0, refs:[] as any[],effects:[] as (()=>unknown)[],projectId:'project',fetchAssigned:vi.fn() }));
+const h = vi.hoisted(() => ({ index: 0, state: [] as any[], access: null as any, error: false, role:'contractor', refresh: vi.fn(), refIndex:0, refs:[] as any[],effects:[] as (()=>unknown)[],projectId:'project',fetchAssigned:vi.fn() }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const index = h.index++; return [index in h.state ? h.state[index] : initial, (value:any)=>{h.state[index]=typeof value==='function'?value(h.state[index]):value;}]; },
   useRef:(initial:any)=>{const index=h.refIndex++;return h.refs[index]??(h.refs[index]={current:initial});},
@@ -8,7 +8,7 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
 }));
 vi.mock('react-router', () => ({ Link: 'link', Navigate: 'navigate',
   useParams: () => ({ projectId: h.projectId }), useSearchParams: () => [new URLSearchParams(), vi.fn()] }));
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'contractor-account', user_metadata: { role: 'contractor' } } }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'contractor-account', user_metadata: { role: 'contractor' } },accountRole:h.role,isContractor:h.role==='contractor' }) }));
 vi.mock('@/hooks/useProjectTeamAccess', () => ({ useProjectTeamAccess: () => ({ access: h.access, error: h.error, refresh: h.refresh }) }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key, useLanguage: () => ({ lang: 'en' }) }));
 vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: String, substageLabel: String }) }));
@@ -29,7 +29,7 @@ function nodes(value: any): Node[] {
 }
 function render() { h.index = 0;h.refIndex=0;h.effects=[]; return nodes(ContractorProjectDetail()); }
 beforeEach(() => {
-  vi.clearAllMocks(); h.access = { assignedContractor: true, primaryContractor: true }; h.error = false;
+  vi.clearAllMocks(); h.access = { assignedContractor: true, primaryContractor: true }; h.error = false;h.role='contractor';
   h.projectId='project';h.refIndex=0;h.refs=[];h.effects=[];
   h.state = [{ project: { id: 'project', name: 'Home', user_id: 'client', country: 'CM', budget_source: 'boq' },
     stages: [], activeStage: null, completedStages: 0, totalStages: 0 }, [], [], [], null, new Map(), 'work'];
@@ -78,5 +78,11 @@ describe('the contractor work page requires an actual project assignment', () =>
     const elements = render();
     expect(elements.some(node => node.type === 'navigate')).toBe(false);
     expect(elements.some(node => node.type?.name === 'WorkTab')).toBe(true);
+    expect(elements.find(node => node.type?.name === 'WorkTab')!.props.canConfirmPayments).toBe(primary);
+  });
+  it.each([['client','/projects'],['contractor','/work/projects'],['verifier','/verifiers#projects'],['admin','/admin/projects']])('Back uses the current %s workspace after an account-role correction', (role,path)=>{
+    h.role=role;
+    const back=render().find(node=>node.type?.name==='Back')!;
+    expect(nodes(back.type(back.props)).find(node=>node.type==='link')!.props.to).toBe(path);
   });
 });

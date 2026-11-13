@@ -6,6 +6,7 @@ const h = vi.hoisted(() => ({
   route: { id: 'project' }, approve: vi.fn(), mark: vi.fn(), project: vi.fn(), stages: vi.fn(),
   substages: vi.fn(), payments: vi.fn(), fees: vi.fn(), params: new URLSearchParams('tab=stages'),
   primaryClient: true,
+  assignedContractor: false, primaryContractor: false, role: 'client',
   canInviteContractor: true, setParams: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
@@ -24,7 +25,7 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
 vi.mock('react-router', () => ({ Link: 'a', useParams: () => h.route, useNavigate: () => vi.fn(),
   useSearchParams: () => [h.params, h.setParams] }));
 vi.mock('framer-motion', () => ({ motion: { div: 'div' } }));
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'client' }, isContractor: false }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'client' }, accountRole:h.role,isContractor: h.role==='contractor' }) }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key }));
 vi.mock('@/lib/domain-labels', () => ({ useDomainLabels: () => ({ buildingType: String, country: String, roofType: String }) }));
 vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: () => 'Stage', substageLabel: () => 'Update' }) }));
@@ -43,6 +44,7 @@ vi.mock('@/components/project/ProjectConversations', () => ({ ProjectConversatio
 vi.mock('@/components/project/ProjectTeam', () => ({ ProjectTeam: 'project-team' }));
 vi.mock('@/hooks/useProjectTeamAccess', () => ({ useProjectTeamAccess: () => ({ access: {
   primaryClient: h.primaryClient, canInviteContractor: h.primaryClient && h.canInviteContractor,
+  assignedContractor: h.assignedContractor, primaryContractor:h.primaryContractor,
 } }) }));
 vi.mock('@/components/project/OverviewTab', () => ({ default: 'overview' }));
 vi.mock('@/components/project/TimelineTab', () => ({ default: 'timeline' }));
@@ -77,7 +79,7 @@ function tabs() {
   return nodes((bar.type as any)(bar.props));
 }
 beforeEach(() => {
-  vi.clearAllMocks(); h.primaryClient = true; h.refs = []; h.state = [null, { ...project }, stages.map(stage => ({ ...stage })),
+  vi.clearAllMocks(); h.primaryClient = true; h.assignedContractor=false;h.primaryContractor=false;h.role='client'; h.refs = []; h.state = [{ ...project }, stages.map(stage => ({ ...stage })),
     [{ id: 'last-update', stage_id: 'foundation', status: 'pending_review', evidence_urls: ['photo.jpg'] }],
     new Map(), [], false, null];
   h.params = new URLSearchParams('tab=stages'); h.canInviteContractor = true;
@@ -89,8 +91,18 @@ beforeEach(() => {
 });
 
 describe('project team navigation', () => {
+  it.each([['client','/projects'],['contractor','/work/projects'],['verifier','/verifiers#projects'],['admin','/admin/projects']])('Back follows the current %s account instead of the project creator', (role,path)=>{
+    h.role=role;
+    expect(render().find(node=>node.type==='a'&&node.props.to===path)).toBeDefined();
+  });
+  it('updates contractor responsibilities immediately after a project-role refresh',()=>{
+    h.primaryClient=false;h.assignedContractor=true;h.primaryContractor=true;
+    expect(tracker()).toMatchObject({isContractor:true,canConfirmPayments:true,canUploadEvidence:true});
+    h.assignedContractor=false;h.primaryContractor=false;
+    expect(tracker()).toMatchObject({isContractor:false,canConfirmPayments:false,canUploadEvidence:false,canApprove:false});
+  });
   it('opens a link to Team on the same project, including an invited primary client', () => {
-    h.state[1].user_id = 'different-creator'; h.params = new URLSearchParams('tab=team');
+    h.state[0].user_id = 'different-creator'; h.params = new URLSearchParams('tab=team');
     expect(render().find(element => element.type === 'project-team')!.props.project.id).toBe('project');
     expect(render().some(element => element.type === 'stage-tracker')).toBe(false);
   });
@@ -129,7 +141,7 @@ describe('project team navigation', () => {
   });
 
   it('keeps Team available on the contractor variant of this project page', () => {
-    h.state[0] = 'project';
+    h.primaryClient=false;h.assignedContractor=true;h.primaryContractor=true;
     expect(tabs().some(element => element.props.children === 'project.tabs.team')).toBe(true);
   });
 });
@@ -168,10 +180,10 @@ describe('the client receives the saved progression without waiting for a refres
     let finish!: (result: ApproveStageResult) => void;
     h.approve.mockReturnValue(new Promise<ApproveStageResult>(resolve => { finish = resolve; }));
     const pending = tracker().onApproveStage('foundation', 4);
-    h.route.id = 'other-project'; h.state[1] = { ...project, id: 'other-project' };
+    h.route.id = 'other-project'; h.state[0] = { ...project, id: 'other-project' };
     render(); finish(progression);
     expect(await pending).toBeUndefined();
-    expect(h.state[2][0].status).toBe('active');
+    expect(h.state[1][0].status).toBe('active');
     expect(h.project).not.toHaveBeenCalled();
   });
 
@@ -191,14 +203,14 @@ describe('the client receives the saved progression without waiting for a refres
     h.project.mockReturnValue(new Promise(resolve => { finish = resolve; }));
     h.approve.mockResolvedValue(progression);
     await tracker().onApproveStage('foundation', 4);
-    h.route.id = 'other-project'; h.state[1] = { ...project, id: 'other-project' };
+    h.route.id = 'other-project'; h.state[0] = { ...project, id: 'other-project' };
     render(); finish(project); await flush();
-    expect(h.state[1].id).toBe('other-project');
+    expect(h.state[0].id).toBe('other-project');
   });
 
   it('ignores an old realtime refresh without cancelling the new project’s request', async () => {
     const oldRefresh = tracker().onPaymentChanged;
-    h.route.id = 'other-project'; h.state[1] = { ...project, id: 'other-project' };
+    h.route.id = 'other-project'; h.state[0] = { ...project, id: 'other-project' };
     let finish!: (value: unknown) => void;
     h.project.mockReturnValue(new Promise(resolve => { finish = resolve; }));
     const current = tracker().onPaymentChanged();
@@ -207,14 +219,14 @@ describe('the client receives the saved progression without waiting for a refres
     expect(h.project).toHaveBeenCalledWith('other-project');
     finish({ ...project, id: 'other-project', name: 'Current project' });
     await current;
-    expect(h.state[1].name).toBe('Current project');
+    expect(h.state[0].name).toBe('Current project');
   });
 
   it('never visually resumes a paused project from an idempotent approval retry', async () => {
-    h.state[1] = { ...project, status: 'on_hold' };
+    h.state[0] = { ...project, status: 'on_hold' };
     h.approve.mockResolvedValue({ ...progression, alreadyApproved: true, awaitingPayment: false });
     await tracker().onApproveStage('foundation', 4);
-    expect(h.state[1].status).toBe('on_hold');
+    expect(h.state[0].status).toBe('on_hold');
     expect(tracker().stages[1].status).toBe('locked');
   });
 });

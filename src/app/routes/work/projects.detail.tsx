@@ -262,6 +262,7 @@ export default function ContractorProjectDetail() {
           hasBoq={hasBoq}
           assigned={assigned} substages={substages} rework={rework}
           isOwner={user?.id === project.user_id}
+          canConfirmPayments={teamAccess.primaryContractor === true}
           stagePayments={stagePayments}
           onSubmitted={load}
         />
@@ -831,13 +832,14 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
  * against the item — `submit_site_update` does that server side. Nothing here
  * completes a stage or approves anything: that is not the contractor's to do.
  */
-function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmitted, hasBoq }: {
+function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, stagePayments, onSubmitted, hasBoq }: {
   hasBoq: boolean;
   assigned: AssignedProject;
   substages: ProjectSubstageRow[];
   rework: ReworkItem[];
   /** Only the owner may invite; the rail offers it under the people list. */
   isOwner: boolean;
+  canConfirmPayments: boolean;
   /** Incoming tranches per stage, so a locked stage can show the client's receipt (175). */
   stagePayments: Map<string, StagePayment>;
   onSubmitted: () => Promise<void> | void;
@@ -979,7 +981,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
                     blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')}
-                    isContractor
+                    isContractor readOnly={!canConfirmPayments}
                     onChanged={onSubmitted}
                   />
                 </ProjectMoneyProvider>
@@ -1096,7 +1098,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     workReviewed={stage.review_payment_pending}
                     canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
-                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor onChanged={onSubmitted} />
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments} onChanged={onSubmitted} />
               </ProjectMoneyProvider>
             )}
 

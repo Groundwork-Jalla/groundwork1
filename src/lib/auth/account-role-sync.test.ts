@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({ state: [] as any[], refs: [] as any[], memos: [] as any[], deps: [] as any[], cleanups: [] as any[],
   effects: [] as { index: number; effect: () => any }[], si: 0, ri: 0, mi: 0, ei: 0,
   read: vi.fn(), refreshSession: vi.fn(), removeChannel: vi.fn(), listeners: [] as { table: string; callback: () => void }[],
-  auth: {} as any, location: { pathname: '/dashboard', search: '' }, navigate: vi.fn(), save: vi.fn(), saved: vi.fn(), close: vi.fn(),
-  projectAccess: vi.fn(), onboarding: vi.fn(),
+  auth: {} as any, location: { pathname: '/dashboard', search: '',hash:'' }, navigate: vi.fn(), save: vi.fn(), saved: vi.fn(), close: vi.fn(),
+  projectAccess: vi.fn(), onboarding: vi.fn(), passwordGate:vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const i = h.si++; if (!(i in h.state)) h.state[i] = typeof initial === 'function' ? initial() : initial;
@@ -22,12 +22,14 @@ vi.mock('@/lib/supabase/admin-users', () => ({ setUserRole: h.save }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key }));
 vi.mock('@/lib/supabase/project-team', () => ({ fetchProjectTeamAccess: h.projectAccess }));
 vi.mock('@/lib/supabase/contractor-onboarding', () => ({ onboardingAvailable: h.onboarding, fetchOnboardingStatus: vi.fn() }));
+vi.mock('@/lib/auth/provisioned',()=>({mustChangePassword:h.passwordGate,FORCED_PASSWORD_PATH:'/auth/new-password?reason=provisioned'}));
 vi.mock('@/components/shell/AppShell', () => ({ AppShell: 'app-shell' }));
 vi.mock('@/components/shell/WorkShell', () => ({ WorkShell: 'work-shell' }));
 vi.mock('@/components/verifier/VerifierShell', () => ({ VerifierShell: 'verifier-shell' }));
 vi.mock('@/components/ui/NotificationBell', () => ({ NotificationBell: 'notification-bell' }));
 vi.mock('@/components/tour/RoleTour', () => ({ RoleTour: 'role-tour' }));
 import WorkLayout from '@/app/routes/work/_layout';
+import ProtectedLayout from '@/app/routes/_layout';
 import { useAccountAccess } from '@/hooks/useAccountAccess';
 import { AccountRoleSync } from '@/components/auth/AccountRoleSync';
 import { UserRoleEditor } from '@/components/admin/UserRoleEditor';
@@ -50,7 +52,7 @@ beforeEach(() => {
   vi.stubGlobal('window', windowEvents); vi.stubGlobal('document', documentEvents);
   h.read.mockResolvedValue(access('client')); h.refreshSession.mockResolvedValue({}); h.removeChannel.mockResolvedValue(undefined);
   h.auth = { user: { id: 'user' }, accountRole: 'client', loading: false, rolesChecked: true };
-  h.location.pathname = '/dashboard'; h.save.mockResolvedValue('contractor');
+  h.location.pathname = '/dashboard'; h.location.search='';h.location.hash='';h.save.mockResolvedValue('contractor');h.passwordGate.mockResolvedValue(false);
   h.projectAccess.mockResolvedValue({ assignedContractor: true }); h.onboarding.mockResolvedValue(false);
 });
 afterEach(() => { h.cleanups.forEach(cleanup => cleanup?.()); vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -176,5 +178,22 @@ describe('project responsibilities after an account correction', () => {
     render(WorkLayout); h.location.pathname = '/work/projects/other'; render(WorkLayout); await flush(); render(WorkLayout);
     finish({ assignedContractor: false }); await flush();
     expect(render(WorkLayout).type).toBe('app-shell'); expect(h.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('a client or observer project uses the current account workspace',()=>{
+  it.each(['client','contractor','verifier','admin'])('keeps the %s navigation while opening an existing project responsibility',async role=>{
+    h.auth.accountRole=role;h.auth.session={user:{id:'user'},access_token:'token'};
+    h.location.pathname='/projects/existing';
+    render(ProtectedLayout);await flush();
+    const page=render(ProtectedLayout);
+    expect(page.type).toBe(role==='contractor'?'work-shell':role==='verifier'?'verifier-shell':'app-shell');
+    if(role==='admin')expect(page.props.nav.some((item:any)=>item.to==='/admin/projects')).toBe(true);
+    expect(h.navigate).not.toHaveBeenCalled();
+  });
+  it.each([ProtectedLayout,WorkLayout])('keeps the requested project/tab when authentication is needed',Layout=>{
+    h.auth.session=null;h.location.pathname=Layout===WorkLayout?'/work/projects/p':'/projects/p';h.location.search='?tab=team';h.location.hash='#members';
+    render(Layout);
+    expect(h.navigate).toHaveBeenCalledWith('/auth/login?redirect='+encodeURIComponent(h.location.pathname+h.location.search+h.location.hash),{replace:true});
   });
 });

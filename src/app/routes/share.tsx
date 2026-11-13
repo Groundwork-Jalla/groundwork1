@@ -76,7 +76,7 @@ export default function ShareInvite() {
   async function changeAccount() {
     current.current = 'switching-account';
     await signOut();
-    navigate(withProjectInvitation('/auth/login', token ? { kind: 'viewer', token } : null));
+    if (mounted.current) navigate(withProjectInvitation('/auth/login', token ? { kind: 'viewer', token } : null));
   }
 
   if (loading || authLoading || resolvedToken !== token) {

@@ -206,6 +206,12 @@ describe('approval explains the next action before opening the next stage', () =
 });
 
 describe('only the current stage offers actions', () => {
+  it('lets a secondary contractor view funds and upload evidence without confirming receipts',()=>{
+    props.isContractor=true;props.canApprove=false;props.canConfirmPayments=false;props.canUploadEvidence=true;
+    const gate=detail().find(node=>node.type===StagePaymentGate)!;
+    expect(gate.props).toMatchObject({isContractor:true,readOnly:true});
+    expect(detail().find(node=>node.type===SubstageRow)!.props.canUploadEvidence).toBe(true);
+  });
   it('lets observers read stage updates without approval or receipt controls', () => {
     props.canApprove = false;
     props.substages = [substage('pending_review')];

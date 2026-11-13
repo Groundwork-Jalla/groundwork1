@@ -157,9 +157,8 @@ export default function ProjectDetail() {
     mounted.current = true;
     return () => { mounted.current = false; loadSequence.current++; };
   }, []);
-  const [contractorProjectId, setContractorProjectId] = useState<string | null>(null);
-  const isContractor = contractorProjectId === id;
   const { access: teamAccess } = useProjectTeamAccess(id ?? '');
+  const isContractor = teamAccess?.assignedContractor === true && teamAccess.primaryClient !== true;
   const canUploadEvidence = teamAccess?.assignedContractor === true && teamAccess.primaryClient !== true;
   const t        = useT();
 
@@ -200,18 +199,14 @@ export default function ProjectDetail() {
     const isCurrent = () => mounted.current && currentScope.current === scope && sequence === loadSequence.current;
     try {
       // The document count went with the delete confirmation it was counting for (053).
-      const [p, s, sub, pay, fee, assignment] = await Promise.all([
+      const [p, s, sub, pay, fee] = await Promise.all([
         fetchProject(id),
         fetchProjectStages(id),
         fetchProjectSubstages(id),
         fetchStagePayments(id),
         fetchProjectFees(id),
-        hasContractorRole && user?.id ? supabase.from('contractor_invites').select('id')
-          .eq('project_id', id).eq('contractor_user_id', user.id).eq('status', 'accepted').limit(1)
-          : Promise.resolve({ data: [], error: null }),
       ]);
       if (!isCurrent()) return;
-      if (assignment.error) throw assignment.error;
       if (!p) { setProject(null); setError(t('project.notFound')); return; }
       setError(null);
       setProject(p);
@@ -219,7 +214,6 @@ export default function ProjectDetail() {
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
-      setContractorProjectId(assignment.data?.length ? id : null);
       if (typeof window !== 'undefined') window.dispatchEvent?.(new Event('groundwork:project-action'));
       return;
     } catch {
@@ -228,7 +222,7 @@ export default function ProjectDetail() {
     }
     // `t` is a dependency now that the messages come from the dictionary: without it
     // a toggle after mount would leave this closure reporting in the old language.
-  }, [id, t, hasContractorRole, user?.id, scope]);
+  }, [id, t, scope]);
 
   useEffect(() => {
     let active = true;
@@ -578,6 +572,7 @@ export default function ProjectDetail() {
                 tier={project.tier}
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
+                canConfirmPayments={teamAccess?.primaryContractor === true}
                 workflowOrigin={project.workflow_origin}
                 projectPaused={project.status !== 'active'}
                 projectArchived={project.status === 'archived'}

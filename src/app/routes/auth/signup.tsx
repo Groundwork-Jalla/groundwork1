@@ -26,6 +26,8 @@ export default function Signup() {
   const inviteEmail    = searchParams.get("email")  ?? "";
   const isInviteFlow   = !!inviteToken;
   const accountType = signupAccountType(searchParams);
+  const returnPath = safeAuthReturn(searchParams.get('redirect'));
+  const loginPath = withProjectInvitation('/auth/login' + (returnPath ? `?redirect=${encodeURIComponent(returnPath)}` : ''), readProjectInvitation(searchParams.toString()));
   const isContractorSignup = accountType === 'contractor';
   // The radio does not make an account: contractors are reviewed first (100).
   const sendToPartnerDoor  = signupGoesToPartnerDoor(searchParams);
@@ -373,7 +375,7 @@ export default function Signup() {
       <p className="text-center text-sm text-brand-mid-grey mt-8">
         {t('auth.signup.haveAccount')}{" "}
         <Link
-          to={withProjectInvitation('/auth/login', readProjectInvitation(searchParams.toString()))}
+          to={loginPath}
           className="text-brand-near-black underline underline-offset-4"
         >
           {t('auth.signup.logIn')}

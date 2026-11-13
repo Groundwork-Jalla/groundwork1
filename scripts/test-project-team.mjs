@@ -61,7 +61,7 @@ CREATE TABLE public.test_activity(project_id uuid,event text,details jsonb);
 CREATE FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) RETURNS void LANGUAGE plpgsql AS $$ BEGIN
  IF ($3 IS NULL)<>($4 IS NULL) THEN RAISE EXCEPTION 'bad_entity'; END IF;
  IF $1 IS NULL AND $5 IS NULL THEN RAISE EXCEPTION 'no_subject'; END IF;
- INSERT INTO test_activity VALUES($1,$2,$6); END $$;
+ INSERT INTO public.test_activity VALUES($1,$2,$6); END $$;
 CREATE FUNCTION public.test_assert(ok boolean,description text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'TEST_FAILED: %',description; END IF; END $$;
 CREATE FUNCTION public.test_refused(statement text,prefix text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN
  BEGIN EXECUTE statement; RAISE EXCEPTION 'TEST_EXPECTED_REFUSAL: %',prefix;

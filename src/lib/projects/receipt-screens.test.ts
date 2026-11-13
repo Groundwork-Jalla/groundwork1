@@ -52,7 +52,7 @@ describe('the gate is mounted on a locked stage, on both surfaces', () => {
     expect(tracker).toMatch(/<StagePaymentGate/);
     // On the locked branch: that is the stage the client has just been asked to pay for.
     expect(tracker).toContain('canUpload={paymentEnabled}');
-    expect(tracker).toContain('readOnly={!isContractor && !canApprove}');
+    expect(tracker).toContain('readOnly={isContractor ? !canConfirmPayments : !canApprove}');
     expect(clientPage).toMatch(/payments=\{payments\}/);
     expect(clientPage).toMatch(/fetchStagePayments\(id\)/);
   });

@@ -67,7 +67,7 @@ export default function InvitePage() {
     current.current = 'switching-account';
     storeToken();
     await signOut();
-    navigate(withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null));
+    if (mounted.current) navigate(withProjectInvitation('/auth/login', token ? { kind: 'contractor', token } : null));
   }
 
   if (loading || authLoading || resolvedToken !== token) {
