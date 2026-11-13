@@ -59,7 +59,7 @@ describe('the gate is mounted on a locked stage, on both surfaces', () => {
 
   it('the contractor surface, on its own stage row', () => {
     expect(workPage).toMatch(/<StagePaymentGate/);
-    expect(workPage).toMatch(/isContractor\s*\n?\s*onChanged=\{onSubmitted\}/);
+    expect(workPage).toMatch(/isContractor readOnly=\{!canConfirmPayments\}\s+onChanged=\{onSubmitted\}/);
     expect(workPage).toMatch(/fetchStagePayments\(projectId\)/);
   });
 
