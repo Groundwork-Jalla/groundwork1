@@ -16,7 +16,7 @@ import { useT } from '@/lib/i18n';
 export default function ProtectedLayout() {
   const navigate = useNavigate();
   const t = useT();
-  const { user, session, loading, signOut } = useAuth();
+  const { user, session, loading, rolesChecked, signOut } = useAuth();
   const [passwordCheck, setPasswordCheck] = useState<{ userId: string; cleared: boolean } | null>(null);
   const [checkAttempt, setCheckAttempt] = useState(0);
   const userId = session?.user.id;
@@ -56,7 +56,7 @@ export default function ProtectedLayout() {
 
   // Do not mount the dashboard (or run any child effects) while the required password
   // setup is unresolved. A redirect alone would still expose the project for a moment.
-  if (loading || !session || !checkedCurrentUser || !passwordCheck?.cleared) {
+  if (loading || !rolesChecked || !session || !checkedCurrentUser || !passwordCheck?.cleared) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-border-grey border-t-brand-near-black" />

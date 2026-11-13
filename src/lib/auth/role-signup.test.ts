@@ -375,7 +375,9 @@ describe('the role survives the email round trip', () => {
     // Admin correction may remove an old intent so a later callback cannot undo a
     // client conversion. This exact cleanup grants no role; every other SQL use of
     // signup_intent remains prohibited.
-    const withoutCleanup = all.replace(/UPDATE auth\.users SET raw_user_meta_data=raw_user_meta_data-'signup_intent'\s+WHERE id=p_user AND raw_user_meta_data->>'signup_intent'='contractor';/g, '');
+    const withoutCleanup = all
+      .replace(/UPDATE auth\.users SET raw_user_meta_data=raw_user_meta_data-'signup_intent'\s+WHERE id=p_user AND raw_user_meta_data->>'signup_intent'='contractor';/g, '')
+      .replace(/UPDATE auth\.users SET raw_user_meta_data=\(coalesce\(raw_user_meta_data,'\{\}'::jsonb\)-'signup_intent'\)\s*\|\|jsonb_build_object\('role',p_role,'onboarding_complete',true\) WHERE id=p_user;/g, '');
     expect(withoutCleanup).not.toMatch(/signup_intent/);
   });
 });
@@ -473,7 +475,7 @@ describe('both kinds of contractor reach the same place', () => {
    * contractor would sign in to /work and be bounced straight back out.
    */
 
-  it('standing is the role OR an accepted assignment, never only the role', () => {
+  it('uses the explicit role, with accepted assignments as a legacy fallback', () => {
     /**
      * The rule moved into `readContractorAccess` on 9 Nov 2026, which is the same
      * function with one more thing to say: whether it got an answer at all.
@@ -483,16 +485,18 @@ describe('both kinds of contractor reach the same place', () => {
     const roles = read('src/lib/auth/roles.ts');
     const fn = roles.slice(roles.indexOf('export async function readContractorAccess'));
     const body = fn.slice(0, fn.indexOf('\n}\n'));
-    expect(body).toMatch(/eq\('role', 'contractor'\)/);
+    expect(body).toContain("row.role === 'contractor'");
+    expect(body).toContain('if (role.ok && explicitNonContractor) return { ok: true, held: false };');
     expect(body).toMatch(/readContractorAssignment\(userId\)/);
     // Either one on its own is enough, even when the other read failed.
     expect(body).toMatch(/if \(role\.ok && role\.held\) return \{ ok: true, held: true \};/);
     expect(body).toMatch(/if \(assignment\.ok && assignment\.held\) return \{ ok: true, held: true \};/);
   });
 
-  it('every decider uses that one function — no second opinion anywhere', () => {
+  it('landing decisions use the shared reader and session gates use the atomic snapshot', () => {
+    expect(strip(read('src/contexts/AuthContext.tsx'))).toContain('useAccountAccess(session?.user?.id, loading, session?.access_token)');
+    expect(strip(read('src/hooks/useAccountAccess.ts'))).toContain('readAccountAccess(userId)');
     for (const f of [
-      'src/contexts/AuthContext.tsx',      // what the /work shell guards on
       'src/app/routes/auth/login.tsx',     // signing in
       'src/app/routes/auth/callback.tsx',  // confirming an email
       'src/app/routes/auth/new-password.tsx',

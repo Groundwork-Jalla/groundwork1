@@ -26,6 +26,8 @@ import { describe, expect, it } from 'vitest';
 
 const roles  = readFileSync('src/lib/auth/roles.ts', 'utf8');
 const auth   = readFileSync('src/contexts/AuthContext.tsx', 'utf8');
+const access = readFileSync('src/hooks/useAccountAccess.ts', 'utf8');
+const snapshot = readFileSync('src/lib/auth/account-access.ts', 'utf8');
 const work   = readFileSync('src/app/routes/work/_layout.tsx', 'utf8');
 const strip  = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
@@ -72,34 +74,37 @@ describe('either yes settles it', () => {
 });
 
 describe('rolesChecked means answered, not attempted', () => {
-  it('it only goes up when both reads succeeded', () => {
-    expect(auth).toMatch(/if \(verifier\.ok && contractor\.ok\) \{ setRolesChecked\(true\); return; \}/);
+  it('all flags use one successful account snapshot', () => {
+    expect(auth).toContain('useAccountAccess(session?.user?.id, loading, session?.access_token)');
+    expect(auth).toContain('const rolesChecked = checked;');
+    expect(snapshot).toContain("supabase.rpc('my_account_access')");
+    expect(access).toContain('if (result.ok) {');
+    expect(access).toContain('setState({ userId, access: result.access });');
   });
 
   it('a failed read retries rather than guessing', () => {
-    expect(auth).toMatch(/attempt < ATTEMPTS/);
-    expect(auth).toMatch(/setTimeout\(r, 400 \* 2 \*\* \(attempt - 1\)\)/);
+    expect(access).toContain('attempt < 4');
+    expect(access).toContain('setTimeout(resolve, 400 * 2 ** attempt)');
   });
 
   it('and leaves the flag down when it runs out of tries', () => {
-    // No gate may act on a guess. The surfaces render; their own reads decide.
-    const loop = auth.slice(auth.indexOf('let attempt = 0;'));
-    const giveUp = loop.slice(loop.indexOf('if (attempt >= ATTEMPTS)'));
-    expect(giveUp.slice(0, 400)).not.toMatch(/setRolesChecked\(true\)/);
+    expect(access).toContain('const checked = !loading && (!userId || access !== null);');
+    expect(access).not.toMatch(/setState\([^\n]*role: 'client'/);
+    expect(snapshot).toContain("return { ok: false, error:");
   });
 
-  it('whatever did answer is still applied', () => {
-    // A verifier read that succeeded should not wait on a contractor read that keeps
-    // failing.
-    expect(auth).toMatch(/if \(verifier\.ok\)\s+setIsVerifier\(verifier\.held\);/);
-    expect(auth).toMatch(/if \(contractor\.ok\) setIsContractor\(contractor\.held\);/);
+  it('never combines role flags from different reads or sessions', () => {
+    expect(snapshot).toContain('data.user_id !== userId');
+    expect(access).toContain('current.current !== userId || request !== version.current');
+    expect(auth).toContain('const isVerifier = access?.isVerifier ?? false;');
+    expect(auth).toContain('const isContractor = access?.isContractor ?? false;');
   });
 });
 
 describe('the gate that did the damage still waits on a real answer', () => {
   it('work/_layout only redirects once roles are resolved', () => {
-    // Unchanged, and now safe: `resolved` can no longer be true on a guess.
     expect(work).toMatch(/if \(resolved && !allowed\) navigate\('\/dashboard', \{ replace: true \}\)/);
-    expect(work).toMatch(/const resolved = rolesChecked;/);
+    expect(work).toContain('const resolved = rolesChecked &&');
+    expect(work).toContain('currentProjectAccess.allowed !== null');
   });
 });

@@ -43,7 +43,8 @@ const SURFACES = [LAYOUT, DASH, DETAIL, 'src/app/routes/work/projects.tsx', 'src
 describe('the door', () => {
   it('gates on contractor standing, never on admin privilege', () => {
     const l = code(LAYOUT);
-    expect(l).toMatch(/const allowed = isContractor;/);
+    expect(l).toContain('const allowed = isContractor || currentProjectAccess?.allowed === true;');
+    expect(l).toContain('allowed: access.assignedContractor');
     // An admin is not admitted for being an admin. If this ever reads `|| isAdmin`, an
     // operator with no site work walks into the contractor's execution surface.
     expect(l).not.toMatch(/allowed =[^;]*isAdmin/);
@@ -52,7 +53,8 @@ describe('the door', () => {
 
   it('waits for the role answer before deciding — a "no" computed too early is not a no', () => {
     const l = code(LAYOUT);
-    expect(l).toMatch(/const resolved = rolesChecked;/);
+    expect(l).toContain('const resolved = rolesChecked &&');
+    expect(l).toContain('currentProjectAccess.allowed !== null');
     expect(l).toMatch(/if \(loading\) return;/);
     expect(l).toMatch(/resolved && !allowed/);
   });
@@ -67,7 +69,8 @@ describe('the door', () => {
     const roles = code('src/lib/auth/roles.ts');
     expect(roles).toMatch(/holdsContractorAccess/);
     expect(roles).toMatch(/from\('user_roles'\)/);
-    expect(roles).toMatch(/\.eq\('role', 'contractor'\)/);
+    expect(roles).toContain("row.role === 'contractor'");
+    expect(roles).toContain('if (role.ok && explicitNonContractor) return { ok: true, held: false };');
     expect(roles).toMatch(/from\('contractor_invites'\)/);
     expect(roles).toMatch(/\.eq\('status', 'accepted'\)/);
     // NOT user_metadata, which the client can write.

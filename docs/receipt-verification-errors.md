@@ -68,6 +68,28 @@ currency-service failure so a retry reuses that extraction. The existing submiss
 RPC still requires both the matched file reading and its saved conversion. No
 failure records a payment or opens a stage, and no new migration is required.
 
+## Live provider check — November 13, 2026
+
+After the user added the key, `ANTHROPIC_API_KEY` was present in the ignored
+`.env.local`. A live, read-only Anthropic model-list request authenticated
+successfully and listed both configured reader models as available.
+
+Two small synthetic documents were then sent through the actual
+`readPaymentReceipt` implementation, without creating receipt-reading records or
+project payments:
+
+- An unrelated PNG was classified as `not_receipt`.
+- A completed-payment PDF for NGN 13,000 matched the entered NGN 13,000 exactly.
+  The transaction fee and account balance were excluded. Applying the actual
+  matching function to that live extraction also identified an incorrect amount
+  and an incorrect currency.
+
+These provider checks passed and establish that the locally configured key can
+make the extraction requests. They use synthetic documents, not the user's actual
+receipt. Production environment configuration, redeployment and authenticated
+upload/payment acceptance still need verification; no Vercel authentication was
+available for this check. Key values and provider response bodies were not logged.
+
 ## Production setup and diagnosis
 
 1. In the Vercel project, check **Settings → Environment Variables** for a valid
@@ -107,6 +129,7 @@ payment flow.
   credentials/rate limits/timeouts, malformed/truncated responses, support-reference
   redaction, retained form values and reuse of a reading after conversion failure.
 
-Automated checks use fixture model responses. Live recognition and acceptance of
-the user's receipt remain dependent on confirming and enabling Production reader
-configuration. No real receipt was sent to the model during this fix.
+Automated regressions use fixture model responses. The later live provider check
+above used synthetic documents successfully. Recognition and acceptance of the
+user's actual receipt remain dependent on confirming Production reader
+configuration and testing the deployed upload flow.

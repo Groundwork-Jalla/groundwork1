@@ -70,13 +70,16 @@ export async function holdsVerifierRole(userId: string | null | undefined): Prom
  */
 export async function readContractorAccess(userId: string | null | undefined): Promise<RoleRead> {
   if (!userId) return { ok: true, held: false };
+  let explicitNonContractor = false;
   const [role, assignment] = await Promise.all([
     (async (): Promise<RoleRead> => {
       try {
         const { data, error } = await supabase
-          .from('user_roles').select('role').eq('user_id', userId).eq('role', 'contractor').limit(1);
+          .from('user_roles').select('role').eq('user_id', userId).limit(10);
         if (error) return { ok: false, error: error.message };
-        return { ok: true, held: (data?.length ?? 0) > 0 };
+        const held = (data ?? []).some(row => row.role === 'contractor');
+        explicitNonContractor = !held && (data?.length ?? 0) > 0;
+        return { ok: true, held };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : 'unreachable' };
       }
@@ -84,8 +87,9 @@ export async function readContractorAccess(userId: string | null | undefined): P
     readContractorAssignment(userId),
   ]);
 
-  // Either YES settles it, even if the other read failed — holding the role is enough
-  // on its own, and so is an accepted assignment.
+  // An explicit correction controls the dashboard. Legacy accounts without a role
+  // can still use an accepted assignment as their contractor account fallback.
+  if (role.ok && explicitNonContractor) return { ok: true, held: false };
   if (role.ok && role.held) return { ok: true, held: true };
   if (assignment.ok && assignment.held) return { ok: true, held: true };
   // Otherwise both have to have answered before "no" can be believed.

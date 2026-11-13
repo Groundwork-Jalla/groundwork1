@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { rememberThisDevice } from '@/lib/supabase/user-devices';
 import type { Session, User } from "@supabase/supabase-js";
-import { readContractorAccess, readVerifierRole } from '@/lib/auth/roles';
+import { useAccountAccess } from '@/hooks/useAccountAccess';
+import type { AccountRole } from '@/lib/auth/account-role';
 import { supabase } from "@/lib/supabase/client";
 import { rememberAccount } from "@/lib/auth/returning-user";
 import { recordSignupCountry } from "@/lib/auth/record-signup-country";
@@ -17,10 +18,12 @@ interface AuthContextValue {
   adminChecked: boolean;
   /** True when the signed-in user holds the `verifier` role (user_roles, RLS-trusted). */
   isVerifier: boolean;
-  /** Has the contractor role or an accepted assignment. See holdsContractorAccess. */
+  /** Contractor account role; accepted legacy assignments are a fallback only without an explicit role. */
   isContractor: boolean;
   /** False until the role check has resolved for the current session. */
   rolesChecked: boolean;
+  accountRole: AccountRole | null;
+  refreshRoles: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -29,21 +32,25 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminChecked, setAdminChecked] = useState(false);
-  const [isVerifier, setIsVerifier] = useState(false);
-  const [isContractor, setIsContractor] = useState(false);
-  const [rolesChecked, setRolesChecked] = useState(false);
+  const { access, checked, refresh: refreshRoles } = useAccountAccess(session?.user?.id, loading, session?.access_token);
+  const isAdmin = access?.isAdmin ?? false;
+  const isVerifier = access?.isVerifier ?? false;
+  const isContractor = access?.isContractor ?? false;
+  const adminChecked = checked; const rolesChecked = checked;
+  const accountRole = access?.role ?? null;
 
   useEffect(() => {
+    let live = true; let authEventSeen = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!live || authEventSeen) return;
       setSession(session);
       if (session) { rememberAccount(); void recordSignupCountry(); void recordCrmContact(); }
       setLoading(false);
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (!live) return;
+      authEventSeen = true; setSession(session);
       // One place for every route in: email, Google, magic link, session restore. Marks
       // this browser as one that has an account, which is what the landing page's join
       // button reads to decide between sign-up and log-in. Never cleared on sign-out —
@@ -57,106 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.subscription.unsubscribe();
+    return () => { live = false; subscription.subscription.unsubscribe(); };
   }, []);
-
-  // Resolve admin status against user_roles (canonical, RLS-trusted source),
-  // not JWT metadata — so adding an admin is just a user_roles insert.
-  //
-  // `loading` gates this, and that guard is load-bearing. Without it, the first pass on a
-  // hard refresh sees no session yet — it has not been restored from storage — and used to
-  // announce `adminChecked = true, isAdmin = false`. That is not an answer, it is the
-  // absence of a question, and the admin layout believed it: React runs a child's effects
-  // before its parent's, so the moment the session arrived AdminLayout read that stale
-  // pair and redirected to /dashboard before this effect could re-run for the real user.
-  // Refreshing any admin page bounced you out of the admin area.
-  //
-  // So: while the session is unknown, say nothing. `adminChecked` stays false, the layout
-  // keeps showing its spinner, and the redirect cannot fire on a guess.
-  useEffect(() => {
-    let cancelled = false;
-    if (loading) return;
-
-    const uid = session?.user?.id;
-    if (!uid) { setIsAdmin(false); setAdminChecked(true); return; }
-
-    setAdminChecked(false);
-    (async () => {
-      const { data, error } = await supabase.rpc('is_admin');
-      if (cancelled) return;
-      setIsAdmin(!error && data === true);
-      setAdminChecked(true);
-    })();
-
-    return () => { cancelled = true; };
-  }, [loading, session?.user?.id]);
-
-  // ── Both non-admin roles resolve together ──────────────────────────────────────────
-  //
-  // One effect, one flag. They were two effects sharing `rolesChecked`, and only the
-  // verifier one set it — so the flag could say "roles are resolved" while the contractor
-  // answer was still in flight. /work read that as a decided "no" and redirected a real
-  // contractor to /dashboard; whether it happened depended on which fetch won the race,
-  // which is why it looked intermittent.
-  //
-  // `rolesChecked` now means what its name says: every role answer is in. Behind the same
-  // `loading` guard as the admin check, for the same reason — a "no" computed before the
-  // session is restored is not an answer.
-  useEffect(() => {
-    let cancelled = false;
-    if (loading) return;
-
-    const uid = session?.user?.id;
-    if (!uid) { setIsVerifier(false); setIsContractor(false); setRolesChecked(true); return; }
-
-    setRolesChecked(false);
-
-    /**
-     * `rolesChecked` means "we have a real answer", not "we tried".
-     *
-     * This is the fix for contractors landing on the client dashboard with no idea
-     * what they clicked (9 Nov 2026). They clicked nothing: a role read failed, the
-     * failure read as `false`, this flag went true anyway, and `work/_layout.tsx`
-     * sent them to `/dashboard` with `replace: true`.
-     *
-     * Now a failed read leaves the flag DOWN. Every gate already waits on it — look
-     * at the `resolved && !allowed` lines — so an unanswered question parks the
-     * person where they are instead of demoting them. Being wrong in that direction
-     * costs one extra request; being wrong in the other costs a contractor their
-     * account, silently.
-     */
-    let attempt = 0;
-    const ATTEMPTS = 4;
-
-    (async () => {
-      while (!cancelled && attempt < ATTEMPTS) {
-        const [verifier, contractor] = await Promise.all([
-          readVerifierRole(uid),
-          readContractorAccess(uid),
-        ]);
-        if (cancelled) return;
-
-        // Whatever DID answer is applied immediately. A verifier read that succeeded
-        // should not sit behind a contractor read that is still failing.
-        if (verifier.ok)   setIsVerifier(verifier.held);
-        if (contractor.ok) setIsContractor(contractor.held);
-
-        if (verifier.ok && contractor.ok) { setRolesChecked(true); return; }
-
-        attempt++;
-        if (attempt >= ATTEMPTS) {
-          // Out of tries. The flag stays down, so no gate acts on a guess; the
-          // surfaces render and their own reads decide what the person can do.
-          console.error('[auth] could not resolve roles:',
-            !verifier.ok ? verifier.error : '', !contractor.ok ? contractor.error : '');
-          return;
-        }
-        await new Promise(r => setTimeout(r, 400 * 2 ** (attempt - 1)));
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [loading, session?.user?.id]);
 
   // Note the device this account is signed in from (168), so Profile can show
   // "signed in on N devices" from something real. Fire-and-forget: a failure here
@@ -172,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, isContractor, rolesChecked, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isAdmin, adminChecked, isVerifier, isContractor, rolesChecked, accountRole, refreshRoles, signOut }}>
       {children}
     </AuthContext.Provider>
   );

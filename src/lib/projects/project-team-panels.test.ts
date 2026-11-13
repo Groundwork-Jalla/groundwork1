@@ -111,13 +111,13 @@ describe('shareable links are the primary invitation option', () => {
     expect(view.text).toContain('projectShare.pending');
   });
 
-  it('does not show an expired pending link as copyable', async () => {
+  it('keeps pending links copyable regardless of legacy expiration dates', async () => {
     h.viewers.mockResolvedValue([{ ...observer, email: '', acceptedAt: null, isShareLink: true, token: 'expired', expiresAt: '2001-01-01T00:00:00Z' }]);
     const component = () => ShareProject({ projectId: 'project' });
     render(component); await flush();
     const view = render(component);
-    expect(view.all.find(n => n.type === ProjectInvitationLink)!.props.link).toBeUndefined();
-    expect(view.text).toContain('projectLinks.expired');
+    expect(view.all.find(n => n.type === ProjectInvitationLink)!.props.link.token).toBe('expired');
+    expect(view.text).not.toContain('projectLinks.expired');
   });
 
   it('discards a link-creation result after changing project', async () => {
@@ -135,7 +135,7 @@ describe('shareable links are the primary invitation option', () => {
 
 describe('copying a project invitation', () => {
   const props = { scope: 'actor:project', role: 'observer' as const, busy: false, canCreate: true, onCreate: vi.fn(),
-    link: { token: 'token', expiresAt: '2099-01-01T00:00:00Z' } };
+    link: { token: 'token' } };
 
   it('copies the intended project route and confirms success', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);

@@ -138,7 +138,7 @@ export default function ProjectsIndex() {
     // up (166) opened "My Builds" and was told they had none.
     setLoading(true);
     setLoadFailed(false);
-    const loader = fetchParticipantProjects(user.id, isContractor);
+    const loader = fetchParticipantProjects(user.id, true);
 
     loader
       .then(({ all, shared, owned, assigned, loadFailed: failed }) => {

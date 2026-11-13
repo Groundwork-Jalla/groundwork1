@@ -1,5 +1,5 @@
 import { ProjectInvitationLink } from './ProjectInvitationLink';
-import { createProjectInvitationLink, invitationLinkExpired } from '@/lib/supabase/project-invitation-links';
+import { createProjectInvitationLink } from '@/lib/supabase/project-invitation-links';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, HardHat, Loader2, X } from 'lucide-react';
 
@@ -162,7 +162,7 @@ export function ContractorInvite({
 
   if (access && !access.primaryClient) return null;
   const contractorChosen = access?.hasContractor || access?.hasPendingContractor;
-  const activeLink = rows?.find(v => v.is_share_link && v.status === 'pending' && v.expires_at && !invitationLinkExpired(v.expires_at));
+  const activeLink = rows?.find(v => v.is_share_link && v.status === 'pending');
 
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
@@ -178,7 +178,7 @@ export function ContractorInvite({
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}
       <ProjectInvitationLink scope={scope} role="contractor" busy={busy || removing}
         canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={() => { void load(); void refresh(); }}
-        link={activeLink?.expires_at ? { token: activeLink.token, expiresAt: activeLink.expires_at } : undefined} />
+        link={activeLink ? { token: activeLink.token } : undefined} />
       {canSubmit && (
         <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold underline underline-offset-4">{t('projectLinks.byEmail')}</summary>
         <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -230,7 +230,7 @@ export function ContractorInvite({
                   {inv.email || t('projectLinks.title')}
                 </p>
                 <p className="text-[11px] text-brand-mid-grey">
-                  {t(inv.is_primary || inv.primary_on_acceptance ? 'teamAccess.primaryContractor' : 'adminRole.contractor')} · {inv.is_share_link && inv.status !== 'accepted' && invitationLinkExpired(inv.expires_at) ? t('projectLinks.expired') : statusLabel(inv.status)}
+                  {t(inv.is_primary || inv.primary_on_acceptance ? 'teamAccess.primaryContractor' : 'adminRole.contractor')} · {statusLabel(inv.status)}
                 </p>
               </div>
               {inv.status === 'pending' && (

@@ -1,3 +1,4 @@
+import { ACCOUNT_ROLE_CHANGED, roleAssignmentMatches, type AccountRole } from '@/lib/auth/account-role';
 import { supabase } from './client';
 
 // =========================================================
@@ -36,6 +37,14 @@ export interface AdminUser {
 
 type Row = Record<string, unknown>;
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+export async function setUserRole(userId: string, role: AccountRole, expectedRoles: string): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_set_user_role', { p_user: userId, p_role: role, p_expected_roles: expectedRoles });
+  if (error) throw error;
+  if (data?.user_id !== userId || data.role !== role || typeof data.roles !== 'string' || !roleAssignmentMatches(data.roles, role)) throw new Error('account_role_update_failed');
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(ACCOUNT_ROLE_CHANGED, { detail: { userId } }));
+  return data.roles;
+}
 
 export type AccountType = 'client' | 'contractor';
 export function accountType(roles: string): AccountType {

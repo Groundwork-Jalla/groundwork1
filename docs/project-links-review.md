@@ -2,6 +2,8 @@
 
 The later [November 13 review](product-review-status-2026-11-13.md) records evidence
 preview, lifecycle fixes and current release/configuration status.
+The current [account role and link update](account-roles-and-links.md) removes
+project link expiration and extends admin editing to all four account roles.
 
 The review notes describe product observations. The user's direct clarification
 sets the link behavior: **the first signed-in person to accept the link claims
@@ -29,12 +31,12 @@ role, then **Copy link**. The link can be shared through the inviter's chosen
 channel. **Invite by email instead** opens the existing email form. Link creation
 does not send an email or report that one was sent.
 
-Links expire seven days after creation. The invitation card shows the expiry,
-offers a manual-copy fallback if clipboard access fails, and provides **Refresh
+Links remain available until accepted or removed. The invitation card
+offers a manual-copy fallback if clipboard access fails and provides **Refresh
 invitation status**. Existing pending links remain available after reopening the
 panel. A pending link can be removed using the invitation's existing Remove
 control. Creating again while the same role's link is pending returns that link;
-after acceptance, expiry or revocation a new invitation gets a different token.
+after acceptance or revocation a new invitation gets a different token.
 
 The public preview identifies the project, inviter and intended role. It contains
 no budget or receipt data and never consumes the link. The invitee can sign in or
@@ -64,10 +66,10 @@ permissions. It does not grant construction-evidence upload, receipt upload, wor
 approval, price editing or invitation rights. A global contractor who joins as an
 observer is labelled Observer on that project.
 
-Creation, acceptance, expiry cleanup and revocation use the existing project-row
+Creation, acceptance and revocation use the existing project-row
 lock. Competing acceptances are serialized before checking and writing the claim.
-Expired primary links release their reservation, while accepted memberships remain
-valid after the invitation's expiry. Revoking an accepted observer removes access;
+Pending primary links retain their reservation until accepted or removed.
+Revoking an accepted observer removes access;
 accepted primary participants retain the existing staff-managed role rules.
 
 The participant roster now includes accepted primary clients and observers,
@@ -82,13 +84,14 @@ Apply preceding migrations in order, including
 `20261113000100_stage_price_amendments.sql` for the previously implemented price
 editor, then apply
 [`20261113000200_project_invitation_links.sql`](../supabase/migrations/20261113000200_project_invitation_links.sql)
-before releasing the updated application. This migration is transactional and
+and the later migrations through `20261113000700_admin_user_roles.sql`
+before releasing the updated application. These migrations are transactional and
 replay-safe. It does not change project budgets, stages, receipts or fees.
 
 `node scripts/test-project-team.mjs` runs the actual migration twice against a
 temporary PostgreSQL instance with real authenticated RLS. It covers email/link
 coexistence, server-chosen identity, verified accounts, observer permissions,
-primary-role reservations, expiry, cancellation, revocation, idempotent recovery,
+primary-role reservations, non-expiring links, cancellation, revocation, idempotent recovery,
 immediate project visibility and independent-session two-account claim races for
 all three invitation roles. UI/authentication tests cover primary link placement,
 email separation, copy feedback/fallback, stale results and continuation handling.

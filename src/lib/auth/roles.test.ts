@@ -41,6 +41,12 @@ describe('contractor dashboard access', () => {
     expect(await holdsContractorAccess('legacy')).toBe(true);
   });
 
+  it.each(['homeowner', 'verifier', 'admin'])('respects an explicit %s correction despite old contractor assignments', async role => {
+    db.roles = [{ user_id: 'changed', role }];
+    db.assignments = [{ contractor_user_id: 'changed', status: 'accepted' }];
+    expect(await holdsContractorAccess('changed')).toBe(false);
+  });
+
   it('denies clients, staff-only roles, pending invites, and other users’ assignments', async () => {
     db.roles = [{ user_id: 'staff', role: 'admin' }, { user_id: 'other', role: 'contractor' }];
     db.assignments = [

@@ -14,7 +14,7 @@ after client approval**. The implementation follows that decision.
 | Different initial actions by project creator | Retained: client-created projects start with payment; contractor-created projects start with evidence, client review and payment for that reviewed stage |
 | Contractor stage-price editing | Implemented as proposals for client approval, available across project origins and countries |
 | Client-approved changes to the project total | Implemented for increases and decreases, with the original budget and proposal history retained |
-| Admin correction of client/contractor signup mistakes | Implemented under Admin → Users → Change account type |
+| Admin correction of signup roles | Extended to Client, Contractor, Verifier and Admin under Admin → Users/Team → Change user role; see [current behavior](account-roles-and-links.md) |
 | Custom substage creation and editing | Queued for a future rollout, as requested; no custom-substage editor is included in this release |
 | Second round of live testing | Team acceptance after the migrations and application release; local automated tests do not replace it |
 
@@ -78,20 +78,20 @@ custom prices without the client's approval.
 
 ## Account-type correction
 
-An administrator selects the user, chooses **Client** or **Contractor**, and saves.
-The database verifies administrator standing and the expected existing type. The
-change retains account identity, owned projects, project memberships, receipts,
-staff roles and verifier roles. It records the administrator and both account
-types in the audit log. A user can refresh or sign in again afterward.
+The original two-type correction was superseded by the user's later decision.
+An administrator selects **Client**, **Contractor**, **Verifier** or **Admin**.
+The database replaces account roles with the chosen role, verifies administrator
+standing and the expected existing roles, protects the last admin and audits the
+change. Open dashboards refresh automatically. Account identity, owned projects,
+project memberships and receipts remain recorded.
 
 This changes the account's base type, not its role on each project. A client who
 becomes a contractor still reviews work as the client of their existing project;
 they do not acquire construction-evidence permissions through the account switch.
-The editor does not grant admin or verifier standing. An account with accepted
-contractor assignments must have those responsibilities reassigned before it can
-be converted to a client. Removing contractor standing also clears the old
-contractor signup intent so a later authentication callback cannot undo the
-correction.
+Accepted contractor assignments no longer block an account role change. They stay
+accessible as project responsibilities under the current account navigation. Old
+signup intent is cleared so it cannot undo the correction. See
+[account roles and links](account-roles-and-links.md) for release order and checks.
 
 ## Queued: custom substages
 
@@ -150,8 +150,7 @@ both views. Upload a receipt while a proposal awaits review and confirm that sta
 prices cannot be approved. Confirm historical prices, zero stages and received
 money remain intact.
 
-Use the admin editor to correct a mistakenly registered client to contractor. On
-refresh, check their workspace and existing projects, including their retained
-client responsibilities. Verify a non-admin cannot call the correction RPC, staff
-standing remains intact, and assigned contractor accounts receive the reassignment
-instruction before conversion to client.
+Use the current admin editor to correct a mistakenly registered client to
+contractor and verify its open dashboard changes. Check retained project
+responsibilities and run the four-role acceptance checks in
+[account roles and links](account-roles-and-links.md).

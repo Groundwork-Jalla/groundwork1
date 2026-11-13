@@ -338,6 +338,9 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     fn('supabase/migrations/110_contractor_client_consent.sql', 'is_my_clients_project'),
     fn('supabase/migrations/101_primary_contractor_payout.sql', 'contractor_invites_clear_primary'),
     policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'), read('supabase/migrations/20261112000400_invitation_project_read_access.sql'), tests, read('supabase/migrations/20261113000200_project_invitation_links.sql'), read('supabase/migrations/20261113000200_project_invitation_links.sql'), read('scripts/fixtures/project-invitation-links.sql'),
+    read('supabase/migrations/177_lifecycle_sequences.sql'), read('supabase/migrations/178_activation_journeys.sql'),
+    "ALTER TABLE projects ADD COLUMN status text DEFAULT 'active'; ALTER TABLE project_viewers ADD COLUMN email_status text DEFAULT 'sent'; CREATE TABLE contractor_onboarding(user_id uuid,client_intent text);",
+    read('supabase/migrations/20261113000600_project_links_no_expiry.sql'), read('supabase/migrations/20261113000600_project_links_no_expiry.sql'), read('scripts/fixtures/non-expiring-links.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -379,7 +382,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     const final = await query(`SELECT test_assert((SELECT count(*) FROM ${table} WHERE project_id=test_id(${project}) AND ${predicate})=1,'exactly one race claimant has membership');`);
     if (final.code !== 0) throw new Error(final.output);
   }
-  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, single-use links, expiry, email/link reservation and concurrent claim races.');
+  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, non-expiring single-use links, legacy expiry upgrade, email/link reservation and concurrent claim races.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

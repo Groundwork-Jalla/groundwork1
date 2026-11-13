@@ -1,3 +1,4 @@
+import { AccountRoleSync } from '@/components/auth/AccountRoleSync';
 import {
   isRouteErrorResponse,
   Links,
@@ -158,6 +159,7 @@ function AppInner() {
         <ThemeProvider>
           <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
             <div id="main-content">
+              <AccountRoleSync />
               <Outlet />
             </div>
           </Sentry.ErrorBoundary>

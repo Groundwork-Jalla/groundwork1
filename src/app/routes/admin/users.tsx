@@ -8,7 +8,7 @@ import { useT } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { CrmBackfillPanel } from '@/components/admin/CrmBackfillPanel';
 import { PersonPreview, usePersonPreview } from '@/components/admin/PersonPreview';
-import { AccountTypeEditor } from '@/components/admin/AccountTypeEditor';
+import { UserRoleEditor } from '@/components/admin/UserRoleEditor';
 
 const ROLE_STYLES: Record<string, string> = {
   admin:      'bg-brand-off-white text-state-active',
@@ -165,7 +165,7 @@ export default function AdminUsers() {
                       {u.roles || t('admin.roleClient')}
                     </span>
                     <button type="button" onClick={() => setTypeTarget(u)} className="mt-1 block text-xs text-brand-green underline">
-                      {t('admin.accountTypeEdit.title')}
+                      {t('admin.roleEdit.title')}
                     </button>
                   </td>
                   {/* "Plan" is the most recent project's tier, so it is blank for anyone
@@ -202,9 +202,9 @@ export default function AdminUsers() {
         </div>
       )}
       <PersonPreview reference={person.ref} rolesHint={person.rolesHint} onClose={person.close} />
-      {typeTarget && <AccountTypeEditor key={typeTarget.id} user={typeTarget} onClose={() => setTypeTarget(null)} onSaved={roles => {
+      {typeTarget && <UserRoleEditor key={typeTarget.id} user={typeTarget} onClose={() => setTypeTarget(null)} onSaved={roles => {
         setUsers(previous => previous.map(row => row.id === typeTarget.id ? { ...row, roles } : row));
-        setNotice(t('admin.accountTypeEdit.done')); setTypeTarget(null);
+        setNotice(t('admin.roleEdit.done')); setTypeTarget(null);
       }} />}
       <ConfirmDelete
         open={!!target}

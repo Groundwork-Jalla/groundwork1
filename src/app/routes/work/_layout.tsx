@@ -1,3 +1,8 @@
+import { useT } from '@/lib/i18n';
+import { fetchProjectTeamAccess } from '@/lib/supabase/project-team';
+import { AppShell } from '@/components/shell/AppShell';
+import { CLIENT_NAV, ADMIN_NAV } from '@/components/shell/nav-config';
+import { VerifierShell } from '@/components/verifier/VerifierShell';
 import { useEffect, useState } from 'react';
 import { RoleTour } from '@/components/tour/RoleTour';
 import { Outlet, useLocation, useNavigate } from 'react-router';
@@ -10,9 +15,10 @@ import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contr
 // =========================================================
 // /work — the contractor's execution surface.
 //
-// A contractor role or an accepted assignment opens this dashboard. New signups see
-// an empty workspace until assigned. Project, evidence and payment access stays
-// controlled by the existing database policies; a role alone grants no project access.
+// The current contractor account role opens this dashboard. Accepted assignments
+// also retain their specific project work view after an account role change.
+// Project, evidence and payment access stays controlled by database membership;
+// a global account role alone grants no project access.
 //
 // ── Signing up ends in the agreement, not on the dashboard ───────────────────────────
 // Whoever comes through /contractor-signup is sent here by the callback. Until the
@@ -55,13 +61,27 @@ import { fetchOnboardingStatus, onboardingAvailable } from '@/lib/supabase/contr
 type Gate = { signed: boolean; decided: boolean; complete: boolean } | null;
 
 export default function WorkLayout() {
-  const { session, loading, isContractor, rolesChecked, user, signOut } = useAuth();
+  const t = useT();
+  const { session, loading, isContractor, rolesChecked, user, signOut, accountRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [gate, setGate] = useState<Gate>(null);
 
-  const allowed = isContractor;
-  const resolved = rolesChecked;
+  const projectId = /^\/work\/projects\/([^/]+)/.exec(location.pathname)?.[1];
+  const scope = `${user?.id ?? ''}:${projectId ?? ''}`;
+  const [projectAccess, setProjectAccess] = useState<{ scope: string; allowed: boolean | null; error?: boolean } | null>(null);
+  const [accessAttempt, setAccessAttempt] = useState(0);
+  useEffect(() => {
+    if (!projectId || !user?.id || isContractor || !rolesChecked) return;
+    let live = true;
+    void fetchProjectTeamAccess(projectId).then(access => {
+      if (live) setProjectAccess({ scope, allowed: access.assignedContractor });
+    }).catch(() => { if (live) setProjectAccess({ scope, allowed: null, error: true }); });
+    return () => { live = false; };
+  }, [scope, projectId, user?.id, isContractor, rolesChecked, accessAttempt]);
+  const currentProjectAccess = projectAccess?.scope === scope ? projectAccess : null;
+  const allowed = isContractor || currentProjectAccess?.allowed === true;
+  const resolved = rolesChecked && (isContractor || !projectId || (currentProjectAccess !== null && currentProjectAccess.allowed !== null));
   const onOnboarding = location.pathname.startsWith('/work/onboarding');
 
   useEffect(() => {
@@ -88,6 +108,7 @@ export default function WorkLayout() {
     if (loading || !session || !resolved || !allowed) return;
     let alive = true;
     setGate(null);
+    if (!isContractor) { setGate({ signed: true, decided: true, complete: true }); return; }
     (async () => {
       try {
         if (!(await onboardingAvailable())) {
@@ -110,7 +131,7 @@ export default function WorkLayout() {
       }
     })();
     return () => { alive = false; };
-  }, [loading, session, resolved, allowed, onOnboarding]);
+  }, [loading, session, resolved, allowed, onOnboarding, isContractor]);
 
   // Unsigned, unfinished, or finished-but-undecided: either way the only place to be is
   // the form. The redirect matters as much as the inert sidebar — without it the lock is
@@ -130,6 +151,11 @@ export default function WorkLayout() {
     || (!gate && !onOnboarding)
     || (gate !== null && !through(gate) && !onOnboarding);
 
+  if (currentProjectAccess?.error && !isContractor && rolesChecked) return <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+    <p role="alert" className="text-sm text-brand-mid-grey">{t('teamAccess.loadFailed')}</p>
+    <button type="button" onClick={() => setAccessAttempt(value => value + 1)} className="rounded-xl border px-4 py-2 text-sm">{t('common.retry')}</button>
+  </div>;
+
   if (waiting) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-off-white dark:bg-[#141414]">
@@ -141,6 +167,15 @@ export default function WorkLayout() {
   const displayName = (user?.user_metadata?.full_name as string | undefined)
     ?? user?.email?.split('@')[0]
     ?? '';
+  // An account role change does not remove accepted project responsibilities.
+  // Keep that project's work view inside the user's current account navigation.
+  if (!isContractor) {
+    const logout = () => { void signOut().then(() => navigate('/', { replace: true })); };
+    const content = <Outlet />;
+    if (accountRole === 'verifier') return <VerifierShell displayName={displayName} onLogout={logout}>{content}</VerifierShell>;
+    return <AppShell nav={accountRole === 'admin' ? ADMIN_NAV : CLIENT_NAV} displayName={displayName} onLogout={logout}
+      topBarActions={<NotificationBell userId={user?.id ?? ''} />}>{content}</AppShell>;
+  }
   return (
     <WorkShell
       displayName={displayName}

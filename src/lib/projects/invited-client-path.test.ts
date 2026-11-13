@@ -244,7 +244,8 @@ describe('shared is derived from the shared list, never from the whole list', ()
       if (file.endsWith('payments.tsx')) {
         expect(code(file), file).toMatch(/fetchContractorProjects\(user\.id\)\.then\(rows => \(\{[^}]*shared: \[\]/);
       } else {
-        expect(code(file), file).toContain('fetchParticipantProjects(user.id, isContractor)');
+        // Account corrections keep accepted project assignments visible.
+        expect(code(file), file).toContain('fetchParticipantProjects(user.id, true)');
         expect(code('src/lib/supabase/participant-projects.ts')).toContain('client.shared.filter(p => !assignedIds.has(p.id))');
       }
     }

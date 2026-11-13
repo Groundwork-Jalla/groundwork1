@@ -415,7 +415,7 @@ export default function Dashboard() {
     // wizard.
     setLoading(true);
     setLoadFailed(false);
-    const loader = fetchParticipantProjects(user.id, isContractor);
+    const loader = fetchParticipantProjects(user.id, true);
 
     loader
       .then(({ all, shared, owned, assigned, loadFailed: failed }) => {

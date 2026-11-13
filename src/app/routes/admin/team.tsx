@@ -1,3 +1,4 @@
+import { UserRoleEditor } from '@/components/admin/UserRoleEditor';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { listAdminUsers, type AdminUser } from '@/lib/supabase/admin-users';
@@ -10,16 +11,7 @@ import { cn } from '@/lib/utils';
 // =========================================================
 // /admin/team — who works here, and what they may do (01 §3 SYSTEM).
 //
-// ── Read-only, and deliberately ──────────────────────────────────────────────────────
-// Roles live in `user_roles`, and the only audited path that changes one is provisioning
-// (083) and a direct insert by someone with database access. There is no server-side
-// grant/revoke with an audit trail, so this screen SHOWS who holds what and does not
-// pretend to change it. A button that quietly writes a role table with no record of who
-// did it is worse than no button.
-//
-// Staff only: a client or contractor is not a member of the team and is managed under
-// Clients and Contractors. The distinction is the role itself, never a guess.
-// =========================================================
+// Role edits use the audited admin RPC; clients and contractors also appear in Users.
 
 type Role = 'admin' | 'verifier';
 const ROLES: Role[] = ['admin', 'verifier'];
@@ -29,6 +21,7 @@ const rolesOf = (u: AdminUser) => u.roles.split(',').map(r => r.trim()).filter(B
 export default function AdminTeam() {
   const t = useT();
   const [rows, setRows] = useState<AdminUser[] | null>(null);
+  const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -78,6 +71,7 @@ export default function AdminTeam() {
                     <th key={role} scope="col" className="px-3 py-2.5 text-center font-medium">{t(`admin.team.roles.${role}` as TKey)}</th>
                   ))}
                   <th scope="col" className="px-5 py-2.5 text-right font-medium">{t('admin.team.lastSeen')}</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">{t('admin.roleEdit.label')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
@@ -99,6 +93,7 @@ export default function AdminTeam() {
                       <td className={cn('px-5 py-3 text-right tabular-nums', u.lastSignInAt ? 'text-brand-mid-grey' : 'text-brand-border-grey')}>
                         {u.lastSignInAt ? formatRelative(u.lastSignInAt) : t('admin.team.never')}
                       </td>
+                      <td className="px-5 py-3 text-right"><button type="button" onClick={() => setRoleTarget(u)} className="text-xs font-semibold text-brand-green underline underline-offset-4">{t('admin.roleEdit.title')}</button></td>
                     </tr>
                   );
                 })}
@@ -106,10 +101,12 @@ export default function AdminTeam() {
             </table>
           </div>
 
-          {/* Say why there is nothing to click, rather than leaving a screen that looks broken. */}
-          <p className="text-[11px] text-brand-mid-grey">{t('admin.team.readOnly')}</p>
+          <p className="text-[11px] text-brand-mid-grey">{t('admin.roleEdit.hint')}</p>
         </>
       )}
+      {roleTarget && <UserRoleEditor key={roleTarget.id} user={roleTarget} onClose={() => setRoleTarget(null)} onSaved={roles => {
+        setRows(previous => previous?.map(row => row.id === roleTarget.id ? { ...row, roles } : row) ?? null); setRoleTarget(null);
+      }} />}
     </div>
   );
 }

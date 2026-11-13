@@ -15,16 +15,16 @@ authenticated Production acceptance test is complete.
 | Client evidence upload problem | Implemented previously: only contractors upload construction evidence. Clients review that evidence and upload payment receipts. |
 | Contractor preview where evidence was uploaded | Fixed here: file/photo tiles open the shared in-app viewer under each substage. Completed stages offer read-only evidence when actual files exist. The inert View label was removed. |
 | Workflow depends on who created the project | Implemented previously: client-created projects start with funding; contractor-created projects start with evidence, client review and payment for that reviewed first stage. |
-| Currency selection and reading | Implemented previously: native receipt amounts, USD/XAF and other supported currencies, exact matching and server-attested saved conversion. Production reader verification remains open. |
+| Currency selection and reading | Implemented: native receipt amounts, USD/XAF and other supported currencies, exact matching and server-attested saved conversion. The newly configured local Anthropic key passed live synthetic receipt/non-receipt checks; Production upload verification remains open. |
 | Invalid receipt and processing error messages | Implemented previously: distinct document, mismatch, configuration and temporary-service messages, with support references. |
 | Partial payments and stage deductions | Implemented previously: confirmed receipts reduce the stage balance; pending receipts stay separate. Contractors choose whether to request a top-up or proceed. |
 | Payment UI, premature upload button and confirmation CTA | Implemented previously: role-specific wording, file/camera selection, gated submission controls and contractor receipt-confirmation actions. |
 | Editable stage costs and budget override | Implemented previously: contractor proposals and client approval can change the project total. The original BOQ and amendment history remain recorded. |
 | Matching client/contractor project views | Implemented previously: both read saved budget/allocations and refresh approved pricing changes. |
 | BOQ fees, totals and historical stages | Implemented previously: no extra Groundwork fees for uploaded BOQs, exact allocation totals, zero-weight stages stay zero and historical stages retain their allocation and completed status. |
-| Admin account role conversion | Implemented previously under Admin → Users; existing project memberships and incompatible-assignment checks are preserved. |
+| Admin account role conversion | Extended to Client, Contractor, Verifier and Admin under Users and Team, with live dashboard updates, preserved project memberships and last-admin protection. See [current behavior](account-roles-and-links.md). |
 | Invitation delivery and access roadblocks | Implemented previously: recipient-bound email invitations and acceptance through login/signup, with continuation retained until the project is readable through RLS. |
-| Primary invitation method and role-segmented links | Implemented previously for primary clients, primary contractors and observers. Links are single-use, expire after seven days and can be revoked. Email remains a separate option. |
+| Primary invitation method and role-segmented links | Implemented for primary clients, primary contractors and observers. Links are single-use and revocable, and now have no expiration. Email remains a separate option. |
 | Role segmentation in onboarding communications | Hardened here: actual project membership wins over global account type. Observers and legacy secondary assignments stay out of primary-role activation journeys. |
 | Observer label instead of Jalla | Previously added to the roster; hardened here for chat already open when someone joins. Labels refresh on messages, membership changes and window focus. An unresolved incoming member is not labelled staff. |
 | Observer chat and image permissions | Existing support retained: accepted observers can discuss the project and attach chat images. They cannot upload construction evidence, approve work, record project receipts or edit stage prices. |
@@ -84,10 +84,13 @@ Production records were modified.
    and
    [20261113000400_lifecycle_language_copy.sql](../supabase/migrations/20261113000400_lifecycle_language_copy.sql),
    then [20261113000500_lifecycle_delivery_recovery.sql](../supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql).
+   Follow with `20261113000600_project_links_no_expiry.sql` and
+   `20261113000700_admin_user_roles.sql` before releasing the current frontend.
 2. Deploy and verify Production `PUBLIC_SITE_URL`, `RESEND_API_KEY` and `CRON_SECRET`.
    Leave `LIFECYCLE_WHATSAPP_ENABLED=false` while outreach is paused. Confirm that
    GHL workflows are not independently sending the same reminders.
-3. Check Production receipt-reader credentials/model settings and test a real
+3. The local Anthropic key and synthetic document extraction now pass live checks.
+   Check Production receipt-reader credentials/model settings and test a real
    receipt, an unrelated image, a mismatch and a partial payment. Schema readiness
    does not establish that provider configuration is working. See
    [receipt diagnostics](receipt-verification-errors.md).
