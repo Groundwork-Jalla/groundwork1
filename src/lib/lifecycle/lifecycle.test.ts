@@ -1,7 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { render, pickLang, copyFor, audienceMatches, matchesFields, ctaPath, followupPriority, nextDue, enrollForEvent, runDue } from '../../../api/_lib/lifecycle';
+import { stepTimeline } from '../../../shared/lifecycle-copy';
 
 describe('lifecycle helpers', () => {
+  it('uses French fallback names and project wording in French copy',()=>{
+    expect(render('Bonjour {{first_name}}, ouvrez {{project_name}}.',{email:'person@example.test'},{},'fr')).toBe('Bonjour à vous, ouvrez votre projet.');
+    const step:any={subject_en:'Welcome {{first_name}}',subject_fr:'Bienvenue {{first_name}}',body_en:'Open {{project_name}}.',body_fr:'Ouvrez {{project_name}}.'};
+    expect(copyFor(step,'fr',{email:'person@example.test'})).toMatchObject({subject:'Bienvenue à vous',body:'Ouvrez votre projet.'});
+  });
+  it('keeps fallback English fields in English when a French field is missing',()=>{
+    const step:any={subject_en:'Welcome {{first_name}}',subject_fr:'',body_en:'Open {{project_name}}.',body_fr:'Ouvrez {{project_name}}.'};
+    expect(copyFor(step,'fr',{email:'person@example.test'})).toMatchObject({subject:'Welcome there',body:'Ouvrez votre projet.'});
+  });
+  it('uses the same entry-based schedule for previews and actual due dates',()=>{
+    const steps=[0,24,48,96].map((delay_hours,index)=>({position:index+1,delay_hours}));
+    const before=[...steps].reverse();const enrolled=new Date('2026-11-13T00:00:00Z');
+    expect(stepTimeline(before).map(item=>item.hoursFromEntry)).toEqual([0,24,72,168]);expect(before[0].position).toBe(4);
+    for(const item of stepTimeline(before))expect(nextDue(before,item.step.position-1,enrolled,null,enrolled)).toEqual({position:item.step.position,at:new Date(enrolled.getTime()+item.hoursFromEntry*3600_000)});
+  });
   it('renders tags and blanks unknown ones', () => {
     expect(render('Hi {{first_name}} {{nope}}!', { email: 'a@b.co', fullName: 'Ada Obi' })).toBe('Hi Ada !');
   });

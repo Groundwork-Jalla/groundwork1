@@ -24,6 +24,18 @@ type Mirror<T> = {
 
 export const fr: Mirror<EnDict> = {
   communications: {
+    journeys: {
+      title:"Parcours",help:"Examinez les quatre parcours d’activation. Chaque étape possède son propre délai, sa prochaine action et son calendrier de rappels. Sélectionnez un message pour l’aperçu avec des informations d’exemple.",
+      immediate:"À l’entrée dans l’étape",day:"Jour {count}",hours:"{count} heures après l’entrée",enabled:"Activé",paused:"En pause",
+      empty:"Les étapes de communication apparaîtront lorsque ce parcours sera installé.",humanFollowup:"À partir du jour {count}, les personnes éligibles peuvent bénéficier d’un suivi humain tant que l’action requise reste incomplète.",
+      edit:"Modifier ce parcours",preview:"Aperçu du message",language:"Langue du message",exampleOnly:"Informations d’exemple uniquement. Cet aperçu n’envoie aucun message et n’ouvre aucune invitation réelle.",
+      destination:"Destination du bouton :",filter:"Parcours",all:"Tous les parcours",unsaved:"Modifications non enregistrées",saveStep:"Enregistrer l’étape",stepSaved:"Modifications du message enregistrées.",saveFailed:"Impossible d’enregistrer le message. Votre brouillon est conservé ; réessayez.",
+      newerEdits:"Les modifications envoyées sont enregistrées. Vos nouvelles modifications restent à enregistrer.",
+      titles:{contractorSignup:"Inscription de l’entrepreneur",contractorInvited:"Entrepreneur invité par un client",clientSignup:"Inscription du client",clientInvited:"Client invité par un entrepreneur"},
+      outcomes:{contractorSignup:"Terminer l’inscription, créer un projet, inviter le client et connecter les deux personnes.",contractorInvited:"Accepter l’invitation et terminer les formalités requises pour rejoindre le projet existant.",clientSignup:"Créer un projet, puis inviter un entrepreneur ou demander de l’aide pour en trouver un.",clientInvited:"Accepter l’invitation de l’entrepreneur et rejoindre le projet existant."},
+      stages:{cs_signup:"Terminer l’inscription de l’entrepreneur",cs_onboarded:"Créer le premier projet",cs_project:"Inviter le client",cs_client_pending:"Attendre l’acceptation du client",cs_connected:"Client connecté",ci_invited:"Accepter l’invitation au projet",ci_onboarding:"Terminer les formalités requises",ci_connected_existing:"Rejoindre avec une inscription déjà terminée",ci_connected_new:"Rejoindre après avoir terminé l’inscription",cl_signup:"Créer le premier projet",cl_project:"Connecter un entrepreneur",cl_support:"Demande d’assistance reçue",cl_contractor_pending:"Attendre l’acceptation de l’entrepreneur",cl_connected:"Entrepreneur connecté",iv_invited:"Accepter l’invitation au projet",iv_connected:"Rejoindre le projet existant"},
+      branches:{onboardingNeeded:"Ce parcours s’applique lorsque l’inscription requise de l’entrepreneur est incomplète.",alreadyOnboarded:"Autre parcours : l’entrepreneur a déjà terminé son inscription.",afterOnboarding:"Autre parcours : l’entrepreneur termine son inscription après avoir accepté l’invitation.",supportRequested:"Ce parcours s’applique lorsque le client demande de l’aide pour trouver un entrepreneur.",contractorInvited:"Ce parcours s’applique lorsque le client invite directement un entrepreneur."},
+    },
     setup: {
       title: "Vérification de la configuration e-mail",
       help: "Comparez les paramètres enregistrés à ceux de Resend. Cette vérification lit la configuration sans envoyer de message ni modifier les paramètres d’envoi.",

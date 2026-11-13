@@ -1,6 +1,6 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from 'vitest';
 const h=vi.hoisted(()=>({state:[] as any[],refs:[] as any[],memos:[] as any[],deps:[] as any[],cleanups:[] as any[],effects:[] as {index:number;effect:()=>any}[],si:0,ri:0,mi:0,ei:0,
- token:'00000000-0000-0000-0000-000000000001',t:(key:string)=>key,read:vi.fn(),save:vi.fn(),queue:vi.fn(),readiness:vi.fn(),rpc:vi.fn(),staff:vi.fn(),tables:{} as Record<string,any[]>}));
+ token:'00000000-0000-0000-0000-000000000001',t:(key:string)=>key,read:vi.fn(),save:vi.fn(),queue:vi.fn(),readiness:vi.fn(),rpc:vi.fn(),staff:vi.fn(),update:vi.fn(),selectRead:vi.fn(),tables:{} as Record<string,any[]>}));
 vi.mock('react',async original=>({...await original<typeof import('react')>(),
  useState:(initial:any)=>{const i=h.si++;if(!(i in h.state))h.state[i]=typeof initial==='function'?initial():initial;return[h.state[i],(next:any)=>{h.state[i]=typeof next==='function'?next(h.state[i]):next;}];},
  useRef:(initial:any)=>h.refs[h.ri++]??(h.refs[h.ri-1]={current:initial}),
@@ -14,25 +14,34 @@ vi.mock('react-router',()=>({useParams:()=>({token:h.token}),Link:'link'}));
 vi.mock('@/lib/supabase/communications',()=>({readPreference:h.read,savePreference:h.save,queueCommunicationReply:h.queue,readCommunicationReadiness:h.readiness}));
 vi.mock('@/lib/supabase/admin-users',()=>({listAdminUsers:h.staff}));
 vi.mock('@/lib/supabase/client',()=>({supabase:{rpc:h.rpc,from:(table:string)=>{
+ let patch:any=null;
  const filters:((row:any)=>boolean)[]=[];const result=()=>({data:(h.tables[table]??[]).filter(row=>filters.every(test=>test(row))),error:null});
+ const settle=async(single=false)=>{const response=patch?await h.update(table,patch,result().data):await h.selectRead(table,result());return single?{...response,data:response.data?.[0]??null}:response;};
  const q:any={select:()=>q,eq:(key:string,value:any)=>{filters.push(row=>row[key]===value);return q;},is:(key:string,value:any)=>{filters.push(row=>row[key]===value);return q;},order:()=>q,limit:()=>q,
-  single:async()=>({...result(),data:result().data[0]}),then:(resolve:any)=>Promise.resolve(result()).then(resolve)};return q;
+  update:(value:any)=>{patch=value;return q;},single:()=>settle(true),then:(resolve:any)=>settle().then(resolve)};return q;
 }}}));
 import Preferences from '@/app/routes/communication-preferences';
 import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
 import { CommunicationSettings } from '@/components/admin/communications/CommunicationSettings';
 import { CommunicationReadiness } from '@/components/admin/communications/CommunicationReadiness';
+import { CommunicationJourneys } from '@/components/admin/communications/CommunicationJourneys';
+import AdminSequences from '@/app/routes/admin/sequences';
+import { ACTIVATION_JOURNEYS,type JourneySequence,type JourneyStep } from '@/lib/lifecycle/journeys';
 function render<T>(component:()=>T):T {h.si=h.ri=h.mi=h.ei=0;const tree=component();for(const {index,effect}of h.effects.splice(0)){h.cleanups[index]?.();h.cleanups[index]=effect();}return tree;}
 function nodes(value:any):any[]{return Array.isArray(value)?value.flatMap(nodes):value?.props?[value,...nodes(value.props.children)]:[];}
 function text(value:any):string{return Array.isArray(value)?value.map(text).join(' '):typeof value==='string'?value:value?.props?text(value.props.children):'';}
-const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 const token='00000000-0000-0000-0000-000000000001';
 const preference={lang:'en',activation_unsubscribed:false,project_creation_paused:false};
 beforeEach(()=>{
  vi.useFakeTimers();vi.clearAllMocks();h.state=[];h.refs=[];h.memos=[];h.deps=[];h.cleanups=[];h.effects=[];h.token=token;
+ h.t=(key:string)=>key;
+ vi.stubGlobal('window',{addEventListener:vi.fn(),removeEventListener:vi.fn()});vi.stubGlobal('document',{visibilityState:'visible'});
  h.tables={communication_settings:[{id:true,delivery_enabled:false,sender_name:'Groundwork',sender_email:'hello@example.test',followup_sender_email:'contact@example.test',application_sender_email:'partner@example.test',reply_domain:'reply.example.test',test_recipients:[],default_owner_id:null,next_contact_hours:48,updated_at:'2026-11-13T12:00:00Z'}],communication_runs:[],communication_issues:[],communication_threads:[{id:'thread',email:'client@example.test',automation_paused:true,last_message_at:'2026-11-13T12:00:00Z',lifecycle_enrollments:{full_name:'Client',context:{}}}],communication_messages:[]};
  h.staff.mockResolvedValue([{id:'admin',email:'staff@example.test',roles:'admin'}]);h.read.mockResolvedValue(preference);h.save.mockResolvedValue({...preference,project_creation_paused:true});h.queue.mockResolvedValue('message');
  h.rpc.mockImplementation(async(name,args)=>({data:name==='admin_save_communication_settings'?{...args.p_settings,updated_at:'2026-11-13T13:00:00Z'}:null,error:null}));
+ h.update.mockImplementation(async(table,patch,rows)=>{const data=rows.map((row:any)=>({...row,...patch}));h.tables[table]=h.tables[table].map(row=>data.find((saved:any)=>saved.id===row.id)??row);return {data,error:null};});
+ h.selectRead.mockImplementation((_table,result)=>result);
 });
 describe('email setup checks',()=>{
  it('runs only on request and shows a restricted key as incomplete without changing delivery settings',async()=>{
@@ -59,7 +68,7 @@ describe('email setup checks',()=>{
   expect(text(view)).not.toContain('communications.setup.failed');expect(h.readiness).toHaveBeenCalledTimes(2);
  });
 });
-afterEach(()=>{h.cleanups.forEach(cleanup=>cleanup?.());vi.clearAllTimers();vi.useRealTimers();});
+afterEach(()=>{h.cleanups.forEach(cleanup=>cleanup?.());vi.clearAllTimers();vi.useRealTimers();vi.unstubAllGlobals();});
 describe('recipient preference confirmation',()=>{
  it('reads a link without saving a preference, then saves only the recipient’s explicit choice',async()=>{
   render(Preferences);await flush();const view=render(Preferences);expect(h.save).not.toHaveBeenCalled();expect(h.read).toHaveBeenCalledWith(token);
@@ -110,5 +119,78 @@ describe('staff conversation replies',()=>{
   h.tables.communication_messages=[{id:'message',thread_id:'thread',direction:'inbound',body:'<script>unsafe()</script>',subject:'Help',status:'received',authenticated:false,attachment_count:0,created_at:'2026-11-13T12:00:00Z'}];
   const view=await openInbox();expect(text(view)).toContain('<script>unsafe()</script>');expect(text(view)).toContain('communications.unverified');
   expect(nodes(view).some(node=>node.props.dangerouslySetInnerHTML)).toBe(false);
+ });
+});
+
+const exampleSequence=(key='cs_signup'):JourneySequence=>({key,name:key,journey:'Contractor self-signup',audience:'contractor',enabled:false,awaiting_action:'Complete onboarding',followup_after_days:7});
+const exampleStep=(key='cs_signup'):JourneyStep=>({id:`${key}-message`,sequence_key:key,position:1,delay_hours:0,channel:'email',code:'CS01',subject_en:'Welcome {{first_name}}',subject_fr:'Bienvenue {{first_name}}',body_en:'Open {{project_name}} with {{client_name}}.',body_fr:'Ouvrez {{project_name}} avec {{client_name}}.',cta_key:'onboarding',cta_label_en:'Complete onboarding',cta_label_fr:'Terminer l’inscription'});
+describe('activation journey review',()=>{
+ it('shows the four journeys and distinguishes invited onboarding branches without enabling delivery',()=>{
+  const sequences=ACTIVATION_JOURNEYS.flatMap(journey=>journey.sequences.map(key=>({...exampleSequence(key),journey:journey.name,audience:journey.id.startsWith('contractor')?'contractor':'client'})));
+  const edit=vi.fn();const view=render(()=>CommunicationJourneys({sequences,steps:sequences.map(sequence=>exampleStep(sequence.key)),onEdit:edit}));
+  for(const journey of ACTIVATION_JOURNEYS)expect(text(view)).toContain(`communications.journeys.titles.${journey.id}`);
+  expect(text(view)).toContain('communications.journeys.branches.alreadyOnboarded');
+  expect(text(view)).toContain('communications.journeys.branches.afterOnboarding');
+  expect(h.rpc).not.toHaveBeenCalled();expect(h.update).not.toHaveBeenCalled();
+  nodes(view).filter(node=>node.type==='button'&&text(node)==='communications.journeys.edit')[0].props.onClick();expect(edit).toHaveBeenCalledWith('contractorSignup');
+ });
+ it('previews the actual English/French wording and contractor destination using example details',()=>{
+  const component=()=>CommunicationJourneys({sequences:[exampleSequence()],steps:[exampleStep()],onEdit:vi.fn()});
+  const view=render(component);nodes(view).find(node=>node.type==='button'&&text(node).startsWith('CS01')).props.onClick();
+  let preview=render(component);expect(text(preview)).toContain('Welcome Alex');expect(text(preview)).toContain('Open Example project with Sam Obi.');
+  expect(text(preview)).toContain('/work/onboarding');expect(text(preview)).toContain('communications.journeys.exampleOnly');
+  nodes(preview).find(node=>node.type==='select').props.onChange({target:{value:'fr'}});preview=render(component);
+  expect(text(preview)).toContain('Bienvenue Alex');expect(text(preview)).toContain('Ouvrez Projet exemple avec Sam Obi.');
+  expect(nodes(preview).some(node=>node.type==='a')).toBe(false);expect(h.rpc).not.toHaveBeenCalled();
+ });
+ it('shows days from stage entry and uses the existing client invitation route',()=>{
+  h.t=(key:string,vars?:any)=>key+(vars&&key==='communications.journeys.day'?` ${vars.count}`:'');
+  const steps=[0,24,48,96].map((delay,index)=>({...exampleStep('iv_invited'),id:`m${index}`,position:index+1,delay_hours:delay,code:`IV0${index+1}`,cta_key:'invitation'}));
+  const component=()=>CommunicationJourneys({sequences:[{...exampleSequence('iv_invited'),journey:'Client invited by a contractor',audience:'client'}],steps:[steps[3],steps[1],steps[0],steps[2]],onEdit:vi.fn()});
+  let view=render(component);const labels=nodes(view).filter(node=>node.type==='button').map(text);
+  expect(labels).toEqual(expect.arrayContaining(['IV01 · communications.journeys.immediate','IV02 · communications.journeys.day 1','IV03 · communications.journeys.day 3','IV04 · communications.journeys.day 7']));
+  nodes(view).find(node=>node.type==='button'&&text(node).startsWith('IV01')).props.onClick();view=render(component);
+  expect(text(view)).toContain('/share/example-invitation');expect(text(view)).not.toContain('/projects/new');
+ });
+});
+
+async function openSequenceEditor() {
+ h.tables.lifecycle_sequences=[{...exampleSequence(),description:'Onboarding reminders',trigger_event:'user_signup',exit_events:['contractor_onboarding_completed']}];
+ h.tables.lifecycle_sequence_steps=[exampleStep()];
+ render(AdminSequences);await flush();let view=render(AdminSequences);
+ nodes(view).find(node=>node.type==='button'&&text(node)==='Sequences').props.onClick();return render(AdminSequences);
+}
+const editorBody=(view:any)=>nodes(view).find(node=>node.type==='textarea'&&node.props.placeholder==='Message (EN)');
+const saveMessage=(view:any)=>nodes(view).find(node=>node.type==='button'&&text(node)==='communications.journeys.saveStep');
+describe('message drafts during background refresh',()=>{
+ it('preserves unsaved wording during the 30-second refresh and saves only the edited field',async()=>{
+  let view=await openSequenceEditor();editorBody(view).props.onChange({target:{value:'My reviewed draft'}});view=render(AdminSequences);
+  h.tables.lifecycle_sequence_steps[0]={...h.tables.lifecycle_sequence_steps[0],body_en:'Older server copy',subject_en:'Another admin’s subject'};
+  await vi.advanceTimersByTimeAsync(30_000);await flush();view=render(AdminSequences);
+  expect(editorBody(view).props.value).toBe('My reviewed draft');expect(text(view)).toContain('communications.journeys.unsaved');
+  saveMessage(view).props.onClick();await flush();view=render(AdminSequences);
+  expect(h.update).toHaveBeenCalledWith('lifecycle_sequence_steps',{body_en:'My reviewed draft'},expect.any(Array));
+  expect(h.tables.lifecycle_sequence_steps[0].subject_en).toBe('Another admin’s subject');
+  expect(text(view)).toContain('communications.journeys.stepSaved');expect(text(view)).not.toContain('communications.journeys.unsaved');
+ });
+ it('retains a failed save as a draft and allows a successful retry',async()=>{
+  let view=await openSequenceEditor();editorBody(view).props.onChange({target:{value:'Keep this draft'}});view=render(AdminSequences);
+  h.update.mockResolvedValueOnce({data:null,error:{message:'offline'}});saveMessage(view).props.onClick();await flush();view=render(AdminSequences);
+  expect(editorBody(view).props.value).toBe('Keep this draft');expect(text(view)).toContain('communications.journeys.saveFailed');expect(saveMessage(view).props.disabled).toBe(false);
+  saveMessage(view).props.onClick();await flush();expect(text(render(AdminSequences))).toContain('communications.journeys.stepSaved');
+ });
+ it('keeps edits typed while the previous save is in flight and refuses duplicate saves',async()=>{
+  let finish!:(result:any)=>void;let view=await openSequenceEditor();editorBody(view).props.onChange({target:{value:'Submitted copy'}});view=render(AdminSequences);
+  h.update.mockReturnValueOnce(new Promise(resolve=>{finish=resolve;}));const save=saveMessage(view).props.onClick;save();save();await flush();
+  view=render(AdminSequences);editorBody(view).props.onChange({target:{value:'Newer copy'}});
+  finish({data:[{...exampleStep(),body_en:'Submitted copy'}],error:null});await flush();view=render(AdminSequences);
+  expect(h.update).toHaveBeenCalledOnce();expect(editorBody(view).props.value).toBe('Newer copy');expect(text(view)).toContain('communications.journeys.unsaved');expect(text(view)).toContain('communications.journeys.newerEdits');
+ });
+ it('does not restore old text when a background read finishes after a successful save',async()=>{
+  let finish!:(result:any)=>void;let held=false;let view=await openSequenceEditor();
+  h.selectRead.mockImplementation((table,result)=>table==='lifecycle_sequence_steps'&&!held?(held=true,new Promise(resolve=>{finish=resolve;})):result);
+  await vi.advanceTimersByTimeAsync(30_000);await flush();view=render(AdminSequences);editorBody(view).props.onChange({target:{value:'Saved newer copy'}});view=render(AdminSequences);
+  saveMessage(view).props.onClick();await flush();finish({data:[exampleStep()],error:null});await flush();
+  expect(editorBody(render(AdminSequences)).props.value).toBe('Saved newer copy');
  });
 });

@@ -1,13 +1,21 @@
 # Go High Level — setup, step by step
 
+> **Activation migration — 13 November 2026:** Groundwork now owns signup,
+> onboarding, project and invitation reminders. Use
+> [Groundwork communications](groundwork-communications.md) for those journeys.
+> The legacy lifecycle webhook described below can also carry application
+> decisions and subscription changes. Inspect those branches before retiring an
+> existing **Groundwork Lifecycle Events** workflow; preserve application and
+> billing paths. Its old activation reminders should not be enabled again.
+
 The code is finished. Nothing here is engineering: every step is either a value pasted
 into Supabase or a thing built inside the GHL console.
 
-**Settings live in the `app_config` table, not in Vercel** (migration 064). Two reasons:
-the free plan has run out of environment variables, and a value in Vercel needs a
-redeploy before it does anything — which is the single most common reason a tick stays a
-cross after someone has "already added it". A row in `app_config` takes effect within a
-minute. Values still in Vercel keep working; a row in the table overrides one.
+**CRM settings live in the `app_config` table, with Vercel environment fallbacks**
+(migration 064). Groundwork uses Vercel Pro. Database settings can be updated
+without a deployment; Vercel environment changes need a redeploy to reach running
+functions. A row in `app_config` takes effect within a minute and overrides the
+corresponding environment value.
 
 **Check your work as you go at `/admin/crm`.** That page reads the live configuration and
 shows a tick per item, plus which route events are currently taking. Every value below

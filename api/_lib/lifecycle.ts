@@ -1,6 +1,9 @@
 import { sendWhatsApp } from './whatsapp-send.js';
 import { communicationSettings, composeCommunicationEmail, sendCommunicationEmail } from './communication-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
+import { pickLang, copyFor, ctaPath, stepTimeline, type Person, type Step, type Context } from '../../shared/lifecycle-copy.js';
+export { pickLang, render, copyFor, ctaPath } from '../../shared/lifecycle-copy.js';
+export type { Person, Step, Context } from '../../shared/lifecycle-copy.js';
 
 // =========================================================
 // Lifecycle sequences — the engine.
@@ -12,90 +15,7 @@ import { logEmailToCrm } from '../ghl/_email-log.js';
 
 type Svc = { from: (t: string) => any; rpc: (name: string, args: Record<string, unknown>) => any };
 
-export interface Person {
-  email: string;
-  fullName?: string | null;
-  phone?: string | null;
-  lang?: string | null;
-}
-
-export interface Step {
-  position: number;
-  delay_hours: number;
-  channel: 'email' | 'whatsapp';
-  code?: string;
-  subject_en: string; subject_fr: string;
-  body_en: string; body_fr: string;
-  cta_key?: string; cta_label_en?: string; cta_label_fr?: string;
-}
-
-/** What a message can say about the project and the other party. Stored on the enrolment. */
-export interface Context {
-  project_id?: string;
-  project_name?: string;
-  client_name?: string;
-  contractor_name?: string;
-  invite_path?: string;
-  entry_source?: string;
-  recipient_role?: string;
-  anonymous_invitation?: boolean;
-}
-
 const HOUR = 3_600_000;
-
-export function pickLang(lang: string | null | undefined): 'en' | 'fr' {
-  return String(lang ?? '').toLowerCase().startsWith('fr') ? 'fr' : 'en';
-}
-
-const firstOf = (name: string | null | undefined) => {
-  const n = (name ?? '').trim();
-  return n && !n.includes('@') ? n.split(/\s+/)[0] : '';
-};
-
-/**
- * {{first_name}}, {{name}}, {{email}} and, from the enrolment context, {{project_name}},
- * {{client_name}}, {{contractor_name}}, {{client_first_name}}, {{contractor_first_name}}.
- * A missing first name reads "there"; any other unknown tag is blanked, never printed.
- */
-export function render(text: string, p: Person, ctx: Context = {}, lang: 'en' | 'fr' = 'en'): string {
-  const name = (p.fullName ?? '').trim();
-  const vars: Record<string, string> = {
-    first_name: firstOf(name) || 'there',
-    name,
-    email: p.email,
-    project_name: ctx.project_name ?? 'your project',
-    client_name: ctx.client_name ?? (ctx.anonymous_invitation ? (lang === 'fr' ? 'votre client' : 'your client') : ''),
-    contractor_name: ctx.contractor_name ?? (ctx.anonymous_invitation ? (lang === 'fr' ? 'votre entrepreneur' : 'your contractor') : ''),
-    client_first_name: firstOf(ctx.client_name) || 'there',
-    contractor_first_name: firstOf(ctx.contractor_name) || 'there',
-  };
-  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? '');
-}
-
-export function copyFor(step: Step, lang: string | null | undefined, p: Person, ctx: Context = {}) {
-  const fr = pickLang(lang) === 'fr';
-  const subject = (fr ? step.subject_fr : step.subject_en) || step.subject_en;
-  const body = (fr ? step.body_fr : step.body_en) || step.body_en;
-  const cta = (fr ? step.cta_label_fr : step.cta_label_en) || step.cta_label_en || '';
-  return { subject: render(subject, p, ctx, fr ? 'fr' : 'en'), body: render(body, p, ctx, fr ? 'fr' : 'en'), cta: render(cta, p, ctx, fr ? 'fr' : 'en') };
-}
-
-/** Where the button on a step takes the reader. Always the exact unfinished screen. */
-export function ctaPath(key: string | undefined, ctx: Context): string | null {
-  const pid = ctx.project_id;
-  const contractor = ctx.recipient_role === 'contractor';
-  switch (key) {
-    case 'onboarding': return '/work/onboarding';
-    case 'create_project': return '/projects/new';
-    case 'invite_client': return pid ? `/work/projects/${pid}?tab=people` : '/work/projects';
-    case 'connect_contractor': return pid ? `/projects/${pid}?tab=team` : '/dashboard';
-    case 'open_project':
-      return pid ? (contractor ? `/work/projects/${pid}` : `/projects/${pid}`) : (contractor ? '/work' : '/dashboard');
-    case 'invitation': return ctx.invite_path || (contractor ? '/work' : '/dashboard');
-    case 'manage_invitation': return pid ? (contractor ? `/work/projects/${pid}?tab=people` : `/projects/${pid}?tab=team`) : (contractor ? '/work/projects' : '/projects');
-    default: return null;
-  }
-}
 
 export function emailHtml(body: string, cta: string, url: string | null): string {
   const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -125,11 +45,8 @@ export function nextDue(
   followupAfterDays: number | null,
   _now: Date,
 ): { position: number; at: Date } | { followupAt: Date } | null {
-  const next = steps.filter(s => s.position > afterPosition).sort((a, b) => a.position - b.position)[0];
-  if (next) {
-    const hours = steps.filter(step => step.position <= next.position).reduce((sum, step) => sum + step.delay_hours, 0);
-    return { position: next.position, at: new Date(enrolledAt.getTime() + hours * HOUR) };
-  }
+  const next = stepTimeline(steps).find(item => item.step.position > afterPosition);
+  if (next) return { position: next.step.position, at: new Date(enrolledAt.getTime() + next.hoursFromEntry * HOUR) };
   if (followupAfterDays) return { followupAt: new Date(enrolledAt.getTime() + followupAfterDays * 24 * HOUR) };
   return null;
 }

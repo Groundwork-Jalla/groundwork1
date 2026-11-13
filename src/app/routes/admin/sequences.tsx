@@ -2,8 +2,10 @@ import { CommunicationSettings } from '@/components/admin/communications/Communi
 import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
 import { CommunicationRunStatus } from '@/components/admin/communications/CommunicationRunStatus';
 import { CommunicationFollowups,type CommunicationFollowup } from '@/components/admin/communications/CommunicationFollowups';
+import { CommunicationJourneys } from '@/components/admin/communications/CommunicationJourneys';
+import { ACTIVATION_JOURNEYS,type JourneyId,type JourneySequence,type JourneyStep } from '@/lib/lifecycle/journeys';
 import { useT } from '@/lib/i18n';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, Play, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -17,16 +19,12 @@ import { cn } from '@/lib/utils';
 // Admin-only: RLS on these tables is `is_admin()`.
 // =========================================================
 
-interface Sequence {
+interface Sequence extends JourneySequence {
   key: string; name: string; description: string; trigger_event: string;
   exit_events: string[]; audience: string; followup_after_days: number | null; enabled: boolean;
   journey: string; awaiting_action: string;
 }
-interface Step {
-  id: string; sequence_key: string; position: number; delay_hours: number;
-  channel: 'email' | 'whatsapp'; subject_en: string; subject_fr: string; body_en: string; body_fr: string;
-  code: string; cta_label_en: string; cta_label_fr: string;
-}
+type Step = JourneyStep;
 interface Followup extends CommunicationFollowup {
   id: string; sequence_key: string; email: string; full_name: string | null; phone: string | null;
   status: 'open' | 'done' | 'dismissed'; note: string; created_at: string;
@@ -42,7 +40,7 @@ interface Enrollment {
   context: { project_name?: string } | null;
 }
 
-type Tab = 'attention' | 'sequences' | 'log' | 'inbox' | 'settings';
+type Tab = 'attention' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings';
 
 const ago = (iso: string | null) => {
   if (!iso) return '—';
@@ -62,6 +60,11 @@ export default function AdminSequences() {
   const [tab, setTab] = useState<Tab>('attention');
   const [seqs, setSeqs] = useState<Sequence[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
+  const stepDrafts=useRef(new Map<string,Partial<Step>>());
+  const stepRevision=useRef(0);
+  const stepSaves=useRef(new Set<string>());
+  const [savingSteps,setSavingSteps]=useState<string[]>([]);
+  const [selectedJourney,setSelectedJourney]=useState<JourneyId|'all'>('all');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [sends, setSends] = useState<SendRow[]>([]);
@@ -76,6 +79,7 @@ export default function AdminSequences() {
   const [preview, setPreview] = useState<{ recipient: string; step: string | null; subject: string | null; state: string; reason: string; whatsappPaused: boolean }[] | null>(null);
 
   const load = useCallback(async () => {
+    const revision=stepRevision.current;
     const [s, st, en, fu, lg, settings, runs] = await Promise.all([
       supabase.from('lifecycle_sequences').select('*').order('name'),
       supabase.from('lifecycle_sequence_steps').select('*').order('position'),
@@ -88,7 +92,7 @@ export default function AdminSequences() {
     const failed = [s, st, en, fu, lg, settings, runs].find(r => r.error);
     if (failed?.error) { setError(failed.error.message); return; }
     setSeqs((s.data ?? []) as Sequence[]);
-    setSteps((st.data ?? []) as Step[]);
+    if(revision===stepRevision.current)setSteps(((st.data??[]) as Step[]).map(step=>({...step,...stepDrafts.current.get(step.id)})));
     const c: Record<string, number> = {};
     const active = (en.data ?? []) as Enrollment[];
     for (const r of active) c[r.sequence_key] = (c[r.sequence_key] ?? 0) + 1;
@@ -115,12 +119,24 @@ export default function AdminSequences() {
     if (e) { setError(e.message); load(); }
   }
   async function patchStep(id: string, patch: Partial<Step>) {
+    stepDrafts.current.set(id,{...stepDrafts.current.get(id),...patch});
     setSteps(p => p.map(s => s.id === id ? { ...s, ...patch } : s));
   }
   async function saveStep(step: Step) {
-    const { id: _id, sequence_key: _k, ...rest } = step;
-    const { error: e } = await supabase.from('lifecycle_sequence_steps').update(rest).eq('id', step.id);
-    setNotice(e ? null : 'Saved'); if (e) setError(e.message);
+    const patch={...stepDrafts.current.get(step.id)};
+    if(stepSaves.current.has(step.id)||!Object.keys(patch).length)return;
+    stepSaves.current.add(step.id);setSavingSteps(previous=>[...previous,step.id]);setError(null);setNotice(null);
+    try {
+      const {data,error}=await supabase.from('lifecycle_sequence_steps').update(patch).eq('id',step.id).select('*').single<Step>();
+      if(error||!data)throw error??new Error('step_unavailable');
+      stepRevision.current++;
+      const remaining={...stepDrafts.current.get(step.id)};
+      for(const key of Object.keys(patch) as (keyof Step)[])if(remaining[key]===patch[key])delete remaining[key];
+      if(Object.keys(remaining).length)stepDrafts.current.set(step.id,remaining);else stepDrafts.current.delete(step.id);
+      setSteps(previous=>previous.map(item=>item.id===step.id?{...data,...remaining}:item));
+      setNotice(t(Object.keys(remaining).length?'communications.journeys.newerEdits':'communications.journeys.stepSaved'));
+    }catch{setError(t('communications.journeys.saveFailed'));}
+    finally{stepSaves.current.delete(step.id);setSavingSteps(previous=>previous.filter(id=>id!==step.id));}
   }
   async function addStep(key: string) {
     const pos = Math.max(0, ...steps.filter(s => s.sequence_key === key).map(s => s.position)) + 1;
@@ -129,8 +145,9 @@ export default function AdminSequences() {
     if (e) setError(e.message); else load();
   }
   async function removeStep(id: string) {
+    if(stepSaves.current.has(id))return;
     const { error: e } = await supabase.from('lifecycle_sequence_steps').delete().eq('id', id);
-    if (e) setError(e.message); else load();
+    if (e) setError(e.message); else {stepDrafts.current.delete(id);stepRevision.current++;void load();}
   }
   async function runNow(previewOnly = false) {
     if (running) return;
@@ -166,6 +183,8 @@ export default function AdminSequences() {
   const waitingIds = new Set(waiting.map(w => w.id));
   const problems = sends.filter(r => r.status === 'failed' && r.enrollment_id && waitingIds.has(r.enrollment_id));
   const attentionCount = openFollowups.length + problems.length;
+  const selectedKeys=ACTIVATION_JOURNEYS.find(journey=>journey.id===selectedJourney)?.sequences;
+  const displayedSequences=selectedKeys?selectedKeys.map(key=>seqs.find(sequence=>sequence.key===key)).filter((sequence):sequence is Sequence=>!!sequence):seqs;
 
   return (
     <div className="p-6 sm:p-8">
@@ -197,7 +216,7 @@ export default function AdminSequences() {
 
 
       <div className="mb-5 flex flex-wrap gap-1.5">
-        {([['attention', `Needs attention · ${attentionCount}`], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
+        {([['attention', `Needs attention · ${attentionCount}`], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('rounded-full border px-3 py-1.5 text-sm font-medium',
               tab === k ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
@@ -208,17 +227,21 @@ export default function AdminSequences() {
 
       {tab === 'inbox' && <CommunicationInbox />}
       {tab === 'settings' && <CommunicationSettings />}
+      {tab === 'journeys' && <CommunicationJourneys sequences={seqs} steps={steps} onEdit={journey=>{setSelectedJourney(journey);setTab('sequences');}}/>}
 
       {tab === 'sequences' && (
         <div className="space-y-5">
-          {seqs.map((s, i) => {
+          <label className="block text-sm">{t('communications.journeys.filter')} <select value={selectedJourney} onChange={event=>setSelectedJourney(event.target.value as JourneyId|'all')} className="ml-2 rounded-xl border bg-white px-3 py-2">
+            <option value="all">{t('communications.journeys.all')}</option>{ACTIVATION_JOURNEYS.map(journey=><option key={journey.id} value={journey.id}>{t(`communications.journeys.titles.${journey.id}`)}</option>)}
+          </select></label>
+          {displayedSequences.map((s, i) => {
             const own = steps.filter(x => x.sequence_key === s.key);
             const frMissing = own.some(x => !x.body_fr.trim());
             return (
               <section key={s.key} className="rounded-2xl border border-brand-border-grey bg-white p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    {s.journey && s.journey !== seqs[i - 1]?.journey && (
+                    {s.journey && s.journey !== displayedSequences[i - 1]?.journey && (
                       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-blue">{s.journey}</p>
                     )}
                     <h2 className="text-base font-semibold text-brand-near-black">{s.name}</h2>
@@ -256,7 +279,8 @@ export default function AdminSequences() {
                           <option value="email">Email</option>
                           <option value="whatsapp">WhatsApp</option>
                         </select>
-                        <button onClick={() => removeStep(st.id)} className="ml-auto text-red-600" aria-label="Remove step"><Trash2 className="size-4" /></button>
+                        {stepDrafts.current.has(st.id)&&<span className="text-xs text-brand-mid-grey">{t('communications.journeys.unsaved')}</span>}
+                        <button disabled={savingSteps.includes(st.id)} onClick={() => removeStep(st.id)} className="ml-auto text-red-600" aria-label="Remove step"><Trash2 className="size-4" /></button>
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {st.channel === 'email' && <input className={field} placeholder="Subject (EN)" value={st.subject_en} onChange={e => patchStep(st.id, { subject_en: e.target.value })} />}
@@ -270,7 +294,7 @@ export default function AdminSequences() {
                           <input className={field} placeholder="Libellé du bouton (FR)" value={st.cta_label_fr} onChange={e => patchStep(st.id, { cta_label_fr: e.target.value })} />
                         </div>
                       )}
-                      <button onClick={() => saveStep(st)} className="mt-2 rounded-lg bg-brand-near-black px-3 py-1.5 text-sm font-semibold text-white">Save step</button>
+                      <button disabled={savingSteps.includes(st.id)||!stepDrafts.current.has(st.id)} onClick={() => saveStep(st)} className="mt-2 rounded-lg bg-brand-near-black px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40">{t(savingSteps.includes(st.id)?'common.loading':'communications.journeys.saveStep')}</button>
                     </div>
                   ))}
                   <button onClick={() => addStep(s.key)} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-blue">

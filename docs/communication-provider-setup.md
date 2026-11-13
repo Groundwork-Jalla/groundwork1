@@ -29,6 +29,37 @@ The Admin email setup check reads saved settings and provider configuration. It
 does not substitute for an actual delivered email, a verified signed event, an
 incoming reply, staff follow-up and confirmation that GHL duplicates have stopped.
 
+## GHL inventory supplied by the user
+
+This classifies the supplied Home list for the activation migration. Workflow
+contents have not been inspected through the API; the saved token is rejected.
+
+| Workflow | Action for this migration |
+| --- | --- |
+| Ai Scaling Partner - Advisory Application | Leave unchanged; separate advisory application workflow. |
+| Build Assessment Lead Capture Workflow | Leave unchanged; lead capture. |
+| Construction Cost Guide By Country - Form | Leave unchanged; guide/form acquisition. |
+| Contractor Application | Leave unchanged; partner application processing is separate from contractor account activation. |
+| Founding Member Exit Popup Form | Leave unchanged; popup/form acquisition. |
+| Groundwork Lifecycle Events | Inspect its event branches and retire the activation reminders only. |
+| Jalla Campaign - Immigration and Travel Agents | Leave unchanged; separate campaign. |
+
+The supplied lifecycle row is Published, with 20 total and 0 active enrolments.
+No active enrolments are shown to remove; retain historical records. This is an
+inventory snapshot, not confirmation that the workflow has been retired.
+
+The legacy setup in `GHL-SETUP.md` routes `user_signup`, `project_created`,
+`application_decision` and `subscription_changed` through the same inbound
+webhook. The current forwarder still preserves application and subscription
+routing, while Groundwork owns signup, onboarding, project and invitation nudges.
+Consequently, the workflow name alone is insufficient to retire the whole graph.
+
+Open **Groundwork Lifecycle Events** and inspect its trigger and If/Else event
+branches. If it contains only activation messages, set it to Draft and save. If
+it also handles `application_decision` or `subscription_changed`, retain those
+paths and retire only the activation message/wait branches. Branch contents and
+the resulting retirement are awaiting confirmation from the user.
+
 Provider references:
 
 - [Resend custom receiving domains](https://resend.com/docs/dashboard/receiving/custom-domains)

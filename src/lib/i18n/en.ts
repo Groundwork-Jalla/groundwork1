@@ -10,6 +10,18 @@
 
 export const en = {
   communications: {
+    journeys: {
+      title:"Journeys",help:"Review the four activation paths. Each stage has its own clock, next action and reminder schedule. Select a message to preview it with example details.",
+      immediate:"On entry",day:"Day {count}",hours:"{count} hours after entry",enabled:"Enabled",paused:"Paused",
+      empty:"Message stages will appear here when this journey is installed.",humanFollowup:"From day {count}, eligible people can enter human follow-up while the required action remains incomplete.",
+      edit:"Edit this journey",preview:"Message preview",language:"Message language",exampleOnly:"Example details only. This preview does not send a message or open a real invitation.",
+      destination:"Button destination:",filter:"Journey",all:"All journeys",unsaved:"Unsaved changes",saveStep:"Save step",stepSaved:"Message changes saved.",saveFailed:"The message could not be saved. Your draft is still here; please try again.",
+      newerEdits:"The submitted changes are saved. Your newer edits still need saving.",
+      titles:{contractorSignup:"Contractor signs up",contractorInvited:"Contractor invited by a client",clientSignup:"Client signs up",clientInvited:"Client invited by a contractor"},
+      outcomes:{contractorSignup:"Complete onboarding, create a project, invite the client and connect both people.",contractorInvited:"Accept the invitation and complete any required onboarding to join the existing project.",clientSignup:"Create a project, then invite a contractor or request help connecting one.",clientInvited:"Accept the contractor's invitation and join the existing project."},
+      stages:{cs_signup:"Complete contractor onboarding",cs_onboarded:"Create the first project",cs_project:"Invite the client",cs_client_pending:"Await the client's acceptance",cs_connected:"Client connected",ci_invited:"Accept the project invitation",ci_onboarding:"Complete required onboarding",ci_connected_existing:"Join with onboarding already complete",ci_connected_new:"Join after completing onboarding",cl_signup:"Create the first project",cl_project:"Connect a contractor",cl_support:"Support request received",cl_contractor_pending:"Await the contractor's acceptance",cl_connected:"Contractor connected",iv_invited:"Accept the project invitation",iv_connected:"Join the existing project"},
+      branches:{onboardingNeeded:"This path applies when required contractor onboarding is incomplete.",alreadyOnboarded:"Alternative path: the contractor has already completed onboarding.",afterOnboarding:"Alternative path: the contractor finishes onboarding after accepting the invitation.",supportRequested:"This path applies when the client requests help connecting a contractor.",contractorInvited:"This path applies when the client invites a contractor directly."},
+    },
     setup: {
       title: "Email setup checks",
       help: "Check the saved settings against Resend. This reads configuration without sending messages or changing delivery settings.",

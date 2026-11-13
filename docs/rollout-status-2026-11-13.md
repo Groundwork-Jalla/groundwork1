@@ -61,6 +61,7 @@ transport test emails were sent to the real test inboxes; both have a Resend
 | Resend signing setup | No webhook is registered and `app_config.resend_webhook_secret` is unset. The proposed domain/webhook/secret configuration writes are awaiting approval, separately from the earlier read-only audit permission. |
 | Background processing | Successful `communication_runs` are recorded, including the scheduled five-minute intervals. Delivery is off and all 16 journeys are disabled; successful runs do not establish actual reminder delivery. |
 | GHL access | The configured database PIT is rejected with HTTP 401 by the documented legacy workflow list and current workflow search. A location can be inferred from the configured webhook, but no location ID is saved in database/local configuration. The separately configured Vercel value was not exported. No workflows were changed. |
+| GHL workflow inventory | The user supplied seven Home workflows. `Groundwork Lifecycle Events` is the activation-retirement candidate; its row reports Published, 20 total and 0 active enrolments. The six acquisition/application/campaign workflows stay unchanged for this migration. The legacy lifecycle webhook also supported application decisions and subscriptions, so branch inspection is required before retiring the whole workflow. Retirement is not yet confirmed. |
 | Controlled account authentication | Both supplied test accounts sign in. The contractor has the contractor account role and completed required onboarding; the client's legacy account resolves to the client dashboard. |
 | Project access/figures | Both accounts can read the same project through their own authenticated permissions. Saved budget fields and all ten stage rows match. The primary client and assigned contractor roles resolve correctly, with no cross-role construction assignment to the client. |
 | BOQ acceptance coverage | The existing shared test project is estimate-based. Its matching views do not establish live BOQ extraction or BOQ allocation acceptance. |
@@ -253,6 +254,13 @@ removing old enrollments prevents a later republish from resuming their reminder
 Keep partner application/sales, waitlist and billing workflows available. If a
 workflow mixes activation and sales actions, review its definition before changing
 its status. Record the names and active-enrollment counts for the release review.
+
+For the user's supplied Home inventory, inspect **Groundwork Lifecycle Events**.
+Its 20 historical enrolments remain recorded; the list shows 0 active. Keep the
+other six workflows unchanged for this migration. Check the lifecycle graph for
+`application_decision` and `subscription_changed` branches: the legacy setup used
+this same event webhook for those paths. A mixed workflow needs only its
+activation reminder branches retired, retaining application/billing behavior.
 
 ### Controlled acceptance
 
