@@ -10,7 +10,7 @@ import { logEmailToCrm } from '../ghl/_email-log.js';
 // the caller: a sequence problem must not break signup.
 // =========================================================
 
-type Svc = { from: (t: string) => any };
+type Svc = { from: (t: string) => any; rpc: (name: string, args: Record<string, unknown>) => any };
 
 export interface Person {
   email: string;
@@ -85,9 +85,9 @@ export function ctaPath(key: string | undefined, ctx: Context): string | null {
   const contractor = ctx.recipient_role === 'contractor';
   switch (key) {
     case 'onboarding': return '/work/onboarding';
-    case 'create_project': return contractor ? '/work/projects' : '/projects/new';
-    case 'invite_client': return pid ? `/work/projects/${pid}` : '/work/projects';
-    case 'connect_contractor': return pid ? `/projects/${pid}` : '/dashboard';
+    case 'create_project': return '/projects/new';
+    case 'invite_client': return pid ? `/work/projects/${pid}?tab=people` : '/work/projects';
+    case 'connect_contractor': return pid ? `/projects/${pid}?tab=team` : '/dashboard';
     case 'open_project':
       return pid ? (contractor ? `/work/projects/${pid}` : `/projects/${pid}`) : (contractor ? '/work' : '/dashboard');
     case 'invitation': return ctx.invite_path || (contractor ? '/work' : '/dashboard');
@@ -99,7 +99,7 @@ export function emailHtml(body: string, cta: string, url: string | null): string
   const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const paras = body.split(/\n{2,}/).map(t => `<p style="margin:0 0 16px">${esc(t).replace(/\n/g, '<br>')}</p>`).join('');
   const button = cta && url
-    ? `<p style="margin:24px 0"><a href="${esc(url)}" style="background:#1a56db;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(cta)}</a></p>`
+    ? `<p style="margin:24px 0"><a href="${esc(url)}" style="background:#1f4d3a;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(cta)}</a></p>`
     : '';
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:560px">${paras}${button}<p style="margin:24px 0 0;color:#777;font-size:12px">Groundwork by Jalla</p></div>`;
 }
@@ -121,10 +121,13 @@ export function nextDue(
   afterPosition: number,
   enrolledAt: Date,
   followupAfterDays: number | null,
-  now: Date,
+  _now: Date,
 ): { position: number; at: Date } | { followupAt: Date } | null {
   const next = steps.filter(s => s.position > afterPosition).sort((a, b) => a.position - b.position)[0];
-  if (next) return { position: next.position, at: new Date(now.getTime() + next.delay_hours * HOUR) };
+  if (next) {
+    const hours = steps.filter(step => step.position <= next.position).reduce((sum, step) => sum + step.delay_hours, 0);
+    return { position: next.position, at: new Date(enrolledAt.getTime() + hours * HOUR) };
+  }
   if (followupAfterDays) return { followupAt: new Date(enrolledAt.getTime() + followupAfterDays * 24 * HOUR) };
   return null;
 }
@@ -168,8 +171,8 @@ export async function enrollForEvent(
       const { data: open } = await svc.from('lifecycle_enrollments').select('id, email, subject_email, ref')
         .eq('status', 'active').in('sequence_key', exiting);
       const ids = ((open ?? []) as any[]).filter(r =>
-        r.email === email || r.subject_email === email ||
-        (!!inviter && !!projectId && r.email === inviter.email && r.ref === projectId),
+        ((!projectId || !r.ref || r.ref === projectId || r.ref.startsWith(`${projectId}:`)) && (r.email === email || r.subject_email === email)) ||
+        (!!inviter && !!projectId && r.email === inviter.email && (r.ref === projectId || r.ref?.startsWith(`${projectId}:`))),
       ).map(r => r.id);
       if (ids.length) {
         await svc.from('lifecycle_enrollments')
@@ -179,6 +182,24 @@ export async function enrollForEvent(
           .eq('status', 'open').in('enrollment_id', ids);
       }
       out.exited = ids.length;
+    }
+
+    // A fresh primary invitation gets a fresh clock. Retire the earlier token's
+    // reminders, including the inviter's copy, before starting its replacement.
+    const invitationPath = strField(fields, 'invite_path');
+    if (projectId && invitationPath && ['client_invited', 'contractor_invited'].includes(event)) {
+      const keys = all.filter(sequence => sequence.trigger_event === event).map(sequence => sequence.key);
+      if (keys.length) {
+        const previous = await svc.from('lifecycle_enrollments').select('id,context').eq('status', 'active').in('sequence_key', keys);
+        if (previous.error) throw previous.error;
+        const ids = (previous.data ?? []).filter((row: any) => row.context?.project_id === projectId && row.context?.invite_path && row.context.invite_path !== invitationPath).map((row: any) => row.id);
+        if (ids.length) {
+          const changed = await svc.from('lifecycle_enrollments').update({ status: 'exited', exit_reason: 'invitation_replaced', next_send_at: null }).in('id', ids);
+          if (changed.error) throw changed.error;
+          await svc.from('followup_queue').update({ status: 'done', resolved_at: now.toISOString(), note: 'Auto-closed: invitation replaced' }).eq('status', 'open').in('enrollment_id', ids);
+          out.exited += ids.length;
+        }
+      }
     }
 
     // A client who said they have no project to bring is not nudged about one.
@@ -198,9 +219,11 @@ export async function enrollForEvent(
         if ((busy ?? []).length) continue;
       }
 
-      const { data: first } = await svc.from('lifecycle_sequence_steps')
-        .select('delay_hours').eq('sequence_key', s.key).order('position').limit(1);
-      if (!first?.length) continue;
+      const { data: reminderSteps, error: stepError } = await svc.from('lifecycle_sequence_steps')
+        .select('*').eq('sequence_key', s.key).order('position');
+      if (stepError) throw stepError;
+      const first = (reminderSteps ?? []).slice(0, 1) as Step[];
+      if (!first.length) continue;
 
       const contactName = person.fullName || person.email;
       const otherName = inviter?.fullName || strField(fields, 'inviter_name') || inviter?.email || '';
@@ -222,17 +245,33 @@ export async function enrollForEvent(
         context.client_name = inviterIsContractor ? contactName : (target.fullName || target.email);
       }
 
+      const deliveredInvitation = !toInviter && fields.invitation_email_sent === true && ['CI01', 'IV01'].includes(first[0].code ?? '');
+      const alreadyDeliveredNext = deliveredInvitation ? nextDue(reminderSteps ?? [], first[0].position, now, s.followup_after_days, now) : null;
+      const nextPosition = deliveredInvitation ? (alreadyDeliveredNext && 'position' in alreadyDeliveredNext ? alreadyDeliveredNext.position : first[0].position + 1) : first[0].position;
       const { error, data } = await svc.from('lifecycle_enrollments').upsert({
         sequence_key: s.key, email: target.email, full_name: target.fullName ?? null,
         phone: toInviter ? null : person.phone ?? null,
-        lang: pickLang(target.lang ?? person.lang), user_role: role || null, status: 'active', next_position: 1,
-        next_send_at: new Date(now.getTime() + first[0].delay_hours * HOUR).toISOString(),
+        lang: pickLang(target.lang ?? person.lang), user_role: role || null, status: deliveredInvitation && !alreadyDeliveredNext ? 'completed' : 'active', next_position: nextPosition,
+        next_send_at: deliveredInvitation
+          ? (alreadyDeliveredNext && 'at' in alreadyDeliveredNext ? alreadyDeliveredNext.at : alreadyDeliveredNext && 'followupAt' in alreadyDeliveredNext ? alreadyDeliveredNext.followupAt : null)?.toISOString() ?? null
+          : new Date(now.getTime() + first[0].delay_hours * HOUR).toISOString(),
+        ...(deliveredInvitation ? { last_sent_at: now.toISOString(), last_step_code: first[0].code, emails_sent: 1 } : {}),
         enrolled_at: now.toISOString(),
-        ref: toInviter ? `${projectId}:${email}` : projectId,
+        ref: (toInviter ? `${projectId}:${email}` : projectId) + (invitationPath && ['client_invited', 'contractor_invited'].includes(event) ? `:${invitationPath.split('/').pop()}` : ''),
         subject_email: toInviter ? email : null,
         context,
       }, { onConflict: 'sequence_key,email,ref', ignoreDuplicates: true }).select('id');
-      if (!error && (data ?? []).length) out.enrolled++;
+      if (!error && (data ?? []).length) {
+        out.enrolled++;
+        if (deliveredInvitation) {
+          const enrollmentId = data[0].id;
+          const history = await svc.from('lifecycle_sends').insert({ enrollment_id: enrollmentId, sequence_key: s.key,
+            position: first[0].position, email, channel: 'email', status: 'sent', step_code: first[0].code,
+            subject: strField(fields, 'invitation_email_subject') || copyFor(first[0], person.lang, person, context).subject });
+          if (history.error) throw history.error;
+
+        }
+      }
     }
 
     // The immediate messages (delay 0) go out now rather than at the next hourly run.
@@ -243,31 +282,25 @@ export async function enrollForEvent(
   return out;
 }
 
-async function sendEmail(to: string, subject: string, html: string, text: string) {
+interface EmailPayload { from: string; to: string; subject: string; html: string; text: string; }
+
+async function sendEmail(payload: EmailPayload, idempotencyKey: string): Promise<{ ok: boolean; error?: string; providerId?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, error: 'RESEND_API_KEY not set' };
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: senderFor('other'), to, subject, text, html }),
-  });
-  if (!res.ok) return { ok: false as const, error: `resend_${res.status}` };
-
-  /**
-   * On the contact, so whoever picks up the phone can see what we already said.
-   *
-   * These are the Day 1 / Day 3 / Day 7 nudges, which means they are most of what a
-   * stalled person has ever heard from Groundwork — and a human following up after
-   * day seven is the whole point of the sequence ending. Reaching for the phone
-   * without knowing which three emails already went out is how the follow-up repeats
-   * the automation word for word.
-   *
-   * Awaited, not floated: Vercel freezes the instance the moment the handler responds,
-   * so `void logEmailToCrm(...)` is suspended mid-flight and the note never lands. It
-   * cannot throw and cannot fail the send — see the header of ghl/_email-log.ts.
-   */
-  await logEmailToCrm({ to, subject, html, kind: 'other' });
-  return { ok: true as const };
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST', signal: AbortSignal.timeout(30_000),
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) return { ok: false, error: `resend_${response.status}` };
+    const result = await response.json().catch(() => ({}));
+    if (typeof result.id !== 'string') return { ok: false, error: 'resend_response_invalid' };
+    // The durable send outcome is recorded before the optional CRM mirror.
+    return { ok: true, providerId: result.id };
+  } catch {
+    return { ok: false, error: 'resend_connection_uncertain' };
+  }
 }
 
 const siteBase = () => (process.env.PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
@@ -277,88 +310,132 @@ export function followupPriority(ctx: Context): 'high' | 'normal' {
   return ctx.project_id || ctx.entry_source === 'referral' || ctx.entry_source === 'direct_outreach' ? 'high' : 'normal';
 }
 
+/** Late jobs send the latest due reminder, rather than a burst of obsolete reminders. */
+export function dueStep(steps: Step[], afterPosition: number, enrolledAt: Date, now: Date): Step | undefined {
+  let hours = 0;
+  let selected: Step | undefined;
+  for (const step of [...steps].sort((a, b) => a.position - b.position)) {
+    hours += step.delay_hours;
+    if (step.position >= afterPosition && enrolledAt.getTime() + hours * HOUR <= now.getTime()) selected = step;
+  }
+  return selected;
+}
+
+async function rpc(svc: Svc, name: string, args: Record<string, unknown>) {
+  const result = await svc.rpc(name, args);
+  if (result.error) throw result.error;
+  return result.data;
+}
+
+async function dueEnrollments(svc: Svc, now: Date, limit: number) {
+  const { data: sequences, error } = await svc.from('lifecycle_sequences').select('*').eq('enabled', true);
+  if (error) throw error;
+  const bySeq = new Map<string, any>(((sequences ?? []) as any[]).map(sequence => [sequence.key, sequence]));
+  if (!bySeq.size) return { bySeq, due: [] as any[] };
+  const result = await svc.from('lifecycle_enrollments').select('*').eq('status', 'active')
+    .lte('next_send_at', now.toISOString()).in('sequence_key', [...bySeq.keys()]).order('next_send_at').limit(limit);
+  if (result.error) throw result.error;
+  return { bySeq, due: (result.data ?? []) as any[] };
+}
+
+/** Read-only operational check for admin testing. No claims, updates or provider calls. */
+export async function previewDue(svc: Svc, now = new Date(), limit = 50) {
+  const { due } = await dueEnrollments(svc, now, limit);
+  const rows = [];
+  for (const enrollment of due) {
+    const state = await rpc(svc, 'lifecycle_enrollment_state', { p_enrollment: enrollment.id });
+    const { data: steps, error } = await svc.from('lifecycle_sequence_steps').select('*').eq('sequence_key', enrollment.sequence_key).order('position');
+    if (error) throw error;
+    const step = dueStep(steps ?? [], enrollment.next_position, new Date(enrollment.enrolled_at), now);
+    const copy = step ? copyFor(step, enrollment.lang, { email: enrollment.email, fullName: enrollment.full_name }, enrollment.context ?? {}) : null;
+    const futureStep = !step && (steps ?? []).some((item: Step) => item.position >= enrollment.next_position);
+    rows.push({ enrollmentId: enrollment.id, sequence: enrollment.sequence_key, recipient: enrollment.email,
+      state: futureStep && state?.kind === 'ready' ? 'hold' : state?.kind ?? 'unavailable',
+      reason: futureStep && state?.kind === 'ready' ? 'next_reminder_not_due' : state?.reason ?? 'state_unavailable',
+      step: step?.code ?? null, channel: step?.channel ?? null, subject: copy?.subject ?? null,
+      whatsappPaused: step?.channel === 'whatsapp' && process.env.LIFECYCLE_WHATSAPP_ENABLED !== 'true' });
+  }
+  return { checked: rows.length, ready: rows.filter(row => row.state === 'ready' && !row.whatsappPaused).length, rows };
+}
+
 export async function runDue(svc: Svc, now = new Date(), limit = 50) {
   const tally = { sent: 0, failed: 0, followups: 0, skipped: 0 };
-  const { data: seqs } = await svc.from('lifecycle_sequences').select('*').eq('enabled', true);
-  const bySeq = new Map<string, any>(((seqs ?? []) as any[]).map(s => [s.key, s]));
-  if (!bySeq.size) return tally;
-
-  const { data: due } = await svc.from('lifecycle_enrollments').select('*')
-    .eq('status', 'active').lte('next_send_at', now.toISOString())
-    .in('sequence_key', [...bySeq.keys()]).limit(limit);
-
-  for (const e of (due ?? []) as any[]) {
-    const seq = bySeq.get(e.sequence_key);
-    const { data: stepRows } = await svc.from('lifecycle_sequence_steps')
-      .select('*').eq('sequence_key', e.sequence_key).order('position');
-    const steps = (stepRows ?? []) as Step[];
-    const step = steps.find(s => s.position === e.next_position);
-    const enrolledAt = new Date(e.enrolled_at);
-    const person: Person = { email: e.email, fullName: e.full_name, phone: e.phone, lang: e.lang };
-    const ctx: Context = e.context ?? {};
-
-    if (!step) {
-      // Journey over: hand the person to a human, once, with the reason and a due date.
-      if (seq.followup_after_days) {
-        await svc.from('followup_queue').upsert({
-          enrollment_id: e.id, sequence_key: e.sequence_key, email: e.email,
-          full_name: e.full_name, phone: e.phone,
-          reason: `No action after Day ${seq.followup_after_days}: ${seq.awaiting_action || 'next step'} (${e.emails_sent ?? 0} emails sent, last ${e.last_step_code ?? 'none'})`,
-          priority: followupPriority(ctx),
-          due_at: new Date(now.getTime() + 24 * HOUR).toISOString(),
-          context: ctx,
-        }, { onConflict: 'sequence_key,email', ignoreDuplicates: true });
-        tally.followups++;
+  const { bySeq, due } = await dueEnrollments(svc, now, limit);
+  for (const candidate of due) {
+    let enrollment: any;
+    try {
+      enrollment = await rpc(svc, 'claim_lifecycle_enrollment', { p_enrollment: candidate.id });
+      if (!enrollment) { tally.skipped++; continue; }
+      const seq = bySeq.get(enrollment.sequence_key);
+      const { data: stepRows, error: stepError } = await svc.from('lifecycle_sequence_steps')
+        .select('*').eq('sequence_key', enrollment.sequence_key).order('position');
+      if (stepError) throw stepError;
+      const steps = (stepRows ?? []) as Step[];
+      const { data: prior, error: priorError } = await svc.from('lifecycle_deliveries').select('position,status')
+        .eq('enrollment_id', enrollment.id).gte('position', enrollment.next_position).in('status', ['prepared', 'failed', 'blocked']).order('position').limit(1);
+      if (priorError) throw priorError;
+      // Resolve an already-started request with the same immutable payload and key.
+      const pendingPosition = (prior ?? [])[0]?.position;
+      const step = pendingPosition === undefined
+        ? dueStep(steps, enrollment.next_position, new Date(enrollment.enrolled_at), now)
+        : steps.find(item => item.position === pendingPosition);
+      const finish = (outcome: string, error?: string, providerId?: string) => rpc(svc, 'finish_lifecycle_delivery', {
+        p_enrollment: enrollment.id, p_token: enrollment.processing_token,
+        p_position: step?.position ?? enrollment.next_position, p_outcome: outcome,
+        p_error: error ?? null, p_provider_id: providerId ?? null,
+      });
+      if (!step) {
+        if (await finish('complete') && seq.followup_after_days) {
+          const result = await svc.from('lifecycle_enrollments').select('followup_queued').eq('id', enrollment.id).limit(1);
+          if (result.error) throw result.error;
+          if (result.data?.[0]?.followup_queued) tally.followups++;
+        }
+        continue;
       }
-      await svc.from('lifecycle_enrollments')
-        .update({ status: 'completed', next_send_at: null, followup_queued: !!seq.followup_after_days })
-        .eq('id', e.id);
-      continue;
-    }
-
-    const { subject, body, cta } = copyFor(step, e.lang, person, ctx);
-    let result: { ok: boolean; error?: string };
-    if (step.channel === 'whatsapp') {
-      if (!e.phone) result = { ok: false, error: 'no_phone' };
-      else {
-        const r = await sendWhatsApp(svc, { phone: e.phone, contactId: null, conversationId: null }, body);
-        result = r.ok ? { ok: true } : { ok: false, error: r.error };
+      if (step.channel === 'whatsapp' && process.env.LIFECYCLE_WHATSAPP_ENABLED !== 'true') {
+        if (await finish('skipped', 'whatsapp_outreach_paused')) tally.skipped++;
+        continue;
       }
-    } else {
-      const path = ctaPath(step.cta_key, ctx);
+      const person: Person = { email: enrollment.email, fullName: enrollment.full_name, phone: enrollment.phone, lang: enrollment.lang };
+      const context: Context = enrollment.context ?? {};
+      const { subject, body, cta } = copyFor(step, enrollment.lang, person, context);
+      const path = ctaPath(step.cta_key, context);
       const base = siteBase();
-      if (cta && path && !base) result = { ok: false, error: 'PUBLIC_SITE_URL not set' };
-      else {
-        const url = path && base ? base + path : null;
-        result = await sendEmail(e.email, subject, emailHtml(body, cta, url), url && cta ? `${body}\n\n${cta}: ${url}` : body);
+      if (step.channel === 'email' && cta && path && !base) {
+        await finish('failed', 'PUBLIC_SITE_URL not set'); tally.failed++; continue;
       }
-    }
-
-    const skipped = !result.ok && result.error === 'no_phone';
-    await svc.from('lifecycle_sends').insert({
-      enrollment_id: e.id, sequence_key: e.sequence_key, position: step.position, email: e.email,
-      channel: step.channel, status: result.ok ? 'sent' : skipped ? 'skipped' : 'failed', error: result.error ?? null,
-      step_code: step.code || null, subject,
-    });
-    if (result.ok) tally.sent++; else if (skipped) tally.skipped++; else tally.failed++;
-
-    // A failed send is retried on the next run, not skipped past.
-    if (!result.ok && !skipped) continue;
-
-    const sentPatch = result.ok
-      ? { last_sent_at: now.toISOString(), last_step_code: step.code || null, emails_sent: (e.emails_sent ?? 0) + 1 }
-      : {};
-    const nxt = nextDue(steps, step.position, enrolledAt, seq.followup_after_days ?? null, now);
-    if (nxt && 'position' in nxt) {
-      await svc.from('lifecycle_enrollments')
-        .update({ ...sentPatch, next_position: nxt.position, next_send_at: nxt.at.toISOString() }).eq('id', e.id);
-    } else if (nxt) {
-      await svc.from('lifecycle_enrollments')
-        .update({ ...sentPatch, next_position: step.position + 1, next_send_at: (nxt.followupAt > now ? nxt.followupAt : now).toISOString() })
-        .eq('id', e.id);
-    } else {
-      await svc.from('lifecycle_enrollments')
-        .update({ ...sentPatch, status: 'completed', next_send_at: null }).eq('id', e.id);
+      const url = path && base ? base + path : null;
+      const payload: EmailPayload = { from: senderFor('other'), to: enrollment.email, subject,
+        html: emailHtml(body, cta, url), text: url && cta ? `${body}\n\n${cta}: ${url}` : body };
+      const delivery = await rpc(svc, 'prepare_lifecycle_delivery', { p_enrollment: enrollment.id,
+        p_token: enrollment.processing_token, p_position: step.position, p_payload: payload });
+      if (!delivery) { tally.skipped++; continue; }
+      if (delivery.status === 'blocked') { tally.failed++; continue; }
+      let result: { ok: boolean; error?: string; providerId?: string };
+      if (delivery.status === 'sent') result = { ok: true, providerId: delivery.provider_id };
+      else if (step.channel === 'whatsapp') {
+        if (!enrollment.phone) result = { ok: false, error: 'no_phone' };
+        else {
+          const sent = await sendWhatsApp(svc, { phone: enrollment.phone, contactId: null, conversationId: null }, delivery.payload.text);
+          result = sent.ok ? { ok: true } : { ok: false, error: sent.error };
+        }
+      } else result = await sendEmail(delivery.payload, `lifecycle/${enrollment.id}/${step.position}`);
+      const outcome = result.ok ? 'sent' : result.error === 'no_phone' ? 'skipped' : 'failed';
+      const recorded = await finish(outcome, result.error, result.providerId);
+      if (!recorded) { tally.skipped++; continue; }
+      if (result.ok) {
+        if (delivery.status === 'sent') tally.skipped++; else tally.sent++;
+        if (step.channel === 'email' && delivery.status !== 'sent') {
+          await logEmailToCrm({ to: delivery.payload.to, subject: delivery.payload.subject, html: delivery.payload.html, kind: 'other' });
+        }
+      } else if (outcome === 'skipped') tally.skipped++;
+      else tally.failed++;
+    } catch (error) {
+      if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(String((error as { code?: string })?.code ?? ''))) throw error;
+      // The lease expires if a database/process failure prevents finalization. The
+      // next run reuses the durable delivery payload and provider idempotency key.
+      console.error('[lifecycle] delivery not finalized; retry with the existing delivery record');
+      tally.failed++;
     }
   }
   return tally;

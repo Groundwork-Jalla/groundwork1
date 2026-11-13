@@ -179,6 +179,8 @@ export async function handler(req: any, res: any) {
             activationStage:  'awaiting_invitation_response',
             stageEnteredAt:   new Date(),
           }),
+          invitation_email_sent: true,
+          invitation_email_subject: subject,
           invite_path: `/share/${shareToken}`,
         }, { dedupeKey: `client_invited:${shareToken}` });
         crmEvent = fwd.ok;

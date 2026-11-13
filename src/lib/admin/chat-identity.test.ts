@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { displaySenderName, looksLikeEmail } from './chat-identity';
+import { displaySenderName, looksLikeEmail, projectMessageRole } from './chat-identity';
 import { composeWhatsAppBody } from './whatsapp-body';
 import { en } from '@/lib/i18n/en';
 import { fr } from '@/lib/i18n/fr';
@@ -72,9 +72,9 @@ describe('the chat renders no name without passing through the guard', () => {
     expect(thread).not.toContain('{m.senderName}');
   });
 
-  it('staff fall back to Admin, project members to Member', () => {
-    expect(thread).toMatch(/roleOf\(m\.senderId\) \?\? 'staff'\) === 'staff'/);
-    expect(thread).toMatch(/project\.chat\.name\.admin[\s\S]{0,60}project\.chat\.name\.member/);
+  it('staff fall back to Admin, project members to their known role', () => {
+    expect(thread).toContain("projectMessageRole(m.senderId, roleOf, m.direction) === 'staff'");
+    expect(thread).toContain("senderRole(m.senderId, m.direction) ?? t('project.chat.name.member')");
   });
 
   it('and the role is not repeated when it is already the name shown', () => {
@@ -159,5 +159,20 @@ describe('both languages have the generic names', () => {
     for (const d of [en, fr]) {
       expect(JSON.stringify((d as any).project.chat.name)).not.toContain('@');
     }
+  });
+});
+
+
+describe('project author roles during membership refresh', () => {
+  it('shows an observer even when their global account is a contractor', () => {
+    expect(projectMessageRole('person', () => 'observer', 'inbound')).toBe('observer');
+  });
+  it('keeps an unresolved incoming author as a participant instead of Jalla', () => {
+    expect(projectMessageRole('new-member', () => null, 'inbound')).toBe('participant');
+  });
+  it('still identifies staff messages and leaves project-less role labels absent', () => {
+    expect(projectMessageRole('staff', () => null, 'outbound')).toBe('staff');
+    expect(projectMessageRole(null, () => null)).toBe('staff');
+    expect(projectMessageRole('person', undefined)).toBeNull();
   });
 });

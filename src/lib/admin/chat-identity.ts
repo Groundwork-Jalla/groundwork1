@@ -42,3 +42,16 @@ export function displaySenderName(
   if (!name || looksLikeEmail(name)) return fallback;
   return name;
 }
+
+
+/** A missing participant lookup must never turn a project member into staff. */
+export function projectMessageRole(
+  senderId: string | null,
+  roleOf: ((id: string | null) => string | null) | undefined,
+  direction?: string,
+): string | null {
+  if (!roleOf) return null;
+  const known = roleOf(senderId);
+  if (known) return known;
+  return senderId === null || direction === 'outbound' || direction === 'internal' ? 'staff' : 'participant';
+}

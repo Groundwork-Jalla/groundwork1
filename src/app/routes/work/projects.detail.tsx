@@ -10,6 +10,7 @@ import type { ProjectRow, ProjectSubstageRow, ProjectDocumentRow } from '@/types
 import { fetchProjectViewers, type ProjectViewer } from '@/lib/supabase/project-viewers';
 import { getSignedDocumentUrl } from '@/lib/supabase/documents';
 import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase/certificates';
+import { EvidenceThumbs } from '@/components/project/EvidenceThumbs';
 import { DocumentViewer } from '@/components/project/DocumentViewer';
 import { ProjectDocuments } from '@/components/project/ProjectDocuments';
 import { StagePipeline } from '@/components/contractor/StagePipeline';
@@ -931,6 +932,17 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
             <section key={stage.id}
               className="rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
               {row}
+              {substages.some(item => item.stage_id === stage.id && item.evidence_urls?.length) && (
+                <details className="mt-3 border-t border-brand-border-grey pt-3 dark:border-[#2c2c2c]">
+                  <summary className="cursor-pointer text-xs font-semibold text-brand-green">{t('contractorWork.viewEvidence')}</summary>
+                  {substages.filter(item => item.stage_id === stage.id && item.evidence_urls?.length).map(item => (
+                    <div key={item.id} className="mt-3">
+                      <p className="text-xs text-brand-mid-grey">{substageLabel(item)}</p>
+                      <EvidenceThumbs paths={item.evidence_urls ?? []} />
+                    </div>
+                  ))}
+                </details>
+              )}
               {showGate && (
                 <div data-tour="confirm-payment">
                 {/* Share the project's canonical budget basis with the client payment
@@ -1026,11 +1038,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                             : t('contractorProject.noEvidence')}
                         </span>
                       </span>
-                      {complete ? (
-                        <span className="shrink-0 rounded-lg border border-brand-border-grey px-2.5 py-1.5 text-[11px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c]">
-                          {t('contractorDocs.view')}
-                        </span>
-                      ) : (
+                      {!complete && (
                         <button type="button" onClick={() => setUploadFor(item.id)} disabled={!canWork}
                           data-tour="upload-evidence"
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white dark:bg-white dark:text-brand-near-black">
@@ -1038,6 +1046,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                         </button>
                       )}
                       </div>
+                      <EvidenceThumbs paths={item.evidence_urls ?? []} className="ml-[29px]" />
 
                       {/* Opened against the item it belongs to, so the camera and
                           the file picker are under the thumb that pressed Upload —

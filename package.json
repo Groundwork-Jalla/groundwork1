@@ -14,6 +14,7 @@
     "test:boq-db": "node scripts/test-boq-budget.mjs",
     "test:receipts-db": "node scripts/test-receipt-payments.mjs",
     "test:stages-db": "node scripts/test-stage-progression.mjs",
+    "test:lifecycle-db": "node scripts/test-lifecycle-delivery.mjs",
     "test:team-db": "node scripts/test-project-team.mjs",
     "test:review-db": "node scripts/test-review-payments.mjs",
     "test:evidence-db": "node scripts/test-evidence-permissions.mjs",

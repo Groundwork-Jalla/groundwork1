@@ -7,7 +7,7 @@ import {
   type Conversation, type ConversationMessage,
 } from '@/lib/supabase/conversations';
 import { subscribeToMessages } from '@/lib/supabase/messages';
-import { displaySenderName } from '@/lib/admin/chat-identity';
+import { displaySenderName, projectMessageRole } from '@/lib/admin/chat-identity';
 import { RecordDecisionModal } from '@/components/admin/conversations/RecordDecisionModal';
 import { DomainNote } from '@/components/admin/workspace/DomainNote';
 import { formatDateTime, formatRelative } from '@/lib/format';
@@ -86,19 +86,12 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
   const [recording, setRecording] = useState(false);
   const [delivery, setDelivery] = useState<string | null>(null);
 
-  /**
-   * The sender's role, translated — or nothing at all.
-   *
-   * Nothing is the right answer in three cases, and each would otherwise be noise: no
-   * `roleOf` was supplied, the thread has no project to hold roles, or the sender is not
-   * a participant. That last one is Jalla, which `project_participants` has no row for,
-   * so it is named here rather than left blank — "somebody unlabelled" is exactly the
-   * ambiguity the label exists to remove.
-   */
-  const senderRole = (senderId: string | null): string | null => {
+  // New members may speak before the refreshed roster arrives. Keep those authors
+  // labelled as participants until their actual project role is available.
+  const senderRole = (senderId: string | null, direction?: string): string | null => {
     if (!roleOf) return null;
-    const key = roleOf(senderId) ?? 'staff';
-    return t(`project.chat.role.${key}` as TKey);
+    const key = projectMessageRole(senderId, roleOf, direction);
+    return key ? t(`project.chat.role.${key}` as TKey) : null;
   };
 
   /**
@@ -108,15 +101,15 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
    * inbound mirror, the email delivery path) and older rows still carry addresses. An
    * unnamed author falls back to what they ARE: the desk, or a member of the project.
    */
-  const senderLabel = (m: { senderId: string | null; senderName: string }): string => {
-    const staff = !roleOf || (roleOf(m.senderId) ?? 'staff') === 'staff';
+  const senderLabel = (m: { senderId: string | null; senderName: string; direction?: string }): string => {
+    const staff = !roleOf || projectMessageRole(m.senderId, roleOf, m.direction) === 'staff';
     return displaySenderName(m.senderName,
-      staff ? t('project.chat.name.admin') : senderRole(m.senderId) ?? t('project.chat.name.member'));
+      staff ? t('project.chat.name.admin') : senderRole(m.senderId, m.direction) ?? t('project.chat.name.member'));
   };
 
   /** The role, unless it would only repeat the name we just showed. */
-  const roleSuffix = (m: { senderId: string | null; senderName: string }): string => {
-    const role = senderRole(m.senderId);
+  const roleSuffix = (m: { senderId: string | null; senderName: string; direction?: string }): string => {
+    const role = senderRole(m.senderId, m.direction);
     return role && role !== senderLabel(m) ? ` \u00b7 ${role}` : '';
   };
 

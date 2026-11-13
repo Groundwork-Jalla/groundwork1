@@ -1,5 +1,8 @@
 # Project invitation links and observer identity
 
+The later [November 13 review](product-review-status-2026-11-13.md) records evidence
+preview, lifecycle fixes and current release/configuration status.
+
 The review notes describe product observations. The user's direct clarification
 sets the link behavior: **the first signed-in person to accept the link claims
 it**. Acceptance also requires a confirmed account email, as with the existing

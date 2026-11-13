@@ -2476,6 +2476,7 @@ export const fr: Mirror<EnDict> = {
   },
 
   contractorWork: {
+    viewEvidence: 'Voir les preuves envoyées',
     stages:       'Étapes',
     thisBuild:    'Ce projet',
     where:        'Où',
@@ -5972,6 +5973,7 @@ export const fr: Mirror<EnDict> = {
       role: {
         owner:      'Client',
         observer:   'Observateur',
+        participant: 'Membre du projet',
         contractor: 'Entrepreneur',
         verifier:   'Vérificateur',
         staff:      'Jalla',

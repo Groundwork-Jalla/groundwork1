@@ -37,9 +37,8 @@ describe('the role is shown next to the name', () => {
     expect(thread).toMatch(/return role && role !== senderLabel\(m\) \? /);
   });
 
-  it('anyone who is not a participant is named as Jalla, not left unlabelled', () => {
-    // "Somebody unlabelled" is exactly the ambiguity the label exists to remove.
-    expect(thread).toMatch(/roleOf\(senderId\) \?\? 'staff'/);
+  it('resolves unknown authors without assuming they are staff', () => {
+    expect(thread).toContain('projectMessageRole(senderId, roleOf, direction)');
   });
 });
 
@@ -51,7 +50,7 @@ describe('the roles come from the one place that defines them', () => {
   it('and a failure to load them costs the labels, never the conversation', () => {
     expect(convLib).toMatch(/if \(error\) return \{\};/);
     // Loaded in its own effect, so it cannot take the threads down with it.
-    expect(project).toMatch(/void listProjectRoles\(projectId\)\.then\(value => \{ if \(live\) setRoles\(value\);/);
+    expect(project).toMatch(/void listProjectRoles\(projectId\)\.then\(value => \{ if \(live && request === version\) setRoles\(value\);/);
   });
 
   it('the thread it shows is the project\'s own, so a role always means something', () => {

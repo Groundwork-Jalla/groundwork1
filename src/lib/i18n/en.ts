@@ -2521,6 +2521,7 @@ export const en = {
   },
 
   contractorWork: {
+    viewEvidence: 'View uploaded evidence',
     stages:       'Stages',
     thisBuild:    'This build',
     where:        'Where',
@@ -6116,6 +6117,7 @@ export const en = {
       role: {
         owner:      'Client',
         observer:   'Observer',
+        participant: 'Project participant',
         contractor: 'Contractor',
         verifier:   'Verifier',
         staff:      'Jalla',

@@ -1,4 +1,4 @@
-import { runDue } from '../_lib/lifecycle.js';
+import { previewDue, runDue } from '../_lib/lifecycle.js';
 import { getSupabaseAdmin } from '../_lib/stripe.js';
 
 // Sends whatever lifecycle step is due. Callable by the scheduler (Vercel cron sends
@@ -35,9 +35,12 @@ export async function handler(req: any, res: any) {
   }
 
   try {
-    res.status(200).json({ ok: true, ...(await runDue(getSupabaseAdmin())) });
+    const preview = req.body?.preview === true;
+    const result = preview ? await previewDue(getSupabaseAdmin()) : await runDue(getSupabaseAdmin());
+    res.status(200).json({ ok: true, preview, ...result });
   } catch (e) {
     console.error('[lifecycle-run]', e instanceof Error ? e.message : e);
-    res.status(500).json({ error: 'Run failed' });
+    const missing = ['PGRST202', 'PGRST205', '42883', '42P01'].includes(String((e as { code?: string })?.code ?? ''));
+    res.status(missing ? 503 : 500).json({ error: missing ? 'Apply the lifecycle delivery migration before running reminders.' : 'Run failed' });
   }
 }

@@ -165,6 +165,8 @@ export default async function handler(req: any, res: any) {
           activationStage:  'awaiting_invitation_response',
           stageEnteredAt:   new Date(),
         }),
+        invitation_email_sent: true,
+        invitation_email_subject: subject,
         invite_path: `/invite/${inviteToken}`,
       }, {
         // Per invitation: the same contractor invited to a second build starts a second

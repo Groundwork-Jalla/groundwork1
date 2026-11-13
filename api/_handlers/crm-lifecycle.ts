@@ -98,7 +98,7 @@ export async function handler(req: any, res: any) {
   const { data: roleRows } = await admin
     .from('user_roles').select('role').eq('user_id', user.id);
   const roles = new Set((roleRows ?? []).map(r => String(r.role)));
-  const isContractor = roles.has('contractor');
+  let isContractor = roles.has('contractor');
 
   /**
    * Onboarding is finished when the contractor has answered the project question.
@@ -160,31 +160,39 @@ export async function handler(req: any, res: any) {
 
     const owns = String(project.user_id) === user.id;
 
-    const { data: viewer } = await admin
-      .from('project_viewers').select('id, invited_by, accepted_at')
+    const { data: viewer, error: viewerError } = await admin
+      .from('project_viewers').select('id, invited_by, accepted_at, revoked_at, is_client')
       .eq('project_id', projectId).eq('user_id', user.id).maybeSingle();
 
     // `contractor_invites` is where an accepted contractor lives — the same row
     // `is_contractor_on()` (086) reads. There is no `project_contractors` table.
-    const { data: claim } = await admin
-      .from('contractor_invites').select('id, status')
+    const { data: claim, error: claimError } = await admin
+      .from('contractor_invites').select('id, status, invited_by, is_primary')
       .eq('project_id', projectId).eq('contractor_user_id', user.id)
       .eq('status', 'accepted').maybeSingle();
 
-    const joined = owns || (viewer && viewer.accepted_at) || !!claim;
+    if (viewerError || claimError) { res.status(503).json({ ok: false, reason: 'membership_read_unavailable' }); return; }
+
+    const joined = owns || (viewer && viewer.accepted_at && !viewer.revoked_at) || !!claim;
 
     if (!joined) { res.status(200).json({ ok: false, reason: 'not_a_member' }); return; }
 
+    // Activation follows this project's primary role, independent of account type.
+    if (viewer?.is_client && viewer.accepted_at && !viewer.revoked_at) isContractor = false;
+    else if (claim?.is_primary) isContractor = true;
+    else if (owns && !claim) isContractor = false;
+    else { res.status(200).json({ ok: false, reason: 'observer_or_secondary' }); return; }
+
     projectName = (project.name as string | null) ?? null;
 
-    if (viewer?.invited_by) {
+    if (viewer?.is_client && viewer.accepted_at && !viewer.revoked_at && viewer.invited_by) {
       inviterUserId = String(viewer.invited_by);
       const { data: inv } = await admin
         .from('profiles').select('full_name').eq('id', inviterUserId).maybeSingle();
       inviterName = (inv?.full_name as string | null) ?? null;
     } else if (!owns) {
-      // A contractor who claimed the build was invited by whoever owns it.
-      inviterUserId = String(project.user_id);
+      // Read the assignment’s inviter; the creator and primary client can differ.
+      inviterUserId = String(claim?.invited_by ?? project.user_id);
       const { data: inv } = await admin
         .from('profiles').select('full_name').eq('id', inviterUserId).maybeSingle();
       inviterName = (inv?.full_name as string | null) ?? null;

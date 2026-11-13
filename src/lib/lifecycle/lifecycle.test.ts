@@ -64,12 +64,14 @@ function fakeSvc(tables: Record<string, any[]>) {
         mode = 'upsert';
         const keys = String(o.onConflict).split(',');
         const exists = (tables[table] ??= []).some(x => keys.every(k => x[k] === r[k]));
-        if (!exists) { tables[table].push({ id: `id${tables[table].length}`, ...r }); log.push({ table, op: 'upsert', row: r }); }
-        const out = Promise.resolve({ error: null, data: exists ? [] : [{ id: 'x' }] });
+        const id = `id${tables[table].length}`;
+        if (!exists) { tables[table].push({ id, ...r }); log.push({ table, op: 'upsert', row: r }); }
+        const out = Promise.resolve({ error: null, data: exists ? [] : [{ id }] });
         return Object.assign(out, { select: () => out });
       },
       eq: (c: string, v: any) => { filters.push(r => r[c] === v); return q; },
       in: (c: string, v: any[]) => { filters.push(r => v.includes(r[c])); return q; },
+      gte: (c: string, v: number) => { filters.push(r => r[c] >= v); return q; },
       lte: (c: string, v: string) => { filters.push(r => r[c] <= v); return q; },
       order: () => q,
       limit: (n: number) => { lim = n; return q; },
@@ -81,7 +83,20 @@ function fakeSvc(tables: Record<string, any[]>) {
     };
     return q;
   };
-  return { from, log, tables };
+  const rpc = async (name: string, args: Record<string, any>) => {
+    const enrollment = (tables.lifecycle_enrollments ?? []).find(row => row.id === args.p_enrollment);
+    if (name === 'lifecycle_enrollment_state') return { data: { kind: 'ready', qualified: !!enrollment?.context?.project_id }, error: null };
+    if (name === 'claim_lifecycle_enrollment') return { data: enrollment ? { ...enrollment, processing_token: 'claim' } : null, error: null };
+    if (name === 'finish_lifecycle_delivery' && enrollment) {
+      if (args.p_outcome === 'complete') {
+        enrollment.status = 'completed'; enrollment.followup_queued = !!enrollment.context?.project_id;
+        if (enrollment.context?.project_id) (tables.followup_queue ??= []).push({ enrollment_id: enrollment.id });
+      }
+      return { data: true, error: null };
+    }
+    return { data: null, error: null };
+  };
+  return { from, rpc, log, tables };
 }
 
 describe('enrollForEvent', () => {
@@ -167,11 +182,52 @@ describe('runDue', () => {
       lifecycle_sequences: [{ key: 'a', enabled: true, followup_after_days: 7 }],
       lifecycle_sequence_steps: [{ sequence_key: 'a', position: 1, delay_hours: 1, channel: 'email' }],
       lifecycle_enrollments: [{ id: 'e1', sequence_key: 'a', email: 'a@b.co', status: 'active', next_position: 2,
-        next_send_at: '2020-01-01T00:00:00Z', enrolled_at: '2020-01-01T00:00:00Z' }],
+        next_send_at: '2020-01-01T00:00:00Z', enrolled_at: '2020-01-01T00:00:00Z', context: { project_id: 'project' } }],
       followup_queue: [] });
     const r = await runDue(svc, new Date('2020-01-09T00:00:00Z'));
     expect(r.followups).toBe(1);
     expect(svc.tables.followup_queue).toHaveLength(1);
     expect(svc.tables.lifecycle_enrollments[0].status).toBe('completed');
+  });
+});
+
+
+describe('invitation delivery and project scope', () => {
+  it('starts at Day 1 when the invitation endpoint already sent the initial email', async () => {
+    const now = new Date('2026-11-13T00:00:00Z');
+    const svc = fakeSvc({ lifecycle_sequences: [{ key: 'ci', enabled: true, trigger_event: 'contractor_invited', audience: 'contractor', exit_events: [] }],
+      lifecycle_sequence_steps: [{ sequence_key: 'ci', position: 1, delay_hours: 0, code: 'CI01', channel: 'email' },
+        { sequence_key: 'ci', position: 2, delay_hours: 24, code: 'CI02', channel: 'email' }], lifecycle_enrollments: [] });
+    await enrollForEvent(svc, 'contractor_invited', { email: 'builder@example.test' }, {
+      user_role: 'contractor', invitation_email_sent: true, invitation_email_subject: 'Actual invitation subject', project_id: 'project',
+    }, now);
+    expect(svc.tables.lifecycle_enrollments[0]).toMatchObject({ next_position: 2, next_send_at: '2026-11-14T00:00:00.000Z', emails_sent: 1 });
+    expect(svc.tables.lifecycle_sends).toEqual([expect.objectContaining({ enrollment_id: 'id0', step_code: 'CI01', status: 'sent', subject: 'Actual invitation subject' })]);
+  });
+  it('ends reminders for the affected project and preserves another project', async () => {
+    const svc = fakeSvc({ lifecycle_sequences: [{ key: 'pending', enabled: true, trigger_event: 'client_invited', audience: 'contractor', exit_events: ['invitation_accepted'] }],
+      lifecycle_enrollments: [
+        { id: 'p1', sequence_key: 'pending', email: 'builder@example.test', subject_email: 'client@example.test', ref: 'project1:client@example.test', status: 'active' },
+        { id: 'p2', sequence_key: 'pending', email: 'builder@example.test', subject_email: 'client@example.test', ref: 'project2:client@example.test', status: 'active' },
+      ], followup_queue: [] });
+    await enrollForEvent(svc, 'invitation_accepted', { email: 'client@example.test' }, { project_id: 'project1' });
+    expect(svc.tables.lifecycle_enrollments.map(row => row.status)).toEqual(['exited', 'active']);
+  });
+});
+
+
+describe('reissued primary invitations', () => {
+  it('starts a new reminder clock for a new token and retires the previous invitation', async () => {
+    const svc = fakeSvc({ lifecycle_sequences: [{ key: 'ci', enabled: true, trigger_event: 'contractor_invited', audience: 'contractor', exit_events: [] }],
+      lifecycle_sequence_steps: [{ sequence_key: 'ci', position: 1, delay_hours: 0, code: 'CI01', channel: 'email' },
+        { sequence_key: 'ci', position: 2, delay_hours: 24, code: 'CI02', channel: 'email' }], lifecycle_enrollments: [], followup_queue: [] });
+    const person = { email: 'builder@example.test' };
+    const fields = { user_role: 'contractor', project_id: 'project', invitation_email_sent: true };
+    await enrollForEvent(svc, 'contractor_invited', person, { ...fields, invite_path: '/invite/old-token' });
+    const result = await enrollForEvent(svc, 'contractor_invited', person, { ...fields, invite_path: '/invite/new-token' });
+    expect(result).toMatchObject({ exited: 1, enrolled: 1 });
+    expect(svc.tables.lifecycle_enrollments).toHaveLength(2);
+    expect(svc.tables.lifecycle_enrollments[0]).toMatchObject({ status: 'exited', exit_reason: 'invitation_replaced' });
+    expect(svc.tables.lifecycle_enrollments[1]).toMatchObject({ status: 'active', ref: 'project:new-token', next_position: 2 });
   });
 });

@@ -63,6 +63,8 @@ export default function AdminSequences() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [preview, setPreview] = useState<{ recipient: string; step: string | null; subject: string | null; state: string; reason: string; whatsappPaused: boolean }[] | null>(null);
 
   const load = useCallback(async () => {
     const [s, st, en, fu, lg] = await Promise.all([
@@ -120,15 +122,28 @@ export default function AdminSequences() {
   async function saveNote(f: Followup) {
     await supabase.from('followup_queue').update({ note: f.note, owner: f.owner || null }).eq('id', f.id);
   }
-  async function runNow() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const r = await fetch('/api/events?action=lifecycle-run', {
-      method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const b = await r.json().catch(() => ({}));
-    setNotice(r.ok ? `Sent ${b.sent ?? 0}, failed ${b.failed ?? 0}, queued ${b.followups ?? 0} for follow-up` : 'Run failed');
-    load();
+  async function runNow(previewOnly = false) {
+    if (running) return;
+    setRunning(true); setError(null); setNotice(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch('/api/events?action=lifecycle-run', {
+        method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preview: previewOnly }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Run failed');
+      if (previewOnly) {
+        setPreview(result.rows ?? []);
+        setNotice(`${result.checked ?? 0} checked, ${result.ready ?? 0} ready. No email was sent.`);
+      } else {
+        setPreview(null);
+        setNotice(`Sent ${result.sent ?? 0}, failed ${result.failed ?? 0}, queued ${result.followups ?? 0} for follow-up`);
+        await load();
+      }
+    } catch (error) { setError(error instanceof Error ? error.message : 'Run failed'); }
+    finally { setRunning(false); }
   }
 
   if (loading) {
@@ -153,13 +168,23 @@ export default function AdminSequences() {
             {'{{first_name}}'}, {'{{project_name}}'}, {'{{client_name}}'}, {'{{contractor_name}}'}.
           </p>
         </div>
-        <button onClick={runNow} className="inline-flex items-center gap-2 rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50">
+        <button disabled={running} onClick={() => void runNow(true)} className="rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm font-semibold">Preview due messages</button>
+        <button disabled={running} onClick={() => void runNow(false)} className="inline-flex items-center gap-2 rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50">
           <Play className="size-4" /> Run due now
         </button>
       </header>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       {notice && <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
+      {preview && <details className="rounded-xl border border-brand-border-grey bg-white p-4" open>
+        <summary className="cursor-pointer text-sm font-semibold">Reminder preview</summary>
+        <ul className="mt-3 space-y-3 text-xs">{preview.map((row, index) => <li key={index}>
+          <p className="font-semibold">{row.recipient} · {row.step || 'Follow-up review'}</p>
+          <p>{row.subject}</p>
+          <p className="text-brand-mid-grey">{row.whatsappPaused ? 'WhatsApp outreach paused' : row.reason.replace(/_/g, ' ')}</p>
+        </li>)}</ul>
+      </details>}
+
 
       <div className="mb-5 flex gap-1.5">
         {([['attention', `Needs attention · ${attentionCount}`], ['sequences', 'Sequences'], ['log', 'Send log']] as [Tab, string][]).map(([k, label]) => (

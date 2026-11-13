@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
@@ -87,10 +88,20 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
 
   // Separately: a failure here costs the role labels, and must not cost the conversation.
   useEffect(() => {
-    let live = true; setRoles({});
-    void listProjectRoles(projectId).then(value => { if (live) setRoles(value); });
-    return () => { live = false; };
-  }, [projectId]);
+    let live = true; let version = 0; setRoles({});
+    const refreshRoles = () => {
+      const request = ++version;
+      void listProjectRoles(projectId).then(value => { if (live && request === version) setRoles(value); });
+    };
+    refreshRoles();
+    window.addEventListener('focus', refreshRoles);
+    const channel = supabase.channel(`project-chat-roles:${projectId}:${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'project_messages', filter: `project_id=eq.${projectId}` }, refreshRoles)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_viewers', filter: `project_id=eq.${projectId}` }, refreshRoles)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_invites', filter: `project_id=eq.${projectId}` }, refreshRoles)
+      .subscribe();
+    return () => { live = false; ++version; window.removeEventListener('focus', refreshRoles); void supabase.removeChannel(channel); };
+  }, [projectId, user?.id]);
 
   if (loading) {
     return <p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-mid-grey">
