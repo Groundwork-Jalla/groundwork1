@@ -94,6 +94,9 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-final.sql'),
+    read('supabase/migrations/20261114000000_project_payment_review.sql'),
+    read('supabase/migrations/20261114000000_project_payment_review.sql'),
+    read('scripts/fixtures/nov13-payment-review.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -106,7 +109,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

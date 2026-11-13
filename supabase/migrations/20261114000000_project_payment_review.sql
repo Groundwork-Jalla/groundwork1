@@ -89,17 +89,16 @@ BEGIN
   END IF;
   PERFORM set_config('app.payments_write','on',true);
   PERFORM set_config('app.receipt_write','on',true);
-  UPDATE public.payments SET state = CASE WHEN state IN('funded','reconciled') THEN state ELSE 'receipt_submitted' END, receipt_path = v_path,
+  UPDATE public.payments SET state = 'receipt_submitted', receipt_path = v_path,
     receipt_uploaded_by = v_actor, receipt_uploaded_at = clock_timestamp(),
     receipt_amount = p_amount, receipt_currency = v_currency,
     receipt_fx_rate = v_rate, receipt_amount_usd = v_usd
-    WHERE id = v_payment.id;
+    WHERE id = v_payment.id AND state NOT IN('funded','reconciled');
   PERFORM set_config('app.receipt_write','off',true);
   PERFORM set_config('app.payments_write','off',true);
   PERFORM set_config('app.stage_receipt_write','on',true);
   INSERT INTO public.stage_payment_receipts(payment_id,project_id,stage_id,path,submitted_by,submitted_at,amount,currency,fx_rate,amount_usd)
-  SELECT id,project_id,stage_id,receipt_path,receipt_uploaded_by,receipt_uploaded_at,receipt_amount,receipt_currency,receipt_fx_rate,receipt_amount_usd
-    FROM public.payments WHERE id=v_payment.id;
+  VALUES(v_payment.id,v_project_id,p_stage,v_path,v_actor,clock_timestamp(),p_amount,v_currency,v_rate,v_usd);
   PERFORM set_config('app.stage_receipt_write','off',true);
   PERFORM public.log_activity(v_stage.project_id,'funding.receipt_submitted','project_stage',p_stage,v_actor,
     jsonb_build_object('stage_number',v_stage.stage_number,'tranches',1,
@@ -298,6 +297,7 @@ BEGIN
      v_breakdown:=jsonb_build_object('total',v_total_usd,'construction',v_build,'design',v_design,'permit',coalesce((v_fees->>'permit')::numeric,0),'professional',coalesce((v_fees->>'professional')::numeric,0),'verification',coalesce((v_fees->>'verification')::numeric,0),'contingency',coalesce((v_fees->>'contingency')::numeric,0),'material',round(v_build*0.6,2),'labor',v_build-round(v_build*0.6,2));
      SELECT sum(milestone_amount) INTO v_pool FROM public.project_stages WHERE project_id=v_project;
    END IF;
+   IF v_pool IS NULL OR v_pool<=0 THEN RAISE EXCEPTION 'invalid_project_total'; END IF;
    UPDATE public.project_stages SET budget_pct=CASE WHEN milestone_amount=0 THEN 0 ELSE greatest(0.000001,round(milestone_amount/v_pool*100,6)) END WHERE project_id=v_project;
    SELECT sum(budget_pct) INTO v_sum FROM public.project_stages WHERE project_id=v_project;
    UPDATE public.project_stages SET budget_pct=budget_pct+100-v_sum WHERE id=(SELECT id FROM public.project_stages WHERE project_id=v_project AND budget_pct>0 ORDER BY milestone_amount DESC,id LIMIT 1);

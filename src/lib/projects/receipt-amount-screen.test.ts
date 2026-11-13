@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import type { StagePayment } from '@/lib/supabase/verifications';
 
 const h = vi.hoisted(() => ({
@@ -172,7 +173,7 @@ describe('the receipt upload and contractor review', () => {
     h.confirm.mockRejectedValueOnce({ message: 'stale_receipt' });
     const elements = render({ payment: sent, isContractor: true });
     expect(text(elements)).toContain('750.125 XAF'); expect(text(elements).replace(/\s/g, '')).toContain('$1.25');
-    await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.accept')!.props.onClick();
+    await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.reviewPayment')!.props.onClick();expect(h.confirm).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
     expect(h.confirm).toHaveBeenCalledWith('stage', undefined, { path: 'proof', uploadedAt: sent.receiptUploadedAt });
     expect(h.changed).toHaveBeenCalledOnce();
     expect(text(render({ payment: sent, isContractor: true }))).toContain('project.receiptFlow.refreshReceipt');
@@ -183,6 +184,7 @@ describe('the receipt upload and contractor review', () => {
     const elements = render({ payment: sent, isContractor: true });
     expect(text(elements)).toContain('30 XAF'); expect(text(elements)).toContain('topUpRequested');
     await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.continueWithReceived')!.props.onClick();
+    expect(h.decide).not.toHaveBeenCalled();render({payment:sent,isContractor:true}).find(e=>e.type==='button'&&text(e)==='project.receiptFlow.continueChoice')!.props.onClick();expect(h.decide).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
     expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined);
   });
 });

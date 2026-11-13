@@ -79,7 +79,10 @@ export function destinationFor(
     const role = viewer?.isContractor ? 'contractor'
       : viewer?.isVerifier ? 'verifier'
       : s('role');
-    const tab  = s('conversation_id') ? '?tab=messages' : '';
+    const target=s('project_tab');const allowed=role==='contractor'?['work','money','documents','messages','people']:['overview','stages','costing','timeline','documents','messages','team'];
+    const selected=s('conversation_id')?'messages':target&&allowed.includes(target)?target:null;
+    const stage=s('stage_number');
+    const tab=(selected?'?tab='+selected:'')+(stage&&/^\d+$/.test(stage)?(selected?'&':'?')+'stage='+stage:'');
     if (role === 'contractor') return `/work/projects/${project}${tab}`;
     if (role === 'verifier')   return `/verifiers/projects/${project}${tab}`;
     return `/projects/${project}${tab}`;

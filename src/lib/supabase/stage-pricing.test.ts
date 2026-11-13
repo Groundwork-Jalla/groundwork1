@@ -20,9 +20,10 @@ describe('client-approved stage price requests', () => {
   it('keeps fixed stages unchanged and treats equivalent decimal notation as unchanged', () => {
     expect(stagePricePreview(context, { zero: '1', stage: '60000.125000' })?.rows).toEqual([]);
   });
-  it.each(['0', '-1', 'NaN', '', '1.1234567', '1000000000001'])('refuses unsupported stage price %s', amount => {
+  it.each(['-1', 'NaN', '', '1.1234567', '1000000000001'])('refuses unsupported stage price %s', amount => {
     expect(stagePricePreview(context, { stage: amount })).toBeNull();
   });
+  it('allows approved stage reductions to zero and ignores reverted draft values',()=>{expect(stagePricePreview(context,{stage:'0'})?.rows).toEqual([{stage_id:'stage',amount:'0'}]);expect(stagePricePreview(context,{stage:'60000.125'})?.rows).toEqual([]);});
   it('sends the exact rows and original snapshot for server validation', async () => {
     const rows = [{ stage_id: 'stage', amount: '72000.125' }];
     await proposeStagePrices('project', rows, 'snapshot', ' Materials ');

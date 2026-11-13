@@ -12,6 +12,7 @@ vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: (sta
 vi.mock('@/lib/supabase/stage-pricing', async original => ({ ...await original<typeof import('@/lib/supabase/stage-pricing')>(), fetchStagePriceContext: h.fetch, proposeStagePrices: h.propose, decideStagePrices: h.decide }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: { channel: () => ({ on() { return this; }, subscribe() { return this; } }), removeChannel: vi.fn() } }));
 vi.mock('@/lib/supabase/admin-users', () => ({ accountType: (roles: string) => roles.split(',').some(role => role.trim()==='contractor') ? 'contractor' : 'client', setAccountType: h.setType }));
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { AccountTypeEditor } from '@/components/admin/AccountTypeEditor';
 import type { AdminUser } from '@/lib/supabase/admin-users';
@@ -33,6 +34,7 @@ describe('stage price proposals and client decisions', () => {
     expect(text(render())).toContain('192,000 XAF');
     render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
     await Promise.resolve(); await Promise.resolve();
+    expect(h.propose).not.toHaveBeenCalled();render().find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();await Promise.resolve();await Promise.resolve();
     expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'stage', amount: '72000' }], 'version', '');
     expect(h.decide).not.toHaveBeenCalled();
   });
@@ -41,13 +43,13 @@ describe('stage price proposals and client decisions', () => {
     expect(render().some(e => e.type === 'input' || text(e) === 'project.priceChanges.propose')).toBe(false);
     render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')!.props.onClick();
     await Promise.resolve(); await Promise.resolve();
-    expect(h.decide).toHaveBeenCalledWith('proposal', 'approved'); expect(h.propose).not.toHaveBeenCalled();
+    expect(h.decide).not.toHaveBeenCalled();render().find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();await Promise.resolve();await Promise.resolve();expect(h.decide).toHaveBeenCalledWith('proposal', 'approved'); expect(h.propose).not.toHaveBeenCalled();
   });
   it('disables stale approval while allowing the client to retain current prices', async () => {
     await load({ ...context, can_propose: false, can_approve: true, history: [{ ...proposal, stale: true }] });
     expect(render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')?.props.disabled).toBe(true);
     render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.decline')!.props.onClick();
-    await Promise.resolve(); expect(h.decide).toHaveBeenCalledWith('proposal', 'declined');
+    await Promise.resolve();expect(h.decide).not.toHaveBeenCalled();render().find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();await Promise.resolve();expect(h.decide).toHaveBeenCalledWith('proposal', 'declined');
   });
   it('shows observers proposal history with no mutation controls', async () => {
     await load({ ...context, can_propose: false, can_approve: false, history: [proposal] });

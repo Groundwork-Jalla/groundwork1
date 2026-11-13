@@ -954,7 +954,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                     stageNumber={stage.stage_number}
                     payment={tranche}
                     workReviewed={stage.review_payment_pending}
-                    canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
+                    canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
                     blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')}
                     isContractor
@@ -1072,7 +1072,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
                 <StagePaymentGate projectId={project.id} stageId={stage.id} stageNumber={stage.stage_number}
                   payment={tranche}
                     workReviewed={stage.review_payment_pending}
-                    canUpload={project.status === 'active' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
+                    canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
                     blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor onChanged={onSubmitted} />
               </ProjectMoneyProvider>
