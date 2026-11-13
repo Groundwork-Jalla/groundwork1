@@ -406,7 +406,7 @@ export function StageTracker({
   const requestedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
   const appliedLink=useRef('');
   const observedStage=useRef<{projectId:string;id:string|null}>({projectId,id:null});
-  useEffect(()=>{const key=projectId+':'+requestedStage;if(appliedLink.current===key)return;const target=orderedStages.find(stage=>String(stage.stage_number)===requestedStage);if(target){appliedLink.current=key;navigation.current.version++;setSelection({projectId,stageId:target.id,follow:false});}},[projectId,requestedStage,stages]);
+  useEffect(()=>{if(!requestedStage){appliedLink.current='';return;}const key=projectId+':'+requestedStage;if(appliedLink.current===key)return;const target=orderedStages.find(stage=>String(stage.stage_number)===requestedStage);if(target){appliedLink.current=key;navigation.current.version++;setSelection({projectId,stageId:target.id,follow:false});}},[projectId,requestedStage,stages]);
   useEffect(()=>{const old=observedStage.current;if(old.projectId===projectId&&old.id&&currentStage?.id&&old.id!==currentStage.id&&selection.follow){setSelection({projectId,stageId:old.id,follow:false});setNextAction({projectId,id:currentStage.id,number:currentStage.stage_number});}observedStage.current={projectId,id:currentStage?.id??null};},[projectId,currentStage?.id,selection.follow]);
   const completedCount = orderedStages.filter(s => s.status === 'complete').length;
 

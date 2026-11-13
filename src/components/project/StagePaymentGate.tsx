@@ -27,10 +27,9 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const [working, setWorking] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
   const [draft, setDraft] = useState<{ scope: string; amount: string; currency: string; file: File | null }>({ scope, amount: '', currency: '', file: null });
-  const [picker, setPicker] = useState<string | null>(null);
   const [decisionForm, setDecisionForm] = useState<{ scope: string; receipt: string; decision: 'accept' | 'needs_top_up' | 'flag'; amount: string; note: string; step?:'receipt'|'progress' } | null>(null);
   const [viewer, setViewer] = useState<{ scope: string; name: string; url: string | null } | null>(null);
-  const [confirmation,setConfirmation]=useState<{scope:string;receiptId?:string;action:'accept'|'needs_top_up'|'flag';note?:string;topUp?:string;description:string}|null>(null);
+  const [confirmation,setConfirmation]=useState<{scope:string;receipt?:StagePaymentReceipt;stageAmount:number;legacy?:{path:string;uploadedAt:string};action:'accept'|'needs_top_up'|'flag';note?:string;topUp?:string;description:string}|null>(null);
   const [replacement,setReplacement]=useState<{scope:string;receiptId:string}|null>(null);
   const [fileQueue,setFileQueue]=useState<{scope:string;files:File[]}>({scope,files:[]});
   const activeDraft = draft.scope === scope ? draft : { scope, amount: '', currency: '', file: null };
@@ -46,7 +45,8 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const requested = [...liveReceipts].reverse().find(receipt => receipt.decision === 'received' && receipt.requestedTopUp != null);
   const legacyPending = !receipts.length && payment?.state === 'receipt_submitted'
     && payment.receiptPath && payment.receiptUploadedAt && payment.receiptAmount != null;
-  const allowed = canUpload && !!payment && !readOnly && !isContractor;
+  const allowed = canUpload && !!payment && !readOnly && !isContractor
+    && (!settled || balance?.remaining !== 0 || replacement?.scope === scope);
   const fail = (message: string) => setFailure({ scope, message });
   const format = (value: number | null, iso: string | null) => value == null ? t('project.receiptFlow.amountUnknown')
     : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
@@ -81,11 +81,11 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
 
   async function upload(file: File | null = activeDraft.file) {
     if (!allowed || pendingWork.current === scope) return;
-    if (!file) { setPicker(scope); return; }
+    if (!file) { fileRef.current?.click(); return; }
     if (!file.size || file.size > MAX_RECEIPT_BYTES) { fail(t('project.receiptFlow.fileSize')); return; }
     if (!RECEIPT_ACCEPT.split(',').includes(file.type)) { fail(t('project.receiptFlow.fileType')); return; }
     if (!canonicalReceiptAmount(activeDraft.amount)) { fail(t('project.stages.receiptAmountInvalid')); return; }
-    pendingWork.current = scope; setWorking(scope); setFailure(null); setPicker(null);
+    pendingWork.current = scope; setWorking(scope); setFailure(null);
     try {
       await uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: selectedCurrency,
         fxRate: selectedCurrency === code ? fxRate : selectedCurrency === 'USD' ? 1 : undefined,...(replacement?.scope===scope?{replacesReceiptId:replacement.receiptId}:{}) });
@@ -98,20 +98,20 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   }
   async function selectFile(file: File | null,queue:File[]=[]) {
     if (!file || !allowed || busy) return;
-    setFileQueue({scope,files:queue});setDraft({ scope, amount: activeDraft.amount, currency: activeDraft.currency, file }); setFailure(null); setPicker(null);
+    setFileQueue({scope,files:queue});setDraft({ scope, amount: activeDraft.amount, currency: activeDraft.currency, file }); setFailure(null);
     if (!queue.length&&canonicalReceiptAmount(activeDraft.amount)) await upload(file);
   }
   function submit(event: FormEvent) { event.preventDefault(); return upload(); }
 
-  async function decide(receipt: StagePaymentReceipt | undefined, action: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string) {
-    if (!isContractor || !canUpload || pendingWork.current === scope) return;
+  async function decide(receipt: StagePaymentReceipt | undefined, action: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string, expectedAmount?: number, legacy?: {path:string;uploadedAt:string}) {
+    if (!isContractor || readOnly || !canUpload || pendingWork.current === scope) return;
     if (action === 'needs_top_up' && !canonicalReceiptAmount(topUp)) { fail(t('project.stages.receiptAmountInvalid')); return; }
     if (action === 'flag' && !note?.trim()) { fail(t('project.receiptFlow.reasonRequired')); return; }
     pendingWork.current = scope; setWorking(scope); setFailure(null);
     try {
-      if (receipt) await decideStagePaymentReceipt(receipt.id, action, note, topUp,{stageAmount:scheduledAmount??payment!.amount*fxRate,decision:receipt.decision});
-      else if (action === 'accept' && payment?.receiptPath && payment.receiptUploadedAt) {
-        await confirmStagePayment(stageId, note, { path: payment.receiptPath, uploadedAt: payment.receiptUploadedAt });
+      if (receipt) await decideStagePaymentReceipt(receipt.id, action, note, topUp,{stageAmount:expectedAmount??scheduledAmount??payment!.amount*fxRate,decision:receipt.decision});
+      else if (action === 'accept' && legacy) {
+        await confirmStagePayment(stageId, note, legacy);
       } else return;
       if (current.current === scope) { setDecisionForm(null); await onChanged(); }return true;
     } catch (error) {
@@ -127,9 +127,9 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     const money=format(receipt?.amount??payment?.receiptAmount??null,receipt?.currency??payment?.receiptCurrency??code);
     const projected=payment?stageReceiptBalance({...payment,receipts:payment.receipts?.map(item=>item.id===receipt?.id&&action!=='flag'?{...item,decision:'received' as const}:item)},code,fxRate,scheduledAmount):balance;
     const coverage=t('project.receiptFlow.coverageAfter',{received:format(projected?.received??null,code),remaining:format(projected?.remaining??null,code)});
-    setConfirmation({scope,receiptId:receipt?.id,action,note,topUp,description:t('project.receiptFlow.confirmMoney',{amount:money})+'\n'+t('project.receiptFlow.schedule',{amount:format(scheduledAmount??payment!.amount*fxRate,code)})+'\n'+coverage+'\n'+t(action==='flag'?'project.receiptFlow.confirmMissing':action==='needs_top_up'?'project.receiptFlow.confirmAdditional':'project.receiptFlow.confirmContinue',{amount:format(topUp==null?null:Number(topUp),receipt?.currency??code)})+'\n'+t('project.receiptFlow.balanceStaysRecorded')});
+    setConfirmation({scope,receipt,stageAmount:scheduledAmount??payment!.amount*fxRate,legacy:!receipt&&payment?.receiptPath&&payment.receiptUploadedAt?{path:payment.receiptPath,uploadedAt:payment.receiptUploadedAt}:undefined,action,note,topUp,description:t('project.receiptFlow.confirmMoney',{amount:money})+'\n'+t('project.receiptFlow.schedule',{amount:format(scheduledAmount??payment!.amount*fxRate,code)})+'\n'+coverage+'\n'+t(action==='flag'?'project.receiptFlow.confirmMissing':action==='needs_top_up'?'project.receiptFlow.confirmAdditional':'project.receiptFlow.confirmContinue',{amount:format(topUp==null?null:Number(topUp),receipt?.currency??code)})+'\n'+t('project.receiptFlow.balanceStaysRecorded')});
   }
-  async function confirmDecision(){if(!confirm)return;const saved=await decide(liveReceipts.find(receipt=>receipt.id===confirm.receiptId),confirm.action,confirm.note,confirm.topUp);if(saved&&current.current===scope)setConfirmation(null);}
+  async function confirmDecision(){if(!confirm)return;const saved=await decide(confirm.receipt,confirm.action,confirm.note,confirm.topUp,confirm.stageAmount,confirm.legacy);if(saved&&current.current===scope)setConfirmation(null);}
   function correctReceipt(receipt:StagePaymentReceipt){setFileQueue({scope,files:[]});setReplacement({scope,receiptId:receipt.id});setDraft({scope,amount:'',currency:receipt.currency??code,file:null});setFailure(null);}
 
   async function openReceipt(path: string) {
@@ -167,7 +167,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       {receipt.fxSource === 'ExchangeRate-API' && <p className="mt-1 text-brand-mid-grey">{t('project.receiptFlow.savedRate', { rate: String(receipt.fxRate), currency: receipt.currency ?? '' })}{' · '}
         <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer" className="underline">ExchangeRate-API</a>
         {receipt.fxAsOf && ` · ${new Date(receipt.fxAsOf).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB')}`}</p>}
-      {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&canUpload&&<button type="button" disabled={busy} onClick={()=>setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})} className="mt-2 ml-3 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
+      {receipt.decision==='pending'&&!receipt.replacedBy&&isContractor&&!readOnly&&canUpload&&<button type="button" disabled={busy} onClick={()=>setDecisionForm({scope,receipt:receipt.id,decision:'accept',amount:'',note:'',step:'receipt'})} className="mt-2 ml-3 rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
       {!isContractor&&!readOnly&&canUpload&&!receipt.replacedBy&&receipt.decision!=='received'&&<button type="button" disabled={busy} onClick={()=>correctReceipt(receipt)} className="mt-2 ml-3 rounded-lg border px-3 py-2 font-semibold">{t('project.receiptFlow.replaceReceipt')}</button>}
       {receipt.decisionNote && <p className="mt-1 whitespace-pre-wrap text-brand-mid-grey">{receipt.decisionNote}</p>}
       <button type="button" className="mt-2 font-semibold text-brand-green underline" onClick={() => { void openReceipt(receipt.path); }}>{t('project.stages.confirmView')}</button>
@@ -176,7 +176,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       {payment.receiptAmountUsd != null && payment.receiptCurrency !== 'USD' && <p className="font-mono text-brand-mid-grey">≈ ${payment.receiptAmountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
       <button type="button" className="font-semibold text-brand-green underline" onClick={() => { void openReceipt(payment.receiptPath!); }}>{t('project.stages.confirmView')}</button></div>}
     {requested && !settled && <p className="text-xs text-brand-near-black dark:text-white">{t('project.receiptFlow.topUpRequested', { amount: format(requested.requestedTopUp, requested.currency) })}</p>}
-    {isContractor ? <>
+    {isContractor && !readOnly ? <>
       {legacyPending&&<button type="button" disabled={!canUpload||busy} onClick={()=>review(undefined,'accept')} className="rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
       {!pending && requested && !settled && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:requested.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
       {form&&<div className="space-y-3 rounded-xl border border-brand-green/40 p-4">
@@ -223,12 +223,12 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-40" disabled={!allowed || busy}>
           {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}{t(busy ? 'project.receiptFlow.checking' : 'project.stages.receiptChoose')}
         </button>
-        {activeDraft.file && <button type="button" className="text-xs text-brand-green underline" onClick={() => setPicker(scope)}>{t('project.receiptFlow.changeFile')}</button>}
+        {activeDraft.file && <button type="button" className="text-xs text-brand-green underline" onClick={() => fileRef.current?.click()}>{t('project.receiptFlow.changeFile')}</button>}
         <input ref={fileRef} type="file" multiple={replacement?.scope!==scope} accept={RECEIPT_ACCEPT} className="hidden" aria-label={t('project.receiptFlow.pickFile')} onChange={event => { const files=Array.from(event.target.files??[]);event.target.value='';return selectFile(files[0]??null,files.slice(1)); }} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-label={t('project.receiptFlow.takePhoto')} onChange={event => { const file = event.target.files?.[0] ?? null; event.target.value = ''; return selectFile(file); }} />
       </fieldset>
     </form>}
-    <ConfirmModal open={!!confirm} title={t('project.receiptFlow.confirmDecision')} description={confirm?.description??''} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={()=>void confirmDecision()} onCancel={()=>setConfirmation(null)}/>
+    <ConfirmModal open={!!confirm} title={t('project.receiptFlow.confirmDecision')} description={confirm?.description??''} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmDecision} onCancel={()=>setConfirmation(null)}/>
     {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
     {viewer?.scope === scope && <DocumentViewer name={viewer.name} url={viewer.url} loading={!viewer.url} onClose={closeViewer} />}
   </section>;

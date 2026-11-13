@@ -94,6 +94,11 @@ function chooseStage(number: number) {
     && nodes(node.props.children).some(child => child.type?.name === 'StageCircle' && child.props.number === number));
   button!.props.onClick();
 }
+function openNextStage(number: number) {
+  const button = tracker().find(node => node.type === 'button' && text(node).includes(`project.receiptFlow.openStage{"n":${number}}`));
+  expect(button).toBeDefined();
+  button!.props.onClick();
+}
 beforeEach(() => {
   vi.clearAllMocks(); h.scope = 'tracker'; h.index = 0; h.hooks.clear(); h.pendingEffects = [];
   h.certificates.mockResolvedValue(new Map());
@@ -106,7 +111,7 @@ beforeEach(() => {
     onPaymentChanged: h.changed, renderEvidenceUpload: () => null };
 });
 
-describe('approval leads directly to the next stage', () => {
+describe('approval explains the next action before opening the next stage', () => {
   it('requests payment for the reviewed first contractor-created stage before advancing', async () => {
     props.workflowOrigin = 'contractor'; props.payments!.set('s1', payment('s1', 'expected'));
     h.approve.mockResolvedValue(result({ nextStageId: 's1', nextStageNumber: 1, nextStageStatus: 'pending_review', awaitingReviewedStagePayment: true }));
@@ -123,10 +128,12 @@ describe('approval leads directly to the next stage', () => {
     chooseStage(1); // Payment confirmation arrives through realtime/full project refresh.
     expect(detailElement().props.stage.status).toBe('complete');
   });
-  it('shows the next receipt form after the final substage approval, before the refresh arrives', async () => {
+  it('keeps reviewed work visible and opens the next receipt form on request before refresh', async () => {
     props.substages = [substage('pending_review')]; h.mark.mockResolvedValue(result());
     const before = detailElement();
     await before.props.onMarkSubstageComplete('sub-one');
+    expect(detailElement().props.stage.id).toBe('s1');
+    openNextStage(2);
     const next = detailElement();
     expect(next.props.stage.id).toBe('s2'); expect(next.props.canAct).toBe(true);
     const gate = detail().find(node => node.type === StagePaymentGate)!;
@@ -141,14 +148,16 @@ describe('approval leads directly to the next stage', () => {
   it('uses the exact server successor when the screen was several stages out of date', async () => {
     h.approve.mockResolvedValue(result({ nextStageId: 's3', nextStageNumber: 3 }));
     await detailElement().props.onApproveStage('s1', 1);
+    openNextStage(3);
     expect(detailElement().props.stage.id).toBe('s3');
     expect(detailElement().props.canAct).toBe(true);
   });
 
   it('shows the prefunded successor open without asking for another receipt', async () => {
     h.approve.mockResolvedValue(result({ awaitingPayment: false }));
-    props.payments!.set('s2', payment('s2'));
+    props.payments!.set('s2', { ...payment('s2'), receiptAmount: 100, receiptCurrency: 'USD', receiptAmountUsd: 100 });
     await detailElement().props.onApproveStage('s1', 1);
+    openNextStage(2);
     expect(detailElement().props.stage.status).toBe('active');
     const gate = detail().find(node => node.type === StagePaymentGate)!;
     expect(component(StagePaymentGate, gate.props, 'gate').some(node => node.type === 'form')).toBe(false);
@@ -159,7 +168,8 @@ describe('approval leads directly to the next stage', () => {
       nextStageId: null, nextStageNumber: null, awaitingPayment: false }));
     await detailElement().props.onMarkSubstageComplete('sub-one');
     expect(detailElement().props.stage.status).toBe('complete');
-    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
+    expect(tracker().some(node => node.type === 'button' && text(node).includes('project.receiptFlow.openStage'))).toBe(false);
+    expect(detail().some(node => node.type?.name === 'ApproveButton')).toBe(false);
   });
 
   it('follows a realtime transition when the user is viewing the current stage', () => {
@@ -273,6 +283,8 @@ describe('stage approval can fail and retry safely', () => {
     expect(component(ConfirmModal, failed.props, 'modal').some(node => node.props.role === 'alert')).toBe(true);
     await failed.props.onConfirm();
     expect(h.approve).toHaveBeenCalledTimes(2);
+    expect(detailElement().props.stage.id).toBe('s1');
+    openNextStage(2);
     expect(detailElement().props.stage.id).toBe('s2');
   });
 

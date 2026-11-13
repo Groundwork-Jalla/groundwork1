@@ -50,6 +50,18 @@ describe('a message notification opens the messages tab', () => {
     expect(destinationFor(null)).toBeNull();
     expect(destinationFor({})).toBeNull();
   });
+
+  it('opens the reviewed stage in the recipient’s project role after an account-role correction', () => {
+    expect(destinationFor({ project_id: PROJECT, role: 'client', financial_event: 'receipt_received', project_tab: 'stages', stage_number: '4' }, { isContractor: true }))
+      .toBe(`/projects/${PROJECT}?tab=stages&stage=4`);
+    expect(destinationFor({ project_id: PROJECT, role: 'contractor', financial_event: 'prices_approved', project_tab: 'money' }))
+      .toBe(`/work/projects/${PROJECT}?tab=money`);
+  });
+
+  it('rejects unknown action tabs and malformed stage parameters', () => {
+    expect(destinationFor({ project_id: PROJECT, role: 'client', project_tab: 'https://example.invalid', stage_number: '4&tab=team' }))
+      .toBe(`/projects/${PROJECT}`);
+  });
 });
 
 describe('the pages read the tab the link names', () => {

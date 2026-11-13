@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import type { StagePayment } from '@/lib/supabase/verifications';
+import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verifications';
 
 const h = vi.hoisted(() => ({
   index: 0, hooks: [] as unknown[], lang: 'en' as 'en' | 'fr', rate: 600,
@@ -186,5 +186,102 @@ describe('the receipt upload and contractor review', () => {
     await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.continueWithReceived')!.props.onClick();
     expect(h.decide).not.toHaveBeenCalled();render({payment:sent,isContractor:true}).find(e=>e.type==='button'&&text(e)==='project.receiptFlow.continueChoice')!.props.onClick();expect(h.decide).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
     expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined,{stageAmount:60000,decision:'received'});
+  });
+
+  const pendingReceipt: StagePaymentReceipt = { id: 'r1', stageId: 'stage', path: 'one', submittedAt: '', amount: 30000, currency: 'XAF', fxRate: 600, amountUsd: 50, decision: 'pending', allowsWork: false, requestedTopUp: null, decisionNote: null, decidedAt: null };
+  const sentPayment = (): StagePayment => ({ ...payment, state: 'receipt_submitted', receipts: [{ ...pendingReceipt }] });
+  function button(elements: Element[], key: string) { return elements.find(e => e.type === 'button' && text(e) === `project.receiptFlow.${key}`)!; }
+  function confirmation(elements: Element[]) { return elements.find(e => e.type === ConfirmModal && e.props.open)!; }
+
+  it('asks about actual receipt and work continuation separately, then requires a final confirmation', async () => {
+    const props = { payment: sentPayment(), isContractor: true };
+    button(render(props), 'reviewPayment').props.onClick();
+    expect(text(render(props))).toContain('project.receiptFlow.receivedQuestion');
+    button(render(props), 'receivedYes').props.onClick();
+    expect(text(render(props))).toContain('project.receiptFlow.progressQuestion');
+    expect(h.decide).not.toHaveBeenCalled();
+    button(render(props), 'continueChoice').props.onClick();
+    const dialog = confirmation(render(props));
+    expect(dialog.props.description).toContain('30,000 XAF');
+    expect(dialog.props.description).toContain('balanceStaysRecorded');
+    expect(h.decide).not.toHaveBeenCalled();
+    dialog.props.onCancel();
+    expect(h.decide).not.toHaveBeenCalled();
+    button(render(props), 'continueChoice').props.onClick();
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'pending' });
+  });
+
+  it('confirms money received without allowing progression when additional funds are requested', async () => {
+    const props = { payment: sentPayment(), isContractor: true };
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedYes').props.onClick();
+    button(render(props), 'requestTopUp').props.onClick();
+    render(props).find(e => e.type === 'input' && e.props.inputMode === 'decimal')!.props.onChange({ target: { value: '15000' } });
+    await submit(render(props));
+    expect(h.decide).not.toHaveBeenCalled();
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('r1', 'needs_top_up', '', '15000', { stageAmount: 60000, decision: 'pending' });
+  });
+
+  it('requires a reason when the money has not arrived and keeps the final decision retryable', async () => {
+    const props = { payment: sentPayment(), isContractor: true };
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedNo').props.onClick();
+    await submit(render(props)); expect(h.decide).not.toHaveBeenCalled();
+    expect(text(render(props))).toContain('reasonRequired');
+    render(props).find(e => e.type === 'textarea')!.props.onChange({ target: { value: 'Transfer has not arrived' } });
+    await submit(render(props));
+    h.decide.mockRejectedValueOnce(new Error('offline'));
+    await confirmation(render(props)).props.onConfirm();
+    expect(confirmation(render(props)).props.open).toBe(true);
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledTimes(2);
+    expect(h.decide).toHaveBeenLastCalledWith('r1', 'flag', 'Transfer has not arrived', '', { stageAmount: 60000, decision: 'pending' });
+  });
+
+  it('keeps the reviewed budget snapshot when a price refresh arrives while confirming', async () => {
+    const props = { payment: sentPayment(), isContractor: true, scheduledAmount: 60000 };
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedYes').props.onClick();
+    button(render(props), 'continueChoice').props.onClick();
+    h.decide.mockRejectedValueOnce(new Error('stale_receipt'));
+    await confirmation(render({ ...props, scheduledAmount: 90000 })).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'pending' });
+    expect(text(render({ ...props, scheduledAmount: 90000 }))).toContain('refreshReceipt');
+  });
+
+  it('never falls back to a different legacy receipt when reviewed proof is replaced', async () => {
+    const props = { payment: sentPayment(), isContractor: true };
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedYes').props.onClick();
+    button(render(props), 'continueChoice').props.onClick();
+    await confirmation(render({ ...props, payment: { ...props.payment, receipts: [], receiptPath: 'new', receiptUploadedAt: 'now' } })).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'pending' });
+    expect(h.confirm).not.toHaveBeenCalled();
+  });
+
+  it('permits additional receipts while another is pending and corrects only unconfirmed proof', async () => {
+    const props = { payment: sentPayment() };
+    expect(render(props).some(e => e.type === 'form')).toBe(true);
+    button(render(props), 'replaceReceipt').props.onClick();
+    await chooseFile(render(props)); enterAmount(render(props), '32000'); await submit(render(props));
+    expect(h.upload).toHaveBeenCalledWith('project', 'stage', receipt, { amount: '32000', currency: 'XAF', fxRate: 600, replacesReceiptId: 'r1' });
+    expect(button(render({ payment: { ...payment, state: 'funded', receipts: [{ ...pendingReceipt, decision: 'received' }] } }), 'replaceReceipt')).toBeUndefined();
+  });
+
+  it('queues separate files and requests each receipt’s own amount', async () => {
+    const second = new File(['two'], 'second.png', { type: 'image/png' });
+    const picker = render().find(e => e.type === 'input' && e.props.type === 'file' && e.props.multiple)!;
+    await picker.props.onChange({ target: { files: [receipt, second] } });
+    enterAmount(render(), '30000'); await submit(render());
+    expect(h.upload).toHaveBeenCalledTimes(1); expect(text(render())).toContain('second.png');
+    expect(render().find(e => e.props.name === 'receipt-amount')?.props.value).toBe('');
+    enterAmount(render(), '15000'); await submit(render());
+    expect(h.upload).toHaveBeenLastCalledWith('project', 'stage', second, { amount: '15000', currency: 'XAF', fxRate: 600 });
+  });
+
+  it('offers balance collection after partial authorization and hides uploads once fully paid', () => {
+    const partial: StagePayment = { ...payment, state: 'funded', receipts: [{ ...pendingReceipt, decision: 'received', allowsWork: true }] };
+    expect(text(render({ payment: partial }))).toContain('partiallyPaid');
+    expect(render({ payment: partial }).some(e => e.type === 'form')).toBe(true);
+    expect(render({ payment: { ...partial, receipts: [{ ...pendingReceipt, amount: 60000, decision: 'received', allowsWork: true }] } }).some(e => e.type === 'form')).toBe(false);
+    expect(render({ payment: sentPayment(), isContractor: true, readOnly: true }).some(e => e.type === 'button' && text(e).includes('reviewPayment'))).toBe(false);
   });
 });

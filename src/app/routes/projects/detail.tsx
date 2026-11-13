@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useParams, useNavigate, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Building2, Layers, Home, Wrench,
@@ -144,7 +144,6 @@ export default function ProjectDetail() {
   const { stageLabel, substageLabel } = useStageLabels();
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const attachmentFailed = searchParams.get('attachment') === 'failed';
   const { user, isContractor: hasContractorRole } = useAuth();
@@ -219,7 +218,8 @@ export default function ProjectDetail() {
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
-      setContractorProjectId(assignment.data?.length ? id : null);window.dispatchEvent?.(new Event('groundwork:project-action'));
+      setContractorProjectId(assignment.data?.length ? id : null);
+      if (typeof window !== 'undefined') window.dispatchEvent?.(new Event('groundwork:project-action'));
       return;
     } catch {
       if (isCurrent()) setError(t('project.loadFailed'));
@@ -409,14 +409,13 @@ export default function ProjectDetail() {
     <div className="min-h-screen bg-white dark:bg-[#141414]">
       {/* Nav */}
       <nav className="border-b border-brand-border-grey dark:border-[#2c2c2c] px-4 sm:px-8 py-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate('/dashboard')}
+        <Link
+          to={hasContractorRole ? '/work/projects' : '/projects'}
           className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors shrink-0"
         >
           <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">{t('nav.dashboard')}</span>
-        </button>
+          <span className="hidden sm:inline">{t('nav.projects')}</span>
+        </Link>
         <span className="text-brand-border-grey hidden sm:inline">/</span>
         <span className="text-sm font-medium text-brand-near-black dark:text-white truncate">{project.name}</span>
       </nav>

@@ -17,7 +17,7 @@ describe('the mounted receipt and approval flow', () => {
   it('records an actual amount and file, and gives the contractor an acknowledgment action', () => {
     const gate = read('src/components/project/StagePaymentGate.tsx');
     expect(gate).toContain('uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: selectedCurrency,');
-    expect(gate).toContain('decideStagePaymentReceipt(receipt.id, action, note, topUp)');
+    expect(gate).toContain('decideStagePaymentReceipt(receipt.id, action, note, topUp,');
     expect(gate).toContain('receiptAmountInvalid');
     expect(gate).toContain('project.receiptFlow.pickFile');
   });
