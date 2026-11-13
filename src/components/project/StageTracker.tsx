@@ -380,6 +380,7 @@ export function StageTracker({
   const [selection, setSelection] = useState<{ projectId: string; stageId: string | null; follow: boolean }>({
     projectId, stageId: null, follow: true,
   });
+  const [nextAction,setNextAction]=useState<{projectId:string;id:string;number:number}|null>(null);
   const [handoff, setHandoff] = useState<ApproveStageResult | null>(null);
   const navigation = useRef({ projectId, version: 0, mounted: true });
   if (navigation.current.projectId !== projectId) {
@@ -402,6 +403,11 @@ export function StageTracker({
   const selectedStage = selection.projectId === projectId && !selection.follow
     ? orderedStages.find(stage => stage.id === selection.stageId) ?? fallback : fallback;
   const selectedNum = selectedStage?.stage_number;
+  const requestedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
+  const appliedLink=useRef('');
+  const observedStage=useRef<{projectId:string;id:string|null}>({projectId,id:null});
+  useEffect(()=>{const key=projectId+':'+requestedStage;if(appliedLink.current===key)return;const target=orderedStages.find(stage=>String(stage.stage_number)===requestedStage);if(target){appliedLink.current=key;navigation.current.version++;setSelection({projectId,stageId:target.id,follow:false});}},[projectId,requestedStage,stages]);
+  useEffect(()=>{const old=observedStage.current;if(old.projectId===projectId&&old.id&&currentStage?.id&&old.id!==currentStage.id&&selection.follow){setSelection({projectId,stageId:old.id,follow:false});setNextAction({projectId,id:currentStage.id,number:currentStage.stage_number});}observedStage.current={projectId,id:currentStage?.id??null};},[projectId,currentStage?.id,selection.follow]);
   const completedCount = orderedStages.filter(s => s.status === 'complete').length;
 
   function captureNavigation() {
@@ -411,7 +417,7 @@ export function StageTracker({
     if (!result || result.projectId !== captured.projectId || captured.projectId !== navigation.current.projectId
         || captured.version !== navigation.current.version || !navigation.current.mounted) return;
     setHandoff(result);
-    setSelection({ projectId: captured.projectId, stageId: result.nextStageId ?? result.stageId, follow: true });
+    if(result.nextStageId&&result.nextStageId!==result.stageId){setSelection({projectId:captured.projectId,stageId:result.stageId,follow:false});setNextAction({projectId:captured.projectId,id:result.nextStageId,number:result.nextStageNumber??0});}else setSelection({ projectId: captured.projectId, stageId: result.stageId, follow: true });
   }
   async function handleStageApproval(stageId: string, stageNumber: number) {
     const captured = captureNavigation();
@@ -496,6 +502,7 @@ export function StageTracker({
           </div>
         </div>
 
+        {nextAction?.projectId===projectId&&<div role="status" className="mx-5 mt-4 rounded-xl border border-brand-green p-4 text-sm"><p>{t('project.receiptFlow.nextStageReady')}</p><button type="button" onClick={()=>{navigation.current.version++;setSelection({projectId,stageId:nextAction.id,follow:true});setNextAction(null);}} className="mt-3 rounded-xl bg-brand-green px-4 py-2 font-semibold text-white">{t('project.receiptFlow.openStage',{n:nextAction.number})}</button></div>}
         {/* Selected stage detail */}
         <div className="px-5 py-5">
           <AnimatePresence mode="wait" initial={false}>

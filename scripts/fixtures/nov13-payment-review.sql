@@ -61,8 +61,15 @@ SELECT test_assert(EXISTS(SELECT 1 FROM stage_payment_receipts r,paid_snapshot s
 SELECT test_assert((SELECT amount=100 AND state='funded' FROM payments WHERE stage_id=test_id(122,3)),'approved cost change does not rewrite confirmed ledger amounts');
 SELECT test_assert((SELECT sum(milestone_amount) FROM project_stages WHERE project_id=test_id(122))=(SELECT budget_amount FROM projects WHERE id=test_id(122)),'approved native schedule sums exactly after paid-stage revision');
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000006',false);
-SELECT test_refused($q$SELECT test_decide(122,3,1,'accept')$q$,'not_contractor');
-SELECT test_refused($q$SELECT test_price_propose(123,1,'12000')$q$,'not_primary_contractor');
+SELECT test_refused($q$SELECT test_decide(122,3,1,'accept')$q$,'not_found');
+SELECT test_refused($q$SELECT propose_stage_prices(test_id(123),'[]','fake')$q$,'not_primary_contractor');
+SELECT test_assert((SELECT count(*) FROM notifications)=0,'unrelated account cannot read project notifications');
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+SELECT test_assert(EXISTS(SELECT 1 FROM notifications WHERE data->>'financial_event'='receipt_received' AND data->>'project_tab'='stages'),'client receives actionable payment decision');
+SELECT test_assert('new-project'=ANY(my_project_action_completion()),'actual saved project completion suppresses create-project guidance');
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
+SELECT test_assert(EXISTS(SELECT 1 FROM notifications WHERE data->>'financial_event'='prices_approved' AND data->>'project_tab'='money' AND body LIKE 'Votre%'),'contractor receives approved-price result in their language');
+SELECT test_assert('confirm-payment'=ANY(my_project_action_completion()),'actual receipt acknowledgment suppresses payment orientation');
 SET CONSTRAINTS ALL IMMEDIATE;
 RESET ROLE;
 SELECT 'NOV13_REVIEW_OK' AS result;

@@ -6127,6 +6127,7 @@ export const en = {
       status: { pending: 'Proposed prices · client review', approved: 'Prices approved', declined: 'Current prices retained', withdrawn: 'Proposal withdrawn' },
     },
     receiptFlow: {
+      openStage: 'Open stage {n}',nextStageReady: 'The next stage is ready. Open it when you are ready to continue.',
       reviewPayment: "Review payment",
       receivedQuestion: "1. Have you received this payment?",
       receivedYes: "Yes, I received it",

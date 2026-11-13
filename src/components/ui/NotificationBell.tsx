@@ -76,7 +76,7 @@ export function destinationFor(
     // overview was the reported bug: somebody is told they have a message, presses
     // the thing that says so, and arrives at a page that does not show it.
     // The viewer first, the stamp second. See NotificationViewer above.
-    const role = viewer?.isContractor ? 'contractor'
+    const role = s('financial_event')&&s('role')?s('role'):viewer?.isContractor ? 'contractor'
       : viewer?.isVerifier ? 'verifier'
       : s('role');
     const target=s('project_tab');const allowed=role==='contractor'?['work','money','documents','messages','people']:['overview','stages','costing','timeline','documents','messages','team'];

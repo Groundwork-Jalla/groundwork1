@@ -219,7 +219,7 @@ export default function ProjectDetail() {
       setSubstages(sub);
       setPayments(pay);
       setFees(fee);
-      setContractorProjectId(assignment.data?.length ? id : null);
+      setContractorProjectId(assignment.data?.length ? id : null);window.dispatchEvent?.(new Event('groundwork:project-action'));
       return;
     } catch {
       if (isCurrent()) setError(t('project.loadFailed'));

@@ -325,5 +325,64 @@ DO $$ DECLARE r record; BEGIN
   PERFORM public.open_stage_if_settled(r.id);
  END LOOP;
 END $$;
+CREATE OR REPLACE FUNCTION public.my_project_action_completion(p_project uuid DEFAULT NULL)
+RETURNS text[] LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE done text[]:='{}';who uuid:=auth.uid();BEGIN
+ IF who IS NULL THEN RAISE EXCEPTION 'not_signed_in'; END IF;
+ IF EXISTS(SELECT 1 FROM public.projects WHERE user_id=who AND tracking_started_at IS NOT NULL)
+ OR EXISTS(SELECT 1 FROM public.contractor_invites WHERE contractor_user_id=who AND status='accepted' AND is_primary)
+ OR EXISTS(SELECT 1 FROM public.project_viewers WHERE user_id=who AND is_client AND accepted_at IS NOT NULL AND revoked_at IS NULL) THEN
+  done:=done||ARRAY['new-project','add-client','plan-question','confirm-budget','wizard-step-1','wizard-step-2','wizard-step-3','wizard-step-4','wizard-step-5','wizard-step-6','wizard-step-7','wizard-step-9'];
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.contractor_invites WHERE invited_by=who AND contractor_user_id IS DISTINCT FROM who AND status IN('pending','accepted')) THEN done:=array_append(done,'invite-contractor'); END IF;
+ IF EXISTS(SELECT 1 FROM public.project_audit_log WHERE actor_id=who AND action IN('site_update.submitted','substage.evidence_added','substage.evidence_uploaded','evidence.uploaded')) THEN done:=array_append(done,'upload-evidence'); END IF;
+ IF EXISTS(SELECT 1 FROM public.project_substages WHERE approved_by=who) THEN done:=array_append(done,'stage-list'); END IF;
+ IF EXISTS(SELECT 1 FROM public.stage_payment_receipts WHERE decided_by=who AND decision='received') THEN done:=array_append(done,'confirm-payment'); END IF;
+ -- Account type cannot grant an observer a project action.
+ IF p_project IS NOT NULL AND NOT public.is_project_client(p_project) AND NOT public.is_primary_project_contractor(p_project) THEN
+  done:=done||ARRAY['invite-contractor','upload-evidence','stage-list','confirm-payment'];
+ END IF;
+ RETURN done;
+END $$;
+REVOKE ALL ON FUNCTION public.my_project_action_completion(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.my_project_action_completion(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.notify_project_financial_review()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE n jsonb:=to_jsonb(NEW);o jsonb;pid uuid:=(n->>'project_id')::uuid;target text;message text;message_fr text;event text;actor uuid:=auth.uid();person record;stage_no text;BEGIN
+ IF to_regclass('public.notifications') IS NULL THEN RETURN NEW; END IF;
+ o:=CASE WHEN TG_OP='UPDATE' THEN to_jsonb(OLD) ELSE '{}'::jsonb END;
+ IF TG_TABLE_NAME='stage_price_amendments' THEN
+  IF TG_OP='INSERT' THEN target:='client';event:='prices_proposed';message:='Review your contractor’s proposed stage prices.';message_fr:='Examinez les prix proposés par votre entrepreneur.';
+  ELSIF n->>'status' IS DISTINCT FROM o->>'status' THEN target:='proposer';event:='prices_'||(n->>'status');message:=CASE WHEN n->>'status'='approved' THEN 'Your client approved the revised project prices.' ELSE 'The price proposal was reviewed. Open its recorded decision.' END;message_fr:=CASE WHEN n->>'status'='approved' THEN 'Votre client a approuvé les nouveaux prix.' ELSE 'La proposition a été examinée. Consultez la décision enregistrée.' END;
+  ELSE RETURN NEW; END IF;
+ ELSE
+  SELECT stage_number::text INTO stage_no FROM public.project_stages WHERE id=(n->>'stage_id')::uuid;
+  IF TG_OP='INSERT' THEN target:='contractor';event:='receipt_submitted';message:='A payment receipt is ready. Confirm whether you received the money and whether work may continue.';message_fr:='Un reçu est prêt. Confirmez la réception de l’argent et la poursuite des travaux.';
+  ELSIF ROW(n->>'decision',n->>'allows_work',n->>'requested_top_up') IS DISTINCT FROM ROW(o->>'decision',o->>'allows_work',o->>'requested_top_up') THEN
+   target:='client';event:='receipt_'||(n->>'decision');
+   message:=CASE WHEN n->>'decision'='flagged' THEN 'Your contractor has not confirmed receiving this payment. Review the receipt and their note.' WHEN (n->>'allows_work')::boolean THEN 'Your contractor confirmed receiving the money and authorized work to continue. Any balance remains recorded.' ELSE 'Your contractor confirmed receiving the money and requested an additional '||(n->>'requested_top_up')||' '||(n->>'currency')||'. Open this stage for the next payment.' END;
+   message_fr:=CASE WHEN n->>'decision'='flagged' THEN 'Votre entrepreneur n’a pas confirmé ce paiement. Consultez le reçu et sa note.' WHEN (n->>'allows_work')::boolean THEN 'Votre entrepreneur confirme la réception de l’argent et autorise les travaux. Le solde reste enregistré.' ELSE 'Votre entrepreneur confirme la réception et demande '||(n->>'requested_top_up')||' '||(n->>'currency')||' supplémentaires. Ouvrez cette étape pour poursuivre.' END;
+  ELSE RETURN NEW; END IF;
+ END IF;
+ FOR person IN
+  SELECT DISTINCT candidates.id,coalesce(pr.preferred_lang,'en') AS lang FROM (
+   SELECT c.contractor_user_id AS id FROM public.contractor_invites c WHERE target='contractor' AND c.project_id=pid AND c.status='accepted' AND c.is_primary
+   UNION SELECT p.user_id FROM public.projects p WHERE target='client' AND p.id=pid AND p.workflow_origin='client'
+   UNION SELECT v.user_id FROM public.project_viewers v WHERE target='client' AND v.project_id=pid AND v.is_client AND v.accepted_at IS NOT NULL AND v.revoked_at IS NULL
+   UNION SELECT (n->>'proposed_by')::uuid WHERE target='proposer'
+  ) candidates LEFT JOIN public.profiles pr ON pr.id=candidates.id WHERE candidates.id IS NOT NULL AND candidates.id IS DISTINCT FROM actor
+ LOOP
+  INSERT INTO public.notifications(user_id,type,title,body,data) VALUES(person.id,'project.financial_review',CASE WHEN person.lang='fr' THEN 'Paiement et prix du projet' ELSE 'Project payment and pricing' END,CASE WHEN person.lang='fr' THEN message_fr ELSE message END,
+   jsonb_strip_nulls(jsonb_build_object('project_id',pid,'stage_number',stage_no,'role',CASE WHEN target IN('contractor','proposer') THEN 'contractor' ELSE 'client' END,'project_tab',CASE WHEN TG_TABLE_NAME='stage_price_amendments' THEN CASE WHEN target='proposer' THEN 'money' ELSE 'costing' END ELSE CASE WHEN target='contractor' THEN 'work' ELSE 'stages' END END,'financial_event',event,'receipt_id',CASE WHEN TG_TABLE_NAME='stage_payment_receipts' THEN n->>'id' END,'proposal_id',CASE WHEN TG_TABLE_NAME='stage_price_amendments' THEN n->>'id' END)));
+ END LOOP;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.notify_project_financial_review() FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS financial_receipt_notification ON public.stage_payment_receipts;
+CREATE TRIGGER financial_receipt_notification AFTER INSERT OR UPDATE ON public.stage_payment_receipts FOR EACH ROW EXECUTE FUNCTION public.notify_project_financial_review();
+DROP TRIGGER IF EXISTS financial_price_notification ON public.stage_price_amendments;
+CREATE TRIGGER financial_price_notification AFTER INSERT OR UPDATE OF status ON public.stage_price_amendments FOR EACH ROW EXECUTE FUNCTION public.notify_project_financial_review();
+
 NOTIFY pgrst,'reload schema';
 COMMIT;

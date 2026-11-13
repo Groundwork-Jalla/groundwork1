@@ -94,6 +94,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     `CREATE TEMP TABLE stage_approval_rerun_snapshot AS SELECT id,to_jsonb(s) AS saved FROM public.project_stages s;`,
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-final.sql'),
+    read('scripts/fixtures/nov13-review-setup.sql'),
     read('supabase/migrations/20261114000000_project_payment_review.sql'),
     read('supabase/migrations/20261114000000_project_payment_review.sql'),
     read('scripts/fixtures/nov13-payment-review.sql'),

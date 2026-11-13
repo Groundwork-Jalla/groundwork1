@@ -143,7 +143,7 @@ export default function ContractorProjectDetail() {
     setDocuments(docs);
     setRework(rw);
     setPayments({ ...pay, rows: pay.rows.filter(r => r.projectId === projectId) });
-    setStagePayments(stagePay);
+    setStagePayments(stagePay);window.dispatchEvent?.(new Event('groundwork:project-action'));
   }, [projectId]);
 
   useEffect(() => {
@@ -848,6 +848,8 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
+  const linkedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
+  useEffect(()=>{if(!linkedStage)return;const row=stages.find(stage=>String(stage.stage_number)===linkedStage);if(row)document.getElementById('work-stage-'+row.id)?.scrollIntoView({behavior:'smooth',block:'start'});},[project.id,linkedStage,stages]);
 
   if (stages.length === 0) {
     return (
@@ -878,12 +880,13 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
         </p>
       </div>
 
+      {current&&<a href={`#work-stage-${current.id}`} className="mb-3 inline-flex w-fit rounded-xl bg-brand-green px-4 py-3 text-sm font-semibold text-white">{t('project.receiptFlow.openStage',{n:current.stage_number})}</a>}
       {stages.map(stage => {
         const isOpen = stage.id === activeStage?.id;
         const due = money.pair(stagePayableUsd(stage, basis), stage.milestone_amount);
         const sent = rework.filter(r => r.stageId === stage.id);
         const tranche = stagePayments.get(stage.id);
-        const showGate = canActOnProjectStage(stage, stages) && !!tranche;
+        const showGate = !stage.pre_existing&&(canActOnProjectStage(stage, stages)||stage.status==='complete') && !!tranche;
         const funded = stageWorkReady(stage, stages, tranche, project.workflow_origin);
         const canWork = project.status === 'active' && canActOnProjectStage(stage, stages) && funded;
 
@@ -929,7 +932,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
           );
 
           return (
-            <section key={stage.id}
+            <section key={stage.id} id={`work-stage-${stage.id}`}
               className="rounded-xl border border-brand-border-grey bg-white px-4 py-2.5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
               {row}
               {substages.some(item => item.stage_id === stage.id && item.evidence_urls?.length) && (
@@ -968,7 +971,7 @@ function WorkTab({ assigned, substages, rework, isOwner, stagePayments, onSubmit
         }
 
         return (
-          <section key={stage.id}
+          <section key={stage.id} id={`work-stage-${stage.id}`}
             className="rounded-2xl border-[1.5px] border-state-complete bg-white p-5 dark:bg-[#1e1e1e]">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 border-state-complete font-mono text-[10px] font-semibold text-state-complete">

@@ -5985,6 +5985,7 @@ export const fr: Mirror<EnDict> = {
       status: { pending: 'Prix proposés · validation du client', approved: 'Prix approuvés', declined: 'Prix actuels conservés', withdrawn: 'Proposition retirée' },
     },
     receiptFlow: {
+      openStage: 'Ouvrir l’étape {n}',nextStageReady: 'L’étape suivante est prête. Ouvrez-la pour poursuivre.',
       reviewPayment: "Examiner le paiement",
       receivedQuestion: "1. Avez-vous reçu ce paiement ?",
       receivedYes: "Oui, je l’ai reçu",

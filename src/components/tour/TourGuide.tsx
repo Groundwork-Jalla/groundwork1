@@ -8,6 +8,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { nextStep, stepsFor, tourComplete, type TourId, type TourStep } from '@/lib/tour/steps';
+import { readTourCompletion,completedTourSteps } from '@/lib/tour/completion';
 import { dismissTour, markSeen, readSeen } from '@/lib/tour/seen';
 
 // =========================================================
@@ -65,6 +66,11 @@ export function TourGuide({ tour }: { tour: TourId }) {
   const steps = stepsFor(tour);
 
   const [seen, setSeen] = useState<string[]>(() => readSeen(user?.id, tour));
+  const [completed,setCompleted]=useState<{user:string;project:string;anchors:string[]}|null>(null);
+  const projectMatch=/^\/(?:work\/)?projects\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname);
+  const projectId=projectMatch?.[1]??'';
+  const effectiveSeen=completedTourSteps(seen,completed&&completed.user===user?.id&&completed.project===projectId?completed.anchors:[]);
+  useEffect(()=>{if(!user?.id)return;let live=true;let request=0;const uid=user.id;const refresh=()=>{const version=++request;void readTourCompletion(projectId||undefined).then(anchors=>{if(live&&version===request)setCompleted({user:uid,project:projectId,anchors});}).catch(()=>{});};refresh();const timer=setInterval(refresh,15000);window.addEventListener('focus',refresh);window.addEventListener('groundwork:project-action',refresh);return()=>{live=false;clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('groundwork:project-action',refresh);};},[user?.id,projectId,pathname]);
   const [step, setStep] = useState<TourStep | null>(null);
   const [box, setBox] = useState<Box | null>(null);
   const frame = useRef<number | null>(null);
@@ -102,10 +108,10 @@ export function TourGuide({ tour }: { tour: TourId }) {
    * tip is open.
    */
   useLayoutEffect(() => {
-    if (!user?.id || tourComplete(steps, seen)) { setStep(null); setBox(null); return; }
+    if (!user?.id || tourComplete(steps, effectiveSeen)) { setStep(null); setBox(null); return; }
 
     const measure = () => {
-      const found = nextStep(steps, seen, { path: pathname, hasProject: true },
+      const found = nextStep(steps, effectiveSeen, { path: pathname, hasProject: true },
         anchor => findAnchor(anchor) != null);
       setStep(prev => (prev?.anchor === found?.anchor ? prev : found));
       if (!found) { setBox(null); return; }
@@ -140,7 +146,7 @@ export function TourGuide({ tour }: { tour: TourId }) {
       observer.disconnect();
       if (frame.current != null) { cancelAnimationFrame(frame.current); frame.current = null; }
     };
-  }, [pathname, seen, steps, user?.id, findAnchor]);
+  }, [pathname, seen, completed, steps, user?.id, findAnchor]);
 
   // The anchor moves when the page scrolls or the window changes shape, and the tip has
   // to move with it. `capture` so a scrolling panel's own scroll is heard too, and

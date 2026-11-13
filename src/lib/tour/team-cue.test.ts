@@ -17,6 +17,7 @@ vi.mock('react-router', () => ({ useLocation: () => ({ pathname: '/projects/proj
 vi.mock('react-dom', () => ({ createPortal: (children: any) => children }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'client' } }) }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key }));
+vi.mock('@/lib/tour/completion',()=>({readTourCompletion:vi.fn().mockResolvedValue([]),completedTourSteps:(seen:string[],completed:string[])=>[...seen,...completed]}));
 vi.mock('@/lib/tour/seen', () => ({ readSeen: () => [], markSeen: vi.fn(), dismissTour: vi.fn() }));
 import { TourGuide } from '@/components/tour/TourGuide';
 
@@ -34,7 +35,7 @@ function attributeChanged(attribute: string) {
   frames();
 }
 beforeEach(() => {
-  vi.clearAllMocks(); h.state = []; h.refs = []; h.effects = []; h.frames = []; h.inviteAvailable = false; h.callback = null; h.options = null;
+  vi.useFakeTimers();vi.clearAllMocks(); h.state = []; h.refs = []; h.effects = []; h.frames = []; h.inviteAvailable = false; h.callback = null; h.options = null;
   h.query.mockImplementation((selector: string) => selector === '[data-tour="invite-contractor"]' && h.inviteAvailable
     ? { getBoundingClientRect: () => ({ top: 80, left: 200, width: 90, height: 42 }) } : null);
   vi.stubGlobal('document', { body: {}, querySelector: h.query, elementFromPoint: () => null });
@@ -48,7 +49,7 @@ beforeEach(() => {
   });
   render(); for (const effect of h.effects.splice(0)) effect(); frames();
 });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.clearAllTimers();vi.useRealTimers();vi.unstubAllGlobals(); });
 
 describe('Team invitation guidance follows project permissions', () => {
   it('appears when the permission response adds a cue to an existing Team tab', () => {
