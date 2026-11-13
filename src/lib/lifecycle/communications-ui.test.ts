@@ -147,7 +147,7 @@ describe('activation journey review',()=>{
   h.t=(key:string,vars?:any)=>key+(vars&&key==='communications.journeys.day'?` ${vars.count}`:'');
   const steps=[0,24,48,96].map((delay,index)=>({...exampleStep('iv_invited'),id:`m${index}`,position:index+1,delay_hours:delay,code:`IV0${index+1}`,cta_key:'invitation'}));
   const component=()=>CommunicationJourneys({sequences:[{...exampleSequence('iv_invited'),journey:'Client invited by a contractor',audience:'client'}],steps:[steps[3],steps[1],steps[0],steps[2]],onEdit:vi.fn()});
-  let view=render(component);const labels=nodes(view).filter(node=>node.type==='button').map(text);
+  let view=render(component);const labels=nodes(view).filter(node=>node.type==='button').map(node=>text(node).replace(/\s+/g,' '));
   expect(labels).toEqual(expect.arrayContaining(['IV01 · communications.journeys.immediate','IV02 · communications.journeys.day 1','IV03 · communications.journeys.day 3','IV04 · communications.journeys.day 7']));
   nodes(view).find(node=>node.type==='button'&&text(node).startsWith('IV01')).props.onClick();view=render(component);
   expect(text(view)).toContain('/share/example-invitation');expect(text(view)).not.toContain('/projects/new');
