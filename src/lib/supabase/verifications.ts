@@ -201,6 +201,7 @@ export interface ReceiptPaymentInput {
   amount: string;
   currency: string;
   fxRate?: number | string;
+  replacesReceiptId?: string;
 }
 
 function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): void {
@@ -214,9 +215,10 @@ function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): v
 /** The client attaches proof and its actual amount. Does NOT open the stage. */
 export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput, readingId?: string): Promise<void> {
   validateReceiptInput(input);
-  const { error } = await supabase.rpc('submit_stage_payment_receipt', {
+  const { error } = await supabase.rpc(input.replacesReceiptId?'replace_stage_payment_receipt':'submit_stage_payment_receipt', {
     p_stage: stageId, p_path: path, p_amount: input.amount,
     p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
+    ...(input.replacesReceiptId?{p_receipt:input.replacesReceiptId}:{}),
   });
   if (error) throw error;
 }
@@ -244,6 +246,7 @@ export interface StagePaymentReceipt {
   decision: 'pending' | 'received' | 'flagged'; allowsWork: boolean;
   requestedTopUp: number | null; decisionNote: string | null; decidedAt: string | null;
   projectCurrency?: string | null; projectFxRate?: number | null; projectAmount?: number | null; fxSource?: string | null; fxAsOf?: string | null;
+  replacedBy?:string|null;replacedAt?:string|null;
 }
 
 export async function decideStagePaymentReceipt(receiptId: string, decision: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string) {
@@ -297,7 +300,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
   if (error || !data) return out;
 
   const { data: history, error: historyError } = await supabase.from('stage_payment_receipts')
-    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at,project_currency,project_fx_rate,project_amount,fx_source,fx_as_of')
+    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at,project_currency,project_fx_rate,project_amount,fx_source,fx_as_of,replaced_by,replaced_at')
     .eq('project_id', projectId).order('submitted_at', { ascending: true });
   if (historyError && options.strict) throw historyError;
   if (historyError) throw historyError;
@@ -309,7 +312,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
       amountUsd: row.amount_usd == null ? null : Number(row.amount_usd), decision: row.decision, allowsWork: row.allows_work === true,
       requestedTopUp: row.requested_top_up == null ? null : Number(row.requested_top_up), decisionNote: row.decision_note, decidedAt: row.decided_at,
       projectCurrency: row.project_currency, projectFxRate: row.project_fx_rate == null ? null : Number(row.project_fx_rate),
-      projectAmount: row.project_amount == null ? null : Number(row.project_amount), fxSource: row.fx_source, fxAsOf: row.fx_as_of });
+      projectAmount: row.project_amount == null ? null : Number(row.project_amount), fxSource: row.fx_source, fxAsOf: row.fx_as_of,replacedBy:row.replaced_by,replacedAt:row.replaced_at });
     receipts.set(row.stage_id, items);
   }
 

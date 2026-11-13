@@ -1,5 +1,4 @@
 import { supabase } from './client';
-import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 
 export interface PriceStage {
   id: string; stage_number: number; stage_key: string | null; name: string; amount: string | null; editable: boolean;
@@ -11,6 +10,7 @@ export interface StagePriceProposal {
   id: string; status: 'pending' | 'approved' | 'declined' | 'withdrawn'; proposed_at: string;
   note: string | null; currency: string; old_total: string; new_total: string; changes: StagePriceChange[];
   can_withdraw: boolean; stale: boolean;
+  decided_at?:string|null;
 }
 export interface StagePriceContext {
   project_id: string; currency: string; fx_rate: string; total: string; base_hash: string;
@@ -35,8 +35,8 @@ export function stagePricePreview(context: StagePriceContext, drafts: Record<str
   const rows: { stage_id: string; amount: string }[] = [];
   for (const stage of context.stages.filter(stage => stage.editable)) {
     if (stage.amount == null) return null;
-    const amount = canonicalReceiptAmount(drafts[stage.id] ?? stage.amount);
-    if (!amount) return null;
+    const amount = (drafts[stage.id] ?? stage.amount).trim();
+    if (!/^\d{1,13}(?:\.\d{1,6})?$/.test(amount)||units(amount)>1_000_000_000_000_000_000n) return null;
     if (units(amount) === units(stage.amount)) continue;
     total += units(amount) - units(stage.amount); rows.push({ stage_id: stage.id, amount });
   }

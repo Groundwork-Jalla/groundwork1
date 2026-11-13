@@ -73,7 +73,7 @@ export function receiptPayoutSummary(
   // advanced state wins, and a payment is still counted exactly once.
   const unique = new Map<string, StagePayment>();
   for (const parent of payments) {
-    const rows: StagePayment[] = parent.receipts?.length ? parent.receipts.map(receipt => ({
+    const rows: StagePayment[] = parent.receipts?.length ? parent.receipts.filter(receipt=>!receipt.replacedBy).map(receipt => ({
       id: receipt.id, stageId: receipt.stageId, amount: parent.amount,
       state: receipt.decision === 'received' ? 'funded' : receipt.decision === 'pending' ? 'receipt_submitted' : 'expected',
       receiptPath: receipt.path, receiptUploadedAt: receipt.submittedAt, receiptAmount: receipt.amount,

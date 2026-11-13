@@ -65,16 +65,17 @@ export function projectReflectsApproval(stages: ProjectStageRow[], result: Appro
 }
 
 
-/** Contractor-led projects review their first live stage before requesting its payment. */
+/** Every live stage of a contractor-led project is reviewed before its payment. */
 export function stageStartsWithEvidence(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
-  return origin === 'contractor' && !stage.pre_existing
-    && orderedProjectStages(stages).find(row => !row.pre_existing)?.id === stage.id;
+  return origin === 'contractor' && !stage.pre_existing;
 }
 export function stageWorkReady(stage: ProjectStageRow, stages: ProjectStageRow[], payment?: StagePayment, origin?: 'client' | 'contractor'): boolean {
   return stagePaymentAcknowledged(stage, payment)
     || (stageStartsWithEvidence(stage, stages, origin) && !stage.review_payment_pending && stage.status !== 'complete');
 }
 export function canSubmitStageReceipt(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
+  if(stage.pre_existing)return false;
+  if(stage.status==='complete')return true; // Additional receipts record outstanding money without reopening work.
   return canActOnProjectStage(stage, stages)
     && (!stageStartsWithEvidence(stage, stages, origin) || stage.review_payment_pending === true);
 }

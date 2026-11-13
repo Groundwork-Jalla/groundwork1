@@ -14,7 +14,7 @@ export function stageReceiptBalance(payment: StagePayment, currency: string, pro
   let received = 0n, pending = 0n, receivedKnown = true, pendingKnown = true;
   const seen = new Set<string>();
   for (const receipt of receipts) {
-    if (seen.has(receipt.id) || receipt.decision === 'flagged') continue;
+    if (seen.has(receipt.id) || receipt.decision === 'flagged' || ('replacedBy' in receipt && receipt.replacedBy)) continue;
     seen.add(receipt.id);
     const amount = receipt.projectCurrency === currency && receipt.projectAmount != null ? units(receipt.projectAmount)
       : receipt.currency === currency ? units(receipt.amount)
