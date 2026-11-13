@@ -1,11 +1,12 @@
 import { supabase } from './client';
+import type { SetupCheck } from '../../../api/_lib/communication-readiness.js';
 export interface CommunicationSettings {
   delivery_enabled: boolean;sender_name: string;sender_email: string|null;followup_sender_email:string;application_sender_email:string;reply_domain: string|null;
   test_recipients: string[];default_owner_id: string|null;next_contact_hours: number;updated_at: string;
 }
 export interface CommunicationReadiness {
   checkedAt:string;
-  checks:{key:'schema'|'sending'|'receiving'|'receivingAccess'|'webhook'|'signingSecret';state:'pass'|'attention'|'unknown';reason:string;domains?:string[]}[];
+  checks:SetupCheck[];
 }
 export async function readCommunicationReadiness():Promise<CommunicationReadiness> {
   const {data:{session}}=await supabase.auth.getSession();

@@ -29,48 +29,57 @@ confirmation button without refreshing or starting another project.
 | Check | Observed result |
 | --- | --- |
 | Vercel account/project access | CLI authenticated; `groundwork1` belongs to the Groundwork account. Project uses Vite and Node 24. |
-| Current production deployment | `vercel inspect tryjalla.com` reports Production / READY. This does not establish which database migrations are applied. |
+| Current production deployment | `vercel inspect tryjalla.com` reports Production / READY, created 13 November at 19:16 MYT. This does not establish which database migrations are applied. |
 | Canonical application address | `https://tryjalla.com` redirects to `https://www.tryjalla.com`. Use the `www` URL directly for Resend's webhook. |
 | New communication reply route | Public GET returns 405 Method not allowed, consistent with the deployed POST handler. No message was queued. |
 | Email webhook route | Public GET returns 405 Method not allowed. Signature validation and actual event delivery still need a live test. |
 | Scheduler authentication | Unauthenticated GET returns 401 Unauthorized. |
-| Production variable presence | Supabase, Resend, Anthropic and GHL variable names are present. The user-approved `CRON_SECRET` was generated privately, saved as a Production Secret and verified present. Redeployment is still pending. |
+| Production variable presence | Supabase, Resend, Anthropic and GHL variable names are present. The user-approved `CRON_SECRET` was generated privately, saved as a Production Secret and verified present. A newer deployment and successful communication background runs are now observed. |
 | Existing company mail | Public MX records for `tryjalla.com` point to Google. Preserve these when configuring application replies. |
 | Receiving subdomain | Neither `reply.tryjalla.com` nor `replies.tryjalla.com` currently resolves publicly. A dedicated receiving subdomain is still to be configured. |
 | Sending DNS evidence | The public `resend._domainkey.mail.tryjalla.com` record exists. This is partial DNS evidence, not confirmation of Resend's account-side verification status. |
 
 The user approved the private read-only audit and adding `CRON_SECRET`, superseding
 the earlier automatic-review rejection. The secret was added without printing it.
-No deployment, DNS change, workflow retirement, database migration or test-message
-send has been performed. The two supplied test accounts were authenticated using
-the supplied password over non-echoing stdin; passwords and session tokens were
-not added to the repository or included in reports.
+The agent has not changed DNS, retired workflows, applied production migrations or
+deployed the application. Subsequent read-only checks confirm the communication
+schema repair is now installed and a newer deployment exists. The supplied test
+accounts were authenticated over non-echoing stdin; passwords and session tokens
+were not added to the repository or included in reports. Two explicitly approved
+transport test emails were sent to the real test inboxes; both have a Resend
+`delivered` result. Reminder journeys remain disabled.
 
 ## Results after the approved private checks
 
 | Check | Actual result |
 | --- | --- |
 | Database delivery state | Delivery is off; all 16 activation journeys are disabled. |
-| Production communication schema | An early 008–010 schema is installed. It lacks the two purpose-specific sender columns, `communication_messages.sent_at`, `followup_queue.last_reviewed_at` and `communication_issues`. |
-| Incremental schema repair | Prepared and locally tested: `20261113001100_communication_schema_repair.sql`. It upgrades that exact old shape, preserves settings/consent/messages/contact history and installs the final RPCs. Application in Production is pending. |
-| Resend access | The available environment/database key is the same key. Domain, webhook and receiving-read probes return HTTP 401 `restricted_api_key`. It needs replacing with an appropriate full-access key before these checks can complete. Production's stored key value was not exported or inspected. |
-| Resend signing setup | `app_config.resend_webhook_secret` is not configured. Resend's actual webhook records cannot be inspected with the restricted key. |
+| Production communication schema | All previously missing fields and the issues table are now present. The three saved sender addresses match the user's choices. |
+| Incremental schema repair | Production now has the repaired table shape. `20261113001100_communication_schema_repair.sql` separately passed local upgrade/replay checks preserving settings, consent, messages and contact history. |
+| Resend access | The replacement local environment key reads domains and webhooks successfully. The reserved nonexistent incoming-message permission probe returns 404, rather than a permission refusal. The user reports updating the Vercel Production key too; its stored value was not exported. |
+| Resend domains | Only `mail.tryjalla.com` is registered and verified for sending; its receiving capability is disabled. `tryjalla.com` and the dedicated receiving subdomain still need setup. |
+| Resend signing setup | No webhook is registered and `app_config.resend_webhook_secret` is unset. The proposed domain/webhook/secret configuration writes are awaiting approval, separately from the earlier read-only audit permission. |
+| Background processing | Successful `communication_runs` are recorded, including the scheduled five-minute intervals. Delivery is off and all 16 journeys are disabled; successful runs do not establish actual reminder delivery. |
 | GHL access | The configured database PIT is rejected with HTTP 401 by the documented legacy workflow list and current workflow search. A location can be inferred from the configured webhook, but no location ID is saved in database/local configuration. The separately configured Vercel value was not exported. No workflows were changed. |
 | Controlled account authentication | Both supplied test accounts sign in. The contractor has the contractor account role and completed required onboarding; the client's legacy account resolves to the client dashboard. |
 | Project access/figures | Both accounts can read the same project through their own authenticated permissions. Saved budget fields and all ten stage rows match. The primary client and assigned contractor roles resolve correctly, with no cross-role construction assignment to the client. |
 | BOQ acceptance coverage | The existing shared test project is estimate-based. Its matching views do not establish live BOQ extraction or BOQ allocation acceptance. |
 | Client UI | The production client dashboard and stage page load. The stage page has zero construction-evidence upload buttons and the appropriate receipt action is present. |
 | Contractor UI | The production contractor dashboard and shared project's Work page finish loading. Seven construction-evidence upload controls appear for its active stage; the client page has none. This checks both the deployed generic Upload label and Upload Evidence label. |
+| Real inbox account checks | `favour@tryjalla.com` authenticates as a client; `nwachukwufac@gmail.com` authenticates as a contractor. Both use English, have no projects yet and can read their project lists through their own permissions. No account roles were changed. |
+| Controlled transport delivery | One clearly labelled test from `noreply@mail.tryjalla.com` reached each approved real test inbox's receiving mail server, according to Resend's `delivered` result retrieved for those exact message IDs. This is transport coverage, not a managed reminder/reply acceptance test. |
+| Admin setup checks | Implemented: an admin-only, read-only check for schema, sender domains, receiving MX verification, incoming-message permission, webhook URL/events and signing-secret presence. Restricted credentials and incomplete provider responses are distinct from missing configuration. It sends no messages and changes no delivery settings. |
+| Public setup endpoint | The production `communication-status` route is present and returns 401 to an anonymous request with `Cache-Control: private, no-store`. This establishes its access boundary, not a signed-in provider-check pass. |
 
-The actual inbound-reply check additionally needs an inbox that can send a reply.
-The supplied Mailinator addresses support incoming test email but
-[Mailinator is receive-only](https://www.mailinator.com/support/). An additional
-reply-capable controlled address was requested; no credentials or access to that
-inbox were requested.
+The supplied real inboxes resolve the earlier Mailinator receive-only limitation.
+Their credentials were used only to sign in to Groundwork. No mailbox-provider
+login was performed. Actual inbound reply testing still requires the receiving
+domain, signed webhook and a managed conversation thread.
 
 ## Release work still to complete
 
-1. Confirm the database has the required earlier migrations, followed by these
+1. The communication repair's required fields are now confirmed in Production.
+   For reference, the upgrade order is these
    **full filenames**:
    - `20261113000800_groundwork_communications.sql`
    - `20261113000900_communication_delivery_and_replies.sql`
@@ -80,12 +89,12 @@ inbox were requested.
    repair rather than restarting the old migrations.
    The old `009_admin.sql` is a separate legacy bootstrap. Its replay fix was
    verified locally, including preservation of newer permission rules.
-2. `CRON_SECRET` is now saved privately in Vercel Production. Redeploy once the
-   database and test-recipient safeguards are confirmed. Check actual five-minute
-   background runs, not just the presence of a cron definition in the repository.
-3. Replace the restricted Resend key in the ignored local `.env` and Vercel
-   Production `RESEND_API_KEY`, without sharing it in chat. Then verify the sending
-   domains for the chosen addresses in Resend:
+2. `CRON_SECRET` is saved privately in Vercel Production and successful background
+   runs are observed. Deploy reviewed code updates through the usual release path
+   and confirm the runtime uses the replacement Resend key.
+3. The replacement local key is accepted and the user reports the Vercel key has
+   been updated. Add and verify the missing `tryjalla.com` sending domain for the
+   chosen addresses in Resend:
    `partner@tryjalla.com`, `noreply@mail.tryjalla.com`, `contact@tryjalla.com`.
 4. Set up a dedicated reply domain, recommended `replies.tryjalla.com`, using the
    exact receiving MX/DKIM records displayed in Resend. Keep the apex's Google MX
@@ -154,6 +163,12 @@ counts, project-team database regressions and 48 communication unit/UI tests.
 Typecheck and Production build also passed after the repair and clearer receiving
 key-permission diagnostic. Live browser sessions were closed after the read-only
 account checks; no existing project data was edited.
+
+The Admin email setup checks additionally passed 45 focused tests, typecheck and
+the production build. Tests cover administrator authorization, secret redaction,
+fixed provider targets, pagination, unverified receiving MX records, incomplete
+webhook subscriptions, explicit-only checks and stale-result handling. These
+configuration checks do not replace the managed journey/reply acceptance tests.
 
 ## Product backlog from the supplied history
 

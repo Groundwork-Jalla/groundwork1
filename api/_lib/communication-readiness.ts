@@ -7,10 +7,15 @@ export const COMMUNICATION_WEBHOOK_EVENTS = [
 type Failure = 'api_key_missing' | 'api_key_restricted' | 'api_key_rejected' | 'provider_unavailable';
 type Result = {ok:true;data:any} | {ok:false;reason:Failure};
 type State = 'pass' | 'attention' | 'unknown';
+type Reason = Failure | 'schema_current' | 'schema_required' | 'database_unavailable'
+  | 'senders_required' | 'sending_unverified' | 'sending_verified'
+  | 'reply_domain_required' | 'receiving_unverified' | 'receiving_verified' | 'receiving_access_verified'
+  | 'site_url_required' | 'webhook_required' | 'webhook_disabled' | 'webhook_events_required' | 'webhook_configured'
+  | 'signing_secret_present' | 'signing_secret_required';
 export type SetupCheck = {
   key:'schema'|'sending'|'receiving'|'receivingAccess'|'webhook'|'signingSecret';
   state:State;
-  reason:string;
+  reason:Reason;
   domains?:string[];
 };
 type Settings = {sender_email:string|null;followup_sender_email:string;application_sender_email:string;reply_domain:string|null};
@@ -61,17 +66,19 @@ export async function checkCommunicationProvider(settings:Settings|null):Promise
     providerRead('/emails/receiving/00000000-0000-0000-0000-000000000000?html_format=cid',key),
   ]);
   const checks:SetupCheck[]=[];
-  const check=(key:SetupCheck['key'],state:State,reason:string,domains?:string[])=>checks.push({key,state,reason,...(domains?{domains}:{})});
+  const check=(key:SetupCheck['key'],state:State,reason:Reason,domains?:string[])=>checks.push({key,state,reason,...(domains?{domains}:{})});
   const addresses=[settings?.sender_email,settings?.followup_sender_email,settings?.application_sender_email];
   const senders=addresses.filter((value):value is string=>typeof value==='string'&&/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value));
-  if(senders.length!==3)check('sending','attention','senders_required');
+  if(!settings)check('sending','unknown','database_unavailable');
+  else if(senders.length!==3)check('sending','attention','senders_required');
   else if(!domains.ok)check('sending','unknown',domains.reason);
   else {
     const names=[...new Set(senders.map(value=>value.split('@')[1].toLowerCase()))];
     const unverified=names.filter(name=>!domains.data.some((domain:any)=>domain.name===name&&domain.status==='verified'&&domain.capabilities?.sending==='enabled'));
     check('sending',unverified.length?'attention':'pass',unverified.length?'sending_unverified':'sending_verified',unverified.length?unverified:names);
   }
-  if(!settings?.reply_domain)check('receiving','attention','reply_domain_required');
+  if(!settings)check('receiving','unknown','database_unavailable');
+  else if(!settings.reply_domain)check('receiving','attention','reply_domain_required');
   else if(!domains.ok)check('receiving','unknown',domains.reason);
   else {
     const domain=domains.data.find((row:any)=>row.name===settings.reply_domain);
@@ -81,7 +88,7 @@ export async function checkCommunicationProvider(settings:Settings|null):Promise
       if(!detail.ok)check('receiving','unknown',detail.reason);
       else {
         const records=Array.isArray(detail.data?.records)?detail.data.records.filter((row:any)=>row.record==='Receiving'&&row.type==='MX'):[];
-        const verified=detail.data?.capabilities?.receiving==='enabled'&&records.length>0&&records.every((row:any)=>row.status==='verified');
+        const verified=detail.data?.status==='verified'&&detail.data?.capabilities?.receiving==='enabled'&&records.length>0&&records.every((row:any)=>row.status==='verified');
         check('receiving',verified?'pass':'attention',verified?'receiving_verified':'receiving_unverified');
       }
     }

@@ -1,6 +1,6 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from 'vitest';
 const h=vi.hoisted(()=>({state:[] as any[],refs:[] as any[],memos:[] as any[],deps:[] as any[],cleanups:[] as any[],effects:[] as {index:number;effect:()=>any}[],si:0,ri:0,mi:0,ei:0,
- token:'00000000-0000-0000-0000-000000000001',t:(key:string)=>key,read:vi.fn(),save:vi.fn(),queue:vi.fn(),rpc:vi.fn(),staff:vi.fn(),tables:{} as Record<string,any[]>}));
+ token:'00000000-0000-0000-0000-000000000001',t:(key:string)=>key,read:vi.fn(),save:vi.fn(),queue:vi.fn(),readiness:vi.fn(),rpc:vi.fn(),staff:vi.fn(),tables:{} as Record<string,any[]>}));
 vi.mock('react',async original=>({...await original<typeof import('react')>(),
  useState:(initial:any)=>{const i=h.si++;if(!(i in h.state))h.state[i]=typeof initial==='function'?initial():initial;return[h.state[i],(next:any)=>{h.state[i]=typeof next==='function'?next(h.state[i]):next;}];},
  useRef:(initial:any)=>h.refs[h.ri++]??(h.refs[h.ri-1]={current:initial}),
@@ -11,7 +11,7 @@ vi.mock('@/lib/i18n',()=>({useT:()=>h.t,useLanguage:()=>({lang:'en'})}));
 vi.mock('@/lib/i18n/translate',()=>({translator:()=>h.t}));
 vi.mock('@/contexts/AuthContext',()=>({useAuth:()=>({user:{id:'admin'}})}));
 vi.mock('react-router',()=>({useParams:()=>({token:h.token}),Link:'link'}));
-vi.mock('@/lib/supabase/communications',()=>({readPreference:h.read,savePreference:h.save,queueCommunicationReply:h.queue}));
+vi.mock('@/lib/supabase/communications',()=>({readPreference:h.read,savePreference:h.save,queueCommunicationReply:h.queue,readCommunicationReadiness:h.readiness}));
 vi.mock('@/lib/supabase/admin-users',()=>({listAdminUsers:h.staff}));
 vi.mock('@/lib/supabase/client',()=>({supabase:{rpc:h.rpc,from:(table:string)=>{
  const filters:((row:any)=>boolean)[]=[];const result=()=>({data:(h.tables[table]??[]).filter(row=>filters.every(test=>test(row))),error:null});
@@ -21,6 +21,7 @@ vi.mock('@/lib/supabase/client',()=>({supabase:{rpc:h.rpc,from:(table:string)=>{
 import Preferences from '@/app/routes/communication-preferences';
 import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
 import { CommunicationSettings } from '@/components/admin/communications/CommunicationSettings';
+import { CommunicationReadiness } from '@/components/admin/communications/CommunicationReadiness';
 function render<T>(component:()=>T):T {h.si=h.ri=h.mi=h.ei=0;const tree=component();for(const {index,effect}of h.effects.splice(0)){h.cleanups[index]?.();h.cleanups[index]=effect();}return tree;}
 function nodes(value:any):any[]{return Array.isArray(value)?value.flatMap(nodes):value?.props?[value,...nodes(value.props.children)]:[];}
 function text(value:any):string{return Array.isArray(value)?value.map(text).join(' '):typeof value==='string'?value:value?.props?text(value.props.children):'';}
@@ -32,6 +33,31 @@ beforeEach(()=>{
  h.tables={communication_settings:[{id:true,delivery_enabled:false,sender_name:'Groundwork',sender_email:'hello@example.test',followup_sender_email:'contact@example.test',application_sender_email:'partner@example.test',reply_domain:'reply.example.test',test_recipients:[],default_owner_id:null,next_contact_hours:48,updated_at:'2026-11-13T12:00:00Z'}],communication_runs:[],communication_issues:[],communication_threads:[{id:'thread',email:'client@example.test',automation_paused:true,last_message_at:'2026-11-13T12:00:00Z',lifecycle_enrollments:{full_name:'Client',context:{}}}],communication_messages:[]};
  h.staff.mockResolvedValue([{id:'admin',email:'staff@example.test',roles:'admin'}]);h.read.mockResolvedValue(preference);h.save.mockResolvedValue({...preference,project_creation_paused:true});h.queue.mockResolvedValue('message');
  h.rpc.mockImplementation(async(name,args)=>({data:name==='admin_save_communication_settings'?{...args.p_settings,updated_at:'2026-11-13T13:00:00Z'}:null,error:null}));
+});
+describe('email setup checks',()=>{
+ it('runs only on request and shows a restricted key as incomplete without changing delivery settings',async()=>{
+  h.readiness.mockResolvedValue({checkedAt:'2026-11-13T12:00:00Z',checks:[{key:'sending',state:'unknown',reason:'api_key_restricted'}]});
+  const component=()=>CommunicationReadiness({settingsVersion:'saved-one'});
+  render(component);await flush();expect(h.readiness).not.toHaveBeenCalled();
+  const click=nodes(render(component)).find(node=>node.type==='button').props.onClick;click();click();await flush();
+  const view=render(component);expect(h.readiness).toHaveBeenCalledOnce();expect(text(view)).toContain('communications.setup.reasons.api_key_restricted');
+  expect(text(view)).toContain('communications.setup.states.unknown');expect(h.rpc).not.toHaveBeenCalled();
+ });
+ it('discards a delayed result after the saved settings change',async()=>{
+  let finish!:(result:any)=>void;h.readiness.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+  let version='one';const component=()=>CommunicationReadiness({settingsVersion:version});
+  render(component);nodes(render(component)).find(node=>node.type==='button').props.onClick();
+  version='two';render(component);finish({checkedAt:'2026-11-13T12:00:00Z',checks:[{key:'sending',state:'pass',reason:'sending_verified'}]});await flush();
+  expect(text(render(component))).not.toContain('communications.setup.reasons.sending_verified');
+ });
+ it('keeps a failed check visible and permits a retry',async()=>{
+  h.readiness.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({checkedAt:'2026-11-13T12:00:00Z',checks:[]});
+  const component=()=>CommunicationReadiness({settingsVersion:'one'});render(component);
+  nodes(render(component)).find(node=>node.type==='button').props.onClick();await flush();
+  let view=render(component);expect(text(view)).toContain('communications.setup.failed');
+  nodes(view).find(node=>node.type==='button').props.onClick();await flush();view=render(component);
+  expect(text(view)).not.toContain('communications.setup.failed');expect(h.readiness).toHaveBeenCalledTimes(2);
+ });
 });
 afterEach(()=>{h.cleanups.forEach(cleanup=>cleanup?.());vi.clearAllTimers();vi.useRealTimers();});
 describe('recipient preference confirmation',()=>{
