@@ -1,5 +1,7 @@
 import { previewDue, runDue } from '../_lib/lifecycle.js';
 import { getSupabaseAdmin } from '../_lib/stripe.js';
+import { sendQueuedCommunicationReplies } from '../_lib/communication-email.js';
+import { timingSafeEqual } from 'node:crypto';
 
 // Sends whatever lifecycle step is due. Callable by the scheduler (Vercel cron sends
 // `Authorization: Bearer $CRON_SECRET`) or by an admin's own session ("Run now").
@@ -18,7 +20,7 @@ export async function handler(req: any, res: any) {
 
   const bearer = String(req.headers?.authorization ?? '').replace(/^Bearer\s+/i, '');
   const cron = process.env.CRON_SECRET?.trim();
-  let allowed = !!cron && bearer.length === cron.length && bearer === cron;
+  let allowed = !!cron && Buffer.byteLength(bearer) === Buffer.byteLength(cron) && timingSafeEqual(Buffer.from(bearer), Buffer.from(cron));
 
   if (!allowed && bearer) {
     const { createClient } = await import('@supabase/supabase-js');
@@ -36,7 +38,22 @@ export async function handler(req: any, res: any) {
 
   try {
     const preview = req.body?.preview === true;
-    const result = preview ? await previewDue(getSupabaseAdmin()) : await runDue(getSupabaseAdmin());
+    const svc = getSupabaseAdmin();
+    if (preview) { res.status(200).json({ ok: true, preview, ...await previewDue(svc) }); return; }
+    const run = await svc.from('communication_runs').insert({}).select('id').single();
+    if (run.error) throw run.error;
+    let result;
+    try {
+      const followups = await svc.rpc('review_communication_followups');
+      if (followups.error) throw followups.error;
+      const replies = await sendQueuedCommunicationReplies(svc);
+      result = { ...await runDue(svc, new Date(), 20), replies, followupReview: followups.data };
+      const saved = await svc.from('communication_runs').update({ status: 'complete', finished_at: new Date().toISOString(), counts: result }).eq('id', run.data.id);
+      if (saved.error) throw saved.error;
+    } catch (error) {
+      await svc.from('communication_runs').update({ status: 'failed', finished_at: new Date().toISOString(), error: 'communication_run_failed' }).eq('id', run.data.id);
+      throw error;
+    }
     res.status(200).json({ ok: true, preview, ...result });
   } catch (e) {
     console.error('[lifecycle-run]', e instanceof Error ? e.message : e);

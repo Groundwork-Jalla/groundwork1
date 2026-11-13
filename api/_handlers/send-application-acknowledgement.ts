@@ -22,9 +22,7 @@
 import { siteUrl } from '../../src/lib/site-url.js';
 import { isValidEmail } from '../../src/lib/email/is-valid-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
-import { senderFor } from '../../src/lib/email/senders.js';
-
-const FROM = senderFor('contractor_application_received');
+import { applicationSender } from '../_lib/communication-email.js';
 
 function config() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -136,7 +134,7 @@ export async function handler(req: any, res: any) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: FROM,
+        from: await applicationSender(svc),
         to: [app.email],
         subject,
         html,

@@ -41,7 +41,9 @@ const INTERNAL_ONLY = new Set(['api/agent-dispatch.ts']);
  * The guarantee this file protects is unchanged — it now lands on the callers, which
  * is where it was always meant to be, and the check below follows them there.
  */
-const TRANSPORT = new Set(['api/_lib/resend-send.ts']);
+// Product activation and staff follow-up retain their durable conversation history
+// in Groundwork; lifecycle callers can also mirror their sends to the CRM.
+const TRANSPORT = new Set(['api/_lib/resend-send.ts', 'api/_lib/communication-email.ts']);
 
 /**
  * Sends a message that is *already* on the contact's timeline.

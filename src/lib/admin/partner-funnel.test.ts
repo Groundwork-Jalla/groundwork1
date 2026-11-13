@@ -165,7 +165,9 @@ describe('there are two ways in, and neither disturbs the onboarding gate', () =
   it('but the client-intent answer is still what unlocks the sidebar', () => {
     // Routing around it would leave somebody locked out of the app they just joined.
     const onboarding = read('src/app/routes/work/onboarding.tsx');
-    expect(onboarding).toMatch(/await setClientIntent\(wantsPartner \? 'onboard_client' : 'no_client'\)/);
+    expect(onboarding).toMatch(/await setClientIntent\(intent\)/);
+    // Project creation and opting out must retain their distinct saved answers.
+    expect(onboarding).not.toMatch(/setClientIntent\(wantsPartner \? 'onboard_client' : 'no_client'\)/);
     // And nothing stands in front of it now.
     expect(onboarding).not.toMatch(/partner === null/);
   });

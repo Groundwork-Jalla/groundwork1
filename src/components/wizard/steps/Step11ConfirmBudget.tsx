@@ -398,12 +398,12 @@ export default function Step11ConfirmBudget() {
         // onboarding is unfinished, and bounces the contractor from the project they
         // just made back to "Step 6 of 6 — You're almost there". Reported 29 October.
         //
-        // `no_client` because this is their OWN build: nobody was onboarded. It must
-        // not be `onboard_client`, which is what the partner funnel counts.
+        // Project creation and partner interest are separate choices. This records
+        // a project, rather than opting them out of project reminders.
         //
         // Never fatal. The project exists; a failure here costs a redirect, not work.
         try {
-          await setClientIntent('no_client');
+          await setClientIntent('create_project');
         } catch { /* the gate will ask again; the project is already made */ }
         navigate(`/work/projects/${project.id}`);
         return;

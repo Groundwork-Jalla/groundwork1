@@ -8,6 +8,8 @@ import { handler as adminSettings } from './_handlers/admin-settings.js';
 import { handler as projectWhatsApp } from './_handlers/project-whatsapp.js';
 import { handler as swychrCallback } from './_handlers/swychr-callback.js';
 import { handler as lifecycleRun } from './_handlers/lifecycle-run.js';
+import { handler as communicationReply } from './_handlers/communication-reply.js';
+import { handler as communicationUnsubscribe } from './_handlers/communication-unsubscribe.js';
 import { handler as swychrPoll } from './_handlers/swychr-poll.js';
 import { handler as swychrAttach } from './_handlers/swychr-attach.js';
 import { handler as crmStatus }   from './_handlers/crm-status.js';
@@ -40,20 +42,11 @@ import { attachBody } from './_lib/body.js';
  * One endpoint, several actions.
  *
  * ── Why this exists, so nobody "tidies" it back apart ────────────────────────────────
- * Vercel counts every file under `api/` as a separate serverless function, and the Hobby
- * plan allows **12**. Each of the actions below used to be its own file. Adding them took
- * the project from 10 functions to 17, and *every deployment failed* from that moment —
- * silently, as far as the app was concerned. Production simply froze on the last good
- * build for a day while fixes were merged, pushed, and never shipped. Two separate bugs
- * were chased for hours that were both already fixed in code.
- *
- * So: entry points are the scarce resource, not files. The handlers still live one per
- * file under `_handlers/`, which Vercel does not count because of the underscore. This
- * file is only a switchboard.
- *
- * **Before adding a new file under `api/`, count them.** `find api -name '*.ts' ! -name
- * '_*.ts'` must stay at 12 or below, or nothing deploys at all. Prefer a new action here.
- * The other way out is the Pro plan, which lifts the cap.
+ * Groundwork uses Vercel Pro, recorded in package.json. This dispatcher originated
+ * when the project used Hobby and separate entrypoints exceeded that plan's limit.
+ * Keeping the shared routes preserves webhook URLs and scheduled-job paths. The
+ * handlers still live one per file under `_handlers/`; this file is a switchboard.
+ * Do not apply the former twelve-function Hobby budget to the current Pro project.
  *
  * ── Auth ─────────────────────────────────────────────────────────────────────────────
  * Deliberately none at this layer. Each action authenticates differently — a bearer
@@ -70,13 +63,15 @@ import { attachBody } from './_lib/body.js';
  */
 
 export const config = { api: { bodyParser: false } };
+// The Node function's Pro execution budget is configured in vercel.json.
 
 type Action =
   | 'crm-user' | 'crm-project' | 'crm-resync' | 'crm-retry' | 'crm-inbound'
   | 'crm-status' | 'crm-diagnose' | 'crm-fields' | 'crm-audit' | 'crm-email-test' | 'crm-delivery' | 'crm-oauth' | 'crm-backfill' | 'crm-link-contacts' | 'conversation-deliver'
   | 'crm-chat-mirror' | 'certificate-purge' | 'mfa-email' | 'admin-provision-user' | 'invite-verifier' | 'contractor-invite-client' | 'admin-delete-contractor' | 'crm-email-sync'
   | 'profile-geo' | 'admin-settings' | 'project-whatsapp' | 'swychr-callback' | 'swychr-poll' | 'swychr-attach' | 'lifecycle-run'
-  | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt';
+  | 'read-payment-receipt' | 'message-fanout' | 'read-floor-plan' | 'send-share-invite' | 'crm-lifecycle' | 'email-receipt'
+  | 'communication-reply' | 'communication-unsubscribe';
 
 const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'crm-user':    crmUser,
@@ -112,6 +107,8 @@ const ROUTES: Record<Action, (req: any, res: any) => Promise<void>> = {
   'swychr-poll': swychrPoll,
   'swychr-attach': swychrAttach,
   'lifecycle-run': lifecycleRun,
+  'communication-reply': communicationReply,
+  'communication-unsubscribe': communicationUnsubscribe,
   // Reads an uploaded floor plan with a vision model. Costs money per call, so it
   // authenticates the caller rather than trusting the browser that asked.
   'read-floor-plan': readFloorPlan,

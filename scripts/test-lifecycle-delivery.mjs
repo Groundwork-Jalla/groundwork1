@@ -46,7 +46,18 @@ INSERT INTO lifecycle_sequences(key,name,trigger_event) VALUES('legacy_recovery'
 INSERT INTO lifecycle_enrollments(id,sequence_key,email) VALUES(test_id(900),'legacy_recovery','existing@test.example');
 INSERT INTO lifecycle_deliveries(enrollment_id,position,payload) VALUES(test_id(900),1,'{"text":"Existing snapshot"}');
 ALTER TABLE lifecycle_deliveries DROP COLUMN worker_token;
-`, read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'), read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'), "UPDATE lifecycle_sequence_steps SET subject_en='Staff English',subject_fr='Français personnalisé' WHERE code='CS01';", read('supabase/migrations/20261113000400_lifecycle_language_copy.sql'), 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated; GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;', read('scripts/fixtures/lifecycle-delivery.sql')].join('\n');
+`, read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'), read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'), "UPDATE lifecycle_sequence_steps SET subject_en='Staff English',subject_fr='Français personnalisé' WHERE code='CS01';", read('supabase/migrations/20261113000400_lifecycle_language_copy.sql'), 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated; GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;', read('scripts/fixtures/lifecycle-delivery.sql'), `
+ALTER TABLE contractor_onboarding ADD COLUMN client_intent_at timestamptz, ADD COLUMN updated_at timestamptz;
+CREATE FUNCTION public.assert_own_onboarding() RETURNS uuid LANGUAGE plpgsql STABLE AS $$ BEGIN
+ IF auth.uid() IS NULL OR NOT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role='contractor') THEN RAISE EXCEPTION 'not_contractor'; END IF; RETURN auth.uid(); END $$;
+CREATE FUNCTION public.contractor_onboarding_status(p_user uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('client_intent',client_intent,'complete',true) FROM public.contractor_onboarding WHERE user_id=p_user $$;
+INSERT INTO user_roles VALUES(test_id(4),'admin');
+ALTER TABLE projects ADD COLUMN name text DEFAULT 'Test project';
+CREATE TABLE notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,body text,data jsonb);
+`, read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
+read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
+read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),
+read('scripts/fixtures/groundwork-communications.sql')].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
   // Standalone postgres bypasses RLS even after SET ROLE. A private Unix socket
@@ -58,7 +69,8 @@ ALTER TABLE lifecycle_deliveries DROP COLUMN worker_token;
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK')) {
+  if (result.error) throw result.error;
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK') || !output.includes('GROUNDWORK_COMMUNICATIONS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
@@ -79,7 +91,7 @@ ALTER TABLE lifecycle_deliveries DROP COLUMN worker_token;
   if (claims.some(result => result.code !== 0) || claims.filter(result => /\n t\s*\n/.test(result.output)).length !== 1) {
     throw new Error('Concurrent delivery claim regression: '+JSON.stringify(claims));
   }
-  console.log('Lifecycle delivery database regressions passed: migration replay, service-only access, single-worker claims, immutable retry payloads, stale leases, atomic send history, entry-based deadlines, authoritative action checks, expiry/revocation, Day-7 qualification and per-project follow-ups.');
+  console.log('Lifecycle delivery database regressions passed: migration replay, service-only access, single-worker claims, immutable retry payloads, stale leases, atomic send history, entry-based deadlines, authoritative action checks, preferences, invitation priority, verified replies, staff contact history, role changes, early callbacks, uncertain-send review, Day-7 qualification and per-project follow-ups.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

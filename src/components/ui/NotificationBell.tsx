@@ -62,6 +62,7 @@ export function destinationFor(
   if (!data) return null;
   const s = (k: string) => (typeof data[k] === 'string' && data[k] ? (data[k] as string) : null);
   const application = s('application_id');
+  if (s('communication_followup_id')) return viewer?.isAdmin ? '/admin/sequences' : null;
   if (application)       return `/admin/applications/${application}`;
   if (s('ticket_id'))    return '/admin/support';
   if (s('inquiry_id'))   return '/admin/inquiries';

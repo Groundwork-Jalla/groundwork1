@@ -6,10 +6,13 @@ import { tagsFor, stageFor, partyFor } from './_pipeline.js';
 import { EMAIL_RE } from '../../src/lib/email/is-valid-email.js';
 import { enrollForEvent } from '../_lib/lifecycle.js';
 import { getSupabaseAdmin } from '../_lib/stripe.js';
+import { groundworkOwnsCommunication } from '../_lib/communication-ownership.js';
 
 /**
  * One way in to GoHighLevel.
  *
+ * Product events enroll in Groundwork first. GHL receives optional contact mirrors
+ * for activation, while applications, acquisitions and billing retain CRM routing.
  * Every lifecycle event the product wants the CRM to know about goes through here, so
  * there is a single place that knows the envelope, the failure behaviour and the
  * bookkeeping. `api/ghl/contractor.ts` predates this and keeps its own webhook — it
@@ -21,7 +24,7 @@ import { getSupabaseAdmin } from '../_lib/stripe.js';
  *      contact by email, so a person who signs up, then applies, then subscribes is one
  *      record with a history instead of three. Returns a contact id, which is what makes
  *      tags and pipeline moves possible at all.
- *   2. **The inbound webhook**, when they are not. Phase 1's behaviour, kept so setting
+ *   2. **The inbound webhook**, for sales events when they are not. Kept so setting
  *      up the API is a switch rather than a cutover — nothing breaks while the token is
  *      still a to-do, and nothing needs redeploying when it arrives.
  *
@@ -52,10 +55,8 @@ export type GhlEvent =
   /**
    * ── The activation lifecycle (Communication Flow v1.0, §9.1) ────────────────────
    *
-   * Philip, 2 Nov 2026, on where the reminder sequences live: "let's not do that on
-   * there. Let's just use go high level." That decision is only workable if GHL is told
-   * when each milestone happens — a workflow builder cannot infer `onboarding completed`
-   * from a contact record. These are those milestones, one per row of §9.1.
+   * Groundwork now owns reminder delivery. These milestones remain useful contact
+   * facts for the optional CRM mirror, one per row of the activation specification.
    *
    * Signup is deliberately NOT split into `contractor_signed_up` / `client_signed_up`.
    * §9.2 asks for `user_role` and `entry_source` as routing FIELDS, and a field is what
@@ -122,7 +123,7 @@ export interface GhlForwardResult {
   /** 'not_configured' is a soft miss, not a fault. */
   reason?: 'not_configured' | 'no_email' | 'rejected' | 'unreachable'
     /** Delivered, but only because the API refused our credentials first. */
-    | 'api_rejected';
+    | 'api_rejected' | 'groundwork_managed';
   status?: number;
   /** Present when the API path ran — store it, it is the point of Phase 2. */
   contactId?: string;
@@ -253,6 +254,21 @@ export async function deliver(
   opts: GhlForwardOptions = {},
 ): Promise<GhlForwardResult> {
   const cfg = await ghlConfig();
+  if (groundworkOwnsCommunication(event)) {
+    // Mirror contact facts without invoking the legacy activation webhook, event
+    // tags or stage automations. Existing external workflows need retiring during
+    // rollout; acquisitions, applications and billing keep their existing paths.
+    if (!cfg) return { ok: true, reason: 'groundwork_managed' };
+    const { first, last } = splitName(contact.fullName);
+    const mirror = await upsertContact(cfg, { email, firstName: first || null, lastName: last || null,
+      name: contact.fullName || null, phone: normalisePhone(contact.phone, contact.country) ?? contact.phone ?? null,
+      country: contact.country ?? null, city: contact.city ?? null,
+      customFields: { ...fields, communication_owner: 'groundwork', lang: contact.lang === 'fr' ? 'fr' : 'en', groundwork_party: partyFor(event, opts.party) },
+      source: 'groundwork_account_sync' });
+    if (mirror.ok && mirror.data) await addContactTags(cfg, mirror.data.contactId, ['groundwork','communications:groundwork']);
+    return mirror.ok && mirror.data ? { ok: true, contactId: mirror.data.contactId, via: 'api', reason: 'groundwork_managed' }
+      : { ok: false, status: mirror.status, via: 'api', reason: mirror.status === 0 ? 'unreachable' : 'rejected' };
+  }
   if (!cfg) return deliverViaWebhook(event, email, contact, fields, opts.variant);
 
   if (event === 'email_changed') return deliverEmailChange(cfg, email, fields, opts);

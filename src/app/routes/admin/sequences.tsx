@@ -1,3 +1,8 @@
+import { CommunicationSettings } from '@/components/admin/communications/CommunicationSettings';
+import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
+import { CommunicationRunStatus } from '@/components/admin/communications/CommunicationRunStatus';
+import { CommunicationFollowups,type CommunicationFollowup } from '@/components/admin/communications/CommunicationFollowups';
+import { useT } from '@/lib/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, Play, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
@@ -22,7 +27,7 @@ interface Step {
   channel: 'email' | 'whatsapp'; subject_en: string; subject_fr: string; body_en: string; body_fr: string;
   code: string; cta_label_en: string; cta_label_fr: string;
 }
-interface Followup {
+interface Followup extends CommunicationFollowup {
   id: string; sequence_key: string; email: string; full_name: string | null; phone: string | null;
   status: 'open' | 'done' | 'dismissed'; note: string; created_at: string;
   reason: string; priority: 'high' | 'normal'; owner: string | null; due_at: string | null;
@@ -37,7 +42,7 @@ interface Enrollment {
   context: { project_name?: string } | null;
 }
 
-type Tab = 'attention' | 'sequences' | 'log';
+type Tab = 'attention' | 'sequences' | 'log' | 'inbox' | 'settings';
 
 const ago = (iso: string | null) => {
   if (!iso) return '—';
@@ -53,6 +58,7 @@ const until = (iso: string | null) => {
 const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-blue/30';
 
 export default function AdminSequences() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('attention');
   const [seqs, setSeqs] = useState<Sequence[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -64,17 +70,22 @@ export default function AdminSequences() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false);
+  const [nextContactHours,setNextContactHours]=useState(48);
+  const [lastRun, setLastRun] = useState<{started_at:string;status:string}|null>(null);
   const [preview, setPreview] = useState<{ recipient: string; step: string | null; subject: string | null; state: string; reason: string; whatsappPaused: boolean }[] | null>(null);
 
   const load = useCallback(async () => {
-    const [s, st, en, fu, lg] = await Promise.all([
+    const [s, st, en, fu, lg, settings, runs] = await Promise.all([
       supabase.from('lifecycle_sequences').select('*').order('name'),
       supabase.from('lifecycle_sequence_steps').select('*').order('position'),
       supabase.from('lifecycle_enrollments').select('id, sequence_key, email, full_name, phone, next_send_at, last_sent_at, last_step_code, emails_sent, context').eq('status', 'active').limit(1000),
       supabase.from('followup_queue').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('lifecycle_sends').select('*').order('sent_at', { ascending: false }).limit(300),
+      supabase.from('communication_settings').select('delivery_enabled,next_contact_hours').eq('id',true).single(),
+      supabase.from('communication_runs').select('started_at,status').order('started_at',{ascending:false}).limit(1),
     ]);
-    const failed = [s, st, en, fu, lg].find(r => r.error);
+    const failed = [s, st, en, fu, lg, settings, runs].find(r => r.error);
     if (failed?.error) { setError(failed.error.message); return; }
     setSeqs((s.data ?? []) as Sequence[]);
     setSteps((st.data ?? []) as Step[]);
@@ -85,10 +96,17 @@ export default function AdminSequences() {
     setWaiting(active.filter(r => r.emails_sent > 0).sort((a, b) => String(a.last_sent_at).localeCompare(String(b.last_sent_at))));
     setFollowups((fu.data ?? []) as Followup[]);
     setSends((lg.data ?? []) as SendRow[]);
+    setDeliveryEnabled(settings.data?.delivery_enabled===true);setLastRun(runs.data?.[0]??null);
+    setNextContactHours(settings.data?.next_contact_hours??48);
     setError(null);
   }, []);
 
-  useEffect(() => { load().finally(() => setLoading(false)); }, [load]);
+  useEffect(() => {
+    void load().finally(() => setLoading(false));
+    const refresh = () => { if(document.visibilityState!=='hidden') void load(); };
+    window.addEventListener('focus',refresh);const poll=setInterval(refresh,30_000);
+    return()=>{window.removeEventListener('focus',refresh);clearInterval(poll);};
+  }, [load]);
 
   async function patchSeq(key: string, patch: Partial<Sequence>) {
     setSeqs(p => p.map(s => s.key === key ? { ...s, ...patch } : s));
@@ -113,14 +131,6 @@ export default function AdminSequences() {
   async function removeStep(id: string) {
     const { error: e } = await supabase.from('lifecycle_sequence_steps').delete().eq('id', id);
     if (e) setError(e.message); else load();
-  }
-  async function resolve(id: string, status: 'done' | 'dismissed') {
-    const { error: e } = await supabase.from('followup_queue')
-      .update({ status, resolved_at: new Date().toISOString() }).eq('id', id);
-    if (e) setError(e.message); else load();
-  }
-  async function saveNote(f: Followup) {
-    await supabase.from('followup_queue').update({ note: f.note, owner: f.owner || null }).eq('id', f.id);
   }
   async function runNow(previewOnly = false) {
     if (running) return;
@@ -161,11 +171,9 @@ export default function AdminSequences() {
     <div className="p-6 sm:p-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-brand-near-black">Sequences</h1>
+          <h1 className="text-2xl font-bold text-brand-near-black">{t('communications.pageTitle')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-brand-mid-grey">
-            Automatic emails and WhatsApp messages, started by lifecycle events and stopped the moment the person does the
-            action. Sequences are seeded switched off — review the wording, then switch each one on. Placeholders:
-            {'{{first_name}}'}, {'{{project_name}}'}, {'{{client_name}}'}, {'{{contractor_name}}'}.
+            {t('communications.pageHelp')}
           </p>
         </div>
         <button disabled={running} onClick={() => void runNow(true)} className="rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm font-semibold">Preview due messages</button>
@@ -176,6 +184,8 @@ export default function AdminSequences() {
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       {notice && <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
+      {!deliveryEnabled&&<p role="status" className="mb-4 rounded-xl border p-3 text-sm">{t('communications.deliveryPaused')} <button type="button" onClick={()=>setTab('settings')} className="underline">{t('communications.settings')}</button></p>}
+      <CommunicationRunStatus run={lastRun}/>
       {preview && <details className="rounded-xl border border-brand-border-grey bg-white p-4" open>
         <summary className="cursor-pointer text-sm font-semibold">Reminder preview</summary>
         <ul className="mt-3 space-y-3 text-xs">{preview.map((row, index) => <li key={index}>
@@ -186,8 +196,8 @@ export default function AdminSequences() {
       </details>}
 
 
-      <div className="mb-5 flex gap-1.5">
-        {([['attention', `Needs attention · ${attentionCount}`], ['sequences', 'Sequences'], ['log', 'Send log']] as [Tab, string][]).map(([k, label]) => (
+      <div className="mb-5 flex flex-wrap gap-1.5">
+        {([['attention', `Needs attention · ${attentionCount}`], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('rounded-full border px-3 py-1.5 text-sm font-medium',
               tab === k ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
@@ -195,6 +205,9 @@ export default function AdminSequences() {
           </button>
         ))}
       </div>
+
+      {tab === 'inbox' && <CommunicationInbox />}
+      {tab === 'settings' && <CommunicationSettings />}
 
       {tab === 'sequences' && (
         <div className="space-y-5">
@@ -272,43 +285,7 @@ export default function AdminSequences() {
 
       {tab === 'attention' && (
         <div className="space-y-8">
-          <section>
-            <h2 className="mb-2 text-base font-semibold text-brand-near-black">Follow up now · {openFollowups.length}</h2>
-            <p className="mb-3 text-xs text-brand-mid-grey">Day 7 passed with no action. High priority = tied to a live project or a referral.</p>
-            <ul className="space-y-3">
-              {openFollowups.length === 0 && <li className="text-sm text-brand-mid-grey">Nobody is waiting for a call.</li>}
-              {openFollowups.map(f => (
-                <li key={f.id} className="rounded-2xl border border-brand-border-grey bg-white p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-brand-near-black">{f.full_name || f.email}</p>
-                      <p className="text-xs text-brand-mid-grey">
-                        {f.email}{f.phone ? <> · <a className="text-brand-blue" href={`tel:${f.phone}`}>{f.phone}</a></> : ''}
-                        {' · '}{seqByKey.get(f.sequence_key)?.name ?? f.sequence_key}
-                      </p>
-                    </div>
-                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', f.priority === 'high' ? 'bg-red-50 text-red-700' : 'bg-gray-100')}>
-                      {f.priority === 'high' ? 'High priority' : 'Normal'}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm">{f.reason || 'Day 7 follow-up'}</p>
-                  <p className="text-xs text-brand-mid-grey">Due {f.due_at ? new Date(f.due_at).toLocaleDateString() : 'as soon as possible'}</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-[12rem_1fr]">
-                    <input className={field} placeholder="Owner" value={f.owner ?? ''}
-                      onChange={e => setFollowups(p => p.map(x => x.id === f.id ? { ...x, owner: e.target.value } : x))}
-                      onBlur={() => saveNote(f)} />
-                    <textarea rows={2} className={field} placeholder="Note — what happened on the call?" value={f.note}
-                      onChange={e => setFollowups(p => p.map(x => x.id === f.id ? { ...x, note: e.target.value } : x))}
-                      onBlur={() => saveNote(f)} />
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => saveNote(f).then(() => resolve(f.id, 'done'))} className="rounded-lg bg-brand-near-black px-3 py-1.5 text-sm font-semibold text-white">Mark done</button>
-                    <button onClick={() => resolve(f.id, 'dismissed')} className="rounded-lg border border-brand-border-grey px-3 py-1.5 text-sm">Dismiss</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <CommunicationFollowups items={followups} onChanged={() => { void load(); }} nextContactHours={nextContactHours}/>
 
           {problems.length > 0 && (
             <section>

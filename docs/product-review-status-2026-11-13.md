@@ -1,5 +1,12 @@
 # Product review status — November 13, 2026
 
+The later decision to manage communication in Groundwork is implemented in
+[Groundwork communications](groundwork-communications.md), including the new inbox,
+preferences, staff follow-up controls, purpose-specific sender settings and the
+Vercel Pro scheduler. Its migration and release instructions supersede the older
+communication release checklist below. The earlier connected-database observations
+remain dated observations, not confirmation that the new release is deployed.
+
 The pasted meeting summary is review material. The user's direct decisions govern:
 contractors upload construction evidence, clients review it, stage-price changes
 need client approval, “Zaf” means XAF, and the first eligible signed-in account

@@ -3,6 +3,7 @@ import { logEmailToCrm } from '../ghl/_email-log.js';
 import { syncContractorToApi } from '../ghl/_contractor-sync.js';
 import { forwardToGhl } from '../ghl/_forward.js';
 import { DEFAULT_SENDER } from '../../src/lib/email/senders.js';
+import { applicationSender } from '../_lib/communication-email.js';
 import { nextOffset, pageWindow } from '../../src/lib/contractor/paging.js';
 
 /**
@@ -167,7 +168,7 @@ export async function handler(req: any, res: any) {
             method: 'POST',
             headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from: DEFAULT_SENDER,
+              from: await applicationSender(svc),
               to: [app.email], subject, html,
             }),
           });

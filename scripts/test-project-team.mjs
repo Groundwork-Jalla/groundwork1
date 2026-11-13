@@ -341,6 +341,15 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     read('supabase/migrations/177_lifecycle_sequences.sql'), read('supabase/migrations/178_activation_journeys.sql'),
     "ALTER TABLE projects ADD COLUMN status text DEFAULT 'active'; ALTER TABLE project_viewers ADD COLUMN email_status text DEFAULT 'sent'; CREATE TABLE contractor_onboarding(user_id uuid,client_intent text);",
     read('supabase/migrations/20261113000600_project_links_no_expiry.sql'), read('supabase/migrations/20261113000600_project_links_no_expiry.sql'), read('scripts/fixtures/non-expiring-links.sql'),
+    `ALTER TABLE contractor_onboarding ADD PRIMARY KEY(user_id), ADD COLUMN client_intent_at timestamptz, ADD COLUMN updated_at timestamptz;
+     ALTER TABLE profiles ADD COLUMN preferred_lang text;
+     INSERT INTO user_roles VALUES(test_id(4),'admin');
+     CREATE FUNCTION public.assert_own_onboarding() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT auth.uid() $$;
+     CREATE FUNCTION public.contractor_onboarding_status(p_user uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('client_intent',client_intent,'complete',client_intent IS NOT NULL) FROM public.contractor_onboarding WHERE user_id=p_user $$;
+     CREATE TABLE notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,body text,data jsonb);`,
+    read('supabase/migrations/20261113000300_lifecycle_delivery.sql'),read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'),
+    read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
+    read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('scripts/fixtures/project-team-communications.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -382,7 +391,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     const final = await query(`SELECT test_assert((SELECT count(*) FROM ${table} WHERE project_id=test_id(${project}) AND ${predicate})=1,'exactly one race claimant has membership');`);
     if (final.code !== 0) throw new Error(final.output);
   }
-  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, non-expiring single-use links, legacy expiry upgrade, email/link reservation and concurrent claim races.');
+  console.log('Project team database regressions passed: both primary roles, observer restrictions, first-contractor acceptance, legacy repairs, staff role changes, recipient matching, idempotence, cancellation, direct-write RLS BQ editor roles, submitted-quote immutability, revoked access, unchanged BOQ allocations, observer chat identity, non-expiring single-use links, communication-trigger upgrade, legacy expiry upgrade, email/link reservation and concurrent claim races.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

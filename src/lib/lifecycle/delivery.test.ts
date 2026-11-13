@@ -19,7 +19,8 @@ const enrollment = { id: 'enrollment', sequence_key: 'test', email: 'client@exam
 function service(options: { steps?: typeof steps; deliveries?: any[] } = {}) {
   const tables: Record<string, any[]> = { lifecycle_sequences: [{ key: 'test', enabled: true }],
     lifecycle_enrollments: [enrollment], lifecycle_sequence_steps: options.steps ?? steps,
-    lifecycle_deliveries: options.deliveries ?? [] };
+    lifecycle_deliveries: options.deliveries ?? [],
+    communication_settings: [{id:true,delivery_enabled:true,sender_name:'Groundwork',sender_email:'hello@groundwork.test',followup_sender_email:'contact@groundwork.test',reply_domain:'reply.groundwork.test'}] };
   const from = vi.fn((table: string) => {
     const filters: ((row: any) => boolean)[] = [];
     let limit = Infinity;
@@ -28,6 +29,7 @@ function service(options: { steps?: typeof steps; deliveries?: any[] } = {}) {
       gte: (key: string, value: any) => { filters.push(row => row[key] >= value); return q; },
       in: (key: string, values: any[]) => { filters.push(row => values.includes(row[key])); return q; },
       order: () => q, limit: (value: number) => { limit = value; return q; },
+      single: async () => ({data:(tables[table]??[]).find(row=>filters.every(test=>test(row))),error:null}),
       then: (resolve: any) => Promise.resolve({ data: (tables[table] ?? []).filter(row => filters.every(test => test(row))).slice(0, limit), error: null }).then(resolve) };
     return q;
   });
@@ -43,6 +45,7 @@ beforeEach(() => {
   h.rpc.mockImplementation(async (name, args) => ({ error: null, data:
     name === 'claim_lifecycle_enrollment' ? { ...enrollment, processing_token: 'lease' }
       : name === 'prepare_lifecycle_delivery' ? { status: 'prepared', payload: args.p_payload }
+      : name === 'ensure_lifecycle_communication' ? {thread_id:'00000000-0000-0000-0000-000000000001',preference_token:'00000000-0000-0000-0000-000000000002'}
       : name === 'lifecycle_enrollment_state' ? { kind: 'ready', reason: 'ready', qualified: true } : true }));
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
@@ -64,8 +67,14 @@ describe('durable reminder delivery', () => {
     expect(h.rpc.mock.calls[0][0]).toBe('claim_lifecycle_enrollment');
     expect(h.fetch.mock.calls[0][1].headers['Idempotency-Key']).toBe('lifecycle/enrollment/3');
     expect(JSON.parse(h.fetch.mock.calls[0][1].body).subject).toBe('Subject 3');
+    expect(JSON.parse(h.fetch.mock.calls[0][1].body).from).toBe('Groundwork <contact@groundwork.test>');
     expect(h.rpc).toHaveBeenCalledWith('finish_lifecycle_delivery', expect.objectContaining({ p_token: 'lease', p_position: 3, p_outcome: 'sent', p_provider_id: 'provider-message' }));
     expect(h.mirror).toHaveBeenCalledOnce();
+  });
+
+  it('uses the welcome address for an immediate message',async()=>{
+    await runDue(service(),entered);
+    expect(JSON.parse(h.fetch.mock.calls[0][1].body).from).toBe('Groundwork <hello@groundwork.test>');
   });
 
   it('sends nothing if another worker owns the lease', async () => {

@@ -2,6 +2,7 @@ import { route, layout } from "@react-router/dev/routes";
 import type { RouteConfig } from "@react-router/dev/routes";
 
 export default [
+  route("communication/preferences/:token", "routes/communication-preferences.tsx"),
   // Public pages — all share the site navbar and footer
   layout("routes/_public-layout.tsx", [
     route("/",                 "routes/landing.tsx"),

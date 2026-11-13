@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { receiveCommunicationEmail, UUID } from '../_lib/communication-email.js';
 
 /**
  * `/api/events?action=email-receipt` — Resend tells us what became of a message.
@@ -110,6 +111,35 @@ export async function handler(req: any, res: any) {
   if (!signatureValid(secret, id, ts, raw, sig)) {
     res.status(401).json({ error: 'Bad signature' });
     return;
+  }
+
+  if (req.body?.type === 'email.received') {
+    const issueKey=`inbound:${UUID.test(String(req.body?.data?.email_id))?req.body.data.email_id:'invalid'}`;
+    try {
+      const result=await receiveCommunicationEmail(db,req.body.data);
+      await db.from('communication_issues').update({resolved_at:new Date().toISOString()}).eq('key',issueKey);
+      res.status(200).json({ok:true,...result});
+    }
+    catch (error) {
+      const message=error instanceof Error?error.message:'';
+      const code=/^inbound_provider_\d{3}$/.test(message)?message:message==='RESEND_API_KEY not set'?'email_key_missing':'receiving_failed';
+      try {await db.from('communication_issues').upsert({key:issueKey,code,last_seen_at:new Date().toISOString(),resolved_at:null});} catch { /* Provider retries remain the recovery path. */ }
+      console.error('[email-receipt] inbound message could not be recorded; provider retry required');
+      res.status(503).json({ error: 'Inbound email processing unavailable' });
+    }
+    return;
+  }
+
+  const eventType=String(req.body?.type??'').replace(/^email\./,'');
+  const providerId=req.body?.data?.email_id;
+  if (typeof providerId==='string' && ['sent','delivered','bounced','complained','failed','opened','clicked'].includes(eventType)) {
+    const rawTags=req.body?.data?.tags;
+    const tags: Record<string,string>=Array.isArray(rawTags)?Object.fromEntries(rawTags.filter((tag:any)=>typeof tag?.name==='string'&&typeof tag.value==='string').map((tag:any)=>[tag.name,tag.value])):rawTags&&typeof rawTags==='object'?rawTags:{};
+    const tagId=(key:string)=>typeof tags[key]==='string'&&UUID.test(tags[key])?tags[key]:null;
+    const timestamp=typeof req.body?.created_at==='string'&&Number.isFinite(Date.parse(req.body.created_at))?req.body.created_at:new Date().toISOString();
+    const recorded=await db.rpc('record_communication_email_event',{p_provider_id:providerId,p_event:eventType,p_at:timestamp,
+      p_enrollment:tagId('groundwork_enrollment'),p_position:/^\d{1,6}$/.test(tags.groundwork_position??'')?Number(tags.groundwork_position):null,p_message:tagId('groundwork_message')});
+    if(recorded.error) {console.error('[email-receipt] communication delivery event not recorded');res.status(503).json({error:'Delivery processing unavailable'});return;}
   }
 
   const body = req.body as { type?: string; data?: { email_id?: string; reason?: string } };

@@ -178,7 +178,7 @@ export default function ContractorOnboarding() {
               // the decision when the contractor next opens the dashboard.
               const wantsPartner = intent === 'onboard_client';
               await setPartnerInterest(wantsPartner);
-              const next = await setClientIntent(wantsPartner ? 'onboard_client' : 'no_client');
+              const next = await setClientIntent(intent);
               setStatus(next);
               // Contractor onboarding ENDS here, and only here. Philip, 30 Oct 2026:
               // it "concludes when users select either 'I have a project' or 'I don't

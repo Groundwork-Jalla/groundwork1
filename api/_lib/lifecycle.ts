@@ -1,5 +1,5 @@
 import { sendWhatsApp } from './whatsapp-send.js';
-import { senderFor } from '../../src/lib/email/senders.js';
+import { communicationSettings, composeCommunicationEmail, sendCommunicationEmail } from './communication-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 
 // =========================================================
@@ -38,6 +38,7 @@ export interface Context {
   invite_path?: string;
   entry_source?: string;
   recipient_role?: string;
+  anonymous_invitation?: boolean;
 }
 
 const HOUR = 3_600_000;
@@ -56,15 +57,15 @@ const firstOf = (name: string | null | undefined) => {
  * {{client_name}}, {{contractor_name}}, {{client_first_name}}, {{contractor_first_name}}.
  * A missing first name reads "there"; any other unknown tag is blanked, never printed.
  */
-export function render(text: string, p: Person, ctx: Context = {}): string {
+export function render(text: string, p: Person, ctx: Context = {}, lang: 'en' | 'fr' = 'en'): string {
   const name = (p.fullName ?? '').trim();
   const vars: Record<string, string> = {
     first_name: firstOf(name) || 'there',
     name,
     email: p.email,
     project_name: ctx.project_name ?? 'your project',
-    client_name: ctx.client_name ?? '',
-    contractor_name: ctx.contractor_name ?? '',
+    client_name: ctx.client_name ?? (ctx.anonymous_invitation ? (lang === 'fr' ? 'votre client' : 'your client') : ''),
+    contractor_name: ctx.contractor_name ?? (ctx.anonymous_invitation ? (lang === 'fr' ? 'votre entrepreneur' : 'your contractor') : ''),
     client_first_name: firstOf(ctx.client_name) || 'there',
     contractor_first_name: firstOf(ctx.contractor_name) || 'there',
   };
@@ -76,7 +77,7 @@ export function copyFor(step: Step, lang: string | null | undefined, p: Person, 
   const subject = (fr ? step.subject_fr : step.subject_en) || step.subject_en;
   const body = (fr ? step.body_fr : step.body_en) || step.body_en;
   const cta = (fr ? step.cta_label_fr : step.cta_label_en) || step.cta_label_en || '';
-  return { subject: render(subject, p, ctx), body: render(body, p, ctx), cta: render(cta, p, ctx) };
+  return { subject: render(subject, p, ctx, fr ? 'fr' : 'en'), body: render(body, p, ctx, fr ? 'fr' : 'en'), cta: render(cta, p, ctx, fr ? 'fr' : 'en') };
 }
 
 /** Where the button on a step takes the reader. Always the exact unfinished screen. */
@@ -91,6 +92,7 @@ export function ctaPath(key: string | undefined, ctx: Context): string | null {
     case 'open_project':
       return pid ? (contractor ? `/work/projects/${pid}` : `/projects/${pid}`) : (contractor ? '/work' : '/dashboard');
     case 'invitation': return ctx.invite_path || (contractor ? '/work' : '/dashboard');
+    case 'manage_invitation': return pid ? (contractor ? `/work/projects/${pid}?tab=people` : `/projects/${pid}?tab=team`) : (contractor ? '/work/projects' : '/projects');
     default: return null;
   }
 }
@@ -179,7 +181,7 @@ export async function enrollForEvent(
           .update({ status: 'exited', exit_reason: event, next_send_at: null }).in('id', ids);
         await svc.from('followup_queue')
           .update({ status: 'done', resolved_at: now.toISOString(), note: `Auto-closed: ${event}` })
-          .eq('status', 'open').in('enrollment_id', ids);
+          .eq('status', 'open').eq('kind','activation').in('enrollment_id', ids);
       }
       out.exited = ids.length;
     }
@@ -196,7 +198,7 @@ export async function enrollForEvent(
         if (ids.length) {
           const changed = await svc.from('lifecycle_enrollments').update({ status: 'exited', exit_reason: 'invitation_replaced', next_send_at: null }).in('id', ids);
           if (changed.error) throw changed.error;
-          await svc.from('followup_queue').update({ status: 'done', resolved_at: now.toISOString(), note: 'Auto-closed: invitation replaced' }).eq('status', 'open').in('enrollment_id', ids);
+          await svc.from('followup_queue').update({ status: 'done', resolved_at: now.toISOString(), note: 'Auto-closed: invitation replaced' }).eq('status', 'open').eq('kind','activation').in('enrollment_id', ids);
           out.exited += ids.length;
         }
       }
@@ -274,36 +276,13 @@ export async function enrollForEvent(
       }
     }
 
-    // The immediate messages (delay 0) go out now rather than at the next hourly run.
+    // Immediate messages can go out now; Vercel's five-minute worker handles retries.
     if (out.enrolled) await runDue(svc, now, 20).catch(() => undefined);
   } catch (e) {
     console.error('[lifecycle] enroll failed:', e instanceof Error ? e.message : e);
   }
   return out;
 }
-
-interface EmailPayload { from: string; to: string; subject: string; html: string; text: string; }
-
-async function sendEmail(payload: EmailPayload, idempotencyKey: string): Promise<{ ok: boolean; error?: string; providerId?: string }> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { ok: false, error: 'RESEND_API_KEY not set' };
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST', signal: AbortSignal.timeout(30_000),
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) return { ok: false, error: `resend_${response.status}` };
-    const result = await response.json().catch(() => ({}));
-    if (typeof result.id !== 'string') return { ok: false, error: 'resend_response_invalid' };
-    // The durable send outcome is recorded before the optional CRM mirror.
-    return { ok: true, providerId: result.id };
-  } catch {
-    return { ok: false, error: 'resend_connection_uncertain' };
-  }
-}
-
-const siteBase = () => (process.env.PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
 
 /** Who a human should ring first: a referral or outreach lead, or anyone tied to a live project. */
 export function followupPriority(ctx: Context): 'high' | 'normal' {
@@ -360,8 +339,12 @@ export async function previewDue(svc: Svc, now = new Date(), limit = 50) {
 
 export async function runDue(svc: Svc, now = new Date(), limit = 50) {
   const tally = { sent: 0, failed: 0, followups: 0, skipped: 0 };
+  const settings = await communicationSettings(svc);
+  if (!settings.delivery_enabled) return tally;
   const { bySeq, due } = await dueEnrollments(svc, now, limit);
+  const deadline = Date.now() + 180_000;
   for (const candidate of due) {
+    if (Date.now() >= deadline) break;
     let enrollment: any;
     try {
       enrollment = await rpc(svc, 'claim_lifecycle_enrollment', { p_enrollment: candidate.id });
@@ -400,13 +383,16 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50) {
       const context: Context = enrollment.context ?? {};
       const { subject, body, cta } = copyFor(step, enrollment.lang, person, context);
       const path = ctaPath(step.cta_key, context);
-      const base = siteBase();
-      if (step.channel === 'email' && cta && path && !base) {
-        await finish('failed', 'PUBLIC_SITE_URL not set'); tally.failed++; continue;
+      const senderEmail=step.delay_hours===0?settings.sender_email:settings.followup_sender_email;
+      if (!senderEmail || !settings.reply_domain) {
+        await finish('failed', 'Sender and reply address are not configured'); tally.failed++; continue;
       }
-      const url = path && base ? base + path : null;
-      const payload: EmailPayload = { from: senderFor('other'), to: enrollment.email, subject,
-        html: emailHtml(body, cta, url), text: url && cta ? `${body}\n\n${cta}: ${url}` : body };
+      const identity = await rpc(svc, 'ensure_lifecycle_communication', { p_enrollment: enrollment.id });
+      const payload = composeCommunicationEmail({ to: enrollment.email, subject, body, lang: enrollment.lang,
+        threadId: identity.thread_id, preferenceToken: identity.preference_token,
+        senderName: settings.sender_name, senderEmail, replyDomain: settings.reply_domain,
+        cta: cta && path ? { label: cta, path } : null, projectOptOut: enrollment.sequence_key === 'cs_onboarded' });
+      payload.tags = [{ name: 'groundwork_enrollment', value: enrollment.id }, { name: 'groundwork_position', value: String(step.position) }];
       const delivery = await rpc(svc, 'prepare_lifecycle_delivery', { p_enrollment: enrollment.id,
         p_token: enrollment.processing_token, p_position: step.position, p_payload: payload });
       if (!delivery) { tally.skipped++; continue; }
@@ -419,7 +405,7 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50) {
           const sent = await sendWhatsApp(svc, { phone: enrollment.phone, contactId: null, conversationId: null }, delivery.payload.text);
           result = sent.ok ? { ok: true } : { ok: false, error: sent.error };
         }
-      } else result = await sendEmail(delivery.payload, `lifecycle/${enrollment.id}/${step.position}`);
+      } else result = await sendCommunicationEmail(delivery.payload, `lifecycle/${enrollment.id}/${step.position}`);
       const outcome = result.ok ? 'sent' : result.error === 'no_phone' ? 'skipped' : 'failed';
       const recorded = await finish(outcome, result.error, result.providerId);
       if (!recorded) { tally.skipped++; continue; }

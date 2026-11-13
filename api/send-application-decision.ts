@@ -20,9 +20,7 @@ import { isValidEmail } from '../src/lib/email/is-valid-email.js';
 import { forwardToGhl } from './ghl/_forward.js';
 import { handler as acknowledge } from './_handlers/send-application-acknowledgement.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
-import { senderFor } from '../src/lib/email/senders.js';
-
-const FROM = senderFor('contractor_application_decision');
+import { applicationSender } from './_lib/communication-email.js';
 
 function admin() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -152,7 +150,7 @@ export default async function handler(req: any, res: any) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: [app.email], subject, html }),
+      body: JSON.stringify({ from: await applicationSender(svc), to: [app.email], subject, html }),
     });
 
     if (!r.ok) {

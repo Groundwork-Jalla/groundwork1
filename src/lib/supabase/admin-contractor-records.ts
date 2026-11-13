@@ -79,7 +79,7 @@ export async function fetchContractorRecords(): Promise<ContractorRecordRow[]> {
     email:    (r.email as string) ?? null,
     fullName: (r.full_name as string) ?? null,
     phone:    (r.phone as string) ?? null,
-    clientIntent: r.client_intent === 'onboard_client' || r.client_intent === 'no_client'
+    clientIntent: r.client_intent === 'onboard_client' || r.client_intent === 'create_project' || r.client_intent === 'no_client'
       ? r.client_intent : null,
     signedAt: (r.signed_at as string) ?? null,
     status:   r.status as OnboardingStatus,

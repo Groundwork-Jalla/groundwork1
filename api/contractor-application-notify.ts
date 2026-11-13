@@ -17,9 +17,7 @@
 
 import { siteUrl } from '../src/lib/site-url.js';
 import { logEmailToCrm } from './ghl/_email-log.js';
-import { senderFor } from '../src/lib/email/senders.js';
-
-const FROM = senderFor('contractor_application_received');
+import { applicationSender } from './_lib/communication-email.js';
 const TEAM_INBOX = process.env.TEAM_INBOX ?? 'contact@tryjalla.com';
 
 function esc(s: unknown): string {
@@ -139,10 +137,11 @@ export default async function handler(req: any, res: any) {
   const lang: 'en' | 'fr' = declared === 'fr' ? 'fr' : 'en';
 
   async function send(to: string, subject: string, html: string) {
+    const from=await applicationSender(svc);
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+      body: JSON.stringify({ from, to: [to], subject, html }),
     });
     if (!r.ok) throw new Error(`resend ${r.status}`);
   }

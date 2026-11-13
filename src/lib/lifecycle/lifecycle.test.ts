@@ -51,6 +51,7 @@ describe('lifecycle helpers', () => {
 
 // A tiny in-memory stand-in for the query builder.
 function fakeSvc(tables: Record<string, any[]>) {
+  tables.communication_settings ??= [{id:true,delivery_enabled:true,sender_name:'Groundwork',sender_email:'hello@groundwork.test',followup_sender_email:'contact@groundwork.test',reply_domain:'reply.groundwork.test'}];
   const log: { table: string; op: string; row?: any }[] = [];
   const from = (table: string) => {
     let filters: ((r: any) => boolean)[] = [];
@@ -58,6 +59,7 @@ function fakeSvc(tables: Record<string, any[]>) {
     let patch: any; let lim = Infinity;
     const q: any = {
       select: () => q,
+      single: async () => ({data:(tables[table]??[]).find(row=>filters.every(test=>test(row))),error:null}),
       update: (p: any) => { mode = 'update'; patch = p; return q; },
       insert: (r: any) => { log.push({ table, op: 'insert', row: r }); (tables[table] ??= []).push(r); return Promise.resolve({ error: null }); },
       upsert: (r: any, o: any) => {
@@ -115,11 +117,18 @@ describe('enrollForEvent', () => {
   it('exits on an exit event and closes the open follow-up', async () => {
     const svc = fakeSvc({ lifecycle_sequences: [seq()], lifecycle_sequence_steps: [step],
       lifecycle_enrollments: [{ sequence_key: 'a', email: 'a@b.co', status: 'active' }],
-      followup_queue: [{ sequence_key: 'a', email: 'a@b.co', status: 'open' }] });
+      followup_queue: [{ sequence_key: 'a', email: 'a@b.co', status: 'open',kind:'activation' }] });
     const r = await enrollForEvent(svc, 'project_created', { email: 'a@b.co' });
     expect(r.exited).toBe(1);
     expect(svc.tables.lifecycle_enrollments[0]).toMatchObject({ status: 'exited', exit_reason: 'project_created' });
     expect(svc.tables.followup_queue[0].status).toBe('done');
+  });
+  it.each(['reply','delivery'])('keeps a %s support task open when a project event ends activation',async kind=>{
+    const svc=fakeSvc({lifecycle_sequences:[seq()],lifecycle_sequence_steps:[step],
+      lifecycle_enrollments:[{id:'e1',sequence_key:'a',email:'a@b.co',status:'active'}],
+      followup_queue:[{enrollment_id:'e1',sequence_key:'a',email:'a@b.co',status:'open',kind}]});
+    await enrollForEvent(svc,'project_created',{email:'a@b.co'});
+    expect(svc.tables.followup_queue[0].status).toBe('open');
   });
   it('respects audience and the no_client opt-out', async () => {
     const mk = () => fakeSvc({ lifecycle_sequences: [seq({ audience: 'client' })], lifecycle_sequence_steps: [step], lifecycle_enrollments: [] });

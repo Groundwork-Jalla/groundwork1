@@ -1,5 +1,11 @@
 # `api/` — Vercel serverless functions
 
+Groundwork uses **Vercel Pro**, recorded in `package.json` under
+`groundwork.vercelPlan`. The shared events dispatcher remains in place to preserve
+existing routes. The old Hobby twelve-function budget is no longer an application
+constraint. Both recurring jobs use Vercel Cron; the communication worker runs
+every five minutes. See [communication setup](../docs/groundwork-communications.md).
+
 ## Relative imports must carry a `.js` extension
 
 Vercel does **not** bundle these files. It transpiles each `.ts` to a `.js` and leaves
