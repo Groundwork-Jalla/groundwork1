@@ -73,6 +73,17 @@ SELECT test_assert('new-project'=ANY(my_project_action_completion()),'actual sav
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
 SELECT test_assert(EXISTS(SELECT 1 FROM notifications WHERE data->>'financial_event'='prices_approved' AND data->>'project_tab'='money' AND body LIKE 'Votre%'),'contractor receives approved-price result in their language');
 SELECT test_assert('confirm-payment'=ANY(my_project_action_completion()),'actual receipt acknowledgment suppresses payment orientation');
+-- Estimated projects keep design and standalone fees distinct after every-stage revisions.
+RESET ROLE;
+SELECT test_price_start(124,'estimate');
+UPDATE project_stages SET stage_key='designCompleted' WHERE id=test_id(124,1);
+SET ROLE authenticated;
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
+SELECT test_price_propose(124,1,'6000');
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+SELECT decide_stage_prices(id,'approved') FROM stage_price_amendments WHERE project_id=test_id(124) AND status='pending';
+SELECT test_assert((SELECT budget_usd=310 AND (pricing_budget_breakdown->>'construction')::numeric=280 AND (pricing_budget_breakdown->>'design')::numeric=10 AND (pricing_budget_breakdown->>'professional')::numeric=20 FROM projects WHERE id=test_id(124)),'approved design-stage amendment preserves design classification and estimate fees');
+SELECT test_refused($q$SELECT replace_stage_payment_receipt((SELECT id FROM stage_payment_receipts WHERE path=test_path(121,4,4)),test_id(121,4),test_path(121,4,5),10,'USD',1,NULL)$q$,'receipt_received');
 SET CONSTRAINTS ALL IMMEDIATE;
 RESET ROLE;
 SELECT 'NOV13_REVIEW_OK' AS result;

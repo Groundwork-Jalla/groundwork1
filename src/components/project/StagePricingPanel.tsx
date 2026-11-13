@@ -91,6 +91,7 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
             onChange={event => { const raw = event.target.value; setDraft({ ...editing, amounts: { ...editing.amounts, [stage.id]: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw } }); }}
             className="min-w-0 w-full rounded-lg border border-brand-border-grey bg-transparent px-3 py-2 font-mono" /> : <span className="font-mono">{format(stage.amount, editing.context.currency)}</span>}
         </div>)}
+        <p className="text-sm">{t('project.priceChanges.currentTotal', { amount: format(editing.context.total, editing.context.currency) })}</p>
         <p className="text-sm font-semibold">{t('project.priceChanges.proposedTotal', { amount: preview ? format(preview.total, editing.context.currency) : '—' })}</p>
         {!preview && <p role="alert" className="text-xs text-state-alert">{t('project.priceChanges.invalidAmount')}</p>}
         {stale && <p role="alert" className="text-xs text-state-alert">{t('project.priceChanges.stale')}</p>}

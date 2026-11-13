@@ -1,9 +1,29 @@
 # November 13 morning product review — reconciliation
 
-Reviewed on November 14 against the current application code. This is a
-requirements/status review, not a claim that the recorded issues are fixed in
-production. No application code, external account settings, receipts or project
-budgets were changed for this review.
+Reviewed on November 14. The tables below preserve the pre-fix audit and the
+meeting's requirements. The user subsequently authorized implementation,
+including client-approved changes to **every stage, including zero-cost stages**.
+
+## Implementation update — November 14
+
+The repeating contractor-origin workflow, separate receipt/progression decisions,
+second monetary confirmations, multiple/corrected receipts, all-stage approved
+amendments, role-specific wording, exact-stage notifications and completion-based
+walkthrough suppression are now implemented locally. Confirmed receipts, original
+BOQs, completed work and earlier proposal snapshots remain recorded. Client-origin
+projects remain payment-first.
+
+Regression checks confirm approved proposal A survives declining proposal B, and
+edits reverted before submission are omitted. The contractor list's existing
+current-stage null fix is covered by its regression test. Project Back now uses an
+explicit workspace list link, and asynchronous project refresh callbacks safely
+handle leaving the screen. The original live Back exception was not captured in
+this environment; it is not claimed as independently reproduced here.
+
+See [the rollout and acceptance notes](payment-review-2026-11-14.md) and
+[the additive migration](../supabase/migrations/20261114000000_project_payment_review.sql).
+Production migration/deployment and controlled browser acceptance remain rollout
+steps. No external account settings or real user budgets were changed in this work.
 
 ## Sources and interpretation
 

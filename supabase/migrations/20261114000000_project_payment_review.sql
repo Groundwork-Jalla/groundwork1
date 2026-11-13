@@ -308,7 +308,7 @@ BEGIN
      v_pool:=a.new_total;
    ELSE
      SELECT coalesce(jsonb_object_agg(kind,amount_usd),'{}'::jsonb) INTO v_fees FROM public.project_fees WHERE project_id=v_project;
-     SELECT coalesce(sum(payment_milestone_usd) FILTER(WHERE stage_key IN('land_secured','design_approvals')),0),coalesce(sum(payment_milestone_usd),0) INTO v_design,v_build FROM public.project_stages WHERE project_id=v_project;
+     SELECT coalesce(sum(payment_milestone_usd) FILTER(WHERE stage_key='designCompleted'),0),coalesce(sum(payment_milestone_usd),0) INTO v_design,v_build FROM public.project_stages WHERE project_id=v_project;
      v_build:=v_build-v_design;
      v_breakdown:=jsonb_build_object('total',v_total_usd,'construction',v_build,'design',v_design,'permit',coalesce((v_fees->>'permit')::numeric,0),'professional',coalesce((v_fees->>'professional')::numeric,0),'verification',coalesce((v_fees->>'verification')::numeric,0),'contingency',coalesce((v_fees->>'contingency')::numeric,0),'material',round(v_build*0.6,2),'labor',v_build-round(v_build*0.6,2));
      SELECT sum(milestone_amount) INTO v_pool FROM public.project_stages WHERE project_id=v_project;

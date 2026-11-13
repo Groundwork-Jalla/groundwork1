@@ -579,6 +579,7 @@ export default function ProjectDetail() {
                 isContractor={isContractor}
                 workflowOrigin={project.workflow_origin}
                 projectPaused={project.status !== 'active'}
+                projectArchived={project.status === 'archived'}
                 canApprove={teamAccess?.primaryClient === true}
                 canUploadEvidence={canUploadEvidence}
                 projectId={project.id}

@@ -20,6 +20,7 @@ vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key }));
 vi.mock('@/lib/tour/completion',()=>({readTourCompletion:vi.fn().mockResolvedValue([]),completedTourSteps:(seen:string[],completed:string[])=>[...seen,...completed]}));
 vi.mock('@/lib/tour/seen', () => ({ readSeen: () => [], markSeen: vi.fn(), dismissTour: vi.fn() }));
 import { TourGuide } from '@/components/tour/TourGuide';
+import { readTourCompletion } from '@/lib/tour/completion';
 
 function nodes(value: any): any[] {
   if (Array.isArray(value)) return value.flatMap(nodes);
@@ -66,5 +67,13 @@ describe('Team invitation guidance follows project permissions', () => {
     const reads = h.query.mock.calls.length;
     attributeChanged('class'); attributeChanged('style');
     expect(h.query).toHaveBeenCalledTimes(reads);
+  });
+  it('suppresses a completed invitation using server facts even when this browser has never seen the tour', async () => {
+    h.inviteAvailable = true; attributeChanged('data-tour');
+    expect(render().some(node => node.props.role === 'dialog')).toBe(true);
+    vi.mocked(readTourCompletion).mockResolvedValueOnce(['invite-contractor']);
+    render(); h.effects[0](); await Promise.resolve(); await Promise.resolve();
+    render(); for (const effect of h.effects.splice(0)) effect(); frames();
+    expect(render()).toEqual([]);
   });
 });

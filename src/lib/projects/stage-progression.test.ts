@@ -20,6 +20,15 @@ const payment = (state: StagePayment['state']): StagePayment => ({
 });
 
 describe('the current project stage', () => {
+  it('repeats evidence before payment on later contractor stages, including mid-build projects', () => {
+    const rows = [stage(1, 'complete', { pre_existing: true }), stage(2, 'complete'), stage(3, 'active'), stage(4)];
+    expect(stageWorkReady(rows[2], rows, payment('expected'), 'contractor')).toBe(true);
+    expect(canSubmitStageReceipt(rows[2], rows, 'contractor')).toBe(false);
+    expect(stageWorkReady(rows[2], rows, payment('expected'), 'client')).toBe(false);
+    const reviewed = { ...rows[2], status: 'pending_review' as const, review_payment_pending: true };
+    expect(stageWorkReady(reviewed, [...rows.slice(0,2),reviewed,rows[3]], payment('expected'), 'contractor')).toBe(false);
+    expect(canSubmitStageReceipt(reviewed, [...rows.slice(0,2),reviewed,rows[3]], 'contractor')).toBe(true);
+  });
   it('offers the reviewed first stage receipt and keeps later stages blocked until acceptance', () => {
     const rows = [stage(1, 'pending_review', { review_payment_pending: true }), stage(2)];
     expect(currentProjectStage(rows)?.id).toBe('s1');

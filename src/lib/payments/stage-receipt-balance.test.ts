@@ -43,4 +43,10 @@ describe('stage balances across partial payments and currencies', () => {
     expect(stageReceiptBalance(payment([native]), 'XAF', 600, 60000).remaining).toBe(0);
     expect(stageReceiptBalance(payment([]), 'XAF', 600, 0).remaining).toBe(0);
   });
+  it('excludes superseded proof while counting its replacement once', () => {
+    const old = receipt({ replacedBy: 'corrected' });
+    const corrected = receipt({ id: 'corrected', amount: 40, amountUsd: 40, projectAmount: 24000 });
+    expect(stageReceiptBalance(payment([old, corrected, corrected]), 'XAF', 600, 60000))
+      .toEqual({ received: 24000, pending: 0, remaining: 36000 });
+  });
 });

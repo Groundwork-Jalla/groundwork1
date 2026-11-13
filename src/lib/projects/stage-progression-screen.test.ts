@@ -248,6 +248,13 @@ describe('only the current stage offers actions', () => {
     expect(detail().some(node => node.type?.name === 'ApproveButton')).toBe(false);
   });
 
+  it('collects a completed stage’s outstanding balance without enabling archived project writes', () => {
+    props.stages = [stage(1, 'complete')]; props.projectPaused = true;
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(true);
+    props.projectArchived = true;
+    expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(false);
+  });
+
   it('shows the number of outstanding approvals instead of silently hiding progression', () => {
     props.substages = [substage('pending_review')];
     expect(detail().some(node => text(node).includes('"count":1'))).toBe(true);

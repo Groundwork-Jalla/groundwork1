@@ -60,6 +60,42 @@ describe('stage price proposals and client decisions', () => {
     await load({ ...context, history: [proposal] }); expect(text(render())).toContain('192,000 XAF');
     expect(text(render({ ...project, id: 'other' }))).not.toContain('192,000 XAF');
   });
+
+  it('supports client-approved zero-cost stage amendments and submits only final, unreverted edits', async () => {
+    await load({ ...context, stages: context.stages.map(stage => ({ ...stage, editable: true })) });
+    render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.propose')!.props.onClick();
+    render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '90000' } });
+    render().find(e => e.props.name === 'stage-price-stage')!.props.onChange({ target: { value: '60000' } });
+    render().find(e => e.props.name === 'stage-price-land')!.props.onChange({ target: { value: '6000' } });
+    render().find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
+    const dialog = render().find(e => e.type === ConfirmModal && e.props.open)!;
+    expect(dialog.props.description).toContain('Land: 0 XAF → 6,000 XAF');
+    expect(dialog.props.description).not.toContain('90,000');
+    expect(h.propose).not.toHaveBeenCalled();
+    await dialog.props.onConfirm();
+    expect(h.propose).toHaveBeenCalledWith('project', [{ stage_id: 'land', amount: '6000' }], 'version', '');
+  });
+
+  it('does not submit prices when either confirmation is cancelled', async () => {
+    await load({ ...context, can_propose: false, can_approve: true, history: [proposal] });
+    for (const key of ['approve', 'decline']) {
+      render().find(e => e.type === 'button' && text(e) === `project.priceChanges.${key}`)!.props.onClick();
+      const dialog = render().find(e => e.type === ConfirmModal && e.props.open)!;
+      expect(dialog.props.description).toContain('Foundation: 60,000 XAF → 72,000 XAF');
+      dialog.props.onCancel();
+    }
+    expect(h.decide).not.toHaveBeenCalled();
+  });
+
+  it('requires a new review if project prices change while the approval dialog is open', async () => {
+    const model = { ...context, can_propose: false, can_approve: true, history: [proposal] };
+    await load(model);
+    render().find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')!.props.onClick();
+    await load({ ...model, base_hash: 'new-version' });
+    await render().find(e => e.type === ConfirmModal && e.props.open)!.props.onConfirm();
+    expect(h.decide).not.toHaveBeenCalled();
+    expect(text(render())).toContain('project.priceChanges.stale');
+  });
 });
 
 function accountEditor() { h.index=0; return nodes(AccountTypeEditor({ user: { id: 'user', email: 'person@test.example', roles: 'verifier' } as AdminUser, onSaved: h.savedType, onClose: h.close })); }
