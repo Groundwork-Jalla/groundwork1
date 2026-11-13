@@ -370,6 +370,8 @@ function Dossier({ userId }: { userId: string }) {
           value={o?.client_intent
             ? t(o.client_intent === 'onboard_client'
                 ? 'adminContractorRecords.intentHasClient'
+                : o.client_intent === 'create_project'
+                ? 'adminContractorRecords.intentCreateProject'
                 : 'adminContractorRecords.intentNoClient')
             : null}
         />

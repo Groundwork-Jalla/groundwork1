@@ -2968,6 +2968,7 @@ export const en = {
     secAgreement:  'Signed',
     secIntent:     'Client',
     intentHasClient:  'Yes',
+    intentCreateProject: 'Creating a project',
     intentNoClient:   'No \u2014 waiting to be assigned',
     none:          'None given',
     notGiven:      'Not given',

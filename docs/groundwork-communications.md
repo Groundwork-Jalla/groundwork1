@@ -67,6 +67,11 @@ automatically imported by the thread-reply handler.
 
 ## Apply and configure
 
+Use the **full timestamped filenames** below. The older `009_admin.sql` is the
+legacy admin bootstrap, not this communication release's delivery migration. It
+may already be installed. Keep its existing notification policies; replacing them
+is not a prerequisite for the communication upgrade.
+
 1. Apply only missing prerequisites through
    `20261113000700_admin_user_roles.sql`, including the lifecycle delivery/recovery
    and non-expiring project-link migrations. Then apply these new migrations in
@@ -74,6 +79,14 @@ automatically imported by the thread-reply handler.
    - [20261113000800_groundwork_communications.sql](../supabase/migrations/20261113000800_groundwork_communications.sql)
    - [20261113000900_communication_delivery_and_replies.sql](../supabase/migrations/20261113000900_communication_delivery_and_replies.sql)
    - [20261113001000_activation_invitation_priority.sql](../supabase/migrations/20261113001000_activation_invitation_priority.sql)
+   Then apply
+   [20261113001100_communication_schema_repair.sql](../supabase/migrations/20261113001100_communication_schema_repair.sql).
+   For databases that already installed an early copy of 008–010, the repair is the
+   single incremental query to use. It adds the separate sender fields, staff
+   send timestamp, follow-up review timestamp and issue table, and reinstalls the
+   final communication RPCs. Existing consent, messages, delivery and journey
+   enablement remain recorded. Replaying the old CREATE TABLE statements alone
+   does not add columns to an existing table.
 2. In GHL, retire the old activation welcome/reminder workflows **and remove
    existing contacts from their pending timers** before enabling Groundwork.
    Removing event triggers in code cannot cancel messages already scheduled inside

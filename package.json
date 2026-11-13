@@ -15,6 +15,7 @@
     "test:receipts-db": "node scripts/test-receipt-payments.mjs",
     "test:stages-db": "node scripts/test-stage-progression.mjs",
     "test:account-roles-db": "node scripts/test-account-roles.mjs",
+    "test:admin-db": "node scripts/test-admin-bootstrap.mjs",
     "test:lifecycle-db": "node scripts/test-lifecycle-delivery.mjs",
     "test:team-db": "node scripts/test-project-team.mjs",
     "test:review-db": "node scripts/test-review-payments.mjs",

@@ -50,6 +50,6 @@ export function CommunicationSettings() {
       <button type="submit" disabled={busy} className="rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t('communications.saveSettings')}</button>
     </form>}
     <CommunicationRunStatus run={lastRun}/>
-    {!!issues.length&&<section className="mt-5 rounded-xl border border-state-alert/30 p-3"><h3 className="text-sm font-semibold">{t('communications.receivingNeedsAttention')}</h3><ul className="mt-2 space-y-2 text-xs">{issues.map(issue=><li key={issue.key}>{t(issue.code==='inbound_provider_403'?'communications.receivingPermission':'communications.receivingFailed')} <time>{new Date(issue.last_seen_at).toLocaleString()}</time></li>)}</ul></section>}
+    {!!issues.length&&<section className="mt-5 rounded-xl border border-state-alert/30 p-3"><h3 className="text-sm font-semibold">{t('communications.receivingNeedsAttention')}</h3><ul className="mt-2 space-y-2 text-xs">{issues.map(issue=><li key={issue.key}>{t(['inbound_provider_401','inbound_provider_403'].includes(issue.code)?'communications.receivingPermission':'communications.receivingFailed')} <time>{new Date(issue.last_seen_at).toLocaleString()}</time></li>)}</ul></section>}
   </section>;
 }

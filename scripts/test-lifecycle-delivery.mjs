@@ -57,7 +57,9 @@ CREATE TABLE notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id
 `, read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
 read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
 read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),
-read('scripts/fixtures/groundwork-communications.sql')].join('\n');
+read('scripts/fixtures/groundwork-communications.sql'),
+read('scripts/fixtures/communication-upgrade-setup.sql'),read('supabase/migrations/20261113001100_communication_schema_repair.sql'),
+read('supabase/migrations/20261113001100_communication_schema_repair.sql'),read('scripts/fixtures/communication-upgrade-checks.sql')].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
   // Standalone postgres bypasses RLS even after SET ROLE. A private Unix socket
@@ -70,7 +72,7 @@ read('scripts/fixtures/groundwork-communications.sql')].join('\n');
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
   if (result.error) throw result.error;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK') || !output.includes('GROUNDWORK_COMMUNICATIONS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK') || !output.includes('GROUNDWORK_COMMUNICATIONS_OK') || !output.includes('COMMUNICATION_UPGRADE_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

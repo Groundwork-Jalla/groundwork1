@@ -35,7 +35,15 @@ CREATE TABLE IF NOT EXISTS public.communication_settings(
  next_contact_hours int NOT NULL DEFAULT 48 CHECK(next_contact_hours BETWEEN 1 AND 720),
  updated_at timestamptz NOT NULL DEFAULT now(),updated_by uuid REFERENCES auth.users ON DELETE SET NULL
 );
+-- Upgrade the early deployed copy as well as fresh installs. CREATE TABLE IF
+-- NOT EXISTS leaves an existing table's columns untouched.
+ALTER TABLE public.communication_settings
+ ADD COLUMN IF NOT EXISTS followup_sender_email text NOT NULL DEFAULT 'contact@tryjalla.com',
+ ADD COLUMN IF NOT EXISTS application_sender_email text NOT NULL DEFAULT 'partner@tryjalla.com';
+ALTER TABLE public.communication_settings ALTER COLUMN sender_email SET DEFAULT 'noreply@mail.tryjalla.com';
 INSERT INTO public.communication_settings(id) VALUES(true) ON CONFLICT DO NOTHING;
+UPDATE public.communication_settings SET sender_email='noreply@mail.tryjalla.com',updated_at=clock_timestamp()
+ WHERE sender_email IS NULL;
 CREATE TABLE IF NOT EXISTS public.communication_preferences(
  email text PRIMARY KEY CHECK(email=lower(btrim(email))),
  token uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
@@ -73,6 +81,12 @@ CREATE TABLE IF NOT EXISTS public.communication_messages(
  created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS communication_message_thread ON public.communication_messages(thread_id,created_at);
+ALTER TABLE public.communication_messages ADD COLUMN IF NOT EXISTS sent_at timestamptz;
+-- Preserve already recorded staff contacts when installing the one-time send
+-- history trigger. Repeated provider callbacks must not count old replies again.
+UPDATE public.communication_messages SET sent_at=coalesce(provider_event_at,started_at,created_at)
+ WHERE direction='outbound' AND client_ref IS NOT NULL AND provider_id IS NOT NULL
+ AND status IN('sent','delivered','bounced','complained') AND sent_at IS NULL;
 CREATE INDEX IF NOT EXISTS communication_message_due ON public.communication_messages(next_attempt_at) WHERE direction='outbound' AND status IN('queued','failed','sending');
 CREATE TABLE IF NOT EXISTS public.communication_runs(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),started_at timestamptz NOT NULL DEFAULT now(),

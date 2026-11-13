@@ -349,7 +349,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
      CREATE TABLE notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,body text,data jsonb);`,
     read('supabase/migrations/20261113000300_lifecycle_delivery.sql'),read('supabase/migrations/20261113000500_lifecycle_delivery_recovery.sql'),
     read('supabase/migrations/20261113000800_groundwork_communications.sql'),read('supabase/migrations/20261113000900_communication_delivery_and_replies.sql'),
-    read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('scripts/fixtures/project-team-communications.sql'),
+    read('supabase/migrations/20261113001000_activation_invitation_priority.sql'),read('supabase/migrations/20261113001100_communication_schema_repair.sql'),read('scripts/fixtures/project-team-communications.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);

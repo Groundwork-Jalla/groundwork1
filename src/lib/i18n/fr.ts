@@ -2909,6 +2909,7 @@ export const fr: Mirror<EnDict> = {
     secAgreement:  'Sign\u00e9',
     secIntent:     'Client',
     intentHasClient:  'Oui',
+    intentCreateProject: 'Création d’un projet',
     intentNoClient:   'Non \u2014 en attente d\u2019affectation',
     none:          'Aucun renseign\u00e9',
     notGiven:      'Non renseign\u00e9',
