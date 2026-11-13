@@ -4,6 +4,22 @@ This reconciles the conversation's implemented fixes, the communication release
 and the remaining product work. Implementation and local tests are distinct from
 production acceptance. The user's decisions govern; meeting notes are evidence.
 
+## Current scope
+
+The user has asked to focus on building the lifecycle communication flow, with
+GHL retirement and external provider activation deferred. The launch checklist
+below remains a record of later work, not a blocker for completing this build.
+No additional GHL workflow details are needed for the current implementation.
+
+The latest Admin changes add a four-journey review, entry-based message timing,
+English/French previews with example data and a journey filter for editing. The
+message editor now preserves unsaved fields during polling, writes only edited
+fields and protects newer edits and successful saves from delayed responses.
+Shared formatting keeps preview and worker wording aligned, including localized
+fallback names. 173 targeted tests, the isolated lifecycle database regression,
+typecheck and the production build passed. No provider configuration, GHL
+workflow change or journey activation was performed for this build-focused work.
+
 ## Urgent project-creation incident
 
 The final creation step reported `record "old" has no field "project_id" (42703)`.

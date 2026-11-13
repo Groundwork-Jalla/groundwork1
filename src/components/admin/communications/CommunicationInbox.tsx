@@ -6,8 +6,8 @@ import { queueCommunicationReply } from '@/lib/supabase/communications';
 type Thread={id:string;email:string;automation_paused:boolean;last_message_at:string;lifecycle_enrollments:{full_name:string|null;context:{project_id?:string;project_name?:string}}};
 type Message={id:string;direction:'inbound'|'outbound';body:string;subject:string;status:string;authenticated:boolean;attachment_count:number;created_at:string;client_ref:string|null};
 const statusKeys={queued:'queued',sending:'sending',sent:'sent',received:'received',delivered:'delivered',bounced:'bounced',complained:'complained',failed:'failed',blocked:'blocked'} as const;
-export function CommunicationInbox() {
-  const t=useT();const [threads,setThreads]=useState<Thread[]>([]);const [selected,setSelected]=useState<string|null>(null);
+export function CommunicationInbox({initialThreadId}:{initialThreadId?:string|null}={}) {
+  const t=useT();const [threads,setThreads]=useState<Thread[]>([]);const [selected,setSelected]=useState<string|null>(initialThreadId??null);
   const [messages,setMessages]=useState<{thread:string;rows:Message[]}|null>(null);const [error,setError]=useState('');const [notice,setNotice]=useState('');
   const [draft,setDraft]=useState<{thread:string;body:string;ref:string}|null>(null);const [busy,setBusy]=useState(false);
   const [messageRefresh,setMessageRefresh]=useState(0);

@@ -1,6 +1,7 @@
 import { sendWhatsApp } from './whatsapp-send.js';
 import { communicationSettings, composeCommunicationEmail, sendCommunicationEmail } from './communication-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
+import { groundworkOwnsCommunication } from './communication-ownership.js';
 import { pickLang, copyFor, ctaPath, stepTimeline, type Person, type Step, type Context } from '../../shared/lifecycle-copy.js';
 export { pickLang, render, copyFor, ctaPath } from '../../shared/lifecycle-copy.js';
 export type { Person, Step, Context } from '../../shared/lifecycle-copy.js';
@@ -74,6 +75,14 @@ export async function enrollForEvent(
   try {
     const email = person.email.trim().toLowerCase();
     if (!email) return out;
+    // Tracking is independent of whether the message sequence is enabled. An
+    // optional schema upgrade must never prevent signup or the next user action.
+    if(groundworkOwnsCommunication(event)) {
+      try {
+        const tracked=await svc.rpc('record_communication_milestone',{p_event:event,p_email:email,p_fields:fields});
+        if(tracked.error)console.warn('[lifecycle] milestone tracking unavailable');
+      }catch{console.warn('[lifecycle] milestone tracking unavailable');}
+    }
 
     const { data: seqs } = await svc.from('lifecycle_sequences').select('*');
     const all = (seqs ?? []) as any[];

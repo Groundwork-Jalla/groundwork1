@@ -3,6 +3,7 @@ import { CommunicationInbox } from '@/components/admin/communications/Communicat
 import { CommunicationRunStatus } from '@/components/admin/communications/CommunicationRunStatus';
 import { CommunicationFollowups,type CommunicationFollowup } from '@/components/admin/communications/CommunicationFollowups';
 import { CommunicationJourneys } from '@/components/admin/communications/CommunicationJourneys';
+import { CommunicationTracking } from '@/components/admin/communications/CommunicationTracking';
 import { ACTIVATION_JOURNEYS,type JourneyId,type JourneySequence,type JourneyStep } from '@/lib/lifecycle/journeys';
 import { useT } from '@/lib/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ import { cn } from '@/lib/utils';
 //
 // The lifecycle journeys the app sends itself (migration 177): edit the steps and the
 // wording, switch a sequence on, and work the Day-7 follow-up queue. Every sequence is
-// seeded switched OFF with placeholder copy — nothing is sent until someone turns it on.
+// seeded switched OFF with English/French copy — delivery also has a global switch.
 // Admin-only: RLS on these tables is `is_admin()`.
 // =========================================================
 
@@ -40,7 +41,7 @@ interface Enrollment {
   context: { project_name?: string } | null;
 }
 
-type Tab = 'attention' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings';
+type Tab = 'attention' | 'tracking' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings';
 
 const ago = (iso: string | null) => {
   if (!iso) return '—';
@@ -65,6 +66,7 @@ export default function AdminSequences() {
   const stepSaves=useRef(new Set<string>());
   const [savingSteps,setSavingSteps]=useState<string[]>([]);
   const [selectedJourney,setSelectedJourney]=useState<JourneyId|'all'>('all');
+  const [conversation,setConversation]=useState<string|null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [sends, setSends] = useState<SendRow[]>([]);
@@ -216,7 +218,7 @@ export default function AdminSequences() {
 
 
       <div className="mb-5 flex flex-wrap gap-1.5">
-        {([['attention', `Needs attention · ${attentionCount}`], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
+        {([['attention', `Needs attention · ${attentionCount}`], ['tracking', t('communications.tracking.title')], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('rounded-full border px-3 py-1.5 text-sm font-medium',
               tab === k ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
@@ -225,7 +227,8 @@ export default function AdminSequences() {
         ))}
       </div>
 
-      {tab === 'inbox' && <CommunicationInbox />}
+      {tab === 'inbox' && <CommunicationInbox initialThreadId={conversation}/>}
+      {tab === 'tracking' && <CommunicationTracking onConversation={thread=>{setConversation(thread);setTab('inbox');}}/>}
       {tab === 'settings' && <CommunicationSettings />}
       {tab === 'journeys' && <CommunicationJourneys sequences={seqs} steps={steps} onEdit={journey=>{setSelectedJourney(journey);setTab('sequences');}}/>}
 

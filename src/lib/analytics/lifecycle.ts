@@ -1,13 +1,12 @@
 import { supabase } from '@/lib/supabase/client';
 
 // =========================================================
-// Activation milestones → the CRM (Communication Flow v1.0, §9.1).
+// Activation milestones → Groundwork communication (Communication Flow v1.0, §9.1).
 //
-// Philip, 2 Nov 2026, on where the reminder sequences live: "let's not do that on
-// there. Let's just use go high level." That makes GoHighLevel the sender and the
-// scheduler, and leaves Groundwork one job it cannot delegate — saying when something
-// happened. A workflow builder can filter a contact and wait three days; it cannot know
-// that somebody finished onboarding thirty seconds ago.
+// The later product decision put welcome/reminder delivery, replies and human
+// follow-up inside Groundwork Admin, with Resend transporting email. The legacy
+// endpoint name remains compatible; its server-side event validation feeds the
+// Groundwork engine and durable milestone tracking before any optional CRM mirror.
 //
 // ── Why this is separate from trackFunnel ──────────────────────────────────────────
 //

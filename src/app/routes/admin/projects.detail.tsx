@@ -12,6 +12,7 @@ import { FinancialsTab } from '@/components/admin/workspace/FinancialsTab';
 import { StagesTab } from '@/components/admin/workspace/StagesTab';
 import { ConversationsTab } from '@/components/admin/workspace/ConversationsTab';
 import { TeamTab } from '@/components/admin/workspace/TeamTab';
+import { ProjectDuplicateFlag } from '@/components/admin/communications/ProjectDuplicateFlag';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { errorMessage } from '@/lib/errors';
 import { useT, type TKey } from '@/lib/i18n';
@@ -141,7 +142,7 @@ export default function AdminProjectWorkspace() {
       )}
 
       {tab === 'overview' ? (
-        <OverviewTab loaded={loaded} stageId={stageId} />
+        <div><OverviewTab loaded={loaded} stageId={stageId} /><ProjectDuplicateFlag projectId={ws.project.id}/></div>
       ) : tab === 'activity' ? (
         <ActivityTab loaded={loaded} />
       ) : tab === 'site-updates' ? (

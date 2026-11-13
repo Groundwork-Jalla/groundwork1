@@ -1,5 +1,9 @@
 # Communication provider setup
 
+The user has deferred provider setup and GHL retirement to focus on building the
+lifecycle communication flow. The plan below is retained for later activation;
+no further GHL branch details are required for the current implementation work.
+
 Read-only checks on 13 November 2026 confirm the replacement Resend key can read
 domains, webhooks and receiving permissions. The account currently has only
 `mail.tryjalla.com`, verified for sending. No webhooks are registered.
@@ -57,8 +61,8 @@ Consequently, the workflow name alone is insufficient to retire the whole graph.
 Open **Groundwork Lifecycle Events** and inspect its trigger and If/Else event
 branches. If it contains only activation messages, set it to Draft and save. If
 it also handles `application_decision` or `subscription_changed`, retain those
-paths and retire only the activation message/wait branches. Branch contents and
-the resulting retirement are awaiting confirmation from the user.
+paths and retire only the activation message/wait branches. Inspection and
+retirement are deferred until the user resumes launch configuration.
 
 Provider references:
 

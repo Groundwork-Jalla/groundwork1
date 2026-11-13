@@ -9,8 +9,24 @@ This implements the user's decision after reviewing the November communication
 documents. The user's later decisions take precedence: **Vercel Pro**, invitation
 links without expiration, and automated WhatsApp outreach paused.
 
+The user's current scope is to finish building the Groundwork lifecycle flow.
+GHL workflow retirement and provider/domain activation are deferred launch work;
+they do not block implementation or local acceptance of the flow.
+
 ## Implemented behavior
 
+- **Admin → Communications → Journeys** shows the four separate paths, their
+  message codes and their actual schedule from each stage's entry. Alternative
+  contractor onboarding and client support paths are labelled. Message previews
+  use example details, English/French selection and the same copy and timing
+  helpers used by the worker. Preview destinations are shown without opening a
+  real invitation or sending email. The editor can be filtered to one journey.
+- Message editing preserves unsaved fields through the periodic refresh. Saving
+  updates only edited fields, retains newer edits typed during an earlier save,
+  prevents repeated in-flight saves and keeps failed saves available for retry.
+  A stale background read cannot restore the text from before a successful save.
+- Missing names and project wording use the message language. If a French field
+  falls back to English, its fallback wording also remains English.
 - The existing four activation journeys retain their own messages and project
   context. Reminder deadlines remain measured from entry into the unfinished step
   at Day 1, Day 3 and Day 7. Saved actions, project roles and invitation status are
