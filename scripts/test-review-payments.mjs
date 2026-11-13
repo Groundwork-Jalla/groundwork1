@@ -76,6 +76,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261112000900_stage_approval_metadata.sql'),
     read('scripts/fixtures/stage-approval-schema-after.sql'),
     read('supabase/migrations/20261112001000_receipt_multicurrency.sql'),
+    read('supabase/migrations/20261113001300_receipt_reading_reservation.sql'),
     read('scripts/fixtures/review-payments.sql'),
     read('scripts/fixtures/reviewed-first-stage.sql'),
     read('scripts/fixtures/multicurrency-receipts.sql'),

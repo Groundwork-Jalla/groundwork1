@@ -47,6 +47,14 @@ SELECT test_assert((SELECT status FROM project_stages WHERE id=test_id(51,1))='a
 SELECT test_assert((SELECT payment_status FROM project_stages WHERE id=test_id(51,1))='unpaid' AND (SELECT state FROM payments WHERE stage_id=test_id(51,1))='expected','contractor evidence exception remains financially unpaid');
 SELECT test_assert((SELECT milestone_amount FROM project_stages WHERE id=test_id(52,1))=100 AND (SELECT status FROM project_stages WHERE id=test_id(52,1))='complete','historical allocation retained');
 SELECT test_assert(stage_starts_with_evidence(test_id(52,2)) AND NOT stage_starts_with_evidence(test_id(52,3)),'mid-build initial evidence exception selects first live stage');
+-- A reservation carries no amount yet; the original amount_text check rejected it (23514 in production).
+SET ROLE service_role;
+SELECT test_assert(reserve_receipt_read(test_id(50,1),'00000000-0000-0000-0000-000000000001') IS NOT NULL,'reservation row inserts without an amount');
+RESET ROLE;
+UPDATE receipt_readings SET status='unreadable',model='test',confidence='low' WHERE stage_id=test_id(50,1) AND status='reading';
+SELECT test_assert((SELECT count(*) FROM receipt_readings WHERE stage_id=test_id(50,1) AND status='unreadable')=1,'unreadable reading saves without an amount');
+SELECT test_refused($q$UPDATE receipt_readings SET amount_text='2000' WHERE stage_id=test_id(50,1) AND status='unreadable'$q$,'new row for relation "receipt_readings" violates check constraint "receipt_reading_amount_text"');
+UPDATE receipt_readings SET status='stale' WHERE stage_id=test_id(50,1) AND status='unreadable';
 -- All public actions below run under a real authenticated role, not the migration owner.
 SET ROLE authenticated;
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);

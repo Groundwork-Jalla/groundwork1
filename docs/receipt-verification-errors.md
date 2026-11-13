@@ -133,3 +133,30 @@ Automated regressions use fixture model responses. The later live provider check
 above used synthetic documents successfully. Recognition and acceptance of the
 user's actual receipt remain dependent on confirming Production reader
 configuration and testing the deployed upload flow.
+
+## Production incident — 13 November 2026, reservation phase
+
+The first live client upload (check reference `e123c805-e02f-473f-bf12-5982034ea636`)
+returned 503 `receipt_verification_unavailable`. The Vercel log for that reference
+shows `phase: 'reservation'`, `reason: 'database_operation_failed'`,
+`database_code: '23514'` (check-constraint violation). Nothing reached the reader,
+so the Anthropic key and the exchange-rate service were not involved.
+
+Cause: `receipt_readings.amount_text` was declared with
+`CHECK(amount_text ~ '…' AND amount IS NOT NULL AND amount_text::numeric=amount)`.
+On the reservation row both columns are NULL, so the middle term is FALSE and the
+whole expression is FALSE rather than NULL; PostgreSQL therefore rejects every
+`reserve_receipt_read` insert. The local regressions never inserted a bare
+reservation row (fixtures insert already-matched rows), which is why this passed.
+
+Fix: `20261113001300_receipt_reading_reservation.sql` drops that anonymous
+constraint (located by definition, since PostgreSQL named it
+`receipt_readings_check`) and re-adds it as `receipt_reading_amount_text` with
+`amount_text IS NULL OR (…)`. `scripts/test-review-payments.mjs` now reserves a
+reading as `service_role`, saves an unreadable reading without an amount, and
+checks that an `amount_text` without an `amount` is still refused; without the
+migration the same run fails with the production error.
+
+Apply by pasting the migration into the Supabase SQL Editor, then retry the
+upload. The user's file and amount are retained on the page; no rows need repair
+because the failed reservations were never written.
