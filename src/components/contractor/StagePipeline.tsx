@@ -33,9 +33,20 @@ function positionOf(stage: ProjectStageRow, currentNumber: number | null): Posit
   return 'todo';
 }
 
+/**
+ * The stage the contractor is standing in, as a row. Null when every live stage is
+ * complete or none exist. This is the SAME answer the lit dot gives — a row must read
+ * its label from here, not from `activeStage`, because a stage whose approved work is
+ * waiting on the client's payment is `locked`, not `active`: it is current on the
+ * spine while `activeStage` is null (crash on /work/projects, 13 Nov 2026).
+ */
+export function currentStage(stages: ProjectStageRow[]): ProjectStageRow | null {
+  return currentProjectStage(stages) ?? null;
+}
+
 /** The first unfinished live stage stays current while its payment is reviewed. */
 export function currentStageNumber(stages: ProjectStageRow[]): number | null {
-  return currentProjectStage(stages)?.stage_number ?? null;
+  return currentStage(stages)?.stage_number ?? null;
 }
 
 export function StagePipeline({ stages, labels = false, size = 'sm', className }: {

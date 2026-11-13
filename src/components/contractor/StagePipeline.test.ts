@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentStageNumber } from './StagePipeline';
+import { currentStage, currentStageNumber } from './StagePipeline';
 import type { ProjectStageRow, StageStatus } from '@/types/project';
 
 /**
@@ -48,5 +48,23 @@ describe('the stage a contractor is standing in', () => {
 
   it('has nothing to say about a project with no stages yet', () => {
     expect(currentStageNumber([])).toBeNull();
+  });
+});
+
+describe('the row a project list reads its label from', () => {
+  // Stage 4's work is approved and the client is being asked to pay stage 5, so
+  // stage 5 is `locked`: nothing is `active` or `pending_review`. The lit dot is
+  // stage 5 and the row must get a stage to name, not a null. /work/projects threw
+  // on exactly this shape on 13 Nov 2026 and the whole surface fell to the error page.
+  it('exists whenever a dot is lit, even with no active stage', () => {
+    const stages = [stage(1, 'complete'), stage(2, 'complete'), stage(3, 'complete'), stage(4, 'complete'), stage(5, 'locked'), stage(6, 'locked')];
+    expect(stages.some(s => s.status === 'active' || s.status === 'pending_review')).toBe(false);
+    expect(currentStageNumber(stages)).toBe(5);
+    expect(currentStage(stages)?.id).toBe('s5');
+  });
+
+  it('is null only when nothing is lit', () => {
+    expect(currentStage([stage(1, 'complete'), stage(2, 'complete')])).toBeNull();
+    expect(currentStage([])).toBeNull();
   });
 });

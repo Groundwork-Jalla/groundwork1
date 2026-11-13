@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { Loader2, Plus } from 'lucide-react';
 import { fetchAssignedProjects, type AssignedProject } from '@/lib/supabase/contractor-work';
 import { fetchViewerSummaries, type ViewerSummary } from '@/lib/supabase/project-viewers';
-import { StagePipeline, currentStageNumber } from '@/components/contractor/StagePipeline';
+import { StagePipeline, currentStage } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { useStageLabels } from '@/lib/stage-labels';
 import { formatDate } from '@/lib/format';
@@ -174,23 +174,27 @@ function ProjectRow({ assigned, client }: {
   const t = useT();
   const { stageLabel } = useStageLabels();
   const money = useProjectMoney(assigned.project);
-  const { project, stages, activeStage } = assigned;
+  const { project, stages } = assigned;
 
-  const current = currentStageNumber(stages);
+  // The stage the lit dot marks. Read as a row, from the same rule as the pipeline:
+  // `assigned.activeStage` only knows `active` and `pending_review`, so a stage whose
+  // approved work is waiting on the client's payment left it null while the dot was
+  // lit — and the label below dereferenced it. Crash on /work/projects, 13 Nov 2026.
+  const standing = currentStage(stages);
   const awaiting = stages.some(s => s.status === 'pending_review');
 
-  // What releases on the stage being worked. Null — not 0 — when there is no open
-  // stage or the stage carries no milestone, because "0 XAF" and "nothing is due
-  // yet" are different statements and only one of them is true here.
-  const due = money.pair(activeStage?.payment_milestone_usd ?? null, activeStage?.milestone_amount);
+  // What releases on the stage the contractor is standing in. Null — not 0 — when
+  // there is no such stage or it carries no milestone, because "0 XAF" and "nothing
+  // is due yet" are different statements and only one of them is true here.
+  const due = money.pair(standing?.payment_milestone_usd ?? null, standing?.milestone_amount);
 
   // `awaiting` is deliberately not a state a row may show while verification is
   // hidden: it would name a step the contractor cannot see or act on.
   const state = isHandedOver(assigned)
     ? { label: t('contractor.projects.handedOver'),    tone: 'complete' as const }
-    : current === null
+    : standing === null
       ? { label: t('contractor.projects.notStarted'),  tone: 'locked' as const }
-      : { label: stageLabel(activeStage!),             tone: 'active' as const };
+      : { label: stageLabel(standing),                 tone: 'active' as const };
 
   return (
     <Link
@@ -223,8 +227,8 @@ function ProjectRow({ assigned, client }: {
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-t border-brand-border-grey pt-2.5 dark:border-[#2c2c2c]">
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           <Column label={t('contractor.projects.colStage')}>
-            {current !== null && activeStage
-              ? t('contractor.projects.stageNumber', { n: current, name: stageLabel(activeStage) })
+            {standing
+              ? t('contractor.projects.stageNumber', { n: standing.stage_number, name: stageLabel(standing) })
               : assigned.totalStages > 0
                 ? t('contractor.projects.stageOf', { n: assigned.completedStages, total: assigned.totalStages })
                 : t('contractor.projects.noStages')}
