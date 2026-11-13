@@ -43,7 +43,7 @@ export async function handler(req: any, res: any) {
 
   const { data: project } = await admin
     .from('projects')
-    .select('id, name, country, city, tier, user_id')
+    .select('id, name, country, city, tier, user_id, workflow_origin')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -73,7 +73,7 @@ export async function handler(req: any, res: any) {
   const email = (profile?.email as string | null) ?? '';
 
   const { data: ownerRoles } = await admin.from('user_roles').select('role').eq('user_id', project.user_id as string);
-  const ownerRole = (ownerRoles ?? []).some(r => r.role === 'contractor') ? 'contractor' : 'client';
+  const ownerRole = project.workflow_origin==='contractor'?'contractor':project.workflow_origin==='client'?'client':(ownerRoles ?? []).some(r => r.role === 'contractor') ? 'contractor' : 'client';
 
   const result = await forwardToGhl('project_created', {
     email,

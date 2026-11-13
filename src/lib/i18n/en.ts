@@ -10,6 +10,29 @@
 
 export const en = {
   communications: {
+    filters:{projectLoadFailed:"Projects could not be loaded. Refresh the page to try again.",createdFrom:"Created from",createdThrough:"Created through",origin:"Project creation origin",allOrigins:"All project origins",clientOrigin:"Client-created",contractorOrigin:"Contractor-created",allOwners:"All owners",clear:"Clear filters",joinedFrom:"Joined from",joinedThrough:"Joined through",projectStatus:"Associated project status",allProjectStatuses:"All project statuses",onboarding:"Onboarding stage",allOnboarding:"All onboarding stages",phases:{not_started:"Not started",in_progress:"In progress",completed:"Completed"}},
+    tracking: {
+      contactHistory:"Contact history / record contact",contactTime:"When contact took place",contactTimeInvalid:"Choose a valid contact time after this task was created and no later than now.",contactHelp:"Record when the conversation actually happened. A completed action stays completed when you add a contact note afterward.",contactOpen:"Follow-up open",contactClosed:"Follow-up completed",
+      title:"Tracking and recovery",help:"Measure activation, review each person's current action, and connect communication history with human follow-up. Counts use recorded facts and the selected dates; later completions are included in those results.",
+      from:"From",through:"Through",asOf:"Results as of",hours:"{count} hours",connectionTime:"Median time to a connected project",timeCoverage:"Based on {count} people with recorded entry and connection times.",
+      coverage:"Recorded signup events: {signups}; unclassified signup events: {unknown}. Historical connections with unknown timing: {connections}. Email invitations without confirmed delivery: {invitations}.",
+      install:"Apply 20261113001300_communication_tracking.sql in Supabase SQL Editor to install communication tracking.",invalidDates:"Choose valid dates with the start on or before the end.",loadFailed:"Tracking could not be refreshed. Please try again.",
+      recovery:"Recovery after messages",recoveryHelp:"Each completed action is linked to the latest confirmed message before completion. Opening a message alone does not count as completing the action.",noRecovery:"Confirmed message delivery and later action completion will appear here.",
+      people:"People and their current actions",peopleHelp:"Search, journey and status filter this table. The measurement cards above use the selected date range. A finished reminder sequence can still be waiting for the user's action.",
+      person:"Person / project",action:"Current action",message:"Last email",next:"Next email",followup:"Human follow-up",recovered:"Actions completed / recipients",rate:"Rate",state:"Recorded status",allStates:"All statuses",search:"Search name, email or project",conversation:"Open conversation",completedAt:"Action completed",noPeople:"No recorded stages match these filters.",previous:"Previous",nextPage:"Next",page:"Page {count} · {total} recorded stages",
+      states:{active:"Automatic sequence active",awaiting_action:"Awaiting the user's action",action_complete:"Required action completed",sequence_complete:"Confirmation sequence finished",exited:"Stage exited",suppressed:"Reminders suppressed"},
+      projects:"Project tracking",projectsHelp:"Latest 50 projects created in the selected dates. Review duplicate flags in each project record. Creation origin stays fixed when account roles change.",duplicate:"Marked duplicate",standard:"No duplicate flag",connected:"Client and contractor connected",connecting:"Connection in progress",
+      duplicateReview:"Duplicate-project review",duplicateHelp:"Record the team's decision after reviewing this project. This flag contributes to duplicate-project measurement and keeps the project record available.",reason:"Review reason",reasonRequired:"Enter the reason for marking this project as a duplicate.",markDuplicate:"Save duplicate flag",clearDuplicate:"Clear duplicate flag",flagFailed:"The duplicate flag could not be saved. Please try again.",
+      metrics:{
+       signupToOnboarding:{title:"Signup → onboarding",help:"Independent contractor signups that completed onboarding."},
+       onboardingToProject:{title:"Onboarding → project",help:"Independently signed-up contractors who created a project after completing onboarding."},
+       projectToInvitation:{title:"First project → invitation",help:"First projects with an email accepted by the sending service or an accepted project link."},
+       invitationAcceptance:{title:"Email invitation acceptance",help:"Accepted invitations among email invitations with confirmed delivery. Project links are measured separately."},
+       linkClaims:{title:"Project-link claims",help:"Accepted project links among links created in the selected dates."},
+       humanRecovery:{title:"Human recovery",help:"Stalled actions completed after a recorded staff contact or sent staff reply."},
+       duplicateProjects:{title:"Duplicate-project rate",help:"Projects explicitly marked as duplicates by staff, divided by projects created."},
+      },
+    },
     journeys: {
       title:"Journeys",help:"Review the four activation paths. Each stage has its own clock, next action and reminder schedule. Select a message to preview it with example details.",
       immediate:"On entry",day:"Day {count}",hours:"{count} hours after entry",enabled:"Enabled",paused:"Paused",

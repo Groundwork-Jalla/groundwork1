@@ -95,7 +95,7 @@ read('supabase/migrations/20261113001300_communication_tracking.sql'),read('scri
   if (claims.some(result => result.code !== 0) || claims.filter(result => /\n t\s*\n/.test(result.output)).length !== 1) {
     throw new Error('Concurrent delivery claim regression: '+JSON.stringify(claims));
   }
-  console.log('Lifecycle delivery database regressions passed: migration replay, service-only access, single-worker claims, immutable retry payloads, stale leases, atomic send history, entry-based deadlines, authoritative action checks, preferences, invitation priority, verified replies, staff contact history, role changes, early callbacks, uncertain-send review, Day-7 qualification and per-project follow-ups.');
+  console.log('Lifecycle delivery database regressions passed: migration replay, service-only access, single-worker claims, immutable retry payloads, stale leases, atomic send history, entry-based deadlines, authoritative action checks, preferences, invitation priority, verified replies, staff contact history, role changes, early callbacks, uncertain-send review, Day-7 qualification, per-project follow-ups, tracking metrics, actual contact-time recovery and Admin filter metadata.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

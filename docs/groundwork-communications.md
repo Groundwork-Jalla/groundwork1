@@ -7,7 +7,8 @@ activation workflow triggers from Groundwork.
 
 This implements the user's decision after reviewing the November communication
 documents. The user's later decisions take precedence: **Vercel Pro**, invitation
-links without expiration, and automated WhatsApp outreach paused.
+links without expiration, and **WhatsApp outside this release** (confirmed on
+14 November).
 
 The user's current scope is to finish building the Groundwork lifecycle flow.
 GHL workflow retirement and provider/domain activation are deferred launch work;
@@ -62,6 +63,22 @@ they do not block implementation or local acceptance of the flow.
 - Qualified/engaged stalled users enter the Day-7 staff queue. The default next
   contact interval is 48 hours and is editable. Overdue tasks return to attention;
   staff still conduct the actual conversation or call.
+- **Admin → Communications → Tracking** measures signup → onboarding → first
+  project → invitation, acceptance of delivered invitations, project-link claims,
+  time to a connected project, recovery after each message, human recovery and
+  reviewed duplicate projects. Date cohorts are calculated in the database.
+  Search, journey and recorded-status filters paginate the people table without
+  truncating the measurement totals. Finishing an email sequence remains distinct
+  from completing its required action.
+- Staff can open a person's saved conversation or contact history from Tracking.
+  Calls have an actual contact time separate from their logging time, and can be
+  recorded after activation automatically closes the task. Adding that history
+  keeps the completed task closed. Open tasks require a future next-contact date.
+- Project records support reversible, reasoned duplicate flags. Project filters
+  combine creation dates, saved client/contractor origin, owner and existing
+  status/qualification/search controls. Contractor filters combine actual account
+  joining dates, owned or assigned project status and onboarding progress.
+  Changing an account role does not change a project's saved creation origin.
 
 ## Sending addresses
 
@@ -103,6 +120,13 @@ is not a prerequisite for the communication upgrade.
    final communication RPCs. Existing consent, messages, delivery and journey
    enablement remain recorded. Replaying the old CREATE TABLE statements alone
    does not add columns to an existing table.
+   Then apply
+   [20261113001300_communication_tracking.sql](../supabase/migrations/20261113001300_communication_tracking.sql)
+   for the measurement tables, Admin reports/contractor filter metadata, actual
+   contact times and reversible duplicate flags. It preserves delivery and journey
+   enablement, and sends no email. The separate project-creation trigger hotfix
+   `20261113001200_project_creation_trigger_records.sql` is still required wherever
+   the reported creation-trigger error has not been repaired.
 2. In GHL, retire the old activation welcome/reminder workflows **and remove
    existing contacts from their pending timers** before enabling Groundwork.
    Removing event triggers in code cannot cancel messages already scheduled inside
@@ -134,7 +158,8 @@ is not a prerequisite for the communication upgrade.
 7. Review the English/French message drafts and use **Preview due messages**.
    Enable only the journeys selected for testing, then enable communication
    delivery. New migrations leave the global delivery switch off and never enable
-   a journey. `LIFECYCLE_WHATSAPP_ENABLED` remains false while outreach is paused.
+   a journey. `LIFECYCLE_WHATSAPP_ENABLED` remains false; WhatsApp is outside this
+   release.
 
 ## Acceptance test before wider delivery
 
@@ -160,17 +185,33 @@ journey activation were not performed by this local implementation.
 `npm run test:lifecycle-db` installs and replays the real migrations in an isolated
 PostgreSQL database and tests consent, roles, assignment, inbound deduplication,
 immutable staff replies, stale leases, early callbacks, delivery suppression and
-uncertain-send review. `npm run test:team-db` installs the communication upgrade
+uncertain-send review. It also installs/replays the tracking migration, checks
+conversion/delivery denominators, actual contact-time recovery, connected-project
+timestamps, assigned-project filters and ordinary-user access refusals.
+`npm run test:team-db` installs the communication upgrade
 over the project-team schema, then exercises real primary-client/contractor claims
 and concurrent single-use link claims. Unit/UI tests cover webhook signatures,
 provider request boundaries, sender selection, queue authorization, preference
-confirmation and retry behavior. None sends real email.
+confirmation and retry behavior. Tracking UI tests cover unknown data, paging,
+stale responses, late call records and reversible duplicate flags. None sends real
+email.
 
-## Separate product backlog
+## Measurement boundaries and remaining product scope
 
-This change provides the operational inbox and follow-up queue. The documents also
-describe broader project/contractor date and origin filters and a full activation
-measurement dashboard. Their remaining gaps are separate from this delivery
-release; this change does not invent historical event timestamps, duplicate flags
-or conversion rates from incomplete tracking data. Custom substages remain deferred
-as previously agreed, and automated WhatsApp outreach remains paused.
+Tracking records real milestone and action facts even while email journeys are
+disabled. A sending-service acceptance counts as a sent invitation; acceptance
+rates use confirmed delivery as their denominator. Share links are measured
+separately. Recovery is a temporal association with the last confirmed message
+before action completion, not proof of causation. A logged call, an email open or
+an exhausted sequence never counts as completing the action by itself.
+
+Historical connections without known timestamps are labelled unknown and excluded
+from the time median. Missing denominators display an em dash. Duplicate counts
+use explicit staff review, not guesses from similar names. Coverage is shown in
+Admin so incomplete older tracking is visible. See
+[the release review](communication-framework-release-2026-11-14.md) for the full
+framework and comprehensive acceptance checklist.
+
+Custom substages and full payment-history onboarding remain deferred as previously
+agreed. Verification revenue and contractor bidding follow the completed platform
+acceptance test. WhatsApp is outside this release.

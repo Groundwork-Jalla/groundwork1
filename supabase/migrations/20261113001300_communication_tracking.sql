@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.communication_duplicate_projects (
  reason text NOT NULL CHECK(length(btrim(reason)) BETWEEN 1 AND 2000),
  marked_by uuid REFERENCES auth.users ON DELETE SET NULL,marked_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.communication_followup_events ADD COLUMN IF NOT EXISTS contacted_at timestamptz;
 DO $$ DECLARE t text; BEGIN
  FOREACH t IN ARRAY ARRAY['communication_milestones','communication_action_outcomes','communication_project_connections','communication_duplicate_projects'] LOOP
   EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
@@ -80,26 +81,29 @@ CREATE TRIGGER communication_outcome_followup AFTER UPDATE OF status ON public.f
 CREATE OR REPLACE FUNCTION public.record_communication_milestone(p_event text,p_email text,p_fields jsonb DEFAULT '{}')
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE v_email text:=lower(btrim(p_email));v_uid uuid;v_project uuid;v_role text:=p_fields->>'user_role';
- v_source text:=p_fields->>'entry_source';v_ref text:='';v_id uuid;r record;v_origin text;v_at timestamptz:=now();v_created timestamptz;
+ v_source text:=p_fields->>'entry_source';v_ref text:='';r record;v_origin text;v_at timestamptz:=now();v_account_created timestamptz;v_project_created timestamptz;
 BEGIN
  IF p_event NOT IN('user_signup','contractor_onboarding_completed','project_created','client_invited','contractor_invited',
    'invitation_accepted','project_membership_active','contractor_support_requested','no_active_project_selected') THEN RETURN; END IF;
  IF coalesce(v_email,'')!~'^[^[:space:]<>@]+@[^[:space:]<>@]+\.[^[:space:]<>@]+$' THEN RETURN; END IF;
- SELECT id,created_at INTO v_uid,v_created FROM auth.users WHERE lower(btrim(email))=v_email LIMIT 1;
+ SELECT id,created_at INTO v_uid,v_account_created FROM auth.users WHERE lower(btrim(email))=v_email LIMIT 1;
  IF coalesce(p_fields->>'project_id','')~*'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
-  SELECT id,workflow_origin,created_at INTO v_project,v_origin,v_created FROM public.projects WHERE id=(p_fields->>'project_id')::uuid;
+  SELECT id,workflow_origin,created_at INTO v_project,v_origin,v_project_created FROM public.projects WHERE id=(p_fields->>'project_id')::uuid;
  END IF;
  IF p_event='project_created' AND v_origin IN('client','contractor') THEN v_role:=v_origin; END IF;
  IF p_event='user_signup' THEN
   IF EXISTS(SELECT 1 FROM public.contractor_invites WHERE lower(btrim(email))=v_email AND status IN('pending','accepted') AND contractor_user_id IS DISTINCT FROM invited_by) THEN
-   v_source:='client_invitation';v_role:='contractor';
+   v_source:='contractor_invitation';v_role:='contractor';
   ELSIF EXISTS(SELECT 1 FROM public.project_viewers WHERE lower(btrim(email))=v_email AND is_client AND revoked_at IS NULL) THEN
-   v_source:='contractor_invitation';v_role:='client';
+   v_source:='client_invitation';v_role:='client';
   END IF;
  END IF;
  IF v_role NOT IN('client','contractor') THEN v_role:=NULL; END IF;
- IF p_event IN('user_signup','project_created') THEN v_at:=coalesce(v_created,now()); END IF;
- IF v_project IS NOT NULL THEN v_ref:=v_project::text; END IF;
+ IF p_event='user_signup' THEN v_at:=coalesce(v_account_created,now());
+ ELSIF p_event='project_created' THEN v_at:=coalesce(v_project_created,now()); END IF;
+ -- Signup/onboarding are account milestones. A repeated observation with project
+ -- context must not create another signup or reclassify its original journey.
+ IF v_project IS NOT NULL AND p_event NOT IN('user_signup','contractor_onboarding_completed') THEN v_ref:=v_project::text; END IF;
  IF p_event IN('client_invited','contractor_invited') AND coalesce(p_fields->>'invite_path','')<>'' THEN
   v_ref:=v_ref||':'||md5(p_fields->>'invite_path');
  END IF;
@@ -157,6 +161,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.admin_mark_duplicate_project(p_project uuid,p_duplicate boolean,p_reason text DEFAULT '')
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$ BEGIN
  IF NOT public.is_admin() THEN RAISE EXCEPTION 'not_admin'; END IF;
+ IF p_duplicate IS NULL THEN RAISE EXCEPTION 'invalid_duplicate_flag'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.projects WHERE id=p_project) THEN RAISE EXCEPTION 'project_unavailable'; END IF;
  IF p_duplicate THEN
   IF length(btrim(coalesce(p_reason,''))) NOT BETWEEN 1 AND 2000 THEN RAISE EXCEPTION 'duplicate_reason_required'; END IF;
@@ -165,11 +170,54 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$ BEGIN
  ELSE DELETE FROM public.communication_duplicate_projects WHERE project_id=p_project; END IF;
 END $$;
 
+CREATE OR REPLACE FUNCTION public.admin_log_communication_contact(p_id uuid,p_kind text,p_note text,p_contacted_at timestamptz,p_next_at timestamptz DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE f public.followup_queue%ROWTYPE;v_at timestamptz;v_state jsonb;
+BEGIN
+ IF NOT public.is_admin() THEN RAISE EXCEPTION 'not_admin'; END IF;
+ SELECT * INTO f FROM public.followup_queue WHERE id=p_id FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'followup_unavailable'; END IF;
+ IF p_kind NOT IN('contacted','awaiting_reply') OR p_kind IS NULL THEN RAISE EXCEPTION 'invalid_contact_kind'; END IF;
+ IF length(btrim(coalesce(p_note,''))) NOT BETWEEN 1 AND 5000 THEN RAISE EXCEPTION 'contact_note_required'; END IF;
+ IF p_contacted_at IS NULL OR p_contacted_at<f.created_at OR p_contacted_at>now()+interval '5 minutes' THEN RAISE EXCEPTION 'invalid_contact_time'; END IF;
+ v_at:=least(p_contacted_at,now());
+ IF f.kind='activation' AND f.status='open' THEN
+  v_state:=public.lifecycle_enrollment_state(f.enrollment_id);
+  IF v_state->>'kind' IN('complete','suppress') THEN
+   UPDATE public.followup_queue SET status='done',resolved_at=now() WHERE id=f.id;
+   f.status:='done';
+  END IF;
+ END IF;
+ IF f.status='open' AND (p_next_at IS NULL OR p_next_at<=now() OR p_next_at>now()+interval '90 days') THEN RAISE EXCEPTION 'future_followup_required'; END IF;
+ UPDATE public.followup_queue SET note=p_note,attempt_count=attempt_count+1,contact_status=p_kind,
+  last_contacted_at=greatest(coalesce(last_contacted_at,v_at),v_at),
+  due_at=CASE WHEN f.status='open' THEN p_next_at ELSE due_at END,
+  escalated_at=CASE WHEN f.status='open' THEN NULL ELSE escalated_at END WHERE id=f.id;
+ INSERT INTO public.communication_followup_events(followup_id,actor_id,kind,note,due_at,contacted_at)
+  VALUES(f.id,auth.uid(),p_kind,p_note,CASE WHEN f.status='open' THEN p_next_at ELSE NULL END,v_at);
+END $$;
+
 CREATE OR REPLACE FUNCTION public.communication_ratio(p_numerator bigint,p_denominator bigint)
 RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path='' AS $$
  SELECT jsonb_build_object('completed',p_numerator,'total',p_denominator,
   'percent',round(p_numerator::numeric*100/nullif(p_denominator,0),1))
 $$;
+
+CREATE OR REPLACE FUNCTION public.admin_contractor_tracking_index()
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE v_result jsonb; BEGIN
+ IF NOT public.is_admin() THEN RAISE EXCEPTION 'not_admin'; END IF;
+ WITH memberships AS (
+  SELECT user_id,id,status::text FROM public.projects
+  UNION SELECT c.contractor_user_id,p.id,p.status::text FROM public.contractor_invites c
+   JOIN public.projects p ON p.id=c.project_id WHERE c.status='accepted' AND c.contractor_user_id IS NOT NULL
+ ), contractors AS (SELECT DISTINCT user_id FROM public.user_roles WHERE role::text='contractor'),indexed AS (
+  SELECT c.user_id,u.created_at AS joined_at,count(DISTINCT m.id) AS project_count,
+   coalesce(array_agg(DISTINCT m.status) FILTER(WHERE m.status IS NOT NULL),'{}') AS project_statuses
+   FROM contractors c JOIN auth.users u ON u.id=c.user_id LEFT JOIN memberships m ON m.user_id=c.user_id GROUP BY c.user_id,u.created_at
+ ) SELECT coalesce(jsonb_agg(jsonb_build_object('userId',user_id,'joinedAt',joined_at,'projectCount',project_count,'projectStatuses',project_statuses)),'[]') INTO v_result FROM indexed;
+ RETURN v_result;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.admin_communication_tracking(
  p_from timestamptz DEFAULT NULL,p_until timestamptz DEFAULT NULL,p_search text DEFAULT '',
@@ -192,11 +240,12 @@ BEGIN
   SELECT DISTINCT ON(user_id) * FROM public.projects ORDER BY user_id,created_at,id
  ), invitations AS (
   SELECT id,project_id,email,created_at,accepted_at,status='accepted' AS accepted,
-   coalesce(is_share_link,false) AS share_link,(email_delivered_at IS NOT NULL OR email_status='delivered') AS delivered
+   coalesce(is_share_link,false) AS share_link,(email_delivered_at IS NOT NULL OR email_status='delivered') AS delivered,
+   email_message_id IS NOT NULL AS provider_accepted
    FROM public.contractor_invites WHERE contractor_user_id IS DISTINCT FROM invited_by
   UNION ALL
   SELECT id,project_id,email,invited_at,accepted_at,accepted_at IS NOT NULL,
-   coalesce(is_share_link,false),(email_delivered_at IS NOT NULL OR email_status='delivered')
+   coalesce(is_share_link,false),(email_delivered_at IS NOT NULL OR email_status='delivered'),email_message_id IS NOT NULL
    FROM public.project_viewers WHERE is_client
  ), signup_cohort AS (SELECT * FROM signup WHERE occurred_at>=v_from AND occurred_at<v_until AND user_role='contractor'),
  onboarding_cohort AS (
@@ -205,10 +254,10 @@ BEGIN
  ), project_cohort AS (SELECT * FROM first_project WHERE created_at>=v_from AND created_at<v_until),
  invitation_cohort AS (SELECT * FROM invitations WHERE created_at>=v_from AND created_at<v_until),
  assisted AS (
-  SELECT f.enrollment_id,min(ev.created_at) AS contacted_at FROM public.followup_queue f
+  SELECT f.enrollment_id,min(coalesce(ev.contacted_at,ev.created_at)) AS contacted_at FROM public.followup_queue f
    JOIN public.communication_followup_events ev ON ev.followup_id=f.id
    WHERE f.kind='activation' AND ev.kind IN('contacted','awaiting_reply','email_sent')
-    AND ev.created_at>=v_from AND ev.created_at<v_until GROUP BY f.enrollment_id
+    AND coalesce(ev.contacted_at,ev.created_at)>=v_from AND coalesce(ev.contacted_at,ev.created_at)<v_until GROUP BY f.enrollment_id
  ), entries AS (
   SELECT DISTINCT ON(email) email,user_id,occurred_at FROM public.communication_milestones
    WHERE event IN('user_signup','contractor_invited','client_invited') ORDER BY email,occurred_at
@@ -220,7 +269,7 @@ BEGIN
  ) SELECT jsonb_build_object(
   'signupToOnboarding',public.communication_ratio((SELECT count(*) FROM signup_cohort s WHERE EXISTS(SELECT 1 FROM onboarding o WHERE coalesce(o.user_id::text,o.email)=coalesce(s.user_id::text,s.email) AND o.occurred_at>=s.occurred_at)),(SELECT count(*) FROM signup_cohort)),
   'onboardingToProject',public.communication_ratio((SELECT count(*) FROM onboarding_cohort o WHERE EXISTS(SELECT 1 FROM public.projects p WHERE p.user_id=o.user_id AND p.workflow_origin='contractor' AND p.created_at>=o.occurred_at)),(SELECT count(*) FROM onboarding_cohort)),
-  'projectToInvitation',public.communication_ratio((SELECT count(*) FROM project_cohort p WHERE EXISTS(SELECT 1 FROM invitations i WHERE i.project_id=p.id AND ((NOT i.share_link AND (i.delivered OR i.accepted)) OR (i.share_link AND i.accepted)))),(SELECT count(*) FROM project_cohort)),
+  'projectToInvitation',public.communication_ratio((SELECT count(*) FROM project_cohort p WHERE EXISTS(SELECT 1 FROM invitations i WHERE i.project_id=p.id AND ((NOT i.share_link AND (i.provider_accepted OR i.delivered OR i.accepted)) OR (i.share_link AND i.accepted)))),(SELECT count(*) FROM project_cohort)),
   'invitationAcceptance',public.communication_ratio((SELECT count(*) FROM invitation_cohort WHERE NOT share_link AND delivered AND accepted),(SELECT count(*) FROM invitation_cohort WHERE NOT share_link AND delivered)),
   'linkClaims',public.communication_ratio((SELECT count(*) FROM invitation_cohort WHERE share_link AND accepted),(SELECT count(*) FROM invitation_cohort WHERE share_link)),
   'humanRecovery',public.communication_ratio((SELECT count(*) FROM assisted a JOIN public.communication_action_outcomes o ON o.enrollment_id=a.enrollment_id AND o.completed_at>=a.contacted_at),(SELECT count(*) FROM assisted)),
@@ -276,9 +325,9 @@ BEGIN
  ) last_email ON true
  LEFT JOIN LATERAL (SELECT code FROM public.lifecycle_sequence_steps WHERE sequence_key=e.sequence_key AND position>=e.next_position ORDER BY position LIMIT 1) next_email ON true
  LEFT JOIN LATERAL (
-  SELECT jsonb_build_object('id',f.id,'kind',f.kind,'ownerId',f.owner_id,'ownerName',pr.full_name,'dueAt',f.due_at,
+  SELECT jsonb_build_object('id',f.id,'kind',f.kind,'status',f.status,'ownerId',f.owner_id,'ownerName',pr.full_name,'dueAt',f.due_at,
    'contactStatus',f.contact_status,'attempts',f.attempt_count,'lastContactedAt',f.last_contacted_at) AS value
-   FROM public.followup_queue f LEFT JOIN public.profiles pr ON pr.id=f.owner_id WHERE f.enrollment_id=e.id AND f.status='open'
+   FROM public.followup_queue f LEFT JOIN public.profiles pr ON pr.id=f.owner_id WHERE f.enrollment_id=e.id
    ORDER BY CASE WHEN f.kind='activation' THEN 0 ELSE 1 END,f.created_at DESC LIMIT 1
  ) followup ON true;
  SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.created_at DESC),'[]') INTO v_projects FROM (
@@ -296,6 +345,10 @@ REVOKE ALL ON FUNCTION public.record_communication_milestone(text,text,jsonb),pu
 GRANT EXECUTE ON FUNCTION public.record_communication_milestone(text,text,jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.admin_mark_duplicate_project(uuid,boolean,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_mark_duplicate_project(uuid,boolean,text) TO authenticated;
+REVOKE ALL ON FUNCTION public.admin_log_communication_contact(uuid,text,text,timestamptz,timestamptz) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.admin_log_communication_contact(uuid,text,text,timestamptz,timestamptz) TO authenticated;
 REVOKE ALL ON FUNCTION public.admin_communication_tracking(timestamptz,timestamptz,text,text,text,int,int),public.communication_ratio(bigint,bigint) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_communication_tracking(timestamptz,timestamptz,text,text,text,int,int) TO authenticated;
+REVOKE ALL ON FUNCTION public.admin_contractor_tracking_index() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.admin_contractor_tracking_index() TO authenticated;
 COMMIT;

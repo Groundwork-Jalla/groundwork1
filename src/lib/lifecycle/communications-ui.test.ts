@@ -18,13 +18,17 @@ vi.mock('@/lib/supabase/client',()=>({supabase:{rpc:h.rpc,from:(table:string)=>{
  const filters:((row:any)=>boolean)[]=[];const result=()=>({data:(h.tables[table]??[]).filter(row=>filters.every(test=>test(row))),error:null});
  const settle=async(single=false)=>{const response=patch?await h.update(table,patch,result().data):await h.selectRead(table,result());return single?{...response,data:response.data?.[0]??null}:response;};
  const q:any={select:()=>q,eq:(key:string,value:any)=>{filters.push(row=>row[key]===value);return q;},is:(key:string,value:any)=>{filters.push(row=>row[key]===value);return q;},order:()=>q,limit:()=>q,
-  update:(value:any)=>{patch=value;return q;},single:()=>settle(true),then:(resolve:any)=>settle().then(resolve)};return q;
+  update:(value:any)=>{patch=value;return q;},single:()=>settle(true),maybeSingle:()=>settle(true),then:(resolve:any)=>settle().then(resolve)};return q;
 }}}));
 import Preferences from '@/app/routes/communication-preferences';
 import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
 import { CommunicationSettings } from '@/components/admin/communications/CommunicationSettings';
 import { CommunicationReadiness } from '@/components/admin/communications/CommunicationReadiness';
 import { CommunicationJourneys } from '@/components/admin/communications/CommunicationJourneys';
+import { CommunicationTracking } from '@/components/admin/communications/CommunicationTracking';
+import { CommunicationContactHistory } from '@/components/admin/communications/CommunicationContactHistory';
+import { ProjectDuplicateFlag } from '@/components/admin/communications/ProjectDuplicateFlag';
+import { COMMUNICATION_RATIOS,type CommunicationTrackingReport } from '@/lib/supabase/communication-tracking';
 import AdminSequences from '@/app/routes/admin/sequences';
 import { ACTIVATION_JOURNEYS,type JourneySequence,type JourneyStep } from '@/lib/lifecycle/journeys';
 function render<T>(component:()=>T):T {h.si=h.ri=h.mi=h.ei=0;const tree=component();for(const {index,effect}of h.effects.splice(0)){h.cleanups[index]?.();h.cleanups[index]=effect();}return tree;}
@@ -192,5 +196,90 @@ describe('message drafts during background refresh',()=>{
   await vi.advanceTimersByTimeAsync(30_000);await flush();view=render(AdminSequences);editorBody(view).props.onChange({target:{value:'Saved newer copy'}});view=render(AdminSequences);
   saveMessage(view).props.onClick();await flush();finish({data:[exampleStep()],error:null});await flush();
   expect(editorBody(render(AdminSequences)).props.value).toBe('Saved newer copy');
+ });
+});
+
+function trackingReport(changes:Partial<CommunicationTrackingReport>={}):CommunicationTrackingReport {
+ return {from:'2026-10-15T00:00:00Z',until:'2026-11-15T00:00:00Z',asOf:'2026-11-14T12:00:00Z',offset:0,limit:50,total:0,rows:[],projects:[],recovery:[],
+  metrics:{...Object.fromEntries(COMMUNICATION_RATIOS.map(key=>[key,{completed:0,total:0,percent:null}])),medianConnectionHours:null,knownConnectionTimes:0,historicalUnknownConnectionTimes:3,invitationsWithoutDeliveryProof:2,knownSignupEvents:0,unclassifiedSignupEvents:1} as CommunicationTrackingReport['metrics'],...changes};
+}
+const trackingPerson:CommunicationTrackingReport['rows'][number]={id:'enrollment',email:'returning@example.test',phone:'+123456789',name:'Returning builder',role:'contractor',journey:'Contractor self-signup',sequenceKey:'cs_client_pending',action:'Client accepts invitation',state:'awaiting_action',enteredAt:'2026-11-01T12:00:00Z',completedAt:null,projectId:'project',projectName:'Home',entrySource:'independent_signup',accountId:'account',threadId:'thread',nextEmailAt:null,nextEmailCode:null,lastEmail:{code:'CS14',subject:'Invitation reminder',sentAt:'2026-11-07T12:00:00Z',status:'delivered'},followup:{id:'followup',kind:'activation',status:'open',ownerId:'admin',ownerName:'Staff member',dueAt:'2026-11-15T12:00:00Z',contactStatus:'contacted',attempts:1,lastContactedAt:'2026-11-13T12:00:00Z'}};
+describe('activation measurement and people tracking',()=>{
+ it('shows missing denominators and historical timing as unknown without sending or changing settings',async()=>{
+  h.rpc.mockResolvedValue({data:trackingReport(),error:null});const component=()=>CommunicationTracking({onConversation:vi.fn()});
+  render(component);await vi.advanceTimersByTimeAsync(200);await flush();const view=render(component);
+  expect(text(view)).toContain('communications.tracking.timeCoverage');expect(text(view)).toContain('communications.tracking.coverage');
+  expect(nodes(view).filter(node=>node.type==='article').every(node=>text(node).includes('—'))).toBe(true);
+  expect(text(view)).not.toContain('0%');expect(text(view)).toContain('communications.tracking.noPeople');
+  expect(h.rpc).toHaveBeenCalledOnce();expect(h.rpc.mock.calls[0][0]).toBe('admin_communication_tracking');expect(h.update).not.toHaveBeenCalled();expect(h.queue).not.toHaveBeenCalled();
+ });
+ it('keeps exhausted stages visible, opens the saved conversation and resets paging when a person filter changes',async()=>{
+  h.rpc.mockImplementation(async(_name,args)=>({data:trackingReport({rows:[trackingPerson],total:51,offset:args.p_offset}),error:null}));const conversation=vi.fn();const component=()=>CommunicationTracking({onConversation:conversation});
+  render(component);await vi.advanceTimersByTimeAsync(200);await flush();let view=render(component);
+  expect(text(view)).toContain('communications.tracking.states.awaiting_action');expect(text(view)).toContain('Staff member');
+  expect(nodes(view).find(node=>node.type==='a'&&node.props.href?.startsWith('tel:')).props.href).toBe('tel:+123456789');
+  nodes(view).find(node=>node.type==='button'&&text(node)==='communications.tracking.conversation').props.onClick();expect(conversation).toHaveBeenCalledWith('thread');
+  nodes(view).find(node=>node.type==='button'&&text(node)==='communications.tracking.nextPage').props.onClick();render(component);await vi.advanceTimersByTimeAsync(200);await flush();view=render(component);
+  expect(h.rpc).toHaveBeenLastCalledWith('admin_communication_tracking',expect.objectContaining({p_offset:50}));
+  nodes(view).find(node=>node.type==='input'&&node.props['aria-label']==='communications.tracking.search').props.onChange({target:{value:'Returning'}});
+  view=render(component);expect(text(view)).toContain('Returning builder');await vi.advanceTimersByTimeAsync(200);await flush();render(component);
+  expect(h.rpc).toHaveBeenLastCalledWith('admin_communication_tracking',expect.objectContaining({p_offset:0,p_search:'Returning'}));
+ });
+ it('discards a slower report for a previous date range',async()=>{
+  let finishOld!:(value:any)=>void;h.rpc.mockReturnValueOnce(new Promise(resolve=>{finishOld=resolve;})).mockResolvedValue({data:trackingReport({rows:[{...trackingPerson,name:'Current date cohort'}]}),error:null});
+  const component=()=>CommunicationTracking({onConversation:vi.fn()});render(component);await vi.advanceTimersByTimeAsync(200);
+  nodes(render(component)).find(node=>node.type==='input'&&node.props.type==='date').props.onChange({target:{value:'2026-10-01'}});render(component);await vi.advanceTimersByTimeAsync(200);await flush();
+  finishOld({data:trackingReport({rows:[{...trackingPerson,name:'Old date cohort'}]}),error:null});await flush();const view=render(component);
+  expect(text(view)).toContain('Current date cohort');expect(text(view)).not.toContain('Old date cohort');
+ });
+ it('presents a missing migration as an installation requirement and allows a read-only retry',async()=>{
+  h.rpc.mockResolvedValueOnce({data:null,error:{code:'PGRST202'}}).mockResolvedValue({data:trackingReport(),error:null});const component=()=>CommunicationTracking({onConversation:vi.fn()});
+  render(component);await vi.advanceTimersByTimeAsync(200);await flush();let view=render(component);expect(text(view)).toContain('communications.tracking.install');
+  nodes(view).find(node=>node.type==='button'&&text(node)==='communications.inboxRefresh').props.onClick();render(component);await vi.advanceTimersByTimeAsync(200);await flush();view=render(component);
+  expect(text(view)).not.toContain('communications.tracking.install');expect(h.rpc.mock.calls.every(call=>call[0]==='admin_communication_tracking')).toBe(true);
+ });
+});
+
+function savedContact(status='done') {
+ h.tables.followup_queue=[{id:'followup',email:'returning@example.test',status,note:'Earlier contact',due_at:null,attempt_count:1}];
+ h.tables.communication_followup_events=[{id:'contact-event',followup_id:'followup',kind:'contacted',note:'Recorded call',created_at:'2026-11-14T12:00:00Z',contacted_at:'2026-11-13T12:00:00Z'}];
+}
+describe('staff contact history after activation',()=>{
+ it('records the actual conversation time once on a completed task without scheduling or reopening it',async()=>{
+  vi.setSystemTime(new Date('2026-11-14T12:00:00Z'));savedContact();const changed=vi.fn();const component=()=>CommunicationContactHistory({followupId:'followup',onChanged:changed});
+  render(component);await flush();let view=render(component);expect(text(view)).toContain('communications.tracking.contactClosed');expect(text(view)).toContain(new Date('2026-11-13T12:00:00Z').toLocaleString());
+  expect(nodes(view).filter(node=>node.type==='input'&&node.props.type==='datetime-local')).toHaveLength(1);
+  nodes(view).find(node=>node.type==='textarea').props.onChange({target:{value:'The conversation happened before the client joined.'}});
+  const actual='2026-11-13T11:30:00';nodes(view).find(node=>node.type==='input'&&node.props.type==='datetime-local').props.onChange({target:{value:actual}});view=render(component);
+  const submit=nodes(view).find(node=>node.type==='form').props.onSubmit;submit({preventDefault(){}});submit({preventDefault(){}});await flush();
+  expect(h.rpc).toHaveBeenCalledOnce();expect(h.rpc).toHaveBeenCalledWith('admin_log_communication_contact',expect.objectContaining({p_id:'followup',p_contacted_at:new Date(actual).toISOString(),p_next_at:null}));
+  expect(h.tables.followup_queue[0].status).toBe('done');expect(h.update).not.toHaveBeenCalled();expect(changed).toHaveBeenCalledOnce();
+ });
+ it('retains the note after a refused contact time and lets staff correct it',async()=>{
+  savedContact();h.rpc.mockResolvedValue({error:{message:'invalid_contact_time'}});const component=()=>CommunicationContactHistory({followupId:'followup',onChanged:vi.fn()});render(component);await flush();
+  nodes(render(component)).find(node=>node.type==='textarea').props.onChange({target:{value:'Keep my contact record'}});nodes(render(component)).find(node=>node.type==='form').props.onSubmit({preventDefault(){}});await flush();const view=render(component);
+  expect(text(view)).toContain('communications.tracking.contactTimeInvalid');expect(nodes(view).find(node=>node.type==='textarea').props.value).toBe('Keep my contact record');
+ });
+ it('requires a next contact date only for an unfinished task',async()=>{
+  savedContact('open');const component=()=>CommunicationContactHistory({followupId:'followup',onChanged:vi.fn(),nextContactHours:72});render(component);await flush();let view=render(component);
+  nodes(view).find(node=>node.type==='textarea').props.onChange({target:{value:'Spoke to the contractor'}});const dates=nodes(view).filter(node=>node.type==='input'&&node.props.type==='datetime-local');expect(dates).toHaveLength(2);
+  dates[1].props.onChange({target:{value:''}});view=render(component);nodes(view).find(node=>node.type==='form').props.onSubmit({preventDefault(){}});await flush();
+  expect(text(render(component))).toContain('communications.futureRequired');expect(h.rpc).not.toHaveBeenCalled();
+ });
+});
+describe('staff-reviewed duplicate project flags',()=>{
+ it('requires a reason and supports correcting the flag without deleting a project',async()=>{
+  h.tables.communication_duplicate_projects=[];const component=()=>ProjectDuplicateFlag({projectId:'project'});render(component);await flush();let view=render(component);
+  nodes(view).find(node=>node.type==='form').props.onSubmit({preventDefault(){}});await flush();expect(text(render(component))).toContain('communications.tracking.reasonRequired');expect(h.rpc).not.toHaveBeenCalled();
+  nodes(render(component)).find(node=>node.type==='textarea').props.onChange({target:{value:'Team confirmed duplicate'}});nodes(render(component)).find(node=>node.type==='form').props.onSubmit({preventDefault(){}});await flush();view=render(component);
+  expect(h.rpc).toHaveBeenLastCalledWith('admin_mark_duplicate_project',{p_project:'project',p_duplicate:true,p_reason:'Team confirmed duplicate'});
+  nodes(view).find(node=>node.type==='button'&&text(node)==='communications.tracking.clearDuplicate').props.onClick();await flush();
+  expect(h.rpc).toHaveBeenLastCalledWith('admin_mark_duplicate_project',expect.objectContaining({p_project:'project',p_duplicate:false}));expect(h.update).not.toHaveBeenCalled();
+ });
+ it('does not apply a previous project’s delayed save to the next project',async()=>{
+  h.tables.communication_duplicate_projects=[];let project='old';let finish!:(value:any)=>void;const component=()=>ProjectDuplicateFlag({projectId:project});render(component);await flush();
+  nodes(render(component)).find(node=>node.type==='textarea').props.onChange({target:{value:'Old project review'}});h.rpc.mockReturnValueOnce(new Promise(resolve=>{finish=resolve;}));nodes(render(component)).find(node=>node.type==='form').props.onSubmit({preventDefault(){}});
+  project='new';render(component);await flush();finish({data:null,error:null});await flush();const view=render(component);
+  expect(text(view)).toContain('communications.tracking.standard');expect(nodes(view).find(node=>node.type==='textarea').props.value).toBe('');expect(text(view)).not.toContain('communications.tracking.clearDuplicate');
  });
 });

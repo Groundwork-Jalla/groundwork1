@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect,vi } from 'vitest';
 import { render, pickLang, copyFor, audienceMatches, matchesFields, ctaPath, followupPriority, nextDue, enrollForEvent, runDue } from '../../../api/_lib/lifecycle';
 import { stepTimeline } from '../../../shared/lifecycle-copy';
 
@@ -118,6 +118,11 @@ function fakeSvc(tables: Record<string, any[]>) {
 }
 
 describe('enrollForEvent', () => {
+  it('records lifecycle facts even when delivery sequences are disabled',async()=>{
+    const service=fakeSvc({lifecycle_sequences:[],lifecycle_enrollments:[]});const track=vi.fn(service.rpc);
+    const result=await enrollForEvent({...service,rpc:track},'user_signup',{email:' Person@Example.test '},{user_role:'contractor',entry_source:'independent_signup'});
+    expect(result.enrolled).toBe(0);expect(track).toHaveBeenCalledWith('record_communication_milestone',{p_event:'user_signup',p_email:'person@example.test',p_fields:{user_role:'contractor',entry_source:'independent_signup'}});
+  });
   const seq = (o: any = {}) => ({ key: 'a', enabled: true, trigger_event: 'user_signup', exit_events: ['project_created'],
     audience: 'any', followup_after_days: 7, ...o });
   const step = { sequence_key: 'a', position: 1, delay_hours: 24 };

@@ -5,16 +5,18 @@ import { markDuplicateProject } from '@/lib/supabase/communication-tracking';
 export function ProjectDuplicateFlag({projectId}:{projectId:string}) {
  const t=useT();const [flag,setFlag]=useState<{reason:string;marked_at:string}|null>(null);const [draft,setDraft]=useState('');
  const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [available,setAvailable]=useState(true);const working=useRef(false);
- useEffect(()=>{let live=true;setLoading(true);setError('');setFlag(null);setDraft('');
-  void supabase.from('communication_duplicate_projects').select('reason,marked_at').eq('project_id',projectId).maybeSingle().then(result=>{
-   if(!live)return;if(result.error){setAvailable(false);setError(t('communications.tracking.install'));}else{setAvailable(true);setFlag(result.data);setDraft(result.data?.reason??'');}
-  }).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};
+ const current=useRef(projectId);current.current=projectId;
+ useEffect(()=>{let live=true;setLoading(true);setAvailable(false);setError('');setFlag(null);setDraft('');
+  void Promise.resolve(supabase.from('communication_duplicate_projects').select('reason,marked_at').eq('project_id',projectId).maybeSingle()).then(result=>{
+   if(!live)return;if(result.error)throw result.error;setAvailable(true);setFlag(result.data);setDraft(result.data?.reason??'');
+  }).catch(problem=>{if(live)setError(t(['42P01','PGRST205'].includes(problem.code)?'communications.tracking.install':'communications.tracking.loadFailed'));})
+   .finally(()=>{if(live)setLoading(false);});return()=>{live=false;};
  },[projectId,t]);
  async function save(duplicate:boolean) {
-  if(working.current)return;if(duplicate&&!draft.trim()){setError(t('communications.tracking.reasonRequired'));return;}
+  if(working.current||loading||!available)return;if(duplicate&&!draft.trim()){setError(t('communications.tracking.reasonRequired'));return;}const id=projectId;
   working.current=true;setBusy(true);setError('');
-  try{await markDuplicateProject(projectId,duplicate,draft);setFlag(duplicate?{reason:draft.trim(),marked_at:new Date().toISOString()}:null);if(!duplicate)setDraft('');}
-  catch{setError(t('communications.tracking.flagFailed'));}finally{working.current=false;setBusy(false);}
+  try{await markDuplicateProject(id,duplicate,draft);if(current.current===id){setFlag(duplicate?{reason:draft.trim(),marked_at:new Date().toISOString()}:null);if(!duplicate)setDraft('');}}
+  catch{if(current.current===id)setError(t('communications.tracking.flagFailed'));}finally{working.current=false;setBusy(false);}
  }
  return <section className="m-5 rounded-2xl border bg-white p-4 dark:bg-[#181818]">
   <h2 className="text-sm font-semibold">{t('communications.tracking.duplicateReview')}</h2><p className="mt-2 text-xs text-brand-mid-grey">{t('communications.tracking.duplicateHelp')}</p>

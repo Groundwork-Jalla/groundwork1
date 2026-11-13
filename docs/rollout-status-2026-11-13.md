@@ -11,7 +11,7 @@ GHL retirement and external provider activation deferred. The launch checklist
 below remains a record of later work, not a blocker for completing this build.
 No additional GHL workflow details are needed for the current implementation.
 
-The latest Admin changes add a four-journey review, entry-based message timing,
+The earlier Admin changes added a four-journey review, entry-based message timing,
 English/French previews with example data and a journey filter for editing. The
 message editor now preserves unsaved fields during polling, writes only edited
 fields and protects newer edits and successful saves from delayed responses.
@@ -19,6 +19,29 @@ Shared formatting keeps preview and worker wording aligned, including localized
 fallback names. 173 targeted tests, the isolated lifecycle database regression,
 typecheck and the production build passed. No provider configuration, GHL
 workflow change or journey activation was performed for this build-focused work.
+
+## 14 November continuation — full communication framework
+
+The user's latest clarification includes the complete automated email framework,
+Admin human follow-up and measurement, rather than journey previews alone.
+WhatsApp is explicitly **outside this release**.
+
+The new Tracking tab adds conversion cohorts, real-action completion, per-message
+and human recovery, recorded time to a connected project, explicit duplicate flags
+and a paginated current-action table linked to saved conversations/contact history.
+Calls retain their actual contact time and can be logged after an action closes
+its task. Project filters add dates, saved origin and owner; contractor filters add
+actual joining date, owned/assigned project status and onboarding phase. These
+changes require `20261113001300_communication_tracking.sql` and matching code to be
+deployed. The migration preserves all delivery/journey switches and sends no mail.
+
+234 focused unit/UI tests and the isolated lifecycle database regressions pass,
+including migration replay, report permissions, actual contact-time recovery and
+associated-project metadata. Full-suite/build verification is recorded in the
+[14 November framework release review](communication-framework-release-2026-11-14.md).
+Historical live observations below retain their original dates; they do not imply
+that these new changes are deployed. Provider configuration and GHL retirement
+remain deferred launch work.
 
 ## Urgent project-creation incident
 
@@ -168,7 +191,8 @@ payments, project progress or invitation records to manufacture a test result.
 - Groundwork activation journeys, preferences, durable email delivery, admin inbox,
   owner/contact history, overdue attention and purpose-specific sender settings.
 - Admin deletion/contact previews and existing status/qualification filters are
-  present. The missing filter combinations below remain separate work.
+  present. The additional filter combinations and activation measurements were
+  completed locally in the 14 November continuation above.
 
 The communication full-suite run passed 4,730 tests, followed by final targeted
 checks. Typecheck, build and isolated database regressions passed. The legacy-admin
@@ -191,11 +215,11 @@ configuration checks do not replace the managed journey/reply acceptance tests.
 
 | Item | Current scope/status |
 | --- | --- |
-| Broader project and contractor filters | Remaining combinations include project creation date, recorded client/contractor origin and owner, plus contractor joining date and associated project status. Existing search/status/qualification/onboarding cards remain available. |
-| Full activation measurements | Still to build: signup/onboarding/project/invitation conversion, time to a connected project, recovery by reminder, assisted recovery and reliable duplicate-project tracking. Do not infer these from email completion alone. |
+| Broader project and contractor filters | Implemented locally: project creation dates, saved client/contractor origin and owner; contractor joining dates, associated owned/assigned project status and onboarding phase. Requires migration 013 and deployment. |
+| Full activation measurements | Implemented locally in the Tracking tab: conversion, recorded connection timing, per-message/human recovery and explicit duplicate flags. Coverage is visible and email-sequence completion remains separate from real action completion. Requires migration 013 and deployment. |
 | Custom substages | Deferred by the user's prior instruction. Needs scope editing, stable IDs/order, preserved evidence/history and client approval rules. |
 | Full prepaid/payment-history onboarding | Deferred in the working-session decisions. Current stored receipts remain authoritative. |
-| Automated WhatsApp follow-up | Paused; existing user-initiated chat is separate. |
+| Automated WhatsApp follow-up | Outside this release under the user’s 14 November decision; existing user-initiated chat is separate. |
 | Device-level duplicate-account detection | Future requirement from the review; no device-level prevention is established by the current email-uniqueness rule. |
 | Verification revenue and contractor bidding | Follow-on review after successful full-workflow testing; readiness of those broader flows has not been established by this communication release. |
 | Team decisions/sign-off | Confirm follow-up staffing/cadence and conduct the live review. Exact brand shade and a representative real receipt were team follow-ups in the notes. |

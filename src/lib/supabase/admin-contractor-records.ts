@@ -21,6 +21,15 @@ export interface ContractorRecordRow {
   clientIntent: ClientIntent | null;
   signedAt: string | null;
   status: OnboardingStatus;
+  joinedAt?:string|null;
+  projectStatuses?:string[]|null;
+  projectCount?:number|null;
+}
+export interface ContractorTrackingIndex {userId:string;joinedAt:string;projectStatuses:string[];projectCount:number;}
+export async function fetchContractorTrackingIndex():Promise<Map<string,ContractorTrackingIndex>|null> {
+ const {data,error}=await supabase.rpc('admin_contractor_tracking_index');
+ if(error){if(['PGRST202','42883'].includes(error.code))return null;throw error;}
+ return new Map(((data??[]) as ContractorTrackingIndex[]).map(row=>[row.userId,row]));
 }
 
 export interface EmergencyContactRow {

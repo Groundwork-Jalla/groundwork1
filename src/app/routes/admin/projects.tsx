@@ -17,6 +17,7 @@ import { fetchBusinessStatuses, type BusinessStatus } from '@/lib/supabase/admin
 import { workspaceHref } from '@/lib/admin/workspace-params';
 import { FilterBanner } from '@/components/admin/FilterBanner';
 import { useT, type TKey } from '@/lib/i18n';
+import { matchesCalendarRange,matchesProjectOrigin } from '@/lib/admin/communication-filters';
 
 interface AdminProject {
   id: string;
@@ -25,6 +26,8 @@ interface AdminProject {
   ownerName: string;
   /** Comma-joined roles, so the list says WHAT the owner is, not only who. */
   ownerRoles: string;
+  ownerId:string;
+  workflowOrigin:string|null;
   tier: string;
   status: string;
   currentStage: number;
@@ -97,6 +100,7 @@ export default function AdminProjects() {
    *  migration is applied, which is why the tiles built on it are conditional. */
   const [business, setBusiness] = useState<Map<string, BusinessStatus>>(new Map());
   const [loading, setLoading]   = useState(true);
+  const [loadError,setLoadError]=useState(false);
 
   // ── Filters, from the URL ─────────────────────────────────────────────────────────
   // The Overview links here with the metric's own condition attached; the search box and
@@ -106,6 +110,9 @@ export default function AdminProjects() {
   const query        = params.get('q') ?? '';
   const statusFilter = parseStatusFilter(params.get('status'));
   const healthFilter = parseHealthFilter(params.get('health'));
+  const createdFrom=params.get('from')??'',createdThrough=params.get('through')??'';
+  const originFilter=params.get('origin')??'',ownerFilter=params.get('owner')??'';
+  const setBasicFilter=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value)next.set(key,value);else next.delete(key);setParams(next,{replace:true});};
 
   const setQuery = (next: string) => {
     const p = new URLSearchParams(params);
@@ -114,7 +121,8 @@ export default function AdminProjects() {
   };
   const clearFilters = () => {
     const p = new URLSearchParams(params);
-    p.delete('status'); p.delete('health');
+    for(const key of ['status','health','from','through','origin','owner','q'])p.delete(key);
+    setTile(null);
     setParams(p, { replace: true });
   };
 
@@ -187,10 +195,10 @@ export default function AdminProjects() {
         // only when `?health=` is present: the column is worth showing either way, and
         // two extra reads over a fleet this size cost less than a filter that is
         // sometimes available and sometimes not.
-        const [{ data }, owners, stagesRes, activityRes] = await Promise.all([
+        const [{ data,error }, owners, stagesRes, activityRes] = await Promise.all([
           supabase
             .from('projects')
-            .select('id, name, user_id, tier, status, current_stage, country, created_at, tracking_started_at, updated_at')
+            .select('id, name, user_id, tier, status, current_stage, country, created_at, tracking_started_at, updated_at, workflow_origin')
             .order('created_at', { ascending: false }),
           ownerLookup(),
           supabase.from('project_stages')
@@ -198,6 +206,7 @@ export default function AdminProjects() {
           supabase.rpc('admin_project_activity'),
         ]);
 
+        if(error)throw error;
         const stagesBy = new Map<string, Record<string, unknown>[]>();
         for (const row of (stagesRes.data ?? []) as Record<string, unknown>[]) {
           const id = row.project_id as string;
@@ -226,6 +235,7 @@ export default function AdminProjects() {
             ownerEmail:   profile?.email ?? '',
             ownerName:    profile?.name ?? '',
             ownerRoles:   profile?.roles ?? '',
+            ownerId:p.user_id as string,workflowOrigin:(p.workflow_origin as string|null)??null,
             tier:         p.tier as string,
             status:       p.status as string,
             currentStage: p.current_stage as number,
@@ -239,11 +249,13 @@ export default function AdminProjects() {
             ).band,
           };
         }));
+      } catch {
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     }
-    load();
+    void load();
   }, []);
 
   // Filters compose: the URL's condition first, then whatever is typed in the box.
@@ -284,8 +296,9 @@ export default function AdminProjects() {
   const inFilter = useMemo(
     () => applyTile(tiles, projects, tile).filter(p =>
       (!statusFilter || matchesStatusFilter(p.status, statusFilter)) &&
-      (!healthFilter || p.health === healthFilter)),
-    [tiles, tile, projects, statusFilter, healthFilter],
+      (!healthFilter || p.health === healthFilter)&&matchesCalendarRange(p.createdAt,createdFrom,createdThrough)
+       &&matchesProjectOrigin(p.workflowOrigin,originFilter)&&(!ownerFilter||p.ownerId===ownerFilter)),
+    [tiles, tile, projects, statusFilter, healthFilter,createdFrom,createdThrough,originFilter,ownerFilter],
   );
 
   const filtered = useMemo(() => {
@@ -308,7 +321,7 @@ export default function AdminProjects() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.allProjects')}</h1>
-          <p className="mt-1 text-sm text-brand-mid-grey">{t('admin.filter.total', { n: projects.length })}</p>
+          {!loadError&&<p className="mt-1 text-sm text-brand-mid-grey">{t('admin.filter.total', { n: projects.length })}</p>}
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -330,7 +343,16 @@ export default function AdminProjects() {
         </div>
       </div>
 
-      {!loading && (
+      {loadError&&<p role="alert" className="mb-4 text-sm text-state-alert">{t('communications.filters.projectLoadFailed')}</p>}
+      <div className="mb-4 flex flex-wrap gap-3 text-xs">
+       <label>{t('communications.filters.createdFrom')}<input type="date" value={createdFrom} onChange={event=>setBasicFilter('from',event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
+       <label>{t('communications.filters.createdThrough')}<input type="date" value={createdThrough} onChange={event=>setBasicFilter('through',event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
+       <select aria-label={t('communications.filters.origin')} value={originFilter} onChange={event=>setBasicFilter('origin',event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allOrigins')}</option><option value="client">{t('communications.filters.clientOrigin')}</option><option value="contractor">{t('communications.filters.contractorOrigin')}</option></select>
+       <select aria-label={t('communications.owner')} value={ownerFilter} onChange={event=>setBasicFilter('owner',event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allOwners')}</option>{[...new Map(projects.map(project=>[project.ownerId,project])).values()].map(project=><option key={project.ownerId} value={project.ownerId}>{project.ownerName||project.ownerEmail||project.ownerId}</option>)}</select>
+       <button type="button" onClick={clearFilters} className="rounded-xl border px-3 py-2">{t('communications.filters.clear')}</button>
+      </div>
+
+      {!loading&&!loadError && (
         <FilterTiles tiles={tiles} counts={counts} active={tile} onPick={setTile}
                      label={t('admin.allProjects')} />
       )}

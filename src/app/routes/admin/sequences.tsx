@@ -228,7 +228,7 @@ export default function AdminSequences() {
       </div>
 
       {tab === 'inbox' && <CommunicationInbox initialThreadId={conversation}/>}
-      {tab === 'tracking' && <CommunicationTracking onConversation={thread=>{setConversation(thread);setTab('inbox');}}/>}
+      {tab === 'tracking' && <CommunicationTracking nextContactHours={nextContactHours} onConversation={thread=>{setConversation(thread);setTab('inbox');}}/>}
       {tab === 'settings' && <CommunicationSettings />}
       {tab === 'journeys' && <CommunicationJourneys sequences={seqs} steps={steps} onEdit={journey=>{setSelectedJourney(journey);setTab('sequences');}}/>}
 

@@ -4,7 +4,7 @@ import {
   Check, ChevronRight, FileText, Loader2, Minus, Phone, Search, ShieldCheck, UserPlus, UserRound,
 } from 'lucide-react';
 import {
-  contractorRecordsAvailable, fetchContractorDossier, fetchContractorRecords,
+  contractorRecordsAvailable, fetchContractorDossier, fetchContractorRecords,fetchContractorTrackingIndex,
   type ContractorDossier, type ContractorRecordRow,
 } from '@/lib/supabase/admin-contractor-records';
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/supabase/contractor-onboarding';
@@ -17,6 +17,7 @@ import { formatDate } from '@/lib/format';
 import { useT, type TKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { FilterTiles, tileCounts, applyTile, type TileSpec } from '@/components/admin/FilterTiles';
+import { matchesCalendarRange,onboardingPhase } from '@/lib/admin/communication-filters';
 
 // =========================================================
 // /admin/contractors/records — what each contractor actually filled in.
@@ -102,11 +103,17 @@ export default function AdminContractorRecords() {
   const [pipeline, setPipeline] = useState<Map<string, PipelineRow> | null>(null);
   /** Which card is pressed. Null is everybody. */
   const [filter, setFilter] = useState<CardKey | null>(null);
+  const [joinedFrom,setJoinedFrom]=useState(''),[joinedThrough,setJoinedThrough]=useState('');
+  const [projectStatus,setProjectStatus]=useState(''),[phase,setPhase]=useState('');
+  const [indexAvailable,setIndexAvailable]=useState(false);
 
   const load = useCallback(async () => {
     try {
       if (!(await contractorRecordsAvailable())) { setAbsent(true); setRows([]); return; }
-      setRows(await fetchContractorRecords());
+      const [records,index]=await Promise.allSettled([fetchContractorRecords(),fetchContractorTrackingIndex()]);
+      if(records.status==='rejected')throw records.reason;
+      const saved=index.status==='fulfilled'?index.value:null;setIndexAvailable(saved!==null);
+      setRows(records.value.map(row=>({...row,joinedAt:saved?.get(row.userId)?.joinedAt??null,projectStatuses:saved?.get(row.userId)?.projectStatuses??null,projectCount:saved?.get(row.userId)?.projectCount??null})));
       setError(null);
     } catch {
       setRows([]);
@@ -150,10 +157,12 @@ export default function AdminContractorRecords() {
     // either — "show me who has not onboarded, called Ngu" is the question staff
     // actually ask.
     list = applyTile(tiles, list, filter);
+    if(indexAvailable)list=list.filter(row=>matchesCalendarRange(row.joinedAt,joinedFrom,joinedThrough)&&(!projectStatus||row.projectStatuses?.includes(projectStatus)));
+    if(phase)list=list.filter(row=>onboardingPhase(row.status)===phase);
     if (q) list = list.filter(r =>
       [r.fullName, r.email, r.phone].some(v => (v ?? '').toLowerCase().includes(q)));
     return list;
-  }, [rows, query, filter, pipeline]);
+  }, [rows, query, filter, pipeline,indexAvailable,joinedFrom,joinedThrough,projectStatus,phase]);
 
   /** Counted by the same predicates that filter, so a card can never overstate. */
   const counts = useMemo(() => tileCounts(tiles, rows ?? []), [tiles, rows]);
@@ -207,6 +216,14 @@ export default function AdminContractorRecords() {
         />
       </div>
 
+      <div className="mb-4 flex flex-wrap gap-3 text-xs">
+       <label>{t('communications.filters.joinedFrom')}<input disabled={!indexAvailable} type="date" value={joinedFrom} onChange={event=>setJoinedFrom(event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
+       <label>{t('communications.filters.joinedThrough')}<input disabled={!indexAvailable} type="date" value={joinedThrough} onChange={event=>setJoinedThrough(event.target.value)} className="ml-2 rounded-xl border px-3 py-2"/></label>
+       <select disabled={!indexAvailable} aria-label={t('communications.filters.projectStatus')} value={projectStatus} onChange={event=>setProjectStatus(event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allProjectStatuses')}</option>{(['active','on_hold','completed','archived'] as const).map(value=><option key={value} value={value}>{t(`admin.filter.status.${value}`)}</option>)}</select>
+       <select aria-label={t('communications.filters.onboarding')} value={phase} onChange={event=>setPhase(event.target.value)} className="rounded-xl border px-3 py-2"><option value="">{t('communications.filters.allOnboarding')}</option>{(['not_started','in_progress','completed'] as const).map(value=><option key={value} value={value}>{t(`communications.filters.phases.${value}`)}</option>)}</select>
+       <button type="button" onClick={()=>{setJoinedFrom('');setJoinedThrough('');setProjectStatus('');setPhase('');setQuery('');setFilter(null);}} className="rounded-xl border px-3 py-2">{t('communications.filters.clear')}</button>
+      </div>
+      {!indexAvailable&&<p className="mb-4 text-xs text-brand-mid-grey">{t('communications.tracking.install')}</p>}
       {shown.length === 0 ? (
         <p className="rounded-xl border border-brand-border-grey px-4 py-8 text-center text-sm text-brand-mid-grey dark:border-[#2c2c2c]">
           {rows.length === 0 ? t('adminContractorRecords.empty') : t('adminContractorRecords.noMatch')}

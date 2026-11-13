@@ -3,13 +3,15 @@ import { Link } from 'react-router';
 import { useLanguage,useT } from '@/lib/i18n';
 import { ACTIVATION_JOURNEYS } from '@/lib/lifecycle/journeys';
 import { COMMUNICATION_RATIOS,TRACKING_STATES,dateFilterValue,readCommunicationTracking,type CommunicationTrackingReport } from '@/lib/supabase/communication-tracking';
+import { CommunicationContactHistory } from './CommunicationContactHistory';
 const field='rounded-xl border border-brand-border-grey bg-white px-3 py-2 text-sm dark:bg-[#181818]';
-export function CommunicationTracking({onConversation}:{onConversation:(thread:string)=>void}) {
+export function CommunicationTracking({onConversation,nextContactHours=48}:{onConversation:(thread:string)=>void;nextContactHours?:number}) {
  const t=useT();const {lang}=useLanguage();
  const [from,setFrom]=useState(()=>dateFilterValue(new Date(Date.now()-30*86400_000)));
  const [through,setThrough]=useState(()=>dateFilterValue(new Date()));const [search,setSearch]=useState('');
  const [journey,setJourney]=useState('');const [state,setState]=useState('');const [page,setPage]=useState(0);const [revision,setRevision]=useState(0);
  const [report,setReport]=useState<CommunicationTrackingReport|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ const [contactHistory,setContactHistory]=useState<string|null>(null);
  useEffect(()=>{let live=true;setBusy(true);setError('');
   const timer=setTimeout(()=>{void readCommunicationTracking({from,through,search,journey,state,offset:page*50}).then(result=>{if(live)setReport(result);})
    .catch(problem=>{if(live)setError(t(problem.message==='communication_tracking_not_installed'?'communications.tracking.install':problem.message==='invalid_tracking_dates'?'communications.tracking.invalidDates':'communications.tracking.loadFailed'));})
@@ -48,9 +50,10 @@ export function CommunicationTracking({onConversation}:{onConversation:(thread:s
      <td className="p-3"><p>{row.action||'—'}</p><p className="mt-1 text-xs">{row.journey}</p><p className="mt-1 text-xs">{t(`communications.tracking.states.${row.state}`)}</p><time className="mt-1 block text-xs text-brand-mid-grey">{date(row.enteredAt)}</time>{row.completedAt&&<p className="mt-1 text-xs text-brand-green">{t('communications.tracking.completedAt')} {date(row.completedAt)}</p>}</td>
      <td className="p-3">{row.lastEmail?<><p>{row.lastEmail.code} · {row.lastEmail.subject}</p><p className="mt-1 text-xs text-brand-mid-grey">{row.lastEmail.status} · {date(row.lastEmail.sentAt)}</p></>:'—'}<button type="button" disabled={!row.threadId} onClick={()=>{if(row.threadId)onConversation(row.threadId);}} className="mt-2 block text-xs underline disabled:opacity-40">{t('communications.tracking.conversation')}</button></td>
      <td className="p-3"><p>{row.nextEmailCode||'—'}</p><time className="text-xs text-brand-mid-grey">{date(row.nextEmailAt)}</time></td>
-     <td className="p-3">{row.followup?<><p>{row.followup.ownerName||t('communications.unassigned')}</p><p className="mt-1 text-xs">{t('communications.attempts')}: {row.followup.attempts}</p><time className="mt-1 block text-xs text-brand-mid-grey">{date(row.followup.dueAt)}</time></>:'—'}</td></tr>)}
+     <td className="p-3">{row.followup?<><p>{row.followup.ownerName||t('communications.unassigned')}</p><p className="mt-1 text-xs">{t('communications.attempts')}: {row.followup.attempts}</p><time className="mt-1 block text-xs text-brand-mid-grey">{date(row.followup.dueAt)}</time><button type="button" onClick={()=>setContactHistory(row.followup!.id)} className="mt-2 block text-xs underline">{t('communications.tracking.contactHistory')}</button></>:'—'}</td></tr>)}
    </tbody></table></div>
    <div className="mt-3 flex items-center gap-3 text-sm"><button type="button" disabled={page===0} onClick={()=>setPage(value=>value-1)} className={field}>{t('communications.tracking.previous')}</button><p>{t('communications.tracking.page',{count:page+1,total:report.total})}</p><button type="button" disabled={report.offset+report.rows.length>=report.total} onClick={()=>setPage(value=>value+1)} className={field}>{t('communications.tracking.nextPage')}</button></div>
+   {contactHistory&&<CommunicationContactHistory followupId={contactHistory} nextContactHours={nextContactHours} onChanged={()=>setRevision(value=>value+1)}/>}
    <h3 className="mt-7 font-semibold">{t('communications.tracking.projects')}</h3><p className="mt-1 text-xs text-brand-mid-grey">{t('communications.tracking.projectsHelp')}</p>
    <ul className="mt-3 space-y-2">{report.projects.map(project=><li key={project.id} className="flex flex-wrap justify-between gap-2 rounded-xl border p-3 text-sm"><Link to={`/admin/projects/${project.id}`} className="underline">{project.name}</Link><span>{project.origin} · {t(project.duplicate?'communications.tracking.duplicate':'communications.tracking.standard')} · {t(project.connected?'communications.tracking.connected':'communications.tracking.connecting')}</span></li>)}</ul>
   </>}

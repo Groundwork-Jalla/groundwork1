@@ -24,6 +24,29 @@ type Mirror<T> = {
 
 export const fr: Mirror<EnDict> = {
   communications: {
+    filters:{projectLoadFailed:"Impossible de charger les projets. Actualisez la page pour réessayer.",createdFrom:"Créé à partir du",createdThrough:"Créé jusqu’au",origin:"Origine de création du projet",allOrigins:"Toutes les origines",clientOrigin:"Créé par un client",contractorOrigin:"Créé par un entrepreneur",allOwners:"Tous les propriétaires",clear:"Effacer les filtres",joinedFrom:"Inscrit à partir du",joinedThrough:"Inscrit jusqu’au",projectStatus:"Statut du projet associé",allProjectStatuses:"Tous les statuts de projet",onboarding:"Étape d’inscription",allOnboarding:"Toutes les étapes d’inscription",phases:{not_started:"Non commencé",in_progress:"En cours",completed:"Terminé"}},
+    tracking: {
+      contactHistory:"Historique / enregistrer un contact",contactTime:"Date du contact",contactTimeInvalid:"Choisissez une date de contact valide, après la création de cette tâche et au plus tard maintenant.",contactHelp:"Enregistrez la date réelle de la conversation. L’action terminée le reste lorsque vous ajoutez une note ensuite.",contactOpen:"Suivi ouvert",contactClosed:"Suivi terminé",
+      title:"Suivi et reprise",help:"Mesurez l’activation, consultez l’action attendue de chaque personne et reliez l’historique des communications au suivi humain. Les résultats utilisent les faits enregistrés et les dates choisies, y compris les actions terminées ultérieurement.",
+      from:"Du",through:"Au",asOf:"Résultats au",hours:"{count} heures",connectionTime:"Délai médian jusqu’au projet connecté",timeCoverage:"Calculé pour {count} personnes dont les dates d’entrée et de connexion sont enregistrées.",
+      coverage:"Inscriptions enregistrées : {signups} ; inscriptions non classées : {unknown}. Connexions historiques sans date connue : {connections}. Invitations e-mail sans livraison confirmée : {invitations}.",
+      install:"Exécutez 20261113001300_communication_tracking.sql dans l’éditeur SQL Supabase pour installer le suivi.",invalidDates:"Choisissez des dates valides, avec le début avant ou le même jour que la fin.",loadFailed:"Impossible d’actualiser le suivi. Réessayez.",
+      recovery:"Reprise après les messages",recoveryHelp:"Chaque action terminée est reliée au dernier message confirmé avant sa réalisation. Ouvrir un message ne suffit pas à terminer l’action.",noRecovery:"Les livraisons confirmées et les actions terminées ultérieurement apparaîtront ici.",
+      people:"Personnes et actions en cours",peopleHelp:"La recherche, le parcours et le statut filtrent ce tableau. Les indicateurs utilisent les dates choisies. Une séquence de rappels terminée peut toujours attendre l’action de la personne.",
+      person:"Personne / projet",action:"Action en cours",message:"Dernier e-mail",next:"Prochain e-mail",followup:"Suivi humain",recovered:"Actions terminées / destinataires",rate:"Taux",state:"Statut enregistré",allStates:"Tous les statuts",search:"Rechercher un nom, un e-mail ou un projet",conversation:"Ouvrir la conversation",completedAt:"Action terminée",noPeople:"Aucune étape enregistrée ne correspond aux filtres.",previous:"Précédent",nextPage:"Suivant",page:"Page {count} · {total} étapes enregistrées",
+      states:{active:"Séquence automatique active",awaiting_action:"Action de la personne attendue",action_complete:"Action requise terminée",sequence_complete:"Séquence de confirmation terminée",exited:"Étape quittée",suppressed:"Rappels suspendus"},
+      projects:"Suivi des projets",projectsHelp:"Les 50 derniers projets créés aux dates choisies. Consultez les doublons dans chaque dossier. L’origine de création reste fixe lors des changements de rôle.",duplicate:"Doublon signalé",standard:"Aucun signalement de doublon",connected:"Client et entrepreneur connectés",connecting:"Connexion en cours",
+      duplicateReview:"Examen des doublons",duplicateHelp:"Enregistrez la décision de l’équipe après examen. Ce signalement contribue à la mesure des doublons et conserve le dossier du projet.",reason:"Motif de l’examen",reasonRequired:"Indiquez pourquoi ce projet est un doublon.",markDuplicate:"Enregistrer le doublon",clearDuplicate:"Retirer le signalement",flagFailed:"Impossible d’enregistrer le signalement. Réessayez.",
+      metrics:{
+       signupToOnboarding:{title:"Inscription → formalités",help:"Entrepreneurs inscrits indépendamment ayant terminé leurs formalités."},
+       onboardingToProject:{title:"Formalités → projet",help:"Entrepreneurs inscrits indépendamment ayant créé un projet après leurs formalités."},
+       projectToInvitation:{title:"Premier projet → invitation",help:"Premiers projets avec un e-mail accepté par le service d’envoi ou un lien de projet accepté."},
+       invitationAcceptance:{title:"Acceptation des invitations e-mail",help:"Invitations acceptées parmi les e-mails livrés et confirmés. Les liens de projet sont mesurés séparément."},
+       linkClaims:{title:"Utilisation des liens de projet",help:"Liens acceptés parmi ceux créés aux dates choisies."},
+       humanRecovery:{title:"Reprise après suivi humain",help:"Actions terminées après un contact enregistré ou une réponse envoyée par l’équipe."},
+       duplicateProjects:{title:"Taux de projets en doublon",help:"Projets signalés comme doublons par l’équipe, divisés par les projets créés."},
+      },
+    },
     journeys: {
       title:"Parcours",help:"Examinez les quatre parcours d’activation. Chaque étape possède son propre délai, sa prochaine action et son calendrier de rappels. Sélectionnez un message pour l’aperçu avec des informations d’exemple.",
       immediate:"À l’entrée dans l’étape",day:"Jour {count}",hours:"{count} heures après l’entrée",enabled:"Activé",paused:"En pause",
