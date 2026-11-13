@@ -176,6 +176,22 @@ DECLARE r public.stage_payment_receipts%ROWTYPE; v_project uuid; pay public.paym
  RETURN jsonb_build_object('receipt_id',r.id,'stage_id',r.stage_id,'opened',v_opened,'allows_work',p_decision='accept');
 END $$;
 
+CREATE OR REPLACE FUNCTION public.review_stage_payment_receipt(p_receipt uuid,p_decision text,p_note text,p_top_up numeric,p_expected_stage_amount numeric,p_expected_decision text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE r public.stage_payment_receipts%ROWTYPE;v_project uuid;actual_amount numeric;BEGIN
+ SELECT project_id INTO v_project FROM public.stage_payment_receipts WHERE id=p_receipt;
+ IF NOT FOUND THEN RAISE EXCEPTION 'not_found'; END IF;
+ PERFORM public.lock_project_stage_progression(v_project);
+ IF NOT public.is_admin() AND NOT public.is_primary_project_contractor(v_project) THEN RAISE EXCEPTION 'not_contractor'; END IF;
+ SELECT * INTO r FROM public.stage_payment_receipts WHERE id=p_receipt FOR UPDATE;
+ IF r.allows_work AND p_decision='accept' THEN RETURN public.decide_stage_payment_receipt(p_receipt,p_decision,p_note,p_top_up); END IF;
+ SELECT coalesce(s.milestone_amount,round(pay.amount*coalesce(r.project_fx_rate,p.budget_fx_rate,1),6)) INTO actual_amount FROM public.project_stages s JOIN public.projects p ON p.id=s.project_id JOIN public.payments pay ON pay.id=r.payment_id WHERE s.id=r.stage_id;
+ IF p_expected_stage_amount IS NULL OR p_expected_stage_amount::text IN('NaN','Infinity','-Infinity') OR round(p_expected_stage_amount,6) IS DISTINCT FROM round(actual_amount,6) OR p_expected_decision IS DISTINCT FROM r.decision THEN RAISE EXCEPTION 'stale_receipt: review the current stage price and receipt decision'; END IF;
+ RETURN public.decide_stage_payment_receipt(p_receipt,p_decision,p_note,p_top_up);
+END $$;
+REVOKE ALL ON FUNCTION public.review_stage_payment_receipt(uuid,text,text,numeric,numeric,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.review_stage_payment_receipt(uuid,text,text,numeric,numeric,text) TO authenticated;
+
 -- Approved amendments may revise any stage without changing work or payment facts.
 CREATE OR REPLACE FUNCTION public.stage_price_editable(p_stage uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$

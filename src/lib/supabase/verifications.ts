@@ -249,9 +249,9 @@ export interface StagePaymentReceipt {
   replacedBy?:string|null;replacedAt?:string|null;
 }
 
-export async function decideStagePaymentReceipt(receiptId: string, decision: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string) {
-  const { data, error } = await supabase.rpc('decide_stage_payment_receipt', {
-    p_receipt: receiptId, p_decision: decision, p_note: note?.trim() || null, p_top_up: topUp || null,
+export async function decideStagePaymentReceipt(receiptId: string, decision: 'accept' | 'needs_top_up' | 'flag', note?: string, topUp?: string,review?:{stageAmount:number;decision:string}) {
+  const { data, error } = await supabase.rpc(review?'review_stage_payment_receipt':'decide_stage_payment_receipt', {
+    p_receipt: receiptId, p_decision: decision, p_note: note?.trim() || null, p_top_up: topUp || null,...(review?{p_expected_stage_amount:review.stageAmount,p_expected_decision:review.decision}:{}),
   });
   if (error) throw error;
   return data;

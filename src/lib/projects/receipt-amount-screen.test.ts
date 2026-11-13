@@ -185,6 +185,6 @@ describe('the receipt upload and contractor review', () => {
     expect(text(elements)).toContain('30 XAF'); expect(text(elements)).toContain('topUpRequested');
     await elements.find(e => e.type === 'button' && text(e) === 'project.receiptFlow.continueWithReceived')!.props.onClick();
     expect(h.decide).not.toHaveBeenCalled();render({payment:sent,isContractor:true}).find(e=>e.type==='button'&&text(e)==='project.receiptFlow.continueChoice')!.props.onClick();expect(h.decide).not.toHaveBeenCalled();await render({payment:sent,isContractor:true}).find(e=>e.type===ConfirmModal&&e.props.open)!.props.onConfirm();
-    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined);
+    expect(h.decide).toHaveBeenCalledWith('r1', 'accept', undefined, undefined,{stageAmount:60000,decision:'received'});
   });
 });

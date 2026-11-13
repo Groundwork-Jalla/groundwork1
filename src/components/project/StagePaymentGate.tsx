@@ -109,7 +109,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if (action === 'flag' && !note?.trim()) { fail(t('project.receiptFlow.reasonRequired')); return; }
     pendingWork.current = scope; setWorking(scope); setFailure(null);
     try {
-      if (receipt) await decideStagePaymentReceipt(receipt.id, action, note, topUp);
+      if (receipt) await decideStagePaymentReceipt(receipt.id, action, note, topUp,{stageAmount:scheduledAmount??payment!.amount*fxRate,decision:receipt.decision});
       else if (action === 'accept' && payment?.receiptPath && payment.receiptUploadedAt) {
         await confirmStagePayment(stageId, note, { path: payment.receiptPath, uploadedAt: payment.receiptUploadedAt });
       } else return;
@@ -125,7 +125,9 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if(action==='needs_top_up'&&!canonicalReceiptAmount(topUp)){fail(t('project.stages.receiptAmountInvalid'));return;}
     if(action==='flag'&&!note?.trim()){fail(t('project.receiptFlow.reasonRequired'));return;}
     const money=format(receipt?.amount??payment?.receiptAmount??null,receipt?.currency??payment?.receiptCurrency??code);
-    setConfirmation({scope,receiptId:receipt?.id,action,note,topUp,description:t('project.receiptFlow.confirmMoney',{amount:money})+'\n'+t(action==='flag'?'project.receiptFlow.confirmMissing':action==='needs_top_up'?'project.receiptFlow.confirmAdditional':'project.receiptFlow.confirmContinue',{amount:format(topUp==null?null:Number(topUp),receipt?.currency??code)})+'\n'+t('project.receiptFlow.balanceStaysRecorded')});
+    const projected=payment?stageReceiptBalance({...payment,receipts:payment.receipts?.map(item=>item.id===receipt?.id&&action!=='flag'?{...item,decision:'received' as const}:item)},code,fxRate,scheduledAmount):balance;
+    const coverage=t('project.receiptFlow.coverageAfter',{received:format(projected?.received??null,code),remaining:format(projected?.remaining??null,code)});
+    setConfirmation({scope,receiptId:receipt?.id,action,note,topUp,description:t('project.receiptFlow.confirmMoney',{amount:money})+'\n'+t('project.receiptFlow.schedule',{amount:format(scheduledAmount??payment!.amount*fxRate,code)})+'\n'+coverage+'\n'+t(action==='flag'?'project.receiptFlow.confirmMissing':action==='needs_top_up'?'project.receiptFlow.confirmAdditional':'project.receiptFlow.confirmContinue',{amount:format(topUp==null?null:Number(topUp),receipt?.currency??code)})+'\n'+t('project.receiptFlow.balanceStaysRecorded')});
   }
   async function confirmDecision(){if(!confirm)return;const saved=await decide(liveReceipts.find(receipt=>receipt.id===confirm.receiptId),confirm.action,confirm.note,confirm.topUp);if(saved&&current.current===scope)setConfirmation(null);}
   function correctReceipt(receipt:StagePaymentReceipt){setFileQueue({scope,files:[]});setReplacement({scope,receiptId:receipt.id});setDraft({scope,amount:'',currency:receipt.currency??code,file:null});setFailure(null);}
