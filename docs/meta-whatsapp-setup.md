@@ -4,12 +4,24 @@ The confirmed first connection is **Meta’s test number**. Groundwork owns the
 communication framework; Meta carries WhatsApp messages. Sending remains off by
 default. This guide describes the new implementation, not proof of a live connection.
 
-## Groundwork's registered business number
+## Production business number
 
-The account owner confirmed **+1 469 991 3055** (`+14699913055`) as Groundwork's
-registered WhatsApp Business number. Keep it as the intended business number for
-the company connection after the test. Its current registration method and Cloud
-API connection still need confirmation.
+On **15 November 2026**, the account owner confirmed that Groundwork will retain
+**+1 469 991 3055** (`+14699913055`) as its planned production WhatsApp number,
+after considering a replacement. The owner identifies it as a GHL-generated
+number. Its existing Meta registration, account ownership and app access still
+need checking before connecting the production sender.
+
+The production setup screenshot shows `+14699913055` selected as the sender. The
+owner supplied its generated request URL on 15 November, identifying the production
+**Phone Number ID as `1268412669693909`**. Its matching account ID is still pending.
+The recipient in the sample request is not proof of ownership or confirmed
+delivery. No access token was included in that supplied request.
+
+To identify the account, open Meta Business Settings for **Jalla the firm**, then
+**Accounts → WhatsApp accounts**. Select the account containing `+14699913055` and
+copy its account ID. Keep production and test-account IDs separate. See
+[Meta's account-ID reference](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/).
 
 For the first test connection, enter the actual **Meta-provided test number** in
 Groundwork's business/test phone field, together with that test number's Meta
@@ -18,8 +30,13 @@ here does not change the active connection or enable sending.
 
 ### Connecting the company number after the test
 
-Confirm where `+14699913055` is currently registered before choosing its onboarding
-path. An existing Cloud API registration supplies its own phone-number and
+Inspect the existing registration of `+14699913055` before choosing its onboarding
+path. Check the number's current Meta account and phone-number ID when available;
+the test number's IDs must not be reused as the company's production IDs.
+Use a company-controlled number that can receive
+Meta's verification by SMS or voice call, following
+[Meta's number requirements](https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/phone-numbers).
+An existing Cloud API registration supplies its own phone-number and
 account IDs. A number used in the WhatsApp Business mobile app has a different
 onboarding path. Meta documents coexistence through eligible partner onboarding;
 our direct test connection does not establish that coexistence is available for

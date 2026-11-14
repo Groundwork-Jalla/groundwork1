@@ -1,7 +1,7 @@
 -- Reproduce the deployed first copy: the core tables exist, later columns do not.
 RESET ROLE;
 SELECT test_assert((SELECT NOT enabled AND mode='test' FROM communication_whatsapp_settings),'fresh WhatsApp installs remain disabled');
-UPDATE communication_whatsapp_settings SET enabled=true,mode='test',phone_number_id='111111',business_account_id='222222',display_phone='+14699913055',test_recipients=ARRAY['+15551234567'];
+UPDATE communication_whatsapp_settings SET enabled=true,mode='test',phone_number_id='111111',business_account_id='222222',display_phone='+15550001111',test_recipients=ARRAY['+15551234567'];
 INSERT INTO app_config(key,value) VALUES('meta_whatsapp_token','test-upgrade-private-token');
 INSERT INTO communication_whatsapp_contacts(id,phone_number_id,phone,name,consent_at,last_inbound_at)
 VALUES(test_id(9101),'111111','+15551234567','Existing contact','2026-11-01T12:00:00Z','2026-11-02T12:00:00Z');
