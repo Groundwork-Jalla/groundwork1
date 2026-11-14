@@ -2,11 +2,70 @@
 
 **Construction management for the African diaspora.**
 
-Building a home in Africa while living abroad is hard — not because of money, but because of distance, trust, and lack of visibility. You send money, you get photos, you have no way to verify any of it. Groundwork replaces trust-based construction management with a structured, evidence-driven system: **every payment is tied to proof, every stage is independently reviewed, and the whole record lives in one place you can see from anywhere.**
+Building a home in Africa while living abroad is hard, not because of money but because of distance, trust and visibility. You send money, you get photos, you have no way to verify any of it. Groundwork replaces trust-based construction management with an evidence-driven record: **every stage is paid against a receipt the system has read, every update is reviewed before the next stage opens, and the whole history lives in one place you can see from anywhere.**
 
-The launch corridor is **US/diaspora clients → Cameroonian contractors**. Cameroon is the default country everywhere (`DEFAULT_COUNTRY_CODE` in [src/lib/countries.ts](src/lib/countries.ts)) and the only one with a calibrated take-off rate table.
+The launch corridor is **US and diaspora clients → Cameroonian contractors**. Cameroon is the default country everywhere (`DEFAULT_COUNTRY_CODE` in [src/lib/countries.ts](src/lib/countries.ts)) and the only one with a calibrated take-off rate table. Of the 24 supported countries, Cameroon is the only one with real bills of quantities behind its rates.
 
-**Live:** [tryjalla.com](https://www.tryjalla.com) · **Preview:** [groundwork1-phi.vercel.app](https://groundwork1-phi.vercel.app)
+**Live:** [www.tryjalla.com](https://www.tryjalla.com) · Canonical host is `www`; the apex redirects.
+
+_Last reconciled against the code on 14 November 2026. Where this file and the code disagree, the code wins and this file needs a fix._
+
+---
+
+## What the product does today
+
+Four surfaces sit over one core model (projects, stages, substages, evidence, receipts, memberships, messages). See [docs/project-workflow-behaviour-2026-11-14.md](docs/project-workflow-behaviour-2026-11-14.md) for the behaviour reference.
+
+| Surface | Path | Who | What they do |
+|---|---|---|---|
+| Client | `/dashboard`, `/projects/:id` | the person paying for the build | Creates a project (wizard or bill of quantities), invites a contractor, approves construction updates, uploads payment receipts, approves price changes |
+| Contractor | `/work` | the primary contractor and additional contractors | Uploads construction updates per substage, proposes stage prices, confirms money arrived, authorises work to continue, files a take-off |
+| Verifier | `/verifiers` | an invited independent reviewer | Workspace v0. Independent verification is currently paused: clients approve updates directly |
+| Admin | `/admin` | Groundwork staff | Manages every actor and project, reviews finance, runs the communication framework, support, CRM and settings |
+
+Two rules shape everything under `/admin`: it manages actors and oversees, it never grows the execution screens contractors and verifiers use; and it shows **only real data**. No mock rows, no placeholder numbers.
+
+### The stage workflow
+
+Every project is seeded with ten stages, each with substages: Land Secured, Design Completed, Site Preparation, Foundation, Structure & Walls, Roofing, Electrical & Plumbing, Finishing, Exterior Work, Final Handover ([stage-seeds.ts](src/lib/supabase/stage-seeds.ts)). Stages progress strictly in order and the database enforces it.
+
+How a stage opens depends on who created the project (`projects.workflow_origin`):
+
+- **Client-created:** the client pays the stage first. The contractor confirms the money arrived and authorises work. The contractor uploads updates, the client approves, the next stage asks for its payment.
+- **Contractor-created:** work comes first. The contractor uploads updates, the client approves, the client pays *that reviewed stage*, the contractor confirms, and the next stage opens for updates.
+- **Joining a build in progress:** stages already built are marked `pre_existing`. They get no verification, no certificate and no payment. On an estimate-priced project they are zeroed; on a bill-priced project they keep their share of the bill.
+
+The gate the contractor sees is [stage-progression.ts](src/lib/projects/stage-progression.ts) in the browser and `stage_work_ready()` / `open_stage_if_settled()` in Postgres. They must agree.
+
+### How a receipt becomes a payment
+
+This is the only path by which money is recorded against a stage. Nothing moves money; Groundwork records what the client proves and the contractor confirms. Full detail in [docs/receipt-verification-errors.md](docs/receipt-verification-errors.md) and [docs/receipt-currency-follow-up.md](docs/receipt-currency-follow-up.md).
+
+1. The client picks the receipt's currency (27 supported), types the exact printed amount and uploads the file to private storage.
+2. `read-payment-receipt` reserves a reading, downloads the stored file, and asks Claude (`RECEIPT_READER_MODEL`, default `claude-sonnet-5-5`) for one completed-payment amount and currency with a confidence.
+3. The match is exact. A high-confidence reading that equals the typed amount and currency is `matched`; anything else is a mismatch, not a receipt, or unreadable, and nothing is recorded.
+4. A conversion is frozen onto the matched reading: the project's own rate for its own currency, parity for USD, a daily ExchangeRate-API rate for anything else. The browser can never supply a rate.
+5. `submit_stage_payment_receipt` re-checks the reading, the file hash and the stage, then inserts an immutable `stage_payment_receipts` row.
+6. The contractor decides: accept, request a top-up, or flag. Only acceptance funds the payment and opens the stage. Partial payments reduce the balance; the contractor chooses whether to proceed with a balance outstanding.
+
+Stage prices can be revised by the primary contractor and approved by the client (`stage_price_amendments`); the original bill and the amendment history stay recorded.
+
+### Pricing a project
+
+Two sources of truth, never mixed:
+
+- **Estimate** from the take-off engine in [src/lib/budget/](src/lib/budget/): a real quantity take-off from the wizard answers (geometry, roof, nine trade sections, BQ line items, city rate tables). Rates live in `construction_rates` and `construction_city_rates`, calibrated against real Cameroonian bills: see [docs/BQ-QUESTIONS.md](docs/BQ-QUESTIONS.md).
+- **Bill of quantities** uploaded by the client or contractor. A bill-priced project is worth exactly the bill: no Groundwork fees, every stage its percentage. `extract-bq.ts` reads the sheet, and `read-floor-plan` asks Claude what kind of building a plan shows when the text layer cannot say.
+
+Every stored stage figure is USD; the UI shows the project's local currency first at one rate per project (`use-project-money.ts`), with the dollar equivalent beside it.
+
+### Communications
+
+Groundwork owns activation reminders, recipient preferences, replies and staff follow-up. Resend carries email. See [docs/groundwork-communications.md](docs/groundwork-communications.md) and [docs/communication-framework-release-2026-11-14.md](docs/communication-framework-release-2026-11-14.md).
+
+- Four journeys, sixteen sequences, English and French copy ([journeys.ts](src/lib/lifecycle/journeys.ts), [shared/lifecycle-copy.ts](shared/lifecycle-copy.ts)): contractor self-signup, contractor invited by a client, client self-signup, client invited by a contractor.
+- The worker is `lifecycle-run`, called by Vercel Cron every five minutes with `CRON_SECRET`. Deliveries, replies and follow-up live in the `communication_*` and `lifecycle_*` tables and are reviewed at `/admin/sequences`, `/admin/inbox` and `/admin/notifications`.
+- **WhatsApp is off.** Direct Meta integration was chosen on 14 November 2026 ([docs/meta-whatsapp-setup.md](docs/meta-whatsapp-setup.md)); no phone-number ID or token is configured. GoHighLevel remains the fallback transport and keeps sales and partner-application workflows. It no longer receives activation triggers.
 
 ---
 
@@ -14,60 +73,71 @@ The launch corridor is **US/diaspora clients → Cameroonian contractors**. Came
 
 | Layer | Choice |
 |---|---|
-| UI | React 19 · TypeScript · Tailwind CSS v4 · Framer Motion · Lucide |
-| Routing | React Router v7 — **framework mode, SPA** (`ssr: false`) |
-| Backend | Supabase — Postgres, Auth, Storage, Realtime, RLS |
-| Serverless | Vercel functions in [`api/`](api/) — email, Stripe, GoHighLevel |
+| UI | React 19 · TypeScript · Tailwind CSS v4 · Framer Motion · Lucide · Radix primitives |
+| Routing | React Router 7, **framework mode, SPA** (`ssr: false`, app directory `src/app`) |
+| Backend | Supabase: Postgres, Auth, Storage, Realtime, RLS on everything |
+| Serverless | Vercel functions in [api/](api/) on **Vercel Pro**; one dispatcher plus ten entry points |
+| Scheduled jobs | Vercel Cron: `swychr-poll` and `lifecycle-run`, every five minutes |
 | Email | Resend (`mail.tryjalla.com`) |
-| Subscriptions | **Stripe — live** ($199/mo Jalla Verify) |
-| Milestone payouts | Switchr, XAF mobile money — **not wired yet** |
-| CRM | GoHighLevel — contacts, pipelines, conversation threads |
-| Maps | Leaflet / react-leaflet |
-| PDF | jsPDF — stage completion certificates |
-| Tests | Vitest — 335 tests across 28 files |
-| Hosting | Vercel |
+| Document reading | Anthropic SDK (receipts, floor plans) · tesseract.js and pdfjs in the browser (plan gate) · SheetJS for bills |
+| Subscriptions | Stripe code is deployed, **checkout is paused** (see Payments) |
+| Milestone money | SwyChr pay-in callback and payout polling exist; no provider has written to the ledger in production |
+| CRM | GoHighLevel: contacts, pipelines, outbox, WhatsApp fallback |
+| Maps and PDF | Leaflet · jsPDF stage certificates · qrcode |
 | Monitoring | Sentry · Vercel Analytics · Google Analytics 4 |
-
-The app directory is `src/app` (set in [react-router.config.ts](react-router.config.ts)), not the React Router default.
+| Tests | Vitest (279 files) plus nine database regression scripts on local PostgreSQL |
 
 ---
 
 ## Quick start
 
-**Requires:** Node 20+ and **pnpm** (the repo commits `pnpm-lock.yaml` — don't use npm).
+**Requires:** Node 20+ and **pnpm** (the lockfile is pnpm's; do not use npm). Local PostgreSQL 16 to 18 binaries for the database regressions. **No Docker.**
 
 ```bash
 pnpm install
 cp .env.example .env    # then fill it in
-pnpm dev
+pnpm dev                # http://localhost:5174
 ```
 
-**→ http://localhost:5174** (port set in [vite.config.ts](vite.config.ts) — *not* Vite's default 5173).
+The port is 5174, set in [vite.config.ts](vite.config.ts), not Vite's default.
 
 The bare minimum for the app to boot:
 
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-RESEND_API_KEY=re_your_key        # optional in dev — emails are skipped without it
 ```
 
-> ⚠️ **The build fails without `VITE_SUPABASE_URL`.** [`src/lib/supabase/client.ts`](src/lib/supabase/client.ts) passes it straight to `createClient` with no guard, so the SPA prerender step throws `supabaseUrl is required`. This is config, not a code bug — but it's the first thing that trips up a fresh clone. Placeholder values are enough to get a build through.
+> The build fails without `VITE_SUPABASE_URL`: the client passes it straight to `createClient`. Placeholder values are enough to get a build through.
 
-[`.env.example`](.env.example) is the complete, commented list. The split that matters: **`VITE_*` is compiled into the browser bundle and is public**; everything else is server-only and read by `api/`. A GHL webhook URL or a service-role key with a `VITE_` prefix is a leak.
+[.env.example](.env.example) is the complete list. The split that matters: **`VITE_*` is compiled into the browser bundle and is public**; everything else is server-only and read by `api/`. The variables, grouped:
+
+| Group | Variables |
+|---|---|
+| Browser | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SENTRY_DSN`, `VITE_GA_MEASUREMENT_ID` |
+| Server Supabase | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_JALLA_VERIFY` |
+| Site | `PUBLIC_SITE_URL` (use the `www` host) |
+| GoHighLevel | `GHL_CONTRACTOR_WEBHOOK_URL`, `GHL_EVENT_WEBHOOK_URL`, `GHL_API_TOKEN`, `GHL_LOCATION_ID`, `GHL_PIPELINE_ID`, `GHL_STAGE_MAP`, `GHL_INBOUND_SECRET` |
+| Communications | `RESEND_API_KEY`, `CRON_SECRET`, `LIFECYCLE_WHATSAPP_ENABLED`, `TEAM_INBOX` |
+| Document reading | `ANTHROPIC_API_KEY`, `RECEIPT_READER_MODEL` |
+
+Runtime settings that change often (CRM credentials, notification recipients, sender addresses) live in the `app_config` table rather than Vercel, because a row takes effect within a minute and a Vercel variable needs a redeploy.
 
 ### Scripts
 
 | Command | Does |
 |---|---|
-| `pnpm dev` | Dev server on :5174 with HMR |
-| `pnpm build` | Production build → `build/client/` |
-| `pnpm typecheck` | `react-router typegen && tsc` |
+| `pnpm dev` | Dev server on :5174 with HMR. `/api/send-email`, `/api/send-invite` and a slice of `/api/events` are hand-wired middleware, so dev never loads the real handlers |
+| `pnpm build` | Production build to `build/client/` |
+| `pnpm typecheck` | `react-router typegen && tsc`. On a machine with little free memory run `NODE_OPTIONS=--max-old-space-size=3072 npx tsc --noEmit` |
 | `pnpm test` | Vitest, single run |
 | `pnpm test:watch` | Vitest in watch mode |
+| `pnpm test:*-db` | Database regressions, one per domain: `boq`, `receipts`, `stages`, `account-roles`, `admin`, `lifecycle`, `team`, `review`, `evidence`. Each boots a throwaway single-user PostgreSQL, applies the real migrations and fixtures from `scripts/fixtures/`, and asserts the RPCs, triggers and RLS |
 | `pnpm agent:queue` | Produce pending `/admin/requests` videos locally |
-| `pnpm media:setup` | Python venv for the video/deck pipeline (ffmpeg, python-pptx, python-docx) |
-| `pnpm start` | ⚠️ Vestigial — SPA mode deletes the server build, so this won't run |
+| `pnpm media:setup` | Python venv for the video and deck pipeline |
+| `pnpm plan:read` | Read a plan file from the command line |
+| `pnpm start` | Vestigial. SPA mode deletes the server build, so this does not run |
 
 ---
 
@@ -76,372 +146,284 @@ RESEND_API_KEY=re_your_key        # optional in dev — emails are skipped witho
 ```
 src/
 ├── app/
-│   ├── root.tsx              # HTML shell, providers, anti-flash theme + lang scripts
-│   ├── routes.ts             # Route config — all 47 routes
-│   └── routes/               # Route modules, grouped by layout
-│       ├── auth/  projects/  tools/  admin/
-├── components/
-│   ├── landing/              # Marketing page sections (16)
-│   ├── contractor/           # Contractor application + recruitment (12)
-│   ├── wizard/               # 11-step project creation wizard + inline SVG blueprints
-│   ├── project/              # Project detail tabs (15)
-│   ├── payments/             # Escrow wallet, payment + payout modals, upgrade screen
-│   ├── takeoff/              # BQ line grid + estimate comparison
-│   ├── shell/                # AppShell, AppSidebar, SiteNav, SiteFooter, nav-config
-│   ├── admin/  legal/
-│   └── ui/                   # Shared primitives (16)
+│   ├── root.tsx              # HTML shell, providers, Sentry boundary, pre-paint theme + lang scripts
+│   ├── routes.ts             # Route config: 91 routes in 9 groups
+│   └── routes/               # Route modules by surface: auth/ projects/ tools/ work/ verifiers/ admin/
+├── components/               # 198 components: admin, auth, contractor, conversations, dashboard, help,
+│                             #   landing, legal, payments, profile, project, shell, takeoff, tour, ui,
+│                             #   verifier, wizard
 ├── contexts/                 # AuthContext, ThemeContext, WizardContext
-├── hooks/                    # useCarousel, useForceLight, useJoinDestination
+├── hooks/
 ├── lib/
-│   ├── budget/               # Take-off + cost engine (see below)
-│   ├── supabase/             # All DB access, grouped by domain (18 modules)
-│   ├── i18n/                 # EN/FR dictionaries + provider
-│   ├── contractor/           # Application steps, phone/E.164, CRM payloads
-│   ├── email/                # Resend senders + HTML templates
-│   ├── payments/config.ts    # Tier pricing, fees — single source of truth
-│   ├── certificates/  pdf/  legal/  auth/  theme/
-│   ├── plan-limits.ts        # Free-plan cap, mirrored from migration 053
-│   └── countries.ts          # 25 supported countries, Cameroon default
+│   ├── budget/               # Take-off engine, bill reading, money pairing, repricing
+│   ├── supabase/             # All database access, one module per domain (71 modules)
+│   ├── projects/             # Stage progression rules, wizard draft, plan answers
+│   ├── payments/             # Receipt currencies and reading, balances, payout destinations, config flags
+│   ├── lifecycle/            # Activation journeys and tracking dates
+│   ├── i18n/                 # EN/FR dictionaries, typed parity, provider
+│   ├── email/                # Resend senders and HTML templates
+│   ├── tour/                 # In-app tour placement and completion
+│   ├── admin/ analytics/ auth/ certificates/ contractor/ documents/ ghl/ legal/ pdf/ theme/ verifier/
+│   ├── plan-limits.ts        # Free-plan cap constant, mirrored from the database
+│   └── countries.ts          # 24 supported countries, Cameroon default
 ├── types/project.ts
 └── styles/globals.css
 
-api/                          # Vercel serverless — see api/README.md
-├── events.ts                 # Dispatcher: 14 actions behind one function
-├── _handlers/                # One handler per file (underscore = not a function)
-├── ghl/                      # GoHighLevel client, pipelines, OAuth, outbox
-├── stripe/                   # Checkout, portal, webhook
-└── _lib/
+api/                          # Vercel serverless. Read api/README.md first.
+├── events.ts                 # Dispatcher: 39 actions behind one function (maxDuration 300)
+├── _handlers/                # One handler per action (40 files)
+├── _lib/                     # Shared server code: Stripe, Resend, receipt reader, lifecycle engine
+├── ghl/                      # GoHighLevel client, pipelines, OAuth, inbound auth
+├── stripe/                   # Checkout (paused), portal, webhook
+└── send-email.ts, send-invite.ts, send-application-decision.ts,
+    contractor-application-notify.ts, agent-dispatch.ts, ghl/contractor.ts
 
-docs/                         # All project documentation
-supabase/migrations/          # 72 SQL migrations
-scripts/                      # agent-queue, agent-produce
-.github/workflows/            # Automated agent request production
+shared/lifecycle-copy.ts      # Message copy shared by the browser and the worker
+supabase/migrations/          # 227 SQL migrations
+scripts/                      # Database regression runners, fixtures, agent pipeline, dev API shim
+docs/                         # Everything else (see Documentation)
+screens/                      # Approved PC and mobile mockups, the contract for each screen
+public/                       # Favicons, logos, brand assets
 ```
 
-Illustrations (blueprints, floor plans, building types, roof types) are **hand-authored inline SVG**, not image assets — which is why files like `BuildingPreview.tsx` (1,164 lines) are large.
+Illustrations in the wizard (blueprints, floor plans, roof types) are hand-authored inline SVG, not image assets, which is why some component files are large.
 
 ---
 
 ## Routes
 
-**47 routes in 7 groups.** Full page-by-page reference: [docs/PAGES.md](docs/PAGES.md).
+**91 routes in 9 groups.** [docs/PAGES.md](docs/PAGES.md) is the page-by-page reference but dates from July 2026 and predates the contractor, verifier and most admin surfaces.
 
-| Group | Layout | Auth | Count |
+| Group | Layout | Auth | Routes |
 |---|---|---|---|
-| Public marketing | `_public-layout.tsx` | public | 7 |
-| Auth + onboarding | `_auth-layout.tsx` | public | 7 |
-| Project wizard | `WizardShell` owns viewport | required | 1 |
-| Protected app | `_layout.tsx` (sidebar) | required | 14 |
+| Communication preferences | standalone | token in URL | 1 |
+| Public | `_public-layout.tsx` | public | 7: landing, contractor-apply, jalla-management, verify/:id, privacy, terms, partner-agreement |
+| Auth and joining | `_auth-layout.tsx` | public | 11: login, signup, reset, new password, callback, onboarding, invite/:token, claim/:token, share/:token, contractor-signup, verifier-signup |
+| Project wizard | `WizardShell` | required | 1: `/projects/new` |
+| Client app | `_layout.tsx` | required | 13: dashboard, projects, project detail, take-offs, documents, resources, contractors directory, messages, notifications, profile, help |
 | Free tools | `tools/_tools-layout.tsx` | public | 5 |
-| Staff sign-in | none — standalone | public | 1 |
-| Admin panel | `admin/_admin-layout.tsx` | `isAdmin` | 12 |
+| Contractor workspace | `work/_layout.tsx` | contractor | 11: `/work`, projects, project detail, take-offs, payouts, onboarding, partner, profile, help, clients/new |
+| Verifier workspace | `verifiers/_layout.tsx` | verifier | 4 |
+| Staff sign-in | standalone | public | 1: `/admin/login` |
+| Admin | `admin/_admin-layout.tsx` | `is_admin()` | 37 |
 
-**Core flow:** `/` → `/auth/signup` → `/onboarding` → `/projects/new` (11-step wizard) → `/projects/:id`.
+`/contractors` is the **public client-facing directory**, admin-curated since migration 180 and no longer subscription-gated. `/work` is the authenticated contractor workspace. One path never means two products, so do not "fix" `/work` back to `/contractors`.
 
-`/admin/login` sits **outside** the admin layout on purpose: that layout redirects unauthenticated visitors to it, so nesting it would redirect to itself forever.
+`/admin/login` sits outside the admin layout on purpose: that layout redirects unauthenticated visitors to it.
 
-### The project lifecycle gate
-
-A project starts in **planning** and exposes none of its tabs until the owner confirms a final budget through `StartTrackingGate`. The `start_project_tracking` RPC is owner-guarded, idempotent and `SECURITY INVOKER`; in one transaction it writes the budget, re-derives every stage's `payment_milestone_usd`, activates stage 1 and unlocks its substages (migration 018).
-
-Once tracking starts, `/projects/:id` shows **7 tabs** for an owner — Overview, Stages, Costing, Timeline, Payments, Documents, Messages — and a reduced set for an invited contractor.
-
----
-
-## The take-off engine
-
-[`src/lib/budget/`](src/lib/budget/) is the commercial core, not a rate-per-m² multiplier. It runs a real quantity take-off:
-
-| Module | Does |
-|---|---|
-| `geometry.ts` | Derives quantities from the wizard answers — footprint, rooms, openings |
-| `roof.ts` | Roof forms and coverings, pitched vs. flat area maths |
-| `engine.ts` | Runs the take-off into 9 trade sections |
-| `lines.ts` | Individual BQ lines, plus contractor overrides |
-| `bq-items.ts` | The BQ item catalogue |
-| `model.ts` | City rate tables, `CM_TAKEOFF`, baseline city, `hasLocalBq` |
-| `derivation.ts` | Re-derives a stored budget back into its parts |
-| `index.ts` | Composes it all — `projectBudget`, `composeBudget`/`decomposeBudget`, and the per-stage payment schedule |
-| `legacy.ts` | Flat-multiplier fallback for countries with no local BQ |
-
-Nine trade sections: preliminary, foundation, ground floor, upper floor, roof, joinery, electrical, plumbing, finishing.
-
-Rates live in the database (`construction_rates`, `construction_city_rates`) and have been calibrated against real Cameroonian bills of quantities — see [docs/BQ-QUESTIONS.md](docs/BQ-QUESTIONS.md) and the spreadsheets in `docs/`. Contractors can file their own take-off at `/projects/:id/takeoff` and it is compared line by line against the estimate.
-
-This engine has **7 test files and the heaviest coverage in the repo.** Change a rate or a formula and run `pnpm test` before anything else.
+**Joining links.** Email invitations are recipient-bound (`/invite/:token`). Shareable project links (`/share/:token`) are role-segmented, single-use, revocable and do not expire; the first eligible signed-in account claims one. Contractors claim a project through `/claim/:token`.
 
 ---
 
 ## Database
 
-Supabase Postgres with **Row Level Security on everything** — a user can only ever read or write their own data, even at the raw DB level. Privileged reads go through `SECURITY DEFINER` RPCs, which migration 066 pins to a fixed `search_path`.
+Supabase Postgres with **Row Level Security on everything**. Privileged reads and every state change go through `SECURITY DEFINER` RPCs pinned to a fixed `search_path`. Business rules live in triggers and constraints, not only in the UI.
 
-Migrations live in [`supabase/migrations/`](supabase/migrations/) and are applied in filename order:
+### Migrations
 
-```bash
-npx supabase db push     # needs SUPABASE_ACCESS_TOKEN
-```
+227 files in [supabase/migrations/](supabase/migrations/), in two naming eras: `001` to `184` numbered, then timestamped `20260714000000_…` onward. Numbered files have collisions (two `043_`, two `045_`), so filename order is not a total order.
 
-In practice most have been applied by pasting into **Supabase → SQL Editor**, which is what the setup docs assume.
+There is **no migration table in play**. Files are applied by pasting into Supabase → SQL Editor. The repo cannot tell you what is live; a column that exists in a file but not in production is the usual cause of a feature that "does nothing". To check without asking, probe the REST API read-only with the anon key: a missing column answers `42703`, an existing one answers `200 []`. Always probe a column that cannot exist as a control in the same run.
 
-**Storage buckets** (all private): `evidence`, `documents`, `id-documents`, `contractor-docs`, `agent-outputs`.
+Local verification uses PostgreSQL binaries directly (`pnpm test:*-db`). Never Docker.
 
-**Tables** — 32, grouped by what they serve:
+### Tables, by what they serve
 
 | Area | Tables |
 |---|---|
-| Projects | `projects`, `project_stages`, `project_substages`, `project_documents`, `project_messages`, `project_takeoffs`, `project_fees`, `project_audit_log` |
-| People | `profiles`, `user_profiles`, `user_roles`, `contractors`, `contractor_invites`, `contractor_applications`, `contractor_application_drafts` |
-| Growth | `waitlist_members`, `waitlist_emails` |
-| Money | `billing_events`, `certificates` |
-| Rates | `construction_rates`, `construction_city_rates` |
+| Projects | `projects`, `project_stages`, `project_substages`, `project_documents`, `project_messages`, `project_takeoffs`, `project_fees`, `project_audit_log`, `site_updates`, `stage_verifications`, `stage_joining_assessments`, `stage_progression_authorizations` |
+| Membership | `project_viewers`, `project_verifiers`, `contractor_invites`, `verifier_invites`, `user_roles`, `profiles`, `user_profiles`, `user_devices`, `agreement_acceptances` |
+| Money | `payments` (the ledger, migration 090), `stage_payment_receipts`, `receipt_readings`, `stage_payment_plans`, `stage_price_amendments`, `payout_destinations`, `billing_events`, `certificates` |
+| Contractors | `contractors`, `contractor_applications`, `contractor_application_drafts`, `contractor_onboarding`, `contractor_documents`, `contractor_emergency_contacts`, `contractor_clients`, `contractor_inquiries`, `partner_pipeline` |
+| Communications | `communication_messages`, `communication_threads`, `communication_preferences`, `communication_runs`, `communication_settings`, `communication_followup_events`, `communication_action_outcomes`, `communication_milestones`, `communication_issues`, `communication_project_connections`, `lifecycle_sequences`, `lifecycle_sequence_steps`, `lifecycle_enrollments`, `lifecycle_sends`, `lifecycle_deliveries`, `message_deliveries`, `followup_queue`, `notifications` |
 | CRM | `ghl_outbox`, `ghl_inbound_events`, `ghl_oauth_tokens`, `ghl_delivery_log`, `ghl_sync_failures` |
-| Ops | `notifications`, `app_config`, `agent_requests`, `agent_notify_log`, `security_notify_log`, `admin_deleted_projects` |
+| Rates | `construction_rates`, `construction_city_rates` |
+| Growth and ops | `waitlist_members`, `waitlist_emails`, `funnel_events`, `support_tickets`, `app_config`, `agent_requests`, `agent_notify_log`, `security_notify_log`, `email_otp_challenges`, `admin_deleted_projects` |
 
-**Rules enforced in the database, not just the UI:**
+**Storage buckets**, all private: `evidence` (construction updates and payment receipts), `documents`, `contractor-docs`, `id-documents`, `chat-attachments`, `agent-outputs`.
 
-- **Free-plan project cap** — `check_starter_project_limit()` (migration 053) allows 3 `self_verify` projects. Archived ones **count**, and owners cannot delete, so the number only goes up — the one exception being an admin deleting a project (069). [`src/lib/plan-limits.ts`](src/lib/plan-limits.ts) mirrors that function deliberately; the two must stay identical or the UI and the database disagree in ways that produce visible bugs.
-- **Tier changes** — migrations 060–062 guard `projects.tier` so only the Stripe webhook (service role) can grant a paid tier. The browser cannot promote itself.
-- **`app_config`** — RLS on, no policies. Only `SECURITY DEFINER` functions read it. It holds runtime settings (CRM credentials, notification recipients) *because Vercel's free plan ran out of environment variables*, and because a row takes effect in a minute with no redeploy.
+### Rules the database enforces
 
-> **Migration numbering has collisions:** two `043_` and two `045_` files, `006` renamed `.sql.applied`, and no `007`. Harmless as applied, but don't assume filename order is a total order.
+- **Stage order.** A stage cannot accept a receipt or open while an earlier one is incomplete. `lock_project_stage_progression()` serialises every state change per project.
+- **Receipts are immutable** once recorded. A later receipt may replace a pending one (`replaced_by`); a confirmed one never changes.
+- **A payment needs a server-issued reading.** `submit_stage_payment_receipt` refuses an amount that does not match a `matched` reading of that exact stored file.
+- **Pricing changes need client approval.** `propose_stage_prices` / `decide_stage_prices` snapshot the project; stale decisions are rejected.
+- **Roles are rows.** `is_admin()` reads `user_roles`. Admins change account types from `/admin/users` or `/admin/team`; the last admin cannot be demoted.
+- **Subscription columns are webhook-only** (migration 021). A browser cannot grant itself a tier.
+- **`app_config`** has RLS on and no policies. Only `SECURITY DEFINER` functions read it.
+- **A check constraint that mentions another column must guard its own NULL.** `NULL AND FALSE` is FALSE. This broke every receipt upload in production on 13 November 2026 (fixed in `20261113001300`).
 
 ---
 
-## `api/` — two rules that have each broken production
+## `api/`: the rule that has broken production twice
 
-Read [api/README.md](api/README.md) before touching anything in there. Both rules below are enforced by tests in `src/lib/email/`.
+Read [api/README.md](api/README.md) before touching anything in there.
 
-### 1. Twelve serverless functions, maximum
-
-Vercel's Hobby plan allows **12 functions per deployment, and every `.ts` file under `api/` is one** (paths with a leading-underscore segment are exempt).
-
-Going over does not fail loudly. The build fails, **the previous deployment keeps serving**, and the site looks completely normal — so pushes appear to succeed while production quietly freezes. This happened: seven endpoints were added over two days, every deployment failed from the first one, and two separate bugs were chased for hours that had both already been fixed and merged.
-
-The fix is not to delete features but to **collapse entry points**: handlers live one per file under `api/_handlers/`, behind the dispatcher in [`api/events.ts`](api/events.ts). Add an *action* there, not a file.
-
-`src/lib/email/api-function-count.test.ts` is the smoke alarm, and it fails at 12 so there is always one slot of headroom. Currently **11 of 12**.
-
-### 2. Relative imports need a `.js` extension
-
-Vercel transpiles each file on its own and does **not** bundle. `package.json` is `"type": "module"`, so Node's ESM resolver loads the output — which demands an explicit extension, refuses `@/*` aliases, and has no `import.meta.env`.
+**Relative imports need a `.js` extension.** Vercel transpiles each file on its own and does not bundle. `package.json` is `"type": "module"`, so Node's ESM resolver loads the output and demands an explicit extension, refuses `@/*` aliases and has no `import.meta.env`.
 
 ```ts
 import { getStripe } from '../_lib/stripe';      // ERR_MODULE_NOT_FOUND
 import { getStripe } from '../_lib/stripe.js';   // correct
 ```
 
-**This applies transitively**, which is why `src/lib/email/*` and `src/lib/i18n/{translate,fr}.ts` carry extensions while the rest of `src/` does not. It has been broken twice, and the second time was invisible: a *dynamic* import failed at call time, so the function booted and answered while applicants saw "submitted" and the email reached nobody. `api-import-graph.test.ts` walks the whole graph for exactly this reason — `vite dev` re-implements these endpoints in middleware and never loads the real handler, so nothing else catches it.
+This applies transitively to anything under `src/` that `api/` reaches, which is why `src/lib/email/*`, `src/lib/i18n/{translate,fr}.ts` and the payment helpers carry extensions. `api-import-graph.test.ts` walks the graph because `vite dev` re-implements these endpoints in middleware and never loads the real handler.
+
+**The dispatcher.** Nearly everything is an *action* on `POST /api/events?action=…` rather than a file. It began under Vercel Hobby's twelve-function limit; the project is on Vercel Pro now, so the limit no longer applies, but the dispatcher stays because webhook URLs and cron paths point at it. Add an action there, not a file, unless a fixed public URL is needed. Authentication is per handler, deliberately not at the dispatcher: a bearer token, an admin check, a shared secret, or a signed webhook body (`attachBody` preserves raw bytes).
+
+Actions, by family: `crm-*` and `conversation-*` (GoHighLevel), `communication-*` and `lifecycle-run` (the communication framework), `swychr-*` (pay-in callback, payout polling, attaching a destination), `read-payment-receipt` and `read-floor-plan` (document reading), `admin-*`, `invite-verifier`, `contractor-invite-client`, `send-share-invite`, `project-whatsapp`, `message-fanout`, `email-receipt` (Resend delivery webhook), `mfa-email`, `profile-geo`, `certificate-purge`.
+
+Aliases in [vercel.json](vercel.json) keep clean URLs for `crm-oauth`, `swychr-poll` and `lifecycle-run`.
 
 ---
 
 ## Payments
 
-**Two rails, and they are no longer in the same state.** Both flags live in [`src/lib/payments/config.ts`](src/lib/payments/config.ts), which is also the single source of truth for tier economics.
+Groundwork **records and governs** the financial process. A licensed provider holds and moves the money. No wallet, escrow or custody language anywhere in the product.
 
-| Rail | What | Status |
+| Rail | Code | State |
 |---|---|---|
-| **Stripe** | Jalla Verify subscription, client → Jalla | **Live** — `SUBSCRIPTIONS_ARE_PREVIEW = false` |
-| **Switchr** | Milestone funds + contractor payouts in XAF | **Not wired** — `MILESTONE_PAYMENTS_ARE_PREVIEW = true` |
+| Stripe subscriptions | `api/stripe/`, migration 021 | **Paused.** Both checkout endpoints return `410 Subscriptions are currently unavailable`. The webhook and portal remain deployed. `/pricing` no longer exists as a route. |
+| SwyChr (XAF mobile money) | `swychr-callback`, `swychr-poll`, `swychr-attach`, `payout_destinations` | Endpoints and the five-minute payout poll exist. No provider has written to the `payments` ledger in production. Payouts are not wired end to end. |
+| Client receipts | the flow above | **Live.** This is how a stage is paid today. |
 
-Contractors are **never** paid through Stripe: Stripe Connect does not support payouts to Cameroon, and no milestone money passes through a Stripe balance.
+Contractors are never paid through Stripe. Stripe Connect has no Cameroon payout support.
 
-| Plan | Price | Processing fee | Verification |
-|---|---|---|---|
-| Self Verify | Free — 3 projects | 10% | the owner approves their own stages |
-| Jalla Verify | $199/mo | 3% | Jalla reviews and approves each stage |
-| Jalla Management | Negotiated | custom | Jalla runs the project |
-
-Numbers live in `TIER_ECONOMICS`; every user-facing string for a tier lives in the i18n dictionary and is read through `useTierBilling()` in [`src/lib/tier-labels.ts`](src/lib/tier-labels.ts). They used to live together and had already drifted — **one home for the money, one home for the words.**
-
-**Real today:** Stripe Checkout, the customer portal, subscription webhooks (migration 021), and per-stage `payment_status` (`unpaid`/`partial`/`paid`) with realtime updates.
-**Simulated:** escrow hold, fee split, FX conversion, the payout tracker's five nodes.
-
-Setup and webhook configuration: [docs/STRIPE.md](docs/STRIPE.md). Say **"processing fee"**, never "platform fee" — see [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md).
+Flags live in [src/lib/payments/config.ts](src/lib/payments/config.ts): `MILESTONE_PAYMENTS_ARE_PREVIEW = true`, `SUBSCRIPTIONS_ARE_PREVIEW = false`. The second is stale in spirit now that checkout returns 410; the plan table there (`TIER_ECONOMICS`) still documents Self Verify free, Jalla Verify $199/mo, Jalla Management negotiated, and `plan-limits.ts` still carries the three-project cap. Check what is actually enforced before relying on either. Say **"processing fee"**, never "platform fee".
 
 ---
 
-## CRM — GoHighLevel
+## CRM: GoHighLevel
 
-The largest subsystem outside the app itself, and the focus of most recent work. Lifecycle events (signup, application filed, application decided, project created, subscription changed) are mirrored into GoHighLevel while **Supabase stays the source of truth**.
+Supabase is the source of truth; lifecycle events are mirrored into GoHighLevel. Three transports in order of preference: API v2 (contacts upserted by email), inbound webhooks as fallback, and the `ghl_outbox` queue for anything that fails, replayable from `/admin/crm`. **A CRM outage must never break a signup.** Every path fails soft and logs.
 
-**Three transports, in order of preference:**
-
-1. **API v2** — contacts upserted by email so one person is one record, which is what makes tags and pipeline moves possible at all.
-2. **Inbound webhooks** — the fallback when no API token is configured, or while one is broken.
-3. **`ghl_outbox`** — anything that fails is queued with its error and attempt count, replayable from `/admin/crm` or `/api/events?action=crm-retry`.
-
-Also implemented: OAuth token management for the Marketplace app, transactional emails recorded onto the contact's **conversation thread** (sent by Resend, *logged* to GHL), phone normalisation to E.164, duplicate detection, and an audit that finds misrouted contacts.
-
-**A CRM outage must never break a signup.** Every path fails soft and logs a warning — which is exactly why `/admin/crm` exists: it reads the live configuration, shows a tick per setting, tests the token against GHL, and lists everything waiting in the outbox. It is the only way to tell "working" from "quietly doing nothing."
-
-Full step-by-step setup: **[docs/GHL-SETUP.md](docs/GHL-SETUP.md)** — including three undocumented GoHighLevel behaviours that each cost real debugging time. Field mapping: [docs/GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md).
+Since the November 2026 communication decision GHL's job narrowed: sales and partner-application workflows, an optional copy of contact facts, and the fallback WhatsApp transport. Activation reminders no longer trigger GHL workflows. Setup: [docs/GHL-SETUP.md](docs/GHL-SETUP.md). Field mapping: [docs/GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md).
 
 ---
 
 ## Account security
 
-One password policy in [`src/lib/auth/password-policy.ts`](src/lib/auth/password-policy.ts),
-shared by `/auth/signup` and `/auth/new-password`: 10 characters, upper, lower, a digit,
-not a common password, and not containing the user's own name or email. A strength meter
-([`PasswordStrength`](src/components/ui/PasswordStrength.tsx)) sits on both.
+One password policy in [password-policy.ts](src/lib/auth/password-policy.ts), shared by signup and new-password. TOTP two-factor is enrolled at `/profile` and challenged at `/auth/login` and `/auth/callback`; email one-time codes are the second option (`email_otp_challenges`, `mfa-email`). A password-change tripwire email is sent by a database trigger (migration 070), not by the browser. Known devices are recorded in `user_devices`.
 
-**TOTP two-factor** is enrolled at `/profile` → Security and challenged at `/auth/login`
-and `/auth/callback` — the callback included, because Google sign-in lands there and
-leaving it out would make the OAuth button a way past 2FA. The challenge runs *before* the
-password-recovery branch, so a reset cannot be used to skip the second factor.
-
-A **"your password was changed"** email goes out on every password change. It is a
-database trigger (migration 070), not a client call — an email the browser decides to send
-is one an attacker simply does not send, which would defeat the point of a tripwire.
-
-> ⚠️ **Two Supabase dashboard settings are required** before the policy and 2FA are more
-> than a client-side courtesy — the password minimum and enabling TOTP. A third decision
-> (enforcing AAL at the database, so a half-authenticated session cannot be used against
-> PostgREST directly) is **not done**, and is written up honestly in
-> [docs/SECURITY.md](docs/SECURITY.md).
+Two Supabase dashboard settings are required before the policy and 2FA are more than a courtesy: the password minimum and TOTP enablement. Enforcing AAL at the database is not done. [docs/SECURITY.md](docs/SECURITY.md) is honest about it.
 
 ---
 
 ## Internationalisation
 
-The app is **bilingual English / French** — most Cameroonian users are francophone.
+English and French. Most Cameroonian users are francophone, and 72% of profiles store no language, so the country default (French for Cameroon) wins when nothing else is known. The sender's screen language is the last human signal before the country, never above a stored choice. A browser guess is never persisted.
 
-- **Detection:** `localStorage.lang` → any `fr-*` in `navigator.languages` → English. A French-browser visitor lands in French without touching anything. Also persisted to `profiles.preferred_lang` (migration 025) so it follows the account.
+- **Compile-enforced parity:** `fr.ts` is typed as `Mirror<EnDict>`. An English key without its French string fails the build.
 - **No flash:** a blocking script in `root.tsx` sets `<html lang>` before first paint.
-- **Compile-enforced parity:** `fr.ts` is typed as `Mirror<EnDict>` — adding an English key without its French translation **fails the build**. A half-translated screen cannot ship by accident.
-- **French plural rules:** `tPlural()` treats 0 and 1 as singular, unlike English.
-- **Terminology** is Central/West African construction French, not literal translation: *chantier*, *étape*, *sous-étape*, *entrepreneur*, *justificatifs*, *maître d'ouvrage*, *dépendance*.
+- **French plural rules:** `tPlural()` treats 0 and 1 as singular.
+- **Terminology** is Central and West African construction French: *chantier*, *étape*, *sous-étape*, *entrepreneur*, *justificatifs*, *maître d'ouvrage*. A site plan is a *plan de masse*.
 
 ```ts
-// 1. src/lib/i18n/en.ts
-nav: { dashboard: 'Dashboard' }
-
-// 2. src/lib/i18n/fr.ts   ← omit this and the build fails
-nav: { dashboard: 'Tableau de bord' }
-
-// 3. in your component
-const t = useT();
-<h1>{t('nav.dashboard')}</h1>
+// 1. src/lib/i18n/en.ts        nav: { dashboard: 'Dashboard' }
+// 2. src/lib/i18n/fr.ts        nav: { dashboard: 'Tableau de bord' }   // omit this and the build fails
+// 3. in a component            const t = useT(); <h1>{t('nav.dashboard')}</h1>
 ```
 
-The **entire public site** (landing page included, down to the text inside the animated illustrations), the full auth funnel, the dashboard and the admin CRM screens are translated. Some deeper authenticated screens are still English — the pattern to continue is mechanical.
-
-> **One known limit:** the contractor application form embedded on `/contractor-apply` is a cross-origin GoHighLevel iframe. Its contents **cannot** be translated from this codebase — the fix is a duplicated French form built in GHL. Instructions are in [`src/lib/i18n/external-forms.ts`](src/lib/i18n/external-forms.ts). While a locale points at another language's form, an amber notice says so, rather than a toggle that silently does nothing.
+The contractor application form on `/contractor-apply` is a cross-origin GoHighLevel iframe and cannot be translated here; see [external-forms.ts](src/lib/i18n/external-forms.ts).
 
 ---
 
-## Theming
+## Theming and design rules
 
-Dark mode is an **account preference**, not a device setting: stored in `localStorage` (read by the pre-paint script in `root.tsx`, so no flash) and in `profiles.preferred_theme` (migration 043) so it follows the account to a new device. If the browser has no explicit choice, the profile value wins; otherwise the local choice wins and is pushed up.
+Dark mode is an **account preference** stored in `localStorage` and `profiles.preferred_theme` (migration 043). [ThemeProvider](src/contexts/ThemeContext.tsx) is the single writer of the `dark` class. Four pages are deliberately light-only and call `useForceLight()`: the landing page, `/contractor-apply`, `/jalla-management` and `/partner-agreement`. Do not add `dark:` classes to them.
 
-[`ThemeProvider`](src/contexts/ThemeContext.tsx) is the **single writer** of the `dark` class on `<html>`. Never touch `document.documentElement.classList` for theme anywhere else.
-
-**Five surfaces are deliberately light-only** and call `useForceLight()` — `/`, `/pricing`, `/contractor-apply`, `/jalla-management`, and the legal pages. They contain zero `dark:` classes. This is a decision, not a bug: do not add `dark:` classes to them piecemeal, which would produce exactly the half-dark page the opt-out prevents.
+Before building or restyling a screen read [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md) and the approved mockups in [screens/](screens/). Every screen ships as a PC and a mobile PNG. No emoji in the app UI; colour is a status accent, not a data channel; WhatsApp stays green. The in-app tour ([src/lib/tour/](src/lib/tour/)) describes the control it points at and is placed so it never covers text.
 
 ---
 
 ## Testing
 
 ```bash
-pnpm test          # 335 tests, 28 files, ~3s
-pnpm typecheck     # react-router typegen && tsc
+pnpm test                         # Vitest: 279 files, 4,944 tests, about two minutes
+pnpm test:review-db               # one of nine database regressions
+NODE_OPTIONS=--max-old-space-size=3072 npx tsc --noEmit
 ```
 
-Coverage is deliberately uneven — it sits where a mistake is expensive or invisible:
+**State on 14 November 2026:** 19 tests fail in 8 files. Ten belong to the in-progress "Back follows the current account role" work (`contractor-project-role.test.ts`, `project-approval-handoff.test.ts`); four are source-snippet tests in `src/lib/admin/` that drifted from the admin notifications and conversation screens; two compare notification paths that changed; three are property or large-fixture tests that time out at the 5 s default under memory pressure and pass alone. Nothing in the money, stage-progression or receipt suites fails. Fix or retire them rather than letting the number grow.
 
-| Area | Why it's tested |
+Two layers, on purpose:
+
+| Layer | What it proves |
 |---|---|
-| `lib/budget/*` (7 files) | Money. A wrong rate is a wrong quote to a real client. |
-| `lib/contractor/*` (12 files) | CRM payload shapes, phone E.164, pipeline/stage mapping |
-| `lib/email/*` | The two `api/` deploy rules above, plus email validity and rendering |
-| `lib/i18n/data-keys.test.ts` | Pins dictionary keys to the tier feature counts |
-| `lib/supabase/stage-seeds.test.ts` | The 10-stage pipeline generated per project type |
+| Vitest (`src/**/*.test.ts`) | Pure rules: the take-off engine, money pairing, receipt matching, stage progression, invitation language, i18n keys, phone normalisation, the `api/` import graph |
+| Database regressions (`scripts/test-*.mjs`) | The real migrations against a throwaway PostgreSQL: RPC behaviour under `SET ROLE authenticated`, RLS, triggers, constraint edge cases. Fixtures live in `scripts/fixtures/` |
 
-Manual QA walkthrough: [docs/TESTING.md](docs/TESTING.md).
+The database layer exists because the unit layer cannot see a constraint. Add a fixture row for every new shape a function must accept; a function tested only with finished rows will pass while its first real insert fails.
+
+Manual QA walkthrough: [docs/TESTING.md](docs/TESTING.md) (says port 5173; it is 5174).
 
 ---
 
 ## Deployment
 
-Vercel, configured in [vercel.json](vercel.json):
+Vercel Pro, configured in [vercel.json](vercel.json): `pnpm build` to `build/client`, a five-minute `maxDuration` on the dispatcher, three URL aliases, two crons, and the SPA rewrite. The negative lookahead on `api/` in that rewrite is load-bearing.
 
-```json
-{ "buildCommand": "pnpm build", "outputDirectory": "build/client",
-  "rewrites": [
-    { "source": "/api/crm-oauth", "destination": "/api/events?action=crm-oauth" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ] }
-```
+**Use `www.tryjalla.com`, never the apex.** The apex issues a 308, and neither Stripe webhook delivery, Resend's webhook, nor Postgres `pg_net` follows redirects.
 
-The SPA rewrite is required — every route is client-side, so all paths must serve `index.html`. The negative lookahead on `api/` is **load-bearing**: without it the rewrite swallows the serverless functions. The `crm-oauth` alias exists because GoHighLevel's Marketplace app needs a fixed, clean redirect URL.
-
-**Use `www.tryjalla.com`, never the apex.** `tryjalla.com` issues a 308 redirect, and neither Stripe's webhook delivery nor Postgres `pg_net` follows redirects — so an apex URL in either place fails silently. This has bitten the Stripe webhook and the notification pipeline.
-
-Environment variables go in the Vercel project settings; see [`.env.example`](.env.example). Anything that can instead live in `app_config` should, because a Vercel variable needs a redeploy before it does anything.
+A deployment going green does not mean the database matches it. The migration and the frontend that needs it ship together only if someone pastes the SQL. Each release note in `docs/` says which migrations it needs.
 
 **Supabase Auth → URL Configuration → Site URL** must point at the production domain, or confirmation emails link to localhost.
 
-The `send-email` and `send-invite` functions have dev-server equivalents hand-wired into [vite.config.ts](vite.config.ts), so email works locally. **Note this means dev never loads the real handlers** — which is why the import-graph test exists.
-
 ---
 
-## Automation — agent requests
+## Automation: agent requests
 
-A request filed at `/admin/requests` produces itself: `agent_requests` insert → trigger (migration 056) → `/api/agent-dispatch` → GitHub `repository_dispatch` → [`.github/workflows/`](.github/workflows/) → plan (Claude) → record (headless Chrome) → QC → upload → status.
-
-Two things make it safe to leave alone: **the model plans but does not drive** (it returns a shot list from a fixed vocabulary that `docs/recording/play_plan.py` executes; off-site paths are refused), and **nothing ships unchecked** (`qc.py` catches blank frames, stalled drivers and short runs — all three have happened for real).
-
-Notification emails are sent **by the database itself**, calling Resend directly from the insert trigger, bypassing Vercel and GitHub entirely.
-
-**Currently dormant:** `ANTHROPIC_API_KEY` is not configured, so automatic production is off. That is a supported state — the runner exits 0, requests stay at `new`, and `pnpm agent:queue` still works by hand. Full detail: [docs/AGENT-AUTOMATION.md](docs/AGENT-AUTOMATION.md).
+A request filed at `/admin/requests` produces a screen recording of itself: `agent_requests` insert → trigger → `/api/agent-dispatch` → GitHub `repository_dispatch` → the `Agent requests` workflow → plan (Claude) → record (headless Chrome) → QC → upload. The model plans but does not drive, and nothing ships unchecked. Detail: [docs/AGENT-AUTOMATION.md](docs/AGENT-AUTOMATION.md).
 
 ---
 
 ## Documentation
 
-Everything except this README lives in [`docs/`](docs/).
+Everything except this file lives in [docs/](docs/). The current references, newest first:
 
 | File | What's in it |
 |---|---|
-| [docs/PAGES.md](docs/PAGES.md) | Every route, section by section — the reference |
-| [docs/GHL-SETUP.md](docs/GHL-SETUP.md) | GoHighLevel setup, step by step — **current** |
-| [docs/GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md) | CRM field mapping |
-| [docs/ADMIN-DASHBOARD.md](docs/ADMIN-DASHBOARD.md) | The admin panel as an operations desk — health rules, needs-attention, and the phased roadmap |
-| [docs/SECURITY.md](docs/SECURITY.md) | Password policy, 2FA, reset flow — **and the two Supabase settings they need** |
-| [docs/STRIPE.md](docs/STRIPE.md) | Stripe products, webhook, going live |
-| [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md) | The decided A/B variant for all 20 screens — **read before restyling anything** |
-| [docs/BQ-QUESTIONS.md](docs/BQ-QUESTIONS.md) | Quantity-surveying questions and answers behind the rate tables |
-| [docs/AGENT-AUTOMATION.md](docs/AGENT-AUTOMATION.md) | The `/admin/requests` production pipeline |
-| [docs/TESTING.md](docs/TESTING.md) | Manual QA walkthrough *(says port 5173 — it's 5174)* |
-| [docs/corrections/](docs/corrections/) | Drafted customer corrections — **`false-payment-confirmation.md` is unsent** |
-| [docs/memo.md](docs/memo.md) | Session log, 31 July 2026 *(stale in places)* |
-| [docs/EXECUTION.md](docs/EXECUTION.md) | Phase-by-phase build history *(stale — predates payments, CRM, take-off)* |
-| [docs/prompt.md](docs/prompt.md) | ⚠️ **Do not follow.** Specifies a different stack (`src/pages/`, TanStack Query, shadcn/ui) and ~14 tables that don't exist. Following it would fork the codebase. |
+| [project-workflow-behaviour-2026-11-14.md](docs/project-workflow-behaviour-2026-11-14.md) | Roles, evidence, payment and price behaviour as implemented. **Start here.** |
+| [payment-review-2026-11-14.md](docs/payment-review-2026-11-14.md) | The 14 November payment and pricing release |
+| [meeting-implementation-audit-2026-11-14.md](docs/meeting-implementation-audit-2026-11-14.md) | What the November meetings asked for versus what is in the code |
+| [communication-framework-release-2026-11-14.md](docs/communication-framework-release-2026-11-14.md), [groundwork-communications.md](docs/groundwork-communications.md), [communication-provider-setup.md](docs/communication-provider-setup.md) | The activation framework, its tables, worker and provider setup |
+| [meta-whatsapp-setup.md](docs/meta-whatsapp-setup.md) | Direct Meta WhatsApp, chosen 14 November, not yet configured |
+| [account-roles-and-links.md](docs/account-roles-and-links.md), [project-links-review.md](docs/project-links-review.md), [project-team-permissions.md](docs/project-team-permissions.md) | Account types, shareable links, who may invite and approve |
+| [ordered-stage-progression.md](docs/ordered-stage-progression.md), [contractor-stage-evidence.md](docs/contractor-stage-evidence.md) | Stage order in the database; who uploads what |
+| [receipt-verification-errors.md](docs/receipt-verification-errors.md), [receipt-currency-follow-up.md](docs/receipt-currency-follow-up.md), [exchange-rate-review-2026-11-14.md](docs/exchange-rate-review-2026-11-14.md) | The receipt reader, its error codes, currencies and conversion rules |
+| [stage-pricing-account-review.md](docs/stage-pricing-account-review.md) | Stage price amendments |
+| [rollout-status-2026-11-13.md](docs/rollout-status-2026-11-13.md) | What was verified live versus only locally |
+| [BQ-QUESTIONS.md](docs/BQ-QUESTIONS.md) | Quantity-surveying questions and answers behind the rate tables |
+| [GHL-SETUP.md](docs/GHL-SETUP.md), [GHL-CUSTOM-FIELDS.md](docs/GHL-CUSTOM-FIELDS.md), [WHATSAPP-TEMPLATES.md](docs/WHATSAPP-TEMPLATES.md) | GoHighLevel |
+| [ADMIN-DASHBOARD.md](docs/ADMIN-DASHBOARD.md), [SECURITY.md](docs/SECURITY.md), [STRIPE.md](docs/STRIPE.md), [SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md), [AGENT-AUTOMATION.md](docs/AGENT-AUTOMATION.md) | Standing references |
+| [groundwork-beta-feedback-backlog.md](docs/groundwork-beta-feedback-backlog.md) | Open beta-tester findings |
+| Groundwork-Project-and-Payment-Flow-Guide-2026-11-14 (`.html`, `.pdf`) | The client and contractor flow as a shareable guide, built by `docs/build-project-flow-guide.mjs` |
 
-`docs/` also holds the generated decks, walkthrough videos and the source `.xlsx` bills of quantities.
+**Stale, kept as history:** [PAGES.md](docs/PAGES.md) (July 2026), [TESTING.md](docs/TESTING.md), [memo.md](docs/memo.md), [EXECUTION.md](docs/EXECUTION.md). **Do not follow** [prompt.md](docs/prompt.md): it specifies a different stack and tables that do not exist.
+
+`docs/` also holds meeting notes, daily reports, walkthrough videos, generated decks and the source `.xlsx` bills of quantities. The PDFs and `frames_*` folders at the repository root are recording inputs and exported reports, not code.
 
 ---
 
 ## Gotchas
 
-- **pnpm, not npm.** The lockfile is pnpm's.
-- **Dev port is 5174.**
-- **12 serverless functions, hard cap.** See above — it fails silently and freezes production.
-- **`api/` relative imports need `.js`.** Transitively. See above.
-- **`www.tryjalla.com`, never the apex** — 308 redirects break Stripe webhooks and `pg_net`.
-- **Not SSR.** `ssr: false` — no loaders or actions; all data is fetched client-side after auth resolves.
-- **Settings prefer `app_config` over Vercel env** — a table row takes effect in a minute, an env var needs a redeploy.
-- **No emoji in the app UI.** Icons are black and white. Platform-wide rule from [docs/SCREEN-DESIGNS.md](docs/SCREEN-DESIGNS.md), along with "processing fee" over "platform fee" and colour as a status accent rather than a data channel.
+- **pnpm, not npm.** Dev port is **5174**.
+- **`api/` relative imports need `.js`**, transitively.
+- **`www.tryjalla.com`, never the apex.**
+- **Migrations are applied by hand.** A merged migration is not a live one. Ask, or probe.
+- **Not SSR.** `ssr: false`, no loaders or actions; all data is fetched client-side after auth resolves.
 - **Cameroon is the default country everywhere.** Import `DEFAULT_COUNTRY_CODE`; never write `'CM'` inline.
-- **Archived projects still count against the free cap**, and owners cannot delete projects (migration 053). Only an admin can delete one, from `/admin/projects` (migration 069) — which does hand the owner a free-plan slot back, on purpose.
-- **Deleting a project is two calls that cannot be one.** The row is in Postgres, the files are in Storage, and nothing joins them — so `admin_delete_project()` returns the storage paths it gathered *before* the cascade, and the client removes the bytes *after*. Never reverse that: purging storage first can destroy a live project's evidence if the delete then fails.
-- **Multiple tier vocabularies coexist.** Canonical is `self_verify`/`jalla_verify`/`jalla_management`; legacy `starter`/`pro`/`enterprise` values are still handled defensively. `normalizeTier()` in `payments/config.ts` is the start of a fix.
-- **Dark mode uses ~447 hardcoded hex values** (`dark:bg-[#1e1e1e]`) across 41 files rather than tokens, so shades drift between files.
-- **`CONTRACTORS_LOCKED_FOR_DEMO`** in [`src/lib/demo-gate.ts`](src/lib/demo-gate.ts) still reads as temporary but is now the real Jalla Verify paywall on the contractor directory. Read the header before removing it.
-- **`PaymentsTab.tsx` is dead code** — `ProjectPayments` replaced it and it is no longer rendered.
-- **The GHL v2 API contract is unverified** — the base URL, version header and paths in `api/ghl/_client.ts` were transcribed from published documentation. They sit in one block at the top of that file, so a 404 or 422 on a first real call is a five-line correction rather than an investigation.
+- **`/work` is the contractor workspace, `/contractors` is the public directory.** Do not merge them.
+- **`/admin` manages actors; it never executes their work.** No contractor or verifier execution UI inside `/admin`.
+- **Real data only in `/admin`.** Empty states when empty.
+- **One source of truth for money.** The `payments` ledger plus `stage_payment_receipts`. Never add a parallel wallet, balance or commission table; compensation needs its own design pass before any column.
+- **The lit stage dot and the row label must come from the same rule.** `currentStage()` in `StagePipeline.tsx`. Reading one from `activeStage` crashed `/work/projects` on 13 November 2026.
+- **A disabled button must look disabled and say why.** The contractor upload button went silent for a day because it did not.
+- **Settings prefer `app_config` over Vercel env.**
+- **Typecheck can be killed on a small machine.** Exit code 137 is the OOM killer, not a type error. Lower the heap and rerun.
+- **Never Docker.** Local PostgreSQL binaries verify SQL.
+- **Multiple tier vocabularies coexist.** Canonical is `self_verify` / `jalla_verify` / `jalla_management`; legacy `starter` / `pro` / `enterprise` still appears. `normalizeTier()` in `payments/config.ts` handles it.
+- **The GHL v2 API contract was transcribed from documentation.** Its base URL, version header and paths sit in one block at the top of `api/ghl/_client.ts`.
 
 ---
 
-© Jalla · Groundwork
+© Jalla · Groundwork · MIT licence
