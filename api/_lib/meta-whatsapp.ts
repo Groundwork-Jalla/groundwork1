@@ -2,6 +2,13 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { META_API_VERSION } from '../../shared/whatsapp.js';
 
 export type WhatsAppService = { from: (table:string) => any; rpc: (name:string,args?:any) => any };
+export function whatsappSite(): string {
+  const url=new URL(process.env.PUBLIC_SITE_URL || 'https://www.tryjalla.com');
+  if(url.username || url.password || url.search || url.hash || (url.protocol!=='https:' && !(url.protocol==='http:' && ['localhost','127.0.0.1'].includes(url.hostname)))) throw new Error('invalid_site_url');
+  // Meta callback delivery must never depend on following the apex's 308 redirect.
+  if(url.hostname==='tryjalla.com')url.hostname='www.tryjalla.com';
+  return url.origin;
+}
 export interface MetaWhatsAppConfig {
   enabled:boolean; mode:'test'|'live'; phone_number_id:string; business_account_id:string;
   display_phone:string; messaging_account_id:string; test_recipients:string[]; api_version:string;
@@ -12,11 +19,11 @@ export interface MetaWhatsAppConfig {
 /** Separate keys from the old GHL/project sender: saving this connection cannot activate it. */
 export async function metaWhatsAppConfig(svc: WhatsAppService): Promise<MetaWhatsAppConfig | null> {
   const [settings,secrets] = await Promise.all([
-    svc.from('communication_whatsapp_settings').select('*').eq('id',true).maybeSingle(),
+    svc.from('communication_whatsapp_settings').select('id,enabled,mode,phone_number_id,business_account_id,display_phone,messaging_account_id,api_version,test_recipients,webhook_verified_at,signed_event_at,template_checked_at,updated_at,updated_by').eq('id',true).maybeSingle(),
     svc.from('app_config').select('key,value').in('key',['meta_whatsapp_token','meta_whatsapp_app_secret','meta_whatsapp_verify_token']),
   ]);
   if (settings.error || !settings.data) {
-    if (['42P01','PGRST205'].includes(settings.error?.code)) return null;
+    if (['42P01','42703','PGRST204','PGRST205'].includes(settings.error?.code)) return null;
     throw new Error('whatsapp_settings_unavailable');
   }
   if (secrets.error) throw new Error('whatsapp_settings_unavailable');

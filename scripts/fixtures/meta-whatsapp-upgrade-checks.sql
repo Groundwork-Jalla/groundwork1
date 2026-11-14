@@ -1,0 +1,13 @@
+SELECT test_assert((SELECT enabled AND mode='test' AND display_phone='+14699913055' AND phone_number_id='111111' AND business_account_id='222222' AND test_recipients=ARRAY['+15551234567'] AND template_checked_at IS NULL FROM communication_whatsapp_settings),'schema upgrade preserves the saved identity, audience and enable state');
+SELECT test_assert((SELECT value='test-upgrade-private-token' FROM app_config WHERE key='meta_whatsapp_token'),'schema upgrade never changes credentials');
+SELECT test_assert((SELECT name='Existing contact' AND consent_at='2026-11-01T12:00:00Z'::timestamptz AND last_inbound_at='2026-11-02T12:00:00Z'::timestamptz AND last_lifecycle_check_at IS NULL FROM communication_whatsapp_contacts WHERE id=test_id(9101)),'schema upgrade preserves contact consent and reply timestamps');
+SELECT test_assert((SELECT body='Existing frozen message' AND payload->>'to'='+15551234567' AND status='uncertain' AND error='uncertain_send' AND reviewed_at IS NULL AND reviewed_by IS NULL AND review_note IS NULL FROM communication_whatsapp_messages WHERE id=test_id(9102)),'schema upgrade preserves immutable payloads and uncertain-send holds');
+SELECT test_assert(to_regprocedure('public.disconnect_whatsapp_contact(uuid)') IS NOT NULL AND to_regprocedure('public.review_whatsapp_send(uuid,uuid,boolean,text,text)') IS NOT NULL,'schema upgrade installs RPCs missing from the early copy');
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_assert((SELECT count(*)=0 FROM communication_whatsapp_messages),'upgrading cannot expose existing WhatsApp history to ordinary users');
+SELECT test_refused($q$SELECT disconnect_whatsapp_contact(test_id(1))$q$,'permission denied');
+SELECT test_refused($q$SELECT review_whatsapp_send(test_id(9102),test_id(1),false,NULL,'Unauthorized review')$q$,'permission denied');
+RESET ROLE;
+UPDATE communication_whatsapp_settings SET enabled=false;
+SELECT 'META_WHATSAPP_UPGRADE_OK';

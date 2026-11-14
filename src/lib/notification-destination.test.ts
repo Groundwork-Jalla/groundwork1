@@ -4,6 +4,12 @@ vi.mock('@/lib/supabase/project-team', () => ({ fetchProjectTeamAccess: read }))
 import { destinationFor, notificationFocus, resolveNotificationDestination } from './notification-destination';
 const project = '11111111-2222-3333-4444-555555555555';
 beforeEach(() => { vi.clearAllMocks(); });
+it('opens a WhatsApp reply at the exact Admin contact and rejects an unsafe target',async()=>{
+  expect(await resolveNotificationDestination({whatsapp_contact_id:project},{isAdmin:true})).toBe(`/admin/sequences?tab=whatsapp&contact=${project}`);
+  expect(destinationFor({whatsapp_contact_id:project},{isAdmin:false})).toBeNull();
+  expect(destinationFor({whatsapp_contact_id:'../../other'},{isAdmin:true})).toBeNull();
+  expect(read).not.toHaveBeenCalled();
+});
 
 describe('project actions open in the current accepted project role', () => {
   it.each([

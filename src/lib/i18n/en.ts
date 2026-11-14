@@ -8,7 +8,9 @@
 // Interpolation: use {name} placeholders — t('greeting.hello', { name: 'Ada' })
 // =========================================================
 
+import { whatsappEn } from './whatsapp.js';
 export const en = {
+  whatsapp: whatsappEn,
   communications: {
     filters:{projectLoadFailed:"Projects could not be loaded. Refresh the page to try again.",createdFrom:"Created from",createdThrough:"Created through",origin:"Project creation origin",allOrigins:"All project origins",clientOrigin:"Client-created",contractorOrigin:"Contractor-created",allOwners:"All owners",clear:"Clear filters",joinedFrom:"Joined from",joinedThrough:"Joined through",projectStatus:"Associated project status",allProjectStatuses:"All project statuses",onboarding:"Onboarding stage",allOnboarding:"All onboarding stages",phases:{not_started:"Not started",in_progress:"In progress",completed:"Completed"}},
     tracking: {

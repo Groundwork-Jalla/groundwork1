@@ -17,11 +17,8 @@ export async function handler(req:any,res:any) {
       res.status(200).json({available:true,contact:contact.data});return;
     }
     if(req.body?.operation==='disconnect') {
-      const saved=await svc.from('communication_whatsapp_contacts').update({opted_out_at:new Date().toISOString(),automation_paused:true}).eq('user_id',user.id);
+      const saved=await svc.rpc('disconnect_whatsapp_contact',{p_user:user.id});
       if(saved.error) throw saved.error;
-      // A pending START link must not reconnect after an explicit disconnect.
-      const removed=await svc.from('communication_whatsapp_challenges').delete().eq('user_id',user.id);
-      if(removed.error) throw removed.error;
       res.status(200).json({ok:true});return;
     }
     if(req.body?.operation!=='connect' || req.body?.consent!==true) {res.status(400).json({error:'consent_required'});return;}

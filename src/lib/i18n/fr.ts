@@ -16,6 +16,7 @@
 // =========================================================
 
 import type { EnDict } from './en.js';
+import { whatsappFr } from './whatsapp.js';
 
 /** Maps the EN dictionary shape to plain mutable strings. */
 type Mirror<T> = {
@@ -23,6 +24,7 @@ type Mirror<T> = {
 };
 
 export const fr: Mirror<EnDict> = {
+  whatsapp: whatsappFr,
   communications: {
     filters:{projectLoadFailed:"Impossible de charger les projets. Actualisez la page pour réessayer.",createdFrom:"Créé à partir du",createdThrough:"Créé jusqu’au",origin:"Origine de création du projet",allOrigins:"Toutes les origines",clientOrigin:"Créé par un client",contractorOrigin:"Créé par un entrepreneur",allOwners:"Tous les propriétaires",clear:"Effacer les filtres",joinedFrom:"Inscrit à partir du",joinedThrough:"Inscrit jusqu’au",projectStatus:"Statut du projet associé",allProjectStatuses:"Tous les statuts de projet",onboarding:"Étape d’inscription",allOnboarding:"Toutes les étapes d’inscription",phases:{not_started:"Non commencé",in_progress:"En cours",completed:"Terminé"}},
     tracking: {

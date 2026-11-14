@@ -64,7 +64,11 @@ read('scripts/fixtures/communication-tracking-setup.sql'),read('supabase/migrati
 read('supabase/migrations/20261113001300_communication_tracking.sql'),read('scripts/fixtures/communication-tracking.sql'),
 `CREATE TABLE public.app_config(key text PRIMARY KEY,value text);`,
 read('supabase/migrations/20261114000600_meta_whatsapp_communications.sql'),
-read('supabase/migrations/20261114000600_meta_whatsapp_communications.sql'),read('scripts/fixtures/meta-whatsapp-communications.sql')].join('\n');
+read('supabase/migrations/20261114000600_meta_whatsapp_communications.sql'),
+read('scripts/fixtures/meta-whatsapp-upgrade-setup.sql'),
+read('supabase/migrations/20261114000700_meta_whatsapp_schema_upgrade.sql'),
+read('supabase/migrations/20261114000700_meta_whatsapp_schema_upgrade.sql'),
+read('scripts/fixtures/meta-whatsapp-upgrade-checks.sql'),read('scripts/fixtures/meta-whatsapp-communications.sql')].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
   // Standalone postgres bypasses RLS even after SET ROLE. A private Unix socket
@@ -77,7 +81,7 @@ read('supabase/migrations/20261114000600_meta_whatsapp_communications.sql'),read
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
   if (result.error) throw result.error;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK') || !output.includes('GROUNDWORK_COMMUNICATIONS_OK') || !output.includes('COMMUNICATION_UPGRADE_OK') || !output.includes('COMMUNICATION_TRACKING_OK') || !output.includes('META_WHATSAPP_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('LIFECYCLE_DELIVERY_OK') || !output.includes('GROUNDWORK_COMMUNICATIONS_OK') || !output.includes('COMMUNICATION_UPGRADE_OK') || !output.includes('COMMUNICATION_TRACKING_OK') || !output.includes('META_WHATSAPP_OK') || !output.includes('META_WHATSAPP_UPGRADE_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
@@ -102,7 +106,7 @@ read('supabase/migrations/20261114000600_meta_whatsapp_communications.sql'),read
     SELECT coalesce((claim_whatsapp_message(test_id(9290))->>'worker_token') IS NOT NULL,false) AS claimed;
     SELECT pg_sleep(0.15); COMMIT;`)));
   if(waClaims.some(result=>result.code!==0)||waClaims.filter(result=>/\n t\s*\n/.test(result.output)).length!==1) throw new Error('Concurrent WhatsApp claim regression: '+JSON.stringify(waClaims));
-  console.log('Direct Meta WhatsApp regressions passed: migration replay, RLS, proof of phone ownership, consent, independent schedules, single-worker claims, frozen payloads, signed callback correlation, monotonic delivery states, uncertain-send holds, Day-7 tasks, staff contact history and STOP.');
+  console.log('Direct Meta WhatsApp regressions passed: fresh/replayed migrations, early-schema upgrade preserving settings/credentials/history, RLS, proof of phone ownership, consent, independent schedules, single-worker claims, frozen payloads, signed callback correlation, monotonic delivery states, uncertain-send holds, Day-7 tasks, staff contact history and STOP.');
   console.log('Lifecycle delivery database regressions passed: migration replay, service-only access, single-worker claims, immutable retry payloads, stale leases, atomic send history, entry-based deadlines, authoritative action checks, preferences, invitation priority, verified replies, staff contact history, role changes, early callbacks, uncertain-send review, Day-7 qualification, per-project follow-ups, tracking metrics, actual contact-time recovery and Admin filter metadata.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });

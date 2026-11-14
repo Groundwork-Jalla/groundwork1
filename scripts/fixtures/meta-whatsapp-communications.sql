@@ -23,9 +23,16 @@ SELECT test_assert(whatsapp_lifecycle_state(test_id(9201),test_whatsapp_contact(
 UPDATE communication_whatsapp_settings SET enabled=true;
 INSERT INTO communication_preferences(email,blocked_reason) VALUES('whatsapp@test.example','bounced');
 SELECT test_assert(whatsapp_lifecycle_state(test_id(9201),test_whatsapp_contact())->>'kind'='ready','WhatsApp eligibility does not depend on email delivery or email bounce state');
+UPDATE lifecycle_enrollments SET status='suppressed',exit_reason='bounced' WHERE id=test_id(9201);
+SELECT test_assert(whatsapp_lifecycle_state(test_id(9201),test_whatsapp_contact())->>'kind'='ready','email reconciliation cannot suppress the independent WhatsApp channel');
+UPDATE lifecycle_enrollments SET exit_reason=NULL WHERE id=test_id(9201);
+SELECT test_assert(whatsapp_lifecycle_state(test_id(9201),test_whatsapp_contact())->>'reason'='enrollment_inactive','NULL suppression reasons cannot pass the channel eligibility check');
+UPDATE lifecycle_enrollments SET status='active',exit_reason=NULL WHERE id=test_id(9201);
 SELECT review_whatsapp_followup(test_id(9201),test_whatsapp_contact());
 SELECT review_whatsapp_followup(test_id(9201),test_whatsapp_contact());
 SELECT test_assert((SELECT count(*)=1 FROM followup_queue WHERE enrollment_id=test_id(9201)),'Day 7 queues one shared human task even with email off');
+SELECT review_communication_followups();
+SELECT test_assert((SELECT status='open' FROM followup_queue WHERE enrollment_id=test_id(9201)),'an email bounce cannot close the WhatsApp human follow-up task');
 SELECT queue_whatsapp_message(test_whatsapp_contact(),'lifecycle','Frozen copy','{"to":"+237699123456","type":"template"}',test_id(9201),1,'WA1') AS wa_message \gset
 SELECT test_assert(queue_whatsapp_message(test_whatsapp_contact(),'lifecycle','Changed copy','{"changed":true}',test_id(9201),1,'WA1')=:'wa_message'::uuid,'duplicate schedule returns the original delivery');
 SELECT test_assert((SELECT body='Frozen copy' AND payload->>'to'='+237699123456' FROM communication_whatsapp_messages WHERE id=:'wa_message'),'retry cannot replace the recipient or message');
@@ -39,6 +46,9 @@ SELECT finish_whatsapp_message(:'wa_message',:'wa_token','uncertain',NULL,'uncer
 SELECT record_whatsapp_status('123456789','early-wamid','failed',now(),:'wa_message','meta_131047');
 SELECT record_whatsapp_status('123456789','early-wamid','sent',now()-interval '1 minute',:'wa_message');
 SELECT test_assert((SELECT status='read' AND provider_id='early-wamid' AND error IS NULL FROM communication_whatsapp_messages WHERE id=:'wa_message'),'early and reordered callbacks retain the strongest delivery evidence');
+SELECT queue_whatsapp_message(test_whatsapp_contact(),'lifecycle','French pending','{"template":{"language":{"code":"fr"}}}',test_id(9201),4,'WA4') AS language_message \gset
+SELECT test_assert(claim_whatsapp_message(:'language_message') IS NULL,'a queued template cannot send in the wrong current account language');
+SELECT test_assert((SELECT status='blocked' AND error='language_changed' FROM communication_whatsapp_messages WHERE id=:'language_message'),'language changes hold old frozen copy');
 SELECT queue_whatsapp_message(test_whatsapp_contact(),'lifecycle','Uncertain copy','{}',test_id(9201),2,'WA2') AS uncertain_message \gset
 SELECT claim_whatsapp_message(:'uncertain_message');
 UPDATE communication_whatsapp_messages SET processing_until=now()-interval '1 minute' WHERE id=:'uncertain_message';
@@ -80,6 +90,12 @@ SELECT record_whatsapp_inbound('123456789','old-start','+237699123456',NULL,'Tes
 SELECT test_assert((SELECT opted_out_at IS NOT NULL FROM communication_whatsapp_contacts WHERE id=test_whatsapp_contact()),'an old START or ordinary message cannot undo STOP');
 SELECT record_whatsapp_inbound('123456789','bsuid-only',NULL,'US.1234567890123456','Private user','Need help',now());
 SELECT test_assert((SELECT phone IS NULL AND needs_attention FROM communication_whatsapp_contacts WHERE bsuid='US.1234567890123456'),'username-only senders appear in the Admin inbox without guessing a phone or account');
+SELECT begin_whatsapp_consent(test_id(9200),'+237699123456',repeat('b',64));
+SELECT disconnect_whatsapp_contact(test_id(9200));
+SELECT test_assert(NOT EXISTS(SELECT 1 FROM communication_whatsapp_challenges WHERE user_id=test_id(9200)),'disconnect atomically revokes a pending START link');
+SELECT record_whatsapp_inbound('123456789','revoked-start','+237699123456',NULL,'Tester','START code',now(),repeat('b',64));
+SELECT test_assert((SELECT opted_out_at IS NOT NULL FROM communication_whatsapp_contacts WHERE id=test_whatsapp_contact()),'the revoked START link cannot reconnect a stopped account');
+SELECT test_assert((SELECT next_position=1 FROM lifecycle_enrollments WHERE id=test_id(9201)),'WhatsApp sends and replies never advance the email cursor');
 RESET ROLE;
 SET ROLE authenticated;
 SELECT set_config('test.actor',test_id(9200)::text,false);

@@ -25,10 +25,13 @@ export interface WhatsAppTemplate {
   components: Array<Record<string, any>>;
   variables: string[];
 }
+function channelBody(step:Step,language:'en'|'fr') {
+  return (language==='fr'?step.body_fr:step.body_en)?.trim().replace(/reply to this email/gi,'reply to this message').replace(/répondez à cet e-?mail/gi,'répondez à ce message');
+}
 /** Exact per-step approval copy. Never substitute an unrelated generic template. */
 export function whatsappTemplate(step: Step, language: 'en' | 'fr', site: string): WhatsAppTemplate {
   if (!step.code || !/^[a-z0-9_]+$/i.test(step.code)) throw new Error('step_code_required');
-  const body = (language === 'fr' ? step.body_fr : step.body_en)?.trim();
+  const body = channelBody(step,language);
   if (!body) throw new Error('translation_required');
   const keys: string[] = [];
   const text = body.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
@@ -76,7 +79,7 @@ export function whatsappTemplatePayload(step: Step, person: Person, context: Con
     components.push({type:'button',sub_type:'url',index:'0',parameters:[{type:'text',text:target.href.slice(target.origin.length + 1)}]});
   }
   return {definition,payload:{type:'template',template:{name:definition.name,language:{code:language},components}},
-    body:render(language === 'fr' ? step.body_fr : step.body_en,person,context,language) + (link ? `\n${link}` : '')};
+    body:render(channelBody(step,language),person,context,language) + (link ? `\n${link}` : '')};
 }
 
 export const WHATSAPP_ERRORS: Record<string,string> = {

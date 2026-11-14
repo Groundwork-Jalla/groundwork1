@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { getSupabaseAdmin,requireUser } from '../_lib/stripe.js';
-import { metaWhatsAppConfig } from '../_lib/meta-whatsapp.js';
+import { metaWhatsAppConfig,whatsappSite } from '../_lib/meta-whatsapp.js';
 import { checkWhatsAppConnection,runWhatsApp,whatsappTemplatePack } from '../_lib/whatsapp-communications.js';
 import { serviceWindowOpen,whatsappPhone } from '../../shared/whatsapp.js';
 
@@ -19,7 +19,7 @@ export async function handler(req:any,res:any) {
     if(req.method==='GET') {
       const {token,appSecret,verifyToken,...settings}=cfg;
       res.status(200).json({settings,credentials:{token:!!token,appSecret:!!appSecret,verifyToken:!!verifyToken},
-        callbackUrl:`${new URL(process.env.PUBLIC_SITE_URL||'https://tryjalla.com').origin}/api/whatsapp-webhook`});return;
+        callbackUrl:`${whatsappSite()}/api/whatsapp-webhook`});return;
     }
     const body=req.body??{};
     if(body.operation==='save') {
@@ -48,6 +48,11 @@ export async function handler(req:any,res:any) {
       if(identityChanged) {patch.enabled=false;patch.webhook_verified_at=null;patch.signed_event_at=null;}
       // Disable before changing signing credentials, so a partial save cannot send with an unverified connection.
       if(identityChanged) {const off=await svc.from('communication_whatsapp_settings').update({enabled:false,webhook_verified_at:null,signed_event_at:null}).eq('id',true);if(off.error) throw new Error('settings_save_failed');}
+      if(identityChanged||body.token) {
+        patch.template_checked_at=null;
+        const stale=await svc.from('communication_whatsapp_templates').update({status:'NEEDS_CHECK'}).neq('name','');
+        if(stale.error) throw new Error('settings_save_failed');
+      }
       if(secrets.length) {const saved=await svc.from('app_config').upsert(secrets,{onConflict:'key'});if(saved.error) throw new Error('credentials_save_failed');}
       const saved=await svc.from('communication_whatsapp_settings').update(patch).eq('id',true);if(saved.error) throw new Error('settings_save_failed');
       res.status(200).json({ok:true});return;

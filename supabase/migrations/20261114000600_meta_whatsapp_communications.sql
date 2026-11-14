@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS public.communication_whatsapp_settings(
  updated_at timestamptz NOT NULL DEFAULT now(),updated_by uuid REFERENCES auth.users ON DELETE SET NULL
 );
 INSERT INTO public.communication_whatsapp_settings(id) VALUES(true) ON CONFLICT DO NOTHING;
+-- Earlier hand-applied copies created the table before these fields were added.
+-- CREATE TABLE IF NOT EXISTS alone cannot upgrade those deployments.
+ALTER TABLE public.communication_whatsapp_settings ADD COLUMN IF NOT EXISTS template_checked_at timestamptz;
 CREATE TABLE IF NOT EXISTS public.communication_whatsapp_contacts(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),phone_number_id text NOT NULL,
  phone text CHECK(phone IS NULL OR phone ~ '^\+[1-9][0-9]{7,14}$'),bsuid text,
@@ -22,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.communication_whatsapp_contacts(
  CHECK(phone IS NOT NULL OR bsuid IS NOT NULL),UNIQUE(phone_number_id,phone),UNIQUE(phone_number_id,bsuid)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_contact_user ON public.communication_whatsapp_contacts(phone_number_id,user_id) WHERE user_id IS NOT NULL;
+ALTER TABLE public.communication_whatsapp_contacts ADD COLUMN IF NOT EXISTS last_lifecycle_check_at timestamptz;
 CREATE TABLE IF NOT EXISTS public.communication_whatsapp_challenges(
  user_id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,phone_number_id text NOT NULL,
  phone text NOT NULL,code_hash text NOT NULL UNIQUE,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL DEFAULT now()
@@ -43,6 +47,10 @@ CREATE TABLE IF NOT EXISTS public.communication_whatsapp_messages(
  UNIQUE(enrollment_id,position)
 );
 CREATE INDEX IF NOT EXISTS whatsapp_message_contact ON public.communication_whatsapp_messages(contact_id,created_at);
+ALTER TABLE public.communication_whatsapp_messages
+ ADD COLUMN IF NOT EXISTS reviewed_at timestamptz,
+ ADD COLUMN IF NOT EXISTS reviewed_by uuid REFERENCES auth.users ON DELETE SET NULL,
+ ADD COLUMN IF NOT EXISTS review_note text;
 CREATE INDEX IF NOT EXISTS whatsapp_message_outbox ON public.communication_whatsapp_messages(created_at) WHERE direction='outbound' AND status IN('queued','sending');
 ALTER TABLE public.communication_messages ADD COLUMN IF NOT EXISTS channel text NOT NULL DEFAULT 'email' CHECK(channel IN('email','whatsapp'));
 
@@ -64,11 +72,11 @@ RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
 DECLARE e public.lifecycle_enrollments%ROWTYPE;c public.communication_whatsapp_contacts%ROWTYPE;s public.communication_whatsapp_settings%ROWTYPE;a jsonb;v_email text;
 BEGIN
  SELECT * INTO s FROM public.communication_whatsapp_settings WHERE id;
- IF NOT s.enabled THEN RETURN jsonb_build_object('kind','hold','reason','connection_disabled'); END IF;
+ IF NOT coalesce(s.enabled,false) THEN RETURN jsonb_build_object('kind','hold','reason','connection_disabled'); END IF;
  SELECT * INTO c FROM public.communication_whatsapp_contacts WHERE id=p_contact;
  IF NOT FOUND OR c.phone_number_id<>s.phone_number_id THEN RETURN jsonb_build_object('kind','suppress','reason','contact_unavailable'); END IF;
  SELECT * INTO e FROM public.lifecycle_enrollments WHERE id=p_enrollment;
- IF NOT FOUND OR e.status NOT IN('active','completed') THEN RETURN jsonb_build_object('kind','suppress','reason','enrollment_inactive'); END IF;
+ IF NOT FOUND OR (e.status NOT IN('active','completed') AND NOT coalesce(e.status='suppressed' AND e.exit_reason IN('bounced','complained','delivery_failed'),false)) THEN RETURN jsonb_build_object('kind','suppress','reason','enrollment_inactive'); END IF;
  SELECT lower(btrim(email)) INTO v_email FROM auth.users WHERE id=c.user_id;
  IF v_email IS NULL OR v_email IS DISTINCT FROM lower(btrim(e.email)) THEN RETURN jsonb_build_object('kind','suppress','reason','account_mismatch'); END IF;
  IF c.consent_at IS NULL OR c.opted_out_at IS NOT NULL THEN RETURN jsonb_build_object('kind','suppress','reason','consent_required'); END IF;
@@ -134,7 +142,7 @@ BEGIN
   opted_out_at=CASE WHEN p_stop AND (consent_at IS NULL OR v_at>=consent_at) THEN greatest(opted_out_at,v_at) ELSE opted_out_at END,
   automation_paused=CASE WHEN v_verified THEN false ELSE true END,
   needs_attention=NOT v_verified AND NOT p_stop WHERE id=c.id RETURNING * INTO c;
- UPDATE public.communication_whatsapp_messages SET status='blocked',error=CASE WHEN p_stop THEN 'recipient_opted_out' ELSE 'reply_pending' END WHERE contact_id=c.id AND direction='outbound' AND status='queued' AND kind='lifecycle';
+ UPDATE public.communication_whatsapp_messages SET status='blocked',error=CASE WHEN p_stop THEN 'recipient_opted_out' ELSE 'reply_pending' END WHERE contact_id=c.id AND direction='outbound' AND status='queued' AND (p_stop OR kind='lifecycle');
  IF NOT v_verified AND NOT p_stop THEN
   SELECT lower(btrim(email)) INTO v_email FROM auth.users WHERE id=c.user_id;
   FOR e IN SELECT id FROM public.lifecycle_enrollments WHERE lower(btrim(email))=v_email AND status IN('active','completed') LOOP
@@ -196,6 +204,9 @@ BEGIN
  ELSIF m.kind='lifecycle' THEN
   a:=public.whatsapp_lifecycle_state(m.enrollment_id,c.id);
   IF a->>'kind'<>'ready' THEN v_error:=a->>'reason'; END IF;
+  IF m.payload#>>'{template,language,code}' IS NOT NULL AND EXISTS(
+   SELECT 1 FROM public.profiles p WHERE p.id=c.user_id AND (CASE WHEN p.preferred_lang LIKE 'fr%' THEN 'fr' ELSE 'en' END) IS DISTINCT FROM m.payload#>>'{template,language,code}'
+  ) THEN v_error:='language_changed'; END IF;
   IF EXISTS(SELECT 1 FROM public.communication_whatsapp_messages WHERE enrollment_id=m.enrollment_id AND status='uncertain') THEN v_error:='uncertain_send'; END IF;
  ELSIF m.kind='staff' AND (c.last_inbound_at IS NULL OR c.last_inbound_at<=now()-interval '24 hours') THEN v_error:='outside_24h_window';
  ELSIF m.kind='test' AND (s.mode<>'test' OR c.consent_at IS NULL) THEN v_error:='consent_required';
@@ -269,11 +280,36 @@ BEGIN
  IF NOT v_qualified THEN RETURN false; END IF;
  INSERT INTO public.followup_queue(enrollment_id,sequence_key,email,full_name,phone,reason,priority,context,due_at)
  VALUES(e.id,e.sequence_key,e.email,e.full_name,c.phone,'No action after Day '||s.followup_after_days||': '||s.awaiting_action,
-  CASE WHEN e.context->>'project_id' IS NOT NULL OR e.context->>'entry_source' IN('referral','direct_outreach') THEN 'high' ELSE 'normal' END,e.context,now())
- ON CONFLICT(enrollment_id) DO NOTHING;
+  CASE WHEN e.context->>'project_id' IS NOT NULL OR e.context->>'entry_source' IN('referral','direct_outreach') THEN 'high' ELSE 'normal' END,e.context||'{"communication_channel":"whatsapp"}'::jsonb,now())
+ ON CONFLICT(enrollment_id) DO UPDATE SET context=followup_queue.context||'{"communication_channel":"whatsapp"}'::jsonb,
+  status=CASE WHEN followup_queue.status='done' AND followup_queue.note ~ 'Action reconciled: (bounced|complained|delivery_failed)$' THEN 'open' ELSE followup_queue.status END,
+  resolved_at=CASE WHEN followup_queue.status='done' AND followup_queue.note ~ 'Action reconciled: (bounced|complained|delivery_failed)$' THEN NULL ELSE followup_queue.resolved_at END;
  UPDATE public.lifecycle_enrollments SET followup_queued=true WHERE id=e.id;
  RETURN true;
 END $$;
+-- A WhatsApp human task is about an unfinished action. An email bounce must not
+-- close it; actual completion/account/project changes still reconcile it.
+CREATE OR REPLACE FUNCTION public.review_communication_followups()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE f public.followup_queue%ROWTYPE;v_state jsonb;v_closed int:=0;v_overdue int:=0;
+BEGIN
+ FOR f IN SELECT * FROM public.followup_queue WHERE status='open' FOR UPDATE LOOP
+  UPDATE public.followup_queue SET last_reviewed_at=now() WHERE id=f.id;
+  IF f.owner_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=f.owner_id AND role='admin') THEN
+   UPDATE public.followup_queue SET owner_id=(SELECT s.default_owner_id FROM public.communication_settings s WHERE s.id AND EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=s.default_owner_id AND role='admin')) WHERE id=f.id;
+  END IF;
+  v_state:=CASE WHEN f.context->>'communication_channel'='whatsapp' THEN public.lifecycle_action_state(f.enrollment_id) ELSE public.lifecycle_enrollment_state(f.enrollment_id) END;
+  IF f.kind='activation' AND v_state->>'kind' IN('complete','suppress') THEN
+   UPDATE public.followup_queue SET status='done',resolved_at=now(),note=concat_ws(E'\n',nullif(note,''),'Action reconciled: '||(v_state->>'reason')) WHERE id=f.id;v_closed:=v_closed+1;
+  ELSIF f.due_at<=now() AND f.escalated_at IS NULL THEN
+   UPDATE public.followup_queue SET contact_status='needs_attention',escalated_at=now() WHERE id=f.id;
+   INSERT INTO public.communication_followup_events(followup_id,kind,note,due_at) VALUES(f.id,'overdue','Next contact is due',f.due_at) ON CONFLICT DO NOTHING;v_overdue:=v_overdue+1;
+  END IF;
+ END LOOP;
+ RETURN jsonb_build_object('resolved',v_closed,'overdue',v_overdue);
+END $$;
+REVOKE ALL ON FUNCTION public.review_communication_followups() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.review_communication_followups() TO service_role;
 CREATE OR REPLACE FUNCTION public.review_whatsapp_send(p_message uuid,p_actor uuid,p_sent boolean,p_provider text,p_note text)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 BEGIN
@@ -286,6 +322,17 @@ BEGIN
   reviewed_at=now(),reviewed_by=p_actor,review_note=btrim(p_note),worker_token=NULL,processing_until=NULL
  WHERE id=p_message AND direction='outbound' AND status='uncertain';
  RETURN FOUND;
+END $$;
+CREATE OR REPLACE FUNCTION public.disconnect_whatsapp_contact(p_user uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE v_phone text;
+BEGIN
+ SELECT phone_number_id INTO v_phone FROM public.communication_whatsapp_settings WHERE id;
+ PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('wa_inbound:'||v_phone,0));
+ DELETE FROM public.communication_whatsapp_challenges WHERE user_id=p_user;
+ UPDATE public.communication_whatsapp_contacts SET opted_out_at=now(),automation_paused=true WHERE user_id=p_user;
+ UPDATE public.communication_whatsapp_messages m SET status='blocked',error='recipient_opted_out'
+ FROM public.communication_whatsapp_contacts c WHERE c.id=m.contact_id AND c.user_id=p_user AND m.direction='outbound' AND m.status='queued';
 END $$;
 CREATE OR REPLACE FUNCTION public.resume_whatsapp_contact(p_contact uuid,p_actor uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
@@ -320,8 +367,8 @@ BEGIN
 END $$;
 DROP TRIGGER IF EXISTS whatsapp_staff_contact_history ON public.communication_whatsapp_messages;
 CREATE TRIGGER whatsapp_staff_contact_history AFTER INSERT OR UPDATE OF status ON public.communication_whatsapp_messages FOR EACH ROW EXECUTE FUNCTION public.track_whatsapp_staff_contact();
-REVOKE ALL ON FUNCTION public.review_whatsapp_send(uuid,uuid,boolean,text,text),public.resume_whatsapp_contact(uuid,uuid),public.track_whatsapp_staff_contact() FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.review_whatsapp_send(uuid,uuid,boolean,text,text),public.resume_whatsapp_contact(uuid,uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.review_whatsapp_send(uuid,uuid,boolean,text,text),public.resume_whatsapp_contact(uuid,uuid),public.disconnect_whatsapp_contact(uuid),public.track_whatsapp_staff_contact() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.review_whatsapp_send(uuid,uuid,boolean,text,text),public.resume_whatsapp_contact(uuid,uuid),public.disconnect_whatsapp_contact(uuid) TO service_role;
 REVOKE ALL ON FUNCTION public.review_whatsapp_followup(uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.review_whatsapp_followup(uuid,uuid) TO service_role;
 

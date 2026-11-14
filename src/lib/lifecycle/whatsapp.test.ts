@@ -1,13 +1,22 @@
 import { afterEach,describe,expect,it,vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { approvedTemplateMatches,latestDueWhatsAppStep,META_API_VERSION,sameWhatsAppDefinition,serviceWindowOpen,whatsappCommand,whatsappPhone,whatsappTemplate,whatsappTemplatePayload } from '../../../shared/whatsapp';
-import { equalSecret,postMetaMessage,validMetaSignature,type MetaWhatsAppConfig } from '../../../api/_lib/meta-whatsapp';
+import { equalSecret,metaWhatsAppConfig,postMetaMessage,validMetaSignature,type MetaWhatsAppConfig } from '../../../api/_lib/meta-whatsapp';
 import { receiveMetaEvents } from '../../../api/_lib/whatsapp-communications';
 import type { Step } from '../../../shared/lifecycle-copy';
 
 const step:Step={position:1,delay_hours:0,channel:'email',code:'CS01',subject_en:'Welcome',subject_fr:'Bienvenue',body_en:'Hi {{first_name}}, finish onboarding for {{project_name}}.',body_fr:'Bonjour {{first_name}}, terminez votre inscription pour {{project_name}}.',cta_key:'onboarding',cta_label_en:'Complete onboarding',cta_label_fr:'Terminer mon inscription'};
 const cfg:MetaWhatsAppConfig={enabled:true,mode:'test',phone_number_id:'123456789',business_account_id:'987654321',display_phone:'+15550001111',messaging_account_id:'',test_recipients:['+237699123456'],api_version:META_API_VERSION,token:'private-token',appSecret:'private-app-secret',verifyToken:'private-verify-token',webhook_verified_at:'2026-11-14',signed_event_at:'2026-11-14',template_checked_at:null};
 afterEach(()=>vi.unstubAllGlobals());
+it('reports an early WhatsApp schema as requiring migration instead of treating it as ready',async()=>{
+  const selectors:string[]=[];
+  for(const code of ['42703','42P01','PGRST204','PGRST205']) {
+    const query:any={select:(columns:string)=>{selectors.push(columns);return query;},eq:()=>query,maybeSingle:async()=>({data:null,error:{code}}),in:async()=>({data:[],error:null})};
+    const svc={from:()=>query,rpc:vi.fn()};
+    expect(await metaWhatsAppConfig(svc)).toBeNull();
+  }
+  expect(selectors.some(columns=>columns.includes('template_checked_at'))).toBe(true);
+});
 
 describe('WhatsApp identities, consent and windows',()=>{
   it('normalizes international phones without guessing local country codes or interpreting arbitrary text',()=>{
@@ -52,6 +61,11 @@ describe('approved reminder copy and independent timing',()=>{
     expect(()=>whatsappTemplate({...step,body_fr:''},'fr','https://tryjalla.com')).toThrow('translation_required');
     expect(()=>whatsappTemplate({...step,body_en:'{{admin_secret}}'},'en','https://tryjalla.com')).toThrow('unknown_template_variable');
     expect(()=>whatsappTemplate({...step,body_en:'a'.repeat(1025)},'en','https://tryjalla.com')).toThrow('template_copy_invalid');
+  });
+  it('uses WhatsApp reply wording while preserving the email draft',()=>{
+    const emailStep={...step,body_en:'Please reply to this email for help.'};
+    expect(whatsappTemplate(emailStep,'en','https://www.tryjalla.com').components[0].text).toBe('Please reply to this message for help.');
+    expect(emailStep.body_en).toContain('reply to this email');
   });
   it('refuses external and backslash invitation targets',()=>{
     for(const invite_path of ['https://example.com','//example.com/path','/\\example.com']) expect(()=>whatsappTemplatePayload({...step,cta_key:'invitation'},{email:'a@example.com'},{invite_path},'https://tryjalla.com')).toThrow('unsafe_action_link');

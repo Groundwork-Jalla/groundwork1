@@ -1,10 +1,10 @@
 import { approvedTemplateMatches, latestDueWhatsAppStep, sameWhatsAppDefinition, whatsappCommand, whatsappTemplate, whatsappTemplatePayload, type WhatsAppTemplate } from '../../shared/whatsapp.js';
 import { createHash } from 'node:crypto';
-import { metaWhatsAppConfig, metaRequest, postMetaMessage, type MetaWhatsAppConfig, type WhatsAppService } from './meta-whatsapp.js';
+import { metaWhatsAppConfig, metaRequest, postMetaMessage, whatsappSite, type MetaWhatsAppConfig, type WhatsAppService } from './meta-whatsapp.js';
 import type { Context, Person, Step } from '../../shared/lifecycle-copy.js';
 
 export const hashConsent = (code: string) => createHash('sha256').update(code).digest('hex');
-const site = () => new URL(process.env.PUBLIC_SITE_URL || 'https://tryjalla.com').origin;
+const site = whatsappSite;
 function checked<T extends {error:any;data:any}>(r:T): T['data'] { if(r.error) throw new Error('whatsapp_database_unavailable'); return r.data; }
 
 export async function whatsappTemplatePack(svc: WhatsAppService) {
@@ -58,8 +58,9 @@ async function queueReminders(svc: WhatsAppService,cfg:MetaWhatsAppConfig,now:Da
     checked(await svc.from('communication_whatsapp_contacts').update({last_lifecycle_check_at:now.toISOString()}).eq('id',contact.id));
     const account=await (svc as any).auth.admin.getUserById(contact.user_id);
     if(account.error) continue;
+    const profile=checked(await svc.from('profiles').select('full_name,preferred_lang').eq('id',contact.user_id).maybeSingle());
     const email=account.data?.user?.email?.toLowerCase();if(!email) continue;
-    const enrollments:any[]=checked(await svc.from('lifecycle_enrollments').select('*').eq('email',email).in('status',['active','completed']).order('enrolled_at',{ascending:false}).limit(50))??[];
+    const enrollments:any[]=checked(await svc.from('lifecycle_enrollments').select('*').eq('email',email).in('status',['active','completed','suppressed']).order('enrolled_at',{ascending:false}).limit(50))??[];
     for(const enrollment of enrollments) {
       if(Date.now()>=deadline) break;
       const state=checked(await svc.rpc('whatsapp_lifecycle_state',{p_enrollment:enrollment.id,p_contact:contact.id}));
@@ -69,7 +70,7 @@ async function queueReminders(svc: WhatsAppService,cfg:MetaWhatsAppConfig,now:Da
       if(!step) continue;
       const existing=checked(await svc.from('communication_whatsapp_messages').select('id').eq('enrollment_id',enrollment.id).eq('position',step.position).maybeSingle());
       if(existing) continue;
-      const person:Person={email,fullName:enrollment.full_name,lang:enrollment.lang};
+      const person:Person={email,fullName:profile?.full_name??enrollment.full_name,lang:profile?.preferred_lang??enrollment.lang};
       let compiled:ReturnType<typeof whatsappTemplatePayload>;
       try {compiled=whatsappTemplatePayload(step,person,enrollment.context as Context??{},site());} catch {continue;}
       const approval=checked(await svc.from('communication_whatsapp_templates').select('definition,status,checked_at').eq('name',compiled.definition.name).eq('language',compiled.definition.language).maybeSingle());
@@ -96,7 +97,9 @@ export async function runWhatsApp(svc: WhatsAppService,limit=10,budgetMs=60_000,
   if(!onlyMessage && (!cfg.template_checked_at || Date.parse(cfg.template_checked_at)<Date.now()-23*3600_000)) {
     try {await checkWhatsAppConnection(svc,cfg,deadline-15_000);} catch {/* Fresh approvals remain valid; expired approvals never bypass validation. */}
   }
-  if(!onlyMessage) tally.queued=await queueReminders(svc,cfg,new Date(),deadline);
+  // Always reserve a delivery window: a large audience must not consume every
+  // run preparing reminders while leaving the existing outbox unsent.
+  if(!onlyMessage) tally.queued=await queueReminders(svc,cfg,new Date(),Math.min(deadline-20_000,Date.now()+20_000));
   let query=svc.from('communication_whatsapp_messages').select('id,payload,kind,enrollment_id,position').eq('direction','outbound').in('status',['queued','sending']).order('created_at').limit(limit);
   if(onlyMessage) query=query.eq('id',onlyMessage);
   const pending:any[]=checked(await query)??[];
@@ -142,13 +145,14 @@ export async function receiveMetaEvents(svc:WhatsAppService,cfg:MetaWhatsAppConf
         const caption=message[message.type]?.caption;
         const body=String(message.text?.body??message.button?.text??message.interactive?.button_reply?.title??message.interactive?.list_reply?.title??`[${String(message.type??'unsupported')} attachment — file viewing is not available in this inbox]${caption?` ${caption}`:''}`).slice(0,30000);
         const command=whatsappCommand(body);
+        const contact=(value.contacts??[]).find((c:any)=>c.wa_id===phoneRaw || (bsuid && c.user_id===bsuid));
         checked(await svc.rpc('record_whatsapp_inbound',{p_phone_number:cfg.phone_number_id,p_provider:message.id,p_phone:phone,p_bsuid:bsuid,
-          p_name:String(value.contacts?.[0]?.profile?.name??'').slice(0,200),p_body:body,p_at:new Date(stamp).toISOString(),
+          p_name:String(contact?.profile?.name??'').slice(0,200),p_body:body,p_at:new Date(stamp).toISOString(),
           p_code_hash:command && command!=='stop'?hashConsent(command):null,p_stop:command==='stop'}));handled++;
       }
       for(const status of value.statuses??[]) {
-        const stamp=Number(status.timestamp)*1000;if(!Number.isFinite(stamp)) continue;
-        const callback=String(status.biz_opaque_callback_data??'').match(/^groundwork:([0-9a-f-]{36})$/i)?.[1]??null;
+        const stamp=Number(status.timestamp)*1000;if(!Number.isFinite(stamp)||typeof status.id!=='string'||!['sent','delivered','read','failed'].includes(status.status)) continue;
+        const callback=String(status.biz_opaque_callback_data??'').match(/^groundwork:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i)?.[1]??null;
         checked(await svc.rpc('record_whatsapp_status',{p_phone_number:cfg.phone_number_id,p_provider:status.id,p_status:status.status,p_at:new Date(stamp).toISOString(),p_message:callback,
           p_error:status.errors?.[0]?.code?`meta_${Number(status.errors[0].code)}`:null}));handled++;
       }
