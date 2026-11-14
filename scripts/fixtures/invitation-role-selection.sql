@@ -48,13 +48,13 @@ INSERT INTO contractor_invites(project_id,invited_by,email,status,accepted_at,co
  VALUES(test_id(854),test_id(1),'2@test.example','accepted',now(),test_id(2),true);
 SET ROLE authenticated;
 SELECT set_config('test.actor',test_id(1)::text,false);
-SELECT invite_project_contractor(test_id(854),'21@test.example');
-SELECT invite_project_viewer(test_id(854),'21@test.example',NULL,false);
+INSERT INTO test_selected_links VALUES(test_id(854),'email-contractor',(invite_project_contractor(test_id(854),'21@test.example')).token);
+INSERT INTO test_selected_links VALUES(test_id(854),'email-observer',invite_project_viewer(test_id(854),'21@test.example',NULL,false));
 SELECT invite_project_viewer(test_id(854),'22@test.example',NULL,false);
 SELECT test_refused($q$SELECT invite_project_contractor(test_id(854),'22@test.example')$q$,'invitation_pending');
 SELECT set_config('test.actor',test_id(21)::text,false);
-SELECT accept_project_viewer((SELECT token FROM project_viewers WHERE project_id=test_id(854) AND email='21@test.example'));
-SELECT test_refused($q$SELECT accept_contractor_invite((SELECT token FROM contractor_invites WHERE project_id=test_id(854) AND email='21@test.example'))$q$,'already_member');
+SELECT accept_project_viewer((SELECT token FROM test_selected_links WHERE project_id=test_id(854) AND role='email-observer'));
+SELECT test_refused($q$SELECT accept_contractor_invite((SELECT token FROM test_selected_links WHERE project_id=test_id(854) AND role='email-contractor'))$q$,'already_member');
 SELECT test_assert(NOT is_contractor_on(test_id(854),test_id(21)),'an existing observer cannot claim a different role through an older email invitation');
 RESET ROLE;
 SELECT test_assert((SELECT count(*)=1 AND bool_and(contractor_user_id=test_id(2)) FROM contractor_invites WHERE project_id=test_id(851) AND is_primary),'original primary contractor is retained');

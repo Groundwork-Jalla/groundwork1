@@ -43,10 +43,10 @@ describe('unread is read_at, everywhere', () => {
   });
 
   it('the page marks read with a timestamp, and filters on null', () => {
-    const src = code('src/app/routes/notifications.tsx');
+    const src = code('src/lib/supabase/notifications.ts');
     expect(src).toMatch(/update\(\{ read_at: new Date\(\)\.toISOString\(\) \}\)/);
     expect(src).toMatch(/\.is\('read_at', null\)/);
-    expect(src).toMatch(/filter\(n => !n\.read_at\)/);
+    expect(code('src/app/routes/notifications.tsx')).toMatch(/filter\(n => !n\.read_at\)/);
   });
 
   it('and 009 is still what defines it', () => {
@@ -57,14 +57,15 @@ describe('unread is read_at, everywhere', () => {
 describe('a notification goes somewhere, wherever it is clicked', () => {
   it('the page navigates, not merely marks read', () => {
     const src = code('src/app/routes/notifications.tsx');
-    expect(src).toMatch(/destinationFor/);
+    expect(src).toMatch(/resolveNotificationDestination/);
     expect(src).toMatch(/if \(to\) navigate\(to\)/);
   });
 
   it('using the SAME resolver as the bell', () => {
     // Two answers to "where does this notification go" is how the two drifted apart.
     expect(code('src/app/routes/notifications.tsx'))
-      .toMatch(/import \{ destinationFor \} from '@\/components\/ui\/NotificationBell'/);
+      .toMatch(/import \{ resolveNotificationDestination \} from '@\/lib\/notification-destination'/);
+    expect(code('src/components/ui/NotificationBell.tsx')).toMatch(/resolveNotificationDestination/);
   });
 
   it('an already-read notification is still a live link', () => {
@@ -73,8 +74,8 @@ describe('a notification goes somewhere, wherever it is clicked', () => {
     const src = code('src/app/routes/notifications.tsx');
     const fn = src.slice(src.indexOf('function openNotification'));
     const body = fn.slice(0, fn.indexOf('\n  }'));
-    expect(body).toMatch(/void markOneRead\(n\)/);
-    expect(body).toMatch(/destinationFor/);
+    expect(body).toMatch(/if \(!n\.read_at\) void feed\.markRead\(n\.id\)/);
+    expect(body).toMatch(/await resolveNotificationDestination/);
   });
 
   it('and a row is a button, so it is reachable from a keyboard', () => {

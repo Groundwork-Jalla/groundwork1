@@ -20,9 +20,9 @@ const PROJECT = '11111111-2222-3333-4444-555555555555';
 
 describe('a message notification opens the messages tab', () => {
   it.each([
-    ['the owner',    undefined,     `/projects/${PROJECT}?tab=messages`],
-    ['a contractor', 'contractor',  `/work/projects/${PROJECT}?tab=messages`],
-    ['a verifier',   'verifier',    `/verifiers/projects/${PROJECT}?tab=messages`],
+    ['the owner',    undefined,     `/projects/${PROJECT}?tab=messages&conversation_id=c1`],
+    ['a contractor', 'contractor',  `/work/projects/${PROJECT}?tab=messages&conversation_id=c1`],
+    ['a verifier',   'verifier',    `/verifiers/projects/${PROJECT}?tab=messages&conversation_id=c1`],
   ])('%s', (_who, role, expected) => {
     expect(destinationFor({
       project_id: PROJECT, conversation_id: 'c1', ...(role ? { role } : {}),

@@ -103,7 +103,7 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
       </fieldset>
     </form>}
     {context?.can_propose&&context.history.find(item=>item.status==='approved'||item.status==='declined')&&<p role="status" className="rounded-xl bg-brand-off-white p-3 text-sm">{t(context.history.find(item=>item.status==='approved'||item.status==='declined')!.status==='approved'?'project.priceChanges.contractorApproved':'project.priceChanges.contractorRetained')}</p>}
-    {context && context.history.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">{context.history.map(proposal => <li key={proposal.id} className="space-y-2 py-4 text-xs">
+    {context && context.history.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">{context.history.map(proposal => <li key={proposal.id} id={`price-proposal-${proposal.id}`} className="space-y-2 py-4 text-xs">
       <p className="font-semibold">{t(`project.priceChanges.status.${proposal.status}` as TKey)}</p>
       <p>{t('project.priceChanges.projectTotalChange')}: <span className="font-mono">{format(proposal.old_total, proposal.currency)} → {format(proposal.new_total, proposal.currency)}</span></p>
       <p className="text-brand-mid-grey">{new Date(proposal.proposed_at).toLocaleString(lang)}{proposal.decided_at&&' · '+new Date(proposal.decided_at).toLocaleString(lang)}</p>

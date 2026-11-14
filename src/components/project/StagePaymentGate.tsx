@@ -157,7 +157,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   function closeViewer() { ++viewRequest.current; setViewer(null); }
 
   if (!payment) return null;
-  return <section className="mt-5 space-y-3 rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]" aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
+  return <section id={`stage-payment-${stageId}`} className="mt-5 space-y-3 rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]" aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
     <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white"><Receipt className="size-4" aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
     {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
     <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>
@@ -172,7 +172,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {!canUpload && !settled && <p className="text-xs text-brand-mid-grey">{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
     <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment}
       onChanged={onChanged} onInstallmentChange={value => { installment.current = { scope, value }; }}/>
-    {receipts.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#333]">{receipts.map(receipt => <li key={receipt.id} className="py-3 text-xs">
+    {receipts.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#333]">{receipts.map(receipt => <li key={receipt.id} id={`receipt-${receipt.id}`} className="py-3 text-xs">
       <div className="flex flex-wrap justify-between gap-2">
         <p className="font-mono font-semibold text-brand-near-black dark:text-white">{format(receipt.amount, receipt.currency)}</p>
         <span className={receipt.decision === 'received' ? 'text-state-complete' : 'text-brand-mid-grey'}>{t(receipt.replacedBy?'project.receiptFlow.replaced':receipt.decision === 'received' ? 'project.receiptFlow.received' : receipt.decision === 'flagged' ? 'project.receiptFlow.flagged' : 'project.receiptFlow.pending')}</span>

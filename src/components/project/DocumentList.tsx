@@ -29,14 +29,15 @@ export function Group({ title, children }: { title: string; children: React.Reac
  * in that case no control is drawn at all. A button that does nothing is worse than
  * no button: it is what made this tab look finished when it was not.
  */
-export function FileRow({ kind, name, sub, when, action, state, onOpen, busy }: {
+export function FileRow({ id, kind, name, sub, when, action, state, onOpen, busy }: {
+  id?: string;
   kind: string; name: string; sub: string; when: string;
   action?: string; state?: 'done' | 'open';
   onOpen?: () => void; busy?: boolean;
 }) {
   const t = useT();
   return (
-    <div className="flex items-center gap-3 border-t border-brand-border-grey py-3 dark:border-[#2c2c2c]">
+    <div id={id} className="flex items-center gap-3 border-t border-brand-border-grey py-3 dark:border-[#2c2c2c]">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand-border-grey bg-brand-off-white font-mono text-[8px] font-semibold text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#141414]">
         {kind}
       </span>

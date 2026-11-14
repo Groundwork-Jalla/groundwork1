@@ -127,7 +127,7 @@ export function SubstageRow({
   }
 
   return (
-    <div className={cn(
+    <div id={`substage-${substage.id}`} className={cn(
       'flex items-start gap-3 py-2.5 group',
       isLocked && 'opacity-50',
     )}>

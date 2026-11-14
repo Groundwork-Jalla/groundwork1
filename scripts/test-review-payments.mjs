@@ -109,6 +109,10 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261114000300_stage_payment_plans.sql'),
     `SELECT public.test_assert(NOT public.stage_progression_authorized(public.test_id(183,3)), 'replay preserves the difference between work and progression permissions');
      SELECT public.test_assert((SELECT review_payment_pending FROM public.project_stages WHERE id=public.test_id(183,3)), 'replay does not skip unpaid reviewed work');`,
+    read('scripts/fixtures/project-notifications-schema.sql'),
+    read('supabase/migrations/20261114000500_project_action_notifications.sql'),
+    read('supabase/migrations/20261114000500_project_action_notifications.sql'),
+    read('scripts/fixtures/project-notifications.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -121,7 +125,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

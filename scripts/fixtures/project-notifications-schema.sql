@@ -1,0 +1,14 @@
+RESET ROLE;
+ALTER TABLE public.notifications ADD PRIMARY KEY(id);
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title_key text,ADD COLUMN IF NOT EXISTS body_key text,ADD COLUMN IF NOT EXISTS params jsonb,ADD COLUMN IF NOT EXISTS read_at timestamptz;
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text;
+UPDATE auth.users SET email=right(id::text,1)||'@test.example';
+ALTER TABLE public.contractor_invites ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid(),ADD COLUMN IF NOT EXISTS token uuid DEFAULT gen_random_uuid(),ADD COLUMN IF NOT EXISTS email text,ADD COLUMN IF NOT EXISTS accepted_at timestamptz,ADD COLUMN IF NOT EXISTS is_share_link boolean DEFAULT false;
+ALTER TABLE public.project_viewers ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid(),ADD COLUMN IF NOT EXISTS token uuid DEFAULT gen_random_uuid(),ADD COLUMN IF NOT EXISTS email text,ADD COLUMN IF NOT EXISTS is_share_link boolean DEFAULT false;
+ALTER TABLE public.project_documents ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid(),ADD COLUMN IF NOT EXISTS file_path text;
+ALTER TABLE public.project_substages ADD COLUMN IF NOT EXISTS project_id uuid;
+UPDATE public.project_substages sub SET project_id=s.project_id FROM public.project_stages s WHERE s.id=sub.stage_id;
+CREATE TABLE IF NOT EXISTS public.project_verifiers(id uuid DEFAULT gen_random_uuid(),project_id uuid,user_id uuid,status text);
+CREATE TABLE IF NOT EXISTS public.stage_verifications(id uuid DEFAULT gen_random_uuid(),stage_id uuid);
+GRANT UPDATE(read_at) ON public.notifications TO authenticated;
+CREATE POLICY notification_mark_own ON public.notifications FOR UPDATE TO authenticated USING(user_id=auth.uid()) WITH CHECK(user_id=auth.uid());

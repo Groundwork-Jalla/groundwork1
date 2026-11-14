@@ -13,6 +13,7 @@ import { mustChangePassword, FORCED_PASSWORD_PATH } from "@/lib/auth/provisioned
 import { useT } from "@/lib/i18n";
 import { signupHref } from "@/lib/auth/post-auth-path";
 import { PasswordField } from '@/components/ui/PasswordField';
+import { ProjectInvitationRoleNotice } from '@/components/auth/ProjectInvitationRoleNotice';
 import { completeProjectInvitation } from '@/lib/auth/complete-project-invitation';
 import {
   projectAuthCallbackUrl, projectInvitationError, projectInvitationPath, readProjectInvitation, withProjectInvitation,
@@ -141,6 +142,7 @@ export default function Login() {
     <div>
       <h1 className="font-sans text-3xl font-bold text-brand-near-black">{t('auth.login.title')}</h1>
       <p className="text-sm text-brand-mid-grey mt-2">{t('auth.login.subtitle')}</p>
+      <ProjectInvitationRoleNotice search={searchParams.toString()} />
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-8">
         <div className="space-y-1.5">

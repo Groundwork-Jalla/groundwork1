@@ -102,7 +102,7 @@ export function ProjectDocuments({ projectId, stages, documents, toolbar, emptyL
   ];
   const show = (group: typeof filter) => filter === 'all' || filter === group;
   const visible = filter === 'all' ? counts.all : counts[filter];
-  const renderFile = (doc: typeof files[number]) => <FileRow key={doc.id} kind={fileKind(doc.file_name)} name={doc.file_name}
+  const renderFile = (doc: typeof files[number]) => <FileRow key={doc.id} id={`document-${doc.id}`} kind={fileKind(doc.file_name)} name={doc.file_name}
     sub={doc.category === 'boq' ? t('contractorDocs.billOfQuantities') : labels.docCategory(doc.category)}
     when={formatDate(doc.created_at)} action={t('contractorDocs.view')} busy={opening === doc.id}
     onOpen={() => { void openFile({ id: doc.id, name: doc.file_name, path: doc.file_path, bucket: 'documents' }); }} />;

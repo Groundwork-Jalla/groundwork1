@@ -239,7 +239,7 @@ describe('the sender selects a project role before generating a link', () => {
   });
 
   it('offers a client contractor or observer access, then opens only the chosen invitation', () => {
-    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'contractor', 'observer']);
+    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'contractor', 'observer', 'family']);
     choose('contractor');
     expect(render(component).all.find(node => node.type === ContractorInvite)!.props).toMatchObject({ projectId: 'project', projectName: 'Home' });
     expect(render(component).all.some(node => node.type === ShareProject)).toBe(false);
@@ -251,7 +251,7 @@ describe('the sender selects a project role before generating a link', () => {
 
   it('offers the primary contractor client, additional-contractor and observer invitations', () => {
     h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true, canInviteContractor: false, canInviteAdditionalContractor: true };
-    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'client', 'contractor', 'observer']);
+    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'client', 'contractor', 'observer', 'family']);
     choose('client'); expect(render(component).all.find(node => node.type === ShareProject)!.props.asClient).toBe(true);
     choose('contractor'); expect(render(component).all.some(node => node.type === ContractorInvite)).toBe(true);
     expect(render(component).text).toContain('projectLinks.additionalContractorHelp');
@@ -264,6 +264,14 @@ describe('the sender selects a project role before generating a link', () => {
     expect(render(component).all.some(node => node.type === ShareProject)).toBe(false);
     choose('contractor'); h.team.scope = 'actor:other-project';
     expect(render(component).all.find(node => node.type === 'select')!.props.value).toBe('');
+  });
+
+  it('family links grant observer access without client approval responsibilities', () => {
+    choose('family');
+    const panel = render(component).all.find(node => node.type === ShareProject)!;
+    expect(panel.props.asClient).toBeUndefined();
+    expect(render(component).text).toContain('projectLinks.familyRoleHelp');
+    expect(h.createLink).not.toHaveBeenCalled();
   });
 
   it('withdraws every invitation control when the current account loses invitation permission', () => {

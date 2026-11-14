@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
+import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
 import { ArrowLeft, Camera, Check, FileText, Loader2, Lock, Search, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
@@ -102,6 +103,7 @@ export default function ContractorProjectDetail() {
    *  this contractor's own OUTGOING ledger — opposite direction, opposite person. */
   const [stagePayments, setStagePayments] = useState<Map<string, StagePayment>>(new Map());
   const [searchParams, setSearchParams] = useSearchParams();
+  useProjectNotificationFocus(projectId, searchParams.toString());
   /**
    * The open tab, taken from `?tab=` when there is one.
    *

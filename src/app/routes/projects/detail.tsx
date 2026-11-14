@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Building2, Layers, Home, Wrench,
@@ -146,6 +147,7 @@ export default function ProjectDetail() {
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  useProjectNotificationFocus(id, searchParams.toString());
   const attachmentFailed = searchParams.get('attachment') === 'failed';
   const { user, accountRole, isContractor: hasContractorRole } = useAuth();
   const scope = `${id ?? ''}:${user?.id ?? ''}`;

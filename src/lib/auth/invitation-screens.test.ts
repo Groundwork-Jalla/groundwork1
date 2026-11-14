@@ -39,6 +39,22 @@ beforeEach(()=>{
 afterEach(()=>{unmount();vi.unstubAllGlobals();});
 
 describe('new or existing accounts keep the same invitation through signup and login',()=>{
+  it.each([['invite','contractor'],['share','client'],['share','observer']])('a %s link fixes signup to its server-confirmed %s project role',async(kind,role)=>{
+    h.search=`?${kind}=invitation-token&role=contractor`;
+    h.viewerPreview.mockResolvedValue({...clientPreview,isClient:role==='client'});
+    render(Signup);await flush();const screen=render(Signup);
+    expect(screen.some(node=>node.type==='fieldset')).toBe(false);
+    expect(screen.some(node=>node.type==='role-signup')).toBe(false);
+    expect(text(screen)).toContain(role==='contractor'?'auth.signup.titleInvite':role==='client'?'projectLinks.clientSignup':'projectLinks.observerSignup');
+  });
+  it('keeps an unreadable invitation on signup with a retry and disabled submit',async()=>{
+    h.search='?share=invitation-token';h.viewerPreview.mockRejectedValueOnce(Error('offline'));
+    render(Signup);await flush();const failed=render(Signup);
+    expect(text(failed)).toContain('invite.loadFailed');
+    expect(failed.find(node=>node.props.type==='submit')?.props.disabled).toBe(true);
+    failed.find(node=>node.type==='button'&&text(node)==='common.retry')!.props.onClick();
+    render(Signup);await flush();expect(text(render(Signup))).toContain('projectLinks.clientSignup');
+  });
   it.each(['share','invite'])('the signup Log in link carries %s even when local storage is blocked',kind=>{
     vi.stubGlobal('localStorage',{getItem:()=>{throw Error('blocked');}});h.search=`?${kind}=invitation-token`;
     const link=render(Signup).find(node=>node.type==='link'&&text(node)==='auth.signup.logIn');

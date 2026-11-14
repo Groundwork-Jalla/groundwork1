@@ -1,5 +1,10 @@
 # Project invitation links and observer identity
 
+The [14 November role-selection update](project-link-role-selection.md) adds the
+explicit sender-side role dropdown and additional-contractor invitations discussed
+in the morning/Friday reviews. Its migration and application release follow the
+previously deployed payment/currency changes.
+
 The later [November 13 review](product-review-status-2026-11-13.md) records evidence
 preview, lifecycle fixes and current release/configuration status.
 The current [account role and link update](account-roles-and-links.md) removes

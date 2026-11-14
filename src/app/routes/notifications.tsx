@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import { Bell, CheckCheck, Building2, Upload, MessageSquare, BadgeCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase/client';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { useNotificationText } from '@/lib/notification-text';
-import { destinationFor } from '@/components/ui/NotificationBell';
+import { resolveNotificationDestination } from '@/lib/notification-destination';
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -31,7 +31,7 @@ interface Notification {
    */
   read_at: string | null;
   created_at: string;
-  project_id: string | null;
+  project_id?: string | null;
   /** Where it points. `select('*')` always fetched this; nothing ever read it. */
   data: Record<string, unknown> | null;
   /** Dictionary keys and their values (149); null keeps the stored English. */
@@ -55,9 +55,9 @@ function filterNotifications(list: Notification[], filter: FilterTab): Notificat
     case 'unread':
       return list.filter(n => !n.read_at);
     case 'projects':
-      return list.filter(n => PROJECT_TYPES.has(n.type));
+      return list.filter(n => PROJECT_TYPES.has(n.type) || n.type.startsWith('project.'));
     case 'payments':
-      return list.filter(n => n.type.includes('payment'));
+      return list.filter(n => /payment|receipt|prices|progression/.test(n.type));
     case 'system':
       return list.filter(n => n.type.includes('system') || n.type === 'admin');
     default:
@@ -101,109 +101,40 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const t = useT();
   const { tPlural } = useLanguage();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [limit, setLimit] = useState(50);
+  const feed = useNotifications(user?.id, limit);
+  const notifications = feed.rows;
+  const loading = !feed.loaded;
+  const loadingMore = feed.loadingMore;
+  const [failure, setFailure] = useState<string | null>(null);
+  const account = useRef(user?.id); account.current = user?.id;
+  const clickVersion = useRef(0);
+  useEffect(() => () => { ++clickVersion.current; }, [user?.id]);
   const [filter, setFilter] = useState<FilterTab>('all');
 
-  // Initial load
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
-      .then(({ data, error }) => {
-        if (!error && data) setNotifications(data as Notification[]);
-        setLoading(false);
-      });
-  }, [user]);
-
-  // Real-time subscription
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        payload => {
-          setNotifications(prev => [payload.new as Notification, ...prev]);
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
   async function markAllRead() {
-    if (!user) return;
-    await supabase
-      .from('notifications')
-      .update({ read_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .is('read_at', null);
-    setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
+    try { await feed.markAllRead(); setFailure(null); }
+    catch { setFailure(t('notifications.readFailed')); }
   }
 
-  async function markOneRead(n: Notification) {
-    if (n.read_at) return;
-    const now = new Date().toISOString();
-    await supabase.from('notifications').update({ read_at: now }).eq('id', n.id);
-    setNotifications(prev =>
-      prev.map(item => (item.id === n.id ? { ...item, read_at: now } : item)),
-    );
+  async function openNotification(n: Notification) {
+    const recipient = user?.id;
+    const turn = ++clickVersion.current;
+    try {
+      const to = await resolveNotificationDestination(
+        n.data ?? (n.project_id ? { project_id: n.project_id } : null), { isAdmin, isContractor, isVerifier });
+      if (account.current !== recipient || clickVersion.current !== turn) return;
+      if (!n.read_at) void feed.markRead(n.id).catch(() => { if (account.current === recipient) setFailure(t('notifications.readFailed')); });
+      if (to) navigate(to);
+    } catch { if (account.current === recipient && clickVersion.current === turn) setFailure(t('notifications.openFailed')); }
   }
 
-  /**
-   * Open what the notification is about.
-   *
-   * This page only ever marked a row read — it never navigated, so "New message about
-   * clinton" was a dead click, and an ALREADY-READ row was deader still because
-   * `markOneRead` returns early. The bell dropdown had been fixed and this page had not,
-   * which is the whole of the bug: there are two places a notification is clicked and
-   * only one of them went anywhere.
-   *
-   * `destinationFor` is the bell's, deliberately shared — two answers to "where does this
-   * notification go" is how they drifted apart in the first place.
-   */
-  function openNotification(n: Notification) {
-    void markOneRead(n);
-    // Older rows pre-date `data` carrying the project; the column has always held it.
-    const to = destinationFor(
-      n.data ?? (n.project_id ? { project_id: n.project_id } : null),
-      { isAdmin, isContractor, isVerifier },
-    );
-    if (to) navigate(to);
-  }
-
-  async function loadOlder() {
-    if (!user || loadingMore) return;
-    setLoadingMore(true);
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .range(notifications.length, notifications.length + 49);
-    if (!error && data) {
-      setNotifications(prev => [...prev, ...(data as Notification[])]);
-    }
-    setLoadingMore(false);
-  }
+  function loadOlder() { setLimit(value => value + 50); }
 
   // One helper for the page and the bell, so the fallback rule cannot drift (149).
   const notificationText = useNotificationText();
 
-  const unreadCount = notifications.filter(n => !n.read_at).length;
+  const unreadCount = feed.unread;
   const filtered = filterNotifications(notifications, filter);
   const { fresh, earlier } = splitByAttention(filtered);
 
@@ -253,6 +184,7 @@ export default function NotificationsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8 space-y-5">
 
+      {(failure || feed.failed) && <p role="alert" className="text-sm text-state-alert">{failure ?? t('notifications.loadFailed')} <button type="button" className="underline" onClick={() => void feed.refresh()}>{t('common.retry')}</button></p>}
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -338,7 +270,7 @@ export default function NotificationsPage() {
           </div>
 
           {/* Load older button */}
-          {notifications.length >= 50 && filter === 'all' && (
+          {notifications.length >= limit && filter === 'all' && (
             <div className="px-5 py-4 border-t border-brand-off-white dark:border-[#2c2c2c] flex justify-center">
               <button
                 type="button"

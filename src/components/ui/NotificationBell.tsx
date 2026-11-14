@@ -1,146 +1,17 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/lib/supabase/client';
-import {
-  fetchNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
-} from '@/lib/supabase/notifications';
-import type { NotificationRow } from '@/lib/supabase/notifications';
+import { useNotifications } from '@/hooks/useNotifications';
+import { resolveNotificationDestination } from '@/lib/notification-destination';
+import { formatRelative } from '@/lib/format';
 import { useNotificationText } from '@/lib/notification-text';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
-/**
- * Where a notification goes when clicked.
- *
- * Used to be `project_id` or nothing. The support and inquiry triggers carry `ticket_id`
- * and `inquiry_id` instead, so those notifications were a dead click — they marked
- * themselves read and stayed put. Each id the triggers write now has a page.
- */
-/**
- * Who is reading this notification.
- *
- * Added 31 Oct 2026. The stamped `role` below was never enough: `notify_project_members`
- * (013) inserts the SAME `data` for the owner and for every accepted contractor, and
- * stamps no role at all. 123 added the stamp for message notifications only, so every
- * other kind — "your project is now being tracked" among them — reached a contractor
- * with no role and fell through to `/projects/<id>`, which is the CLIENT view.
- *
- * Reported by Philip, who opened a notification as a contractor and landed in the
- * client app.
- *
- * The viewer's own role is the better answer in every case, because a notification row
- * belongs to ONE person: whoever is reading it is the recipient. So this is preferred
- * over the stamp, and the stamp is kept only as a fallback for a caller that has no
- * viewer to hand. Fixing the trigger alone would not have helped the notifications
- * already sitting in the table.
- */
-export interface NotificationViewer {
-  isAdmin?: boolean;
-  isContractor?: boolean;
-  isVerifier?: boolean;
-}
-
-export function destinationFor(
-  data: Record<string, unknown> | null | undefined,
-  viewer?: NotificationViewer,
-): string | null {
-  if (!data) return null;
-  const s = (k: string) => (typeof data[k] === 'string' && data[k] ? (data[k] as string) : null);
-  const application = s('application_id');
-  if (s('communication_followup_id')) return viewer?.isAdmin ? '/admin/sequences' : null;
-  if (application)       return `/admin/applications/${application}`;
-  if (s('ticket_id'))    return '/admin/support';
-  if (s('inquiry_id'))   return '/admin/inquiries';
-  const project = s('project_id');
-  if (project) {
-    // Role-aware, because /projects/<id> assumes an owner: a contractor or verifier
-    // sent there is bounced, which reads as the product being broken rather than as a
-    // message waiting. 123 stamps the recipient's role on the notification for this.
-    //
-    // And a MESSAGE notification opens the messages tab. Landing on the project
-    // overview was the reported bug: somebody is told they have a message, presses
-    // the thing that says so, and arrives at a page that does not show it.
-    // The viewer first, the stamp second. See NotificationViewer above.
-    const role = s('financial_event')&&s('role')?s('role'):viewer?.isContractor ? 'contractor'
-      : viewer?.isVerifier ? 'verifier'
-      : s('role');
-    const target=s('project_tab');const allowed=role==='contractor'?['work','money','documents','messages','people']:['overview','stages','costing','timeline','documents','messages','team'];
-    const selected=s('conversation_id')?'messages':target&&allowed.includes(target)?target:null;
-    const stage=s('stage_number');
-    const tab=(selected?'?tab='+selected:'')+(stage&&/^\d+$/.test(stage)?(selected?'&':'?')+'stage='+stage:'');
-    if (role === 'contractor') return `/work/projects/${project}${tab}`;
-    if (role === 'verifier')   return `/verifiers/projects/${project}${tab}`;
-    return `/projects/${project}${tab}`;
-  }
-  // A thread with no project — a WhatsApp or email chat, which belongs to the person
-  // rather than to a build. 123 notifies on these too; without this they were a bell
-  // that went nowhere when pressed.
-  // A conversation with no project. `/messages` lives under the CLIENT layout and
-  // there is no contractor equivalent, so a contractor is sent to their own dashboard
-  // instead: not ideal, but the rule is that no button puts a contractor in somebody
-  // else's app, and a thread with no build has nowhere else to be.
-  if (s('conversation_id')) {
-    if (viewer?.isContractor) return '/work';
-    if (viewer?.isVerifier)   return '/verifiers';
-    return '/messages';
-  }
-  return null;
-}
-
-function NotifItem({
-  notif,
-  onRead,
-}: {
-  notif: NotificationRow;
-  onRead: (id: string) => void;
-}) {
-  const navigate = useNavigate();
-  const { isAdmin, isContractor, isVerifier } = useAuth();
-
-  function handleClick() {
-    if (!notif.read_at) onRead(notif.id);
-    const to = destinationFor(notif.data, { isAdmin, isContractor, isVerifier });
-    if (to) navigate(to);
-  }
-
-  const { title, body } = useNotificationText()(notif);
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={cn(
-        'w-full text-left px-4 py-3 flex gap-3 items-start transition-colors',
-        'hover:bg-brand-off-white dark:hover:bg-[#2c2c2c]',
-        !notif.read_at && 'bg-brand-off-white/60 dark:bg-[#252525]',
-      )}
-    >
-      {!notif.read_at && (
-        <span className="mt-1.5 shrink-0 size-2 rounded-full bg-state-active" />
-      )}
-      <div className={cn('flex-1 min-w-0', notif.read_at && 'pl-5')}>
-        <p className="text-xs font-semibold text-brand-near-black dark:text-white leading-snug">{title}</p>
-        <p className="text-xs text-brand-mid-grey mt-0.5 leading-relaxed line-clamp-2">{body}</p>
-        <p className="text-[10px] text-brand-mid-grey mt-1">{timeAgo(notif.created_at)}</p>
-      </div>
-    </button>
-  );
-}
+export { destinationFor } from '@/lib/notification-destination';
+export type { NotificationViewer } from '@/lib/notification-destination';
 
 interface NotificationBellProps {
   userId: string;
@@ -149,35 +20,33 @@ interface NotificationBellProps {
 export function NotificationBell({ userId }: NotificationBellProps) {
   const t = useT();
   const [open, setOpen]               = useState(false);
-  const [notifs, setNotifs]           = useState<NotificationRow[]>([]);
-  const [loaded, setLoaded]           = useState(false);
-  const containerRef                  = useRef<HTMLDivElement>(null);
+  const [limit, setLimit] = useState(20);
+  const feed = useNotifications(userId, limit);
+  const { rows: notifs, loaded, unread: unreadCount } = feed;
+  const [error, setError] = useState<string | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const account = useRef(userId); account.current = userId;
+  const clickVersion = useRef(0);
+  const navigate = useNavigate();
+  const { isAdmin, isContractor, isVerifier } = useAuth();
+  const notificationText = useNotificationText();
+  useEffect(() => { setOpen(false); setError(null); setOpening(null); setLimit(20); return () => { ++clickVersion.current; }; }, [userId]);
 
-  const unreadCount = notifs.filter(n => !n.read_at).length;
-
-  const load = useCallback(async () => {
-    const rows = await fetchNotifications(userId);
-    setNotifs(rows);
-    setLoaded(true);
-  }, [userId]);
-
-  // Initial load + realtime subscription
-  useEffect(() => {
-    load();
-
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          setNotifs(prev => [payload.new as NotificationRow, ...prev]);
-        },
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [userId, load]);
+  async function openNotification(n: typeof notifs[number]) {
+    const recipient = userId;
+    const turn = ++clickVersion.current;
+    setOpening(n.id); setError(null);
+    try {
+      const to = await resolveNotificationDestination(n.data, { isAdmin, isContractor, isVerifier });
+      if (account.current !== recipient || clickVersion.current !== turn) return;
+      // A read-state failure must not prevent someone opening the action.
+      if (!n.read_at) void feed.markRead(n.id).catch(() => { if (account.current === recipient) setError(t('notifications.readFailed')); });
+      if (to) { setOpen(false); navigate(to); }
+    } catch {
+      if (account.current === recipient && clickVersion.current === turn) setError(t('notifications.openFailed'));
+    } finally { if (account.current === recipient && clickVersion.current === turn) setOpening(null); }
+  }
 
   // Close on outside click
   useEffect(() => {
@@ -192,13 +61,8 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   }, [open]);
 
   async function handleMarkAllRead() {
-    await markAllNotificationsRead(userId);
-    setNotifs(prev => prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
-  }
-
-  async function handleRead(id: string) {
-    await markNotificationRead(id);
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
+    try { await feed.markAllRead(); setError(null); }
+    catch { setError(t('notifications.readFailed')); }
   }
 
   return (
@@ -206,7 +70,8 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       <button
         type="button"
         onClick={() => setOpen(p => !p)}
-        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-label={`${t('nav.notifications')}${unreadCount > 0 ? `, ${t('notifications.unreadCount', { count: unreadCount })}` : ''}`}
+        aria-expanded={open}
         className="relative flex size-8 items-center justify-center rounded-full hover:bg-brand-off-white dark:hover:bg-[#2c2c2c] transition-colors"
       >
         <Bell className="size-4.5 text-brand-mid-grey" />
@@ -239,25 +104,38 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                   onClick={handleMarkAllRead}
                   className="text-[10px] text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors"
                 >
-                  Mark all read
+                  {t('notifications.markAllRead')}
                 </button>
               )}
             </div>
 
+            {(error || feed.failed) && <p role="alert" className="px-4 py-2 text-xs text-state-alert">{error ?? t('notifications.loadFailed')} <button type="button" className="underline" onClick={() => void feed.refresh()}>{t('common.retry')}</button></p>}
             {/* List */}
             <div className="max-h-80 overflow-y-auto divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
               {!loaded ? (
                 <div className="px-4 py-6 text-xs text-brand-mid-grey text-center">{t('common.loading')}</div>
               ) : notifs.length === 0 ? (
                 <div className="px-4 py-8 text-xs text-brand-mid-grey text-center">
-                  No notifications yet
+                  {t('notifications.emptyTitle')}
                 </div>
               ) : (
-                notifs.map(n => (
-                  <NotifItem key={n.id} notif={n} onRead={handleRead} />
-                ))
+                notifs.map(n => {
+                  const { title, body } = notificationText(n);
+                  return <button key={n.id} type="button" disabled={opening === n.id} onClick={() => void openNotification(n)}
+                    className={cn('w-full text-left px-4 py-3 flex gap-3 items-start transition-colors hover:bg-brand-off-white dark:hover:bg-[#2c2c2c] disabled:opacity-60', !n.read_at && 'bg-brand-off-white/60 dark:bg-[#252525]')}>
+                    {!n.read_at && <span className="mt-1.5 shrink-0 size-2 rounded-full bg-state-active" />}
+                    <div className={cn('flex-1 min-w-0', n.read_at && 'pl-5')}>
+                      <p className="text-xs font-semibold text-brand-near-black dark:text-white leading-snug">{title}</p>
+                      <p className="text-xs text-brand-mid-grey mt-0.5 leading-relaxed line-clamp-2">{body}</p>
+                      <p className="text-[10px] text-brand-mid-grey mt-1">{formatRelative(n.created_at)}</p>
+                    </div>
+                  </button>;
+                })
               )}
             </div>
+            {notifs.length >= limit && <button type="button" disabled={feed.loadingMore} onClick={() => setLimit(value => value + 20)} className="w-full border-t border-brand-border-grey px-4 py-3 text-xs text-brand-mid-grey disabled:opacity-50">
+              {t(feed.loadingMore ? 'common.loading' : 'notifications.loadOlder')}
+            </button>}
           </motion.div>
         )}
       </AnimatePresence>

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Bell, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead, type NotificationRow } from '@/lib/supabase/notifications';
-import { destinationFor } from '@/components/ui/NotificationBell';
+import { destinationFor, resolveNotificationDestination } from '@/lib/notification-destination';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatDateTime, formatRelative } from '@/lib/format';
 import { errorMessage } from '@/lib/errors';
@@ -47,8 +47,10 @@ export default function AdminNotifications() {
 
   async function open(n: NotificationRow) {
     if (!n.read_at) { await markNotificationRead(n.id); await load(); }
-    const to = destinationFor(n.data);
-    if (to) navigate(to);
+    try {
+      const to = await resolveNotificationDestination(n.data, { isAdmin: true });
+      if (to) navigate(to);
+    } catch { setError(t('notifications.openFailed')); }
   }
 
   async function markAll() {
@@ -101,7 +103,7 @@ export default function AdminNotifications() {
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           {shown.map(n => {
-            const to = destinationFor(n.data);
+            const to = destinationFor(n.data, { isAdmin: true });
             return (
               <li key={n.id} className="border-b border-brand-border-grey last:border-0 dark:border-[#2c2c2c]">
                 <button type="button" onClick={() => open(n)} disabled={!to && !!n.read_at}

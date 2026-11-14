@@ -19,18 +19,20 @@ import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
 import RoleSignup from "@/components/auth/RoleSignup";
 import { PasswordField } from '@/components/ui/PasswordField';
 import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn, withProjectInvitation } from '@/lib/auth/project-invitation';
+import { useProjectInvitationRole } from '@/hooks/useProjectInvitationRole';
 
 export default function Signup() {
   const [searchParams, setSearchParams] = useSearchParams();
   const inviteToken    = searchParams.get("invite") ?? "";
   const inviteEmail    = searchParams.get("email")  ?? "";
-  const isInviteFlow   = !!inviteToken;
+  const invitationRole = useProjectInvitationRole(searchParams.toString());
+  const isInviteFlow   = !!invitationRole.invitation;
   const accountType = signupAccountType(searchParams);
   const returnPath = safeAuthReturn(searchParams.get('redirect'));
   const loginPath = withProjectInvitation('/auth/login' + (returnPath ? `?redirect=${encodeURIComponent(returnPath)}` : ''), readProjectInvitation(searchParams.toString()));
-  const isContractorSignup = accountType === 'contractor';
+  const isContractorSignup = isInviteFlow ? invitationRole.role === 'contractor' : accountType === 'contractor';
   // The radio does not make an account: contractors are reviewed first (100).
-  const sendToPartnerDoor  = signupGoesToPartnerDoor(searchParams);
+  const sendToPartnerDoor  = !isInviteFlow && signupGoesToPartnerDoor(searchParams);
   const t              = useT();
 
   const [fullName,        setFullName]        = useState("");
@@ -90,6 +92,7 @@ export default function Signup() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (isInviteFlow && !invitationRole.role) { setError(t('invite.loadFailed')); return; }
 
     if (!passwordValid) {
       setError(t('auth.password.errRequirements'));
@@ -198,7 +201,7 @@ export default function Signup() {
         )}
 
         <Link
-          to="/auth/login"
+          to={loginPath}
           className="inline-block mt-6 text-sm text-brand-near-black underline underline-offset-4"
         >
           {t('auth.signup.backToLogin')}
@@ -212,13 +215,16 @@ export default function Signup() {
       {!roleFormSent && (
         <>
           <h1 className="font-sans text-3xl font-bold text-brand-near-black">
-            {isInviteFlow ? t('auth.signup.titleInvite') : isContractorSignup ? t('auth.signup.titleContractor') : t('auth.signup.title')}
+            {isInviteFlow ? t(invitationRole.role === 'client' ? 'projectLinks.clientSignup' : invitationRole.role === 'observer' ? 'projectLinks.observerSignup' : 'auth.signup.titleInvite') : isContractorSignup ? t('auth.signup.titleContractor') : t('auth.signup.title')}
           </h1>
           <p className="text-sm text-brand-mid-grey mt-2">
-            {isInviteFlow ? t('auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
+            {isInviteFlow ? t(invitationRole.role === 'client' ? 'projectLinks.clientSignIn' : invitationRole.role === 'observer' ? 'projectLinks.observerSignIn' : 'auth.signup.subtitleInvite') : isContractorSignup ? t('auth.signup.subtitleContractor') : t('auth.signup.subtitle')}
           </p>
         </>
       )}
+
+      {isInviteFlow && (invitationRole.loading || invitationRole.failed) && <p role={invitationRole.failed ? 'alert' : 'status'} className="mt-3 text-sm text-brand-mid-grey">{t(invitationRole.failed ? 'invite.loadFailed' : 'common.loading')}
+        {invitationRole.failed && <button type="button" onClick={invitationRole.retry} className="ml-2 underline">{t('common.retry')}</button>}</p>}
 
       {/* Outside the form on purpose. It submits nothing — it rewrites the URL — and
           keeping it here lets the two branches below be two separate forms rather than
@@ -353,7 +359,7 @@ export default function Signup() {
           </motion.p>
         )}
 
-        <Button type="submit" disabled={submitting} className="w-full">
+        <Button type="submit" disabled={submitting || (isInviteFlow && !invitationRole.role)} className="w-full">
           {submitting ? t('auth.signup.submitting') : t('auth.signup.submit')}
         </Button>
         </form>

@@ -40,7 +40,8 @@ const STATUS_DOT: Record<Conversation['status'], string> = {
   open: 'bg-state-active', waiting_on_us: 'bg-state-held', waiting_on_them: 'bg-brand-muted-grey', resolved: 'bg-state-complete',
 };
 
-export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId, roleOf, sendChannel, showOnlyChannel }: {
+export function ConversationThread({ conversation, staff, staffName, onChanged, decision, realtimeProjectId, title, memberView, currentUserId, roleOf, sendChannel, showOnlyChannel, focusMessageId }: {
+  focusMessageId?: string;
   conversation: Conversation;
   staff: { id: string; label: string }[] | null;
   staffName: (id: string | null) => string;
@@ -259,13 +260,13 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
           // One conversation carried two ways: the tab decides which half is on screen.
           // An internal note belongs to neither channel, so it stays visible to staff
           // whichever tab they are on rather than disappearing into one of them.
-          ? messages.filter(m => m.direction === 'internal' || (m.channel ?? 'jalla') === showOnlyChannel)
+          ? messages.filter(m => m.id === focusMessageId || m.direction === 'internal' || (m.channel ?? 'jalla') === showOnlyChannel)
           : messages
         ).map(m => {
           const mine = source?.id === m.id;
           if (m.direction === 'internal') {
             return (
-              <button type="button" key={m.id} onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
+              <button type="button" key={m.id} id={`message-${m.id}`} onClick={() => setSource(mine ? null : m)} title={t('admin.workspace.conversations.useAsSource')}
                 className={cn('w-full rounded-lg border border-dashed border-brand-border-grey bg-brand-off-white px-3 py-2 text-left text-xs dark:border-[#2c2c2c] dark:bg-[#1a1a1a]', mine && 'ring-1 ring-brand-near-black dark:ring-white')}>
                 <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mid-grey"><StickyNote className="size-3" />{t('admin.workspace.conversations.internal')} · {senderLabel(m)} · {formatRelative(m.createdAt)}</span>
                 <span className="mt-1 block whitespace-pre-wrap text-brand-near-black dark:text-white">{m.content}</span>
@@ -277,7 +278,7 @@ export function ConversationThread({ conversation, staff, staffName, onChanged, 
             outbound ? 'bg-brand-green text-white' : 'border border-brand-border-grey bg-white text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#252525] dark:text-white',
             mine && 'ring-2 ring-offset-1 ring-brand-mid-grey');
           return (
-            <div key={m.id} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
+            <div key={m.id} id={`message-${m.id}`} className={cn('flex', outbound ? 'justify-end' : 'justify-start')}>
               {memberView ? (
                 <div className={bubbleClass}>
                   <span className="whitespace-pre-wrap">{m.content}</span>

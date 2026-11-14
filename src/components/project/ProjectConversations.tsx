@@ -10,6 +10,7 @@ import {
 } from '@/lib/supabase/conversations';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router';
 
 /** WhatsApp keeps its own green glyph — a brand people recognise at a glance, where a
  *  grey bubble read as "one more message icon". Groundwork uses the shared brand green beside it. */
@@ -49,6 +50,8 @@ type SendChannel = typeof CHANNELS[number];
 export function ProjectConversations({ projectId, projectName }: { projectId: string; projectName: string }) {
   const t = useT();
   const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const requestedConversation = params.get('conversation_id');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   /** How the next message travels. Both are always offered: it is a choice about where
    *  the message goes, not a list of threads that happen to exist — which is exactly why
@@ -75,14 +78,14 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
         result = await listConversations({ projectId });
         setAvailable(result.available);
       }
-      setConversation(result.rows.find(r => r.channel === 'jalla') ?? result.rows[0] ?? null);
+      setConversation(result.rows.find(r => r.id === requestedConversation) ?? result.rows.find(r => r.channel === 'jalla') ?? result.rows[0] ?? null);
     } catch (err) {
       setError(errorMessage(err, t('common.somethingWrong')));
       setConversation(null);
     } finally {
       setLoading(false);
     }
-  }, [projectId, t]);
+  }, [projectId, t, requestedConversation]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -130,7 +133,7 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
           <button
             key={c} type="button" role="tab"
             aria-selected={channel === c}
-            onClick={() => setChannel(c)}
+            onClick={() => { setChannel(c); setParams(prev => { const next = new URLSearchParams(prev); next.delete('message_id'); return next; }, { replace: true }); }}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors',
               channel === c
@@ -157,6 +160,7 @@ export function ProjectConversations({ projectId, projectName }: { projectId: st
         roleOf={id => (id ? roles[id] ?? null : null)}
         sendChannel={channel}
         showOnlyChannel={channel}
+        focusMessageId={params.get('message_id') ?? undefined}
       />
     </div>
   );
