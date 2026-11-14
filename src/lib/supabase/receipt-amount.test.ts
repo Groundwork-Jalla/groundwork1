@@ -25,8 +25,9 @@ beforeEach(() => {
 describe('actual receipt amount persistence', () => {
   it('sends the exact native amount, currency and conversion snapshot to the RPC', async () => {
     await submitStagePaymentReceipt('stage', 'project/receipts/proof.png', input, 'reading');
-    expect(h.rpc).toHaveBeenCalledWith('submit_stage_payment_receipt', {
+    expect(h.rpc).toHaveBeenCalledWith('submit_stage_installment_receipt', {
       p_stage: 'stage', p_path: 'project/receipts/proof.png', p_amount: '750.125', p_currency: 'XAF', p_fx_rate: 600, p_reading: 'reading',
+      p_installment: null, p_replaces: null,
     });
   });
 
@@ -72,7 +73,7 @@ describe('actual receipt amount persistence', () => {
     h.read.mockImplementationOnce(async (stage, path) => ({ readingId: 'foreign', path, fxRate: '0.800000000000' }));
     await uploadStagePaymentReceipt('project', 'stage', file, { amount: '80', currency: 'EUR' });
     expect(h.read).toHaveBeenCalledWith('stage', expect.any(String), '80', 'EUR');
-    expect(h.rpc).toHaveBeenCalledWith('submit_stage_payment_receipt', expect.objectContaining({
+    expect(h.rpc).toHaveBeenCalledWith('submit_stage_installment_receipt', expect.objectContaining({
       p_amount: '80', p_currency: 'EUR', p_fx_rate: '0.800000000000', p_reading: 'foreign',
     }));
   });
@@ -81,6 +82,14 @@ describe('actual receipt amount persistence', () => {
     h.read.mockImplementationOnce(async (stage, path) => ({ readingId: 'foreign', path, fxRate: '0.800000000000' }));
     await uploadStagePaymentReceipt('project', 'stage', file, { amount: '80', currency: 'EUR', fxRate: 0.95 });
     expect(h.rpc.mock.calls[0][1].p_fx_rate).toBe('0.800000000000');
+  });
+
+  it('attaches independently verified receipts to the selected installment and preserves replacement identity', async () => {
+    await uploadStagePaymentReceipt('project', 'stage', file, { ...input, installment: 2, replacesReceiptId: 'old-proof' });
+    expect(h.rpc).toHaveBeenCalledWith('submit_stage_installment_receipt', expect.objectContaining({
+      p_installment: 2, p_replaces: 'old-proof', p_reading: 'reading', p_amount: '750.125',
+    }));
+    expect(h.read).toHaveBeenCalledOnce();
   });
 
   it('retries an ambiguous commit with the same file and reading identity', async () => {

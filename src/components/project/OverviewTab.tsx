@@ -36,6 +36,7 @@ import {
 import { findCountry } from '@/lib/countries';
 import { WeatherWidget } from '@/components/ui/WeatherWidget';
 import { MoneyValue } from './MoneyValue';
+import { ProjectExchangeRateNote } from './ExchangeRateNote';
 import { currentProjectStage, stageWorkReady } from '@/lib/projects/stage-progression';
 import type { ProjectRow, ProjectStageRow, ProjectSubstageRow, ProjectFeeRow, BudgetBreakdown } from '@/types/project';
 import type { StagePayment } from '@/lib/supabase/verifications';
@@ -139,6 +140,7 @@ function CostBreakdownCard({ budget, project, stages, payments, onViewCosting, b
       <div className="mt-3 mb-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-mid-grey">{t(boq ? 'contractorMoney.contractValue' : 'project.overview.costPlanned')}</p>
         <p className="font-mono text-lg font-semibold tabular-nums text-brand-near-black dark:text-white"><MoneyValue usd={total} amount={project.budget_amount} /></p>
+        <ProjectExchangeRateNote/>
       </div>
       <ProjectPayoutSummary project={project} stages={stages} refreshKey={payments} compact />
 

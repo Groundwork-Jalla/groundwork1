@@ -24,7 +24,8 @@ import { trackFunnel, currentProjectAttemptId, clearProjectAttempt } from '@/lib
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/errors';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
-import { useUsdRate } from '@/lib/budget/live-fx';
+import { useUsdQuote } from '@/lib/budget/live-fx';
+import { UsdQuoteNote } from '@/components/project/ExchangeRateNote';
 
 const ATTACHMENT_UPLOAD_TIMEOUT_MS = 20_000;
 
@@ -148,7 +149,8 @@ export default function Step11ConfirmBudget() {
   const countryCurrency = constructionRate?.currency_code ?? getCurrencyCode(data.country);
   const currencyCode = data.boqBudget?.currencyCode ?? documentExtraction?.bqReading?.currencyCode ?? countryCurrency;
   // A foreign-currency bill waits for its own rate; the country's rate cannot price it.
-  const fxRate = useUsdRate(currencyCode, currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null);
+  const quote = useUsdQuote(currencyCode, currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null);
+  const fxRate = quote.rate;
   const localBudget = confirmedBillAmount(raw) ?? 0;
   const finalBudget = fxRate != null && fxRate > 0 ? localBudget / fxRate : 0;
 
@@ -564,6 +566,7 @@ export default function Step11ConfirmBudget() {
           </div>
           )}
 
+          <UsdQuoteNote quote={quote}/>
           {fxRate == null && <p className="text-xs text-brand-mid-grey" role="status">
             {t('wizard.confirmBudget.awaitingRate', { currency: currencyCode })}
           </p>}

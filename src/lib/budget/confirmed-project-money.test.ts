@@ -19,6 +19,13 @@ describe('one confirmed bill across client and contractor views', () => {
     expect(client?.local).toBe('1,414,073,374.524 XAF');
   });
 
+  it('keeps legacy estimate displays on the same configured basis as receipt balances', () => {
+    const estimate = { ...project, budget_source: 'estimate' as const, budget_amount: null, budget_currency: null, budget_fx_rate: null };
+    expect(projectMoneyPair(estimate, 2000, 586)?.local).toBe('1,200,000 XAF');
+    expect(projectMoneyPair(estimate, 2000, 586)).toEqual(projectMoneyPair(estimate, 2000, 594));
+    expect(projectMoneyPair('CM', 2000, 594)?.local).toBe('1,188,000 XAF');
+  });
+
   it('uses the document currency for a bill priced differently from its build country', () => {
     const usdBill = { ...project, budget_amount: 10000.125, budget_currency: 'USD',
       budget_fx_rate: 1, budget_usd: 10000.125 };

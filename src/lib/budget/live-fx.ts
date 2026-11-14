@@ -1,94 +1,78 @@
 import { useEffect, useState } from 'react';
+import { parseUsdRates, validUsdRate, USD_RATES_CACHE_MS, USD_RATES_ENDPOINT, USD_RATES_PROVIDER, type UsdRatesSnapshot } from './usd-rates';
 
-// =========================================================
-// Today's exchange rate, not last year's.
-//
-// `construction_rates.approx_fx_rate` says 600 XAF to the dollar. It is a round
-// number somebody typed, and the real rate has been nearer 580 for a while — Philip,
-// 29 October: "you're showing that the exchange rate is 600 XAF per $1, which is
-// inaccurate." On a 59,675,280 XAF bill that gap is about $3,400 of apparent budget.
-//
-// So the figure shown beside a bill is converted at a rate fetched today, and the
-// stored one becomes the fallback for when the fetch cannot happen — offline, blocked,
-// or a currency the feed does not carry. A wrong-but-close number beats a blank, and
-// the stored rate is still what the budget engine itself divides by, so nothing here
-// can move money; it only changes what the person is shown.
-// =========================================================
-
-/** Rates are per US dollar: `rates.XAF` is how many XAF one dollar buys. */
-const ENDPOINT = 'https://open.er-api.com/v6/latest/USD';
-
-/** One fetch per tab. A wizard reads the same rate on two screens in a row. */
-let inFlight: Promise<Record<string, number> | null> | null = null;
-let cached: Record<string, number> | null = null;
-
-/** Long enough that nobody fetches twice in a sitting, short enough to be today's. */
-const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const STORE_KEY = 'gw:fx:usd';
+let inFlight: Promise<UsdRatesSnapshot | null> | null = null;
+let cached: UsdRatesSnapshot | null = null;
 
-function readStored(): Record<string, number> | null {
+function readStored(now: number): UsdRatesSnapshot | null {
   try {
-    const raw = sessionStorage.getItem(STORE_KEY);
-    if (!raw) return null;
-    const saved = JSON.parse(raw) as { at: number; rates: Record<string, number> };
-    if (!saved?.rates || Date.now() - saved.at > MAX_AGE_MS) return null;
-    return saved.rates;
+    const saved = JSON.parse(sessionStorage.getItem(STORE_KEY) ?? 'null');
+    if (!Number.isFinite(saved?.at) || saved.at > now || now - saved.at >= USD_RATES_CACHE_MS
+      || typeof saved.asOf !== 'string') return null;
+    const snapshot = parseUsdRates({ result: 'success', base_code: 'USD', rates: saved.rates,
+      time_last_update_unix: Date.parse(saved.asOf) / 1000 }, now);
+    return { ...snapshot, until: Math.min(snapshot.until, saved.at + USD_RATES_CACHE_MS) };
   } catch { return null; }
 }
 
-async function loadRates(): Promise<Record<string, number> | null> {
-  if (cached) return cached;
-  const stored = readStored();
-  if (stored) { cached = stored; return cached; }
+/** Expired in-memory rates are refreshed too; a long-lived tab is not a rate lock. */
+export async function loadUsdRates(): Promise<UsdRatesSnapshot | null> {
+  const now = Date.now();
+  if (cached && cached.until > now) return cached;
+  const stored = readStored(now);
+  if (stored && stored.until > now) return cached = stored;
   if (inFlight) return inFlight;
-
   inFlight = (async () => {
     try {
-      const response = await fetch(ENDPOINT);
+      const response = await fetch(USD_RATES_ENDPOINT, { signal: AbortSignal.timeout(8_000) });
       if (!response.ok) return null;
-      const body = await response.json() as { result?: string; rates?: Record<string, number> };
-      if (body.result !== 'success' || !body.rates) return null;
-      cached = body.rates;
-      try {
-        sessionStorage.setItem(STORE_KEY, JSON.stringify({ at: Date.now(), rates: body.rates }));
-      } catch { /* private mode; the in-memory copy still serves this tab */ }
+      cached = parseUsdRates(await response.json());
+      try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ at: Date.now(), rates: cached.rates, asOf: cached.asOf })); }
+      catch { /* The in-memory cache also works when storage is unavailable. */ }
       return cached;
-    } catch {
-      // Offline, blocked, or the feed is down. The caller falls back to the stored
-      // rate rather than showing nothing.
-      return null;
-    } finally {
-      inFlight = null;
-    }
+    } catch { return null; }
+    finally { inFlight = null; }
   })();
   return inFlight;
 }
 
-/**
- * How many units of `currencyCode` one US dollar buys, today.
- *
- * `fallback` is the rate Groundwork stores for the country, and is what is returned
- * until the live one arrives and whenever it cannot be fetched.
- */
-export function useUsdRate(
-  currencyCode: string | null | undefined,
-  fallback: number | null | undefined,
-): number | null {
+export interface UsdQuote {
+  code: string;
+  rate: number | null;
+  source: 'ExchangeRate-API' | 'configured' | 'USD' | null;
+  asOf: string | null;
+}
+
+/** An indicative market quote, with an explicitly identified configured fallback. */
+export function useUsdQuote(currencyCode: string | null | undefined, fallback: number | null | undefined): UsdQuote {
   const code = (currencyCode ?? '').toUpperCase();
-  const [rate, setRate] = useState<number | null>(fallback ?? null);
+  const initial: UsdQuote = { code, rate: code === 'USD' ? 1 : validUsdRate(fallback) ? fallback : null,
+    source: code === 'USD' ? 'USD' : validUsdRate(fallback) ? 'configured' : null, asOf: null };
+  const scope = `${code}:${fallback}`;
+  const [value, setValue] = useState<{ scope: string; quote: UsdQuote }>({ scope, quote: initial });
 
   useEffect(() => {
-    setRate(fallback ?? null);
-    if (!code || code === 'USD') return;
+    let alive = true, generation = 0;
+    const refresh = async () => {
+      const request = ++generation;
+      const snapshot = code && code !== 'USD' ? await loadUsdRates() : null;
+      const rate = snapshot?.rates[code];
+      if (alive && request === generation) setValue({ scope, quote: snapshot && validUsdRate(rate)
+        ? { code, rate, source: USD_RATES_PROVIDER, asOf: snapshot.asOf } : initial });
+    };
+    const visibleRefresh = () => { if (document.visibilityState === 'visible') void refresh(); };
+    void refresh();
+    if (!code || code === 'USD') return () => { alive = false; };
+    const timer = window.setInterval(visibleRefresh, USD_RATES_CACHE_MS);
+    window.addEventListener('focus', visibleRefresh);
+    document.addEventListener('visibilitychange', visibleRefresh);
+    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('focus', visibleRefresh); document.removeEventListener('visibilitychange', visibleRefresh); };
+  }, [scope]);
+  return value.scope === scope ? value.quote : initial;
+}
 
-    let alive = true;
-    void loadRates().then(rates => {
-      const live = rates?.[code];
-      // A rate of zero or a missing currency is not an improvement on the stored one.
-      if (alive && typeof live === 'number' && live > 0) setRate(live);
-    });
-    return () => { alive = false; };
-  }, [code, fallback]);
-
-  return rate;
+/** Compatibility for callers that only need the numeric quote. */
+export function useUsdRate(currencyCode: string | null | undefined, fallback: number | null | undefined): number | null {
+  return useUsdQuote(currencyCode, fallback).rate;
 }

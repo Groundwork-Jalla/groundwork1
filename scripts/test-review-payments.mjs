@@ -98,6 +98,17 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261114000000_project_payment_review.sql'),
     read('supabase/migrations/20261114000000_project_payment_review.sql'),
     read('scripts/fixtures/nov13-payment-review.sql'),
+    `RESET ROLE;
+     CREATE TEMP TABLE currency_projects_before AS SELECT id,to_jsonb(p) AS saved FROM public.projects p;
+     CREATE TEMP TABLE currency_receipts_before AS SELECT id,to_jsonb(r) AS saved FROM public.stage_payment_receipts r;`,
+    read('supabase/migrations/20261114000200_currency_basis.sql'),
+    read('supabase/migrations/20261114000200_currency_basis.sql'),
+    read('scripts/fixtures/currency-basis.sql'),
+    read('supabase/migrations/20261114000300_stage_payment_plans.sql'),
+    read('scripts/fixtures/stage-payment-plans.sql'),
+    read('supabase/migrations/20261114000300_stage_payment_plans.sql'),
+    `SELECT public.test_assert(NOT public.stage_progression_authorized(public.test_id(183,3)), 'replay preserves the difference between work and progression permissions');
+     SELECT public.test_assert((SELECT review_payment_pending FROM public.project_stages WHERE id=public.test_id(183,3)), 'replay does not skip unpaid reviewed work');`,
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -110,7 +121,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

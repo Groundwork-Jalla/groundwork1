@@ -11,7 +11,8 @@ vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: (sta
 vi.mock('@/lib/domain-labels', () => ({ useDomainLabels: () => ({ projectType: (value: string) => value, buildingType: (value: string) => value }) }));
 vi.mock('@/lib/budget/project-money-context', () => ({
   useMoney: () => (usd: number, amount?: number) => projectMoneyPair(h.project, usd, undefined, amount)?.local,
-  useProjectMoneyContext: () => ({ pair: (usd: number, amount?: number) => projectMoneyPair(h.project, usd, undefined, amount) }),
+  useProjectMoneyContext: () => ({ code: h.project.budget_currency, budgetRate: h.project.budget_fx_rate,
+    pair: (usd: number, amount?: number) => projectMoneyPair(h.project, usd, undefined, amount) }),
 }));
 vi.mock('@/contexts/WizardContext', () => ({ useWizard: () => ({ data: h.data, update: h.update }) }));
 import BudgetView from '@/components/project/BudgetView';

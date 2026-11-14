@@ -34,6 +34,7 @@ vi.mock('react-router', () => ({
 }));
 vi.mock('@/lib/i18n', () => ({
   useT: () => (key: string) => key,
+  useLanguage: () => ({ lang: 'en' }),
   useFormat: () => ({ money: (value: number) => String(value) }),
 }));
 vi.mock('@/lib/supabase/admin-users', () => ({ listAdminUsers: vi.fn() }));

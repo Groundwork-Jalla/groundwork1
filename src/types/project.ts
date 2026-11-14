@@ -412,6 +412,8 @@ export interface ProjectRow {
   budget_currency?: string | null;
   /** Contract currency units per USD, fixed when the budget is confirmed. */
   budget_fx_rate?: number | null;
+  /** When this currency/rate basis was saved. Not the market quote date; absent on legacy budgets. */
+  budget_fx_recorded_at?: string | null;
   budget_precision?: number | null;
   budget_source_label?: string | null;
   budget_source_file?: string | null;

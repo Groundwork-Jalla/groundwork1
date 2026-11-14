@@ -15,7 +15,8 @@ import { floorCountPatch, MAX_FLOORS, MIN_FLOORS } from '@/lib/projects/floors';
 import { calculateBudget } from '@/lib/budget';
 import { moneyPair } from '@/lib/budget/money-pair';
 import { billTotalSuggestion, confirmedBillAmount, normaliseBudgetInput } from '@/lib/budget/bill-budget';
-import { useUsdRate } from '@/lib/budget/live-fx';
+import { useUsdQuote } from '@/lib/budget/live-fx';
+import { UsdQuoteNote } from '@/components/project/ExchangeRateNote';
 import { getApproxFx, getCurrencyCode } from '@/lib/budget/legacy';
 import { cn } from '@/lib/utils';
 import { useT, useLanguage } from '@/lib/i18n';
@@ -347,8 +348,9 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
     ?? constructionRate?.currency_code
     ?? getCurrencyCode(data.country)).toUpperCase();
   const countryCurrency = constructionRate?.currency_code ?? getCurrencyCode(data.country);
-  const fxRate = useUsdRate(currencyCode,
-    currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null) ?? 0;
+  const quote = useUsdQuote(currencyCode,
+    currencyCode === 'USD' ? 1 : currencyCode === countryCurrency ? storedRate : null);
+  const fxRate = quote.rate ?? 0;
   /**
    * The bill's own figure, untouched, whenever there is one.
    *
@@ -420,6 +422,7 @@ function BudgetConfirmField({ confirmed, onConfirmed }: { confirmed: boolean; on
           {t('wizard.confirmBudget.estimateLabel')}: {estimate.toLocaleString('en-US')} {currencyCode}
         </button>
       )}
+      <UsdQuoteNote quote={quote}/>
       <label className="flex items-start gap-2.5 pt-2">
         <input type="checkbox" checked={confirmed} disabled={amount <= 0}
           onChange={e => onConfirmed(e.target.checked)} className="mt-0.5" />
@@ -670,7 +673,9 @@ function DocumentBudgetBreakdown() {
   // figure is a round 600 for Cameroon and the real rate is nearer 580, which on a
   // 59 million franc bill is thousands of dollars of apparent budget.
   const storedRate = constructionRate?.approx_fx_rate ?? getApproxFx(wizardData.country);
-  const fxRate = useUsdRate(currency, storedRate);
+  const countryCurrency = constructionRate?.currency_code ?? getCurrencyCode(wizardData.country);
+  const quote = useUsdQuote(currency, currency === 'USD' ? 1 : currency === countryCurrency ? storedRate : null);
+  const fxRate = quote.rate;
   const money = moneyPair(reading?.total ?? 0, currency, fxRate);
 
   return (
@@ -700,6 +705,7 @@ function DocumentBudgetBreakdown() {
                       </span>
                     )}
                   </p>
+                  <UsdQuoteNote quote={quote}/>
                   {/* The row the figure came from, and nothing else. "Currency not
                       identified in the document" used to sit here when the bill did
                       not name one — which told the reader about our parser rather

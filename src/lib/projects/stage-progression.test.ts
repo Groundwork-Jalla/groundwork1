@@ -96,6 +96,14 @@ describe('the current project stage', () => {
     expect(stagePaymentAcknowledged(stage(1, 'active', { payment_milestone_usd: null }))).toBe(false);
   });
 
+  it('allows approved zero-price work without rewriting its earlier unpaid receipt ledger', () => {
+    const free = stage(1, 'active', { payment_milestone_usd: 0, milestone_amount: 0, payment_status: 'unpaid' });
+    const prior = payment('receipt_submitted');
+    expect(stageWorkReady(free, [free], prior, 'client')).toBe(true);
+    expect(prior.state).toBe('receipt_submitted');
+    expect(stagePaymentAcknowledged({ ...free, pre_existing: true }, prior)).toBe(false);
+  });
+
   it('does not ignore an earlier historical row incorrectly left incomplete', () => {
     const rows = [stage(1, 'locked', { pre_existing: true }), stage(2, 'active')];
     expect(canActOnProjectStage(rows[1], rows)).toBe(false);

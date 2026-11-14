@@ -16,6 +16,7 @@ import { ProjectDocuments } from '@/components/project/ProjectDocuments';
 import { StagePipeline } from '@/components/contractor/StagePipeline';
 import { useProjectMoney } from '@/lib/budget/use-project-money';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
+import { ProjectExchangeRateNote } from '@/components/project/ExchangeRateNote';
 // The same definition the client's costing page uses. These screens print the same
 // payment the client is shown, and until 11 Nov 2026 they disagreed about it by ~3.34%
 // on every stage of a bill-of-quantities project — see lib/budget/stage-amounts.ts.
@@ -262,7 +263,7 @@ export default function ContractorProjectDetail() {
           hasBoq={hasBoq}
           assigned={assigned} substages={substages} rework={rework}
           isOwner={user?.id === project.user_id}
-          canConfirmPayments={teamAccess.primaryContractor === true}
+          canConfirmPayments={teamAccess?.primaryContractor === true}
           stagePayments={stagePayments}
           onSubmitted={load}
         />
@@ -557,9 +558,7 @@ function MoneyTab({ assigned, payments, stagePayments, hasBoq }: {
           <h2 className="text-sm font-semibold text-brand-near-black dark:text-white">
             {t('contractorMoney.stageByStage')}
           </h2>
-          <p className="text-xs text-brand-mid-grey">
-            {t('contractorMoney.rateToday', { rate: money.rate.toLocaleString('en-US', { maximumFractionDigits: 2 }), code: money.code })}
-          </p>
+          <ProjectExchangeRateNote money={money}/>
         </div>
 
         {stages.length === 0 ? (

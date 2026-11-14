@@ -21,6 +21,8 @@ export function canActOnProjectStage(stage: ProjectStageRow, stages: ProjectStag
 /** An uploaded receipt is still awaiting acknowledgment; a zero-cost stage has no row. */
 export function stagePaymentAcknowledged(stage: ProjectStageRow, payment?: StagePayment): boolean {
   if (stage.pre_existing) return false;
+  // An approved reduction to zero can leave the earlier ledger/proof in history.
+  if (stage.payment_milestone_usd === 0 && (stage.milestone_amount == null || stage.milestone_amount === 0)) return true;
   if (payment) return payment.state === 'funded' || payment.state === 'reconciled';
   if (stage.payment_milestone_usd == null) return false;
   const scheduled = Number(stage.payment_milestone_usd);

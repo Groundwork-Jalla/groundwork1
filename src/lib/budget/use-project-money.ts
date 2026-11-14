@@ -1,31 +1,21 @@
 import { useCallback, useMemo } from 'react';
 import type { MoneyPair } from './money-pair';
 import { projectMoneyBasis, projectMoneyPair, type ProjectMoneySource } from './project-money';
-import { useUsdRate } from './live-fx';
+import { useUsdQuote } from './live-fx';
 
-// =========================================================
-// Money, as a contractor in Limbe reads it.
-//
-// Every stage figure Groundwork stores is in US dollars. A contractor is not paid in
-// dollars, so a screen that leads with "$10,800" is quoting a currency nobody on the
-// site uses. Philip, 29 October: the figure "should show me in the local currency".
-//
-// So: the project's own currency first, the dollar equivalent beside it, at ONE rate
-// fetched today — shared across the dashboard, the project list, the Work tab and the
-// Money tab, so four screens can never quote four different conversions of the same
-// stage. The stored `approx_fx_rate` is the fallback when the live rate cannot be had.
-//
-// This hook reads; it never writes. What is actually released is governed by the
-// ledger, not by whatever rate a browser happened to fetch this morning.
-// =========================================================
+// Read-only currency formatting: saved project basis, or a market quote for a country preview.
+
 
 export interface ProjectMoney {
   /** The project country's currency, e.g. XAF. */
   code: string;
-  /** Units of `code` per US dollar, today's if we have it. */
+  /** Units of `code` per US dollar on this screen's explicitly identified basis. */
   rate: number;
   /** Canonical budget basis, independent of a browser's live display quote. */
   budgetRate: number;
+  rateSource?: 'saved_budget' | 'configured_budget' | 'ExchangeRate-API' | 'configured' | 'USD' | null;
+  rateAsOf?: string | null;
+  rateRecordedAt?: string | null;
   /** A stored USD figure, as the pair the contractor should see. */
   pair: (usd: number | null | undefined, sourceAmount?: number | null) => MoneyPair | null;
   /** Just the local figure, grouped, for tight rows: "6,356,000 XAF". */
@@ -39,8 +29,8 @@ export interface ProjectMoney {
  */
 export function useProjectMoney(source: ProjectMoneySource): ProjectMoney {
   const initial = projectMoneyBasis(source);
-  const live = useUsdRate(initial.locked ? null : initial.code, initial.fallback);
-  const { code, rate } = projectMoneyBasis(source, live);
+  const quote = useUsdQuote(initial.project ? null : initial.code, initial.fallback);
+  const { code, rate } = projectMoneyBasis(source, quote.rate);
 
   const pair = useCallback((usd: number | null | undefined, sourceAmount?: number | null) => {
     return projectMoneyPair(source, usd, rate, sourceAmount);
@@ -52,5 +42,8 @@ export function useProjectMoney(source: ProjectMoneySource): ProjectMoney {
   );
 
   const budgetRate = initial.fallback;
-  return useMemo(() => ({ code, rate, budgetRate, pair, local }), [code, rate, budgetRate, pair, local]);
+  const rateSource = initial.locked ? 'saved_budget' : initial.project ? 'configured_budget' : quote.source;
+  const rateAsOf = initial.project ? null : quote.asOf;
+  const rateRecordedAt = initial.locked ? initial.project?.budget_fx_recorded_at ?? null : null;
+  return useMemo(() => ({ code, rate, budgetRate, rateSource, rateAsOf, rateRecordedAt, pair, local }), [code, rate, budgetRate, rateSource, rateAsOf, rateRecordedAt, pair, local]);
 }

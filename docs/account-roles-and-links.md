@@ -47,6 +47,34 @@ expiry is independent of project invitations.
 
 ## Release and verification
 
+### November 14 invitation and permission follow-up
+
+The follow-up fixes preserve share/invite tokens and full project destinations
+through signup, login, MFA and blocked browser storage. Temporary preview failures
+offer a retry and retain the link. Late acceptance responses cannot navigate away
+after the invitation screen has closed. Each account role returns to its own
+project list and retained project responsibilities use its current navigation.
+
+Project permissions refresh on focus/realtime and every 15 seconds while visible.
+Revocation and account-role changes immediately discard cached action controls.
+Secondary assigned contractors retain evidence uploads; receipt confirmation
+belongs to the primary contractor. Observers retain read-only access.
+
+Apply the new
+[20261114000100_invitation_role_consistency.sql](../supabase/migrations/20261114000100_invitation_role_consistency.sql)
+before deploying the matching application. Existing account roles survive a first
+contractor-link claim; new untyped accounts receive the contractor role. Retrying
+an accepted link never undoes an admin correction or marks onboarding complete.
+Claims and admin changes share a transaction lock. Tokens remain non-expiring,
+revocable and single-use. No production account was changed for this verification.
+
+The expanded local check passed **526 tests across 29 files** plus the actual
+PostgreSQL team suite, including concurrent claims and role correction/retry races.
+The original live Back failure was not reproduced in a production browser; local
+tests cover missing active stages, locked stages after payment, role-aware Back
+destinations, unmounts and permission refresh. Controlled browser acceptance remains
+a release check.
+
 Apply preceding unapplied migrations in order through
 `20261113000500_lifecycle_delivery_recovery.sql`, then:
 

@@ -21,6 +21,7 @@ import type { StagePayment } from '@/lib/supabase/verifications';
 import { ProjectPayoutSummary } from './ProjectPayoutSummary';
 import { StageSchedule } from './StageSchedule';
 import { MoneyValue } from './MoneyValue';
+import { ProjectExchangeRateNote } from './ExchangeRateNote';
 // One definition of what a stage is worth, shared with the contractor's screens.
 // They print the same payment and used to disagree about it — see stage-amounts.ts.
 import {
@@ -332,6 +333,7 @@ export default function BudgetView({ project, stages, payments, showMilestoneBuc
         <div className="mb-5">
           <span className="text-3xl font-mono font-semibold text-brand-near-black tabular-nums">
             <MoneyValue usd={budget.total} amount={project.budget_amount} />
+            <ProjectExchangeRateNote/>
           </span>
         </div>
 

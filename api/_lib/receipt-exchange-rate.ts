@@ -1,16 +1,13 @@
 import { isReceiptCurrency } from '../../src/lib/payments/receipt-currencies.js';
+import { parseUsdRates, USD_RATES_ENDPOINT, type UsdRatesSnapshot } from '../../src/lib/budget/usd-rates.js';
 
-const endpoint = 'https://open.er-api.com/v6/latest/USD';
-type Snapshot = { rates: Record<string, number>; asOf: string; until: number };
+type Snapshot = UsdRatesSnapshot;
 let cached: Snapshot | undefined;
 let loading: Promise<Snapshot> | undefined;
 
 /** Validate the daily feed before freezing a transaction's conversion. */
 export function parseReceiptRates(body: any, now = Date.now()): Snapshot {
-  const stamp = Number(body?.time_last_update_unix) * 1000;
-  if (body?.result !== 'success' || body.base_code !== 'USD' || !body.rates || body.rates.USD !== 1
-    || !Number.isFinite(stamp) || stamp > now + 300_000 || now - stamp > 48 * 60 * 60_000) throw new Error('receipt_rate_unavailable');
-  return { rates: body.rates, asOf: new Date(stamp).toISOString(), until: Math.min(stamp + 48 * 60 * 60_000, now + 60 * 60_000) };
+  try { return parseUsdRates(body, now); } catch { throw new Error('receipt_rate_unavailable'); }
 }
 
 export async function receiptExchangeRate(code: string, signal: AbortSignal) {
@@ -18,7 +15,7 @@ export async function receiptExchangeRate(code: string, signal: AbortSignal) {
   if (code === 'USD') return { rate: '1', source: 'USD', asOf: new Date().toISOString() };
   if (!cached || cached.until <= Date.now()) {
     loading ??= (async () => {
-      const response = await fetch(endpoint, { signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]) });
+      const response = await fetch(USD_RATES_ENDPOINT, { signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]) });
       if (!response.ok) throw new Error('receipt_rate_unavailable');
       cached = parseReceiptRates(await response.json());
       return cached;

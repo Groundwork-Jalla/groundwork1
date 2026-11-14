@@ -4,7 +4,7 @@ import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verificat
 
 const h = vi.hoisted(() => ({
   index: 0, hooks: [] as unknown[], lang: 'en' as 'en' | 'fr', rate: 600,
-  upload: vi.fn(), confirm: vi.fn(), changed: vi.fn(), sign: vi.fn(), decide: vi.fn(),
+  upload: vi.fn(), confirm: vi.fn(), changed: vi.fn(), sign: vi.fn(), decide: vi.fn(), pair: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useRef: (initial: unknown) => {
@@ -26,13 +26,14 @@ vi.mock('@/lib/i18n', () => ({
 }));
 vi.mock('@/lib/budget/project-money-context', () => ({
   useMoney: () => (amount: number) => `${amount * 600} XAF`,
-  useProjectMoneyContext: () => ({ code: 'XAF', rate: h.rate, budgetRate: 600 }),
+  useProjectMoneyContext: () => ({ code: 'XAF', rate: h.rate, budgetRate: 600, pair: h.pair }),
 }));
 vi.mock('@/lib/supabase/verifications', () => ({
   uploadStagePaymentReceipt: h.upload, confirmStagePayment: h.confirm, decideStagePaymentReceipt: h.decide, signReceiptUrl: h.sign,
 }));
 
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import { StagePaymentPlanPanel } from '@/components/project/StagePaymentPlanPanel';
 
 type Element = { type: unknown; props: Record<string, any> };
 function nodes(value: unknown): Element[] {
@@ -64,7 +65,7 @@ function submit(elements: Element[]) {
   return elements.find(e => e.type === 'form')!.props.onSubmit({ preventDefault() {} });
 }
 beforeEach(() => {
-  h.index = 0; h.hooks = []; h.lang = 'en'; h.rate = 600; vi.clearAllMocks();
+  h.index = 0; h.hooks = []; h.lang = 'en'; h.rate = 600; vi.clearAllMocks(); h.pair.mockReturnValue(null);
   h.upload.mockResolvedValue(undefined); h.changed.mockResolvedValue(undefined); h.decide.mockResolvedValue(undefined); h.confirm.mockResolvedValue(undefined);
 });
 
@@ -223,6 +224,25 @@ describe('the receipt upload and contractor review', () => {
     expect(h.decide).toHaveBeenCalledWith('r1', 'needs_top_up', '', '15000', { stageAmount: 60000, decision: 'pending' });
   });
 
+  it('records money received without requesting another payment or authorizing work', async () => {
+    const props = { payment: sentPayment(), isContractor: true };
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedYes').props.onClick();
+    button(render(props), 'recordOnly').props.onClick(); expect(h.decide).not.toHaveBeenCalled();
+    expect(confirmation(render(props)).props.description).toContain('confirmRecorded');
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('r1', 'record', undefined, undefined, { stageAmount: 60000, decision: 'pending' });
+  });
+
+  it('carries the selected installment through every receipt in a vendor batch', async () => {
+    render().find(e => e.type === StagePaymentPlanPanel)!.props.onInstallmentChange(2);
+    const second = new File(['two'], 'second.png', { type: 'image/png' });
+    await render().find(e => e.type === 'input' && e.props.type === 'file' && e.props.multiple)!.props.onChange({ target: { files: [receipt, second] } });
+    enterAmount(render(), '30000'); await submit(render());
+    enterAmount(render(), '15000'); await submit(render());
+    expect(h.upload).toHaveBeenCalledTimes(2);
+    expect(h.upload.mock.calls.map(call => call[3].installment)).toEqual([2, 2]);
+  });
+
   it('requires a reason when the money has not arrived and keeps the final decision retryable', async () => {
     const props = { payment: sentPayment(), isContractor: true };
     button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedNo').props.onClick();
@@ -283,5 +303,18 @@ describe('the receipt upload and contractor review', () => {
     expect(render({ payment: partial }).some(e => e.type === 'form')).toBe(true);
     expect(render({ payment: { ...partial, receipts: [{ ...pendingReceipt, amount: 60000, decision: 'received', allowsWork: true }] } }).some(e => e.type === 'form')).toBe(false);
     expect(render({ payment: sentPayment(), isContractor: true, readOnly: true }).some(e => e.type === 'button' && text(e).includes('reviewPayment'))).toBe(false);
+  });
+
+  it('does not request a receipt for a client-approved zero-price stage with an older ledger', () => {
+    const view = render({ payment: sentPayment(), scheduledAmount: 0 });
+    expect(view.some(e => e.type === 'form')).toBe(false);
+    expect(text(view)).toContain('fullyPaid');
+  });
+
+  it('converts the current approved price rather than an immutable older ledger amount', () => {
+    h.pair.mockImplementation((usd: number) => ({ local: '90,000 XAF', usd: `$${usd}` }));
+    const view = render({ payment: { ...sentPayment(), amount: 100 }, scheduledAmount: 90000 });
+    expect(h.pair).toHaveBeenCalledWith(150, 90000); expect(text(view)).toContain('$150');
+    expect(text(view)).not.toContain('$100');
   });
 });

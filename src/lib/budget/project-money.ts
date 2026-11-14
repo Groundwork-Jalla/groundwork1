@@ -3,7 +3,7 @@ import { getApproxFx, getCurrencyCode } from './legacy';
 import { moneyPair, type MoneyPair } from './money-pair';
 
 export type ProjectMoneySource = string | null | undefined | Pick<ProjectRow,
-  'country' | 'budget_source' | 'budget_amount' | 'budget_currency' | 'budget_fx_rate' | 'budget_precision' | 'budget_usd' | 'pricing_revision'>;
+  'country' | 'budget_source' | 'budget_amount' | 'budget_currency' | 'budget_fx_rate' | 'budget_fx_recorded_at' | 'budget_precision' | 'budget_usd' | 'pricing_revision'>;
 
 /** A confirmed contract uses one conversion snapshot for all of its participants. */
 export function projectMoneyBasis(source: ProjectMoneySource, liveRate?: number | null) {
@@ -13,7 +13,9 @@ export function projectMoneyBasis(source: ProjectMoneySource, liveRate?: number 
     && project.budget_fx_rate != null && project.budget_fx_rate > 0;
   const code = locked ? project!.budget_currency! : getCurrencyCode((country ?? '').toUpperCase());
   const fallback = locked ? Number(project!.budget_fx_rate) : getApproxFx((country ?? '').toUpperCase());
-  const rate = locked || project?.budget_source === 'boq' ? fallback : liveRate ?? fallback;
+  // Persisted projects share their canonical budget basis with the receipt ledger.
+  // Only an unconfirmed country preview may follow a browser's market quote.
+  const rate = project ? fallback : liveRate ?? fallback;
   const precision = locked ? Math.max(0, Math.min(6, project!.budget_precision ?? 0)) : 0;
   return { project, code, rate, fallback, precision, locked };
 }
@@ -29,7 +31,7 @@ export function projectMoneyPair(source: ProjectMoneySource, usd: number | null 
   const amount = sourceAmount != null ? sourceAmount
     : project?.budget_amount != null && usd === project.budget_usd
       ? Number(project.budget_amount) : Math.round(usd * rate * scale) / scale;
-  const grouped = amount.toLocaleString('en-US', { maximumFractionDigits: precision });
+  const grouped = amount.toLocaleString('en-US', { maximumFractionDigits: sourceAmount != null ? 6 : precision });
   return {
     local: code === 'USD' ? `$${grouped}` : `${grouped} ${code}`,
     usd: code === 'USD' || usd === 0 ? null : `$${usd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
