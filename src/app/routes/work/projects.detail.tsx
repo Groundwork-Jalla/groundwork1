@@ -30,7 +30,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
 import { projectListForRole } from '@/lib/auth/account-role';
-import { ShareProject } from '@/components/project/ShareProject';
+import { ProjectSharing } from '@/components/project/ProjectSharing';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
 import { fetchStagePayments, type StagePayment } from '@/lib/supabase/verifications';
@@ -813,8 +813,7 @@ function PeopleTab({ project, isOwner }: { project: ProjectRow; isOwner: boolean
       </div>
 
       <div className="flex min-w-0 flex-col gap-4">
-        <ShareProject projectId={project.id} asClient />
-        <ShareProject projectId={project.id} />
+        <ProjectSharing projectId={project.id} projectName={project.name} />
       </div>
     </div>
   );
@@ -1168,7 +1167,7 @@ function WorkRail({ assigned, isOwner, hasBoq }: {
           people list, reasoning that what belongs beneath a list is the way to add
           to it. That is tidy and it is not the point: getting a client onto the
           build is what this screen is for, so it goes first. */}
-      <ShareProject projectId={project.id} asClient />
+      <ProjectSharing projectId={project.id} projectName={project.name} />
 
       <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-brand-mid-grey">

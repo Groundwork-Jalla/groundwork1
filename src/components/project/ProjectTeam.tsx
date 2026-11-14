@@ -3,8 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useT } from '@/lib/i18n';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { Button } from '@/components/ui/button';
-import ContractorInvite from './ContractorInvite';
-import { ShareProject } from './ShareProject';
+import { ProjectSharing } from './ProjectSharing';
 import type { ProjectRow } from '@/types/project';
 
 /** Project-scoped invitations, using the same accepted-role checks as the work view. */
@@ -51,14 +50,10 @@ export function ProjectTeam({ project }: { project: Pick<ProjectRow, 'id' | 'nam
               <p className="mt-4 text-xs leading-relaxed text-brand-mid-grey">{t(access.canInvite ? 'projectTeam.manageAccess' : 'projectTeam.viewAccess')}</p>
             </section>
 
-            {access.primaryClient && <div data-tour={access.canInviteContractor ? 'invite-contractor' : undefined}>
-              <ContractorInvite projectId={project.id} projectName={project.name} userId={user?.id ?? ''} />
-            </div>}
-            {access.primaryContractor && <ShareProject projectId={project.id} asClient />}
           </div>
 
           {access.canInvite && <div className="min-w-0 space-y-3">
-            <ShareProject projectId={project.id} />
+            <ProjectSharing projectId={project.id} projectName={project.name} />
             <p className="px-1 text-xs leading-relaxed text-brand-mid-grey">{t('teamAccess.roleChange')}</p>
           </div>}
         </div>

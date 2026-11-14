@@ -118,12 +118,13 @@ describe('the app marks the client invitation as such', () => {
   it('the contractor surface invites a client, the homeowner surface does not', () => {
     const work = readFileSync('src/app/routes/work/projects.detail.tsx', 'utf8');
     const client = readFileSync('src/components/project/ProjectTeam.tsx', 'utf8');
-    // Both ShareProject renders on the contractor page carry it.
-    expect(work.match(/<ShareProject projectId=\{project\.id\} asClient \/>/g) ?? []).toHaveLength(2);
+    // Both work-page invitation entry points require the sender to select a role.
+    expect(work.match(/<ProjectSharing projectId=\{project\.id\} projectName=\{project\.name\} \/>/g) ?? []).toHaveLength(2);
     // Observer sharing keeps the default; only an actual primary contractor may
     // open the initial client invitation in the project Team tab.
-    expect(client).toMatch(/<ShareProject projectId=\{project\.id\} \/>/);
-    expect(client).toContain('access.primaryContractor && <ShareProject projectId={project.id} asClient />');
+    expect(client).toMatch(/<ProjectSharing projectId=\{project\.id\} projectName=\{project\.name\} \/>/);
+    const sharing = readFileSync('src/components/project/ProjectSharing.tsx', 'utf8');
+    expect(sharing).toContain("role === 'client' && <ShareProject");
   });
 
   it('and the flag reaches the RPC', () => {

@@ -92,8 +92,9 @@ export function ContractorInvite({
     setNotEmailed(null); setRemoveTarget(null); setRemoving(false); setLoadError(false);
     return () => { mounted.current = false; ++rowRequest.current; };
   }, [scope]);
-  useEffect(() => { if (access?.primaryClient) void load(); }, [access, load]);
-  const canSubmit = access?.canInviteContractor === true && rows !== null && !loadError;
+  useEffect(() => { if (access?.primaryClient || access?.primaryContractor) void load(); }, [access, load]);
+  const additional = access?.canInviteAdditionalContractor === true;
+  const canSubmit = (access?.canInviteContractor === true || additional) && rows !== null && !loadError;
 
   async function createLink() {
     if (working.current || !canSubmit || current.current !== scope) return;
@@ -132,6 +133,8 @@ export function ContractorInvite({
         : message.includes('contractor_invitation_pending') ? t('teamAccess.pendingContractor')
         : message.includes('not_permitted') ? t('teamAccess.notPermitted')
         : message.includes('self_invite') ? t('projectShare.errSelf')
+        : message.includes('already_member') ? t('teamAccess.alreadyMember')
+        : message.includes('invitation_pending') ? t('projectLinks.roleInvitationPending')
         : message.includes('invalid_email') ? t('inviteUi.errEmail')
         : t('inviteUi.errFailed'));
     } finally {
@@ -140,7 +143,7 @@ export function ContractorInvite({
   }
 
   async function remove() {
-    if (!removeTarget || working.current || !access?.primaryClient || current.current !== scope) return;
+    if (!removeTarget || working.current || (!access?.primaryClient && !access?.primaryContractor) || current.current !== scope) return;
     working.current = true; setRemoving(true);
     try {
       await revokeInvite(removeTarget.id);
@@ -160,23 +163,23 @@ export function ContractorInvite({
            : 'inviteUi.pending');
   }
 
-  if (access && !access.primaryClient) return null;
+  if (access && !access.primaryClient && !access.primaryContractor) return null;
   const contractorChosen = access?.hasContractor || access?.hasPendingContractor;
-  const activeLink = rows?.find(v => v.is_share_link && v.status === 'pending');
+  const activeLink = rows?.find(v => v.is_share_link && v.status === 'pending' && !!v.primary_on_acceptance === !additional);
 
   return (
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
         <HardHat className="size-4 shrink-0" aria-hidden />
-        {t(contractorChosen ? 'teamAccess.contractorTitle' : 'inviteUi.title')}
+        {t(additional ? 'projectLinks.additionalContractorTitle' : contractorChosen ? 'teamAccess.contractorTitle' : 'inviteUi.title')}
       </h3>
       <p className="mt-0.5 text-xs leading-relaxed text-brand-mid-grey">
-        {t(access?.needsPrimaryReview ? 'teamAccess.needsReview' : contractorChosen ? 'teamAccess.contractorAssigned' : 'inviteUi.body')}
+        {t(access?.needsPrimaryReview ? 'teamAccess.needsReview' : additional ? 'projectLinks.additionalContractorHelp' : contractorChosen ? 'teamAccess.contractorAssigned' : 'inviteUi.body')}
       </p>
 
       {!access && <p className="mt-3 text-xs text-brand-mid-grey">{t(accessError ? 'teamAccess.loadFailed' : 'common.loading')}</p>}
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}
-      <ProjectInvitationLink scope={scope} role="contractor" busy={busy || removing}
+      <ProjectInvitationLink scope={scope} role="contractor" primaryContractor={!additional} busy={busy || removing}
         canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={() => { void load(); void refresh(); }}
         link={activeLink ? { token: activeLink.token } : undefined} />
       {canSubmit && (
@@ -220,7 +223,7 @@ export function ContractorInvite({
       {loadError && <p role="alert" className="mt-3 text-xs text-state-alert">{t('teamAccess.loadFailed')}</p>}
 
       <ul className="mt-4 space-y-2">
-        {!access?.primaryClient || rows === null ? null
+        {(!access?.primaryClient && !access?.primaryContractor) || rows === null ? null
           : rows.length === 0 ? <li className="text-xs text-brand-mid-grey">{t('inviteUi.none')}</li>
           : rows.map(inv => (
             <li key={inv.id}

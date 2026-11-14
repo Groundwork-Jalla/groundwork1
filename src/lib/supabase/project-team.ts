@@ -9,6 +9,7 @@ export interface ProjectTeamAccess {
   canEditBoq: boolean;
   canInviteClient: boolean;
   canInviteContractor: boolean;
+  canInviteAdditionalContractor?: boolean;
   hasClientInvitation: boolean;
   hasContractor: boolean;
   hasPendingContractor: boolean;
@@ -30,6 +31,7 @@ export async function fetchProjectTeamAccess(projectId: string): Promise<Project
     canEditBoq: data.can_edit_boq === true,
     canInviteClient: data.can_invite_client === true,
     canInviteContractor: data.can_invite_contractor === true,
+    canInviteAdditionalContractor: data.can_invite_additional_contractor === true,
     hasClientInvitation: data.has_client_invitation === true,
     hasContractor: data.has_contractor === true,
     hasPendingContractor: data.has_pending_contractor === true,

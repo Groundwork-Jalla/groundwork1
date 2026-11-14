@@ -5,9 +5,10 @@ import { useT } from '@/lib/i18n';
 import { projectInvitationLinkPath, type ProjectInvitationLink as InvitationLink, type ProjectInvitationRole } from '@/lib/supabase/project-invitation-links';
 
 /** A project invitation, followed by normal sign-in. This never creates an auth session. */
-export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCreate, onRefresh }: {
+export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCreate, onRefresh, primaryContractor = true }: {
   scope: string; role: ProjectInvitationRole; link?: InvitationLink; busy: boolean;
   canCreate: boolean; onCreate: () => void; onRefresh?: () => void;
+  primaryContractor?: boolean;
 }) {
   const t = useT();
   const url = link ? `${window.location.origin}${projectInvitationLinkPath(role, link.token)}` : '';
@@ -32,7 +33,8 @@ export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCr
   return <div className="mt-4 space-y-2 rounded-xl border border-brand-border-grey bg-brand-off-white p-3 dark:border-[#2c2c2c] dark:bg-[#141414]">
     <p className="text-xs font-semibold">{t('projectLinks.title')}</p>
     <p className="text-xs text-brand-mid-grey">{t('projectLinks.body')}</p>
-    <p className="text-xs font-medium">{t(role === 'client' ? 'teamAccess.primaryClient' : role === 'contractor' ? 'teamAccess.primaryContractor' : 'teamAccess.observer')}</p>
+    <p className="text-xs font-medium">{t(role === 'client' ? 'teamAccess.primaryClient' : role === 'contractor'
+      ? primaryContractor ? 'teamAccess.primaryContractor' : 'adminRole.contractor' : 'teamAccess.observer')}</p>
     {link ? <>
       <label className="block text-xs text-brand-mid-grey">
         {t('projectLinks.address')}

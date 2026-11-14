@@ -355,6 +355,9 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
     read('supabase/migrations/20261114000100_invitation_role_consistency.sql'),
     read('scripts/fixtures/invitation-role-consistency.sql'),
+    read('supabase/migrations/20261114000400_project_invitation_role_selection.sql'),
+    read('supabase/migrations/20261114000400_project_invitation_role_selection.sql'),
+    read('scripts/fixtures/invitation-role-selection.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -367,7 +370,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK') || !output.includes('INVITATION_ROLES_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK') || !output.includes('INVITATION_ROLES_OK') || !output.includes('INVITATION_SELECTION_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

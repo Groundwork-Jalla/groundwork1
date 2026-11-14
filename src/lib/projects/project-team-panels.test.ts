@@ -36,6 +36,7 @@ import { ContractorInvite } from '@/components/project/ContractorInvite';
 import { PrimaryClientCard } from '@/components/admin/workspace/PrimaryClientCard';
 import { TeamTab } from '@/components/admin/workspace/TeamTab';
 import { ProjectTeam } from '@/components/project/ProjectTeam';
+import { ProjectSharing } from '@/components/project/ProjectSharing';
 
 type Node = { type: any; props: Record<string, any> };
 function nodes(value: any): Node[] {
@@ -176,9 +177,8 @@ describe('the client project Team tab reuses the role-checked invitation panels'
   it('shows the invited primary client their contractor and observer invitations', () => {
     const view = render(component);
     expect(view.text).toContain('teamAccess.primaryClient');
-    expect(view.all.find(n => n.type === ContractorInvite)!.props).toMatchObject({ projectId: 'project', projectName: 'Home', userId: 'actor' });
-    const sharing = view.all.filter(n => n.type === ShareProject);
-    expect(sharing).toHaveLength(1); expect(sharing[0].props.asClient).toBeUndefined();
+    expect(view.all.find(n => n.type === ProjectSharing)!.props).toMatchObject({ projectId: 'project', projectName: 'Home' });
+    expect(view.all.some(n => n.type === ContractorInvite || n.type === ShareProject)).toBe(false);
   });
 
   it('offers the primary contractor the existing client and observer panels', () => {
@@ -186,13 +186,13 @@ describe('the client project Team tab reuses the role-checked invitation panels'
     const view = render(component);
     expect(view.text).toContain('teamAccess.primaryContractor');
     expect(view.all.some(n => n.type === ContractorInvite)).toBe(false);
-    expect(view.all.filter(n => n.type === ShareProject).map(n => n.props.asClient ?? false)).toEqual([true, false]);
+    expect(view.all.filter(n => n.type === ProjectSharing)).toHaveLength(1);
   });
 
   it('keeps the accepted contractor status panel without a permanent invitation cue', () => {
     h.team.access = { ...caps, canInviteContractor: false, hasContractor: true };
     const view = render(component);
-    expect(view.all.some(n => n.type === ContractorInvite)).toBe(true);
+    expect(view.all.some(n => n.type === ProjectSharing)).toBe(true);
     expect(view.all.some(n => n.props['data-tour'] === 'invite-contractor')).toBe(false);
   });
 
@@ -224,6 +224,74 @@ describe('the client project Team tab reuses the role-checked invitation panels'
     expect(view.all.some(n => n.props.role === 'alert')).toBe(true);
     expect(view.all.some(n => n.type === ContractorInvite || n.type === ShareProject)).toBe(false);
     view.all.find(n => n.type === 'button')!.props.onClick(); expect(h.refresh).toHaveBeenCalledOnce();
+  });
+});
+
+describe('the sender selects a project role before generating a link', () => {
+  const component = () => ProjectSharing({ projectId: 'project', projectName: 'Home' });
+  const choose = (role: string) => render(component).all.find(node => node.type === 'select')!.props.onChange({ target: { value: role } });
+
+  it('requires an explicit choice before showing link generation or sending anything', () => {
+    const view = render(component);
+    expect(view.all.find(node => node.type === 'select')!.props.value).toBe('');
+    expect(view.all.some(node => node.type === ContractorInvite || node.type === ShareProject || node.type === ProjectInvitationLink)).toBe(false);
+    expect(h.createLink).not.toHaveBeenCalled(); expect(h.send).not.toHaveBeenCalled();
+  });
+
+  it('offers a client contractor or observer access, then opens only the chosen invitation', () => {
+    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'contractor', 'observer']);
+    choose('contractor');
+    expect(render(component).all.find(node => node.type === ContractorInvite)!.props).toMatchObject({ projectId: 'project', projectName: 'Home' });
+    expect(render(component).all.some(node => node.type === ShareProject)).toBe(false);
+    choose('observer');
+    expect(render(component).all.find(node => node.type === ShareProject)!.props.asClient).toBeUndefined();
+    expect(render(component).all.some(node => node.type === ContractorInvite)).toBe(false);
+    expect(h.createLink).not.toHaveBeenCalled();
+  });
+
+  it('offers the primary contractor client, additional-contractor and observer invitations', () => {
+    h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true, canInviteContractor: false, canInviteAdditionalContractor: true };
+    expect(render(component).all.filter(node => node.type === 'option').map(node => node.props.value)).toEqual(['', 'client', 'contractor', 'observer']);
+    choose('client'); expect(render(component).all.find(node => node.type === ShareProject)!.props.asClient).toBe(true);
+    choose('contractor'); expect(render(component).all.some(node => node.type === ContractorInvite)).toBe(true);
+    expect(render(component).text).toContain('projectLinks.additionalContractorHelp');
+    expect(h.createLink).not.toHaveBeenCalled();
+  });
+
+  it('ignores an unavailable role even when an old event tries to choose it', () => {
+    choose('client');
+    expect(render(component).all.find(node => node.type === 'select')!.props.value).toBe('');
+    expect(render(component).all.some(node => node.type === ShareProject)).toBe(false);
+    choose('contractor'); h.team.scope = 'actor:other-project';
+    expect(render(component).all.find(node => node.type === 'select')!.props.value).toBe('');
+  });
+
+  it('withdraws every invitation control when the current account loses invitation permission', () => {
+    choose('contractor'); h.team.access = { ...caps, canInvite: false, primaryClient: false, assignedContractor: true };
+    expect(render(component).tree).toBeNull(); expect(h.createLink).not.toHaveBeenCalled();
+  });
+
+  it('reuses the role selector when an established client invitation is inspected without offering a second client', () => {
+    h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: false, hasClientInvitation: true };
+    choose('client');
+    expect(render(component).all.find(node => node.type === ShareProject)!.props.asClient).toBe(true);
+    expect(h.createLink).not.toHaveBeenCalled();
+  });
+});
+
+describe('the additional-contractor invitation card', () => {
+  it('uses an additional assignment and its own pending token, preserving the primary contractor', async () => {
+    h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteContractor: false, canInviteAdditionalContractor: true, hasContractor: true };
+    h.invites.mockResolvedValue([{ id: 'primary', token: 'primary-old', is_primary: true, status: 'accepted' },
+      { id: 'new', token: 'additional-pending', is_share_link: true, primary_on_acceptance: false, status: 'pending' }]);
+    const component = () => ContractorInvite({ projectId: 'project', projectName: 'Home', userId: 'actor' });
+    render(component); await flush();
+    const link = render(component).all.find(node => node.type === ProjectInvitationLink)!;
+    expect(link.props.primaryContractor).toBe(false); expect(link.props.link.token).toBe('additional-pending');
+    expect(link.props.canCreate).toBe(true);
+    await link.props.onCreate(); await flush();
+    expect(h.createLink).toHaveBeenCalledWith('project', 'contractor');
+    expect(h.send).not.toHaveBeenCalled();
   });
 });
 

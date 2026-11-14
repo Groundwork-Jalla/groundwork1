@@ -269,7 +269,8 @@ describe('a client inviting a contractor to their own project still works', () =
    */
   it('the invite panel is still mounted on the client project page', () => {
     expect(strip2(read('src/app/routes/projects/detail.tsx'))).toMatch(/import \{ ProjectTeam \}/);
-    expect(strip2(read('src/components/project/ProjectTeam.tsx'))).toMatch(/import ContractorInvite/);
+    expect(strip2(read('src/components/project/ProjectTeam.tsx'))).toMatch(/import \{ ProjectSharing \}/);
+    expect(strip2(read('src/components/project/ProjectSharing.tsx'))).toMatch(/import ContractorInvite/);
     expect(read('src/components/project/ContractorInvite.tsx')).toMatch(/inviteContractor\(/);
   });
 

@@ -31,8 +31,8 @@ export async function inviteContractor(
   // 10 Nov 2026, from an English account, all in French. The server still ranks every
   // stored choice above this — see resolveRecipientLang.
   const lang = senderLang;
-  // The RPC chooses the inviter and permits only an initial primary assignment.
-  // Subsequent project participants are invited as observers through project_viewers.
+  // The RPC chooses the inviter and preserves the established primary contractor.
+  // Further accepted invitations grant an additional contractor assignment.
   const { data, error } = await supabase.rpc('invite_project_contractor', {
     p_project: projectId, p_email: email.toLowerCase().trim(),
   });
