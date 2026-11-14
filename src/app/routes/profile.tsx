@@ -25,6 +25,7 @@ import { useT, type TKey } from '@/lib/i18n';
 import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
 import { TwoFactorSection } from '@/components/profile/TwoFactorSection';
+import { WhatsAppConsent } from '@/components/profile/WhatsAppConsent';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -1014,6 +1015,7 @@ export default function ProfilePage() {
                 <p className="text-[11px] text-brand-mid-grey dark:text-brand-mid-grey mt-4 leading-relaxed">
                   {t('profile.notificationsServerSide')}
                 </p>
+                <WhatsAppConsent />
               </motion.div>
             )}
 

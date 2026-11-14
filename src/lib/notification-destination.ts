@@ -18,6 +18,7 @@ export function notificationFocus(data: Record<string, unknown>): { key: string;
 export function destinationFor(data: Record<string, unknown> | null | undefined, viewer?: NotificationViewer): string | null {
   if (!data) return null;
   const s = (key: string) => typeof data[key] === 'string' && data[key] ? data[key] as string : null;
+  if (safeId(data.whatsapp_contact_id)) return viewer?.isAdmin ? `/admin/sequences?tab=whatsapp&contact=${encodeURIComponent(data.whatsapp_contact_id)}` : null;
   if (s('communication_followup_id')) return viewer?.isAdmin ? '/admin/sequences' : null;
   if (safeId(data.application_id)) return `/admin/applications/${data.application_id}`;
   if (s('ticket_id')) return '/admin/support';

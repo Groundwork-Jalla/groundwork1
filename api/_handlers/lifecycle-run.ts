@@ -2,6 +2,7 @@ import { previewDue, runDue } from '../_lib/lifecycle.js';
 import { getSupabaseAdmin } from '../_lib/stripe.js';
 import { sendQueuedCommunicationReplies } from '../_lib/communication-email.js';
 import { timingSafeEqual } from 'node:crypto';
+import { runWhatsApp } from '../_lib/whatsapp-communications.js';
 
 // Sends whatever lifecycle step is due. Callable by the scheduler (Vercel cron sends
 // `Authorization: Bearer $CRON_SECRET`) or by an admin's own session ("Run now").
@@ -46,8 +47,11 @@ export async function handler(req: any, res: any) {
     try {
       const followups = await svc.rpc('review_communication_followups');
       if (followups.error) throw followups.error;
-      const replies = await sendQueuedCommunicationReplies(svc);
-      result = { ...await runDue(svc, new Date(), 20), replies, followupReview: followups.data };
+      const replies = await sendQueuedCommunicationReplies(svc,new Date(),3);
+      const email = await runDue(svc, new Date(), 20,100_000);
+      // Independent of email's enable switch, reply domain and progression cursor.
+      const whatsapp = await runWhatsApp(svc,8,60_000);
+      result = { ...email, replies, whatsapp, followupReview: followups.data };
       const saved = await svc.from('communication_runs').update({ status: 'complete', finished_at: new Date().toISOString(), counts: result }).eq('id', run.data.id);
       if (saved.error) throw saved.error;
     } catch (error) {

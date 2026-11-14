@@ -1,4 +1,3 @@
-import { sendWhatsApp } from './whatsapp-send.js';
 import { communicationSettings, composeCommunicationEmail, sendCommunicationEmail } from './communication-email.js';
 import { logEmailToCrm } from '../ghl/_email-log.js';
 import { groundworkOwnsCommunication } from './communication-ownership.js';
@@ -258,17 +257,17 @@ export async function previewDue(svc: Svc, now = new Date(), limit = 50) {
       state: futureStep && state?.kind === 'ready' ? 'hold' : state?.kind ?? 'unavailable',
       reason: futureStep && state?.kind === 'ready' ? 'next_reminder_not_due' : state?.reason ?? 'state_unavailable',
       step: step?.code ?? null, channel: step?.channel ?? null, subject: copy?.subject ?? null,
-      whatsappPaused: step?.channel === 'whatsapp' && process.env.LIFECYCLE_WHATSAPP_ENABLED !== 'true' });
+      whatsappPaused: step?.channel === 'whatsapp' });
   }
   return { checked: rows.length, ready: rows.filter(row => row.state === 'ready' && !row.whatsappPaused).length, rows };
 }
 
-export async function runDue(svc: Svc, now = new Date(), limit = 50) {
+export async function runDue(svc: Svc, now = new Date(), limit = 50, budgetMs = 180_000) {
   const tally = { sent: 0, failed: 0, followups: 0, skipped: 0 };
   const settings = await communicationSettings(svc);
   if (!settings.delivery_enabled) return tally;
   const { bySeq, due } = await dueEnrollments(svc, now, limit);
-  const deadline = Date.now() + 180_000;
+  const deadline = Date.now() + budgetMs;
   for (const candidate of due) {
     if (Date.now() >= deadline) break;
     let enrollment: any;
@@ -301,7 +300,7 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50) {
         }
         continue;
       }
-      if (step.channel === 'whatsapp' && process.env.LIFECYCLE_WHATSAPP_ENABLED !== 'true') {
+      if (step.channel === 'whatsapp') {
         if (await finish('skipped', 'whatsapp_outreach_paused')) tally.skipped++;
         continue;
       }
@@ -325,13 +324,7 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50) {
       if (delivery.status === 'blocked') { tally.failed++; continue; }
       let result: { ok: boolean; error?: string; providerId?: string };
       if (delivery.status === 'sent') result = { ok: true, providerId: delivery.provider_id };
-      else if (step.channel === 'whatsapp') {
-        if (!enrollment.phone) result = { ok: false, error: 'no_phone' };
-        else {
-          const sent = await sendWhatsApp(svc, { phone: enrollment.phone, contactId: null, conversationId: null }, delivery.payload.text);
-          result = sent.ok ? { ok: true } : { ok: false, error: sent.error };
-        }
-      } else result = await sendCommunicationEmail(delivery.payload, `lifecycle/${enrollment.id}/${step.position}`);
+      else result = await sendCommunicationEmail(delivery.payload, `lifecycle/${enrollment.id}/${step.position}`);
       const outcome = result.ok ? 'sent' : result.error === 'no_phone' ? 'skipped' : 'failed';
       const recorded = await finish(outcome, result.error, result.providerId);
       if (!recorded) { tally.skipped++; continue; }

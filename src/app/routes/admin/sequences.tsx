@@ -1,4 +1,6 @@
 import { CommunicationSettings } from '@/components/admin/communications/CommunicationSettings';
+import { WhatsAppPanel } from '@/components/admin/communications/WhatsAppPanel';
+import { useSearchParams } from 'react-router';
 import { CommunicationInbox } from '@/components/admin/communications/CommunicationInbox';
 import { CommunicationRunStatus } from '@/components/admin/communications/CommunicationRunStatus';
 import { CommunicationFollowups,type CommunicationFollowup } from '@/components/admin/communications/CommunicationFollowups';
@@ -41,7 +43,7 @@ interface Enrollment {
   context: { project_name?: string } | null;
 }
 
-type Tab = 'attention' | 'tracking' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings';
+type Tab = 'attention' | 'tracking' | 'journeys' | 'sequences' | 'log' | 'inbox' | 'settings' | 'whatsapp';
 
 const ago = (iso: string | null) => {
   if (!iso) return '—';
@@ -58,7 +60,9 @@ const field = 'w-full rounded-lg border border-brand-border-grey bg-white px-3 p
 
 export default function AdminSequences() {
   const t = useT();
+  const [searchParams]=useSearchParams();
   const [tab, setTab] = useState<Tab>('attention');
+  useEffect(()=>{if(searchParams.get('tab')==='whatsapp')setTab('whatsapp');},[searchParams]);
   const [seqs, setSeqs] = useState<Sequence[]>([]);
   const [steps, setSteps] = useState<Step[]>([]);
   const stepDrafts=useRef(new Map<string,Partial<Step>>());
@@ -218,7 +222,7 @@ export default function AdminSequences() {
 
 
       <div className="mb-5 flex flex-wrap gap-1.5">
-        {([['attention', `Needs attention · ${attentionCount}`], ['tracking', t('communications.tracking.title')], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
+        {([['attention', `Needs attention · ${attentionCount}`], ['tracking', t('communications.tracking.title')], ['journeys', t('communications.journeys.title')], ['sequences', 'Sequences'], ['log', 'Send log'], ['inbox', t('communications.inbox')], ['whatsapp','WhatsApp'], ['settings', t('communications.settings')]] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)}
             className={cn('rounded-full border px-3 py-1.5 text-sm font-medium',
               tab === k ? 'border-brand-near-black bg-brand-near-black text-white' : 'border-brand-border-grey bg-white text-brand-near-black')}>
@@ -230,6 +234,7 @@ export default function AdminSequences() {
       {tab === 'inbox' && <CommunicationInbox initialThreadId={conversation}/>}
       {tab === 'tracking' && <CommunicationTracking nextContactHours={nextContactHours} onConversation={thread=>{setConversation(thread);setTab('inbox');}}/>}
       {tab === 'settings' && <CommunicationSettings />}
+      {tab === 'whatsapp' && <WhatsAppPanel />}
       {tab === 'journeys' && <CommunicationJourneys sequences={seqs} steps={steps} onEdit={journey=>{setSelectedJourney(journey);setTab('sequences');}}/>}
 
       {tab === 'sequences' && (
@@ -280,7 +285,7 @@ export default function AdminSequences() {
                         <select className="rounded-lg border border-brand-border-grey px-2 py-1" value={st.channel}
                           onChange={e => patchStep(st.id, { channel: e.target.value as Step['channel'] })}>
                           <option value="email">Email</option>
-                          <option value="whatsapp">WhatsApp</option>
+                          <option value="whatsapp" disabled>Legacy WhatsApp step · use the WhatsApp tab</option>
                         </select>
                         {stepDrafts.current.has(st.id)&&<span className="text-xs text-brand-mid-grey">{t('communications.journeys.unsaved')}</span>}
                         <button disabled={savingSteps.includes(st.id)} onClick={() => removeStep(st.id)} className="ml-auto text-red-600" aria-label="Remove step"><Trash2 className="size-4" /></button>

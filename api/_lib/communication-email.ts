@@ -68,7 +68,7 @@ export async function sendCommunicationEmail(payload: CommunicationPayload, idem
 export async function sendQueuedCommunicationReplies(svc: Service, now=new Date(),limit=5) {
   const tally={sent:0,failed:0,skipped:0};
   const settings=await communicationSettings(svc);if(!settings.delivery_enabled) return tally;
-  const {data,error}=await svc.from('communication_messages').select('id').eq('direction','outbound').not('client_ref','is',null).in('status',['queued','failed','sending']).lte('next_attempt_at',now.toISOString()).order('next_attempt_at').limit(limit);
+  const {data,error}=await svc.from('communication_messages').select('id').eq('channel','email').eq('direction','outbound').not('client_ref','is',null).in('status',['queued','failed','sending']).lte('next_attempt_at',now.toISOString()).order('next_attempt_at').limit(limit);
   if(error) throw error;
   for(const row of data??[]) {
     const preview=await svc.rpc('prepare_communication_reply',{p_message:row.id,p_payload:null});

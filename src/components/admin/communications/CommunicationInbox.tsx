@@ -4,7 +4,7 @@ import { useT } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase/client';
 import { queueCommunicationReply } from '@/lib/supabase/communications';
 type Thread={id:string;email:string;automation_paused:boolean;last_message_at:string;lifecycle_enrollments:{full_name:string|null;context:{project_id?:string;project_name?:string}}};
-type Message={id:string;direction:'inbound'|'outbound';body:string;subject:string;status:string;authenticated:boolean;attachment_count:number;created_at:string;client_ref:string|null};
+type Message={id:string;direction:'inbound'|'outbound';channel?:'email'|'whatsapp';body:string;subject:string;status:string;authenticated:boolean;attachment_count:number;created_at:string;client_ref:string|null};
 const statusKeys={queued:'queued',sending:'sending',sent:'sent',received:'received',delivered:'delivered',bounced:'bounced',complained:'complained',failed:'failed',blocked:'blocked'} as const;
 export function CommunicationInbox({initialThreadId}:{initialThreadId?:string|null}={}) {
   const t=useT();const [threads,setThreads]=useState<Thread[]>([]);const [selected,setSelected]=useState<string|null>(initialThreadId??null);
@@ -20,7 +20,7 @@ export function CommunicationInbox({initialThreadId}:{initialThreadId?:string|nu
   useEffect(()=>{setError('');setNotice('');},[selected]);
   useEffect(()=>{let valid=true;
     if(!selected)return;
-    const refresh=async()=>{const result=await supabase.from('communication_messages').select('id,direction,subject,body,status,authenticated,attachment_count,created_at,client_ref').eq('thread_id',selected).order('created_at').limit(300);
+    const refresh=async()=>{const result=await supabase.from('communication_messages').select('id,direction,channel,subject,body,status,authenticated,attachment_count,created_at,client_ref').eq('thread_id',selected).order('created_at').limit(300);
       if(valid){if(result.error)setError(t('communications.loadFailed'));else setMessages({thread:selected,rows:result.data as Message[]});}};
     void refresh();const poll=setInterval(()=>{void refresh();void load();},15_000);return()=>{valid=false;clearInterval(poll);};
   },[selected,t,load,messageRefresh]);
@@ -56,10 +56,12 @@ export function CommunicationInbox({initialThreadId}:{initialThreadId?:string|nu
             <div className="flex flex-wrap justify-between gap-2 text-xs text-brand-mid-grey"><p>{t(message.direction==='inbound'?'communications.recipient':message.client_ref?'communications.staff':'communications.automated')} · {t(`communications.${statusKeys[message.status as keyof typeof statusKeys]??'failed'}`)}</p><time>{new Date(message.created_at).toLocaleString()}</time></div>
             {message.direction==='inbound'&&!message.authenticated&&<p className="mt-2 text-xs text-state-alert">{t('communications.unverified')}</p>}
             <p className="mt-2 text-sm font-semibold">{message.subject}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm">{message.body}</p>
+            {message.channel==='whatsapp'&&<p className="mt-2 text-xs">WhatsApp · <Link to="/admin/sequences?tab=whatsapp" className="underline">Open WhatsApp inbox to reply</Link></p>}
             {message.attachment_count>0&&<p className="mt-2 text-xs text-brand-mid-grey">{t('communications.attachments',{count:message.attachment_count})}</p>}
           </section>)}
         </div>
         <form onSubmit={event=>{event.preventDefault();void send();}}>
+          <p className="mb-2 text-xs">Email reply · use the WhatsApp tab to reply on WhatsApp.</p>
           <label className="block text-sm">{t('communications.reply')}<textarea rows={4} required maxLength={10000} disabled={busy} value={body} onChange={event=>setDraft(previous=>({thread:thread.id,body:event.target.value,ref:previous?.thread===thread.id&&previous.body===event.target.value?previous.ref:crypto.randomUUID()}))} className="mt-2 w-full rounded-xl border bg-transparent p-3"/></label>
           <p className="mt-2 text-xs text-brand-mid-grey">{t('communications.replyHelp')}</p><button type="submit" disabled={busy||!body.trim()} className="mt-3 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{t('communications.sendReply')}</button>
         </form>

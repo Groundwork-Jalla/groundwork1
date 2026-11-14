@@ -8,6 +8,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/whatsapp-webhook",
+      "destination": "/api/events?action=whatsapp-webhook"
+    },
+    {
       "source": "/api/crm-oauth",
       "destination": "/api/events?action=crm-oauth"
     },

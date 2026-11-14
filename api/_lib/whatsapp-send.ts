@@ -117,6 +117,10 @@ export async function sendWhatsApp(
   target: WhatsAppTarget,
   body: string,
 ): Promise<WhatsAppSendResult> {
+  // The direct lifecycle/Admin connection has its own verified consent, outbox and
+  // templates. Do not bypass it through this legacy project/GHL sender.
+  const direct = await svc.from('communication_whatsapp_settings').select('phone_number_id').eq('id',true).maybeSingle();
+  if (direct.data?.phone_number_id) return {ok:false,provider:'meta',error:'direct_meta_project_delivery_not_enabled: use Admin Communications WhatsApp'};
   const meta = await metaConfig(svc);
   if (meta && target.phone) return metaSend(meta, target.phone, body);
 

@@ -10,7 +10,7 @@ vi.mock('react',async original=>({...await original<typeof import('react')>(),
 vi.mock('@/lib/i18n',()=>({useT:()=>h.t,useLanguage:()=>({lang:'en'})}));
 vi.mock('@/lib/i18n/translate',()=>({translator:()=>h.t}));
 vi.mock('@/contexts/AuthContext',()=>({useAuth:()=>({user:{id:'admin'}})}));
-vi.mock('react-router',()=>({useParams:()=>({token:h.token}),Link:'link'}));
+vi.mock('react-router',()=>({useParams:()=>({token:h.token}),useSearchParams:()=>[new URLSearchParams()],Link:'link'}));
 vi.mock('@/lib/supabase/communications',()=>({readPreference:h.read,savePreference:h.save,queueCommunicationReply:h.queue,readCommunicationReadiness:h.readiness}));
 vi.mock('@/lib/supabase/admin-users',()=>({listAdminUsers:h.staff}));
 vi.mock('@/lib/supabase/client',()=>({supabase:{rpc:h.rpc,from:(table:string)=>{

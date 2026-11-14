@@ -15,9 +15,13 @@
  * Invalid JSON is a 400, as it was.
  */
 
-export async function readRawBody(readable: AsyncIterable<Buffer | string>): Promise<Buffer> {
+export async function readRawBody(readable: AsyncIterable<Buffer | string>,maxBytes=Infinity): Promise<Buffer> {
   const chunks: Buffer[] = [];
-  for await (const chunk of readable) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  let size=0;
+  for await (const chunk of readable) {
+    const bytes=typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+    size+=bytes.length;if(size>maxBytes) throw new Error('body_too_large');chunks.push(bytes);
+  }
   return Buffer.concat(chunks);
 }
 
@@ -45,7 +49,9 @@ export function parseBody(raw: Buffer, contentType: string | undefined): ParsedB
  */
 export async function attachBody(req: any, res: any): Promise<boolean> {
   if (req.method === 'GET' || req.method === 'HEAD') { req.rawBody = Buffer.alloc(0); return true; }
-  const raw = await readRawBody(req);
+  let raw:Buffer;
+  try {raw = await readRawBody(req,req.query?.action==='whatsapp-webhook'?2_000_000:Infinity);}
+  catch {res.status(413).json({error:'Request body too large'});return false;}
   const parsed = parseBody(raw, req.headers?.['content-type']);
   if (!parsed.ok) { res.status(400).json({ error: parsed.error }); return false; }
   req.rawBody = raw;
