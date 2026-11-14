@@ -1,7 +1,8 @@
+import { ProjectReturnLink } from '@/components/project/ProjectReturnLink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { motion } from 'framer-motion';
-import { ArrowRight, CalendarClock, Check, ChevronLeft, ClipboardList, Lock } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, ClipboardList, Lock } from 'lucide-react';
 import { useForceLight } from '@/hooks/useForceLight';
 import { cn } from '@/lib/utils';
 import { useT, type TKey } from '@/lib/i18n';
@@ -171,13 +172,7 @@ export default function JallaManagementPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-      <Link
-        to={projectId ? `/projects/${projectId}` : '/'}
-        className="mb-8 inline-flex items-center gap-1 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black"
-      >
-        <ChevronLeft className="size-3.5" />
-        {projectId ? t('jallaManagement.backToProject') : t('jallaManagement.backHome')}
-      </Link>
+      <ProjectReturnLink projectId={projectId} className="mb-8" />
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}>
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-brand-mid-grey">
@@ -267,13 +262,7 @@ export default function JallaManagementPage() {
           <p className="text-lg font-bold">{t('jallaManagement.doneTitle')}</p>
           <p className="mt-2 text-sm text-white/70">{t('jallaManagement.doneBody')}</p>
           {projectId && (
-            <Link
-              to={`/projects/${projectId}`}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
-            >
-              {t('jallaManagement.doneCtaProject')}
-              <ArrowRight className="size-3.5" />
-            </Link>
+            <ProjectReturnLink projectId={projectId} className="mt-6" />
           )}
         </motion.div>
       )}

@@ -1,13 +1,13 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, MapPin, Building2, Layers, Home, Wrench,
+  MapPin, Building2, Layers, Home, Wrench,
   CalendarDays, BadgeCheck, ShieldCheck, Briefcase,
 } from 'lucide-react';
 import { useAuth }               from '@/contexts/AuthContext';
-import { projectListForRole } from '@/lib/auth/account-role';
 import { useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { supabase }              from '@/lib/supabase/client';
@@ -342,8 +342,9 @@ export default function ProjectDetail() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-brand-border-grey border-t-brand-near-black animate-spin" />
+      <div className="min-h-screen px-4 py-4 sm:px-8">
+        <ProjectBackLink />
+        <div className="flex justify-center py-20"><div className="h-8 w-8 rounded-full border-2 border-brand-border-grey border-t-brand-near-black animate-spin" /></div>
       </div>
     );
   }
@@ -352,9 +353,7 @@ export default function ProjectDetail() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
         <p className="text-sm text-brand-mid-grey">{error ?? t('project.notFound')}</p>
-        <Link to="/dashboard" className="text-sm font-medium text-brand-near-black underline underline-offset-4">
-          {t('project.backToDashboard')}
-        </Link>
+        <ProjectBackLink />
       </div>
     );
   }
@@ -406,13 +405,7 @@ export default function ProjectDetail() {
     <div className="min-h-screen bg-white dark:bg-[#141414]">
       {/* Nav */}
       <nav className="border-b border-brand-border-grey dark:border-[#2c2c2c] px-4 sm:px-8 py-4 flex items-center gap-3">
-        <Link
-          to={projectListForRole(accountRole ?? (hasContractorRole ? 'contractor' : 'client'))}
-          className="flex items-center gap-1.5 text-sm text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white transition-colors shrink-0"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">{t('nav.projects')}</span>
-        </Link>
+        <ProjectBackLink />
         <span className="text-brand-border-grey hidden sm:inline">/</span>
         <span className="text-sm font-medium text-brand-near-black dark:text-white truncate">{project.name}</span>
       </nav>

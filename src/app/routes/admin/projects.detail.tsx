@@ -1,3 +1,4 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
@@ -72,8 +73,9 @@ export default function AdminProjectWorkspace() {
 
   if (loaded === undefined) {
     return (
-      <div className="flex items-center gap-2 p-8 text-sm text-brand-mid-grey">
-        <Loader2 className="size-4 animate-spin" /> {t('common.loading')}
+      <div className="space-y-4 p-8 text-sm text-brand-mid-grey">
+        <ProjectBackLink fallbackRole="admin" />
+        <p className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> {t('common.loading')}</p>
       </div>
     );
   }
@@ -82,9 +84,7 @@ export default function AdminProjectWorkspace() {
     return (
       <div className="p-8">
         <p role="alert" className="text-sm text-state-alert">{error}</p>
-        <Link to="/admin/projects" className="mt-4 inline-block text-xs font-medium text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
-          ← {t('admin.workspace.back')}
-        </Link>
+        <ProjectBackLink fallbackRole="admin" />
       </div>
     );
   }
@@ -96,9 +96,7 @@ export default function AdminProjectWorkspace() {
           title={t('admin.workspace.notFound')}
           description={t('admin.workspace.notFoundBody')}
           action={
-            <Link to="/admin/projects" className="rounded-xl border border-brand-border-grey px-4 py-2 text-xs font-semibold text-brand-near-black dark:border-[#2c2c2c] dark:text-white">
-              ← {t('admin.workspace.back')}
-            </Link>
+            <ProjectBackLink fallbackRole="admin" />
           }
         />
       </div>

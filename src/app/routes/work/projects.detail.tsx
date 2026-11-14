@@ -1,7 +1,8 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
-import { ArrowLeft, Camera, Check, FileText, Loader2, Lock, Search, Upload, UserRound } from 'lucide-react';
+import { Camera, Check, FileText, Loader2, Lock, Search, Upload, UserRound } from 'lucide-react';
 import {
   fetchAssignedProject, fetchSubstages, fetchProjectDocuments, fetchRework, fetchMyPayments,
   submitSiteUpdate,
@@ -30,7 +31,6 @@ import { fileProblem, FILE_ACCEPT_ATTR, MAX_FILE_MB } from '@/lib/documents/acce
 import { useT, type TKey } from '@/lib/i18n';
 import { errorMessage } from '@/lib/errors';
 import { useAuth } from '@/contexts/AuthContext';
-import { projectListForRole } from '@/lib/auth/account-role';
 import { ProjectSharing } from '@/components/project/ProjectSharing';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
 import { StagePricingPanel } from '@/components/project/StagePricingPanel';
@@ -299,14 +299,7 @@ export default function ContractorProjectDetail() {
 }
 
 function Back() {
-  const t = useT();
-  const { accountRole, isContractor } = useAuth();
-  return (
-    <Link to={projectListForRole(accountRole ?? (isContractor ? 'contractor' : 'client'))}
-          className="inline-flex items-center gap-1.5 text-sm text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
-      <ArrowLeft className="size-3.5" /> {t('contractorProject.back')}
-    </Link>
-  );
+  return <ProjectBackLink fallbackRole="contractor" />;
 }
 
 /**
@@ -1040,7 +1033,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                   const complete = item.status === 'complete';
                   const count = item.evidence_urls?.length ?? 0;
                   return (
-                    <li key={item.id}
+                    <li key={item.id} id={`substage-${item.id}`}
                         className="border-t border-brand-border-grey py-2.5 dark:border-[#2c2c2c]">
                       <div className="flex items-center gap-3">
                       <span aria-hidden className={cn(

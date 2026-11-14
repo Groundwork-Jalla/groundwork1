@@ -9,7 +9,7 @@ export interface NotificationViewer {
 const safeId = (value: unknown): value is string => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
 export function notificationFocus(data: Record<string, unknown>): { key: string; id: string } | null {
   for (const [key, prefix] of [['receipt_id', 'receipt'], ['proposal_id', 'price-proposal'], ['substage_id', 'substage'], ['document_id', 'document'], ['message_id', 'message'], ['stage_id', 'stage-payment']]) {
-    if (safeId(data[key])) return { key, id: `${prefix}-${data[key]}` };
+    if (safeId(data[key])) return { key, id: `${key === 'stage_id' && data.focus === 'work' ? 'project-stage' : prefix}-${data[key]}` };
   }
   return null;
 }
@@ -47,6 +47,7 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
     const query = new URLSearchParams();
     if (selected) query.set('tab', selected);
     if (/^\d{1,3}$/.test(String(data.stage_number ?? ''))) query.set('stage', String(data.stage_number));
+    if (['evidence_uploaded', 'substage_approved', 'stage_review_requested', 'stage_rework_requested', 'stage_approved', 'stage_opened'].includes(s('project_event') ?? '')) query.set('focus', 'work');
     for (const key of ['receipt_id', 'proposal_id', 'substage_id', 'document_id', 'message_id', 'stage_id', 'conversation_id']) {
       if (safeId(data[key])) query.set(key, data[key]);
     }

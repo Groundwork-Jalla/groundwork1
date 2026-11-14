@@ -58,5 +58,7 @@ describe('notification action addresses', () => {
   it('focuses the most specific review item before the stage payment section', () => {
     expect(notificationFocus({ stage_id: 'stage-4', receipt_id: 'receipt-8' })).toEqual({ key: 'receipt_id', id: 'receipt-receipt-8' });
     expect(notificationFocus({ proposal_id: 'proposal-4' })?.id).toBe('price-proposal-proposal-4');
+    const url = new URL(destinationFor({ project_id: project, project_event: 'stage_review_requested', stage_id: 'stage-4', stage_number: 4 })!, 'https://test.invalid');
+    expect(notificationFocus(Object.fromEntries(url.searchParams))?.id).toBe('project-stage-stage-4');
   });
 });

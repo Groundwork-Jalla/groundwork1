@@ -31,7 +31,7 @@ export default function Signup() {
   const returnPath = safeAuthReturn(searchParams.get('redirect'));
   const loginPath = withProjectInvitation('/auth/login' + (returnPath ? `?redirect=${encodeURIComponent(returnPath)}` : ''), readProjectInvitation(searchParams.toString()));
   const isContractorSignup = isInviteFlow ? invitationRole.role === 'contractor' : accountType === 'contractor';
-  // The radio does not make an account: contractors are reviewed first (100).
+  // Independent contractors use the shared contractor signup form; invitations keep their project context here.
   const sendToPartnerDoor  = !isInviteFlow && signupGoesToPartnerDoor(searchParams);
   const t              = useT();
 

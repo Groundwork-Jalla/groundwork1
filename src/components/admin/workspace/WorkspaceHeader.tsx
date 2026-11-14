@@ -1,6 +1,7 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, ChevronDown, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
+import { ChevronDown, ExternalLink, ShieldCheck, MessageCircle, MessagesSquare, Loader2 } from 'lucide-react';
 import { openProjectWhatsApp } from '@/lib/supabase/project-whatsapp';
 import { ensureProjectConversation } from '@/lib/supabase/conversations';
 import { workspaceHref } from '@/lib/admin/workspace-params';
@@ -146,13 +147,7 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
 
   return (
     <header className="border-b border-brand-border-grey bg-white px-5 py-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e] sm:px-6 2xl:px-8">
-      <Link
-        to="/admin/projects?status=not_archived"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white"
-      >
-        <ArrowLeft className="size-3.5" />
-        {t('admin.workspace.back')}
-      </Link>
+      <ProjectBackLink fallbackRole="admin" />
 
       <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         {/* ── Identity ─────────────────────────────────────────────────────────────── */}

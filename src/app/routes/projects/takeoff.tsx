@@ -1,7 +1,8 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { motion } from 'framer-motion';
-import { ArrowLeft, FileSpreadsheet, Loader2, Plus, Lock } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Plus, Lock } from 'lucide-react';
 import { boqEditorPaths } from '@/lib/projects/boq-editor-paths';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 import { useAuth } from '@/contexts/AuthContext';
@@ -116,14 +117,14 @@ export default function TakeoffList() {
     }
   }
 
-  if (accessError) return <div className="p-6 text-sm"><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
-  if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><Link to={`/projects/${id}`} className="font-semibold underline">{t('project.backToDashboard')}</Link></div>;
+  if (accessError) return <div className="p-6 text-sm"><ProjectBackLink /><p role="alert">{t('teamAccess.loadFailed')}</p><button type="button" className="mt-3 underline" onClick={() => { void refreshAccess(); }}>{t('common.retry')}</button></div>;
+  if (access && !access.canEditBoq) return <div className="space-y-4 p-6 text-sm"><p>{t('project.review.editorRestricted')}</p><ProjectBackLink /></div>;
   if (access?.canEditBoq && paths.legacy) return <Navigate to={paths.list} replace />;
   if (loading || !access) {
-    return <div className="flex justify-center py-20"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div>;
+    return <div className="space-y-4 py-6"><ProjectBackLink /><div className="flex justify-center py-14"><Loader2 className="size-5 animate-spin text-brand-mid-grey" /></div></div>;
   }
   if (!project || project.id !== id) {
-    return <p className="py-20 text-center text-sm text-brand-mid-grey">{t('takeoff.notFound')}</p>;
+    return <div className="space-y-4 py-6"><ProjectBackLink /><p className="py-14 text-center text-sm text-brand-mid-grey">{t('takeoff.notFound')}</p></div>;
   }
 
   const budget = projectBudget(project);
@@ -139,9 +140,7 @@ export default function TakeoffList() {
       transition={{ duration: 0.3 }}
       className="mx-auto flex max-w-4xl flex-col gap-5"
     >
-      <Link to={paths.project} className="inline-flex w-fit items-center gap-1.5 text-xs text-brand-mid-grey transition-colors hover:text-brand-near-black dark:hover:text-white">
-        <ArrowLeft className="size-3.5" /> {project.name}
-      </Link>
+      <ProjectBackLink to={paths.project} label={project.name} />
 
       <div>
         <h1 className="text-xl font-bold text-brand-near-black dark:text-white">{t('takeoff.title')}</h1>

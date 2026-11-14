@@ -191,6 +191,7 @@ function StageDetail({
 
   return (
     <motion.div
+      id={`project-stage-${stage.id}`}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}

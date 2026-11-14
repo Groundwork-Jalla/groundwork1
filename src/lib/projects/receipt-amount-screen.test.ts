@@ -194,6 +194,20 @@ describe('the receipt upload and contractor review', () => {
   function button(elements: Element[], key: string) { return elements.find(e => e.type === 'button' && text(e) === `project.receiptFlow.${key}`)!; }
   function confirmation(elements: Element[]) { return elements.find(e => e.type === ConfirmModal && e.props.open)!; }
 
+  it('allows work from confirmed funds while a separate receipt remains pending', async () => {
+    const confirmed: StagePaymentReceipt = { ...pendingReceipt, id: 'received-1', path: 'received-proof', decision: 'received', allowsWork: false };
+    const waiting: StagePaymentReceipt = { ...pendingReceipt, id: 'pending-2', path: 'pending-proof', amount: 10000 };
+    const props = { payment: { ...payment, state: 'receipt_submitted' as const, receipts: [confirmed, waiting] }, isContractor: true };
+    expect(button(render(props), 'reviewPayment')).toBeDefined();
+    button(render(props), 'continueWithReceived').props.onClick();
+    expect(text(render(props))).not.toContain('project.receiptFlow.receivedQuestion');
+    button(render(props), 'continueChoice').props.onClick();
+    expect(h.decide).not.toHaveBeenCalled();
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('received-1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'received' });
+    expect(waiting.decision).toBe('pending');
+  });
+
   it('asks about actual receipt and work continuation separately, then requires a final confirmation', async () => {
     const props = { payment: sentPayment(), isContractor: true };
     button(render(props), 'reviewPayment').props.onClick();

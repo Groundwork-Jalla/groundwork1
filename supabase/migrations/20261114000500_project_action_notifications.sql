@@ -51,7 +51,8 @@ DECLARE person record;project_name text;stage_no integer;stage_id uuid;tab text;
   WHEN 'payment_plan_declined' THEN 'Stage payment plan needs revision'
   WHEN 'payment_plan_superseded' THEN 'Stage payment plan replaced'
   WHEN 'progression_authorized' THEN 'Project progression authorized; balance remains recorded'
-  WHEN 'member_invited' THEN 'Project invitation sent'
+  WHEN 'member_invited' THEN 'Project invitation created'
+  WHEN 'project_link_created' THEN 'Project invitation link created'
   WHEN 'member_joined' THEN 'Project member joined'
   WHEN 'member_removed' THEN 'Project membership updated'
   WHEN 'member_role_changed' THEN 'Project role updated'
@@ -77,7 +78,7 @@ DECLARE person record;project_name text;stage_no integer;stage_id uuid;tab text;
   CONTINUE WHEN NOT p_include_actor AND person.user_id IS NOT DISTINCT FROM p_actor;
   tab:=CASE WHEN p_event LIKE 'prices_%' OR p_event='project_budget_updated' THEN CASE WHEN person.role='contractor' THEN 'money' ELSE 'costing' END
    WHEN p_event LIKE 'document_%' THEN 'documents'
-   WHEN p_event LIKE 'member_%' OR p_event LIKE 'verifier_%' THEN CASE WHEN person.role='contractor' THEN 'people' ELSE 'team' END
+   WHEN p_event LIKE 'member_%' OR p_event LIKE 'verifier_%' OR p_event='project_link_created' THEN CASE WHEN person.role='contractor' THEN 'people' ELSE 'team' END
    WHEN stage_no IS NOT NULL THEN CASE WHEN person.role='contractor' THEN 'work' ELSE 'stages' END
    ELSE CASE WHEN person.role='contractor' THEN 'work' ELSE 'overview' END END;
   INSERT INTO public.notifications(user_id,type,title,body,data,title_key,body_key,params,event_key)
@@ -164,13 +165,14 @@ DECLARE n jsonb;o jsonb:='{}';pid uuid;event text;payload jsonb:='{}';member_id 
  IF TG_TABLE_NAME IN('contractor_invites','project_viewers') THEN
   role:=CASE WHEN TG_TABLE_NAME='contractor_invites' THEN 'contractor' WHEN (n->>'is_client')::boolean THEN 'client' ELSE 'observer' END;
   member_id:=CASE WHEN role='contractor' THEN (n->>'contractor_user_id')::uuid ELSE (n->>'user_id')::uuid END;
-  IF TG_OP='INSERT' THEN event:='member_invited';
+  IF TG_OP='INSERT' THEN event:=CASE WHEN n->>'accepted_at' IS NOT NULL OR n->>'status'='accepted' THEN 'member_joined'
+    WHEN coalesce((n->>'is_share_link')::boolean,false) THEN 'project_link_created' ELSE 'member_invited' END;
   ELSIF TG_OP='DELETE' OR n->>'revoked_at' IS DISTINCT FROM o->>'revoked_at' OR n->>'status'='rejected' THEN event:='member_removed';
   ELSIF n->>'accepted_at' IS DISTINCT FROM o->>'accepted_at' AND n->>'accepted_at' IS NOT NULL THEN event:='member_joined';
   ELSIF ROW(n->>'is_primary',n->>'is_client') IS DISTINCT FROM ROW(o->>'is_primary',o->>'is_client') THEN event:='member_role_changed';
   ELSE RETURN NEW; END IF;
   -- Existing accounts get an acceptance link before they have project read access.
-  IF TG_OP='INSERT' AND coalesce((n->>'is_share_link')::boolean,false)=false THEN
+  IF TG_OP='INSERT' AND event='member_invited' THEN
    SELECT u.id INTO member_id FROM auth.users u WHERE lower(u.email)=lower(n->>'email');
    IF member_id IS NOT NULL AND member_id IS DISTINCT FROM auth.uid() THEN
     INSERT INTO public.notifications(user_id,type,title,body,data,title_key,body_key,params,event_key)

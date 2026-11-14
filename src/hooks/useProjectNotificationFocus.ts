@@ -9,7 +9,7 @@ export function useProjectNotificationFocus(projectId: string | undefined, searc
     if (!target) return;
     let finished = false;
     const focus = () => {
-      const node = document.getElementById(target.id);
+      const node = document.getElementById(target.id) ?? (target.id.startsWith('project-stage-') ? document.getElementById(target.id.replace('project-stage-', 'work-stage-')) : null);
       if (!node || finished) return;
       finished = true; node.setAttribute('tabindex', '-1');
       node.scrollIntoView({ block: 'center', behavior: 'auto' }); node.focus({ preventScroll: true });

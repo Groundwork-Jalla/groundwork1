@@ -211,7 +211,8 @@ export const en = {
       payment_plan_declined: 'Stage payment plan needs revision',
       payment_plan_superseded: 'Stage payment plan replaced',
       progression_authorized: 'Project progression authorized; balance remains recorded',
-      member_invited: 'Project invitation sent',
+      member_invited: 'Project invitation created',
+      project_link_created: 'Project invitation link created',
       member_joined: 'Project member joined',
       member_removed: 'Project membership updated',
       member_role_changed: 'Project role updated',
@@ -556,6 +557,7 @@ export const en = {
     errFailed:    'That did not go through. Try again, and if it keeps failing, tell the person who invited you.',
   },
   projectLinks: {
+    backToProjects: 'Back to projects',
     familyRole: 'Family member',
     familyRoleHelp: 'Family members join as observers: they can follow progress, view costs and documents, and join the conversation.',
     clientSignup: 'Join this project as the client',

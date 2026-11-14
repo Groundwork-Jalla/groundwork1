@@ -11,11 +11,11 @@ contractor after the primary contractor is established.
 - Project sharing starts with an unselected role dropdown. Selecting a role opens
   that role's existing link/email invitation panel. Selection alone creates no
   invitation and sends no message.
-- A primary client can select Contractor or Observer. The initial contractor
+- A primary client can select Contractor, Observer or Family member. Family members join as observers. The initial contractor
   invitation reserves the primary contractor assignment. After that assignment is
   accepted, new contractor invitations are additional assignments.
 - A primary contractor can select Client where the client invitation is available,
-  Contractor for an additional assignment, or Observer. An established client
+  Contractor for an additional assignment, Observer or Family member. An established client
   invitation can be inspected without creating a second primary client.
 - The client Team tab, contractor People tab and contractor work sidebar use the
   same selector and the actual project permission response.
@@ -62,3 +62,8 @@ The user's subsequent instruction is to work on WhatsApp next, using Meta direct
 That queues the next phase after the previously email-only release. Account setup
 is not yet complete; no WhatsApp automation was enabled by the role-selection work.
 See [the Meta setup checklist](meta-whatsapp-setup.md).
+
+The subsequent family/authentication, notification and Back changes are recorded
+in [the current release note](project-action-notifications-2026-11-14.md).
+The verification counts above describe the initial selector build, before that
+extension; they are not a comprehensive deployed acceptance result.

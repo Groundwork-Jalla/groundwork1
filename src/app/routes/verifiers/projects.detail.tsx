@@ -1,6 +1,8 @@
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
-import { ArrowLeft, ArrowUpRight, Check, Layers, Loader2, Paperclip } from 'lucide-react';
+import { Link, useParams, useSearchParams } from 'react-router';
+import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
+import { ArrowUpRight, Check, Layers, Loader2, Paperclip } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadProjectForVerifier, signedFileUrl, type VerifierProject, type VerifierStage }
   from '@/lib/supabase/verifier-work';
@@ -32,6 +34,8 @@ import { ProjectConversations } from '@/components/project/ProjectConversations'
 export default function VerifierProjectPage() {
   const t = useT();
   const { projectId = '' } = useParams();
+  const [params] = useSearchParams();
+  useProjectNotificationFocus(projectId, params.toString());
   const { user } = useAuth();
   const { stageLabel } = useStageLabels();
   const [data, setData]   = useState<VerifierProject | null>(null);
@@ -54,9 +58,9 @@ export default function VerifierProjectPage() {
   }, [projectId, user, t]);
 
   if (state === 'loading') {
-    return <p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-mid-grey">
+    return <div className="space-y-4 py-6"><Back /><p role="status" className="flex items-center gap-2 py-8 text-sm text-brand-mid-grey">
       <Loader2 className="size-4 animate-spin" />{t('common.loading')}
-    </p>;
+    </p></div>;
   }
   if (state === 'denied') {
     return <div className="max-w-3xl space-y-3"><Back />
@@ -106,7 +110,7 @@ function StageCard({ stage, label }: { stage: VerifierStage; label: string }) {
   const evidence = stage.substages.flatMap(s => s.evidence);
 
   return (
-    <li className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
+    <li id={`project-stage-${stage.id}`} className="rounded-xl border border-brand-border-grey p-4 dark:border-[#2c2c2c]">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 shrink-0 rounded-md bg-brand-off-white px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-brand-mid-grey dark:bg-[#2c2c2c]">
           {stage.stageNumber}
@@ -132,7 +136,7 @@ function StageCard({ stage, label }: { stage: VerifierStage; label: string }) {
       {stage.substages.length > 0 && (
         <ul className="mt-3 space-y-1.5 border-t border-brand-border-grey pt-3 dark:border-[#2c2c2c]">
           {stage.substages.map(s => (
-            <li key={s.id} className="flex items-start gap-2 text-xs">
+            <li key={s.id} id={`substage-${s.id}`} className="flex items-start gap-2 text-xs">
               <Check className={cn('mt-0.5 size-3 shrink-0',
                 s.status === 'complete' ? 'text-state-active' : 'text-brand-border-grey')} />
               <span className="min-w-0 flex-1 text-brand-near-black dark:text-white">{s.name}</span>
@@ -179,8 +183,5 @@ function EvidenceLinks({ paths }: { paths: string[] }) {
 }
 
 function Back() {
-  const t = useT();
-  return <Link to="/verifiers" className="inline-flex items-center gap-1.5 text-xs text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white">
-    <ArrowLeft className="size-3.5" />{t('verifier.project.back')}
-  </Link>;
+  return <ProjectBackLink fallbackRole="verifier" />;
 }

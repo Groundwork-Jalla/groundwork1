@@ -192,7 +192,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {requested && requested.requestedTopUp != null && !settled && <p className="text-xs text-brand-near-black dark:text-white">{t('project.receiptFlow.topUpRequested', { amount: format(requested.requestedTopUp, requested.currency) })}</p>}
     {isContractor && !readOnly ? <>
       {legacyPending&&<button type="button" disabled={!canUpload||busy} onClick={()=>review(undefined,'accept')} className="rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
-      {!pending && receivedWithoutWork && !settled && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:receivedWithoutWork.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
+      {receivedWithoutWork && !settled && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:receivedWithoutWork.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
       {form&&<div className="space-y-3 rounded-xl border border-brand-green/40 p-4">
         <p className="font-mono text-sm font-semibold">{format(reviewedReceipt?.amount??null,reviewedReceipt?.currency??code)}</p>
         {form.step==='receipt'?<>

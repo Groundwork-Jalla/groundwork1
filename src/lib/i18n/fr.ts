@@ -225,7 +225,8 @@ export const fr: Mirror<EnDict> = {
       payment_plan_declined: 'Échéancier à réviser',
       payment_plan_superseded: 'Échéancier remplacé',
       progression_authorized: 'Poursuite du projet autorisée ; le solde reste enregistré',
-      member_invited: 'Invitation au projet envoyée',
+      member_invited: 'Invitation au projet créée',
+      project_link_created: 'Lien d’invitation au projet créé',
       member_joined: 'Un membre a rejoint le projet',
       member_removed: 'Membres du projet mis à jour',
       member_role_changed: 'Rôle sur le projet mis à jour',
@@ -557,6 +558,7 @@ export const fr: Mirror<EnDict> = {
     errFailed:    'Cela n\u2019a pas abouti. R\u00e9essayez, et si cela persiste, pr\u00e9venez la personne qui vous a invit\u00e9.',
   },
   projectLinks: {
+    backToProjects: 'Retour aux projets',
     familyRole: 'Membre de la famille',
     familyRoleHelp: 'Les membres de la famille rejoignent le projet comme observateurs : ils suivent l’avancement, consultent les coûts et documents et participent aux échanges.',
     clientSignup: 'Rejoindre ce projet comme client',
