@@ -17,8 +17,8 @@ vi.mock('@/lib/auth/account-access', () => ({ readAccountAccess: h.read }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: { auth: { refreshSession: h.refreshSession }, removeChannel: h.removeChannel,
   channel: () => { const channel = { on: (_: any, filter: any, callback: () => void) => { h.listeners.push({ table: filter.table, callback }); return channel; }, subscribe: () => channel }; return channel; } } }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => h.auth }));
-vi.mock('react-router', () => ({ useLocation: () => h.location, useNavigate: () => h.navigate, Outlet: 'outlet' }));
-vi.mock('@/lib/supabase/admin-users', () => ({ setUserRole: h.save }));
+vi.mock('react-router', () => ({ useLocation: () => h.location, useNavigate: () => h.navigate, Outlet: 'outlet',Link:'link' }));
+vi.mock('@/lib/supabase/admin-users', () => ({ setUserRoleDetailed: h.save }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key }));
 vi.mock('@/lib/supabase/project-team', () => ({ fetchProjectTeamAccess: h.projectAccess }));
 vi.mock('@/lib/supabase/contractor-onboarding', () => ({ onboardingAvailable: h.onboarding, fetchOnboardingStatus: vi.fn() }));
@@ -52,7 +52,7 @@ beforeEach(() => {
   vi.stubGlobal('window', windowEvents); vi.stubGlobal('document', documentEvents);
   h.read.mockResolvedValue(access('client')); h.refreshSession.mockResolvedValue({}); h.removeChannel.mockResolvedValue(undefined);
   h.auth = { user: { id: 'user' }, accountRole: 'client', loading: false, rolesChecked: true };
-  h.location.pathname = '/dashboard'; h.location.search='';h.location.hash='';h.save.mockResolvedValue('contractor');h.passwordGate.mockResolvedValue(false);
+  h.location.pathname = '/dashboard'; h.location.search='';h.location.hash='';h.save.mockResolvedValue({roles:'contractor',correctedProjects:[],reviewProjects:[],notificationQueued:true});h.passwordGate.mockResolvedValue(false);
   h.projectAccess.mockResolvedValue({ assignedContractor: true }); h.onboarding.mockResolvedValue(false);
 });
 afterEach(() => { h.cleanups.forEach(cleanup => cleanup?.()); vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -144,6 +144,20 @@ describe('four-role editor', () => {
     nodes(render(component)).find(node => node.type === 'select')!.props.onChange({ target: { value: 'admin' } });
     nodes(render(component)).find(node => node.type === 'form')!.props.onSubmit({ preventDefault() {} }); await flush();
     expect(text(render(component))).toContain('admin.roleEdit.lastAdmin'); expect(h.saved).not.toHaveBeenCalled();
+  });
+  it('allows repairing projects for an account whose contractor role was corrected earlier', async () => {
+    const existing = () => UserRoleEditor({ user: { ...user, roles: 'contractor', projectCount: 1 }, onSaved: h.saved, onClose: h.close });
+    const tree=render(existing);expect(nodes(tree).find(node=>node.type==='button'&&node.props.type==='submit')!.props.disabled).toBe(false);
+    nodes(tree).find(node=>node.type==='form')!.props.onSubmit({preventDefault(){}});await flush();
+    expect(h.save).toHaveBeenCalledWith('user','contractor','contractor');expect(h.saved).toHaveBeenCalledWith('contractor');
+  });
+  it('shows actionable project reviews after saving the role without claiming another contractor was replaced', async () => {
+    h.save.mockResolvedValue({ roles:'contractor',correctedProjects:['fixed'],reviewProjects:['review'],notificationQueued:true });
+    nodes(render(component)).find(node=>node.type==='select')!.props.onChange({target:{value:'contractor'}});
+    nodes(render(component)).find(node=>node.type==='form')!.props.onSubmit({preventDefault(){}});await flush();
+    const tree=render(component);expect(text(tree)).toContain('admin.roleEdit.reviewNeeded');
+    expect(nodes(tree).find(node=>node.type==='link')!.props.to).toBe('/admin/projects/review?tab=team');expect(h.saved).not.toHaveBeenCalled();
+    nodes(tree).find(node=>node.type==='link')!.props.onClick();expect(h.saved).toHaveBeenCalledWith('contractor');
   });
 });
 

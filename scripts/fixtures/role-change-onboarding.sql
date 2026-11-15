@@ -1,0 +1,108 @@
+RESET ROLE;
+CREATE POLICY test_owner_admin_project_updates ON public.projects FOR UPDATE TO authenticated
+ USING(user_id=auth.uid() OR public.is_admin()) WITH CHECK(user_id=auth.uid() OR public.is_admin());
+INSERT INTO auth.users SELECT test_id(n),n||'@test.example',now(),'{}'::jsonb FROM generate_series(11,18) n;
+INSERT INTO profiles(id,full_name,preferred_lang) SELECT test_id(n),'Person '||n,CASE WHEN n=11 THEN 'fr' ELSE 'en' END FROM generate_series(11,18) n;
+INSERT INTO user_roles(user_id,role) VALUES(test_id(11),'homeowner'),(test_id(12),'contractor'),(test_id(13),'contractor'),(test_id(14),'contractor');
+INSERT INTO projects(id,user_id) VALUES(test_id(201),test_id(11)),(test_id(202),test_id(11)),(test_id(203),test_id(11)),(test_id(204),test_id(11)),(test_id(205),test_id(12));
+INSERT INTO contractor_invites(project_id,invited_by,email,status,accepted_at,contractor_user_id,is_primary) VALUES
+ (test_id(202),test_id(11),'7@test.example','accepted',now(),test_id(7),true),
+ (test_id(204),test_id(11),'11@test.example','accepted',now(),test_id(11),false),
+ (test_id(107),test_id(3),'13@test.example','accepted',now(),test_id(13),false);
+INSERT INTO contractor_invites(project_id,invited_by,email,status) VALUES(test_id(203),test_id(11),'18@test.example','pending'),(test_id(107),test_id(3),'14@test.example','pending');
+INSERT INTO project_viewers(project_id,email,user_id,accepted_at,is_client) VALUES
+ (test_id(201),'11@test.example',test_id(11),now(),true),
+ (test_id(201),'16@test.example',test_id(16),now(),false),
+ (test_id(204),'18@test.example',test_id(18),now(),true);
+INSERT INTO project_viewers(project_id,email,user_id,accepted_at,is_client,revoked_at,revoked_by)
+ VALUES(test_id(201),'17@test.example',test_id(17),now(),false,now(),test_id(4));
+INSERT INTO project_stages VALUES(test_id(601),test_id(201),141407337.524,'complete',true),(test_id(602),test_id(201),0,'locked',false);
+INSERT INTO payments(project_id,direction) VALUES(test_id(201),'in');
+CREATE TABLE test_receipt_history(id uuid PRIMARY KEY,project_id uuid,amount numeric,received boolean);
+INSERT INTO test_receipt_history VALUES(test_id(701),test_id(201),10000,true);
+CREATE TEMP TABLE correction_budget_snapshot AS SELECT md5(string_agg(jsonb_build_array(user_id,budget_source,budget_amount)::text,',' ORDER BY id)) AS hash FROM projects;
+CREATE TEMP TABLE correction_work_snapshot AS SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) AS hash FROM project_stages s;
+CREATE TEMP TABLE correction_payment_snapshot AS SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) AS hash FROM payments s;
+CREATE TEMP TABLE correction_receipt_snapshot AS SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) AS hash FROM test_receipt_history s;
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(4)::text,false);
+SELECT test_refused($q$UPDATE projects SET workflow_origin='contractor' WHERE id=test_id(201)$q$,'workflow_origin_fixed');
+SELECT admin_set_user_role(test_id(11),'contractor','homeowner');
+RESET ROLE;
+SELECT test_assert((SELECT count(*) FROM contractor_invites WHERE project_id IN(test_id(201),test_id(204)) AND contractor_user_id=test_id(11) AND status='accepted' AND is_primary)=2,'corrected contractor owns the work assignment');
+SELECT test_assert((SELECT count(*) FROM projects WHERE id IN(test_id(201),test_id(204)) AND workflow_origin='contractor')=2,'unambiguous projects now use contractor-created workflow');
+SELECT test_assert((SELECT revoked_at IS NOT NULL AND revoked_by=test_id(4) FROM project_viewers WHERE project_id=test_id(201) AND user_id=test_id(11)),'former self-client assignment is retired with admin attribution');
+SELECT test_assert((SELECT revoked_at IS NULL AND NOT is_client FROM project_viewers WHERE project_id=test_id(201) AND user_id=test_id(16)),'observer access survives correction');
+SELECT test_assert((SELECT revoked_at IS NULL AND is_client FROM project_viewers WHERE project_id=test_id(204) AND user_id=test_id(18)),'the real client retains approval and payment responsibilities');
+SELECT test_assert((SELECT workflow_origin='client' FROM projects WHERE id=test_id(202)) AND (SELECT contractor_user_id=test_id(7) AND is_primary FROM contractor_invites WHERE project_id=test_id(202)),'another contractor is never replaced');
+SELECT test_assert((SELECT workflow_origin='client' FROM projects WHERE id=test_id(203)),'a pending contractor invitation requires review');
+SELECT test_assert((SELECT count(*) FROM notifications WHERE data->>'event'='account_role_project_review' AND data->>'person_id'=test_id(11)::text)=4,'both admins get actionable review flags for both conflicts');
+SELECT test_assert((SELECT count(*) FROM account_role_notifications WHERE user_id=test_id(11))=1,'one transactional email is queued for the account change');
+SELECT test_assert((SELECT hash FROM correction_budget_snapshot)=(SELECT md5(string_agg(jsonb_build_array(user_id,budget_source,budget_amount)::text,',' ORDER BY id)) FROM projects),'owners and all budget values remain unchanged');
+SELECT test_assert((SELECT hash FROM correction_work_snapshot)=(SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) FROM project_stages s),'completed work, zero-cost stages and mid-build flags remain unchanged');
+SELECT test_assert((SELECT hash FROM correction_payment_snapshot)=(SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) FROM payments s),'actual payment history is preserved');
+SELECT test_assert((SELECT hash FROM correction_receipt_snapshot)=(SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) FROM test_receipt_history s),'receipt history is preserved');
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(4)::text,false);
+SELECT test_assert(jsonb_array_length(admin_set_user_role(test_id(11),'contractor','contractor')->'corrected_projects')=0,'re-saving a corrected account is idempotent');
+SELECT test_assert(NOT (admin_set_user_role(test_id(12),'contractor','contractor')->>'changed')::boolean,'an earlier role correction can repair owned projects without changing the role again');
+RESET ROLE;
+SELECT test_assert((SELECT count(*) FROM account_role_notifications WHERE user_id=test_id(11))=1,'no duplicate correction email');
+SELECT test_assert((SELECT count(*) FROM account_role_notifications WHERE user_id=test_id(12))=1,'repairing an earlier correction queues an email');
+SELECT test_assert((SELECT count(*) FROM notifications WHERE data->>'event'='account_role_project_review' AND data->>'person_id'=test_id(11)::text)=4,'repeated review flags deduplicate');
+INSERT INTO contractor_onboarding(user_id,date_of_birth,residential_address,specialty)
+ VALUES(test_id(11),'1990-01-01','Home','painter'),(test_id(13),'1990-01-01','Home','painter');
+INSERT INTO payout_destinations VALUES(test_id(11),'active'),(test_id(13),'active');
+INSERT INTO contractor_emergency_contacts VALUES(test_id(11)),(test_id(13));
+INSERT INTO agreement_acceptances VALUES(test_id(11),'terms_of_service','current'),(test_id(13),'terms_of_service','current');
+INSERT INTO communication_preferences VALUES('11@test.example',false,now());
+INSERT INTO lifecycle_enrollments(email,sequence_key,status,next_send_at) VALUES('11@test.example','cs_onboarded','active',now());
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(11)::text,false);
+SELECT test_assert((my_account_access()->>'is_contractor')::boolean,'the corrected account uses the contractor dashboard');
+SELECT test_assert((project_team_access(test_id(201))->>'primary_contractor')::boolean AND NOT (project_team_access(test_id(201))->>'primary_client')::boolean,'contractor work access replaces the erroneous client controls');
+SELECT test_refused($q$UPDATE projects SET workflow_origin='client' WHERE id=test_id(201)$q$,'workflow_origin_fixed');
+SELECT test_refused($q$SELECT correct_contractor_owned_projects(test_id(11))$q$,'permission denied');
+SELECT test_refused($q$SELECT contractor_existing_project_context(test_id(12))$q$,'not_allowed');
+SELECT test_refused($q$SELECT claim_account_role_notification(test_id(949))$q$,'permission denied');
+SELECT test_assert((SELECT count(*) FROM account_role_notifications)=0,'a user cannot read another account notification or its delivery payload');
+SELECT test_assert((contractor_onboarding_status()->>'complete')::boolean AND (contractor_onboarding_status()->>'existing_project_count')::int=4,'the completed required form knows about all existing owned projects');
+SELECT test_assert(contractor_onboarding_status()->>'existing_project_path'='/work/projects','several projects return to the project list');
+SELECT test_assert(set_contractor_client_intent('existing_project')->>'client_intent'='existing_project','existing-project completion is a distinct, recorded answer');
+SELECT set_config('test.actor',test_id(12)::text,false);
+SELECT test_refused($q$SELECT set_contractor_client_intent('existing_project')$q$,'onboarding_incomplete');
+SELECT set_config('test.actor',test_id(13)::text,false);
+SELECT test_assert((contractor_onboarding_status()->>'existing_project_count')::int=1 AND contractor_onboarding_status()->>'existing_project_path'='/work/projects/'||test_id(107),'an accepted invited contractor goes to that existing project');
+SELECT set_config('test.actor',test_id(14)::text,false);
+SELECT test_assert((contractor_onboarding_status()->>'existing_project_count')::int=0,'a pending invitation does not grant existing-project access');
+SELECT set_config('test.actor',test_id(17)::text,false);
+SELECT test_assert((contractor_existing_project_context()->>'existing_project_count')::int=0,'a revoked viewer is not treated as having an active project');
+RESET ROLE;
+SELECT test_assert((SELECT NOT project_creation_paused FROM communication_preferences WHERE email='11@test.example'),'existing-project completion does not opt the contractor out');
+SELECT test_assert((SELECT status='exited' AND exit_reason='project_available' FROM lifecycle_enrollments WHERE email='11@test.example'),'first-project reminders end for an existing project');
+SELECT test_assert(NOT has_function_privilege('anon','public.claim_account_role_notification(uuid)','EXECUTE'),'anon cannot claim email deliveries');
+SELECT test_assert(NOT has_function_privilege('authenticated','public.prepare_account_role_notification(uuid,uuid,jsonb)','EXECUTE'),'a user cannot substitute email recipients or copy');
+SELECT test_assert(NOT has_function_privilege('authenticated','public.finish_account_role_notification(uuid,uuid,text,text)','EXECUTE'),'a user cannot claim mail was sent');
+SET ROLE service_role;
+SELECT set_config('test.actor','',false);
+SELECT set_config('request.jwt.claim.role','service_role',false);
+SELECT test_assert((SELECT count(*) FROM account_role_notifications)>0,'the worker can read the transactional queue');
+RESET ROLE;
+CREATE TEMP TABLE claimed_notice AS SELECT claim_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11))) AS notice;
+SELECT test_assert((SELECT notice->>'email'='11@test.example' AND notice->>'lang'='fr' AND notice->'onboarding'->>'client_intent'='existing_project' FROM claimed_notice),'the claim resolves the real recipient, language and current onboarding');
+SELECT test_assert(claim_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11))) IS NULL,'only one worker claims a notice');
+SELECT prepare_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11)),(SELECT (notice->>'worker_token')::uuid FROM claimed_notice),'{"to":"11@test.example","subject":"Original","text":"Original copy"}');
+SELECT test_assert(prepare_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11)),(SELECT (notice->>'worker_token')::uuid FROM claimed_notice),'{"to":"another@test.example","text":"Different"}')->>'to'='11@test.example','a retry keeps the original payload and recipient');
+SELECT finish_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11)),test_id(999),'wrong-worker',NULL);
+SELECT test_assert((SELECT status='sending' FROM account_role_notifications WHERE user_id=test_id(11)),'a stale worker cannot finish another claim');
+SELECT finish_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11)),(SELECT (notice->>'worker_token')::uuid FROM claimed_notice),'provider-accepted',NULL);
+SELECT test_assert((SELECT status='sent' AND provider_id='provider-accepted' AND sent_at IS NOT NULL FROM account_role_notifications WHERE user_id=test_id(11)),'provider acceptance is recorded once');
+SELECT test_assert(claim_account_role_notification((SELECT id FROM account_role_notifications WHERE user_id=test_id(11))) IS NULL,'accepted mail cannot be sent twice');
+INSERT INTO account_role_notifications(id,user_id,from_roles,to_role) VALUES(test_id(947),test_id(11),'contractor','client'),(test_id(948),test_id(11),'homeowner','contractor'),(test_id(949),test_id(13),'homeowner','contractor');
+UPDATE account_role_notifications SET first_attempt_at=now()-interval '24 hours',status='failed' WHERE id=test_id(948);
+SELECT test_assert(claim_account_role_notification(test_id(947)) IS NULL,'superseded account roles are not claimed');
+SELECT test_assert((SELECT status='superseded' FROM account_role_notifications WHERE id=test_id(947)),'superseded account roles do not send misleading notices');
+SELECT test_assert(claim_account_role_notification(test_id(948)) IS NULL,'old delivery is not claimed');
+SELECT test_assert((SELECT status='held' FROM account_role_notifications WHERE id=test_id(948)),'delivery is held beyond the provider idempotency window');
+SELECT set_config('request.jwt.claim.role','',false);
+SELECT 'ROLE_CHANGE_ONBOARDING_OK';

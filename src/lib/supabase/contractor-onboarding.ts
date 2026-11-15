@@ -43,7 +43,7 @@ export type OnboardingStep =
  * A contractor here is either a partner with their own client or somebody waiting to be
  * assigned; the product used to guess, and now it asks.
  */
-export type ClientIntent = 'onboard_client' | 'create_project' | 'no_client';
+export type ClientIntent = 'onboard_client' | 'create_project' | 'no_client' | 'existing_project';
 
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   'agreements', 'identity', 'professional', 'payout', 'emergency',
@@ -81,6 +81,9 @@ export type OnboardingStatus = {
   emergencyCount: number;
   /** null until they answer the question at the end of the form. */
   clientIntent: ClientIntent | null;
+  /** Server-confirmed owned or accepted projects; absent on older deployments. */
+  existingProjectCount?: number;
+  existingProjectPath?: string | null;
   complete: boolean;
 };
 
@@ -110,8 +113,10 @@ function toStatus(raw: unknown): OnboardingStatus {
     businessStatus: business === 'registered' || business === 'independent' ? business : null,
     needsBusinessDoc: r.needs_business_doc === true,
     emergencyCount: typeof r.emergency_count === 'number' ? r.emergency_count : 0,
-    clientIntent: r.client_intent === 'onboard_client' || r.client_intent === 'create_project' || r.client_intent === 'no_client'
+    clientIntent: r.client_intent === 'onboard_client' || r.client_intent === 'create_project' || r.client_intent === 'no_client' || r.client_intent === 'existing_project'
       ? r.client_intent : null,
+    existingProjectCount: Number.isInteger(r.existing_project_count) && Number(r.existing_project_count) > 0 ? Number(r.existing_project_count) : 0,
+    existingProjectPath: typeof r.existing_project_path === 'string' ? r.existing_project_path : null,
     // Trusted from SQL rather than recomputed from `steps`: one definition, and if the
     // two ever disagreed the database is the one that governs.
     complete: r.complete === true,

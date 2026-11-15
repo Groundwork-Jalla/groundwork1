@@ -4,6 +4,14 @@ vi.mock('@/lib/supabase/project-team', () => ({ fetchProjectTeamAccess: read }))
 import { destinationFor, notificationFocus, resolveNotificationDestination } from './notification-destination';
 const project = '11111111-2222-3333-4444-555555555555';
 beforeEach(() => { vi.clearAllMocks(); });
+it('opens a role-change notice in the current account workspace',async()=>{
+  const notice={account_role_notification_id:project,account_role:'admin'};
+  expect(await resolveNotificationDestination(notice,{isContractor:true})).toBe('/work/onboarding');
+  expect(destinationFor(notice,{isVerifier:true})).toBe('/verifiers');
+  expect(destinationFor(notice,{isAdmin:true})).toBe('/admin');
+  expect(destinationFor(notice,{})).toBe('/dashboard');
+  expect(read).not.toHaveBeenCalled();
+});
 it('opens a WhatsApp reply at the exact Admin contact and rejects an unsafe target',async()=>{
   expect(await resolveNotificationDestination({whatsapp_contact_id:project},{isAdmin:true})).toBe(`/admin/sequences?tab=whatsapp&contact=${project}`);
   expect(destinationFor({whatsapp_contact_id:project},{isAdmin:false})).toBeNull();

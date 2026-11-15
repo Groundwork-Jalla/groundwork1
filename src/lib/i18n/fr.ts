@@ -660,9 +660,13 @@ export const fr: Mirror<EnDict> = {
   },
   admin: {
     roleEdit: {
+      contractorRepairHint: "Les projets détenus sans autre entrepreneur sont corrigés. Les projets avec un autre entrepreneur ou une invitation en attente sont signalés pour examen.",
+      repair: "Corriger l’accès aux projets entrepreneur",
+      reviewNeeded: "Le compte a été enregistré. {count} projets nécessitent un examen des affectations ; les entrepreneurs actuels restent affectés.",
+      reviewProject: "Examiner le projet {number}",
       title: "Modifier le rôle",
       label: "Rôle du compte",
-      hint: "Choisissez le tableau de bord et les autorisations du compte. Les projets, les budgets et les affectations restent associés à la personne.",
+      hint: "Choisissez le tableau de bord et les autorisations du compte. Un e-mail indique à la personne la prochaine étape. Les budgets, les paiements et les travaux terminés sont conservés.",
       save: "Enregistrer le rôle",
       done: "Rôle mis à jour. Les tableaux de bord ouverts s’actualisent automatiquement.",
       lastAdmin: "Conservez au moins un administrateur. Désignez un autre administrateur avant de modifier ce rôle.",
@@ -3230,6 +3234,10 @@ export const fr: Mirror<EnDict> = {
   },
 
   contractorOnboarding: {
+    existingTitle: 'Votre inscription comme entrepreneur est terminée',
+    existingBody: 'Votre projet est déjà sur Groundwork. Continuez pour y accéder depuis votre compte.',
+    existingCta: 'Accéder à votre projet',
+    existingManyCta: 'Accéder à vos projets',
     partnerQ: 'Souhaitez-vous devenir partenaire certifié Jalla ?',
     partnerHint: 'Si vous avez un client dont vous souhaitez suivre le chantier ici — quelqu’un qui ne peut pas se rendre sur place pour le voir — l’étape suivante est la candidature partenaire. Sinon, votre tableau de bord est prêt et vous pourrez postuler dès qu’un projet se présente.',
     partnerYes: 'Oui, postuler',

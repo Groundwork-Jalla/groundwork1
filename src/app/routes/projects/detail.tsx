@@ -1,6 +1,6 @@
 import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useProjectNotificationFocus } from '@/hooks/useProjectNotificationFocus';
 import { motion } from 'framer-motion';
 import {
@@ -42,6 +42,7 @@ import type {
   FinishLevel, ProjectTier, PaymentStatus,
 }                                from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { contractorProjectRedirect } from '@/lib/projects/contractor-project-redirect';
 
 // ── Label maps ────────────────────────────────────────────
 
@@ -147,9 +148,10 @@ export default function ProjectDetail() {
   const labels = useDomainLabels();
   const { id }   = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   useProjectNotificationFocus(id, searchParams.toString());
   const attachmentFailed = searchParams.get('attachment') === 'failed';
-  const { user, accountRole, isContractor: hasContractorRole } = useAuth();
+  const { user, accountRole } = useAuth();
   const scope = `${id ?? ''}:${user?.id ?? ''}`;
   const currentScope = useRef(scope);
   currentScope.current = scope;
@@ -339,6 +341,9 @@ export default function ProjectDetail() {
   }, [project, stages, substages, stageLabel, substageLabel, canUploadEvidence]);
 
   // ── Loading / error ────────────────────────────────────
+
+  const workDestination = id ? contractorProjectRedirect(id, teamAccess, location.search, location.hash) : null;
+  if (workDestination) return <Navigate to={workDestination} replace />;
 
   if (loading) {
     return (

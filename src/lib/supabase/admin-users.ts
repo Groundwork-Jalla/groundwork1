@@ -39,11 +39,24 @@ type Row = Record<string, unknown>;
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export async function setUserRole(userId: string, role: AccountRole, expectedRoles: string): Promise<string> {
+  return (await setUserRoleDetailed(userId, role, expectedRoles)).roles;
+}
+
+export interface UserRoleChange {
+  roles: string;
+  correctedProjects: string[];
+  reviewProjects: string[];
+  notificationQueued: boolean;
+}
+
+export async function setUserRoleDetailed(userId: string, role: AccountRole, expectedRoles: string): Promise<UserRoleChange> {
   const { data, error } = await supabase.rpc('admin_set_user_role', { p_user: userId, p_role: role, p_expected_roles: expectedRoles });
   if (error) throw error;
   if (data?.user_id !== userId || data.role !== role || typeof data.roles !== 'string' || !roleAssignmentMatches(data.roles, role)) throw new Error('account_role_update_failed');
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(ACCOUNT_ROLE_CHANGED, { detail: { userId } }));
-  return data.roles;
+  const projects = (value: unknown): string[] => Array.isArray(value)
+    ? value.filter((id): id is string => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(id)) : [];
+  return { roles: data.roles, correctedProjects: projects(data.corrected_projects), reviewProjects: projects(data.review_projects), notificationQueued: typeof data.notification_id === 'string' };
 }
 
 export type AccountType = 'client' | 'contractor';

@@ -29,6 +29,7 @@ import {
   clearEmergencyContactDraft, readEmergencyContactDraft, saveEmergencyContactDraft,
 } from '@/lib/contractor/emergency-contact-draft';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasOnboardingProject, onboardingProjectDestination } from '@/lib/contractor/onboarding-project';
 
 // =========================================================
 // /work/onboarding — the one sequence every contractor completes.
@@ -66,6 +67,9 @@ export default function ContractorOnboarding() {
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [at, setAt] = useState<PanelId>('agreements');
   const [error, setError] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState(false);
+  const finishingRef = useRef(false);
 
   // The three contacts live here, not in the panels: they are collected across three
   // screens and saved in one call, because 116 requires exactly three and a partial set
@@ -163,7 +167,35 @@ export default function ContractorOnboarding() {
   // gate, the unsigned-agreement redirect in _layout — is for somebody who has NOT
   // finished, and they still get the sequence below.
   if (status.complete && status.clientIntent !== null) {
-    return <Navigate to={invitedProject ?? '/work'} replace />;
+    return <Navigate to={onboardingProjectDestination(status, invitedProject)} replace />;
+  }
+
+  if (status.complete && hasOnboardingProject(status)) {
+    const finishExistingProject = async () => {
+      if (finishingRef.current) return;
+      finishingRef.current = true;
+      setFinishing(true); setFinishError(false);
+      try {
+        const next = await setClientIntent('existing_project');
+        trackFunnel('contractor_onboarding', 'completed');
+        trackLifecycle('contractor_onboarding_completed');
+        setStatus(next);
+        navigate(onboardingProjectDestination(next, invitedProject), { replace: true });
+      } catch { finishingRef.current = false; setFinishError(true); setFinishing(false); }
+    };
+    return <div className="mx-auto max-w-2xl p-6 sm:p-8">
+      <Progress order={order} index={order.length - 1} status={status} />
+      <section className="rounded-2xl border border-state-success/30 bg-white p-7 text-center dark:bg-[#1e1e1e]">
+        <Check className="mx-auto mb-3 size-8 text-state-success" aria-hidden />
+        <h1 className="text-xl font-bold">{t('contractorOnboarding.existingTitle')}</h1>
+        <p className="mt-2 text-sm text-brand-mid-grey">{t('contractorOnboarding.existingBody')}</p>
+        <Button type="button" className="mt-6" disabled={finishing} onClick={() => void finishExistingProject()}>
+          {finishing && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
+          {t((status.existingProjectCount ?? 0) === 1 ? 'contractorOnboarding.existingCta' : 'contractorOnboarding.existingManyCta')}
+        </Button>
+        {finishError && <p role="alert" className="mt-3 text-sm text-state-alert">{t('contractorOnboarding.err.generic')}</p>}
+      </section>
+    </div>;
   }
 
   return (
@@ -270,14 +302,15 @@ export default function ContractorOnboarding() {
 // ── Which panels exist, and when one is finished ─────────
 
 /** A registered business owes two extra fields and a document; a sole trader does not. */
-function panelOrder(_s: OnboardingStatus): PanelId[] {
+function panelOrder(s: OnboardingStatus): PanelId[] {
   // Five required setup steps plus the final "almost there" choice as step six.
   // "How do you trade" is gone — the partner application still asks whether they
   // operate as an individual or a company, which is where it matters.
   //
   // The contact is LAST on purpose: finishing it ends the form and brings up the
   // partner question.
-  return ['agreements', 'you', 'specialty', 'payout', 'contact', 'almostThere'];
+  const required: PanelId[] = ['agreements', 'you', 'specialty', 'payout', 'contact'];
+  return hasOnboardingProject(s) ? required : [...required, 'almostThere'];
 }
 
 function panelDone(p: PanelId, s: OnboardingStatus): boolean {
@@ -293,7 +326,7 @@ function panelDone(p: PanelId, s: OnboardingStatus): boolean {
 
 function firstOpenPanel(s: OnboardingStatus): PanelId {
   const order = panelOrder(s);
-  if (s.complete) return 'almostThere';
+  if (s.complete) return order[order.length - 1];
   return order.find(p => !panelDone(p, s)) ?? order[0];
 }
 

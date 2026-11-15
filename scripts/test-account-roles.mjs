@@ -22,7 +22,7 @@ try {
   const init = spawnSync(join(bin, 'initdb'), ['-D', dir, '-A', 'trust', '--no-locale', '--no-sync'], { encoding: 'utf8', timeout: 30000 });
   if (init.status !== 0) throw new Error(init.stderr || init.stdout);
   const setup = `
-CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth;
+CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS; CREATE SCHEMA auth;
 CREATE PUBLICATION supabase_realtime;
 CREATE FUNCTION public.test_id(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('00000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid $$;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('test.actor',true),'')::uuid $$;
@@ -121,6 +121,24 @@ ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY own_roles ON user_roles FOR SELECT USING(user_id=auth.uid());
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY own_profile ON profiles FOR SELECT USING(id=auth.uid() OR public.is_admin());
+ALTER TABLE profiles ADD COLUMN preferred_lang text DEFAULT 'en';
+ALTER TABLE projects ADD COLUMN status text DEFAULT 'active',ADD COLUMN workflow_origin text NOT NULL DEFAULT 'client';
+CREATE TRIGGER project_workflow_origin BEFORE INSERT OR UPDATE OF workflow_origin ON projects FOR EACH ROW EXECUTE FUNCTION public.guard_project_workflow_origin();
+CREATE TABLE public.contractor_onboarding(user_id uuid PRIMARY KEY REFERENCES auth.users,client_intent text,client_intent_at timestamptz,
+ updated_at timestamptz,date_of_birth date,residential_address text,business_status text,specialty text,specialty_other text,license_number text);
+CREATE TABLE public.payout_destinations(owner_id uuid,status text);
+CREATE TABLE public.contractor_emergency_contacts(user_id uuid);
+CREATE TABLE public.contractor_documents(user_id uuid,kind text);
+CREATE TABLE public.agreement_acceptances(user_id uuid,document text,version text);
+CREATE FUNCTION public.current_agreement_version(text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT 'current'::text $$;
+CREATE FUNCTION public.specialty_needs_licence(text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ SELECT $1='regulated' $$;
+CREATE FUNCTION public.assert_own_onboarding() RETURNS uuid LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$ BEGIN
+ IF auth.uid() IS NULL OR NOT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=auth.uid() AND role='contractor') THEN RAISE EXCEPTION 'not_contractor'; END IF;RETURN auth.uid();END $$;
+CREATE TABLE public.communication_preferences(email text PRIMARY KEY,project_creation_paused boolean,updated_at timestamptz);
+CREATE TABLE public.lifecycle_enrollments(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),email text,sequence_key text,status text,exit_reason text,
+ next_send_at timestamptz,processing_token uuid,processing_until timestamptz);
+CREATE TABLE public.notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,body text,data jsonb,event_key text);
+CREATE UNIQUE INDEX notifications_recipient_event ON notifications(user_id,event_key) WHERE event_key IS NOT NULL;
 `;
   const sql = [setup,
     fn('supabase/migrations/112_project_viewers.sql', 'project_member'),
@@ -130,7 +148,14 @@ CREATE POLICY own_profile ON profiles FOR SELECT USING(id=auth.uid() OR public.i
     fn('supabase/migrations/110_contractor_client_consent.sql', 'is_my_clients_project'),
     fn('supabase/migrations/101_primary_contractor_payout.sql', 'contractor_invites_clear_primary'),
     policies, read('supabase/migrations/20261112000200_project_team_permissions.sql'), read('supabase/migrations/20261112000300_boq_editor_access.sql'),
-    extra, fn('supabase/migrations/089_activity_model.sql','log_activity'), 'REVOKE ALL ON FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated;', read('supabase/migrations/20261113000700_admin_user_roles.sql'), read('supabase/migrations/20261113000700_admin_user_roles.sql'), read('scripts/fixtures/account-roles.sql')
+    fn('supabase/migrations/20261112000500_review_payment_workflow.sql','guard_project_workflow_origin'),
+    extra, fn('supabase/migrations/089_activity_model.sql','log_activity'), 'REVOKE ALL ON FUNCTION public.log_activity(uuid,text,text,uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated;', read('supabase/migrations/20261113000700_admin_user_roles.sql'), read('supabase/migrations/20261113000700_admin_user_roles.sql'),
+    read('supabase/migrations/20261115000100_existing_project_contractor_onboarding.sql'),read('supabase/migrations/20261115000100_existing_project_contractor_onboarding.sql'),
+    read('supabase/migrations/20261115000200_account_role_change_notifications.sql'),read('supabase/migrations/20261115000200_account_role_change_notifications.sql'),
+    read('scripts/fixtures/account-roles.sql'),read('scripts/fixtures/role-change-onboarding.sql'),
+    read('supabase/migrations/20261115000100_existing_project_contractor_onboarding.sql'),read('supabase/migrations/20261115000200_account_role_change_notifications.sql'),
+    "SELECT test_assert((SELECT status='sent' AND provider_id='provider-accepted' AND payload->>'text'='Original copy' FROM account_role_notifications WHERE user_id=test_id(11) AND provider_id IS NOT NULL),'migration replay preserves the sent email and immutable payload');",
+    "SELECT test_assert((SELECT client_intent='existing_project' FROM contractor_onboarding WHERE user_id=test_id(11)),'migration replay preserves existing-project completion');"
   ].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -143,7 +168,7 @@ CREATE POLICY own_profile ON profiles FOR SELECT USING(id=auth.uid() OR public.i
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK') || !output.includes('ROLE_CHANGE_ONBOARDING_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
@@ -161,7 +186,12 @@ CREATE POLICY own_profile ON profiles FOR SELECT USING(id=auth.uid() OR public.i
   if (outcomes.filter(outcome => outcome.code === 0).length !== 1 || !outcomes.some(outcome => /last_admin/.test(outcome.output))) throw new Error(JSON.stringify(outcomes));
   const remaining = await query("SELECT test_assert((SELECT count(*) FROM user_roles WHERE role='admin')=1,'concurrent demotions retain an admin');");
   if (remaining.code !== 0) throw new Error(remaining.output);
-  console.log('Account role database regressions passed: all four roles, explicit client dashboard despite assignments, preserved memberships/budgets, metadata cleanup, audit attribution, realtime notifications, stale edits, self-demotion and concurrent last-admin protection.');
+  const emailClaims=await Promise.all([1,2].map(()=>query(`BEGIN; SET ROLE service_role;
+    SELECT set_config('request.jwt.claim.role','service_role',true);
+    SELECT coalesce((claim_account_role_notification(test_id(949))->>'worker_token') IS NOT NULL,false) AS claimed;
+    SELECT pg_sleep(0.15); COMMIT;`)));
+  if(emailClaims.some(result=>result.code!==0)||emailClaims.filter(result=>/\n t\s*\n/.test(result.output)).length!==1)throw new Error('Concurrent account email claim regression: '+JSON.stringify(emailClaims));
+  console.log('Account role database regressions passed: all four roles, owned-project corrections, conflicting/pending contractor review, preserved budgets/payments/receipts/completed work, five-step existing-project onboarding, durable role email claims, immutable retries, superseded notices, migration replay, RLS, metadata cleanup, audit attribution, stale edits and concurrent last-admin protection.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

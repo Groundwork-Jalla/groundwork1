@@ -661,7 +661,11 @@ export const en = {
     roleEdit: {
       title: "Change user role",
       label: "Account role",
-      hint: "Choose the user’s dashboard and account permissions. Existing projects, budgets and project assignments stay linked.",
+      hint: "Choose the user’s dashboard and account permissions. Role changes queue an email with their next step. Existing budgets, payments and completed work are preserved.",
+      contractorRepairHint: "Owned projects without another contractor are corrected to contractor projects. Projects with another contractor or a pending contractor invitation are flagged for review.",
+      repair: "Repair contractor project access",
+      reviewNeeded: "The account was saved. {count} projects need an assignment review; their existing contractors remain assigned.",
+      reviewProject: "Review project {number}",
       save: "Save role",
       done: "Role updated. Open dashboards refresh automatically.",
       lastAdmin: "Keep at least one admin account. Assign another admin before changing this role.",
@@ -3315,6 +3319,10 @@ export const en = {
     doneTitle: 'You\u2019re almost there',
     doneBody:  'Manage your first project on Groundwork, become a certified partner, and start receiving projects from Groundwork.',
     doneCta:   'Go to my work',
+    existingTitle: 'Your contractor onboarding is complete',
+    existingBody: 'Your project is already on Groundwork. Continue to access it from your account.',
+    existingCta: 'Access your project',
+    existingManyCta: 'Access your projects',
     haveClient: 'Create a project',
     noClient:   'I don\u2019t have a project',
 

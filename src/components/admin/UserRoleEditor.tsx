@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
+import { Link } from 'react-router';
 import { useT } from '@/lib/i18n';
 import { ACCOUNT_ROLES, accountRoleOf, roleAssignmentMatches, type AccountRole } from '@/lib/auth/account-role';
-import { setUserRole, type AdminUser } from '@/lib/supabase/admin-users';
+import { setUserRoleDetailed, type AdminUser, type UserRoleChange } from '@/lib/supabase/admin-users';
 
 export function UserRoleEditor({ user, onSaved, onClose }: {
   user: AdminUser; onSaved: (roles: string) => void; onClose: () => void;
@@ -11,11 +12,17 @@ export function UserRoleEditor({ user, onSaved, onClose }: {
   const [selected, setSelected] = useState<AccountRole>(accountRoleOf(user.roles));
   const [busy, setBusy] = useState(false); const working = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<UserRoleChange | null>(null);
   const unchanged = roleAssignmentMatches(user.roles, selected);
+  const repair = unchanged && selected === 'contractor' && user.projectCount > 0;
   async function save() {
-    if (working.current || unchanged) return;
+    if (working.current || (unchanged && !repair) || saved) return;
     working.current = true; setBusy(true); setError(null);
-    try { onSaved(await setUserRole(user.id, selected, user.roles)); }
+    try {
+      const result = await setUserRoleDetailed(user.id, selected, user.roles);
+      if (result.reviewProjects.length) setSaved(result);
+      else onSaved(result.roles);
+    }
     catch (error) {
       const message = (error as { message?: string })?.message ?? '';
       setError(t(message.includes('last_admin') ? 'admin.roleEdit.lastAdmin'
@@ -30,6 +37,15 @@ export function UserRoleEditor({ user, onSaved, onClose }: {
         <button type="button" disabled={busy} onClick={onClose} aria-label={t('common.close')}><X className="size-4" aria-hidden /></button>
       </div>
       <p className="mt-2 break-all text-sm text-brand-mid-grey">{user.email}</p>
+      {saved ? <div role="status" className="mt-4 space-y-3 text-sm">
+        <p>{t('admin.roleEdit.reviewNeeded', { count: String(saved.reviewProjects.length) })}</p>
+        <ul className="space-y-2">{saved.reviewProjects.map((projectId, index) => <li key={projectId}>
+          <Link to={`/admin/projects/${projectId}?tab=team`} className="text-brand-green underline underline-offset-4" onClick={() => onSaved(saved.roles)}>
+            {t('admin.roleEdit.reviewProject', { number: String(index + 1) })}
+          </Link>
+        </li>)}</ul>
+        <button type="button" className="rounded-xl bg-brand-green px-4 py-2 text-white" onClick={() => onSaved(saved.roles)}>{t('common.close')}</button>
+      </div> : <>
       <p className="mt-3 text-sm text-brand-mid-grey">{t('admin.roleEdit.hint')}</p>
       <form className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void save(); }}>
         <label className="block text-sm" htmlFor={`${id}-role`}>{t('admin.roleEdit.label')}</label>
@@ -37,15 +53,17 @@ export function UserRoleEditor({ user, onSaved, onClose }: {
           className="w-full rounded-xl border border-brand-border-grey bg-white px-3 py-2 dark:bg-[#141414]">
           {ACCOUNT_ROLES.map(role => <option key={role} value={role}>{t(`adminRole.${role}`)}</option>)}
         </select>
+        {selected === 'contractor' && user.projectCount > 0 && <p className="text-xs text-brand-mid-grey">{t('admin.roleEdit.contractorRepairHint')}</p>}
         {selected === 'admin' && <p className="text-xs text-brand-mid-grey">{t('admin.roleEdit.adminAccess')}</p>}
         {error && <p role="alert" className="text-sm text-state-alert">{error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" disabled={busy} onClick={onClose} className="rounded-xl border px-4 py-2 text-sm">{t('common.cancel')}</button>
-          <button type="submit" disabled={busy || unchanged} className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
-            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}{t('admin.roleEdit.save')}
+          <button type="submit" disabled={busy || (unchanged && !repair)} className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}{t(repair ? 'admin.roleEdit.repair' : 'admin.roleEdit.save')}
           </button>
         </div>
       </form>
+      </>}
     </section>
   </div>;
 }
