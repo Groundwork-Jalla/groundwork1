@@ -9,19 +9,40 @@ default. This guide describes the new implementation, not proof of a live connec
 On **15 November 2026**, the account owner confirmed that Groundwork will retain
 **+1 469 991 3055** (`+14699913055`) as its planned production WhatsApp number,
 after considering a replacement. The owner identifies it as a GHL-generated
-number. Its existing Meta registration, account ownership and app access still
-need checking before connecting the production sender.
+number. Meta's account settings show the number as **Connected**. App access and
+actual Groundwork delivery still need checking before enabling the production sender.
 
 The production setup screenshot shows `+14699913055` selected as the sender. The
 owner supplied its generated request URL on 15 November, identifying the production
-**Phone Number ID as `1268412669693909`**. Its matching account ID is still pending.
+**Phone Number ID as `1268412669693909`**. A subsequent Meta Business Settings
+screenshot identifies the **Groundwork by Jalla Messaging account ID as
+`1087160260359893`**, owned by **Jalla the firm**. Confirm that account's
+**WhatsApp accounts** tab contains `+14699913055` before saving the production pair.
 The recipient in the sample request is not proof of ownership or confirmed
 delivery. No access token was included in that supplied request.
 
-To identify the account, open Meta Business Settings for **Jalla the firm**, then
-**Accounts → WhatsApp accounts**. Select the account containing `+14699913055` and
-copy its account ID. Keep production and test-account IDs separate. See
-[Meta's account-ID reference](https://developers.facebook.com/docs/graph-api/reference/whats-app-business-account/).
+In the current Meta Business Settings UI, open **Accounts → Messaging accounts →
+Groundwork by Jalla** to find the account ID beneath its name. Meta's evolved
+account model returns the Messaging account ID in the existing WABA ID field; see
+[Meta's onboarding changes](https://developers.facebook.com/documentation/business-messaging/whatsapp/account-model-evolution/onboarding/).
+Groundwork's required **WhatsApp Business Account ID** field uses that ID.
+
+After confirming the linked phone, the production connection values are:
+
+| Groundwork field | Value |
+| --- | --- |
+| Meta phone-number ID | `1268412669693909` |
+| WhatsApp Business Account ID | `1087160260359893` |
+| Business/test phone with country code | `+14699913055` |
+| Messaging account ID | `1087160260359893` |
+| Audience | **Test recipients only** during acceptance |
+
+The explicit Messaging account ID selects this account when Meta could otherwise
+resolve more than one account for the sender. Use its production access token in
+the private token field. Keep sending off while checking the connection. Saving
+different phone/account IDs clears the old callback and signed-event verification;
+verify the Meta callback again and prove a signed incoming message before enabling.
+These documented values do not change the live configuration.
 
 For the first test connection, enter the actual **Meta-provided test number** in
 Groundwork's business/test phone field, together with that test number's Meta

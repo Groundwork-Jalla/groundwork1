@@ -5,12 +5,15 @@
 - The account owner chose direct Meta Cloud API and **Meta’s test number first**.
 - **Latest decision, 15 November:** the account owner will retain
   **+1 469 991 3055** (`+14699913055`) for production after considering a replacement.
-  It is identified as GHL-generated; its existing Meta registration and access
-  need checking. Meta's test number remains the first test connection.
+  It is identified as GHL-generated; Meta's settings show the number as Connected.
+  Its app access and actual Groundwork delivery still need checking. Meta's test
+  number remains the first test connection.
 - The owner's production request identifies Phone Number ID `1268412669693909`
-  for the selected `+14699913055` sender. Matching account ID and end-to-end
-  Groundwork delivery remain to be confirmed; the request alone is not delivery
-  evidence.
+  for the selected `+14699913055` sender. The owner's Meta settings screenshot
+  identifies **Groundwork by Jalla**, owned by **Jalla the firm**, with Messaging
+  account ID `1087160260359893`. Confirm the linked phone in that account's
+  WhatsApp accounts tab. End-to-end Groundwork delivery remains unconfirmed;
+  these screenshots and the request alone are not delivery evidence.
 - This phase adds WhatsApp to the Groundwork-owned lifecycle framework and human
   communications. Email remains on Resend. No GHL automation is required.
 - Migration and application changes are implemented locally. Provider setup,
