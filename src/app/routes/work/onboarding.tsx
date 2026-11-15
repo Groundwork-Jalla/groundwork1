@@ -51,8 +51,8 @@ import { hasOnboardingProject, onboardingProjectDestination } from '@/lib/contra
 // three emergency contacts fall out of that naturally: one contact per panel, three
 // fields apiece.
 //
-// The first five panels represent required database steps. The sixth is the final
-// "almost there" screen where the contractor chooses their next destination.
+// The first five panels represent required database steps. Contractors who already
+// have a project finish there; others choose their next destination in a sixth panel.
 // =========================================================
 
 /** A panel is at most three inputs. Several panels can serve one database step. */
@@ -212,7 +212,9 @@ export default function ContractorOnboarding() {
               await setPartnerInterest(wantsPartner);
               const next = await setClientIntent(intent);
               setStatus(next);
-              // Contractor onboarding ENDS here, and only here. Philip, 30 Oct 2026:
+              // A contractor without an existing project completes onboarding here.
+              // Existing project members finish through the access button above.
+              // Philip, 30 Oct 2026:
               // it "concludes when users select either 'I have a project' or 'I don't
               // have a project'". Both answers end it — saying no is a finished
               // onboarding, not an abandoned one.
@@ -303,7 +305,7 @@ export default function ContractorOnboarding() {
 
 /** A registered business owes two extra fields and a document; a sole trader does not. */
 function panelOrder(s: OnboardingStatus): PanelId[] {
-  // Five required setup steps plus the final "almost there" choice as step six.
+  // Five required setup steps, plus a project choice only when none is available.
   // "How do you trade" is gone — the partner application still asks whether they
   // operate as an individual or a company, which is where it matters.
   //

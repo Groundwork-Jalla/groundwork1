@@ -37,6 +37,7 @@ SELECT test_assert((SELECT revoked_at IS NULL AND is_client FROM project_viewers
 SELECT test_assert((SELECT workflow_origin='client' FROM projects WHERE id=test_id(202)) AND (SELECT contractor_user_id=test_id(7) AND is_primary FROM contractor_invites WHERE project_id=test_id(202)),'another contractor is never replaced');
 SELECT test_assert((SELECT workflow_origin='client' FROM projects WHERE id=test_id(203)),'a pending contractor invitation requires review');
 SELECT test_assert((SELECT count(*) FROM notifications WHERE data->>'event'='account_role_project_review' AND data->>'person_id'=test_id(11)::text)=4,'both admins get actionable review flags for both conflicts');
+SELECT test_assert(NOT EXISTS(SELECT 1 FROM notifications WHERE data->>'event'='account_role_project_review' AND data->>'project_tab' IS DISTINCT FROM 'people'),'review notifications point at the project team');
 SELECT test_assert((SELECT count(*) FROM account_role_notifications WHERE user_id=test_id(11))=1,'one transactional email is queued for the account change');
 SELECT test_assert((SELECT hash FROM correction_budget_snapshot)=(SELECT md5(string_agg(jsonb_build_array(user_id,budget_source,budget_amount)::text,',' ORDER BY id)) FROM projects),'owners and all budget values remain unchanged');
 SELECT test_assert((SELECT hash FROM correction_work_snapshot)=(SELECT md5(string_agg(to_jsonb(s)::text,',' ORDER BY id)) FROM project_stages s),'completed work, zero-cost stages and mid-build flags remain unchanged');
@@ -105,4 +106,12 @@ SELECT test_assert((SELECT status='superseded' FROM account_role_notifications W
 SELECT test_assert(claim_account_role_notification(test_id(948)) IS NULL,'old delivery is not claimed');
 SELECT test_assert((SELECT status='held' FROM account_role_notifications WHERE id=test_id(948)),'delivery is held beyond the provider idempotency window');
 SELECT set_config('request.jwt.claim.role','',false);
+INSERT INTO projects(id,user_id) VALUES(test_id(208),test_id(4));
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(4)::text,false);
+SELECT test_assert(jsonb_array_length(admin_set_user_role(test_id(4),'contractor','admin')->'corrected_projects')=1,'an admin can correct their own contractor account when another admin remains');
+SELECT test_assert(NOT public.is_admin() AND (project_team_access(test_id(208))->>'primary_contractor')::boolean,'self-correction finishes with contractor-only account permissions and actual work access');
+SELECT set_config('test.actor',test_id(8)::text,false);
+SELECT admin_set_user_role(test_id(4),'admin','contractor');
+RESET ROLE;
 SELECT 'ROLE_CHANGE_ONBOARDING_OK';

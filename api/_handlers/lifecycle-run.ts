@@ -47,7 +47,7 @@ export async function handler(req: any, res: any) {
     let result;
     try {
       // Role/security notices are transactional and independent of paused reminders.
-      const accountRoleNotifications = await sendAccountRoleNotifications(svc,new Date(),1);
+      const accountRoleNotifications = await sendAccountRoleNotifications(svc,new Date(),3);
       const followups = await svc.rpc('review_communication_followups');
       if (followups.error) throw followups.error;
       const replies = await sendQueuedCommunicationReplies(svc,new Date(),3);

@@ -62,6 +62,12 @@ describe('durable account mail delivery',()=>{
   expect(await sendAccountRoleNotifications(svc)).toEqual({sent:0,failed:1,skipped:0});
   expect(svc.rpc).toHaveBeenLastCalledWith('finish_account_role_notification',expect.objectContaining({p_provider:null,p_error:'resend_429'}));
  });
+ it('keeps an unconfigured provider retryable without starting a frozen delivery attempt',async()=>{
+  vi.stubEnv('RESEND_API_KEY','');const svc=service();const fetch=vi.fn();vi.stubGlobal('fetch',fetch);
+  expect(await sendAccountRoleNotifications(svc)).toEqual({sent:0,failed:1,skipped:0});
+  expect(svc.rpc.mock.calls.some(call=>call[0]==='prepare_account_role_notification')).toBe(false);expect(fetch).not.toHaveBeenCalled();
+  expect(svc.rpc).toHaveBeenLastCalledWith('finish_account_role_notification',expect.objectContaining({p_error:'email_provider_not_configured'}));
+ });
  it('holds mail on old deployments without interrupting the existing reminder worker',async()=>{
   const svc={rpc:vi.fn(),from:()=>{const q:any={select:()=>q,in:()=>q,lte:()=>q,order:()=>q,limit:async()=>({data:null,error:{code:'42P01'}})};return q;}};
   expect(await sendAccountRoleNotifications(svc)).toMatchObject({migrationRequired:true,sent:0});expect(svc.rpc).not.toHaveBeenCalled();

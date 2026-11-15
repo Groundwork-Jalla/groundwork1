@@ -664,16 +664,14 @@ describe('the agreement gates the rest of the form', () => {
   });
 
   it('agreements is the first panel, and named rather than indexed', () => {
-    const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(
-      /\['agreements', 'you', 'specialty', 'payout', 'contact', 'almostThere'\]/);
+    // Both five- and six-panel orders are exercised by
+    // existing-project-onboarding.test.tsx, rather than a source-array match.
     expect(lib).toMatch(/GATING_STEP: OnboardingStep = 'agreements'/);
   });
 
   it('counts the almost-there destination choice as the sixth visible step', () => {
     expect(page).toMatch(/type PanelId = [^;]*'almostThere'/);
     expect(page).toMatch(/case 'almostThere': return s\.clientIntent !== null/);
-    expect(page).toMatch(/if \(s\.complete\) return 'almostThere'/);
     expect(page).toMatch(/total: String\(order\.length\)/);
   });
 
@@ -853,10 +851,8 @@ describe('one merged document, not two (117)', () => {
 });
 
 describe('the question at the end, and the two ways out (118)', () => {
-  it('the final destination choice follows the required setup steps', () => {
-    const order = page.slice(page.indexOf('function panelOrder'));
-    expect(order.slice(0, order.indexOf('\n}'))).toMatch(/'contact', 'almostThere'\]/);
-  });
+  // The runtime panel-order assertions for existing/new projects live in
+  // existing-project-onboarding.test.tsx.
 
   it('finishing shows the question, not an exit', () => {
     expect(page).toMatch(/\{at === 'almostThere'\s*\?\s*\(\s*<AllDone/);

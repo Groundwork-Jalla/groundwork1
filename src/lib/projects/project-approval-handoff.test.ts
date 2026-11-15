@@ -22,7 +22,8 @@ vi.mock('react', async original => ({ ...await original<typeof import('react')>(
     return [h.state[index], (value: unknown) => { h.state[index] = typeof value === 'function' ? value(h.state[index]) : value; }];
   },
 }));
-vi.mock('react-router', () => ({ Link: 'a', useParams: () => h.route, useNavigate: () => vi.fn(),
+vi.mock('react-router', () => ({ Link: 'a',Navigate:'navigate', useParams: () => h.route, useNavigate: () => vi.fn(),
+  useLocation:()=>({pathname:`/projects/${h.route.id}`,search:`?${h.params}`,hash:''}),
   useSearchParams: () => [h.params, h.setParams] }));
 vi.mock('framer-motion', () => ({ motion: { div: 'div' } }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'client' }, accountRole:h.role,isContractor: h.role==='contractor' }) }));
@@ -51,12 +52,14 @@ vi.mock('@/components/project/TimelineTab', () => ({ default: 'timeline' }));
 vi.mock('@/components/project/StartTrackingGate', () => ({ default: 'tracking-gate' }));
 
 import ProjectDetail from '@/app/routes/projects/detail';
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 
 type Element = { type: unknown; props: Record<string, any> };
 function nodes(value: unknown): Element[] {
   if (Array.isArray(value)) return value.flatMap(nodes);
   if (!value || typeof value !== 'object' || !('props' in value)) return [];
   const element = value as Element;
+  if (element.type === ProjectBackLink) return [element,...nodes(ProjectBackLink(element.props))];
   return [element, ...nodes(element.props.children)];
 }
 const project = { id: 'project', user_id: 'client', name: 'Home', country: 'CM', tier: 'jalla_verify',
@@ -97,7 +100,7 @@ describe('project team navigation', () => {
   });
   it('updates contractor responsibilities immediately after a project-role refresh',()=>{
     h.primaryClient=false;h.assignedContractor=true;h.primaryContractor=true;
-    expect(tracker()).toMatchObject({isContractor:true,canConfirmPayments:true,canUploadEvidence:true});
+    expect(render().find(node=>node.type==='navigate')!.props.to).toBe('/work/projects/project?tab=work');
     h.assignedContractor=false;h.primaryContractor=false;
     expect(tracker()).toMatchObject({isContractor:false,canConfirmPayments:false,canUploadEvidence:false,canApprove:false});
   });
@@ -140,9 +143,10 @@ describe('project team navigation', () => {
     h.canInviteContractor = true; h.primaryClient = false; expect(cue()).toBeUndefined();
   });
 
-  it('keeps Team available on the contractor variant of this project page', () => {
+  it('opens Team in the contractor workspace for a corrected project assignment', () => {
     h.primaryClient=false;h.assignedContractor=true;h.primaryContractor=true;
-    expect(tabs().some(element => element.props.children === 'project.tabs.team')).toBe(true);
+    h.params=new URLSearchParams('tab=team');
+    expect(render().find(node=>node.type==='navigate')!.props.to).toBe('/work/projects/project?tab=people');
   });
 });
 

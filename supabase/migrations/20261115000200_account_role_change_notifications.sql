@@ -2,6 +2,9 @@
 -- No migration sends email or changes existing accounts automatically.
 BEGIN;
 
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS event_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_recipient_event ON public.notifications(user_id,event_key) WHERE event_key IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.account_role_notifications(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
  actor_id uuid REFERENCES auth.users ON DELETE SET NULL,from_roles text NOT NULL,to_role text NOT NULL CHECK(to_role IN('client','contractor','verifier','admin')),
@@ -56,8 +59,8 @@ BEGIN
      INSERT INTO public.notifications(user_id,type,title,body,data,event_key)
        SELECT r.user_id,'account_role_project_review','Project role correction needs review',
          'This account is now a contractor. Review the existing project contractor assignment.',
-         jsonb_build_object('project_id',p.id,'person_id',p_user,'tab','people','event','account_role_project_review'),
-         'account-role-review:'||p_user||':'||p.id FROM public.user_roles r WHERE r.role='admin'
+         jsonb_build_object('project_id',p.id,'person_id',p_user,'project_tab','people','event','account_role_project_review'),
+         'account-role-review:'||p_user||':'||p.id FROM public.user_roles r WHERE r.role='admin' AND r.user_id<>p_user
        ON CONFLICT(user_id,event_key) WHERE event_key IS NOT NULL DO NOTHING;
      CONTINUE;
    END IF;
@@ -109,14 +112,18 @@ BEGIN
  IF v_changed THEN
    IF EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=p_user AND role='admin') AND p_role<>'admin'
      AND (SELECT count(*) FROM public.user_roles WHERE role='admin')<=1 THEN RAISE EXCEPTION 'last_admin'; END IF;
-   DELETE FROM public.user_roles WHERE user_id=p_user;
-   INSERT INTO public.user_roles(user_id,role) VALUES(p_user,v_target);
+   -- Keep the acting admin's authority until their own project correction has
+   -- finished. Intermediate roles are visible only inside this transaction.
+   INSERT INTO public.user_roles(user_id,role) VALUES(p_user,v_target) ON CONFLICT(user_id,role) DO NOTHING;
+ END IF;
+ IF p_role='contractor' THEN v_projects:=public.correct_contractor_owned_projects(p_user); END IF;
+ IF v_changed THEN
+   DELETE FROM public.user_roles WHERE user_id=p_user AND role<>v_target;
    UPDATE auth.users SET raw_user_meta_data=(coalesce(raw_user_meta_data,'{}'::jsonb)-'signup_intent')
      ||jsonb_build_object('role',p_role,'onboarding_complete',true) WHERE id=p_user;
    PERFORM public.log_activity(NULL,'account.role_changed','profile',p_user,p_user,
      jsonb_build_object('from_roles',v_before,'to_role',p_role));
  END IF;
- IF p_role='contractor' THEN v_projects:=public.correct_contractor_owned_projects(p_user); END IF;
  IF v_changed OR jsonb_array_length(v_projects->'corrected_projects')>0 THEN
    INSERT INTO public.account_role_notifications(user_id,actor_id,from_roles,to_role)
      VALUES(p_user,v_actor,v_before,p_role) RETURNING id INTO v_notification;

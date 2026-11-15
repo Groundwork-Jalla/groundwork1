@@ -34,7 +34,7 @@ export function UserRoleEditor({ user, onSaved, onClose }: {
     <section role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-[#1e1e1e]">
       <div className="flex items-center justify-between gap-3">
         <h2 id={`${id}-title`} className="text-lg font-semibold">{t('admin.roleEdit.title')}</h2>
-        <button type="button" disabled={busy} onClick={onClose} aria-label={t('common.close')}><X className="size-4" aria-hidden /></button>
+        <button type="button" disabled={busy} onClick={() => saved ? onSaved(saved.roles) : onClose()} aria-label={t('common.close')}><X className="size-4" aria-hidden /></button>
       </div>
       <p className="mt-2 break-all text-sm text-brand-mid-grey">{user.email}</p>
       {saved ? <div role="status" className="mt-4 space-y-3 text-sm">

@@ -159,6 +159,13 @@ describe('four-role editor', () => {
     expect(nodes(tree).find(node=>node.type==='link')!.props.to).toBe('/admin/projects/review?tab=team');expect(h.saved).not.toHaveBeenCalled();
     nodes(tree).find(node=>node.type==='link')!.props.onClick();expect(h.saved).toHaveBeenCalledWith('contractor');
   });
+  it('keeps the newly saved role visible when a review is closed with the close icon', async () => {
+    h.save.mockResolvedValue({roles:'contractor',correctedProjects:[],reviewProjects:['review'],notificationQueued:true});
+    nodes(render(component)).find(node=>node.type==='select')!.props.onChange({target:{value:'contractor'}});
+    nodes(render(component)).find(node=>node.type==='form')!.props.onSubmit({preventDefault(){}});await flush();
+    nodes(render(component)).find(node=>node.props['aria-label']==='common.close')!.props.onClick();
+    expect(h.saved).toHaveBeenCalledWith('contractor');expect(h.close).not.toHaveBeenCalled();
+  });
 });
 
 describe('project responsibilities after an account correction', () => {

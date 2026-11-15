@@ -32,7 +32,7 @@ describe('existing projects at the end of contractor onboarding',()=>{
  it('finishes after the five required panels with access to the existing project',async()=>{
   const tree=await load();expect(text(tree)).toContain('contractorOnboarding.existingTitle');
   expect(text(tree)).toContain('contractorOnboarding.existingCta');expect(nodes(tree).some(n=>n.type?.name==='AllDone')).toBe(false);
-  const progress=nodes(tree).find(n=>n.type?.name==='Progress');expect(progress.props.order).toHaveLength(5);expect(progress.props.index).toBe(4);
+  const progress=nodes(tree).find(n=>n.type?.name==='Progress');expect(progress.props.order).toEqual(['agreements','you','specialty','payout','contact']);expect(progress.props.index).toBe(4);
  });
  it('records existing-project completion once and opens that project',async()=>{
   const tree=await load();const button=nodes(tree).find(n=>n.type==='button');button.props.onClick();button.props.onClick();await flush();
@@ -46,7 +46,7 @@ describe('existing projects at the end of contractor onboarding',()=>{
  });
  it('keeps the first-project choice for a new contractor without a project',async()=>{
   h.status.mockResolvedValue({...complete,existingProjectCount:0,existingProjectPath:null});const tree=await load();
-  expect(nodes(tree).find(n=>n.type?.name==='Progress').props.order).toHaveLength(6);expect(nodes(tree).some(n=>n.type?.name==='AllDone')).toBe(true);
+  expect(nodes(tree).find(n=>n.type?.name==='Progress').props.order).toEqual(['agreements','you','specialty','payout','contact','almostThere']);expect(nodes(tree).some(n=>n.type?.name==='AllDone')).toBe(true);
  });
  it('does not bypass an unfinished required form for an existing project owner',async()=>{
   h.status.mockResolvedValue({...complete,complete:false,steps:{...complete.steps,emergency:false}});const tree=await load();

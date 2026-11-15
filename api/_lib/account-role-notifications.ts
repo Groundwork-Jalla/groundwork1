@@ -26,7 +26,7 @@ export function composeAccountRoleNotification(input:{
   const subject=fr?'Votre rôle sur Groundwork a été mis à jour':'Your Groundwork account role has been updated';
   const greeting=fr?`Bonjour${input.fullName?` ${input.fullName}`:''},`:`Hello${input.fullName?` ${input.fullName}`:''},`;
   const body=fr?`${greeting}\n\nVotre compte Groundwork a été mis à jour avec le rôle ${label}.\n\n${setup?'Terminez votre inscription comme entrepreneur pour accéder à votre espace. Vos projets existants restent liés à votre compte.':'Ouvrez Groundwork pour continuer avec votre rôle actuel.'}\n\nRépondez à cet e-mail si vous souhaitez de l’aide.`
-    :`${greeting}\n\nYour Groundwork account has been updated to a ${label} account.\n\n${setup?'Complete your contractor onboarding to access your workspace. Your existing projects remain linked to your account.':'Open Groundwork to continue with your current role.'}\n\nReply to this email if you would like help.`;
+    :`${greeting}\n\nYour Groundwork account has been updated to ${input.role==='admin'?'an':'a'} ${label} account.\n\n${setup?'Complete your contractor onboarding to access your workspace. Your existing projects remain linked to your account.':'Open Groundwork to continue with your current role.'}\n\nReply to this email if you would like help.`;
   const cta=setup?(fr?'Terminer mon inscription':'Complete contractor onboarding'):(fr?'Ouvrir mon compte':'Open my account');
   return {from:`${oneLine(input.senderName)} <${input.senderEmail}>`,to:input.email,subject,reply_to:input.replyEmail,
     text:`${body}\n\n${cta}: ${url}\n\nGroundwork by Jalla`,
@@ -34,10 +34,11 @@ export function composeAccountRoleNotification(input:{
 }
 
 /** The existing five-minute worker retries a frozen payload with one provider key. */
-export async function sendAccountRoleNotifications(svc:Service,now=new Date(),limit=1) {
+export async function sendAccountRoleNotifications(svc:Service,now=new Date(),limit=3) {
   const tally={sent:0,failed:0,skipped:0};
+  const deadline=Date.now()+30_000;
   const due=await svc.from('account_role_notifications').select('id').in('status',['queued','failed','sending'])
-    .lte('next_attempt_at',now.toISOString()).order('next_attempt_at').limit(limit);
+    .lte('next_attempt_at',now.toISOString()).order('next_attempt_at').limit(Math.max(25,limit*5));
   if(due.error){
     // Rolling deployment: the old worker can continue until the migration is applied.
     if(['42P01','PGRST205'].includes(due.error.code))return {...tally,migrationRequired:true};
@@ -46,9 +47,14 @@ export async function sendAccountRoleNotifications(svc:Service,now=new Date(),li
   if(!due.data?.length)return tally;
   const settings=await communicationSettings(svc);
   for(const row of due.data) {
+    if(tally.sent+tally.failed>=limit||Date.now()>deadline-20_000)break;
     const claimed=await svc.rpc('claim_account_role_notification',{p_id:row.id});
     if(claimed.error)throw claimed.error;
     const notice=claimed.data;if(!notice){tally.skipped++;continue;}
+    if(!process.env.RESEND_API_KEY?.trim()) {
+      const saved=await svc.rpc('finish_account_role_notification',{p_id:notice.id,p_worker:notice.worker_token,p_provider:null,p_error:'email_provider_not_configured'});
+      if(saved.error)throw saved.error;tally.failed++;continue;
+    }
     let payload:CommunicationPayload;
     try {
       payload=notice.payload??composeAccountRoleNotification({email:notice.email,role:notice.to_role,lang:notice.lang,

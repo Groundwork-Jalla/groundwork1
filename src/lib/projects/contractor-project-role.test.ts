@@ -10,6 +10,7 @@ vi.mock('react-router', () => ({ Link: 'link', Navigate: 'navigate',
   useParams: () => ({ projectId: h.projectId }), useSearchParams: () => [new URLSearchParams(), vi.fn()] }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'contractor-account', user_metadata: { role: 'contractor' } },accountRole:h.role,isContractor:h.role==='contractor' }) }));
 vi.mock('@/hooks/useProjectTeamAccess', () => ({ useProjectTeamAccess: () => ({ access: h.access, error: h.error, refresh: h.refresh }) }));
+vi.mock('@/hooks/useProjectNotificationFocus',()=>({useProjectNotificationFocus:vi.fn()}));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string) => key, useLanguage: () => ({ lang: 'en' }) }));
 vi.mock('@/lib/stage-labels', () => ({ useStageLabels: () => ({ stageLabel: String, substageLabel: String }) }));
 vi.mock('@/lib/supabase/client', () => ({ supabase: {} }));
@@ -21,10 +22,12 @@ vi.mock('@/components/project/ProjectPayoutSummary', () => ({ ProjectPayoutSumma
 vi.mock('@/lib/supabase/contractor-work',()=>({fetchAssignedProject:h.fetchAssigned,fetchSubstages:async()=>[],fetchProjectDocuments:async()=>[],fetchRework:async()=>[],fetchMyPayments:async()=>({rows:[],available:false})}));
 vi.mock('@/lib/supabase/verifications',()=>({fetchStagePayments:async()=>new Map()}));
 import ContractorProjectDetail from '@/app/routes/work/projects.detail';
+import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 
 type Node = { type: any; props: Record<string, any> };
 function nodes(value: any): Node[] {
   if (Array.isArray(value)) return value.flatMap(nodes);
+  if (value?.type === ProjectBackLink) return [value,...nodes(ProjectBackLink(value.props))];
   return value?.props ? [value, ...nodes(value.props.children)] : [];
 }
 function render() { h.index = 0;h.refIndex=0;h.effects=[]; return nodes(ContractorProjectDetail()); }

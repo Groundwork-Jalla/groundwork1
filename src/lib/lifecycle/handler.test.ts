@@ -31,7 +31,7 @@ describe('reminder execution endpoint', () => {
     expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ ok: true, preview: true, ready: 1 }));
   });
   it('retains the normal authorized scheduled run', async () => {
-    await request({}); expect(h.roles).toHaveBeenCalledWith(h.admin,expect.any(Date),1);expect(h.run).toHaveBeenCalledWith(h.admin,expect.any(Date),20,100_000); expect(h.whatsapp).toHaveBeenCalledWith(h.admin,8,60_000); expect(h.preview).not.toHaveBeenCalled();
+    await request({}); expect(h.roles).toHaveBeenCalledWith(h.admin,expect.any(Date),3);expect(h.run).toHaveBeenCalledWith(h.admin,expect.any(Date),20,100_000); expect(h.whatsapp).toHaveBeenCalledWith(h.admin,8,60_000); expect(h.preview).not.toHaveBeenCalled();
   });
   it('rejects ordinary accounts for preview and delivery', async () => {
     const response = await request({ preview: true }, 'ordinary-session');
