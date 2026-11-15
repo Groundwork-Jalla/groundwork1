@@ -1,10 +1,62 @@
 # Direct Meta WhatsApp setup
 
-The confirmed first connection is **Meta’s test number**. Groundwork owns the
-communication framework; Meta carries WhatsApp messages. Sending remains off by
-default. This guide describes the new implementation, not proof of a live connection.
+Groundwork owns the communication framework; Meta carries WhatsApp messages.
+The configured production number is **+1 469 991 3055**, with a **test-recipient-only**
+audience. Sending remains off. The records below distinguish provider setup,
+local application changes and actual message-delivery proof.
 
-## Current connection status — 16 November 2026, after account assignment
+## Current connection status — 16 November 2026, 06:15 Malaysia time
+
+After explicit owner approval, Meta acknowledged the Groundwork app subscription
+with HTTP 200 / `success: true`. Its real callback challenge reached Groundwork at
+**06:04 Malaysia time** and the saved verification timestamp is now set. The owner’s
+Production setup screen also marks Configure Webhooks complete.
+
+All **86 Groundwork template variants (43 English, 43 French)** now exist in the
+production account and match the local runtime definitions. At the final read,
+**86 were PENDING, zero APPROVED and zero REJECTED**. Meta assigned **62 UTILITY
+and 24 MARKETING** variants. Their actual IDs, statuses and categories are in the
+[submission receipt](whatsapp/2026-11-16-template-review/submission-receipt.json).
+Template submission and category assignment do not enable delivery or change billing.
+
+Meta rejected six original bodies that ended with a parameter followed only by
+punctuation. The shared channel compiler adds a fixed closing sentence to those
+variants. The [format corrections](whatsapp/2026-11-16-template-review/format-corrections.json)
+preserve the before/after copy. Export, approval comparison and the send log use
+that same compiler; saved email wording, variables and action destinations stay
+unchanged. Where Meta had assigned MARKETING to an existing English name, its
+French translation was submitted using that same category. Existing templates
+were not overwritten or deleted, and the four generic templates were retained.
+
+**Sending is still off**, the audience remains test-only, all 16 lifecycle sequences
+remain disabled, and there are no linked WhatsApp contacts. No WhatsApp messages
+were sent by these setup operations. A real signed incoming message has **not**
+been observed; the callback challenge proves endpoint verification only.
+
+The WhatsApp code/tests and these setup records are being staged separately from
+client UI and email-provider work. **Commit, push and deploy the matching application**
+before checking the new definitions in the live Admin page. Staging alone does not
+deploy the changes. The provider credentials, subscription and submitted templates
+are saved separately and do not require a push. **No migration is introduced.**
+Local validation: **126 focused tests across eight files**, type checking and the
+production build passed.
+
+Next checks:
+
+- After deployment, use **Check connection and templates** to refresh Admin’s exact
+  approval cache. PENDING is not approval; wait for Meta’s recorded decision.
+- On the controlled account, use **Profile → WhatsApp reminders**, give consent and
+  choose Connect WhatsApp. Send the generated START message from the controlled
+  phone to **+14699913055**. Keep the private START code out of screenshots and chat.
+- Confirm Groundwork receives the real signed inbound event and links that phone.
+  Test an explicitly requested staff reply while the 24-hour window is open, then
+  confirm the actual arrival and delivery callback. The setup approval did not
+  authorize outbound messages or turning sending on.
+- Review the retained **LeadConnector LLC credit line**, staff ownership, journey
+  switches and test audience before any paid or wider outreach. No billing change
+  or additional finance permission was made.
+
+## Earlier connection status — 16 November 2026, after account assignment
 
 At **01:57 Malaysia time**, after the owner assigned production Messaging-account
 access to the selected system user, the saved token successfully read the production

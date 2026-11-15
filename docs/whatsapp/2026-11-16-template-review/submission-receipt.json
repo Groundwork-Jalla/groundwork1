@@ -1,0 +1,809 @@
+{
+  "accountId": "1087160260359893",
+  "appId": "4530617580485753",
+  "startedAt": "2026-11-15T22:04:37.568Z",
+  "verifiedAt": "2026-11-15T22:15:41.596Z",
+  "originalPackSha256": {
+    "en": "4ccc54ecf527c5ee5b0fa7cb9f452aa68dbd24fad70efdf5d5ca9f66c13012e4",
+    "fr": "ebe7e3ac4671a8de31fd42ecb1c8aa24312eddcb277bc0c10210c83cb39e75dc"
+  },
+  "subscription": {
+    "acknowledged": true,
+    "httpStatus": 200,
+    "callbackUrl": "https://www.tryjalla.com/api/whatsapp-webhook"
+  },
+  "callbackChallengeVerifiedAt": "2026-11-15T22:04:42.008+00:00",
+  "signedIncomingEventAt": null,
+  "templateCount": 86,
+  "statuses": {
+    "PENDING": 86
+  },
+  "categories": {
+    "UTILITY": 62,
+    "MARKETING": 24
+  },
+  "allExactRuntimeDefinitionsPresent": true,
+  "formatCorrections": "format-corrections.json",
+  "categoryHandling": "For translations, reuse the existing category Meta assigned to that template name. Do not request reclassification or change billing.",
+  "sendingEnabled": false,
+  "audience": "test",
+  "messagesSent": 0,
+  "billingChanged": false,
+  "applicationDeploymentRequired": true,
+  "variants": [
+    {
+      "name": "groundwork_cs05",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1141272371720579"
+    },
+    {
+      "name": "groundwork_cl09",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1102737462778835"
+    },
+    {
+      "name": "groundwork_cl05",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1492775416282826"
+    },
+    {
+      "name": "groundwork_cl01",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2936627986692870"
+    },
+    {
+      "name": "groundwork_cs09",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2089992915023941"
+    },
+    {
+      "name": "groundwork_iv05",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1710097437162665"
+    },
+    {
+      "name": "groundwork_ci09",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1668953567942438"
+    },
+    {
+      "name": "groundwork_cs13",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1492925489390237"
+    },
+    {
+      "name": "groundwork_cs16",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2187511699310741"
+    },
+    {
+      "name": "groundwork_ci01",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "970982159065029"
+    },
+    {
+      "name": "groundwork_iv01",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1852462149121633"
+    },
+    {
+      "name": "groundwork_ci05",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "3301028930096547"
+    },
+    {
+      "name": "groundwork_cl10",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "992511170044489"
+    },
+    {
+      "name": "groundwork_cl13",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1843364986806409"
+    },
+    {
+      "name": "groundwork_cs01",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1151610210581433"
+    },
+    {
+      "name": "groundwork_cl02",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "4664801150408400"
+    },
+    {
+      "name": "groundwork_cs02",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "2166087608126707"
+    },
+    {
+      "name": "groundwork_cl11",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1921798985469910"
+    },
+    {
+      "name": "groundwork_cs14",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "27597259053306022"
+    },
+    {
+      "name": "groundwork_cs06",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "4725928840885948"
+    },
+    {
+      "name": "groundwork_cs10",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1674071237451385"
+    },
+    {
+      "name": "groundwork_ci02",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "2595465060921347"
+    },
+    {
+      "name": "groundwork_ci06",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2098475664234491"
+    },
+    {
+      "name": "groundwork_cl06",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1690852382408541"
+    },
+    {
+      "name": "groundwork_iv02",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1662310738695654"
+    },
+    {
+      "name": "groundwork_ci07",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "4667527516724770"
+    },
+    {
+      "name": "groundwork_cs15",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1178074834568130"
+    },
+    {
+      "name": "groundwork_cl03",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1486066730070873"
+    },
+    {
+      "name": "groundwork_cs07",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2465236320949251"
+    },
+    {
+      "name": "groundwork_cl07",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "2364120694355045"
+    },
+    {
+      "name": "groundwork_cl12",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1851038319126340"
+    },
+    {
+      "name": "groundwork_cs03",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1660106542521173"
+    },
+    {
+      "name": "groundwork_ci03",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "4668121803456019"
+    },
+    {
+      "name": "groundwork_iv03",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2625599504558369"
+    },
+    {
+      "name": "groundwork_cs11",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "2052490505387834"
+    },
+    {
+      "name": "groundwork_ci08",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1481988693451181"
+    },
+    {
+      "name": "groundwork_cs12",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2577634335978755"
+    },
+    {
+      "name": "groundwork_iv04",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1491730672883949"
+    },
+    {
+      "name": "groundwork_cs08",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1699724828246194"
+    },
+    {
+      "name": "groundwork_cs04",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1107183952093069"
+    },
+    {
+      "name": "groundwork_cl08",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "3625627764271734"
+    },
+    {
+      "name": "groundwork_cl04",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "969587042531506"
+    },
+    {
+      "name": "groundwork_ci04",
+      "language": "en",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1166867812478917"
+    },
+    {
+      "name": "groundwork_cs05",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2439370873536033"
+    },
+    {
+      "name": "groundwork_cl09",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2296480507866958"
+    },
+    {
+      "name": "groundwork_cl05",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1846324063172439"
+    },
+    {
+      "name": "groundwork_cl01",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2556140744909090"
+    },
+    {
+      "name": "groundwork_cs09",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2057327931632926"
+    },
+    {
+      "name": "groundwork_iv05",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1451205300473873"
+    },
+    {
+      "name": "groundwork_ci09",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2022824228396352"
+    },
+    {
+      "name": "groundwork_cs13",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2185321052092035"
+    },
+    {
+      "name": "groundwork_cs16",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2194813341913932"
+    },
+    {
+      "name": "groundwork_ci01",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1415926220623594"
+    },
+    {
+      "name": "groundwork_iv01",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1817697823695227"
+    },
+    {
+      "name": "groundwork_ci05",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2291469571429099"
+    },
+    {
+      "name": "groundwork_cl10",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1841899390169040"
+    },
+    {
+      "name": "groundwork_cl13",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1153056974347902"
+    },
+    {
+      "name": "groundwork_cs01",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1782891276145042"
+    },
+    {
+      "name": "groundwork_cl02",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "3945535882256247"
+    },
+    {
+      "name": "groundwork_cs02",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "3394599500727128"
+    },
+    {
+      "name": "groundwork_cl11",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1432638788529016"
+    },
+    {
+      "name": "groundwork_cs14",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1658684445724511"
+    },
+    {
+      "name": "groundwork_cs06",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "995401299727212"
+    },
+    {
+      "name": "groundwork_cs10",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1519319726918951"
+    },
+    {
+      "name": "groundwork_ci02",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1654305069512076"
+    },
+    {
+      "name": "groundwork_ci06",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1125538466774912"
+    },
+    {
+      "name": "groundwork_cl06",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1660913605621372"
+    },
+    {
+      "name": "groundwork_iv02",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1115194401152489"
+    },
+    {
+      "name": "groundwork_ci07",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "29613581111607262"
+    },
+    {
+      "name": "groundwork_cs15",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "4846245092328289"
+    },
+    {
+      "name": "groundwork_cl03",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2186387955312356"
+    },
+    {
+      "name": "groundwork_cs07",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1154994927487909"
+    },
+    {
+      "name": "groundwork_cl07",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1834565664626116"
+    },
+    {
+      "name": "groundwork_cl12",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1169514445536918"
+    },
+    {
+      "name": "groundwork_cs03",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1675735707469851"
+    },
+    {
+      "name": "groundwork_ci03",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1983410329731305"
+    },
+    {
+      "name": "groundwork_iv03",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1315130854112924"
+    },
+    {
+      "name": "groundwork_cs11",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1139609018448480"
+    },
+    {
+      "name": "groundwork_ci08",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "3508118902681840"
+    },
+    {
+      "name": "groundwork_cs12",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1118457297675208"
+    },
+    {
+      "name": "groundwork_iv04",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1137028138813766"
+    },
+    {
+      "name": "groundwork_cs08",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "2518350535322615"
+    },
+    {
+      "name": "groundwork_cs04",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "4582697165342171"
+    },
+    {
+      "name": "groundwork_cl08",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "MARKETING",
+      "id": "1840499166969624"
+    },
+    {
+      "name": "groundwork_cl04",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "972557455551097"
+    },
+    {
+      "name": "groundwork_ci04",
+      "language": "fr",
+      "present": true,
+      "exactCopy": true,
+      "status": "PENDING",
+      "category": "UTILITY",
+      "id": "1822466192232812"
+    }
+  ]
+}

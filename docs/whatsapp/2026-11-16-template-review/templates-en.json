@@ -1,0 +1,1601 @@
+{
+  "accountId": "1087160260359893",
+  "source": "Groundwork saved journey copy with WhatsApp button/reply wording",
+  "submissionStatus": "not_submitted",
+  "requests": [
+    {
+      "name": "groundwork_cs05",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour contractor onboarding is complete. You now have standard contractor access to Groundwork and can use it to organize project information, milestones, documents, updates, and client communication.\n\nCreate your first project to begin.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create your first project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl09",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nWe received your request for help connecting a contractor to {{2}}. A member of the Jalla team will review the project information and contact you about the next step.\n\nThis request does not guarantee an immediate match or appointment. Any professional engagement will remain subject to availability, fit, client choice, and applicable terms.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "View project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl05",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nCongratulations on creating {{2}}.\n\nYour next step is to connect the professional responsible for the work. Invite your existing contractor, or request help from Jalla if you do not have one yet.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Connect a contractor",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl01",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nWelcome to Groundwork by Jalla. Groundwork gives you one place to organize your construction project, follow milestones, receive updates, and collaborate with your contractor.\n\nCreate your first project to begin.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create your first project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs09",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nCongratulations on creating {{2}} in Groundwork.\n\nThe next step is to invite your client. Once connected, your client can view the project information, milestones, documents, and updates you share. You control what your client see.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Invite your client",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_iv05",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou are now connected to {{2}} with {{3}}. Open the project to review the available information and follow updates through Groundwork.\n\nYou do not need to create another project. The project shared with you is already active in your account.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home",
+                "Sam Jones"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Open project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci09",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou are now connected to {{2}} with {{3}}. Open the project to review its information and begin collaborating through Groundwork.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home",
+                "Alex Smith"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Open project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs13",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation to {{2}} for {{3}} has been sent. We will let you know when the client accepts and joins the project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "View project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs16",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} has joined {{3}}. Your project is now connected, and you can begin sharing updates, documents, milestones, and progress through Groundwork.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Open project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci01",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} has invited you to collaborate on {{3}} through Groundwork by Jalla.\n\nAccept the invitation to view the project and collaborate with the client. If you already have a Groundwork account, sign in. If you are new, you will create an account before joining.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_iv01",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} has invited you to join {{3}} on Groundwork by Jalla.\n\nAccept the invitation to view the existing project, including information, documents, milestones, and updates shared with you. If you already have an account, sign in. If you are new, create your account to view project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci05",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou accepted {{2}}'s invitation to {{3}}. Because this is your first Groundwork project, complete your contractor onboarding before joining the project.\n\nYou do not need to create another project. The client's project is already waiting for you.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Complete onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl10",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation to {{2}} for {{3}} has been sent. We will let you know when the contractor accepts and joins the project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "View project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl13",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} has joined {{3}}. Your project is now connected, and you can collaborate through Groundwork as information, milestones, documents, and updates are added.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Open project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs01",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nWelcome to Groundwork by Jalla. Groundwork helps you organize projects, milestones, documents, progress updates, and client communication in one place.\n\nYour next step is to complete your contractor onboarding so we can finish setting up your account.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Complete onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl02",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour Groundwork account is ready, but you have not created a project yet. Add your project so you can begin organizing the build and connecting the people involved.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs02",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou created your Groundwork account, but your contractor onboarding is not complete yet. Finish the remaining details to begin using Groundwork for your projects.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Continue onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl11",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation gives {{2}} access to {{3}}. Open the project to review the invitation and share the link directly with your contractor.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Review invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs14",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation gives {{2}} a shared view of {{3}}. Open the project to review the invitation and share the link directly with your client.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Review invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs06",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour contractor account is ready. Add your first active project so you can begin organizing the work inside Groundwork.\n\nIf you do not currently have a project to add, select that option in Groundwork and we will stop these reminders.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create a project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs10",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} is ready, but your client has not been invited yet. Connect them so they can follow the project through Groundwork.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Invite client",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci02",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation to {{2}} is waiting. Accept it to join the project and collaborate with {{3}} in Groundwork.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home",
+                "Alex Smith"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci06",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation has been accepted, but your contractor onboarding is incomplete. Finish the remaining steps to join {{2}}.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Continue onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl06",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} is ready, but no contractor is connected yet. Invite your contractor or request help finding an appropriate professional.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Connect a contractor",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_iv02",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour invitation to {{2}} is waiting. Accept it to connect with {{3}} and view the project through Groundwork.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home",
+                "Sam Jones"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci07",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nFinish your contractor setup to continue with {{2}}. Your invitation is already accepted, and you can resume from the button below.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Finish onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs15",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nIf {{2}} would like help joining {{3}}, Groundwork can guide you. Open the project to review the invitation and continue together.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Manage invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl03",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nCreating your project gives you a shared place for milestones, documents, progress updates, and communication with your contractor.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs07",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nA Groundwork project gives you one place for milestones, documents, progress updates, and communication with your client.\n\nCreate your first project when you are ready to begin organizing it.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create a project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl07",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nInvite your contractor to {{2}} so you can follow project stages, review updates and keep your conversation together.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Connect a contractor",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl12",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nIf {{2}} would like help joining {{3}}, Groundwork can guide you. Open the project to review the invitation and continue together.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Manage invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs03",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nCompleting your contractor onboarding gives you access to create projects, organize project information, and collaborate with clients through Groundwork.\n\nReturn to your onboarding and complete the remaining steps.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Finish onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci03",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nGroundwork gives you and {{2}} a shared place for project information, milestones, documents, and updates. Accept the invitation to join the existing project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Alex Smith"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Join project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_iv03",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nGroundwork gives you and {{2}} a shared place for project information, documents, milestones, and progress updates. Accept the invitation to join your project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "Sam Jones"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Join project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs11",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nInviting your client creates a shared source of truth for project updates, documents, and milestones. It also reduces the need to distribute the same information across separate channels.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Invite client",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci08",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour contractor setup is still incomplete. Reply if you need assistance, or complete the remaining steps to join {{2}}.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Complete setup",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs12",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour project is not connected to a client yet. If you need help sending the invitation or explaining Groundwork to your client, reply to this message.\n\nP.S: Contractor using Groundwork to provide updates report higher client satisfaction and referrals",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Invite client",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_iv04",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nThis is the final automated reminder for your invitation to {{2}}. Accept it now or reply if you need help accessing the project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs08",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou have not created a project yet. If you have an active project and need help setting it up, reply to this message and our team can assist. If you do not currently have a project, update your account so we can move you into the appropriate communication track.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Add a project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cs04",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYour contractor onboarding is still incomplete. If something is preventing you from finishing, reply to this message and tell us where you are stuck.\n\nYou can also return to Groundwork and complete the remaining steps now.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Complete onboarding",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl08",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\n{{2}} is not connected to a contractor yet. Invite the professional you already work with, or request support from Jalla if you need assistance.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Choose contractor option",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_cl04",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nYou have not created a project yet. If you need help entering the project details, reply to this message and our team can assist.",
+          "example": {
+            "body_text": [
+              [
+                "Alex"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Create project",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    },
+    {
+      "name": "groundwork_ci04",
+      "language": "en",
+      "category": "UTILITY",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Hi {{1}},\n\nThis is the final reminder for your invitation to {{2}}. Accept it now or reply if you are having trouble accessing the project.",
+          "example": {
+            "body_text": [
+              [
+                "Alex",
+                "My home"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "FOOTER",
+          "text": "Reply STOP to stop reminders."
+        },
+        {
+          "type": "BUTTONS",
+          "buttons": [
+            {
+              "type": "URL",
+              "text": "Accept invitation",
+              "url": "https://www.tryjalla.com/{{1}}",
+              "example": [
+                "https://www.tryjalla.com/dashboard"
+              ]
+            }
+          ]
+        }
+      ],
+      "allow_category_change": true
+    }
+  ],
+  "templateCount": 43,
+  "sendingEnabledBySubmission": false
+}

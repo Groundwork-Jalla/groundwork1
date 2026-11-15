@@ -1,7 +1,7 @@
 {
   "localDate": "2026-11-16",
   "timezone": "Asia/Kuala_Lumpur",
-  "readOnly": true,
+  "readOnly": false,
   "initialConnectionCheckedAt": "2026-11-15T16:12:26.531Z",
   "initialTokenDiagnosticsCheckedAt": "2026-11-15T16:14:41.748Z",
   "connectionCheckedAt": "2026-11-15T17:10:57.972Z",
@@ -36,8 +36,13 @@
     "token diagnostics"
   ],
   "tokenValidity": "valid_at_post_publication_check",
-  "grantedPermissions": ["business_management", "whatsapp_business_management", "whatsapp_business_messaging", "public_profile"],
-  "pendingMetaAction": "reverify_callback_confirm_subscription_and_submit_reviewed_templates",
+  "grantedPermissions": [
+    "business_management",
+    "whatsapp_business_management",
+    "whatsapp_business_messaging",
+    "public_profile"
+  ],
+  "pendingMetaAction": "await_template_approval_and_verify_real_controlled_inbound_reply_delivery",
   "afterAccountAssignment": {
     "accessCheckedAt": "2026-11-15T17:57:34.808Z",
     "readinessCheckedAt": "2026-11-15T18:12:24.881Z",
@@ -52,10 +57,31 @@
     "realSignedEventReceived": false,
     "appSubscriptionRead": "unknown_after_two_timeouts",
     "appSubscriptionWritten": false,
-    "fundingRead": { "httpStatus": 400, "code": 10, "detailsEstablished": false },
+    "fundingRead": {
+      "httpStatus": 400,
+      "code": 10,
+      "detailsEstablished": false
+    },
     "ownerScreenshotFundingSource": "LeadConnector LLC credit line",
-    "templateCatalog": { "complete": true, "count": 4, "approved": 4, "groundworkDefinitions": 0 },
-    "preparedTemplates": { "distinctNames": 43, "variants": 86, "languages": ["en", "fr"], "exactApprovedMatches": 0, "copyIssues": 0, "definitionConflicts": 0, "excludedExactSeedDrafts": 6, "submitted": false },
+    "templateCatalog": {
+      "complete": true,
+      "count": 4,
+      "approved": 4,
+      "groundworkDefinitions": 0
+    },
+    "preparedTemplates": {
+      "distinctNames": 43,
+      "variants": 86,
+      "languages": [
+        "en",
+        "fr"
+      ],
+      "exactApprovedMatches": 0,
+      "copyIssues": 0,
+      "definitionConflicts": 0,
+      "excludedExactSeedDrafts": 6,
+      "submitted": false
+    },
     "reviewPack": "docs/whatsapp/2026-11-16-template-review/README.md",
     "databaseRowsChangedByTheseChecks": false,
     "providerSettingsChangedByTheseChecks": false,
@@ -66,15 +92,52 @@
     "apiAccessBlockStillReturned": false,
     "tokenType": "SYSTEM_USER",
     "tokenAppId": "4530617580485753",
-    "phoneRead": { "httpStatus": 200, "matchesConfiguredPhone": true },
-    "configuredAccountTemplates": { "httpStatus": 400, "code": 100, "subcode": 33 },
-    "configuredAccountPhones": { "httpStatus": 400, "code": 100, "subcode": 33 },
-    "systemUser": { "id": "122141001993236907", "name": "Conversions API System User" },
-    "assignedAccounts": { "httpStatus": 200, "count": 0, "completeListRead": true },
-    "ownedAccounts": { "httpStatus": 200, "completeListRead": true, "accounts": [{ "id": "4541464722761846", "name": "Test Messaging Account" }] },
-    "sharedAccounts": { "httpStatus": 200, "count": 0, "completeListRead": true },
-    "testAccountTemplateRead": { "httpStatus": 200, "hasTemplates": true },
-    "phoneWebhookConfiguration": { "httpStatus": 200, "matchesGroundworkCallback": true },
+    "phoneRead": {
+      "httpStatus": 200,
+      "matchesConfiguredPhone": true
+    },
+    "configuredAccountTemplates": {
+      "httpStatus": 400,
+      "code": 100,
+      "subcode": 33
+    },
+    "configuredAccountPhones": {
+      "httpStatus": 400,
+      "code": 100,
+      "subcode": 33
+    },
+    "systemUser": {
+      "id": "122141001993236907",
+      "name": "Conversions API System User"
+    },
+    "assignedAccounts": {
+      "httpStatus": 200,
+      "count": 0,
+      "completeListRead": true
+    },
+    "ownedAccounts": {
+      "httpStatus": 200,
+      "completeListRead": true,
+      "accounts": [
+        {
+          "id": "4541464722761846",
+          "name": "Test Messaging Account"
+        }
+      ]
+    },
+    "sharedAccounts": {
+      "httpStatus": 200,
+      "count": 0,
+      "completeListRead": true
+    },
+    "testAccountTemplateRead": {
+      "httpStatus": 200,
+      "hasTemplates": true
+    },
+    "phoneWebhookConfiguration": {
+      "httpStatus": 200,
+      "matchesGroundworkCallback": true
+    },
     "accountAccessCheckedAt": "2026-11-15T17:15:51.217Z",
     "configurationChanged": false,
     "messagesSent": 0
@@ -97,11 +160,14 @@
     "contactAddressPresent": true,
     "metaAcceptanceEstablished": false
   },
-  "productionConfigurationChanged": false,
+  "productionConfigurationChanged": true,
   "systemUserIdentityCheck": {
     "checkedAt": "2026-11-15T17:51:23.124Z",
     "tokenApiId": "122141001993236907",
-    "dashboardIds": ["61587107211343", "61586625734647"],
+    "dashboardIds": [
+      "61587107211343",
+      "61586625734647"
+    ],
     "namesIdentical": true,
     "businessUserMappingsReturned": 0,
     "mappingEstablished": false,
@@ -109,11 +175,41 @@
     "tokenChanged": false
   },
   "messagesSent": 0,
-  "localApplicationChange": "Specific provider failure guidance, short seeded WhatsApp buttons and exclusion of exact seed drafts; deployment required",
+  "localApplicationChange": "Specific provider failure guidance, short seeded WhatsApp buttons, exclusion of exact seed drafts and fixed channel text around dangling variables; deployment required",
   "localValidation": {
-    "focusedTestsPassed": 124,
+    "focusedTestsPassed": 126,
     "testFilesPassed": 8,
     "typecheck": "passed",
     "productionBuild": "passed"
+  },
+  "initialChecksReadOnly": true,
+  "afterApprovedProviderSetup": {
+    "verifiedAt": "2026-11-15T22:15:41.596Z",
+    "ownerApprovedProviderWrites": true,
+    "subscriptionAcknowledged": true,
+    "subscriptionHttpStatus": 200,
+    "callbackChallengeVerifiedAt": "2026-11-15T22:04:42.008+00:00",
+    "signedIncomingEventAt": null,
+    "sendingEnabled": false,
+    "mode": "test",
+    "enabledLifecycleSequenceCount": 0,
+    "linkedContactCount": 0,
+    "templates": {
+      "distinctNames": 43,
+      "variants": 86,
+      "exactRuntimeDefinitionsPresent": 86,
+      "statuses": {
+        "PENDING": 86
+      },
+      "categories": {
+        "UTILITY": 62,
+        "MARKETING": 24
+      },
+      "fixedClosingSentenceVariants": 6
+    },
+    "submissionReceipt": "docs/whatsapp/2026-11-16-template-review/submission-receipt.json",
+    "applicationDeploymentRequired": true,
+    "messagesSent": 0,
+    "billingChanged": false
   }
 }

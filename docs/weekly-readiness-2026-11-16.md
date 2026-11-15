@@ -28,7 +28,7 @@ Test accounts and controlled test projects must be excluded from the real-user t
 | Payments and receipt reading | Both project origins, currency input, file/camera controls, receipt decisions, full/two-installment plans, multiple proofs, balances and progression authorization. | Controlled live acceptance with actual receipts, including a non-receipt image and provider failures. |
 | Stage pricing | Contractor proposal, client approval, all-stage revisions and preserved payment/proposal history. | Live before/after comparisons in client and contractor views, including paid/completed/zero-cost stages. |
 | Communication framework | Four journeys, per-step Day 1/3/7 scheduling, preferences, reply handling, staff follow-up, ownership/cadence controls and tracking. | Complete Resend sending/receiving, signed callbacks, real replies, staff configuration and controlled delivery. Verify GHL overlap is retired. |
-| Direct Meta WhatsApp | Independent scheduling, consent/STOP, signed callbacks, delivery ledger, Admin conversations and template checks. | Replacement token approval by another Meta team member, connection check, real signed inbound event, controlled replies/delivery and approved reminder templates. |
+| Direct Meta WhatsApp | Independent scheduling, consent/STOP, signed callbacks, delivery ledger and Admin conversations. Production account/phone access and callback challenge pass; the app subscription is acknowledged and all 86 reminder variants are submitted. | Deploy matching fixes; wait for template approval (86 pending at final read), refresh the Admin cache, review funding and complete controlled consent/inbound/reply/delivery tests. Sending remains off. |
 | Project files and walkthroughs | Openable file previews, actual issued/uploaded material and completion-aware guidance. | Review representative production documents and check that completed actions suppress the corresponding guides. Record any specific failures. |
 | Verified-project reporting | New correction described below, exercised against real PostgreSQL. | Apply the new reporting migration and deploy the matching app, then compare live classifications with actual primary memberships. |
 
@@ -62,6 +62,60 @@ response codes and the scope of what was established.
 Email setup instructions and the proposed exact endpoints are in
 [communication-provider-setup.md](communication-provider-setup.md). Keep existing
 Google MX records for `tryjalla.com`; receiving belongs on `replies.tryjalla.com`.
+
+### WhatsApp follow-up — 16 November, 00:12–00:15 Malaysia time
+
+The owner saved an access token. Read-only checks of the phone, account templates,
+permissions and token debugger all returned **“API access blocked”**, code **200**,
+subcode **5258005** (HTTP 400). Token validity and actual scopes could not be
+established. The saved account and phone IDs were not changed. Sending remains off
+with a test-only audience, and both callback markers and the template check are
+pending. Meta Required actions, pending admin reviews and any displayed business
+restrictions need inspection before another provider check. The application now
+has specific English/French guidance for this block and ordinary permission errors;
+that wording change remains local until deployment. No WhatsApp messages were sent.
+See [the setup guide](meta-whatsapp-setup.md) and
+[sanitized diagnostic record](meta-whatsapp-checks-2026-11-16.json).
+
+At **01:10–01:16 Malaysia time**, after the owner reported publishing the app,
+the earlier block was no longer returned. The saved system-user token is valid
+for Groundwork's app and has all four recorded scopes; the production phone reads
+successfully. The saved Messaging account ID still rejects template/phone-list
+reads with **100 / 33**. The token's system user is `122141001993236907`, and its
+scoped assigned-account list is empty. Only the test account is visible in the
+owned list; its templates are readable. Meta's phone callback configuration already
+matches Groundwork. Production account access/ID validation is the next action,
+followed by callback and actual-message testing. Sending remains off; these checks
+made no configuration changes and sent no messages.
+
+At **01:57**, the saved token successfully read both the production template catalog
+and the account's phone list after the owner added the missing account access. The
+configured account/phone pair is now established, with no replacement token needed
+for those reads. The catalog contains four approved templates and no Groundwork
+reminder definitions. Local fixes shorten the two original long English button labels
+and ignore six exact seed drafts for WhatsApp; saved email copy and rows remain intact.
+There are now 86 valid English/French reminder variants, with zero exact approvals,
+in the [review pack](whatsapp/2026-11-16-template-review/README.md). They have not
+been submitted. All 16 lifecycle sequences and WhatsApp sending remain off.
+Callback timestamps remain pending. The subscription-list GET timed out, leaving
+that check unknown; the funding-field read returned code 10. The owner's screenshot
+shows a LeadConnector credit line, which needs review before paid delivery. Local
+validation passed 124 focused tests, type checking and the production build.
+
+At **06:04–06:15 Malaysia time**, after explicit owner approval, Meta acknowledged
+the app subscription and completed the real callback challenge. All **86 Groundwork
+variants** were then created and read back against the exact runtime definitions:
+**86 PENDING, zero APPROVED, zero REJECTED**. Meta assigned 62 UTILITY and 24
+MARKETING variants. Six terminal-variable bodies needed a fixed closing sentence;
+the shared compiler and [correction record](whatsapp/2026-11-16-template-review/format-corrections.json)
+keep runtime/export copy aligned. French translations reuse Meta’s category for
+their existing name. See the [submission receipt](whatsapp/2026-11-16-template-review/submission-receipt.json).
+Sending remains off, the audience stays test-only, all 16 sequences are disabled
+and no linked contacts or real signed incoming events have been observed. These
+provider operations sent no messages and changed no billing. Deploy the staged
+WhatsApp application fixes, wait for approval, refresh the live Admin check, then
+complete controlled consent/inbound/reply/delivery testing. Latest local validation:
+126 focused tests across eight files, type checking and production build passed.
 
 ## Reporting correction and confirmed definition
 

@@ -1,0 +1,44 @@
+{
+  "reason": "Meta returned code 100, subcode 2388299 for trailing parameters, including parameters followed only by punctuation. A fixed closing sentence is appended by the shared channel compiler.",
+  "emailCopyChanged": false,
+  "variablesChanged": false,
+  "actionDestinationsChanged": false,
+  "variants": [
+    {
+      "name": "groundwork_ci06",
+      "language": "en",
+      "originalBody": "Hi {{1}},\n\nYour invitation has been accepted, but your contractor onboarding is incomplete. Finish the remaining steps to join {{2}}.",
+      "submittedBody": "Hi {{1}},\n\nYour invitation has been accepted, but your contractor onboarding is incomplete. Finish the remaining steps to join {{2}}.\n\nOpen Groundwork to continue."
+    },
+    {
+      "name": "groundwork_ci08",
+      "language": "en",
+      "originalBody": "Hi {{1}},\n\nYour contractor setup is still incomplete. Reply if you need assistance, or complete the remaining steps to join {{2}}.",
+      "submittedBody": "Hi {{1}},\n\nYour contractor setup is still incomplete. Reply if you need assistance, or complete the remaining steps to join {{2}}.\n\nOpen Groundwork to continue."
+    },
+    {
+      "name": "groundwork_ci09",
+      "language": "fr",
+      "originalBody": "Bonjour,\n\nVous avez rejoint {{1}}. Ouvrez le projet pour retrouver ses étapes, ses documents et la conversation avec {{2}}.",
+      "submittedBody": "Bonjour,\n\nVous avez rejoint {{1}}. Ouvrez le projet pour retrouver ses étapes, ses documents et la conversation avec {{2}}.\n\nOuvrez Groundwork pour continuer."
+    },
+    {
+      "name": "groundwork_ci05",
+      "language": "fr",
+      "originalBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.",
+      "submittedBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.\n\nOuvrez Groundwork pour continuer."
+    },
+    {
+      "name": "groundwork_ci06",
+      "language": "fr",
+      "originalBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.",
+      "submittedBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.\n\nOuvrez Groundwork pour continuer."
+    },
+    {
+      "name": "groundwork_ci07",
+      "language": "fr",
+      "originalBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.",
+      "submittedBody": "Bonjour,\n\nVotre invitation à {{1}} est acceptée. Finalisez votre inscription comme entrepreneur pour retrouver le projet et commencer à travailler avec {{2}}.\n\nOuvrez Groundwork pour continuer."
+    }
+  ]
+}
