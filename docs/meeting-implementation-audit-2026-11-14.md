@@ -1,5 +1,9 @@
 # Meeting and chat implementation audit — 14 November 2026
 
+**Current release status:** use the [November 16–20 readiness record](weekly-readiness-2026-11-16.md).
+The Meta integration and role-correction implementation have advanced since this
+audit. Its dated provider/deployment findings remain historical evidence.
+
 This reconciles the November 9–13 meeting records and supplied transcripts with
 the earlier November 2 communication documents and the user's subsequent chat
 decisions. Documents are requirements evidence; their requests to email colleagues,

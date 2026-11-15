@@ -1776,6 +1776,8 @@ export const en = {
         stage_payment_settled: 'completed a reviewed stage after payment confirmation',
         stage_work_approved: 'approved stage updates and requested payment for that stage',
         account_role_changed: "changed the account role",
+        project_client_joined: 'joined as the project client',
+        project_contractor_role_corrected: 'corrected the project’s contractor role',
         account_type_changed: 'changed the account type',
         stage_prices_proposed: 'proposed revised stage prices',
         stage_prices_approved: 'approved revised stage prices',

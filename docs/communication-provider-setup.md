@@ -1,12 +1,48 @@
 # Communication provider setup
 
-The user has deferred provider setup and GHL retirement to focus on building the
-lifecycle communication flow. The plan below is retained for later activation;
-no further GHL branch details are required for the current implementation work.
+Provider setup and retirement of overlapping GHL activation reminders are part of
+the **November 16–20 release checklist**. See
+[the current weekly readiness record](weekly-readiness-2026-11-16.md).
 
-Read-only checks on 13 November 2026 confirm the replacement Resend key can read
-domains, webhooks and receiving permissions. The account currently has only
-`mail.tryjalla.com`, verified for sending. No webhooks are registered.
+Read-only checks on **15 November 2026** reconfirmed that the saved Resend key can
+read domains and webhooks. Its complete domain list contains `mail.tryjalla.com`,
+verified for sending with receiving disabled. No Groundwork webhook was found in
+that account's complete webhook list. The root sending domain and dedicated reply
+subdomain below remain setup work. No provider, DNS or delivery settings were changed.
+
+## DNS provider identified
+
+A subsequent public DNS lookup on **15 November 2026** returned
+`ns23.domaincontrol.com` and `ns24.domaincontrol.com`, pointing to GoDaddy DNS.
+The root domain's five MX records point to Google's mail servers. No MX answer
+was returned for `replies.tryjalla.com`.
+
+Open GoDaddy's Domain Portfolio, select `tryjalla.com`, then **DNS**. If the domain
+uses GoDaddy DNS hosting without being registered there, look under **DNS Hosting**.
+The nameserver lookup identifies the DNS service, not which team member owns its
+login. Keep the existing nameservers, website records and Google root MX records.
+
+For manual Resend setup:
+
+1. Add `tryjalla.com` in Resend Domains with sending enabled and receiving disabled.
+2. Add its generated sending records to GoDaddy. Copy each record's type, content
+   and MX priority exactly from Resend. In GoDaddy's Name field, omit the final
+   `.tryjalla.com`; use the host prefix shown by Resend. Its usual default sending
+   hosts are `send` and `resend._domainkey`. Do not add a second root SPF policy.
+3. Add `replies.tryjalla.com` in Resend with receiving enabled and sending disabled.
+   Add its generated DKIM record and receiving MX record to GoDaddy. The receiving
+   MX Name is `replies`; use the exact target and priority issued by Resend.
+4. Request verification in Resend and wait for the corresponding records to verify.
+   Keep the already verified `mail.tryjalla.com` sending configuration.
+5. Complete the webhook and private Admin reply/staff settings below, then test
+   actual delivery and replies with the controlled accounts.
+
+The domains must be added in Resend before their exact DNS values can be copied.
+No values are invented from documentation examples. Provider instructions:
+[GoDaddy DNS setup](https://resend.com/docs/guides/dns/godaddy) and
+[custom receiving domains](https://resend.com/docs/dashboard/receiving/custom-domains).
+
+## Provider configuration
 
 The proposed configuration writes are:
 

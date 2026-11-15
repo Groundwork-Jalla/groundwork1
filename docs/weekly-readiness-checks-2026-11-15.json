@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-11-15T06:22:35.720Z",
+  "timezone": "Asia/Kuala_Lumpur",
+  "mode": "read_only",
+  "configurationChanges": 0,
+  "messagesSent": 0,
+  "projectRecordsCreated": 0,
+  "scope": "Zero-row Supabase schema probes, unauthenticated public endpoint responses, and Resend domain/webhook metadata for Groundwork",
+  "database": [
+    {"object": "notifications.event_key", "http": 200, "code": null},
+    {"object": "notifications.groundwork_readiness_probe_missing", "http": 400, "code": "42703", "purpose": "Missing-column control"},
+    {"object": "account_role_notifications", "http": 401, "code": "42501"},
+    {"object": "communication_whatsapp_settings.template_checked_at", "http": 401, "code": "42501"},
+    {"object": "stage_payment_plans", "http": 200, "code": null},
+    {"object": "contractor_existing_project_context", "http": 401, "code": "42501"}
+  ],
+  "publicEndpoints": [
+    {"path": "/api/events?action=communication-status", "http": 401},
+    {"path": "/api/events?action=whatsapp-admin", "http": 401},
+    {"path": "/api/whatsapp-webhook", "http": 403}
+  ],
+  "resend": {
+    "domainReadHttp": 200,
+    "domainListComplete": true,
+    "groundworkDomains": [{"name": "mail.tryjalla.com", "status": "verified", "sending": "enabled", "receiving": "disabled"}],
+    "webhookReadHttp": 200,
+    "webhookListComplete": true,
+    "groundworkWebhooks": []
+  },
+  "notEstablished": [
+    "Exact versions of every deployed RPC and trigger",
+    "Current private Production sender/reply/staff settings",
+    "Actual email or WhatsApp delivery",
+    "A signed incoming provider callback",
+    "Full controlled-account acceptance",
+    "Real-user activation totals or off-platform assistance"
+  ]
+}

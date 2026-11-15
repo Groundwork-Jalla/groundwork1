@@ -122,7 +122,8 @@ CREATE POLICY own_roles ON user_roles FOR SELECT USING(user_id=auth.uid());
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY own_profile ON profiles FOR SELECT USING(id=auth.uid() OR public.is_admin());
 ALTER TABLE profiles ADD COLUMN preferred_lang text DEFAULT 'en';
-ALTER TABLE projects ADD COLUMN status text DEFAULT 'active',ADD COLUMN workflow_origin text NOT NULL DEFAULT 'client';
+ALTER TABLE projects ADD COLUMN status text DEFAULT 'active',ADD COLUMN workflow_origin text NOT NULL DEFAULT 'client',
+ ADD COLUMN created_at timestamptz NOT NULL DEFAULT now(),ADD COLUMN target_start date,ADD COLUMN created_by uuid;
 CREATE TRIGGER project_workflow_origin BEFORE INSERT OR UPDATE OF workflow_origin ON projects FOR EACH ROW EXECUTE FUNCTION public.guard_project_workflow_origin();
 CREATE TABLE public.contractor_onboarding(user_id uuid PRIMARY KEY REFERENCES auth.users,client_intent text,client_intent_at timestamptz,
  updated_at timestamptz,date_of_birth date,residential_address text,business_status text,specialty text,specialty_other text,license_number text);
@@ -139,6 +140,13 @@ CREATE TABLE public.lifecycle_enrollments(id uuid PRIMARY KEY DEFAULT gen_random
  next_send_at timestamptz,processing_token uuid,processing_until timestamptz);
 CREATE TABLE public.notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,type text,title text,body text,data jsonb,event_key text);
 CREATE UNIQUE INDEX notifications_recipient_event ON notifications(user_id,event_key) WHERE event_key IS NOT NULL;
+ALTER TABLE project_documents ADD COLUMN category text;
+CREATE TABLE public.site_updates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),project_id uuid,submitted_by uuid);
+ALTER TABLE site_updates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY site_updates_read ON site_updates FOR SELECT TO authenticated USING(public.project_member(project_id) OR public.is_admin());
+ALTER TABLE project_audit_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY project_audit_read ON project_audit_log FOR SELECT TO authenticated USING(public.project_member(project_id) OR public.is_admin());
+GRANT SELECT ON public.site_updates,public.project_audit_log TO authenticated;
 `;
   const sql = [setup,
     fn('supabase/migrations/112_project_viewers.sql', 'project_member'),
@@ -155,7 +163,10 @@ CREATE UNIQUE INDEX notifications_recipient_event ON notifications(user_id,event
     read('scripts/fixtures/account-roles.sql'),read('scripts/fixtures/role-change-onboarding.sql'),
     read('supabase/migrations/20261115000100_existing_project_contractor_onboarding.sql'),read('supabase/migrations/20261115000200_account_role_change_notifications.sql'),
     "SELECT test_assert((SELECT status='sent' AND provider_id='provider-accepted' AND payload->>'text'='Original copy' FROM account_role_notifications WHERE user_id=test_id(11) AND provider_id IS NOT NULL),'migration replay preserves the sent email and immutable payload');",
-    "SELECT test_assert((SELECT client_intent='existing_project' FROM contractor_onboarding WHERE user_id=test_id(11)),'migration replay preserves existing-project completion');"
+    "SELECT test_assert((SELECT client_intent='existing_project' FROM contractor_onboarding WHERE user_id=test_id(11)),'migration replay preserves existing-project completion');",
+    read('supabase/migrations/182_verified_is_a_qualified_project.sql'),
+    read('supabase/migrations/20261115000300_verified_project_participants.sql'),read('supabase/migrations/20261115000300_verified_project_participants.sql'),
+    read('scripts/fixtures/verified-project-participants.sql'),read('supabase/migrations/20261115000300_verified_project_participants.sql')
   ].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -168,7 +179,7 @@ CREATE UNIQUE INDEX notifications_recipient_event ON notifications(user_id,event
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK') || !output.includes('ROLE_CHANGE_ONBOARDING_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK') || !output.includes('ROLE_CHANGE_ONBOARDING_OK') || !output.includes('VERIFIED_PROJECT_PARTICIPANTS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
@@ -191,7 +202,14 @@ CREATE UNIQUE INDEX notifications_recipient_event ON notifications(user_id,event
     SELECT coalesce((claim_account_role_notification(test_id(949))->>'worker_token') IS NOT NULL,false) AS claimed;
     SELECT pg_sleep(0.15); COMMIT;`)));
   if(emailClaims.some(result=>result.code!==0)||emailClaims.filter(result=>/\n t\s*\n/.test(result.output)).length!==1)throw new Error('Concurrent account email claim regression: '+JSON.stringify(emailClaims));
+  const joins=await Promise.all([1,2].map(()=>query(`BEGIN; SET ROLE authenticated;
+    SELECT set_config('test.actor',test_id(16)::text,true);
+    SELECT record_primary_client_join(test_id(309));SELECT pg_sleep(0.15);COMMIT;`)));
+  if(joins.some(result=>result.code!==0))throw new Error('Concurrent primary client join regression: '+JSON.stringify(joins));
+  const joined=await query("SELECT test_assert((SELECT count(*) FROM project_audit_log WHERE project_id=test_id(309) AND action='project.client_joined')=1,'concurrent primary-client visits record one join');");
+  if(joined.code!==0)throw new Error(joined.output);
   console.log('Account role database regressions passed: all four roles, owned-project corrections, conflicting/pending contractor review, preserved budgets/payments/receipts/completed work, five-step existing-project onboarding, durable role email claims, immutable retries, superseded notices, migration replay, RLS, metadata cleanup, audit attribution, stale edits and concurrent last-admin protection.');
+  console.log('Verified-project reporting regressions passed: qualification, actual primary-client joins, accepted primary contractors, observer/pending/revoked exclusion, provisioned clients, unchanged ground-update requirements, single-definition counts, caller RLS and concurrent join deduplication.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

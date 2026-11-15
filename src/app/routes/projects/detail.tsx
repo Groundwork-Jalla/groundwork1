@@ -43,6 +43,7 @@ import type {
 }                                from '@/types/project';
 import { useDomainLabels } from '@/lib/domain-labels';
 import { contractorProjectRedirect } from '@/lib/projects/contractor-project-redirect';
+import { recordPrimaryClientJoin } from '@/lib/supabase/project-client-join';
 
 // ── Label maps ────────────────────────────────────────────
 
@@ -175,6 +176,13 @@ export default function ProjectDetail() {
   // minus the stages — which is why it read as the project total (Philip, 9 Nov 2026).
   const [fees,      setFees]      = useState<ProjectFeeRow[]>([]);
   const [loading,   setLoading]   = useState(true);
+  useEffect(() => {
+    if (id && project?.id === id && teamAccess?.primaryClient === true) {
+      // A real project visit establishes the join for a provisioned owner too.
+      // Telemetry cannot block opening or using the project.
+      void recordPrimaryClientJoin(id).catch(() => {});
+    }
+  }, [id, project?.id, teamAccess?.primaryClient, user?.id]);
   const [error,     setError]     = useState<string | null>(null);
   /**
    * The open tab, taken from `?tab=` when there is one.

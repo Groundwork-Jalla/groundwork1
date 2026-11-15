@@ -1768,6 +1768,8 @@ export const fr: Mirror<EnDict> = {
         stage_payment_settled: 'a terminé une étape validée après confirmation du paiement',
         stage_work_approved: 'a validé les travaux et demandé le paiement de cette étape',
         account_role_changed: "a modifié le rôle du compte",
+        project_client_joined: 'a rejoint le projet en tant que client',
+        project_contractor_role_corrected: 'a corrigé le rôle de l’entrepreneur du projet',
         account_type_changed: 'a changé le type de compte',
         stage_prices_proposed: 'a proposé de nouveaux prix pour les étapes',
         stage_prices_approved: 'a approuvé les prix révisés',
