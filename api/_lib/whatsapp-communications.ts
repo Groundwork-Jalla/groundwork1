@@ -1,6 +1,6 @@
-import { approvedTemplateMatches, latestDueWhatsAppStep, sameWhatsAppDefinition, whatsappCommand, whatsappTemplate, whatsappTemplatePayload, type WhatsAppTemplate } from '../../shared/whatsapp.js';
+import { approvedTemplateMatches, isSeededLifecycleDraft, latestDueWhatsAppStep, sameWhatsAppDefinition, whatsappCommand, whatsappTemplate, whatsappTemplatePayload, type WhatsAppTemplate } from '../../shared/whatsapp.js';
 import { createHash } from 'node:crypto';
-import { metaWhatsAppConfig, metaRequest, postMetaMessage, whatsappSite, type MetaWhatsAppConfig, type WhatsAppService } from './meta-whatsapp.js';
+import { metaWhatsAppConfig, metaRequest, metaErrorCode, postMetaMessage, whatsappSite, type MetaWhatsAppConfig, type WhatsAppService } from './meta-whatsapp.js';
 import type { Context, Person, Step } from '../../shared/lifecycle-copy.js';
 
 export const hashConsent = (code: string) => createHash('sha256').update(code).digest('hex');
@@ -10,18 +10,22 @@ function checked<T extends {error:any;data:any}>(r:T): T['data'] { if(r.error) t
 export async function whatsappTemplatePack(svc: WhatsAppService) {
   const steps:Step[] = checked(await svc.from('lifecycle_sequence_steps').select('*').order('position')) ?? [];
   const templates:WhatsAppTemplate[]=[];const issues:Array<{step:string;language:string;error:string}>=[];
-  for(const step of steps) for(const language of ['en','fr'] as const) {
+  let excludedDrafts=0;
+  for(const step of steps) {
+   if(isSeededLifecycleDraft(step)) {excludedDrafts++;continue;}
+   for(const language of ['en','fr'] as const) {
     try { const template = whatsappTemplate(step,language,site());
       if(!templates.some(t => t.name===template.name && t.language===language)) templates.push(template);
     } catch(e) {issues.push({step:step.code??String(step.position),language,error:e instanceof Error?e.message:'invalid_template'});}
+   }
   }
-  return {templates,issues};
+  return {templates,issues,excludedDrafts};
 }
 /** Checks only read provider state. Never sends or creates templates. */
 export async function checkWhatsAppConnection(svc: WhatsAppService,cfg: MetaWhatsAppConfig,deadline=Date.now()+60_000) {
   if(!cfg.token || !cfg.phone_number_id || !cfg.business_account_id) throw new Error('not_configured');
   const [numberResult,pack] = await Promise.all([metaRequest(cfg,cfg.phone_number_id),whatsappTemplatePack(svc)]);
-  if(!numberResult.ok) throw new Error(`meta_${Number(numberResult.json?.error?.code)||numberResult.status}`);
+  if(!numberResult.ok) throw new Error(metaErrorCode(numberResult.status,numberResult.json));
   // Fixed host, account and endpoint for every page. Never follow provider-supplied URLs with our token.
   let after='';const catalog:any[]=[];
   for(let page=0;page<20;page++) {
@@ -29,9 +33,9 @@ export async function checkWhatsAppConnection(svc: WhatsAppService,cfg: MetaWhat
     const endpoint=new URL(`https://graph.facebook.com/${cfg.api_version}/${cfg.business_account_id}/message_templates`);
     endpoint.searchParams.set('limit','100');endpoint.searchParams.set('fields','name,language,status,components');
     if(after) endpoint.searchParams.set('after',after);
-    const response=await fetch(endpoint,{headers:{Authorization:`Bearer ${cfg.token}`},signal:AbortSignal.timeout(12_000)});
+    const response=await fetch(endpoint,{redirect:'error',headers:{Authorization:`Bearer ${cfg.token}`},signal:AbortSignal.timeout(12_000)});
     const json=await response.json().catch(()=>null);
-    if(!response.ok) throw new Error(`meta_${Number(json?.error?.code)||response.status}`);
+    if(!response.ok) throw new Error(metaErrorCode(response.status,json));
     catalog.push(...(Array.isArray(json?.data)?json.data:[]));
     if(!json?.paging?.next) break;
     if(page===19 || typeof json.paging?.cursors?.after!=='string') throw new Error('template_catalog_incomplete');

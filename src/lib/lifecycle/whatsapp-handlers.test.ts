@@ -14,13 +14,13 @@ beforeEach(()=>{
  vi.clearAllMocks();h.saves=[];h.role=true;h.user.mockResolvedValue({id:'admin-user'});h.cfg.mockResolvedValue({...cfg});h.receive.mockResolvedValue(1);h.rpc.mockResolvedValue({data:true,error:null});
  h.from.mockImplementation((table:string)=>{
    const q:any={};let saved=false;
-   q.select=q.eq=q.neq=q.limit=q.maybeSingle=()=>q;
+   q.select=q.eq=q.neq=q.limit=q.maybeSingle=q.order=()=>q;
    q.update=(patch:any)=>{saved=true;h.saves.push({table,patch});return q;};q.upsert=(patch:any)=>{saved=true;h.saves.push({table,patch});return q;};
    q.then=(resolve:any)=>Promise.resolve({data:table==='user_roles'?(h.role?[{role:'admin'}]:[]):null,error:null}).then(resolve);
    return q;
  });
 });
-afterEach(()=>vi.unstubAllEnvs());
+afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
 describe('WhatsApp Admin authorization and secret handling',()=>{
  it('rejects unsigned-in and non-admin callers before exposing connection state',async()=>{
    h.user.mockResolvedValueOnce(null);let res=response();await admin({method:'GET'},res);expect(res.code).toBe(401);expect(h.cfg).not.toHaveBeenCalled();
@@ -30,6 +30,13 @@ describe('WhatsApp Admin authorization and secret handling',()=>{
    const res=response();await admin({method:'GET'},res);expect(res.code).toBe(200);expect(res.body.credentials).toEqual({token:true,appSecret:true,verifyToken:true});
    const serialized=JSON.stringify(res.body);for(const value of [cfg.token,cfg.appSecret,cfg.verifyToken])expect(serialized).not.toContain(value);
    expect(res.body.callbackUrl).toBe('https://www.tryjalla.com/api/whatsapp-webhook');
+ });
+ it.each([{code:200,subcode:5258005,result:'meta_api_access_blocked'},{code:100,subcode:33,result:'meta_resource_unavailable'}])('returns $result without exposing provider details or credentials',async({code,subcode,result})=>{
+   const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({error:{code,error_subcode:subcode,message:`private provider response ${cfg.token}`}}),{status:400}));vi.stubGlobal('fetch',fetcher);
+   const res=response();await admin({method:'POST',body:{operation:'check'}},res);
+   expect(res.code).toBe(400);expect(res.body).toEqual({error:result});
+   expect(fetcher).toHaveBeenCalledOnce();expect(h.saves).toHaveLength(0);
+   for(const value of [cfg.token,cfg.appSecret,cfg.verifyToken,'private provider response'])expect(JSON.stringify(res.body)).not.toContain(value);
  });
  it('cannot enable sending before both verification checks succeed',async()=>{
    const res=response();await admin({method:'POST',body:{operation:'save',enabled:true}},res);

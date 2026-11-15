@@ -38,10 +38,21 @@ export function validMetaSignature(raw: Buffer, signature: unknown, secret: stri
 export function equalSecret(a: string,b: string): boolean {
   return !!a && !!b && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a),Buffer.from(b));
 }
+/** Keep provider details private while distinguishing an API block from other permission failures. */
+export function metaErrorCode(status: number, payload: unknown): string {
+  const error=(payload as {error?:{code?:unknown;error_subcode?:unknown}}|null)?.error;
+  const code=Number(error?.code);
+  if(Number.isSafeInteger(code) && code>0) {
+    if(code===200 && Number(error?.error_subcode)===5258005) return 'meta_api_access_blocked';
+    if(code===100 && Number(error?.error_subcode)===33) return 'meta_resource_unavailable';
+    return `meta_${code}`;
+  }
+  return `meta_http_${status}`;
+}
 export async function metaRequest(cfg: MetaWhatsAppConfig, path: string, method='GET', body?: any) {
   if (!/^\d+(?:\/[a-z_]+)?$/.test(path) || !/^v\d+\.\d+$/.test(cfg.api_version)) throw new Error('invalid_meta_endpoint');
   const response = await fetch(`https://graph.facebook.com/${cfg.api_version || META_API_VERSION}/${path}`,{
-    method,signal:AbortSignal.timeout(12_000),headers:{Authorization:`Bearer ${cfg.token}`,'Content-Type':'application/json'},
+    method,redirect:'error',signal:AbortSignal.timeout(12_000),headers:{Authorization:`Bearer ${cfg.token}`,'Content-Type':'application/json'},
     ...(body ? {body:JSON.stringify(body)} : {}),
   });
   const json = await response.json().catch(()=>null);
@@ -57,7 +68,6 @@ export async function postMetaMessage(cfg: MetaWhatsAppConfig, id: string, paylo
     });
     if (response.ok && typeof response.json?.messages?.[0]?.id === 'string') return {status:'sent',providerId:response.json.messages[0].id};
     if (response.status >= 500 || response.ok) return {status:'uncertain',error:'uncertain_send'};
-    const code = Number(response.json?.error?.code);
-    return {status:'failed',error:Number.isSafeInteger(code) && code > 0 ? `meta_${code}` : `meta_http_${response.status}`};
+    return {status:'failed',error:metaErrorCode(response.status,response.json)};
   } catch { return {status:'uncertain',error:'uncertain_send'}; }
 }

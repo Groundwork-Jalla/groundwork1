@@ -1,8 +1,8 @@
 import { afterEach,describe,expect,it,vi } from 'vitest';
 import { createHmac } from 'node:crypto';
-import { approvedTemplateMatches,latestDueWhatsAppStep,META_API_VERSION,sameWhatsAppDefinition,serviceWindowOpen,whatsappCommand,whatsappPhone,whatsappTemplate,whatsappTemplatePayload } from '../../../shared/whatsapp';
+import { approvedTemplateMatches,isSeededLifecycleDraft,latestDueWhatsAppStep,META_API_VERSION,sameWhatsAppDefinition,serviceWindowOpen,whatsappCommand,whatsappPhone,whatsappTemplate,whatsappTemplatePayload } from '../../../shared/whatsapp';
 import { equalSecret,metaWhatsAppConfig,postMetaMessage,validMetaSignature,type MetaWhatsAppConfig } from '../../../api/_lib/meta-whatsapp';
-import { receiveMetaEvents } from '../../../api/_lib/whatsapp-communications';
+import { receiveMetaEvents,whatsappTemplatePack } from '../../../api/_lib/whatsapp-communications';
 import type { Step } from '../../../shared/lifecycle-copy';
 
 const step:Step={position:1,delay_hours:0,channel:'email',code:'CS01',subject_en:'Welcome',subject_fr:'Bienvenue',body_en:'Hi {{first_name}}, finish onboarding for {{project_name}}.',body_fr:'Bonjour {{first_name}}, terminez votre inscription pour {{project_name}}.',cta_key:'onboarding',cta_label_en:'Complete onboarding',cta_label_fr:'Terminer mon inscription'};
@@ -67,6 +67,40 @@ describe('approved reminder copy and independent timing',()=>{
     expect(whatsappTemplate(emailStep,'en','https://www.tryjalla.com').components[0].text).toBe('Please reply to this message for help.');
     expect(emailStep.body_en).toContain('reply to this email');
   });
+  it.each(['en','fr'] as const)('surrounds dangling %s parameters with fixed channel copy in both export and the send log',language=>{
+    const saved={...step,body_en:'{{first_name}}, join {{project_name}}.',body_fr:'{{first_name}}, retrouvez {{project_name}}.'};
+    const {definition,payload,body}=whatsappTemplatePayload(saved,{email:'alex@example.test',fullName:'Alex Smith',lang:language},{project_name:'My home'},'https://www.tryjalla.com');
+    expect(definition.components[0].text).toBe(language==='fr'
+      ? 'Mise à jour Groundwork :\n\n{{1}}, retrouvez {{2}}.\n\nOuvrez Groundwork pour continuer.'
+      : 'Groundwork update:\n\n{{1}}, join {{2}}.\n\nOpen Groundwork to continue.');
+    expect(definition.variables).toEqual(['first_name','project_name']);
+    expect(payload.template.components[0].parameters).toEqual([{type:'text',text:'Alex'},{type:'text',text:'My home'}]);
+    expect(body).toContain(language==='fr'?'Alex, retrouvez My home.':'Alex, join My home.');
+    expect(body).toContain(language==='fr'?'Ouvrez Groundwork pour continuer.':'Open Groundwork to continue.');
+    expect(body).toContain('https://www.tryjalla.com/work/onboarding');
+    expect(saved.body_en).toBe('{{first_name}}, join {{project_name}}.');
+    expect(saved.body_fr).toBe('{{first_name}}, retrouvez {{project_name}}.');
+    expect(approvedTemplateMatches(definition,{...definition,status:'APPROVED'})).toBe(true);
+  });
+  it.each(['CS01','CI05'])('keeps the seeded %s onboarding action within the button limit without editing email copy',code=>{
+    const saved={...step,code,cta_label_en:'Complete contractor onboarding',cta_label_fr:'Terminer mon inscription'};
+    const compiled=whatsappTemplate(saved,'en','https://www.tryjalla.com');
+    expect(compiled.components[2].buttons[0]).toMatchObject({text:'Complete onboarding',url:'https://www.tryjalla.com/{{1}}'});
+    expect(saved.cta_label_en).toBe('Complete contractor onboarding');
+    expect(whatsappTemplate(saved,'fr','https://www.tryjalla.com').components[2].buttons[0].text).toBe(saved.cta_label_fr);
+  });
+  it('shortens the seeded invitation label while retaining the exact invitation target',()=>{
+    const saved={...step,code:'CI01',cta_key:'invitation',cta_label_en:'View and accept invitation'};
+    const compiled=whatsappTemplatePayload(saved,{email:'alex@example.test'},{invite_path:'/invite/example-token'},'https://www.tryjalla.com');
+    expect(compiled.definition.components[2].buttons[0].text).toBe('Accept invitation');
+    expect(compiled.payload.template.components.at(-1)?.parameters[0].text).toBe('invite/example-token');
+    expect(saved.cta_label_en).toBe('View and accept invitation');
+  });
+  it('preserves custom labels and reports overlong custom labels for review',()=>{
+    expect(whatsappTemplate({...step,cta_label_en:'Finish account setup'},'en','https://www.tryjalla.com').components[2].buttons[0].text).toBe('Finish account setup');
+    expect(()=>whatsappTemplate({...step,cta_label_en:'a'.repeat(26)},'en','https://www.tryjalla.com')).toThrow('template_button_invalid');
+    expect(()=>whatsappTemplate({...step,cta_key:'open_project',cta_label_en:'Complete contractor onboarding'},'en','https://www.tryjalla.com')).toThrow('template_button_invalid');
+  });
   it('refuses external and backslash invitation targets',()=>{
     for(const invite_path of ['https://example.com','//example.com/path','/\\example.com']) expect(()=>whatsappTemplatePayload({...step,cta_key:'invitation'},{email:'a@example.com'},{invite_path},'https://tryjalla.com')).toThrow('unsafe_action_link');
   });
@@ -77,6 +111,25 @@ describe('approved reminder copy and independent timing',()=>{
     expect(latestDueWhatsAppStep(steps,entered,base+72*3600_000)?.position).toBe(3);
     expect(latestDueWhatsAppStep(steps,entered,base+200*3600_000)?.position).toBe(4);
     expect(latestDueWhatsAppStep(steps,entered,base-1)).toBeNull();
+  });
+});
+describe('rerun migration placeholders',()=>{
+  const draft:Step={...step,code:'',position:2,delay_hours:72,subject_en:'[Draft] Connected',subject_fr:'[Brouillon] Connected',body_en:'Hi {{first_name}},\n\nPLACEHOLDER — replace with the approved wording.',body_fr:'Bonjour {{first_name}},\n\nPROVISOIRE — à remplacer par le texte approuvé.'};
+  it('ignores only exact uncoded seed drafts when choosing a due WhatsApp step',()=>{
+    const entered='2026-11-01T00:00:00Z';
+    expect(isSeededLifecycleDraft(draft)).toBe(true);
+    expect(latestDueWhatsAppStep([step,draft],entered,Date.parse(entered)+10*24*3600_000)).toBe(step);
+    expect(latestDueWhatsAppStep([draft],entered,Date.parse(entered)+10*24*3600_000)).toBeNull();
+    for(const real of [{...draft,code:'REAL01'},{...draft,body_en:'A custom reminder'},{...draft,subject_en:'A custom subject'}])expect(isSeededLifecycleDraft(real)).toBe(false);
+  });
+  it('excludes seed drafts from the pack but reports an uncoded custom step and retains all saved rows',async()=>{
+    const saved=[step,draft,{...draft,body_en:'Custom reminder'}];
+    const order=vi.fn().mockResolvedValue({data:saved,error:null});
+    const from=vi.fn(()=>({select:()=>({order})}));
+    const pack=await whatsappTemplatePack({from,rpc:vi.fn()});
+    expect(pack.templates).toHaveLength(2);expect(pack.excludedDrafts).toBe(1);
+    expect(pack.issues).toEqual([expect.objectContaining({language:'en',error:'step_code_required'}),expect.objectContaining({language:'fr',error:'step_code_required'})]);
+    expect(saved).toHaveLength(3);expect(saved[1]).toBe(draft);
   });
 });
 describe('raw signed callbacks and Meta delivery',()=>{

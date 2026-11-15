@@ -15,8 +15,16 @@ export function whatsappCommand(body: string): 'stop' | string | null {
   if (/^(stop|unsubscribe|cancel|arrêt|arret|désabonner|desabonner)$/i.test(text)) return 'stop';
   return text.match(/^START\s+([a-f0-9]{32})$/i)?.[1].toLowerCase() ?? null;
 }
+/** Migration 177 could be rerun after the real journeys, adding uncoded draft rows. */
+export function isSeededLifecycleDraft(step: Step): boolean {
+  return !step.code?.trim()
+    && step.subject_en?.startsWith('[Draft] ') === true
+    && step.subject_fr?.startsWith('[Brouillon] ') === true
+    && step.body_en === 'Hi {{first_name}},\n\nPLACEHOLDER — replace with the approved wording.'
+    && step.body_fr === 'Bonjour {{first_name}},\n\nPROVISOIRE — à remplacer par le texte approuvé.';
+}
 export function latestDueWhatsAppStep<T extends Step>(steps: T[], entered: string, now: number): T | null {
-  return stepTimeline(steps).filter(s => Date.parse(entered) + s.hoursFromEntry * 3600_000 <= now).at(-1)?.step ?? null;
+  return stepTimeline(steps.filter(step => !isSeededLifecycleDraft(step))).filter(s => Date.parse(entered) + s.hoursFromEntry * 3600_000 <= now).at(-1)?.step ?? null;
 }
 
 const variables = new Set(['first_name','name','email','project_name','client_name','contractor_name','client_first_name','contractor_first_name']);
@@ -26,7 +34,14 @@ export interface WhatsAppTemplate {
   variables: string[];
 }
 function channelBody(step:Step,language:'en'|'fr') {
-  return (language==='fr'?step.body_fr:step.body_en)?.trim().replace(/reply to this email/gi,'reply to this message').replace(/répondez à cet e-?mail/gi,'répondez à ce message');
+  let body=(language==='fr'?step.body_fr:step.body_en)?.trim().replace(/reply to this email/gi,'reply to this message').replace(/répondez à cet e-?mail/gi,'répondez à ce message');
+  if(!body) return body;
+  // Meta rejects dangling parameters even when followed only by punctuation.
+  // Use the same channel copy for export, approval matching and the send log;
+  // preserve the saved email wording and every variable/action destination.
+  if(/^[^\p{L}\p{N}]*\{\{\s*\w+\s*\}\}/u.test(body)) body=`${language==='fr'?'Mise à jour Groundwork :':'Groundwork update:'}\n\n${body}`;
+  if(/\{\{\s*\w+\s*\}\}[^\p{L}\p{N}]*$/u.test(body)) body+=`\n\n${language==='fr'?'Ouvrez Groundwork pour continuer.':'Open Groundwork to continue.'}`;
+  return body;
 }
 /** Exact per-step approval copy. Never substitute an unrelated generic template. */
 export function whatsappTemplate(step: Step, language: 'en' | 'fr', site: string): WhatsAppTemplate {
@@ -44,7 +59,11 @@ export function whatsappTemplate(step: Step, language: 'en' | 'fr', site: string
   const components: WhatsAppTemplate['components'] = [{ type:'BODY', text, ...(keys.length ? {example:{body_text:[examples]}} : {}) },
     {type:'FOOTER',text:language === 'fr' ? 'Envoyez STOP pour arrêter les rappels.' : 'Reply STOP to stop reminders.'}];
   if (step.cta_key) {
-    const label = (language === 'fr' ? step.cta_label_fr : step.cta_label_en)?.trim();
+    let label = (language === 'fr' ? step.cta_label_fr : step.cta_label_en)?.trim();
+    // Short WhatsApp equivalents for the original seeded English labels. Keep
+    // custom labels and the saved email copy intact; never truncate arbitrary copy.
+    if(language==='en' && step.cta_key==='onboarding' && label==='Complete contractor onboarding') label='Complete onboarding';
+    if(language==='en' && step.cta_key==='invitation' && label==='View and accept invitation') label='Accept invitation';
     if (!label || label.length > 25) throw new Error('template_button_invalid');
     const origin = new URL(site).origin;
     components.push({ type:'BUTTONS', buttons:[{type:'URL',text:label,url:`${origin}/{{1}}`,example:[`${origin}/dashboard`]}] });
