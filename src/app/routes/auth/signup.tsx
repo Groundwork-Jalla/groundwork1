@@ -17,6 +17,7 @@ import { PENDING_REDIRECT } from "@/lib/auth/post-auth-path";
 import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
          isExistingAccount } from "@/lib/auth/signup-account";
 import RoleSignup from "@/components/auth/RoleSignup";
+import AccountTypeSelect from "@/components/auth/AccountTypeSelect";
 import { PasswordField } from '@/components/ui/PasswordField';
 import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn, withProjectInvitation } from '@/lib/auth/project-invitation';
 import { useProjectInvitationRole } from '@/hooks/useProjectInvitationRole';
@@ -43,7 +44,7 @@ export default function Signup() {
   const [error,           setError]           = useState<string | null>(null);
   const [submitting,      setSubmitting]      = useState(false);
   // True once the embedded contractor form has given way to "check your email". The
-  // heading and the role radio below are answers to a question already asked by then.
+  // heading and the account-type buttons below are answers to a question already asked by then.
   const [roleFormSent,    setRoleFormSent]    = useState(false);
   const handleRoleFormSent = useCallback((sent: boolean) => setRoleFormSent(sent), []);
   const [submitted,       setSubmitted]       = useState(false);
@@ -230,23 +231,16 @@ export default function Signup() {
           keeping it here lets the two branches below be two separate forms rather than
           one wrapping the other. */}
       {!isInviteFlow && !roleFormSent && (
-        <fieldset disabled={submitting} className="space-y-2 mt-8">
-            <legend className="text-sm font-medium">{t('auth.signup.accountType')}</legend>
-          <div className="flex flex-wrap gap-4">
-            {(['homeowner', 'contractor'] as const).map(type => (
-              <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name="accountType" value={type} checked={accountType === type}
-                  onChange={() => {
-                    const next = new URLSearchParams(searchParams);
-                    next.set('role', type);
-                    setSearchParams(next, { replace: true });
-                    setError(null);
-                  }} />
-                {t(type === 'contractor' ? 'auth.signup.contractor' : 'auth.signup.homeowner')}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <AccountTypeSelect
+          value={accountType}
+          disabled={submitting}
+          onChange={type => {
+            const next = new URLSearchParams(searchParams);
+            next.set('role', type);
+            setSearchParams(next, { replace: true });
+            setError(null);
+          }}
+        />
       )}
 
       {sendToPartnerDoor ? (
@@ -265,7 +259,7 @@ export default function Signup() {
            * email carrying one; a contractor who found us on their own — most of them,
            * since outreach reaches contractors before clients — opens it bare.
            *
-           * The radio stays above it, so choosing contractor is still reversible.
+           * The account-type buttons stay above it, so choosing contractor is still reversible.
            *
            * It renders its own <form>, which is why it sits OUTSIDE this page's. Nested
            * forms are invalid HTML: React builds them anyway through the DOM, the inner

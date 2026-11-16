@@ -12,20 +12,29 @@ import { supabase } from '@/lib/supabase/client';
 // a client-supplied value would be a client-controlled string on a public page. All the
 // client does is ask the server to look at its own request.
 //
-// Fired once per browser. The endpoint is idempotent anyway (it writes only when the
-// column is NULL), but a flag keeps this off the critical path of every page load.
+// Fired once per account per browser. The endpoint is idempotent anyway (it writes only
+// when the column is NULL), but a flag keeps this off the critical path of every page
+// load. Keyed by user id for the same reason as record-crm-contact.ts: a browser-wide
+// flag set by the first account meant every later account on that browser kept a NULL
+// country.
 // =========================================================
 
-const DONE_KEY = 'gw:geoStamped';
+/** One flag per account. The bare legacy key (`gw:geoStamped`) is ignored, never read. */
+export const geoStampedKey = (userId: string) => `gw:geoStamped:${userId}`;
 
 export async function recordSignupCountry(): Promise<void> {
+  let session: { access_token: string; user: { id: string } } | null = null;
+  try {
+    ({ data: { session } } = await supabase.auth.getSession());
+  } catch { return; /* no session, nothing to stamp */ }
+  if (!session) return;
+
+  const DONE_KEY = geoStampedKey(session.user.id);
   try {
     if (localStorage.getItem(DONE_KEY) === '1') return;
   } catch { /* private mode: fall through and just try */ }
 
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
 
     // One endpoint, many actions — Vercel's Hobby plan caps serverless functions at 12
     // and every file under api/ is one. See api/events.ts.

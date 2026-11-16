@@ -153,11 +153,15 @@ describe('what the account-type choice actually does', () => {
     expect(role === -1 || role < open || role > close, 'RoleSignup is inside the form').toBe(true);
   });
 
-  it('and the role radio sits outside the form, since it only rewrites the URL', () => {
-    const radio = page.indexOf("name=\"accountType\"");
+  it('and the account-type buttons sit outside the form, since they only rewrite the URL', () => {
+    // Two coloured buttons since 16 Nov (AccountTypeSelect); they were radios before,
+    // and the invariant is the same: the choice is not a field of the form below.
+    const choice = page.indexOf('<AccountTypeSelect');
     const open = page.indexOf('<form onSubmit={handleSubmit}');
-    expect(radio).toBeGreaterThan(-1);
-    expect(radio).toBeLessThan(open);
+    expect(choice).toBeGreaterThan(-1);
+    expect(choice).toBeLessThan(open);
+    expect(page).not.toContain('type="radio"');
+    expect(page).not.toContain('type="checkbox"');
   });
 
   it('and never sends them to another page to do it', () => {
