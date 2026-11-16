@@ -3,7 +3,8 @@ import { jsPDF } from 'jspdf';
 const h = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock('@anthropic-ai/sdk', async original => ({ ...await original<typeof import('@anthropic-ai/sdk')>(), default: class { messages = { create: h.create }; } }));
 import { APIError, APIConnectionTimeoutError } from '@anthropic-ai/sdk';
-import { downloadReceipt, readPaymentReceipt, validateReceiptDocument } from '../../../api/_lib/payment-receipt-reader';
+import { readFileSync } from 'node:fs';
+import { downloadReceipt, pdfReaderUnavailable, readPaymentReceipt, validateReceiptDocument } from '../../../api/_lib/payment-receipt-reader';
 import { MAX_RECEIPT_BYTES } from './receipt-reading';
 const png = Uint8Array.from([137,80,78,71,13,10,26,10]);
 beforeEach(() => { vi.stubEnv('RECEIPT_READER_MODEL',''); h.create.mockReset().mockResolvedValue({ stop_reason: 'end_turn', model: 'fixture', content: [{ type: 'text', text: '{"document_status":"completed_payment","is_payment_receipt":true,"amount":"80.01","currency":"USD","confidence":"high"}' }] }); });
@@ -60,6 +61,45 @@ describe('receipt document reading', () => {
     for (let page = 1; page < 6; page++) pdf.addPage();
     await expect(readPaymentReceipt(new Uint8Array(pdf.output('arraybuffer')), 'key', new AbortController().signal)).rejects.toThrow('receipt_page_limit');
     expect(h.create).not.toHaveBeenCalled();
+  });
+  /*
+   * 17 November: every PDF receipt in production was refused as "could not be read
+   * clearly". pdf.js finds its worker by importing a path it builds at run time, which a
+   * deployment that packages only visible imports never ships. These pin the two halves
+   * of the fix: the worker is imported by name, and handed to pdf.js before it looks.
+   */
+  it('imports the PDF worker by its literal name, so the deployment packages it', () => {
+    const source = readFileSync('api/_lib/payment-receipt-reader.ts', 'utf8');
+    expect(source).toContain("import('pdfjs-dist/legacy/build/pdf.worker.mjs')");
+    expect(source).toContain('pdfjsWorker');
+  });
+  it('hands pdf.js its worker before opening a PDF, so it never searches for the file', async () => {
+    const pdf = new jsPDF(); pdf.text('NGN 1,930,750 Successful', 10, 10); pdf.addPage(); pdf.text('Page 2', 10, 10);
+    expect(await validateReceiptDocument(new Uint8Array(pdf.output('arraybuffer')))).toBe('application/pdf');
+    expect((globalThis as { pdfjsWorker?: { WorkerMessageHandler?: unknown } }).pdfjsWorker?.WorkerMessageHandler).toBeTruthy();
+  });
+  it('tells a reader that could not start apart from a document that could not be read', () => {
+    expect(pdfReaderUnavailable(new Error('Setting up fake worker failed: "Cannot find module \'/var/task/pdf.worker.mjs\'".'))).toBe(true);
+    expect(pdfReaderUnavailable(Object.assign(new Error('missing'), { code: 'ERR_MODULE_NOT_FOUND' }))).toBe(true);
+    expect(pdfReaderUnavailable(new Error('Invalid PDF structure.'))).toBe(false);
+    expect(pdfReaderUnavailable(new Error('No password given'))).toBe(false);
+    expect(pdfReaderUnavailable(null)).toBe(false);
+  });
+  it('reports a reader that cannot start as a service fault, never as the client\u2019s document', async () => {
+    // pdf.js caches its worker for the life of the process, so the failure is staged on a
+    // fresh copy of the reader with pdf.js answering the way the deployed function did.
+    vi.resetModules();
+    vi.doMock('pdfjs-dist/legacy/build/pdf.mjs', () => ({ getDocument: () => ({
+      promise: Promise.reject(new Error('Setting up fake worker failed: "Cannot find module \'/var/task/pdf.worker.mjs\'".')),
+      destroy: async () => {} }) }));
+    try {
+      const fresh = await import('../../../api/_lib/payment-receipt-reader');
+      const pdf = new jsPDF(); pdf.text('Receipt', 10, 10);
+      const failure = await fresh.validateReceiptDocument(new Uint8Array(pdf.output('arraybuffer'))).catch(error => error);
+      expect(failure?.name).toBe('ReceiptProcessingError');
+      expect(failure.code).toBe('receipt_reader_not_configured');
+      expect(failure.diagnostic).toEqual({ reason: 'pdf_reader_unavailable' });
+    } finally { vi.doUnmock('pdfjs-dist/legacy/build/pdf.mjs'); vi.resetModules(); }
   });
   it('refuses a renamed unrelated file or a corrupt PDF', async () => {
     await expect(validateReceiptDocument(new TextEncoder().encode('<html>receipt.pdf</html>'))).rejects.toThrow('receipt_file_type');

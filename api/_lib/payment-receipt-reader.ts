@@ -14,11 +14,42 @@ const schema = {
   },
 } as const;
 
+/**
+ * pdf.js, with its worker already in hand.
+ *
+ * On a server pdf.js runs its "worker" on the main thread, and finds it by importing
+ * `./pdf.worker.mjs` from a path it builds at run time. Vercel packages a function from
+ * the imports it can SEE, so that file was never deployed: `pdf.mjs` shipped alone, and
+ * opening any PDF failed with "Setting up fake worker failed". The catch below reported
+ * that as an unreadable document, so every PDF receipt in production was refused with
+ * "upload a clearer receipt" while photographs of the same receipt went through. Found
+ * on 17 November with a two-page bank PDF that reads NGN 1,930,750 in plain text.
+ *
+ * Importing the worker by its literal name puts it in the deployment, and handing it to
+ * pdf.js through `globalThis.pdfjsWorker` — the hook pdf.js checks first — means it
+ * never goes looking for the file at all.
+ */
+async function loadPdfReader() {
+  const [pdf, worker] = await Promise.all([
+    import('pdfjs-dist/legacy/build/pdf.mjs'),
+    import('pdfjs-dist/legacy/build/pdf.worker.mjs'),
+  ]);
+  (globalThis as { pdfjsWorker?: unknown }).pdfjsWorker ??= worker;
+  return pdf;
+}
+
+/** pdf.js could not start, as opposed to starting and rejecting the file. */
+export function pdfReaderUnavailable(error: unknown): boolean {
+  const message = (error as Error)?.message ?? '';
+  return /fake worker|Cannot find module|ERR_MODULE_NOT_FOUND|GlobalWorkerOptions/i.test(message)
+    || (error as { code?: string })?.code === 'ERR_MODULE_NOT_FOUND';
+}
+
 export async function validateReceiptDocument(bytes: Uint8Array) {
   const media = receiptMedia(bytes);
   if (!media) throw new Error('receipt_file_type');
   if (media === 'application/pdf') {
-    const pdf = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const pdf = await loadPdfReader();
     const task = pdf.getDocument({ data: bytes.slice(), disableFontFace: true, verbosity: 0 });
     const timer = setTimeout(() => { void task.destroy(); }, 8_000);
     try {
@@ -26,6 +57,9 @@ export async function validateReceiptDocument(bytes: Uint8Array) {
       if (document.numPages > 5) throw new Error('receipt_page_limit');
     } catch (error) {
       if ((error as Error)?.message === 'receipt_page_limit') throw error;
+      // The reader itself failing to start is our fault, not the document's. Saying
+      // "upload a clearer receipt" for it sends the client off to re-scan a perfect PDF.
+      if (pdfReaderUnavailable(error)) throw new ReceiptProcessingError('receipt_reader_not_configured', { reason: 'pdf_reader_unavailable' });
       throw new Error('receipt_unreadable');
     } finally { clearTimeout(timer); await task.destroy(); }
   }
