@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn(), scoped: vi.fn(), reserve: vi.fn(), convert: vi.fn(), rate: vi.fn(),
-  info: vi.fn(), sign: vi.fn(), download: vi.fn(), read: vi.fn(), log: vi.fn(), cache: null as any,
+  info: vi.fn(), sign: vi.fn(), download: vi.fn(), read: vi.fn(), log: vi.fn(), cache: null as any, used: null as any,
   project: null as any,
   updates: [] as any[], stage: { id: '00000000-0000-0000-0000-000000000002', project_id: '00000000-0000-0000-0000-000000000001' } }));
 vi.mock('../../../api/_lib/stripe.js', () => ({ requireUser: h.user, getSupabaseAdmin: h.admin }));
@@ -13,7 +13,7 @@ import { ReceiptProcessingError } from '../../../api/_lib/receipt-errors';
 
 function chain(result: any) {
   const q: any = { then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject) };
-  for (const method of ['select', 'eq', 'in', 'order', 'limit']) q[method] = () => q;
+  for (const method of ['select', 'eq', 'in', 'is', 'order', 'limit']) q[method] = () => q;
   q.maybeSingle = () => Promise.resolve(result);
   return q;
 }
@@ -25,7 +25,7 @@ async function request(patch = {}, method = 'POST') {
   return res;
 }
 beforeEach(() => {
-  vi.resetAllMocks(); h.cache = null; h.updates = []; vi.stubEnv('ANTHROPIC_API_KEY', 'fixture-key');
+  vi.resetAllMocks(); h.cache = null; h.used = null; h.updates = []; vi.stubEnv('ANTHROPIC_API_KEY', 'fixture-key');
   vi.spyOn(console,'warn').mockImplementation(h.log);
   h.user.mockResolvedValue({ id: 'client' }); h.scoped.mockResolvedValue({ data: { primary_client: true, has_primary_contractor: true } });
   h.reserve.mockResolvedValue({ data: 'reading' });
@@ -39,6 +39,7 @@ beforeEach(() => {
   h.admin.mockReturnValue({ rpc: (name: string, args: unknown) => name === 'attach_receipt_conversion' ? h.convert(name, args) : h.reserve(name, args), storage: { from: () => ({ info: h.info, createSignedUrl: h.sign }) }, from: (table: string) => {
     if (table === 'project_stages') return chain({ data: h.stage });
     if (table === 'projects') return chain({ data: h.project });
+    if (table === 'stage_payment_receipts') return chain({ data: h.used });
     return { ...chain({ data: h.cache }), update(patch: any) { h.updates.push(patch); return chain({ error: null }); } };
   } });
 });
@@ -104,9 +105,39 @@ describe('receipt reading endpoint', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'fixture'); h.reserve.mockResolvedValue({ error: { message: 'receipt_read_rate_limit' } });
     expect((await request()).code).toBe(429); expect(h.read).not.toHaveBeenCalled();
   });
-  it('blocks reusing the same receipt on another stage', async () => {
-    h.cache = { submitted_by: 'client', stage_id: 'other-stage' };
+  it('blocks reusing a receipt that is recorded as a payment on another stage', async () => {
+    h.cache = { id: 'earlier', submitted_by: 'client', stage_id: 'other-stage', status: 'matched', expires_at: '2026-01-01T00:00:00Z' };
+    h.used = { id: 'receipt-on-other-stage' };
+    const res = await request();
+    expect(res.code).toBe(409); expect(res.payload.error).toBe('receipt_already_used'); expect(h.read).not.toHaveBeenCalled();
+  });
+  it('blocks a verified proof that is still inside its window for another stage', async () => {
+    h.cache = { id: 'earlier', submitted_by: 'client', stage_id: 'other-stage', status: 'matched', expires_at: new Date(Date.now() + 60_000).toISOString() };
     expect((await request()).payload.error).toBe('receipt_already_used'); expect(h.read).not.toHaveBeenCalled();
+  });
+  it('blocks a receipt another person has recorded as a payment', async () => {
+    h.cache = { id: 'earlier', submitted_by: 'somebody-else', stage_id: h.stage.id, status: 'matched', expires_at: '2026-01-01T00:00:00Z' };
+    h.used = { id: 'their-receipt' };
+    expect((await request()).payload.error).toBe('receipt_already_used');
+  });
+  /*
+   * The 16 November upload that answered 409 five times. A receipt once read for another
+   * stage and never submitted — wrong stage picked, or the amount typed wrong and the
+   * attempt abandoned — is not a payment recorded anywhere, so it must not lock the file
+   * out of the stage it actually belongs to.
+   */
+  it.each([
+    ['an expired proof that was never submitted', { status: 'matched', expires_at: '2026-01-01T00:00:00Z' }],
+    ['an attempt whose typed amount did not match', { status: 'amount_mismatch', expires_at: new Date(Date.now() + 60_000).toISOString() }],
+    ['an attempt in the wrong currency', { status: 'currency_mismatch', expires_at: new Date(Date.now() + 60_000).toISOString() }],
+  ])('lets a receipt be used on this stage after %s on another', async (_label, earlier) => {
+    h.cache = { id: 'earlier', submitted_by: 'client', stage_id: 'other-stage', ...earlier };
+    const res = await request();
+    expect(res.code).toBe(200); expect(res.payload).toMatchObject({ status: 'matched', readingId: 'reading', path });
+    // The abandoned reading is retired first, then this stage gets a fresh one of its own.
+    expect(h.updates[0]).toEqual({ status: 'stale' });
+    expect(h.read).toHaveBeenCalledTimes(1);
+    expect(h.updates.at(-1)).toMatchObject({ status: 'matched', path });
   });
   it('compares cached six-decimal readings without JSON-number rounding', async () => {
     h.cache = { id: 'original', submitted_by: 'client', stage_id: h.stage.id, confidence: 'high', amount: 987654321098.1234,

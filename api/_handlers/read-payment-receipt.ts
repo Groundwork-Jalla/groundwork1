@@ -87,12 +87,30 @@ export async function handler(req: any, res: any) {
     if (signed.error || !signed.data?.signedUrl) throw new Error('receipt_file_missing');
     const bytes = await downloadReceipt(signed.data.signedUrl, controller.signal);
     const digest = createHash('sha256').update(bytes).digest('hex');
-    const { data: cached, error: cacheError } = await admin.from('receipt_readings').select('*')
+    const { data: earlier, error: cacheError } = await admin.from('receipt_readings').select('*')
       .eq('project_id', stage.project_id).eq('file_sha256', digest).in('status', ['matched','amount_mismatch','currency_mismatch'])
       .order('status', { ascending: false }).order('created_at', { ascending: false }).limit(1).maybeSingle();
     if (cacheError) throw receiptDatabaseError(cacheError);
-    if (cached && cached.submitted_by !== user.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
-    if (cached?.stage_id !== undefined && cached.stage_id !== stage.id) { res.status(409).json({ error: 'receipt_already_used' }); return; }
+    // The same file read before, for another stage or by somebody else. It only blocks
+    // this upload while it still stands for a payment: attached to a receipt that has not
+    // been replaced, or a verified proof still inside its own window.
+    //
+    // It used to block on ANY earlier reading. So a receipt tried once on the wrong stage,
+    // or typed with the wrong amount and abandoned, could never be used anywhere else on
+    // the project: every retry answered 409 "already used" for a payment recorded nowhere.
+    // Reported from the 16 November session as the upload that kept failing.
+    let cached = earlier;
+    if (cached && (cached.submitted_by !== user.id || cached.stage_id !== stage.id)) {
+      const { data: attached, error: attachedError } = await admin.from('stage_payment_receipts').select('id')
+        .eq('reading_id', cached.id).is('replaced_at', null).limit(1).maybeSingle();
+      if (attachedError) throw receiptDatabaseError(attachedError);
+      const inWindow = cached.status === 'matched' && Date.parse(cached.expires_at ?? '') > Date.now();
+      if (attached || inWindow) { res.status(409).json({ error: 'receipt_already_used' }); return; }
+      // Retired, so the one-verified-reading-per-file index is free for this stage's own.
+      const retired = await admin.from('receipt_readings').update({ status: 'stale' }).eq('id', cached.id);
+      if (retired.error) throw receiptDatabaseError(retired.error);
+      cached = null;
+    }
     let result: { reading: unknown; model: string };
     // Keep the extracted decimal string: JSON numeric decoding can round large
     // six-decimal amounts before a retry compares them.

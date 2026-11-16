@@ -7,6 +7,7 @@ const h = vi.hoisted(() => ({
   state: [] as any[], refs: [] as any[], deps: [] as any[], cleanups: [] as any[],
   effects: [] as { index: number; effect: () => any }[], si: 0, ri: 0, ei: 0,
   fetch: vi.fn(), save: vi.fn(), decide: vi.fn(), progress: vi.fn(), changed: vi.fn(), installment: vi.fn(),
+  rates: {} as Record<string, number>,
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const i = h.si++; if (!(i in h.state)) h.state[i] = typeof initial === 'function' ? initial() : initial;
@@ -21,6 +22,8 @@ vi.mock('@/lib/i18n', () => ({ useLanguage: () => ({ lang: 'en' }), useT: () => 
 } }));
 vi.mock('@/lib/supabase/stage-payment-plans', () => ({ fetchStagePaymentPlan: h.fetch, saveStagePaymentPlan: h.save,
   decideStagePaymentPlan: h.decide, authorizeStageProgression: h.progress }));
+// Units per USD, as the browser's daily feed reports them. No network in these tests.
+vi.mock('@/lib/budget/live-fx', () => ({ useUsdQuote: (code: string | null) => ({ code, rate: code ? h.rates[code] ?? null : null, source: null, asOf: null }) }));
 import { StagePaymentPlanPanel } from '@/components/project/StagePaymentPlanPanel';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -45,7 +48,7 @@ async function load(context = base, overrides: Partial<typeof props> = {}) { h.f
 const button = (view: Node[], label: string) => view.find(node => node.type === 'button' && text(node) === label)!;
 const dialog = (view: Node[]) => view.find(node => node.type === ConfirmModal && node.props.open)!;
 beforeEach(() => {
-  vi.clearAllMocks(); h.state = []; h.refs = []; h.deps = []; h.cleanups = []; h.effects = [];
+  vi.clearAllMocks(); h.state = []; h.refs = []; h.deps = []; h.cleanups = []; h.effects = []; h.rates = { USD: 1, NGN: 1500 };
   vi.stubGlobal('window', new EventTarget()); h.save.mockResolvedValue(split); h.decide.mockResolvedValue({ ...split, can_decide: false });
   h.progress.mockResolvedValue({ ...base, progression_authorized: true }); h.changed.mockResolvedValue(undefined);
 });
@@ -177,3 +180,77 @@ describe('stage payment plans and separate progression permission', () => {
     expect(h.changed).not.toHaveBeenCalled(); expect(text(render({ stageId: 'other-stage' }))).not.toContain('30,000 XAF');
   });
 });
+
+describe('the first installment can be entered in the currency the client is paying in', () => {
+  const currencySelect = (view: Node[]) => view.find(node => node.type === 'select' && node.props['aria-label'] === 'Currency you are paying in')!;
+  const twoInstallments = async () => { const view = await load(); view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}}); };
+
+  it('offers the stage currency first and leaves an untouched plan exactly as it was', async () => {
+    await twoInstallments();
+    const select = currencySelect(render());
+    expect(select.props.value).toBe('XAF');
+    expect(nodes(select.props.children).filter(node => node.type === 'option').slice(0, 2).map(node => node.props.value)).toEqual(['XAF', 'USD']);
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'20000'}});
+    expect(text(render())).toContain('First installment (XAF)');
+    expect(text(render())).not.toContain('at today');
+    button(render(),'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','20000');
+  });
+
+  it('shows an NGN amount in the stage currency before saving, and saves the stage-currency figure', async () => {
+    await twoInstallments();
+    currencySelect(render()).props.onChange({target:{value:'NGN'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
+    const view = text(render());
+    expect(view).toContain('First installment (NGN)');
+    expect(view).toContain('45000 NGN is 18,000 XAF at today');
+    expect(view).toContain('Second installment: 42,000 XAF');
+    button(render(),'Review payment plan').props.onClick();
+    expect(dialog(render()).props.description).toContain('First payment: 18,000 XAF. Second payment: 42,000 XAF');
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  });
+
+  it('accepts USD without a live quote, at the project\u2019s own rate', async () => {
+    await twoInstallments();
+    currencySelect(render()).props.onChange({target:{value:'USD'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'30'}});
+    button(render(),'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  });
+
+  it('refuses to guess when the rate is unavailable', async () => {
+    h.rates = { USD: 1 };
+    await twoInstallments();
+    currencySelect(render()).props.onChange({target:{value:'NGN'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
+    expect(text(render())).toContain('exchange rate for that currency is unavailable');
+    button(render(),'Review payment plan').props.onClick();
+    expect(render().some(node => node.type === ConfirmModal && node.props.open)).toBe(false);
+    expect(h.save).not.toHaveBeenCalled();
+  });
+
+  it('still refuses a converted first installment that covers the whole stage', async () => {
+    await twoInstallments();
+    currencySelect(render()).props.onChange({target:{value:'NGN'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'150000'}}); // 60,000 XAF, the full stage
+    button(render(),'Review payment plan').props.onClick();
+    expect(text(render())).toContain('less than the full stage budget');
+    expect(h.save).not.toHaveBeenCalled();
+  });
+
+  it('carries the converted figure into the percentage view, which is always in the stage currency', async () => {
+    await twoInstallments();
+    currencySelect(render()).props.onChange({target:{value:'NGN'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
+    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
+    expect(render().find(node => node.type === 'input')!.props.value).toBe('30');
+    expect(render().some(node => node.type === 'select' && node.props['aria-label'] === 'Currency you are paying in')).toBe(false);
+    button(render(),'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  });
+});
+

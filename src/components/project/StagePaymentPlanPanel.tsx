@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage, useT } from '@/lib/i18n';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
-import { firstInstallmentPercent, installmentSplit, installmentSplitFromPercent } from '@/lib/payments/installment-split';
+import { firstInstallmentPercent, installmentInStageCurrency, installmentSplit, installmentSplitFromPercent } from '@/lib/payments/installment-split';
+import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
+import { useUsdQuote } from '@/lib/budget/live-fx';
 import { authorizeStageProgression, decideStagePaymentPlan, fetchStagePaymentPlan, saveStagePaymentPlan, type StagePaymentPlanContext } from '@/lib/supabase/stage-payment-plans';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -23,7 +25,7 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
   const selection = useRef<{ stage: string; plan?: string; value: 1 | 2 }>({ stage: stageId, value: 1 });
   const [attempt, setAttempt] = useState(0);
   const [read, setRead] = useState<{ stage: string; data: StagePaymentPlanContext | null; failed?: boolean }>({ stage: stageId, data: null });
-  const [draft, setDraft] = useState<{ stage: string; mode: Mode; first: string; installment: 1 | 2; basis: 'amount' | 'percentage'; percentage: string; percentageEdited: boolean } | null>(null);
+  const [draft, setDraft] = useState<{ stage: string; mode: Mode; first: string; installment: 1 | 2; basis: 'amount' | 'percentage'; percentage: string; percentageEdited: boolean; currency: string } | null>(null);
   const [confirmation, setConfirmation] = useState<Decision | null>(null);
   const [working, setWorking] = useState(false); const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -46,7 +48,15 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
     return () => { alive = false; current.current = null; window.removeEventListener('focus', refresh); };
   }, [stageId, refreshKey, attempt]);
   const context = read.stage === stageId ? read.data : null;
-  const form = draft?.stage === stageId ? draft : { stage: stageId, mode: context?.plan?.mode ?? 'full', first: context?.plan?.first_amount ?? '', installment: 1 as const, basis: 'amount' as const, percentage: firstInstallmentPercent(context?.stage_amount ?? '', context?.plan?.first_amount ?? ''), percentageEdited: false };
+  const form = draft?.stage === stageId ? draft : { stage: stageId, mode: context?.plan?.mode ?? 'full', first: context?.plan?.first_amount ?? '', installment: 1 as const, basis: 'amount' as const, percentage: firstInstallmentPercent(context?.stage_amount ?? '', context?.plan?.first_amount ?? ''), percentageEdited: false, currency: context?.currency ?? '' };
+  // The plan is agreed and saved in the stage currency. `form.currency` is only the
+  // currency the client is typing the first installment in; `firstInStage` is what that
+  // comes to, and it is the only figure that is validated, confirmed or saved.
+  const stageCurrency = context?.currency ?? '';
+  const entryCurrency = form.currency || stageCurrency;
+  const foreign = form.basis === 'amount' && !!stageCurrency && entryCurrency !== stageCurrency;
+  const quote = useUsdQuote(foreign ? entryCurrency : null, null);
+  const firstInStage = foreign ? installmentInStageCurrency(form.first, quote.rate, context?.fx_rate ?? '', stageCurrency) ?? '' : form.first;
   const confirm = confirmation?.context.stage_id === stageId ? confirmation : null;
   const editable = !!context?.can_edit && !isContractor && !readOnly && canUpload;
   const canDecide = !!context?.can_decide && isContractor && !readOnly && canUpload;
@@ -56,7 +66,10 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
   function request(action: Decision['action']) {
     if (!context || (action === 'save' ? !editable : action === 'progress' ? !canProgress : !canDecide)) return;
     const percentageSplit = form.basis === 'percentage' ? installmentSplitFromPercent(context.stage_amount, form.percentage) : null;
-    const first = action === 'save' ? canonicalReceiptAmount(form.first) : context.plan?.first_amount ?? null;
+    const first = action === 'save' ? canonicalReceiptAmount(firstInStage) : context.plan?.first_amount ?? null;
+    if (action === 'save' && form.mode === 'two_installments' && foreign && !first && canonicalReceiptAmount(form.first)) {
+      setError(t('project.paymentPlan.rateUnavailable', { currency: stageCurrency })); return;
+    }
     if (action === 'save' && form.mode === 'two_installments' && form.basis === 'percentage'
       && (!percentageSplit || (form.percentageEdited && percentageSplit.first !== first))) {
       setError(t(percentageSplit ? 'project.paymentPlan.stale' : 'project.paymentPlan.invalidPercentage')); return;
@@ -122,20 +135,29 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
           <label className="block">{t('project.paymentPlan.splitUsing')}
             <select aria-label={t('project.paymentPlan.splitUsing')} value={form.basis} onChange={event => {
               const basis = event.target.value as 'amount' | 'percentage';
-              setDraft({ ...form, basis, percentage: basis === 'percentage' ? firstInstallmentPercent(context.stage_amount, form.first) : form.percentage, percentageEdited: false }); setError(null);
+              setDraft({ ...form, basis, ...(basis === 'percentage' ? { currency: stageCurrency, first: firstInStage, percentage: firstInstallmentPercent(context.stage_amount, firstInStage) } : {}), percentageEdited: false }); setError(null);
             }} className="mt-1 block min-h-11 w-full rounded-lg border bg-transparent p-2">
               <option value="amount">{t('project.paymentPlan.byAmount')}</option><option value="percentage">{t('project.paymentPlan.byPercentage')}</option>
             </select>
           </label>
-          <label className="block">{t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: context.currency })}
-            <input inputMode="decimal" aria-label={t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: context.currency })}
+          {form.basis === 'amount' && <label className="block">{t('project.paymentPlan.firstCurrency')}
+            <select aria-label={t('project.paymentPlan.firstCurrency')} value={entryCurrency} onChange={event => { setDraft({ ...form, currency: event.target.value }); setError(null); }}
+              className="mt-1 block min-h-11 w-full rounded-lg border bg-transparent p-2">
+              {receiptCurrencyChoices(context.currency).map(code => <option key={code} value={code}>{code}</option>)}
+            </select>
+          </label>}
+          <label className="block">{t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: entryCurrency })}
+            <input inputMode="decimal" aria-label={t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: entryCurrency })}
               value={form.basis === 'percentage' ? form.percentage : form.first} onChange={event => {
                 const raw = event.target.value; const value = /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw;
                 setDraft(form.basis === 'percentage' ? { ...form, percentage: value, percentageEdited: true, first: installmentSplitFromPercent(context.stage_amount, value)?.first ?? '' } : { ...form, first: value }); setError(null);
               }} className={`mt-1 block w-full rounded-lg border bg-transparent p-2 ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}/>
           </label>
           {form.basis === 'percentage' && <p>{t('project.paymentPlan.firstAmount', { currency: context.currency })}: {amount(form.first || null)}</p>}
-          <p>{t('project.paymentPlan.secondAmount', { amount: amount(installmentSplit(context.stage_amount, form.first)?.second ?? (Number(form.first) >= due ? '0' : context.stage_amount)) })}</p>
+          {foreign && form.first && <p role="status">{firstInStage
+            ? t('project.paymentPlan.firstConverted', { entered: `${form.first} ${entryCurrency}`, amount: amount(firstInStage), currency: stageCurrency })
+            : t('project.paymentPlan.rateUnavailable', { currency: stageCurrency })}</p>}
+          <p>{t('project.paymentPlan.secondAmount', { amount: amount(installmentSplit(context.stage_amount, firstInStage)?.second ?? (Number(firstInStage) >= due ? '0' : context.stage_amount)) })}</p>
         </div>}
         <button type="button" onClick={() => request('save')} className={`rounded-lg border border-brand-green px-3 py-2 font-semibold ${clientPresentation ? 'min-h-11' : ''}`}>{t('project.paymentPlan.save')}</button>
       </fieldset>}
