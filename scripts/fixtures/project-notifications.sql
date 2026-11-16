@@ -68,7 +68,8 @@ SELECT test_assert(NOT EXISTS(SELECT 1 FROM notifications WHERE type LIKE '%inte
 -- explicitly authorizes progression with money outstanding.
 SET ROLE authenticated;
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
-SELECT test_finish(192,3),test_plan_send(192,3,1,25);
+SELECT test_finish(192,3);
+SELECT test_plan_send(192,3,1,25);
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
 SELECT test_decide(192,3,1,'accept');
 SELECT authorize_stage_progression(test_id(192,3),stage_payment_plan_context(test_id(192,3))->>'hash');

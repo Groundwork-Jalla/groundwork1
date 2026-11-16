@@ -57,9 +57,9 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
     if (!context || (action === 'save' ? !editable : action === 'progress' ? !canProgress : !canDecide)) return;
     const percentageSplit = form.basis === 'percentage' ? installmentSplitFromPercent(context.stage_amount, form.percentage) : null;
     const first = action === 'save' ? canonicalReceiptAmount(form.first) : context.plan?.first_amount ?? null;
-    if (action === 'save' && form.mode === 'two_installments' && form.basis === 'percentage' && form.percentageEdited
-      && (!percentageSplit || percentageSplit.first !== first)) {
-      setError(t('project.paymentPlan.invalidPercentage')); return;
+    if (action === 'save' && form.mode === 'two_installments' && form.basis === 'percentage'
+      && (!percentageSplit || (form.percentageEdited && percentageSplit.first !== first))) {
+      setError(t(percentageSplit ? 'project.paymentPlan.stale' : 'project.paymentPlan.invalidPercentage')); return;
     }
     if (action === 'save' && form.mode === 'two_installments' && (!first || Number(first) >= Number(context.stage_amount))) {
       setError(t('project.paymentPlan.invalidFirst')); return;
@@ -135,7 +135,7 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
               }} className={`mt-1 block w-full rounded-lg border bg-transparent p-2 ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}/>
           </label>
           {form.basis === 'percentage' && <p>{t('project.paymentPlan.firstAmount', { currency: context.currency })}: {amount(form.first || null)}</p>}
-          <p>{t('project.paymentPlan.secondAmount', { amount: amount(installmentSplit(context.stage_amount, form.first)?.second ?? context.stage_amount) })}</p>
+          <p>{t('project.paymentPlan.secondAmount', { amount: amount(installmentSplit(context.stage_amount, form.first)?.second ?? (Number(form.first) >= due ? '0' : context.stage_amount)) })}</p>
         </div>}
         <button type="button" onClick={() => request('save')} className={`rounded-lg border border-brand-green px-3 py-2 font-semibold ${clientPresentation ? 'min-h-11' : ''}`}>{t('project.paymentPlan.save')}</button>
       </fieldset>}
