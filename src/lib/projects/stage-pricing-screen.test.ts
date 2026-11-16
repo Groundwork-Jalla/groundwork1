@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ProjectRow } from '@/types/project';
 import type { StagePriceContext } from '@/lib/supabase/stage-pricing';
+import type { StagePayment, StagePaymentReceipt } from '@/lib/supabase/verifications';
 const h = vi.hoisted(() => ({ index: 0, hooks: [] as any[], effects: [] as (() => unknown)[], fetch: vi.fn(), propose: vi.fn(), decide: vi.fn(), changed: vi.fn(), setType: vi.fn(), savedType: vi.fn(), close: vi.fn() }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const at = h.index++; if (!(at in h.hooks)) h.hooks[at] = initial; return [h.hooks[at], (value: any) => { h.hooks[at] = typeof value === 'function' ? value(h.hooks[at]) : value; }]; },
@@ -23,7 +24,7 @@ const project = { id: 'project', budget_source: 'boq', budget_amount: 180000, bu
 const context: StagePriceContext = { project_id: 'project', currency: 'XAF', fx_rate: '600', total: '180000', base_hash: 'version', can_propose: true, can_approve: false,
   stages: [{ id: 'stage', stage_number: 3, name: 'Foundation', stage_key: null, amount: '60000', editable: true }, { id: 'land', stage_number: 1, name: 'Land', stage_key: null, amount: '0', editable: false }], history: [] };
 const proposal = { id: 'proposal', status: 'pending' as const, proposed_at: '', currency: 'XAF', old_total: '180000', new_total: '192000', changes: [{ stage_id: 'stage', stage_number: 3, name: 'Foundation', stage_key: null, before: '60000', after: '72000' }], note: 'Materials', can_withdraw: false, stale: false };
-function render(source = project) { h.index = 0; h.effects = []; return nodes(StagePricingPanel({ project: source, onChanged: h.changed })); }
+function render(source = project, payments?: Map<string, StagePayment>) { h.index = 0; h.effects = []; return nodes(StagePricingPanel({ project: source, onChanged: h.changed, payments })); }
 async function load(model = context) { h.fetch.mockResolvedValue(structuredClone(model)); render(); h.effects[0](); await Promise.resolve(); await Promise.resolve(); }
 beforeEach(() => { vi.clearAllMocks(); h.index = 0; h.hooks = []; h.effects = []; h.propose.mockResolvedValue('proposal'); h.decide.mockResolvedValue(undefined); h.changed.mockResolvedValue(undefined); vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() }); });
 describe('stage price proposals and client decisions', () => {
@@ -95,6 +96,35 @@ describe('stage price proposals and client decisions', () => {
     await render().find(e => e.type === ConfirmModal && e.props.open)!.props.onConfirm();
     expect(h.decide).not.toHaveBeenCalled();
     expect(text(render())).toContain('project.priceChanges.stale');
+  });
+
+  it('compares stage and project prices while keeping pending and replaced proofs out of confirmed money', async () => {
+    await load({ ...context, can_propose: false, can_approve: true, history: [proposal] });
+    const receipt = { id: 'confirmed', stageId: 'stage', amount: 30000, currency: 'XAF', amountUsd: 50, decision: 'received', projectCurrency: 'XAF', projectAmount: 30000 } as StagePaymentReceipt;
+    const payments = new Map<string, StagePayment>([['stage', { id: 'payment', stageId: 'stage', state: 'funded', amount: 100, receiptPath: null, receiptUploadedAt: null,
+      receipts: [receipt, { ...receipt, id: 'pending', decision: 'pending', amount: 10000, projectAmount: 10000 }, { ...receipt, id: 'replaced', replacedBy: 'confirmed', amount: 25000, projectAmount: 25000 }] }]]);
+    render(project, payments).find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')!.props.onClick();
+    const dialog = render(project, payments).find(e => e.type === ConfirmModal && e.props.open)!;
+    expect(dialog.props.variant).toBe('client');
+    expect(text(dialog)).toContain('project.clientUi.projectTotal');
+    expect(text(dialog)).toContain('180,000 XAF');
+    expect(text(dialog)).toContain('192,000 XAF');
+    expect(text(dialog)).toContain('30,000 XAF');
+    expect(text(dialog)).toContain('42,000 XAF');
+    expect(text(dialog)).not.toContain('10,000 XAF');
+    expect(text(dialog)).not.toContain('25,000 XAF');
+    dialog.props.onCancel();
+    expect(h.decide).not.toHaveBeenCalled();
+  });
+
+  it('shows unknown receipt values instead of substituting the scheduled payment in a price confirmation', async () => {
+    await load({ ...context, can_propose: false, can_approve: true, history: [proposal] });
+    const payments = new Map<string, StagePayment>([['stage', { id: 'legacy', stageId: 'stage', state: 'funded', amount: 100, receiptPath: null, receiptUploadedAt: null }]]);
+    render(project, payments).find(e => e.type === 'button' && text(e) === 'project.priceChanges.approve')!.props.onClick();
+    const dialog = render(project, payments).find(e => e.type === ConfirmModal && e.props.open)!;
+    expect(text(dialog)).toContain('project.receiptFlow.amountUnknown');
+    expect(text(dialog)).not.toContain('12,000 XAF');
+    expect(h.decide).not.toHaveBeenCalled();
   });
 });
 

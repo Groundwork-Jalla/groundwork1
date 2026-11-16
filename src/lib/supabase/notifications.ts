@@ -58,6 +58,7 @@ export interface NotificationRow {
   title: string;
   body: string;
   data: Record<string, unknown>;
+  project_id?: string | null;
   read_at: string | null;
   created_at: string;
   /** Dictionary keys and their values (149). Null on staff notifications, and on

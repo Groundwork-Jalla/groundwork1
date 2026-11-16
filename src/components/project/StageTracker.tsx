@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, Loader2 } from 'lucide-react';
+import { Check, Download, Loader2, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { StageMarker } from './StageMarker';
 import { SubstageRow } from './SubstageRow';
+import { EvidenceThumbs } from './EvidenceThumbs';
 import type { ProjectStageRow, ProjectSubstageRow, StageStatus } from '@/types/project';
 import { MoneyValue } from './MoneyValue';
 import { DocumentViewer } from './DocumentViewer';
@@ -95,6 +96,9 @@ function ApproveButton({
 // ── Stage detail (substages + actions) ────────────────────
 
 interface StageDetailProps {
+  clientPresentation?: boolean;
+  projectName: string;
+  evidenceFirst?: boolean;
   stage: ProjectStageRow;
   substages: ProjectSubstageRow[];
   tier: string;
@@ -123,6 +127,7 @@ interface StageDetailProps {
 }
 
 function StageDetail({
+  clientPresentation = false, projectName, evidenceFirst = false,
   stage,
   substages,
   tier,
@@ -198,21 +203,24 @@ function StageDetail({
       transition={{ duration: 0.18, ease: 'easeOut' }}
     >
       {/* Detail header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className={cn('mb-4 flex items-start justify-between gap-3', clientPresentation && 'flex-col gap-4 pb-3 sm:flex-row sm:gap-5')}>
         <div>
           <p className="text-[11px] font-medium text-brand-mid-grey mb-0.5">
             {t('project.stages.stageN', { n: stage.stage_number })}
           </p>
-          <p className="text-sm font-semibold text-brand-near-black leading-snug">
+          <h2 className={clientPresentation ? 'text-xl font-bold tracking-tight text-brand-near-black sm:text-2xl' : 'text-sm font-semibold text-brand-near-black leading-snug'}>
             {stageLabel(stage)}
-          </p>
+          </h2>
+          {clientPresentation && <p className="mt-2 text-xs leading-relaxed text-brand-mid-grey">{t('project.clientUi.workAndPayment')}</p>}
+          {clientPresentation && <div className="mt-3 flex items-center gap-2 text-xs font-medium text-brand-mid-grey"><span className={cn('size-1.5 shrink-0 rounded-full', stage.status === 'complete' || stage.review_payment_pending ? 'bg-brand-green' : 'bg-brand-mid-grey')} aria-hidden />{t(stage.status === 'complete' || stage.review_payment_pending ? 'project.clientUi.workApproved' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.clientUi.workInProgress')}</div>}
         </div>
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
-          <span className="text-xs text-brand-mid-grey tabular-nums whitespace-nowrap">
+        <div className={cn('mt-0.5', clientPresentation ? 'min-w-0 rounded-lg bg-brand-off-white px-4 py-3 sm:max-w-[45%]' : 'flex shrink-0 items-center gap-2')}>
+          {clientPresentation && <p className="mb-1 text-xs text-brand-mid-grey">{t('project.clientUi.stageBudget')}</p>}
+          <span className={clientPresentation ? 'break-words font-mono text-base font-semibold text-brand-near-black' : 'text-xs text-brand-mid-grey tabular-nums whitespace-nowrap'}>
             <MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} />{' '}
             <span className="text-[10px]">({formatShare(stage.budget_pct)})</span>
           </span>
-          <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} reviewPaymentPending={stage.review_payment_pending} />
+          {!clientPresentation && <StageBadge status={stage.status} tier={tier} historical={stage.pre_existing === true} reviewPaymentPending={stage.review_payment_pending} />}
         </div>
       </div>
 
@@ -235,7 +243,9 @@ function StageDetail({
         <>
           {!canAct && stage.status !== 'complete' && <p className="mb-3 text-sm text-brand-mid-grey">{t('project.stages.lockedBody')}</p>}
 
-          <div className="divide-y divide-brand-border-grey/60">
+          {clientPresentation && <h3 className="mb-4 text-sm font-semibold text-brand-near-black">{t('project.clientUi.contractorUpdates')}</h3>}
+          {clientPresentation && allSubstagesReady && <div className="mb-4"><EvidenceThumbs paths={[...new Set(substages.flatMap(sub => sub.evidence_urls))]} size="review" /></div>}
+          <div className={clientPresentation ? 'space-y-3' : 'divide-y divide-brand-border-grey/60'}>
             {substages.map(sub => (
               <SubstageRow
                 key={sub.id}
@@ -244,7 +254,13 @@ function StageDetail({
                 userId={userId}
                 isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
                 stagePaid={stagePaid}
+                compactEvidence={clientPresentation && allSubstagesReady}
                 canUploadEvidence={canUploadEvidence && canAct && workAllowed}
+                approvalContext={clientPresentation ? {
+                  projectName, stageName: `${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`,
+                  lastUpdate: approvalsRemaining === 1,
+                  description: t(approvalsRemaining === 1 ? evidenceFirst && (stage.payment_milestone_usd ?? 0) > 0 ? 'project.clientUi.reviewedStageNext' : 'project.clientUi.fundedStageNext' : 'project.clientUi.approveUpdateBody'),
+                } : undefined}
                 onMarkComplete={canApprove ? onMarkSubstageComplete : undefined}
                 onEvidenceUploaded={onEvidenceUploaded}
                 renderEvidenceUpload={renderEvidenceUpload}
@@ -274,6 +290,7 @@ function StageDetail({
         isContractor={!!isContractor} readOnly={isContractor ? !canConfirmPayments : !canApprove} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
+        clientPresentation={clientPresentation}
       />}
 
       {missingPayment && (
@@ -287,9 +304,12 @@ function StageDetail({
 
       <ConfirmModal
         open={confirmOpen}
+        variant={clientPresentation ? 'client' : 'default'}
+        eyebrow={clientPresentation ? `${projectName} · ${stageLabel(stage)}` : undefined}
         title={t('project.stages.confirmApproveTitle')}
         description={t(isFinalStage ? 'project.stages.confirmFinalApproveBody' : 'project.stages.confirmApproveBody')}
         confirmLabel={t('project.stages.confirmApproveCta')}
+        cancelLabel={t('common.cancel')}
         error={approvalError}
         loading={approving}
         onConfirm={handleApprove}
@@ -302,6 +322,7 @@ function StageDetail({
 // ── StageTracker ──────────────────────────────────────────
 
 export interface StageTrackerProps {
+  clientPresentation?: boolean;
   canConfirmPayments?: boolean;
   /** Only an assigned project contractor may upload or remove construction evidence. */
   canUploadEvidence?: boolean;
@@ -353,6 +374,7 @@ function shortLabel(label: string): string {
 }
 
 export function StageTracker({
+  clientPresentation = false,
   stages, workflowOrigin = 'client', projectPaused = false, projectArchived = false, canUploadEvidence = false,
   substages,
   tier,
@@ -409,10 +431,27 @@ export function StageTracker({
   const selectedStage = selection.projectId === projectId && !selection.follow
     ? orderedStages.find(stage => stage.id === selection.stageId) ?? fallback : fallback;
   const selectedNum = selectedStage?.stage_number;
-  const requestedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
+  const clientStageNav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = clientStageNav.current;
+    if (!clientPresentation || !nav) return;
+    const revealSelection = () => {
+      if (nav.scrollWidth <= nav.clientWidth) return;
+      const selected = nav.querySelector<HTMLButtonElement>('[aria-current="step"]');
+      if (!selected) return;
+      const bounds = nav.getBoundingClientRect();
+      const item = selected.getBoundingClientRect();
+      nav.scrollLeft += item.left - bounds.left - (nav.clientWidth - item.width) / 2;
+    };
+    revealSelection();
+    window.addEventListener('resize', revealSelection);
+    return () => window.removeEventListener('resize', revealSelection);
+  }, [clientPresentation, projectId, selectedStage?.id]);
+  const stageParams = new URLSearchParams(typeof window === 'undefined' ? '' : window.location?.search ?? '');
+  const requestedStage = stageParams.get('stage_id') ?? stageParams.get('stage');
   const appliedLink=useRef('');
   const observedStage=useRef<{projectId:string;id:string|null}>({projectId,id:null});
-  useEffect(()=>{if(!requestedStage){appliedLink.current='';return;}const key=projectId+':'+requestedStage;if(appliedLink.current===key)return;const target=orderedStages.find(stage=>String(stage.stage_number)===requestedStage);if(target){appliedLink.current=key;navigation.current.version++;setSelection({projectId,stageId:target.id,follow:false});}},[projectId,requestedStage,stages]);
+  useEffect(()=>{if(!requestedStage){appliedLink.current='';return;}const key=projectId+':'+requestedStage;if(appliedLink.current===key)return;const target=orderedStages.find(stage=>stage.id===requestedStage||String(stage.stage_number)===requestedStage);if(target){appliedLink.current=key;navigation.current.version++;setSelection({projectId,stageId:target.id,follow:false});}},[projectId,requestedStage,stages]);
   useEffect(()=>{const old=observedStage.current;if(old.projectId===projectId&&old.id&&currentStage?.id&&old.id!==currentStage.id&&selection.follow){setSelection({projectId,stageId:old.id,follow:false});setNextAction({projectId,id:currentStage.id,number:currentStage.stage_number});}observedStage.current={projectId,id:currentStage?.id??null};},[projectId,currentStage?.id,selection.follow]);
   const completedCount = orderedStages.filter(s => s.status === 'complete').length;
 
@@ -435,6 +474,83 @@ export function StageTracker({
     const result = await onMarkSubstageComplete(substageId);
     followApproval(result, captured);
   }
+
+  const detail = selectedStage ? (
+    <StageDetail
+                clientPresentation={clientPresentation}
+                projectName={projectName}
+                evidenceFirst={stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin)}
+                key={selectedStage.id}
+                stage={selectedStage}
+                substages={substages.filter(sub => sub.stage_id === selectedStage.id)}
+                tier={tier}
+                userId={userId}
+                isContractor={isContractor}
+                canConfirmPayments={canConfirmPayments}
+                canApprove={canApprove}
+                canUploadEvidence={canUploadEvidence}
+                projectId={projectId}
+                payment={payments?.get(selectedStage.id)}
+                canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
+                workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
+                paymentEnabled={!projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
+                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
+                isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
+                onPaymentChanged={onPaymentChanged}
+                onMarkSubstageComplete={handleSubstageApproval}
+                onEvidenceUploaded={onEvidenceUploaded}
+                onApproveStage={handleStageApproval}
+                renderEvidenceUpload={renderEvidenceUpload}
+              />
+  ) : null;
+
+  const nextStageNotice = nextAction?.projectId === projectId && (
+    <div role="status" className="rounded-xl border border-brand-green p-4 text-sm">
+      <p>{t('project.receiptFlow.nextStageReady')}</p>
+      <button type="button" onClick={() => { navigation.current.version++; setSelection({ projectId, stageId: nextAction.id, follow: true }); setNextAction(null); }} className="mt-3 min-h-11 rounded-lg bg-brand-green px-4 py-2.5 font-semibold text-white">
+        {t('project.receiptFlow.openStage', { n: nextAction.number })}
+      </button>
+    </div>
+  );
+
+  if (clientPresentation) return (
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[15rem_minmax(0,1fr)] xl:items-start">
+      <aside className="min-w-0 overflow-hidden rounded-xl border border-brand-border-grey bg-white xl:sticky xl:top-5">
+        <div className="border-b border-brand-border-grey px-4 py-4">
+          <h2 className="text-sm font-bold text-brand-near-black">{t('project.clientUi.stagesTitle')}</h2>
+          <p className="mt-1 text-xs text-brand-mid-grey">{t('project.stages.completeCount', { done: completedCount, total: stages.length })}</p>
+        </div>
+        <nav ref={clientStageNav} aria-label={t('project.clientUi.stagesTitle')} className="flex gap-1 overflow-x-auto p-2 xl:block xl:space-y-1 xl:overflow-visible">
+          {orderedStages.map(stage => (
+            <div key={stage.id} className="min-w-44 shrink-0 xl:min-w-0">
+              <button type="button" aria-current={selectedStage?.id === stage.id ? 'step' : undefined}
+                onClick={() => { navigation.current.version++; setSelection({ projectId, stageId: stage.id, follow: stage.id === currentStage?.id }); }}
+                className={cn('flex min-h-20 w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-green', selectedStage?.id === stage.id ? 'bg-brand-green/8' : 'hover:bg-brand-off-white')}>
+                <span className="mt-0.5 shrink-0">{stage.status === 'locked' ? <span className="flex size-9 items-center justify-center rounded-full bg-brand-off-white"><Lock className="size-4 text-brand-mid-grey" aria-hidden /></span> : <StageCircle status={stage.status} current={stage.id === currentStage?.id} number={stage.stage_number} selected={selectedStage?.id === stage.id} />}</span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold leading-relaxed text-brand-near-black">{stage.stage_number}. {stageLabel(stage)}</span>
+                  <span className="mt-1 block text-[10px] leading-relaxed text-brand-mid-grey">
+                    {t(stage.pre_existing ? 'project.costing.completedBeforeTracking' : stage.status === 'complete' ? 'common.complete' : stage.review_payment_pending ? 'project.receiptFlow.reviewedPaymentBadge' : stage.status === 'locked' ? 'project.stages.badgeLocked' : 'project.stages.badgeActive')}
+                  </span>
+                  <span className="mt-1 block break-words font-mono text-[11px] leading-relaxed text-brand-mid-grey"><MoneyValue usd={stage.payment_milestone_usd} amount={stage.milestone_amount} /></span>
+                </span>
+              </button>
+              {issued.projectId === projectId && issued.rows.get(stage.id)?.pdfUrl && <button type="button"
+                onClick={() => setCertificate({ projectId, name: `${stageLabel(stage)}.pdf`, url: issued.rows.get(stage.id)!.pdfUrl! })}
+                className="mb-2 inline-flex min-h-9 items-center gap-1 px-3 text-xs text-brand-green underline dark:text-[#b4d8bf]"><Download className="size-3" aria-hidden />{t('project.stages.certificate')}</button>}
+            </div>
+          ))}
+        </nav>
+      </aside>
+      <div className="min-w-0 space-y-4">
+        {nextStageNotice}
+        <div className="min-w-0 rounded-xl border border-brand-border-grey bg-white p-4 sm:p-6">
+          <AnimatePresence mode="wait" initial={false}>{detail}</AnimatePresence>
+        </div>
+      </div>
+      {certificate?.projectId === projectId && <DocumentViewer name={certificate.name} url={certificate.url} onClose={() => setCertificate(null)} />}
+    </div>
+  );
 
   return (
     <div>
@@ -512,31 +628,7 @@ export function StageTracker({
         {/* Selected stage detail */}
         <div className="px-5 py-5">
           <AnimatePresence mode="wait" initial={false}>
-            {selectedStage && (
-              <StageDetail
-                key={selectedStage.id}
-                stage={selectedStage}
-                substages={substages.filter(sub => sub.stage_id === selectedStage.id)}
-                tier={tier}
-                userId={userId}
-                isContractor={isContractor}
-                canConfirmPayments={canConfirmPayments}
-                canApprove={canApprove}
-                canUploadEvidence={canUploadEvidence}
-                projectId={projectId}
-                payment={payments?.get(selectedStage.id)}
-                canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
-                workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
-                paymentEnabled={!projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
-                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
-                isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
-                onPaymentChanged={onPaymentChanged}
-                onMarkSubstageComplete={handleSubstageApproval}
-                onEvidenceUploaded={onEvidenceUploaded}
-                onApproveStage={handleStageApproval}
-                renderEvidenceUpload={renderEvidenceUpload}
-              />
-            )}
+            {detail}
           </AnimatePresence>
         </div>
       </div>

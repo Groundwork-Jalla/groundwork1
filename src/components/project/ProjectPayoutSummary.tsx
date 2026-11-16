@@ -4,13 +4,15 @@ import { supabase } from '@/lib/supabase/client';
 import { fetchStagePaymentsStrict, type StagePayment } from '@/lib/supabase/verifications';
 import { receiptPayoutSummary } from '@/lib/payments/receipt-payouts';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
+import { projectBudget } from '@/lib/budget';
+import { projectMoneyBasis } from '@/lib/budget/project-money';
 
 interface Props {
   project: ProjectRow;
   stages: ProjectStageRow[];
   /** A refreshed stage ledger also refreshes these figures after an upload/confirmation. */
   refreshKey?: unknown;
-  tone?: 'default' | 'hero';
+  tone?: 'default' | 'hero' | 'calm';
   compact?: boolean;
 }
 
@@ -55,13 +57,44 @@ export function ProjectPayoutSummary({ project, stages, refreshKey, tone = 'defa
   const state = read.projectId === project.id ? read.status : 'loading';
   const summary = state === 'ready' ? receiptPayoutSummary(project, stages, read.rows.values()) : null;
   const number = (amount: number, digits = 6) => amount.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: digits });
-  const format = (amount: number) => summary?.currency === 'USD' ? `$${number(amount)}` : `${number(amount)} ${summary?.currency}`;
+  const basis = projectMoneyBasis(project);
+  const currency = summary?.currency ?? basis.code;
+  const format = (amount: number) => currency === 'USD' ? `$${number(amount)}` : `${number(amount)} ${currency}`;
   const metrics = [
     { key: 'payouts' as const, value: summary && summary.missingConfirmedCount === 0 ? summary.payouts : null },
     { key: 'pendingReceipts' as const, value: summary && summary.missingPendingCount === 0 ? summary.pending : null },
     { key: 'currentStagePayment' as const, value: summary?.currentStage ?? null },
     { key: 'remainingBudget' as const, value: summary?.remaining ?? null },
   ];
+
+  if (tone === 'calm') {
+    const budget = basis.locked && project.budget_amount != null ? project.budget_amount : projectBudget(project).total * basis.rate;
+    const primary = [
+      { label: t('dashboard.totalBudget'), value: Number.isFinite(budget) ? budget : null },
+      { label: t('project.receiptFlow.receivedTotal'), value: summary && summary.missingConfirmedCount === 0 ? summary.payouts.amount : null },
+      { label: t('project.costing.remainingBudget'), value: summary?.remaining?.amount ?? null },
+    ];
+    return <section aria-label={t('project.costing.payouts')} className="space-y-3">
+      <dl className="grid min-w-0 divide-y divide-brand-border-grey rounded-xl border border-brand-border-grey bg-white lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+        {primary.map(metric => <div key={metric.label} className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 lg:block lg:px-5 lg:py-5">
+          <dt className="text-xs leading-relaxed text-brand-mid-grey">{metric.label}</dt>
+          <dd className="max-w-full break-words font-mono text-sm font-semibold leading-relaxed text-brand-near-black sm:text-base lg:mt-2 xl:text-lg">{metric.value == null ? '—' : format(metric.value)}</dd>
+        </div>)}
+      </dl>
+      {state === 'loading' && <p role="status" className="text-xs text-brand-mid-grey">{t('common.loading')}</p>}
+      {state === 'error' && <p role="alert" className="text-xs text-state-alert">{t('project.costing.payoutsLoadFailed')}{' '}<button type="button" onClick={() => setAttempt(value => value + 1)} className="font-semibold underline">{t('project.costing.retryPayouts')}</button></p>}
+      {summary && (summary.missingConfirmedCount > 0 || summary.missingPendingCount > 0) && <p role="status" className="text-xs text-brand-mid-grey">{t('project.costing.receiptAmountsMissing')}</p>}
+      {summary?.overBudget && summary.overBudget.amount > 0 && <p role="status" className="text-xs text-state-alert">{t('project.costing.overBudget', { amount: format(summary.overBudget.amount) })}</p>}
+      <details className="text-xs text-brand-mid-grey">
+        <summary className="min-h-8 cursor-pointer py-1 font-medium text-brand-green dark:text-[#b4d8bf]">{t('dashboard.architecture.financialDetails')}</summary>
+        <dl className="mt-2 grid gap-3 sm:grid-cols-2">{metrics.filter(metric => metric.key === 'pendingReceipts' || metric.key === 'currentStagePayment').map(metric => <div key={metric.key}>
+          <dt>{t(`project.costing.${metric.key}`)}</dt><dd className="mt-1 break-words font-mono">{metric.value ? format(metric.value.amount) : '—'}</dd>
+          {metric.value && currency !== 'USD' && <dd className="mt-1 font-mono">≈ ${number(metric.value.usd, 2)}</dd>}
+        </div>)}</dl>
+        <p className="mt-3 leading-relaxed">{t('project.costing.payoutsNote')}</p>
+      </details>
+    </section>;
+  }
 
   return (
     <section aria-label={t('project.costing.payouts')} className="space-y-3">

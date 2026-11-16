@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({
   actor: 'first-user', role: 'client', state: [] as any[], refs: [] as any[], callbacks: [] as any[], deps: [] as any[], cleanups: [] as any[],
   si: 0, ri: 0, ci: 0, ei: 0, effects: [] as { i: number; effect: () => any }[],
-  fetch: vi.fn(), channel: vi.fn(), remove: vi.fn(), changes: [] as (() => void)[],
+  fetch: vi.fn(), channel: vi.fn(), remove: vi.fn(), changes: [] as ((payload?: { eventType?: string }) => void)[],
 }));
 vi.mock('react', () => ({
   useState: (initial: any) => { const i = h.si++; if (!(i in h.state)) h.state[i] = initial;
@@ -35,6 +35,20 @@ beforeEach(() => {
 afterEach(() => { for(const cleanup of h.cleanups) cleanup?.(); h.cleanups=[]; vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('project role capabilities stay with the current session and project', () => {
+  it('keeps an invitation INSERT from unmounting the sender’s panel, then applies refreshed permissions', async () => {
+    render(); await flush(); expect(render().access?.canInvite).toBe(true);
+    let finish!: (value: unknown) => void;
+    h.fetch.mockReturnValueOnce(new Promise(resolve => { finish=resolve; }));
+    h.changes[0]({eventType:'INSERT'});
+    expect(render().access?.canInvite).toBe(true);
+    finish({canInvite:false}); await flush(); expect(render().access?.canInvite).toBe(false);
+  });
+  it.each(['UPDATE','DELETE'])('immediately closes earlier grants for a membership %s', async eventType => {
+    render(); await flush();
+    h.fetch.mockReturnValueOnce(new Promise(() => {}));
+    h.changes[0]({eventType});
+    expect(render().access).toBeNull();
+  });
   it('starts closed and refreshes accepted/revoked role changes from realtime', async () => {
     expect(render().access).toBeNull(); await flush(); expect(render().access?.canInvite).toBe(true);
     h.fetch.mockResolvedValue({ canInvite: false }); h.changes[0](); await flush();

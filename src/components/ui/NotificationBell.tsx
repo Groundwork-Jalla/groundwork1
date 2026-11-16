@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '@/hooks/useNotifications';
-import { resolveNotificationDestination } from '@/lib/notification-destination';
+import { notificationData, resolveNotificationDestination } from '@/lib/notification-destination';
 import { formatRelative } from '@/lib/format';
 import { useNotificationText } from '@/lib/notification-text';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const clickVersion = useRef(0);
   const navigate = useNavigate();
   const { isAdmin, isContractor, isVerifier } = useAuth();
+  const historyPath = isAdmin ? '/admin/notifications' : !isContractor && !isVerifier ? '/notifications' : null;
   const notificationText = useNotificationText();
   useEffect(() => { setOpen(false); setError(null); setOpening(null); setLimit(20); return () => { ++clickVersion.current; }; }, [userId]);
 
@@ -38,8 +39,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     const turn = ++clickVersion.current;
     setOpening(n.id); setError(null);
     try {
-      const to = await resolveNotificationDestination(n.data, { isAdmin, isContractor, isVerifier });
+      const to = await resolveNotificationDestination(notificationData(n), { isAdmin, isContractor, isVerifier });
       if (account.current !== recipient || clickVersion.current !== turn) return;
+      if (!to) { setError(t('notifications.noDestination')); return; }
       // A read-state failure must not prevent someone opening the action.
       if (!n.read_at) void feed.markRead(n.id).catch(() => { if (account.current === recipient) setError(t('notifications.readFailed')); });
       if (to) { setOpen(false); navigate(to); }
@@ -93,10 +95,10 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-10 z-50 w-80 rounded-2xl border border-brand-border-grey bg-white shadow-lg overflow-hidden dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+            className="fixed inset-x-4 top-16 z-50 flex max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-2xl border border-brand-border-grey bg-white shadow-lg dark:border-[#2c2c2c] dark:bg-[#1e1e1e] sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-80"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border-grey dark:border-[#2c2c2c]">
+            <div className="flex shrink-0 items-center justify-between px-4 py-3 border-b border-brand-border-grey dark:border-[#2c2c2c]">
               <span className="text-xs font-semibold text-brand-near-black dark:text-white">{t('nav.notifications')}</span>
               {unreadCount > 0 && (
                 <button
@@ -111,7 +113,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
             {(error || feed.failed) && <p role="alert" className="px-4 py-2 text-xs text-state-alert">{error ?? t('notifications.loadFailed')} <button type="button" className="underline" onClick={() => void feed.refresh()}>{t('common.retry')}</button></p>}
             {/* List */}
-            <div className="max-h-80 overflow-y-auto divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+            <div className="min-h-0 max-h-80 overflow-y-auto divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
               {!loaded ? (
                 <div className="px-4 py-6 text-xs text-brand-mid-grey text-center">{t('common.loading')}</div>
               ) : notifs.length === 0 ? (
@@ -133,9 +135,13 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                 })
               )}
             </div>
-            {notifs.length >= limit && <button type="button" disabled={feed.loadingMore} onClick={() => setLimit(value => value + 20)} className="w-full border-t border-brand-border-grey px-4 py-3 text-xs text-brand-mid-grey disabled:opacity-50">
+            {notifs.length >= limit && <button type="button" disabled={feed.loadingMore} onClick={() => setLimit(value => value + 20)} className="min-h-11 w-full shrink-0 border-t border-brand-border-grey px-4 py-3 text-xs text-brand-mid-grey disabled:opacity-50">
               {t(feed.loadingMore ? 'common.loading' : 'notifications.loadOlder')}
             </button>}
+            {historyPath && <Link to={historyPath} onClick={() => { ++clickVersion.current; setOpening(null); setOpen(false); }}
+              className="flex min-h-11 shrink-0 items-center justify-center border-t border-brand-border-grey px-4 py-3 text-xs font-semibold text-brand-green hover:bg-brand-off-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-green dark:text-[#b4d8bf]">
+              {t('notifications.viewAll')}
+            </Link>}
           </motion.div>
         )}
       </AnimatePresence>

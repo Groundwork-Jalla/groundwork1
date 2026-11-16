@@ -1,5 +1,5 @@
 import { ProjectInvitationLink } from './ProjectInvitationLink';
-import { createProjectInvitationLink } from '@/lib/supabase/project-invitation-links';
+import { createProjectInvitationLink, type ProjectInvitationLink as InvitationLink } from '@/lib/supabase/project-invitation-links';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, HardHat, Loader2, X } from 'lucide-react';
 
@@ -74,13 +74,14 @@ export function ContractorInvite({
   const [removeTarget, setRemoveTarget] = useState<ContractorInviteRow | null>(null);
   const [removing, setRemoving] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [createdLink, setCreatedLink] = useState<{ scope: string; link: InvitationLink } | null>(null);
 
   const load = useCallback(async () => {
     const version = ++rowRequest.current;
     try {
       const invites = await fetchInvites(projectId);
       if (!mounted.current || current.current !== scope || rowRequest.current !== version) return;
-      setRows(invites); setLoadError(false);
+      setRows(invites); setLoadError(false); setCreatedLink(null);
     } catch {
       if (!mounted.current || current.current !== scope || rowRequest.current !== version) return;
       setRows(null); setLoadError(true);
@@ -89,7 +90,7 @@ export function ContractorInvite({
   useEffect(() => {
     mounted.current = true; working.current = false;
     setRows(null); setEmail(''); setBusy(false); setSent(null); setError(null);
-    setNotEmailed(null); setRemoveTarget(null); setRemoving(false); setLoadError(false);
+    setNotEmailed(null); setRemoveTarget(null); setRemoving(false); setLoadError(false); setCreatedLink(null);
     return () => { mounted.current = false; ++rowRequest.current; };
   }, [scope]);
   useEffect(() => { if (access?.primaryClient || access?.primaryContractor) void load(); }, [access, load]);
@@ -100,13 +101,23 @@ export function ContractorInvite({
     if (working.current || !canSubmit || current.current !== scope) return;
     working.current = true; setBusy(true); setError(null);
     try {
-      await createProjectInvitationLink(projectId, 'contractor');
-      if (mounted.current && current.current === scope) await Promise.all([load(), refresh()]);
+      const link = await createProjectInvitationLink(projectId, 'contractor');
+      if (mounted.current && current.current === scope) {
+        setCreatedLink({ scope, link });
+        await Promise.all([load(), refresh()]);
+      }
     } catch {
       if (mounted.current && current.current === scope) setError(t('projectLinks.createFailed'));
     } finally {
       if (mounted.current && current.current === scope) { working.current = false; setBusy(false); }
     }
+  }
+
+  async function refreshStatus() {
+    if (working.current || (!access?.primaryClient && !access?.primaryContractor) || current.current !== scope) return;
+    working.current = true; setBusy(true);
+    try { await Promise.all([load(), refresh()]); }
+    finally { if (mounted.current && current.current === scope) { working.current = false; setBusy(false); } }
   }
 
   async function invite(e: React.FormEvent) {
@@ -179,9 +190,9 @@ export function ContractorInvite({
 
       {!access && <p className="mt-3 text-xs text-brand-mid-grey">{t(accessError ? 'teamAccess.loadFailed' : 'common.loading')}</p>}
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}
-      <ProjectInvitationLink scope={scope} role="contractor" primaryContractor={!additional} busy={busy || removing}
-        canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={() => { void load(); void refresh(); }}
-        link={activeLink ? { token: activeLink.token } : undefined} />
+      <ProjectInvitationLink scope={scope} role="contractor" primaryContractor={!additional} busy={busy || removing || !access}
+        canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={refreshStatus}
+        link={activeLink ? { token: activeLink.token } : createdLink?.scope === scope ? createdLink.link : undefined} />
       {canSubmit && (
         <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold underline underline-offset-4">{t('projectLinks.byEmail')}</summary>
         <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">

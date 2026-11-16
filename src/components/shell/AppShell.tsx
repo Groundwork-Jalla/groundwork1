@@ -30,18 +30,22 @@ export interface AppShellProps {
   topBarActions?: ReactNode;
   /** Rendered beside the page title — the admin's global search. */
   topBarSearch?: ReactNode;
+  /** The approved client-home treatment; other workspaces keep their own shell. */
+  sidebarAppearance?: 'default' | 'calm';
+  headerTitle?: string;
   children: ReactNode;
 }
 type AppShellPropsCaption = Parameters<ReturnType<typeof useT>>[0];
 
 export function AppShell({
-  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, topBarSearch, children,
+  nav, displayName, onLogout, badge, profileTo, userCaptionKey, topBarActions, topBarSearch,
+  sidebarAppearance = 'default', headerTitle, children,
 }: AppShellProps) {
   const { pathname } = useLocation();
   const [drawer, setDrawer] = useState(false);
   const t = useT();
 
-  const sidebar = (onNavigate?: () => void) => (
+  const sidebar = (onNavigate?: () => void, appearance: 'default' | 'calm' = sidebarAppearance) => (
     <AppSidebar
       nav={nav}
       displayName={displayName}
@@ -50,13 +54,14 @@ export function AppShell({
       userCaptionKey={userCaptionKey}
       onLogout={onLogout}
       onNavigate={onNavigate}
+      appearance={appearance}
     />
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f7f7f5] font-sans dark:bg-[#141414]">
+    <div className={cn('flex h-screen overflow-hidden font-sans dark:bg-[#141414]', sidebarAppearance === 'calm' ? 'h-dvh bg-[#ffffff]' : 'bg-[#f7f7f5]')}>
 
-      <div className="hidden shrink-0 md:block">{sidebar()}</div>
+      <div className="hidden shrink-0 md:block">{sidebar(undefined, sidebarAppearance)}</div>
 
       <AnimatePresence>
         {drawer && (
@@ -89,9 +94,9 @@ export function AppShell({
             >
               <Menu className="size-5 text-[#0a0a0a] dark:text-white" />
             </button>
-            <div className="md:hidden"><GroundworkLogo size="sm" /></div>
+            <div className="md:hidden"><GroundworkLogo size="sm" variant={sidebarAppearance === 'calm' ? 'green' : 'dark'} /></div>
             <h1 className="hidden shrink-0 text-sm font-semibold text-[#0a0a0a] dark:text-white md:block">
-              {t(pageTitleKey(pathname, nav))}
+              {headerTitle ?? t(pageTitleKey(pathname, nav))}
             </h1>
             {topBarSearch}
           </div>
@@ -123,7 +128,7 @@ export function AppShell({
               className={({ isActive }) =>
                 cn(
                   'flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
-                  isActive ? 'text-[#0a0a0a] dark:text-white' : 'text-[#5a5a57] dark:text-white/55',
+                  isActive ? sidebarAppearance === 'calm' ? 'text-[#1f4d36] dark:text-[#b4d8bf]' : 'text-[#0a0a0a] dark:text-white' : 'text-[#5a5a57] dark:text-white/55',
                 )
               }
             >

@@ -31,8 +31,12 @@ export function useProjectTeamAccess(projectId: string) {
   useEffect(() => {
     void refresh();
     const focus = () => { void refresh(); };
-    const invalidate = () => {
-      setState({ scope, role: accountRole, access: null, error: false });
+    const invalidate = (payload?: { eventType?: string }) => {
+      // A new invitation does not revoke this actor's existing membership.
+      // Keep the panel mounted for its own INSERT while refreshing reservations.
+      // Membership UPDATE/DELETE still close controls immediately; SQL checks
+      // the current permissions and reserved roles again for every mutation.
+      if (payload?.eventType !== 'INSERT') setState({ scope, role: accountRole, access: null, error: false });
       void refresh();
     };
     const poll = setInterval(() => {

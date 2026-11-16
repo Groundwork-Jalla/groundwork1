@@ -5,16 +5,18 @@ import { useLanguage, useT, type TKey } from '@/lib/i18n';
 import { useStageLabels } from '@/lib/stage-labels';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
 import { supabase } from '@/lib/supabase/client';
-import { fetchStagePriceContext, stagePricePreview, proposeStagePrices, decideStagePrices, type StagePriceContext } from '@/lib/supabase/stage-pricing';
+import { fetchStagePriceContext, stagePricePreview, proposeStagePrices, decideStagePrices, type StagePriceContext, type StagePriceProposal } from '@/lib/supabase/stage-pricing';
+import type { StagePayment } from '@/lib/supabase/verifications';
+import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
 import type { ProjectRow } from '@/types/project';
 
 /** The same proposal, approval and saved history in both participants' project views. */
-export function StagePricingPanel({ project, onChanged, compact = false, onOpen }: { project: ProjectRow; onChanged: () => void | Promise<void>; compact?: boolean; onOpen?: () => void }) {
+export function StagePricingPanel({ project, onChanged, compact = false, onOpen, payments }: { project: ProjectRow; onChanged: () => void | Promise<void>; compact?: boolean; onOpen?: () => void; payments?: Map<string, StagePayment> }) {
   const t = useT(); const { lang } = useLanguage(); const { stageLabel } = useStageLabels();
   const [loaded, setLoaded] = useState<{ scope: string; context: StagePriceContext } | null>(null);
   const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
   const [draft, setDraft] = useState<{ scope: string; context: StagePriceContext; amounts: Record<string, string>; note: string } | null>(null);
-  const [confirmation,setConfirmation]=useState<{scope:string;kind:'submit'|'approved'|'declined'|'withdrawn';proposalId?:string;hash:string;rows?:{stage_id:string;amount:string}[];note?:string;description:string}|null>(null);
+  const [confirmation,setConfirmation]=useState<{scope:string;kind:'submit'|'approved'|'declined'|'withdrawn';proposalId?:string;proposal?:StagePriceProposal;hash:string;rows?:{stage_id:string;amount:string}[];note?:string;description:string}|null>(null);
   const [working, setWorking] = useState<string | null>(null); const inFlight = useRef<string | null>(null); const request = useRef(0);
   const busy = working === project.id;
   const scope = useRef<string | null>(project.id); scope.current = project.id;
@@ -67,7 +69,7 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
   const preview = editing ? stagePricePreview(editing.context, editing.amounts) : null;
   const stale = editing && editing.context.base_hash !== context?.base_hash;
   const review=confirmation?.scope===project.id?confirmation:null;
-  const reviewDecision=(proposal:NonNullable<typeof pending>,kind:'approved'|'declined'|'withdrawn')=>setConfirmation({scope:project.id,kind,proposalId:proposal.id,hash:context!.base_hash,description:t(kind==='approved'?'project.priceChanges.confirmApproveBody':'project.priceChanges.confirmRetainBody',{before:format(proposal.old_total,proposal.currency),after:format(proposal.new_total,proposal.currency)})+'\n\n'+proposal.changes.map(change=>stageLabel(change)+': '+format(change.before,proposal.currency)+' → '+format(change.after,proposal.currency)).join('\n')});
+  const reviewDecision=(proposal:NonNullable<typeof pending>,kind:'approved'|'declined'|'withdrawn')=>setConfirmation({scope:project.id,kind,proposalId:proposal.id,proposal,hash:context!.base_hash,description:t(kind==='approved'?'project.priceChanges.confirmApproveBody':'project.priceChanges.confirmRetainBody',{before:format(proposal.old_total,proposal.currency),after:format(proposal.new_total,proposal.currency)})+'\n\n'+proposal.changes.map(change=>stageLabel(change)+': '+format(change.before,proposal.currency)+' → '+format(change.after,proposal.currency)).join('\n')});
   function confirmReview(){if(!review||!context)return;if((review.kind==='submit'&&(!context.can_propose||review.hash!==context.base_hash))||(review.kind==='approved'&&(!context.can_approve||review.hash!==context.base_hash))){fail(t('project.priceChanges.stale'));return;}return mutate(()=>review.kind==='submit'?proposeStagePrices(project.id,review.rows!,review.hash,review.note??''):decideStagePrices(review.proposalId!,review.kind));}
   if (compact) return context?.can_approve && pending ? <section className="mb-4 space-y-2 rounded-xl border border-brand-green bg-white p-4 dark:bg-[#1e1e1e]">
     <p className="text-sm font-semibold">{t('project.priceChanges.reviewNeeded')}</p>
@@ -121,6 +123,55 @@ export function StagePricingPanel({ project, onChanged, compact = false, onOpen 
         </div>
       </>}
     </li>)}</ol>}
-    <ConfirmModal open={!!review} title={t(review?.kind==='submit'?'project.priceChanges.confirmSubmit':'project.priceChanges.confirmDecision')} description={review?.description??''} confirmLabel={t('project.priceChanges.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmReview} onCancel={()=>setConfirmation(null)}/>
+    <ConfirmModal open={!!review}
+      variant={review?.kind === 'approved' || review?.kind === 'declined' ? 'client' : 'default'}
+      eyebrow={review?.kind === 'approved' || review?.kind === 'declined' ? project.name : undefined}
+      title={t(review?.kind === 'approved' ? 'project.clientUi.priceApprovalTitle' : review?.kind === 'submit' ? 'project.priceChanges.confirmSubmit' : 'project.priceChanges.confirmDecision')}
+      description={review?.description ?? ''}
+      summary={review?.kind === 'approved' ? t('project.clientUi.priceApprovalBody') : review?.kind === 'declined' ? t('project.clientUi.priceRetainBody') : undefined}
+      confirmLabel={t('project.priceChanges.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmReview} onCancel={() => setConfirmation(null)}>
+      {review?.proposal && (review.kind === 'approved' || review.kind === 'declined') && <>
+        <div className="space-y-3 sm:hidden">
+          {[...review.proposal.changes.map(change => ({ label: stageLabel(change), before: change.before, after: change.after })), { label: t('project.clientUi.projectTotal'), before: review.proposal.old_total, after: review.proposal.new_total }].map((row, index) => <div key={index} className="rounded-lg border border-brand-border-grey p-3">
+            <h3 className="break-words text-sm font-semibold">{row.label}</h3>
+            <dl className="mt-3 space-y-2 text-xs">
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-brand-mid-grey">{t('project.clientUi.current')}</dt><dd className="break-words font-mono">{format(row.before, review.proposal!.currency)}</dd></div>
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-brand-mid-grey">{t('project.clientUi.proposed')}</dt><dd className="break-words font-mono font-semibold">{format(row.after, review.proposal!.currency)}</dd></div>
+            </dl>
+          </div>)}
+        </div>
+        <div className="hidden overflow-hidden rounded-xl border border-brand-border-grey sm:block">
+          <table className="w-full table-fixed text-left text-xs sm:text-sm">
+            <thead className="bg-brand-off-white"><tr>
+              <th className="w-[34%] p-3 font-semibold">{t('project.priceChanges.stageColumn')}</th>
+              <th className="p-3 font-semibold text-brand-green dark:text-[#b4d8bf]">{t('project.clientUi.current')}</th>
+              <th className="p-3 font-semibold text-brand-green dark:text-[#b4d8bf]">{t('project.clientUi.proposed')}</th>
+            </tr></thead>
+            <tbody className="divide-y divide-brand-border-grey">
+              {review.proposal.changes.map(change => <tr key={change.stage_id}>
+                <th className="break-words p-3 font-medium">{stageLabel(change)}</th>
+                <td className="break-words p-3 font-mono">{format(change.before, review.proposal!.currency)}</td>
+                <td className="break-words p-3 font-mono font-semibold">{format(change.after, review.proposal!.currency)}</td>
+              </tr>)}
+              <tr className="bg-brand-off-white/60">
+                <th className="p-3 font-semibold">{t('project.clientUi.projectTotal')}</th>
+                <td className="break-words p-3 font-mono font-semibold">{format(review.proposal.old_total, review.proposal.currency)}</td>
+                <td className="break-words p-3 font-mono font-semibold">{format(review.proposal.new_total, review.proposal.currency)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {review.kind === 'approved' && review.proposal.changes.map(change => {
+          const payment = payments?.get(change.stage_id);
+          if (!payment || !context) return null;
+          const balance = stageReceiptBalance(payment, review.proposal!.currency, Number(context.fx_rate), Number(change.after));
+          return <div key={change.stage_id} className="rounded-lg bg-brand-off-white p-4 text-xs">
+            <p className="mb-3 font-semibold">{stageLabel(change)}</p>
+            <dl className="space-y-3"><div className="flex flex-wrap justify-between gap-2"><dt>{t('project.receiptFlow.receivedTotal')}</dt><dd className="break-words font-mono font-semibold">{format(balance.received, review.proposal!.currency)}</dd></div>
+              <div className="flex flex-wrap justify-between gap-2"><dt>{t('project.clientUi.stageBalanceAfter')}</dt><dd className="break-words font-mono font-semibold">{format(balance.remaining, review.proposal!.currency)}</dd></div></dl>
+          </div>;
+        })}
+      </>}
+    </ConfirmModal>
   </section>;
 }

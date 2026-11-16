@@ -88,6 +88,7 @@ export default function ProtectedLayout() {
       userCaptionKey="nav.viewProfile"
       onLogout={handleLogout}
       topBarActions={bell}
+      sidebarAppearance={accountRole === 'client' && location.pathname === '/dashboard' ? 'calm' : 'default'}
     >
       {content}
     </AppShell>

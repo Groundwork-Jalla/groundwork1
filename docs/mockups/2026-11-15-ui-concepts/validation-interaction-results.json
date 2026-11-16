@@ -1,0 +1,17 @@
+[
+  "Only contractor files are shown; client has no construction upload",
+  "Evidence-first receipt upload stays unavailable before work approval",
+  "Approval opens a focused second confirmation before any write",
+  "Confirmation keyboard focus stays inside the dialog",
+  "Escape cancels without approving work",
+  "Review-again cancels without approving work",
+  "Selected stage stays visible in the phone stage strip",
+  "Observer has no approval, receipt upload or payment-plan input",
+  "Client-created flow offers funding before evidence approval",
+  "Reviewed contractor stage offers currency, file/camera and both payment plans",
+  "Phone receipt controls use readable 16px inputs and 44px targets",
+  "Price confirmation keeps confirmed 3M receipt and proposed 6M balance distinct",
+  "Cancelling price approval keeps all saved data untouched",
+  "French client dashboard translates its new copy",
+  "Architectural home preserves the saved dark theme"
+]

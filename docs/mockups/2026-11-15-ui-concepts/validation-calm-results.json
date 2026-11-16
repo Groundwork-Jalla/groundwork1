@@ -1,0 +1,128 @@
+[
+  {
+    "viewport": "phone-small",
+    "width": 320,
+    "height": 740,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 320px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 320px",
+    "pass": true
+  },
+  {
+    "viewport": "phone",
+    "width": 390,
+    "height": 844,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 390px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 390px",
+    "pass": true
+  },
+  {
+    "viewport": "tablet",
+    "width": 768,
+    "height": 1024,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 768px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 768px",
+    "pass": true
+  },
+  {
+    "viewport": "tablet-landscape",
+    "width": 1024,
+    "height": 768,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 1024px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 1024px",
+    "pass": true
+  },
+  {
+    "viewport": "laptop",
+    "width": 1440,
+    "height": 960,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 1440px",
+    "pass": true
+  },
+  {
+    "check": "Project and action side by side at 1440px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 1440px",
+    "pass": true
+  },
+  {
+    "viewport": "desktop",
+    "width": 1920,
+    "height": 1080,
+    "bodyOverflow": 0,
+    "mainOverflow": 0
+  },
+  {
+    "check": "White sidebar and one next action at 1920px",
+    "pass": true
+  },
+  {
+    "check": "Project and action side by side at 1920px",
+    "pass": true
+  },
+  {
+    "check": "One create action and no evidence upload at 1920px",
+    "pass": true
+  },
+  {
+    "check": "Other projects are collapsed",
+    "pass": true
+  },
+  {
+    "check": "Other projects remain accessible",
+    "pass": true
+  },
+  {
+    "check": "Funding-first action is retained",
+    "pass": true
+  },
+  {
+    "check": "Invited observer keeps read-only project guidance",
+    "pass": true
+  },
+  {
+    "check": "Empty account retains project creation",
+    "pass": true
+  },
+  {
+    "check": "Next action is readable in dark mode",
+    "pass": true
+  },
+  {
+    "check": "French copy is retained",
+    "pass": true
+  }
+]

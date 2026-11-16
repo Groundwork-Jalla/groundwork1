@@ -64,6 +64,35 @@ SELECT test_assert((SELECT count(*) FROM notifications WHERE type='project.stage
 SELECT public.log_activity(test_id(190),'message.internal_note','conversation',test_id(190,92),auth.uid(),'{}');
 SELECT test_assert(NOT EXISTS(SELECT 1 FROM notifications WHERE type LIKE '%internal_note%'),'private staff notes do not enter the project notification feed');
 
+-- November 15: later receipts still target the completed stage after a contractor
+-- explicitly authorizes progression with money outstanding.
+SET ROLE authenticated;
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+SELECT test_finish(192,3),test_plan_send(192,3,1,25);
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
+SELECT test_decide(192,3,1,'accept');
+SELECT authorize_stage_progression(test_id(192,3),stage_payment_plan_context(test_id(192,3))->>'hash');
+SELECT test_assert((SELECT status='complete' FROM project_stages WHERE id=test_id(192,3))
+ AND (SELECT status='active' FROM project_stages WHERE id=test_id(192,4)), 'contractor override completes reviewed work and opens the next evidence stage');
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+SELECT test_plan_send(192,3,2,50);
+RESET ROLE;
+SELECT test_assert((SELECT count(*)=1 FROM notifications WHERE type='project.receipt_submitted'
+ AND user_id='00000000-0000-0000-0000-000000000002'
+ AND data->>'receipt_id'=(SELECT id::text FROM stage_payment_receipts WHERE path=test_path(192,3,2))
+ AND data->>'stage_id'=test_id(192,3)::text AND data->>'stage_number'='3' AND data->>'project_tab'='work'),
+ 'the primary contractor receives an exact old-stage receipt target after progression');
+SELECT test_assert((stage_payment_plan_context(test_id(192,3))->>'remaining')::numeric=45000,
+ 'a pending late receipt does not pretend its money was received');
+SET ROLE authenticated;
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000002',false);
+SELECT test_decide(192,3,2,'record');
+SELECT test_assert((stage_payment_plan_context(test_id(192,3))->>'remaining')::numeric=15000
+ AND (SELECT status='complete' FROM project_stages WHERE id=test_id(192,3))
+ AND (SELECT current_stage FROM projects WHERE id=test_id(192))=4,
+ 'confirming late money reduces the previous balance without reopening work or advancing again');
+RESET ROLE;
+
 SET ROLE authenticated;
 SELECT set_config('test.actor','00000000-0000-0000-0000-000000000006',false);
 SELECT test_assert(NOT EXISTS(SELECT 1 FROM notifications WHERE user_id<>auth.uid()),'notification RLS remains per recipient');

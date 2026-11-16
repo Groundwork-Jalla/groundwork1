@@ -38,12 +38,14 @@ export interface AppSidebarProps {
   onLogout: () => void;
   /** Set by the mobile drawer so tapping a link closes it. */
   onNavigate?: () => void;
+  appearance?: 'default' | 'calm';
 }
 
 export function AppSidebar({
-  nav, displayName, badge, userCaptionKey, profileTo, onLogout, onNavigate,
+  nav, displayName, badge, userCaptionKey, profileTo, onLogout, onNavigate, appearance = 'default',
 }: AppSidebarProps) {
   const t = useT();
+  const calm = appearance === 'calm';
   const initials = displayName
     .split(' ').slice(0, 2)
     .map(w => w[0]?.toUpperCase() ?? '')
@@ -65,12 +67,13 @@ export function AppSidebar({
 
   return (
     <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[#e4e3df] bg-[#ffffff] dark:border-white/10 dark:bg-[#0f0f0f]">
-      <div className="border-b border-[#e4e3df] px-5 py-5 dark:border-white/10">
+      <div className={cn('border-b border-[#e4e3df] px-5 dark:border-white/10', calm ? 'py-6' : 'py-5')}>
         <div className="flex flex-col leading-none">
-          {/* The logo is the one thing that must invert with the surface, so it reads the
-              theme rather than a prop. */}
-          <span className="dark:hidden"><GroundworkLogo size="sm" variant="dark" /></span>
-          <span className="hidden dark:block"><GroundworkLogo size="sm" variant="light" /></span>
+          {/* Keep the wordmark legible against either the home sidebar or the default shell. */}
+          {calm ? <GroundworkLogo size="xl" variant="green" /> : <>
+            <span className="dark:hidden"><GroundworkLogo size="sm" variant="dark" /></span>
+            <span className="hidden dark:block"><GroundworkLogo size="sm" variant="light" /></span>
+          </>}
           {badge && <span className="mt-0.5 text-[10px] text-[#9a9a96] dark:text-white/50">{badge}</span>}
         </div>
       </div>
@@ -78,6 +81,7 @@ export function AppSidebar({
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
         {nav.map(({ to, labelKey, icon: Icon, exact, section }, i) => (
           <Fragment key={to}>
+            {calm && to === '/profile' && <div aria-hidden className="mt-auto border-t border-brand-border-grey pt-2" />}
             {/* A heading above the first item of each section. The client nav has no
                 sections and renders exactly as before. */}
             {section && nav[i - 1]?.section !== section && (
@@ -92,7 +96,9 @@ export function AppSidebar({
               className={({ isActive }) =>
                 cn(
                   'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                  isActive
+                  calm
+                    ? isActive ? 'bg-brand-green/8 text-brand-green dark:bg-white/10 dark:text-[#b4d8bf]' : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white'
+                    : isActive
                     ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
                     : 'text-[#5a5a57] hover:bg-[#f7f7f5] hover:text-[#0a0a0a] dark:text-white/65 dark:hover:bg-white/10 dark:hover:text-white',
                 )

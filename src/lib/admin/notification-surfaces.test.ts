@@ -64,7 +64,7 @@ describe('a notification goes somewhere, wherever it is clicked', () => {
   it('using the SAME resolver as the bell', () => {
     // Two answers to "where does this notification go" is how the two drifted apart.
     expect(code('src/app/routes/notifications.tsx'))
-      .toMatch(/import \{ resolveNotificationDestination \} from '@\/lib\/notification-destination'/);
+      .toMatch(/import \{[^}]*resolveNotificationDestination[^}]*\} from '@\/lib\/notification-destination'/);
     expect(code('src/components/ui/NotificationBell.tsx')).toMatch(/resolveNotificationDestination/);
   });
 
@@ -85,7 +85,8 @@ describe('a notification goes somewhere, wherever it is clicked', () => {
   });
 
   it('older rows that carry only project_id still route', () => {
-    expect(code('src/app/routes/notifications.tsx'))
-      .toMatch(/n\.data \?\? \(n\.project_id \? \{ project_id: n\.project_id \} : null\)/);
+    for (const file of ['src/app/routes/notifications.tsx', 'src/components/ui/NotificationBell.tsx']) {
+      expect(code(file)).toMatch(/resolveNotificationDestination\(\s*notificationData\(n\)/);
+    }
   });
 });

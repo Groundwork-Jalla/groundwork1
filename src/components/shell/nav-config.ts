@@ -56,7 +56,6 @@ export const CLIENT_NAV: NavItem[] = [
   { to: '/dashboard',     labelKey: 'nav.dashboard',                               icon: LayoutDashboard, exact: true },
   { to: '/projects',      labelKey: 'nav.myProjects', shortKey: 'nav.projects',    icon: FolderOpen },
   { to: '/documents',     labelKey: 'nav.documents',                               icon: FolderArchive },
-  { to: '/notifications', labelKey: 'nav.notifications',                           icon: Bell },
   { to: '/resources',     labelKey: 'nav.resources',                               icon: BookOpen },
   { to: '/profile',       labelKey: 'nav.settings',                                icon: Settings, exact: true },
   // Reachable from the sidebar at last — /help was a routed page with no way in.
@@ -142,5 +141,7 @@ export function pageTitleKey(pathname: string, nav: NavItem[]): TKey {
     .find(item => (item.exact ? pathname === item.to : pathname.startsWith(item.to)));
 
   if (match) return match.labelKey;
+  // The notification history is reached through the bell, outside the client menu.
+  if (pathname === '/notifications') return 'nav.notifications';
   return 'nav.groundwork';
 }

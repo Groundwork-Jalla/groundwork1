@@ -1,0 +1,44 @@
+{
+  "localDate": "2026-11-16",
+  "timezone": "Asia/Kuala_Lumpur",
+  "scope": "Owner-approved webhook and reply/sender setup; delivery remains paused",
+  "setupCompletedAt": "2026-11-15T16:07:31.784Z",
+  "configurationReadbackAt": "2026-11-15T16:08:58.369Z",
+  "domains": [
+    { "name": "tryjalla.com", "status": "verified", "sending": "enabled", "receiving": "disabled" },
+    { "name": "mail.tryjalla.com", "status": "verified", "sending": "enabled", "receiving": "disabled" },
+    { "name": "replies.tryjalla.com", "status": "verified", "sending": "disabled", "receiving": "enabled", "mxPriority": 10 }
+  ],
+  "webhook": {
+    "id": "385bf123-5191-4517-ad86-a8c491245146",
+    "endpoint": "https://www.tryjalla.com/api/events?action=email-receipt",
+    "status": "enabled",
+    "events": ["email.received", "email.sent", "email.delivered", "email.bounced", "email.complained", "email.failed", "email.opened", "email.clicked"],
+    "signingSecretStored": true,
+    "storedSecretMatchesProvider": true
+  },
+  "settings": {
+    "deliveryEnabled": false,
+    "welcomeSender": "noreply@mail.tryjalla.com",
+    "followupSender": "contact@tryjalla.com",
+    "applicationSender": "partner@tryjalla.com",
+    "replyDomain": "replies.tryjalla.com",
+    "testRecipientCount": 0,
+    "staffOwnerConfigured": false,
+    "nextContactHours": 48
+  },
+  "syntheticCallbackCheck": {
+    "checkedAt": "2026-11-15T16:08:34.447Z",
+    "eventType": "groundwork.webhook.configuration_check",
+    "unsigned": { "httpStatus": 400, "passed": true },
+    "invalidSignature": { "httpStatus": 401, "passed": true },
+    "validSignature": { "httpStatus": 200, "ignored": true, "passed": true },
+    "emailsSent": 0,
+    "businessEventsSubmitted": 0
+  },
+  "incomingEmailReadPermission": { "reservedNonexistentId": true, "httpStatus": 404, "passed": true },
+  "actualEmailDeliveryTested": false,
+  "realResendCallbackTested": false,
+  "incomingReplyTested": false,
+  "staffFollowupTested": false
+}

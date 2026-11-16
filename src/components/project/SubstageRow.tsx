@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import type { ProjectSubstageRow, SubstageStatus } from '@/types/project';
 import { useStageLabels } from '@/lib/stage-labels';
 import { errorMessage } from '@/lib/errors';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 // ── Status icon ───────────────────────────────────────────
 
@@ -64,8 +65,8 @@ function StatusIcon({ status, hasEvidence }: { status: SubstageStatus; hasEviden
  * nobody is looking for photo 4, they are looking for the one with the rebar in it.
  * Tiles answer that without a click.
  */
-function EvidencePills({ urls }: { urls: string[] }) {
-  return <EvidenceThumbs paths={urls} />;
+function EvidencePills({ urls, review = false }: { urls: string[]; review?: boolean }) {
+  return <EvidenceThumbs paths={urls} size={review ? 'review' : 'compact'} />;
 }
 
 // ── Substage row ──────────────────────────────────────────
@@ -78,6 +79,8 @@ interface SubstageRowProps {
   stagePaid?: boolean;
   /** Project assignment permission, independent of the client's approval permission. */
   canUploadEvidence?: boolean;
+  approvalContext?: { projectName: string; stageName: string; description: string; lastUpdate: boolean };
+  compactEvidence?: boolean;
   onMarkComplete?: (substageId: string) => Promise<void>;
   onEvidenceUploaded: (substageId: string, urls: string[]) => void;
   /** Render the EvidenceUpload component lazily — passed as a render prop to avoid circular deps */
@@ -95,6 +98,8 @@ export function SubstageRow({
   isStageActive,
   stagePaid = true,
   canUploadEvidence = false,
+  approvalContext,
+  compactEvidence = false,
   onMarkComplete,
   onEvidenceUploaded,
   renderEvidenceUpload,
@@ -103,6 +108,8 @@ export function SubstageRow({
   const [marking, setMarking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const markingRef = useRef(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const clientPresentation = !!approvalContext;
 
   const hasEvidence = substage.evidence_urls.length > 0;
   const isLocked    = substage.status === 'locked';
@@ -118,6 +125,7 @@ export function SubstageRow({
     setMarking(true);
     try {
       await onMarkComplete!(substage.id);
+      setConfirmOpen(false);
     } catch (err) {
       setError(errorMessage(err, t('project.stages.updateFailed')));
     } finally {
@@ -128,7 +136,7 @@ export function SubstageRow({
 
   return (
     <div id={`substage-${substage.id}`} className={cn(
-      'flex items-start gap-3 py-2.5 group',
+      clientPresentation ? compactEvidence ? 'group flex min-w-0 items-start gap-3 rounded-lg border border-brand-border-grey bg-white p-3' : 'group flex min-w-0 items-start gap-3 rounded-xl border border-brand-border-grey bg-white p-4 sm:p-5' : 'flex items-start gap-3 py-2.5 group',
       isLocked && 'opacity-50',
     )}>
       <div className="mt-0.5 shrink-0">
@@ -136,11 +144,11 @@ export function SubstageRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <span className={cn(
-            'text-xs leading-snug',
+            clientPresentation ? 'text-sm font-semibold leading-relaxed' : 'text-xs leading-snug',
             isComplete
-              ? 'line-through text-brand-mid-grey'
+              ? clientPresentation ? 'text-brand-near-black' : 'line-through text-brand-mid-grey'
               : isLocked
                 ? 'text-brand-mid-grey'
                 : 'text-brand-near-black font-medium',
@@ -163,7 +171,7 @@ export function SubstageRow({
 
         {!hasEvidence && !isComplete && !isLocked && <p className="mt-1 text-xs text-brand-mid-grey">{t('project.review.updatesWillAppear')}</p>}
         {/* Evidence pills */}
-        <EvidencePills urls={substage.evidence_urls} />
+        {!compactEvidence && <EvidencePills urls={substage.evidence_urls} review={clientPresentation} />}
 
         {/* Evidence upload (active, non-complete substages, paid) */}
         <AnimatePresence>
@@ -194,9 +202,9 @@ export function SubstageRow({
             >
               <button
                 type="button"
-                onClick={handleMarkComplete}
+                onClick={approvalContext ? () => { setError(null); setConfirmOpen(true); } : handleMarkComplete}
                 disabled={marking}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-green bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-green-hover transition-colors disabled:opacity-50"
+                className={cn('inline-flex items-center gap-1.5 rounded-lg border border-brand-green bg-brand-green font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:opacity-50', clientPresentation ? 'min-h-11 px-4 py-2.5 text-xs' : 'px-3 py-1.5 text-[11px]')}
               >
                 {marking ? (
                   <Loader2 className="size-3 animate-spin" />
@@ -213,6 +221,17 @@ export function SubstageRow({
           <p className="mt-1.5 text-[11px] text-state-alert">{error}</p>
         )}
       </div>
+      {approvalContext && <ConfirmModal open={confirmOpen} variant="client" title={t('project.clientUi.approveUpdate')}
+        eyebrow={`${approvalContext.projectName} · ${approvalContext.stageName}`} description={approvalContext.description}
+        confirmLabel={t('project.stages.approveEvidence')} cancelLabel={t('project.clientUi.reviewAgain')}
+        error={error} loading={marking} onConfirm={() => { if (canMarkComplete) return handleMarkComplete(); }}
+        onCancel={() => { if (!markingRef.current) setConfirmOpen(false); }}>
+        <div className="space-y-3">
+          <EvidenceThumbs paths={substage.evidence_urls.slice(0, 3)} size="review" />
+          <h3 className="text-base font-semibold text-brand-near-black">{substageLabel(substage)}</h3>
+          {approvalContext.lastUpdate && <p className="text-sm text-brand-mid-grey">{t('project.clientUi.approveLastUpdate')}</p>}
+        </div>
+      </ConfirmModal>}
     </div>
   );
 }

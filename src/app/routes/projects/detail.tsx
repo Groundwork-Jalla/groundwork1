@@ -83,18 +83,19 @@ const CONTRACTOR_TABS: { id: Tab; labelKey: TKey }[] = [
 ];
 
 function TabBar({
-  active, onChange, isContractor, projectId, canInviteContractor,
+  active, onChange, isContractor, projectId, canInviteContractor, clientPresentation = false,
 }: {
   active: Tab;
   onChange: (t: Tab) => void;
   isContractor: boolean;
   projectId: string;
   canInviteContractor: boolean;
+  clientPresentation?: boolean;
 }) {
   const tabs = isContractor ? CONTRACTOR_TABS : OWNER_TABS;
   const t = useT();
   return (
-    <div className="flex gap-0 overflow-x-auto scrollbar-hide border-b border-brand-border-grey mb-6">
+    <div className={`mb-6 flex min-w-0 overflow-x-auto border-b border-brand-border-grey ${clientPresentation ? 'gap-1 pb-3' : 'gap-0 scrollbar-hide'}`}>
       {tabs.map(tab => (
         <button
           key={tab.id}
@@ -102,9 +103,9 @@ function TabBar({
           onClick={() => onChange(tab.id)}
           aria-current={active === tab.id ? 'page' : undefined}
           data-tour={tab.id === 'team' && active !== 'team' && canInviteContractor ? 'invite-contractor' : undefined}
-          className={`shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
+          className={`min-h-11 shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${clientPresentation ? 'rounded-lg' : ''} ${
             active === tab.id
-              ? 'text-brand-near-black border-b-2 border-brand-near-black -mb-px'
+              ? clientPresentation ? 'bg-brand-green text-white' : 'text-brand-near-black border-b-2 border-brand-near-black -mb-px'
               : 'text-brand-mid-grey hover:text-brand-near-black'
           }`}
         >
@@ -413,9 +414,10 @@ export default function ProjectDetail() {
 
   // Overview tab uses wider layout; others stay narrow
   const isWideTab = activeTab === 'overview';
+  const clientStages = activeTab === 'stages' && !isContractor;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#141414]">
+    <div className={`dark:bg-[#141414] ${clientStages ? 'min-h-full bg-brand-off-white' : 'min-h-screen bg-white'}`}>
       {/* Nav */}
       <nav className="border-b border-brand-border-grey dark:border-[#2c2c2c] px-4 sm:px-8 py-4 flex items-center gap-3">
         <ProjectBackLink />
@@ -424,7 +426,7 @@ export default function ProjectDetail() {
       </nav>
 
       {/* Main — wider for overview, narrow for detail tabs */}
-      <div className="mx-auto px-4 sm:px-6 py-8 sm:py-10 max-w-5xl">
+      <div className={`mx-auto min-w-0 px-4 sm:px-6 ${clientStages ? 'max-w-7xl py-6 sm:py-8' : 'max-w-5xl py-8 sm:py-10'}`}>
 
         {error && (
           <p role="alert" className="mb-4 rounded-xl border border-state-alert/30 px-4 py-3 text-sm text-state-alert">
@@ -449,12 +451,12 @@ export default function ProjectDetail() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-6">
+          <div className={`mb-6 flex items-start justify-between gap-4 ${clientStages ? 'flex-wrap' : ''}`}>
             <div className="min-w-0">
               <p className="text-[11px] font-medium text-brand-mid-grey uppercase tracking-wide mb-1">
                 {labels.buildingType(project.building_type)} · {labels.country(project.country)}
               </p>
-              <h1 className="font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight truncate">
+              <h1 className={`font-sans text-2xl sm:text-3xl font-bold text-brand-near-black dark:text-white leading-tight ${clientStages ? 'break-words' : 'truncate'}`}>
                 {project.name}
               </h1>
               <div className="mt-1 flex items-center gap-1.5 text-xs text-brand-mid-grey">
@@ -465,6 +467,7 @@ export default function ProjectDetail() {
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 shrink-0">
+              {clientStages && <div className="mb-2 max-w-full text-right"><p className="mb-1 text-xs text-brand-mid-grey">{t('project.clientUi.projectTotal')}</p><MoneyValue usd={budget.total} amount={project.budget_amount} className="max-w-full break-words text-sm font-semibold" /></div>}
               <div className="flex items-center gap-2">
                 {trackingStarted ? (
                   <span className="flex items-center gap-1 rounded-full bg-brand-off-white dark:bg-state-complete/30 border border-state-complete/30 dark:border-state-complete px-2 py-0.5 text-[10px] font-semibold text-state-complete dark:text-state-complete uppercase tracking-wide">
@@ -540,7 +543,7 @@ export default function ProjectDetail() {
               already `locked`, so nothing here is actionable until start_project_tracking
               activates stage 1. Hiding the whole project behind the budget form meant a
               user could not look at the build they had just costed. */}
-          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} />
+          <TabBar active={activeTab} onChange={setActiveTab} isContractor={isContractor} projectId={project.id} canInviteContractor={teamAccess?.canInviteContractor === true} clientPresentation={clientStages} />
           {activeTab !== 'costing' && <StagePricingPanel project={project} onChanged={loadAll} compact onOpen={() => setActiveTab('costing')} />}
 
           {/* Somebody else built this project for them — an admin, or the partner
@@ -575,6 +578,7 @@ export default function ProjectDetail() {
                   child of a `space-y-6` parent either way, so the spacing is unchanged. */}
               <div data-tour="stage-list">
               <StageTracker
+                clientPresentation={!isContractor}
                 stages={stages}
                 substages={substages}
                 tier={project.tier}
@@ -606,9 +610,9 @@ export default function ProjectDetail() {
 
           {/* Tab: Costing */}
           {activeTab === 'costing' && (
-            <div className="space-y-4">
-              <StagePricingPanel project={project} onChanged={loadAll} />
-              <BudgetView project={project} stages={stages} payments={payments} />
+            <div className="min-w-0 space-y-4">
+              <StagePricingPanel project={project} onChanged={loadAll} payments={payments} />
+              <div className="min-w-0 overflow-x-auto"><BudgetView project={project} stages={stages} payments={payments} /></div>
             </div>
           )}
 

@@ -70,11 +70,42 @@ beforeEach(() => {
   h.viewers.mockResolvedValue([]); h.invites.mockResolvedValue([]); h.refresh.mockResolvedValue(undefined);
   h.inviteViewer.mockResolvedValue('token'); h.send.mockResolvedValue(true);
   h.inviteContractor.mockResolvedValue({ invite: { token: 'token' }, emailSent: true });
-  h.setClient.mockResolvedValue(undefined); h.createLink.mockResolvedValue(undefined);
+  h.setClient.mockResolvedValue(undefined); h.createLink.mockResolvedValue({ token: 'created-token' });
   vi.stubGlobal('window', { location: { origin: 'https://example.test' } });
 });
 
 describe('shareable links are the primary invitation option', () => {
+  it.each(['observer', 'client', 'contractor'] as const)('shows the saved %s link before a slow invitation-list refresh completes', async role => {
+    if (role === 'client') h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true };
+    const component = role === 'contractor'
+      ? () => ContractorInvite({ projectId: 'project', userId: 'actor', projectName: 'Home' })
+      : () => ShareProject({ projectId: 'project', asClient: role === 'client' });
+    render(component); await flush();
+    const view = render(component);
+    const read = role === 'contractor' ? h.invites : h.viewers;
+    let finish!: (rows: any[]) => void;
+    read.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    view.all.find(n => n.type === ProjectInvitationLink)!.props.onCreate(); await flush();
+    const pending = render(component).all.find(n => n.type === ProjectInvitationLink)!;
+    expect(pending.props.link).toEqual({ token: 'created-token' });
+    expect(pending.props.busy).toBe(true);
+    finish([]); await flush(); render(component);
+  });
+
+  it('refreshes invitation status with visible pending state and updates an accepted link', async () => {
+    h.viewers.mockResolvedValue([{ ...observer, acceptedAt: null, isShareLink: true, token: 'pending' }]);
+    const component = () => ShareProject({ projectId: 'project' });
+    render(component); await flush();
+    let finish!: (rows: any[]) => void;
+    h.viewers.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const request = render(component).all.find(n => n.type === ProjectInvitationLink)!.props.onRefresh();
+    expect(render(component).all.find(n => n.type === ProjectInvitationLink)!.props.busy).toBe(true);
+    finish([{ ...observer, isShareLink: true }]); await request; await flush();
+    const updated = render(component);
+    expect(updated.all.find(n => n.type === ProjectInvitationLink)!.props.link).toBeUndefined();
+    expect(updated.text).toContain('projectShare.accepted');
+    expect(h.refresh).toHaveBeenCalled(); expect(h.createLink).not.toHaveBeenCalled();
+  });
   it.each(['observer', 'client', 'contractor'] as const)('creates a %s link without sending email', async role => {
     if (role === 'client') h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true };
     const component = role === 'contractor'
@@ -230,6 +261,15 @@ describe('the client project Team tab reuses the role-checked invitation panels'
 describe('the sender selects a project role before generating a link', () => {
   const component = () => ProjectSharing({ projectId: 'project', projectName: 'Home' });
   const choose = (role: string) => render(component).all.find(node => node.type === 'select')!.props.onChange({ target: { value: role } });
+
+  it('keeps the selected sharing panel mounted during an invitation-triggered permission reload', () => {
+    choose('family'); h.team.access = null;
+    expect(render(component).all.some(node => node.type === ShareProject)).toBe(true);
+    h.team.access = { ...caps };
+    expect(render(component).all.find(node => node.type === 'select')!.props.value).toBe('family');
+    h.team.access = { ...caps, canInvite: false };
+    expect(render(component).tree).toBeNull();
+  });
 
   it('requires an explicit choice before showing link generation or sending anything', () => {
     const view = render(component);

@@ -27,10 +27,11 @@ import { cn } from '@/lib/utils';
 const IMAGE = /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?)$/i;
 const VIDEO = /\.(mp4|webm|mov|m4v|ogg)$/i;
 
-export function EvidenceThumbs({ paths, bucket = 'evidence', className }: {
+export function EvidenceThumbs({ paths, bucket = 'evidence', className, size = 'compact' }: {
   paths: string[];
   bucket?: 'evidence' | 'documents';
   className?: string;
+  size?: 'compact' | 'review';
 }) {
   const t = useT();
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -41,14 +42,14 @@ export function EvidenceThumbs({ paths, bucket = 'evidence', className }: {
     const images = paths.filter(p => IMAGE.test(p));
     if (images.length === 0) return;
     void Promise.all(images.map(async p => {
-      const small = await signedUrlIn(bucket, p, { width: 160, height: 160 });
+      const small = await signedUrlIn(bucket, p, size === 'review' ? { width: 480, height: 320 } : { width: 160, height: 160 });
       return [p, small ?? ''] as const;
     })).then(pairs => {
       if (!live) return;
       setUrls(Object.fromEntries(pairs.filter(([, u]) => u)));
     });
     return () => { live = false; };
-  }, [paths.join('|'), bucket]);
+  }, [paths.join('|'), bucket, size]);
 
   if (paths.length === 0) return null;
 
@@ -61,7 +62,7 @@ export function EvidenceThumbs({ paths, bucket = 'evidence', className }: {
 
   return (
     <>
-      <div className={cn('mt-2 flex flex-wrap gap-1.5', className)}>
+      <div className={cn(size === 'review' ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3' : 'mt-2 flex flex-wrap gap-1.5', className)}>
         {paths.map((p, i) => {
           const isImage = IMAGE.test(p);
           const isVideo = VIDEO.test(p);
@@ -73,7 +74,7 @@ export function EvidenceThumbs({ paths, bucket = 'evidence', className }: {
               onClick={() => setAt(i)}
               title={items[i].label}
               aria-label={t('project.stages.openEvidence', { name: items[i].label })}
-              className="group relative size-16 shrink-0 overflow-hidden rounded-lg border border-brand-border-grey bg-brand-off-white transition-colors hover:border-brand-near-black dark:border-[#444] dark:bg-[#2c2c2c] dark:hover:border-white"
+              className={cn('group relative overflow-hidden rounded-lg border border-brand-border-grey bg-brand-off-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green dark:border-[#444] dark:bg-[#2c2c2c] dark:hover:border-white', size === 'review' ? 'aspect-[4/3] min-w-0 w-full hover:border-brand-green' : 'size-16 shrink-0 hover:border-brand-near-black')}
             >
               {isImage && src ? (
                 <img

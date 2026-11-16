@@ -46,13 +46,14 @@ beforeEach(() => {
 });
 
 describe('client dashboard review changes', () => {
-  it('keeps other projects, exactly two quick destinations and the actual payout component', async () => {
+  it('keeps other projects, the actual payout component and shortcuts to messages, documents and the existing project team', async () => {
     render(); await flush(); render(); await flush();
     const view = render(), card = hero();
     expect(view.text).toContain('dashboard.otherProjects');
     const actions = view.all.find(node => node.type?.name === 'QuickActions')!;
     const links = contents(actions).filter(node => node.type === 'a');
-    expect(links.map(node => node.props.to)).toEqual(['/projects/Home?tab=messages', '/documents']);
+    expect(links.map(node => node.props.to)).toEqual(['/projects/Home?tab=messages', '/documents', '/projects/Home?tab=team']);
+    expect(links.some(node => node.props.to === '/contractors')).toBe(false);
     expect(contents(card).some(node => node.type === 'payout-summary')).toBe(true);
     expect(view.all.some(node => node.type?.name === 'CostingDonut')).toBe(false);
     expect(view.all.find(node => node.type === 'security-nudges')?.props.showTwoFactor).toBe(false);

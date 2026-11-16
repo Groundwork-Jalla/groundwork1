@@ -27,7 +27,7 @@ Test accounts and controlled test projects must be excluded from the real-user t
 | Project notifications and Back | Participant events, exact action targets, current-role routing and shared document-navigation Back links. | Confirm migration 005's triggers and test actual mobile/desktop clicks across all dashboards. A responding app shell does not prove the original Back problem is resolved. |
 | Payments and receipt reading | Both project origins, currency input, file/camera controls, receipt decisions, full/two-installment plans, multiple proofs, balances and progression authorization. | Controlled live acceptance with actual receipts, including a non-receipt image and provider failures. |
 | Stage pricing | Contractor proposal, client approval, all-stage revisions and preserved payment/proposal history. | Live before/after comparisons in client and contractor views, including paid/completed/zero-cost stages. |
-| Communication framework | Four journeys, per-step Day 1/3/7 scheduling, preferences, reply handling, staff follow-up, ownership/cadence controls and tracking. | Complete Resend sending/receiving, signed callbacks, real replies, staff configuration and controlled delivery. Verify GHL overlap is retired. |
+| Communication framework | Four journeys, per-step Day 1/3/7 scheduling, preferences, reply handling, staff follow-up, ownership/cadence controls and tracking. Sending/receiving domains, webhook and saved reply settings are configured; deployed signature checks pass with synthetic events. | Configure controlled recipients and staff owner; test actual delivery, provider callbacks, replies and staff follow-up. Verify GHL overlap is retired. |
 | Direct Meta WhatsApp | Independent scheduling, consent/STOP, signed callbacks, delivery ledger and Admin conversations. Production account/phone access and callback challenge pass; the app subscription is acknowledged and all 86 reminder variants are submitted. | Deploy matching fixes; wait for template approval (86 pending at final read), refresh the Admin cache, review funding and complete controlled consent/inbound/reply/delivery tests. Sending remains off. |
 | Project files and walkthroughs | Openable file previews, actual issued/uploaded material and completion-aware guidance. | Review representative production documents and check that completed actions suppress the corresponding guides. Record any specific failures. |
 | Verified-project reporting | New correction described below, exercised against real PostgreSQL. | Apply the new reporting migration and deploy the matching app, then compare live classifications with actual primary memberships. |
@@ -62,6 +62,31 @@ response codes and the scope of what was established.
 Email setup instructions and the proposed exact endpoints are in
 [communication-provider-setup.md](communication-provider-setup.md). Keep existing
 Google MX records for `tryjalla.com`; receiving belongs on `replies.tryjalla.com`.
+
+### Email setup follow-up — 16 November, 00:03 Malaysia time
+
+After the owner completed GoDaddy setup, read-only Resend and public DNS checks
+confirmed verified sending for `tryjalla.com` and `mail.tryjalla.com`, verified
+receiving for `replies.tryjalla.com` (MX priority 10), and unchanged Google root MX
+records. DNS setup is complete. The complete webhook list still contains no
+Groundwork endpoint. Selected Supabase settings show no reply domain, no database
+webhook signing secret, `support@tryjalla.com` instead of the selected follow-up
+sender `contact@tryjalla.com`, zero controlled recipients and no default staff owner.
+Delivery remains paused. The Vercel secret fallback was not inspected. These are
+configuration checks; no email, reply, signed callback or staff workflow was tested.
+
+After explicit owner approval, the Groundwork webhook was created at **00:07
+Malaysia time** with all eight required event subscriptions. Its signing secret
+was stored privately in Supabase and verified against the provider value. The reply
+domain is now `replies.tryjalla.com` and the follow-up sender is `contact@tryjalla.com`.
+Delivery remains paused. At **00:08**, synthetic callback checks against the deployed
+endpoint returned 400 for an unsigned request, 401 for an invalid signature and
+200/ignored for a valid signature. These unhandled test events contained no email
+or business-event IDs and sent no emails. Incoming-email read permission was also
+confirmed without reading actual mail. The
+[sanitized setup record](communication-provider-checks-2026-11-16.json) captures
+the result. Controlled recipients, staff ownership, actual provider events and
+end-to-end email/reply testing remain.
 
 ### WhatsApp follow-up — 16 November, 00:12–00:15 Malaysia time
 
@@ -154,8 +179,8 @@ Exact migration 004/005 behavior still belongs in the authenticated live review.
 2. Smoke-test the critical self-service path on the deployed app: signup, required
    contractor forms, BOQ/project creation, correct existing-project access, invitations
    and Back. Fix any failure before treating a demo as ready.
-3. Complete Resend root-domain sending verification, dedicated receiving DNS,
-   canonical signed webhook, reply routing and staff sender/owner/cadence settings.
+3. With DNS, webhook authentication and reply/sender settings configured, set the
+   controlled recipients and staff owner, and confirm the follow-up cadence.
    Test actual arrival, authenticated reply and staff follow-up using controlled inboxes.
 4. Complete Meta token approval, connection/webhook proof, controlled messaging and
    template approvals. Keep the test-recipient audience through acceptance.

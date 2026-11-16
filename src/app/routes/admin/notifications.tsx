@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { NotificationRow } from '@/lib/supabase/notifications';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNotificationText } from '@/lib/notification-text';
-import { destinationFor, resolveNotificationDestination } from '@/lib/notification-destination';
+import { destinationFor, notificationData, resolveNotificationDestination } from '@/lib/notification-destination';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatDateTime, formatRelative } from '@/lib/format';
 import { useT } from '@/lib/i18n';
@@ -46,7 +46,7 @@ export default function AdminNotifications() {
   async function open(n: NotificationRow) {
     const recipient = user?.id, turn = ++clickVersion.current;
     try {
-      const to = await resolveNotificationDestination(n.data, { isAdmin: true });
+      const to = await resolveNotificationDestination(notificationData(n), { isAdmin: true });
       if (account.current !== recipient || clickVersion.current !== turn) return;
       if (!n.read_at) void feed.markRead(n.id).catch(() => { if (account.current === recipient) setError(t('notifications.readFailed')); });
       if (to) navigate(to);
@@ -102,7 +102,7 @@ export default function AdminNotifications() {
       ) : (
         <ul className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
           {shown.map(n => {
-            const to = destinationFor(n.data, { isAdmin: true });
+            const to = destinationFor(notificationData(n), { isAdmin: true });
             const { title, body } = notificationText(n);
             return (
               <li key={n.id} className="border-b border-brand-border-grey last:border-0 dark:border-[#2c2c2c]">

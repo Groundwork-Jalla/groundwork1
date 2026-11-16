@@ -33,7 +33,7 @@ const base: StagePaymentPlanContext = { stage_id: 'stage', project_id: 'project'
   plan: null, receipts: [] };
 const split: StagePaymentPlanContext = { ...base, can_edit: false, can_decide: true,
   plan: { id: 'plan', mode: 'two_installments', currency: 'XAF', stage_amount: '60000', first_amount: '30000', status: 'proposed', proposed_at: '', decided_at: null } };
-const props = { stageId: 'stage', isContractor: false, readOnly: false, canUpload: true, refreshKey: 'payment', onChanged: h.changed, onInstallmentChange: h.installment };
+const props = { stageId: 'stage', isContractor: false, readOnly: false, canUpload: true, refreshKey: 'payment', onChanged: h.changed, onInstallmentChange: h.installment, clientPresentation: false };
 function render(overrides: Partial<typeof props> = {}) {
   h.si = h.ri = h.ei = 0;
   const tree = StagePaymentPlanPanel({ ...props, ...overrides });
@@ -52,6 +52,44 @@ beforeEach(() => {
 afterEach(() => { h.cleanups.forEach(cleanup => cleanup?.()); vi.unstubAllGlobals(); });
 
 describe('stage payment plans and separate progression permission', () => {
+  it('reviews and saves an explicit 30/70 percentage split through the existing contractor-approved plan flow', async () => {
+    let view = await load();
+    view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}});
+    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'30'}});
+    expect(text(render())).toMatch(/First installment \(XAF\)\s*:\s*18,000 XAF/);
+    expect(text(render())).toContain('Second installment: 42,000 XAF');
+    button(render(),'Review payment plan').props.onClick();
+    expect(h.save).not.toHaveBeenCalled();
+    expect(dialog(render()).props.description).toContain('First payment: 18,000 XAF. Second payment: 42,000 XAF');
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  });
+
+  it('preserves the exact entered amount when switching its display to a rounded percentage', async () => {
+    let view = await load();
+    view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}});
+    render().find(node => node.type === 'input')!.props.onChange({target:{value:'20000'}});
+    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
+    expect(render().find(node => node.type === 'input')!.props.value).toBe('33.333333');
+    button(render(),'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base,'two_installments','20000');
+  });
+  it('keeps the new client payment choices behind the same reviewed plan confirmation', async () => {
+    const client = { clientPresentation: true };
+    let view = await load(base, client);
+    expect(view.filter(node => node.type === 'input' && node.props.type === 'radio').map(node => node.props.value)).toEqual(['full', 'two_installments']);
+    view.find(node => node.type === 'input' && node.props.value === 'two_installments')!.props.onChange();
+    view = render(client);
+    view.find(node => node.type === 'input' && node.props.inputMode === 'decimal')!.props.onChange({ target: { value: '20000' } });
+    button(render(client), 'Review payment plan').props.onClick();
+    expect(h.save).not.toHaveBeenCalled();
+    expect(dialog(render(client)).props.variant).toBe('client');
+    expect(dialog(render(client)).props.description).toContain('Second payment: 40,000 XAF');
+    await dialog(render(client)).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(base, 'two_installments', '20000');
+  });
   it('reviews the full stage and both installment amounts before saving; cancellation writes nothing', async () => {
     let view = await load();
     view.find(node => node.type === 'select')!.props.onChange({ target: { value: 'two_installments' } });

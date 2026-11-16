@@ -112,6 +112,15 @@ beforeEach(() => {
 });
 
 describe('approval explains the next action before opening the next stage', () => {
+  it('opens the exact linked stage by ID even when it is not the current stage', () => {
+    vi.stubGlobal('window', { location: { search: '?tab=stages&stage_id=s2' } });
+    try {
+      props.clientPresentation = true;
+      tracker();
+      expect(detailElement().props.stage.id).toBe('s2');
+      expect(detailElement().props.canAct).toBe(false);
+    } finally { vi.unstubAllGlobals(); }
+  });
   it('requests payment for the reviewed first contractor-created stage before advancing', async () => {
     props.workflowOrigin = 'contractor'; props.payments!.set('s1', payment('s1', 'expected'));
     h.approve.mockResolvedValue(result({ nextStageId: 's1', nextStageNumber: 1, nextStageStatus: 'pending_review', awaitingReviewedStagePayment: true }));
@@ -368,6 +377,50 @@ describe('client review of pending legacy updates', () => {
   });
 });
 
+
+describe('the refreshed client stage view', () => {
+  it('keeps every stage selectable and preserves its native budget, including historical and zero-cost work', () => {
+    props.clientPresentation = true;
+    props.stages = [stage(1, 'complete', { pre_existing: true, milestone_amount: 45000 }), stage(2, 'active', { milestone_amount: 0, payment_milestone_usd: 0 }), stage(3)];
+    const view = tracker();
+    expect(view.filter(node => node.type === 'button' && node.props['aria-current'] !== undefined)).toHaveLength(1);
+    expect(view.filter(node => node.type?.name === 'MoneyValue').map(node => node.props.amount)).toEqual([45000, 0, 100]);
+    expect(text(view)).toContain('project.costing.completedBeforeTracking');
+    expect(detailElement(view).props.stage.id).toBe('s2');
+    expect(detailElement(view).props.canUploadEvidence).toBe(false);
+  });
+
+  it('requires the client’s second confirmation, permits cancellation and prevents duplicate approvals', async () => {
+    props.clientPresentation = true;
+    props.substages = [substage('pending_review')];
+    const row = detail().find(node => node.type === SubstageRow)!;
+    expect(row.props.approvalContext.lastUpdate).toBe(true);
+    const renderRow = () => component(SubstageRow, row.props, 'client-review');
+    const approve = () => renderRow().find(node => node.type === 'button' && text(node).trim() === 'project.stages.approveEvidence')!.props.onClick();
+    approve();
+    expect(h.mark).not.toHaveBeenCalled();
+    renderRow().find(node => node.type === ConfirmModal && node.props.open)!.props.onCancel();
+    expect(h.mark).not.toHaveBeenCalled();
+    approve();
+    let finish!: () => void;
+    h.mark.mockReturnValue(new Promise<void>(resolve => { finish = resolve; }));
+    const confirmation = renderRow().find(node => node.type === ConfirmModal && node.props.open)!;
+    const first = confirmation.props.onConfirm();
+    await confirmation.props.onConfirm();
+    expect(h.mark).toHaveBeenCalledOnce();
+    finish(); await first;
+    expect(renderRow().some(node => node.type === ConfirmModal && node.props.open)).toBe(false);
+  });
+
+  it('does not add mutation controls to an observer’s new layout', () => {
+    props.clientPresentation = true; props.canApprove = false; props.substages = [substage('pending_review')];
+    const row = detail().find(node => node.type === SubstageRow)!;
+    expect(row.props.onMarkComplete).toBeUndefined();
+    const view = component(SubstageRow, row.props, 'observer-review');
+    expect(view.some(node => node.type === 'button' && text(node).includes('approveEvidence'))).toBe(false);
+    expect(detail().find(node => node.type === StagePaymentGate)!.props).toMatchObject({ readOnly: true, clientPresentation: true });
+  });
+});
 
 describe('stage certificates reflect actual issuance', () => {
   const flush = () => new Promise<void>(resolve => setImmediate(resolve));

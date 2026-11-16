@@ -19,7 +19,9 @@ export function ProjectSharing({ projectId, projectName }: { projectId: string; 
     ...(access.primaryClient || access.canInviteAdditionalContractor ? ['contractor' as const] : []),
     'observer', 'family',
   ];
-  const role = selection?.scope === scope && roles.includes(selection.role) ? selection.role : '';
+  // Creating an invitation emits a realtime invalidation. Keep the selected panel
+  // mounted while permissions reload; its own mutation controls remain disabled.
+  const role = selection?.scope === scope && ((!access && !error) || roles.includes(selection.role)) ? selection.role : '';
   if (access && !access.canInvite) return null;
   return <div className="space-y-4" data-tour={access?.canInviteClient ? 'invite-client' : access?.canInviteContractor ? 'invite-contractor' : undefined}>
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

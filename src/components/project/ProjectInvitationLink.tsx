@@ -42,7 +42,7 @@ export function ProjectInvitationLink({ scope, role, link, busy, canCreate, onCr
           className="mt-1 w-full rounded-lg border border-brand-border-grey bg-white p-2 font-mono text-xs text-brand-near-black dark:border-[#444] dark:bg-[#1e1e1e] dark:text-white" />
       </label>
       <Button type="button" variant="outline" className="h-8 text-xs" onClick={() => void copy()}>{t(copied ? 'projectLinks.copied' : 'projectShare.copyLink')}</Button>
-      {onRefresh && <Button type="button" variant="outline" disabled={busy} className="ml-2 h-8 text-xs" onClick={onRefresh}>{t('projectLinks.refresh')}</Button>}
+      {onRefresh && <Button type="button" variant="outline" disabled={busy} className="ml-2 h-8 text-xs" onClick={onRefresh}>{t(busy ? 'common.loading' : 'projectLinks.refresh')}</Button>}
       {copyFailed && <p role="alert" className="text-xs text-state-alert">{t('projectLinks.copyFailed')}</p>}
     </> : <Button type="button" disabled={busy} className="h-9 text-xs" onClick={onCreate}>
       <Link2 className="mr-1.5 size-3.5" aria-hidden />{t(busy ? 'common.loading' : 'projectLinks.create')}

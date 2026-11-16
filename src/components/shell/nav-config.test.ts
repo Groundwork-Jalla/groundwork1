@@ -91,6 +91,12 @@ describe('admin nav shape', () => {
 });
 
 describe('pageTitleKey', () => {
+  it('keeps client notification history outside both navigation menus while retaining its page title and route', () => {
+    expect(CLIENT_NAV.map(item => item.to)).toEqual(['/dashboard', '/projects', '/documents', '/resources', '/profile', '/help']);
+    expect(CLIENT_NAV.slice(0, 5).some(item => item.to === '/notifications')).toBe(false);
+    expect(pageTitleKey('/notifications', CLIENT_NAV)).toBe('nav.notifications');
+    expect(declared.has('/notifications')).toBe(true);
+  });
   it('ignores sections and still picks the longest match', () => {
     expect(pageTitleKey('/admin/applications/abc', ADMIN_NAV)).toBe('nav.applications');
     expect(pageTitleKey('/admin', ADMIN_NAV)).toBe('nav.overview');

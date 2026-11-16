@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const read = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/supabase/project-team', () => ({ fetchProjectTeamAccess: read }));
-import { destinationFor, notificationFocus, resolveNotificationDestination } from './notification-destination';
+import { destinationFor, notificationData, notificationFocus, resolveNotificationDestination } from './notification-destination';
 const project = '11111111-2222-3333-4444-555555555555';
 beforeEach(() => { vi.clearAllMocks(); });
 it('opens a role-change notice in the current account workspace',async()=>{
@@ -52,6 +52,19 @@ describe('project actions open in the current accepted project role', () => {
 });
 
 describe('notification action addresses', () => {
+  it.each([null, {}])('uses the real project reference when a legacy payload is missing (%s)', async data => {
+    read.mockResolvedValue({ projectRole: 'primary_client' });
+    expect(await resolveNotificationDestination(notificationData({ data, project_id: project }))).toBe(`/projects/${project}`);
+  });
+  it('preserves the exact action while filling a missing project reference', async () => {
+    read.mockResolvedValue({ projectRole: 'primary_client' });
+    expect(await resolveNotificationDestination(notificationData({ data: { receipt_id: 'receipt-8', stage_id: 'stage-4', stage_number: 4 }, project_id: project })))
+      .toBe(`/projects/${project}?tab=stages&stage=4&receipt_id=receipt-8&stage_id=stage-4`);
+  });
+  it('does not overwrite a valid project ID already in the action payload', () => {
+    expect(notificationData({ data: { project_id: 'original', document_id: 'doc-1' }, project_id: project }))
+      .toEqual({ project_id: 'original', document_id: 'doc-1' });
+  });
   it.each([['contractor', '/invite/'], ['viewer', '/share/']])('a pending %s invitation opens acceptance before project access', async (kind, base) => {
     expect(await resolveNotificationDestination({ project_id: project, invitation_kind: kind, invitation_token: 'original-token' })).toBe(`${base}original-token`);
     expect(read).not.toHaveBeenCalled();
@@ -59,6 +72,17 @@ describe('notification action addresses', () => {
   it('a message retains its exact conversation and message', () => {
     const url = destinationFor({ project_id: project, role: 'contractor', conversation_id: 'thread-2', message_id: 'message-8' });
     expect(url).toContain('tab=messages'); expect(url).toContain('conversation_id=thread-2'); expect(url).toContain('message_id=message-8');
+  });
+  it('opens the messages tab when an older notice carries only its message ID', () => {
+    expect(destinationFor({ project_id: project, message_id: 'message-8' }))
+      .toBe(`/projects/${project}?tab=messages&message_id=message-8`);
+  });
+  it('infers the correct Admin tab from a proposal and preserves canonical Admin tabs', async () => {
+    read.mockResolvedValue({ projectRole: 'staff' });
+    expect(await resolveNotificationDestination({ project_id: project, proposal_id: 'proposal-1' }, { isAdmin: true }))
+      .toBe(`/admin/projects/${project}?tab=financials&proposal_id=proposal-1`);
+    expect(await resolveNotificationDestination({ project_id: project, project_tab: 'financials', receipt_id: 'receipt-1' }, { isAdmin: true }))
+      .toBe(`/admin/projects/${project}?tab=financials&receipt_id=receipt-1`);
   });
   it('uses a proposal or document to choose a useful tab for older notifications', () => {
     expect(destinationFor({ project_id: project, proposal_id: 'price-1' })).toContain('tab=costing&proposal_id=price-1');
@@ -73,6 +97,10 @@ describe('notification action addresses', () => {
     expect(notificationFocus({ stage_id: 'stage-4', receipt_id: 'receipt-8' })).toEqual({ key: 'receipt_id', id: 'receipt-receipt-8' });
     expect(notificationFocus({ proposal_id: 'proposal-4' })?.id).toBe('price-proposal-proposal-4');
     const url = new URL(destinationFor({ project_id: project, project_event: 'stage_review_requested', stage_id: 'stage-4', stage_number: 4 })!, 'https://test.invalid');
+    expect(notificationFocus(Object.fromEntries(url.searchParams))?.id).toBe('project-stage-stage-4');
+  });
+  it('opens approved work at the work section rather than the stage payment form', () => {
+    const url = new URL(destinationFor({ project_id: project, project_event: 'stage_work_approved', stage_id: 'stage-4' })!, 'https://test.invalid');
     expect(notificationFocus(Object.fromEntries(url.searchParams))?.id).toBe('project-stage-stage-4');
   });
 });

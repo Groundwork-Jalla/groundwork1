@@ -12,16 +12,18 @@ import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentRecei
 import { DocumentViewer } from './DocumentViewer';
 import { ProjectExchangeRateNote, ReceiptExchangeRateNote } from './ExchangeRateNote';
 import { StagePaymentPlanPanel } from './StagePaymentPlanPanel';
+import { cn } from '@/lib/utils';
 
 interface Props {
   projectId: string; stageId: string; stageNumber: number; payment: StagePayment | undefined;
   isContractor: boolean; readOnly?: boolean; canUpload?: boolean; blockedReason?: string; scheduledAmount?: number | null; workReviewed?: boolean;
   onChanged: () => void | Promise<void>;
+  clientPresentation?: boolean;
 }
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
-  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged }: Props) {
+  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false }: Props) {
   const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
@@ -157,22 +159,24 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   function closeViewer() { ++viewRequest.current; setViewer(null); }
 
   if (!payment) return null;
-  return <section id={`stage-payment-${stageId}`} className="mt-5 space-y-3 rounded-xl border border-brand-border-grey bg-brand-off-white p-4 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]" aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
-    <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white"><Receipt className="size-4" aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
+  return <section id={`stage-payment-${stageId}`} className={cn('mt-5 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]', clientPresentation ? 'space-y-4 bg-white p-4 sm:p-5' : 'space-y-3 bg-brand-off-white p-4')} aria-label={t('project.receiptFlow.title', { n: stageNumber })}>
+    <h3 className={cn('flex items-center gap-2 font-semibold text-brand-near-black dark:text-white', clientPresentation ? 'text-base' : 'text-sm')}><Receipt className={clientPresentation ? 'size-5 text-brand-green' : 'size-4'} aria-hidden />{t('project.receiptFlow.title', { n: stageNumber })}</h3>
     {workReviewed && <p className="text-xs text-brand-mid-grey">{t(isContractor ? 'project.receiptFlow.reviewedStagePaymentContractor' : readOnly ? 'project.receiptFlow.reviewedStagePaymentObserver' : 'project.receiptFlow.reviewedStagePayment')}</p>}
-    <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>
+    {!clientPresentation && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.schedule', { amount: format(scheduledAmount ?? payment.amount * fxRate, code) })}</p>}
     {scheduledPair?.usd && <p className="font-mono text-xs text-brand-mid-grey">≈ {scheduledPair.usd}</p>}
     <ProjectExchangeRateNote/>
-    {balance&&<p role="status" className="rounded-lg border border-brand-border-grey p-3 text-sm font-semibold">{t(balance.received===null?'project.receiptFlow.amountUnknown':balance.remaining===0?'project.receiptFlow.fullyPaid':balance.received>0?'project.receiptFlow.partiallyPaid':'project.receiptFlow.awaitingFunds')}{settled&&balance.remaining!==null&&balance.remaining>0&&<span className="mt-1 block text-xs font-normal">{t('project.receiptFlow.partialAuthorized')}</span>}</p>}
-    {balance && <dl className="grid grid-cols-2 gap-3 text-xs">
+    {balance&&<p role="status" className={clientPresentation ? 'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium leading-relaxed text-brand-mid-grey' : 'rounded-lg border border-brand-border-grey p-3 text-sm font-semibold'}>{clientPresentation && <span className={cn('size-1.5 shrink-0 rounded-full', balance.remaining === 0 ? 'bg-brand-green' : 'bg-state-held')} aria-hidden />}{t(balance.received===null?'project.receiptFlow.amountUnknown':balance.remaining===0?'project.receiptFlow.fullyPaid':balance.received>0?'project.receiptFlow.partiallyPaid':'project.receiptFlow.awaitingFunds')}{settled&&balance.remaining!==null&&balance.remaining>0&&<span className="mt-1 block w-full text-xs font-normal">{t('project.receiptFlow.partialAuthorized')}</span>}</p>}
+    {balance && <dl className={cn('grid gap-3 text-xs', clientPresentation ? 'grid-cols-1 sm:grid-cols-3 [&>div]:min-w-0 [&>div]:rounded-lg [&>div]:border [&>div]:border-brand-border-grey [&>div]:p-3 [&_dd]:break-words [&_dd]:font-semibold [&_dd]:leading-relaxed' : 'grid-cols-2')}>
+      {clientPresentation && <div><dt className="text-brand-mid-grey">{t('project.clientUi.stageBudget')}</dt><dd className="mt-1 font-mono">{format(scheduledAmount ?? payment.amount * fxRate, code)}</dd></div>}
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.receivedTotal')}</dt><dd className="mt-1 font-mono">{format(balance.received, code)}</dd></div>
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(balance.remaining, code)}</dd></div>
       {(balance.pending == null || balance.pending > 0) && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.pendingTotal')}</dt><dd className="mt-1 font-mono">{format(balance.pending, code)}</dd></div>}
     </dl>}
     {!canUpload && !settled && <p className="text-xs text-brand-mid-grey">{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
-    <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment}
+    <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment} clientPresentation={clientPresentation}
       onChanged={onChanged} onInstallmentChange={value => { installment.current = { scope, value }; }}/>
-    {receipts.length > 0 && <ol className="divide-y divide-brand-border-grey dark:divide-[#333]">{receipts.map(receipt => <li key={receipt.id} id={`receipt-${receipt.id}`} className="py-3 text-xs">
+    {receipts.length > 0 && clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.paymentHistory')}</h4>}
+    {receipts.length > 0 && <ol className={cn('divide-y divide-brand-border-grey dark:divide-[#333]', clientPresentation && 'rounded-lg border border-brand-border-grey px-3')}>{receipts.map(receipt => <li key={receipt.id} id={`receipt-${receipt.id}`} className="py-3 text-xs">
       <div className="flex flex-wrap justify-between gap-2">
         <p className="font-mono font-semibold text-brand-near-black dark:text-white">{format(receipt.amount, receipt.currency)}</p>
         <span className={receipt.decision === 'received' ? 'text-state-complete' : 'text-brand-mid-grey'}>{t(receipt.replacedBy?'project.receiptFlow.replaced':receipt.decision === 'received' ? 'project.receiptFlow.received' : receipt.decision === 'flagged' ? 'project.receiptFlow.flagged' : 'project.receiptFlow.pending')}</span>
@@ -214,24 +218,25 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <button type="button" disabled={busy} onClick={()=>setDecisionForm(null)} className="text-xs underline">{t('common.cancel')}</button>
       </div>}
       {canUpload && !pending && !legacyPending && !requested && !settled && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.waitForReceipt')}</p>}
-    </> : readOnly ? null : allowed && <form onSubmit={submit} className="space-y-3">
+    </> : readOnly ? null : allowed && <form onSubmit={submit} className={cn('space-y-3', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
+      {clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.addReceipt')}</h4>}
       <fieldset disabled={!allowed || busy} className="space-y-3 disabled:opacity-40">
         {replacement?.scope===scope&&<p className="text-sm font-semibold">{t('project.receiptFlow.replacementHelp')}</p>}
         {pending&&<p role="status" className="text-sm">{t('project.receiptFlow.pendingMore')}</p>}
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t('project.stages.receiptChoose')}>
-          <button type="button" disabled={busy} onClick={()=>fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl bg-brand-green px-4 py-3 text-sm font-semibold text-white"><FileUp className="size-4" aria-hidden/>{t('project.receiptFlow.pickFile')}</button>
-          <button type="button" disabled={busy} onClick={()=>cameraRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-brand-green px-4 py-3 text-sm font-semibold"><Camera className="size-4" aria-hidden/>{t('project.receiptFlow.takePhoto')}</button>
+        <div className={clientPresentation ? 'grid gap-2 sm:grid-cols-2' : 'flex flex-wrap gap-2'} role="group" aria-label={t('project.stages.receiptChoose')}>
+          <button type="button" disabled={busy} onClick={()=>fileRef.current?.click()} className={cn('inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold', clientPresentation ? 'border border-brand-green text-brand-green hover:bg-brand-off-white dark:text-[#b4d8bf]' : 'bg-brand-green text-white')}><FileUp className="size-4" aria-hidden/>{t('project.receiptFlow.pickFile')}</button>
+          <button type="button" disabled={busy} onClick={()=>cameraRef.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-brand-green px-4 py-3 text-sm font-semibold"><Camera className="size-4" aria-hidden/>{t('project.receiptFlow.takePhoto')}</button>
         </div>
         <label htmlFor={`receipt-currency-${stageId}`} className="block text-xs font-medium">{t('project.receiptFlow.currencyLabel')}</label>
         <select id={`receipt-currency-${stageId}`} name="receipt-currency" value={selectedCurrency}
           onChange={event => { setDraft({ ...activeDraft, currency: event.target.value }); setFailure(null); }}
-          className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 text-sm dark:bg-[#141414]">
+          className={cn('min-h-11 w-full min-w-0 rounded-lg border border-brand-border-grey bg-white px-3 py-2 dark:bg-[#141414]', clientPresentation ? 'text-base sm:text-sm' : 'text-sm')}>
           {receiptCurrencyChoices(code).map(value => <option key={value} value={value}>{value}{value === code ? ` · ${t('project.receiptFlow.projectCurrency')}` : ''}</option>)}
         </select>
         <label htmlFor={`receipt-amount-${stageId}`} className="block text-xs font-medium">{t('project.stages.receiptAmountLabel', { currency: selectedCurrency })}</label>
         <input id={`receipt-amount-${stageId}`} name="receipt-amount" type="text" inputMode="decimal" autoComplete="off" value={activeDraft.amount}
           onChange={event => { const raw = event.target.value; setDraft({ ...activeDraft, amount: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); setFailure(null); }}
-          className="w-full rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono text-sm dark:bg-[#141414]" />
+          className={cn('min-h-11 w-full min-w-0 rounded-lg border border-brand-border-grey bg-white px-3 py-2 font-mono dark:bg-[#141414]', clientPresentation ? 'text-base sm:text-sm' : 'text-sm')} />
         <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.amountHint')}</p>
         {fileQueue.scope===scope&&fileQueue.files.length>0&&<p className="text-xs">{t('project.receiptFlow.additionalFiles',{count:fileQueue.files.length+1})}</p>}
         {activeDraft.file && <p className="break-all text-xs text-brand-mid-grey">{activeDraft.file.name}</p>}
@@ -244,7 +249,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       </fieldset>
     </form>}
     <ConfirmModal open={!!confirm} title={t('project.receiptFlow.confirmDecision')} description={confirm?.description??''} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmDecision} onCancel={()=>setConfirmation(null)}/>
-    {error && <p role="alert" className="text-xs text-state-alert">{error}</p>}
+    {error && <p role="alert" className={clientPresentation ? 'rounded-lg border border-state-alert/30 p-3 text-sm leading-relaxed text-state-alert' : 'text-xs text-state-alert'}>{error}</p>}
     {viewer?.scope === scope && <DocumentViewer name={viewer.name} url={viewer.url} loading={!viewer.url} onClose={closeViewer} />}
   </section>;
 }

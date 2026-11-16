@@ -1,5 +1,5 @@
 import { ProjectInvitationLink } from './ProjectInvitationLink';
-import { createProjectInvitationLink } from '@/lib/supabase/project-invitation-links';
+import { createProjectInvitationLink, type ProjectInvitationLink as InvitationLink } from '@/lib/supabase/project-invitation-links';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Check, Loader2, Users, X } from 'lucide-react';
 import {
@@ -51,13 +51,14 @@ export function ShareProject(
   const [fallback, setFallback] = useState<{ email: string; link: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [createdLink, setCreatedLink] = useState<{ scope: string; link: InvitationLink } | null>(null);
 
   const load = useCallback(async () => {
     const version = ++rowRequest.current;
     try {
       const viewers = await fetchProjectViewers(projectId);
       if (!mounted.current || current.current !== scope || version !== rowRequest.current) return;
-      setRows(viewers.filter(v => v.isClient === asClient)); setLoadError(false);
+      setRows(viewers.filter(v => v.isClient === asClient)); setLoadError(false); setCreatedLink(null);
     } catch {
       if (!mounted.current || current.current !== scope || version !== rowRequest.current) return;
       setRows(null); setLoadError(true);
@@ -66,7 +67,7 @@ export function ShareProject(
   useEffect(() => {
     mounted.current = true; working.current = false;
     setRows(null); setError(null); setSent(null); setFallback(null);
-    setBusy(false); setEmail(''); setRelationship(''); setLoadError(false);
+    setBusy(false); setEmail(''); setRelationship(''); setLoadError(false); setCreatedLink(null);
     return () => { mounted.current = false; ++rowRequest.current; };
   }, [scope]);
   useEffect(() => { if (access?.canInvite) void load(); }, [access, load]);
@@ -77,13 +78,23 @@ export function ShareProject(
     if (working.current || !canSubmit || current.current !== scope) return;
     working.current = true; setBusy(true); setError(null);
     try {
-      await createProjectInvitationLink(projectId, asClient ? 'client' : 'observer');
-      if (mounted.current && current.current === scope) await Promise.all([load(), refresh()]);
+      const link = await createProjectInvitationLink(projectId, asClient ? 'client' : 'observer');
+      if (mounted.current && current.current === scope) {
+        setCreatedLink({ scope, link });
+        await Promise.all([load(), refresh()]);
+      }
     } catch {
       if (mounted.current && current.current === scope) setError(t('projectLinks.createFailed'));
     } finally {
       if (mounted.current && current.current === scope) { working.current = false; setBusy(false); }
     }
+  }
+
+  async function refreshStatus() {
+    if (working.current || !access?.canInvite || current.current !== scope) return;
+    working.current = true; setBusy(true);
+    try { await Promise.all([load(), refresh()]); }
+    finally { if (mounted.current && current.current === scope) { working.current = false; setBusy(false); } }
   }
 
   async function invite(e: React.FormEvent) {
@@ -155,9 +166,9 @@ export function ShareProject(
 
       {!access && <p className="mt-3 text-xs text-brand-mid-grey">{t(accessError ? 'teamAccess.loadFailed' : 'common.loading')}</p>}
       {(accessError || loadError) && <Button type="button" variant="outline" className="mt-3 h-8 text-xs" onClick={() => { void refresh(); void load(); }}>{t('common.retry')}</Button>}
-      <ProjectInvitationLink scope={scope} role={asClient ? 'client' : 'observer'} busy={busy}
-        canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={() => { void load(); void refresh(); }}
-        link={activeLink?.token ? { token: activeLink.token } : undefined} />
+      <ProjectInvitationLink scope={scope} role={asClient ? 'client' : 'observer'} busy={busy || !access}
+        canCreate={canSubmit} onCreate={() => void createLink()} onRefresh={refreshStatus}
+        link={activeLink?.token ? { token: activeLink.token } : createdLink?.scope === scope ? createdLink.link : undefined} />
       {canSubmit && (
       <details className="mt-4"><summary className="cursor-pointer text-xs font-semibold underline underline-offset-4">{t('projectLinks.byEmail')}</summary>
       <form onSubmit={invite} noValidate className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">

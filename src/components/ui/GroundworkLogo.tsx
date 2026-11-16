@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 interface GroundworkLogoProps {
   linkTo?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'dark' | 'light';
+  variant?: 'dark' | 'light' | 'green';
   showByline?: boolean;
   className?: string;
 }
@@ -25,7 +25,7 @@ export function GroundworkLogo({
 }: GroundworkLogoProps) {
   const { wordmark, byline } = sizeMap[size];
 
-  const primaryColor   = variant === 'light' ? 'text-white'     : 'text-brand-near-black';
+  const primaryColor   = variant === 'light' ? 'text-white' : variant === 'green' ? 'text-brand-green dark:text-[#b4d8bf]' : 'text-brand-near-black';
   const secondaryColor = variant === 'light' ? 'text-white/55'  : 'text-brand-mid-grey';
 
   const inner = (

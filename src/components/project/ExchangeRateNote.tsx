@@ -40,7 +40,9 @@ export function ReceiptExchangeRateNote({ receipt }: { receipt: StagePaymentRece
   if (receipt.fxRate == null || receipt.projectFxRate == null || !receipt.fxSource) {
     return <p className="mt-1 text-brand-mid-grey">{t('project.fx.receiptRateUnknown')}</p>;
   }
-  return <div className="mt-2 space-y-1 text-brand-mid-grey">
+  return <details className="mt-2 text-brand-mid-grey">
+    <summary className="flex min-h-11 cursor-pointer items-center text-xs font-medium underline underline-offset-4">{t('project.fx.details')}</summary>
+    <div className="space-y-1 pb-2">
     {foreign && <p>{t('project.fx.receiptRate', { rate: number(receipt.fxRate), currency: receipt.currency ?? '' })}
       {market && <>{' · '}<ProviderLink/>{' · '}{date ? t('project.fx.quoteAsOf', { date }) : t('project.fx.quoteDateUnknown')}</>}
     </p>}
@@ -48,7 +50,8 @@ export function ReceiptExchangeRateNote({ receipt }: { receipt: StagePaymentRece
       {' · '}{savedAt ? t('project.fx.savedAt', { date: savedAt }) : t('project.fx.budgetDateUnknown')}</p>}
     {!market && date && <p>{t('project.fx.receiptSavedAt', { date })}</p>}
     <p>{t(receipt.currency === receipt.projectCurrency ? 'project.fx.sameCurrencyReceipt' : 'project.fx.savedReceiptNote')}</p>
-  </div>;
+    </div>
+  </details>;
 }
 
 /** Indicative quotes in the creation wizard retain the provider's own date. */

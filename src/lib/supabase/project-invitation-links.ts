@@ -6,10 +6,11 @@ export interface ProjectInvitationLink {
 }
 
 /** Creation is separate from email delivery. Only the server chooses the token. */
-export async function createProjectInvitationLink(projectId: string, role: ProjectInvitationRole): Promise<void> {
+export async function createProjectInvitationLink(projectId: string, role: ProjectInvitationRole): Promise<ProjectInvitationLink> {
   const { data, error } = await supabase.rpc('create_project_invitation_link', { p_project: projectId, p_role: role });
   if (error) throw error;
-  if (!data || typeof data.token !== 'string') throw new Error('invitation_link_unavailable');
+  if (!data || typeof data.token !== 'string' || !data.token.trim()) throw new Error('invitation_link_unavailable');
+  return { token: data.token };
 }
 
 export function projectInvitationLinkPath(role: ProjectInvitationRole, token: string): string {

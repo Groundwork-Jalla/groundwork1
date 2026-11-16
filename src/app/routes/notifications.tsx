@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useT, useLanguage, type TKey } from '@/lib/i18n';
 import { useNotificationText } from '@/lib/notification-text';
-import { resolveNotificationDestination } from '@/lib/notification-destination';
+import { notificationData, resolveNotificationDestination } from '@/lib/notification-destination';
 
 function timeAgo(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -122,8 +122,9 @@ export default function NotificationsPage() {
     const turn = ++clickVersion.current;
     try {
       const to = await resolveNotificationDestination(
-        n.data ?? (n.project_id ? { project_id: n.project_id } : null), { isAdmin, isContractor, isVerifier });
+        notificationData(n), { isAdmin, isContractor, isVerifier });
       if (account.current !== recipient || clickVersion.current !== turn) return;
+      if (!to) { setFailure(t('notifications.noDestination')); return; }
       if (!n.read_at) void feed.markRead(n.id).catch(() => { if (account.current === recipient) setFailure(t('notifications.readFailed')); });
       if (to) navigate(to);
     } catch { if (account.current === recipient && clickVersion.current === turn) setFailure(t('notifications.openFailed')); }

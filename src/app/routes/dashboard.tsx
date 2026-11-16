@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Plus,
   ChevronRight, HardHat,
-  UserCircle, Check, MessageSquare, FolderArchive, Eye,
+  UserCircle, Check, MessageSquare, FolderArchive, Eye, MapPin, ArrowUpRight, Users,
 } from 'lucide-react';
 import { useAuth }                    from '@/contexts/AuthContext';
 import { SecurityNudges }             from '@/components/dashboard/SecurityNudges';
@@ -17,13 +17,15 @@ import type { ProjectRow, ProjectStageRow } from '@/types/project';
 import { ProjectPayoutSummary } from '@/components/project/ProjectPayoutSummary';
 import { useStageLabels } from '@/lib/stage-labels';
 import { useDomainLabels } from '@/lib/domain-labels';
+import { ProjectCoverImage } from '@/components/dashboard/ProjectCoverImage';
+import { ClientProjectNextAction } from '@/components/dashboard/ClientProjectNextAction';
+import { currentProjectStage } from '@/lib/projects/stage-progression';
 
 // ── Types ──────────────────────────────────────────────────
 
 type ProjectStage = ProjectStageRow;
 
 const isComplete = (s: ProjectStage) => s.status === 'complete';
-const isActive   = (s: ProjectStage) => s.status === 'active' || s.status === 'pending_review';
 
 // ── Constants ──────────────────────────────────────────────
 
@@ -132,106 +134,65 @@ function ProfileCompletion({ nameSet, hasProject }: {
   );
 }
 
-// ── Active project hero (Design B) ─────────────────────────
-// The one card the dashboard is built around: the build you are actually running.
-// Design B's argument is that a dashboard is a place to act, not a place to read
-// statistics, so the active project gets the whole top of the page and everything
-// else is secondary.
+// Calm & clear: the project card and its permitted next action share the first row.
 
 function ActiveProjectHero({ project, stages, stagesLoading, stagesError, onRetryStages, shared, assigned }: {
   project: ProjectRow; stages: ProjectStage[]; stagesLoading: boolean; stagesError: boolean; onRetryStages: () => void;
-  /** Somebody else owns this build and invited this person onto it (112, 166). */
   shared: boolean;
   assigned: boolean;
 }) {
   const t = useT();
-  const money = useProjectMoney(project);
   const { stageLabel } = useStageLabels();
-  const { buildingType } = useDomainLabels();
-
-  const done    = stages.filter(isComplete).length;
-  const current = stages.find(isActive);
-  const pct     = stages.length ? Math.round((done / stages.length) * 100) : 0;
-  const { total } = projectBudget(project);
-
-  const meta = [
-    buildingType(project.building_type),
-    [project.city, project.country].filter(Boolean).join(', '),
-  ].filter(Boolean).join(' · ');
-
+  const { buildingType, country } = useDomainLabels();
+  const done = stages.filter(isComplete).length;
+  const current = currentProjectStage(stages);
+  const pct = stages.length ? Math.round((done / stages.length) * 100) : 0;
   const status = PROJECT_STATUS_META[project.status] ?? PROJECT_STATUS_META.active;
+  const projectPath = `${assigned ? '/work/projects' : '/projects'}/${project.id}`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="rounded-2xl border border-brand-green bg-brand-green p-6 sm:p-7"
-    >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
-            <span className={`size-1.5 rounded-full ${status.dot}`} />
-            {t(status.labelKey)}
-          </span>
-          {/* Beside the status, not instead of it: whose build this is and how it is
-              going are different questions and a client watching their contractor's
-              build needs both answered. */}
-          {shared && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white/80">
-              <Eye className="size-3" aria-hidden="true" />
-              {t('dashboard.shared.badge')}
-            </span>
-          )}
-        </div>
-        <span className="shrink-0 text-[11px] text-white/40 tabular-nums">
-          {stagesLoading
-            ? '—'
-            : t('dashboard.hero.stageOf', { n: current?.stage_number ?? done, total: stages.length || TOTAL_STAGES })}
-        </span>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="min-w-0 space-y-5 sm:space-y-6">
+      <div className={`grid min-w-0 gap-4 sm:gap-5 ${!assigned ? 'xl:grid-cols-[minmax(0,2.1fr)_minmax(16rem,1fr)]' : ''}`}>
+        <section className="grid min-w-0 overflow-hidden rounded-xl border border-brand-border-grey bg-white sm:grid-cols-[minmax(0,.95fr)_minmax(0,1fr)]" aria-label={project.name}>
+          <ProjectCoverImage projectId={project.id} projectName={project.name} />
+          <div className="flex min-w-0 flex-col p-4 sm:p-5">
+            <h2 className="break-words text-xl font-bold tracking-tight text-brand-near-black sm:text-2xl">{project.name}</h2>
+            <p className="mt-1 flex items-start gap-1.5 text-xs leading-relaxed text-brand-mid-grey">
+              <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>{[project.city, country(project.country)].filter(Boolean).join(', ') || buildingType(project.building_type)}</span>
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${status.dot}`} aria-hidden />{t(status.labelKey)}</span>
+              {shared && <span className="inline-flex items-center gap-1 text-brand-mid-grey"><Eye className="size-3.5" aria-hidden />{t('dashboard.shared.badge')}</span>}
+            </div>
+            <p className="mt-3 text-xs font-medium leading-relaxed text-brand-near-black">
+              {stagesLoading ? '—' : t('dashboard.hero.stageOf', { n: current?.stage_number ?? done, total: stages.length || TOTAL_STAGES })}
+              {' · '}{current ? stageLabel(current) : t(project.status === 'completed' || stages.length > 0 && done === stages.length ? 'common.complete' : 'dashboard.stageProgress.notStarted')}
+            </p>
+            <div role="progressbar" aria-label={t('dashboard.stageProgress.title')} aria-valuenow={stagesLoading ? undefined : pct} aria-valuemin={0} aria-valuemax={100}
+              className="mt-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${stages.length || TOTAL_STAGES}, minmax(0, 1fr))` }}>
+              {(stages.length ? stages : Array.from({ length: TOTAL_STAGES }, (_, index) => ({ id: String(index), status: 'locked' }))).map(stage => (
+                <span key={stage.id} className={`h-1.5 rounded-sm ${stage.status === 'complete' ? 'bg-brand-green' : 'bg-brand-border-grey'}`} />
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">{stagesLoading ? t('dashboard.costing.loadingStages') : t('dashboard.stageProgress.xOfY', { done, total: stages.length || TOTAL_STAGES })}</p>
+            <div className="mt-auto pt-4"><Link to={projectPath} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-green">
+              {t('dashboard.hero.openProject')}<ArrowUpRight className="size-4" aria-hidden />
+            </Link></div>
+          </div>
+        </section>
+        {!stagesLoading && !assigned && <ClientProjectNextAction project={project} stages={stages} />}
       </div>
 
-      <h2 className="text-xl font-bold text-white sm:text-2xl">{project.name}</h2>
-      <p className="mt-1 text-xs text-white/75">{meta}</p>
-      <p className="mt-2 font-mono text-lg font-semibold text-white">{money.local(total, project.budget_amount)}</p>
-      {money.pair(total, project.budget_amount)?.usd && <p className="font-mono text-xs text-white/75">≈ {money.pair(total, project.budget_amount)?.usd}</p>}
-
-      <div className="mt-5">
-        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
-          <motion.div
-            className="h-full rounded-full bg-white"
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.9, ease: 'easeOut' }}
-          />
-        </div>
-        <div className="mt-2 flex items-center justify-between text-[10px] text-white/40">
-          <span className="tabular-nums">{stagesLoading ? '—' : t('dashboard.hero.percentComplete', { pct })}</span>
-          <span className="truncate pl-3">
-            {current ? stageLabel(current) : t('dashboard.stageProgress.notStarted')}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-5">
-        {stagesError ? <p role="alert" className="text-xs text-white">{t('project.review.stagesLoadFailed')}{' '}
-          <button type="button" className="font-semibold underline" onClick={onRetryStages}>{t('common.retry')}</button></p>
-          : stagesLoading ? <p role="status" className="text-xs text-white/75">{t('common.loading')}</p>
-          : <ProjectPayoutSummary project={project} stages={stages} tone="hero" />}
-      </div>
-
-      <Link
-        to={`${assigned ? '/work/projects' : '/projects'}/${project.id}`}
-        className="group mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-brand-near-black transition-colors hover:bg-brand-off-white"
-      >
-        {t('dashboard.hero.openProject')}
-        <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-      </Link>
+      {stagesError ? <p role="alert" className="rounded-xl border border-brand-border-grey p-4 text-sm text-brand-mid-grey">{t('project.review.stagesLoadFailed')}{' '}
+        <button type="button" className="font-semibold underline" onClick={onRetryStages}>{t('common.retry')}</button></p>
+        : stagesLoading ? <p role="status" className="text-sm text-brand-mid-grey">{t('common.loading')}</p>
+        : <ProjectPayoutSummary project={project} stages={stages} tone="calm" />}
     </motion.div>
   );
 }
 
-// ── Quick actions (Design B) ───────────────────────────────
+// ── Project shortcuts ──────────────────────────────────────
 // Messages open the current project; documents open the shared file vault.
 
 function QuickActions({ project, unread, documentCount, shared, assigned }: {
@@ -269,26 +230,32 @@ function QuickActions({ project, unread, documentCount, shared, assigned }: {
       labelKey: 'dashboard.quick.documents' as TKey,
       sub: t('dashboard.quick.documentsSub', { count: documentCount }),
     },
+    ...(project ? [{
+      to: `${projectPath}?tab=team`, icon: Users,
+      labelKey: 'dashboard.architecture.team' as TKey,
+      sub: t('dashboard.architecture.teamBody'),
+    }] : []),
     // The "Contractors" card went with the sidebar item on 9 Nov 2026. It opened the
     // published directory — people the client has not hired — from the page they come
     // to for the build they are in the middle of.
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid min-w-0 gap-3 lg:grid-cols-3">
       {actions.map(({ to, icon: Icon, labelKey, sub }) => (
         <Link
           key={labelKey}
           to={to}
-          className="group flex items-center gap-3.5 rounded-2xl border border-brand-border-grey bg-white p-4 transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e]"
+          className="group flex min-h-20 min-w-0 items-center gap-3 rounded-xl border border-brand-border-grey bg-white p-4 transition-colors hover:border-brand-green focus-visible:outline-2 focus-visible:outline-brand-green"
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-off-white transition-colors group-hover:bg-brand-near-black dark:bg-[#252525]">
-            <Icon className="size-4.5 text-brand-mid-grey transition-colors group-hover:text-white" />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-green/7 text-brand-green dark:text-[#b4d8bf]">
+            <Icon className="size-5" />
           </span>
-          <span className="min-w-0">
+          <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-brand-near-black dark:text-white">{t(labelKey)}</span>
-            <span className="block truncate text-xs text-brand-mid-grey">{sub}</span>
+            <span className="mt-1 block break-words text-xs leading-relaxed text-brand-mid-grey">{sub}</span>
           </span>
+          <ChevronRight className="size-4 shrink-0 text-brand-mid-grey" aria-hidden />
         </Link>
       ))}
     </div>
@@ -483,32 +450,31 @@ export default function Dashboard() {
    *
    * Every build this person can see belongs to somebody else. They did not come here
    * to start a project — their project already exists and somebody else is running it
-   * — so the three things this page uses to push a new client toward the wizard are
-   * all wrong for them: the New Project button, the profile tracker whose last item is
-   * "First project created", and the dashed Create a build strip at the bottom.
+   * — so the New Project button and a profile tracker asking for a first project are
+   * the wrong guidance for them.
    *
    * Not the same test as "has no projects". Somebody with one of their own and one
-   * shared with them is on the ordinary path and keeps all three.
+   * shared with them is on the ordinary path and keeps that guidance.
    */
   const viewerOnly = !isContractor && !loading && ownedCount === 0 && projects.length > 0;
 
   return (
-    // Design B: focus-forward. One active build owns the top of the page; everything
-    // else is secondary. The dense stat grid Design A used lives on /projects now.
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-24 sm:px-6 md:pb-8">
+    // One active build owns the top of the home; other builds remain accessible below.
+    <div className="mx-auto min-w-0 max-w-6xl space-y-6 px-4 py-7 pb-10 sm:px-7 sm:py-9 lg:space-y-8 lg:px-10 lg:py-10">
 
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs text-brand-mid-grey">{t(greetingKey())}</p>
-          <h1 className="mt-1 text-2xl font-bold text-brand-near-black dark:text-white">{displayName}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="max-w-full break-words text-2xl font-bold tracking-tight text-brand-near-black dark:text-white sm:text-3xl lg:text-4xl">{isContractor ? displayName : t('dashboard.calm.greeting', { greeting: t(greetingKey()), name: displayName.trim().split(/\s+/)[0] || displayName })}</h1>
+          <p className="mt-2 break-words text-sm text-brand-mid-grey sm:text-base">{isContractor ? t(greetingKey()) : t('dashboard.calm.intro')}</p>
         </div>
         {/* Primary action kept in the header for quick project creation. */}
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           {!isContractor && !viewerOnly && (
             <Link to="/projects/new"
               data-tour="new-project"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover">
-              <Plus className="size-4" /> {t('dashboard.newProject')}
+              aria-label={t('dashboard.newProject')}
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-brand-border-grey px-4 py-2.5 text-sm font-semibold text-brand-green transition-colors hover:border-brand-green hover:bg-brand-off-white dark:text-[#b4d8bf]">
+              <Plus className="size-4" aria-hidden /><span className="hidden sm:inline">{t('dashboard.newProject')}</span>
             </Link>
           )}
         </div>
@@ -563,16 +529,15 @@ export default function Dashboard() {
       )}
 
       {otherProjects.length > 0 && (
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold tracking-wide text-brand-mid-grey">
+        <details className="group rounded-xl border border-brand-border-grey bg-white">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-brand-near-black">
+            <span>
               {t('dashboard.otherProjects')}
-            </h2>
-            <Link to="/projects" className="text-xs font-medium text-brand-mid-grey transition-colors hover:text-brand-near-black">
-              {t('common.viewAll')} →
-            </Link>
-          </div>
-          <div className="space-y-2.5">
+              <span className="ml-2 font-normal text-brand-mid-grey">{otherProjects.length}</span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-brand-mid-grey transition-transform group-open:rotate-90" aria-hidden />
+          </summary>
+          <div className="space-y-2.5 border-t border-brand-border-grey p-4">
             {otherProjects.slice(0, 3).map((p, i) => (
               <motion.div key={p.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -581,17 +546,11 @@ export default function Dashboard() {
                 <OtherProjectRow project={p} shared={sharedIds.has(p.id)} assigned={assignedIds.has(p.id)} />
               </motion.div>
             ))}
+            <Link to="/projects" className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-brand-green hover:underline dark:text-[#b4d8bf]">
+              {t('common.viewAll')}<ChevronRight className="size-3.5" aria-hidden />
+            </Link>
           </div>
-        </div>
-      )}
-
-      {!loading && !isContractor && !viewerOnly && projects.length > 0 && (
-        <Link
-          to="/projects/new"
-          className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-border-grey py-4 text-sm font-semibold text-brand-mid-grey transition-colors hover:border-brand-near-black hover:text-brand-near-black"
-        >
-          <Plus className="size-4" /> {t('dashboard.newProject')}
-        </Link>
+        </details>
       )}
     </div>
   );

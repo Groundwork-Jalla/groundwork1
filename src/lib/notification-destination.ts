@@ -7,6 +7,12 @@ export interface NotificationViewer {
   projectRole?: ProjectTeamAccess['projectRole'];
 }
 const safeId = (value: unknown): value is string => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(value);
+
+/** Older notices can carry the project reference only in the table's foreign key. */
+export function notificationData(notice: { data?: Record<string, unknown> | null; project_id?: string | null }): Record<string, unknown> | null {
+  if (safeId(notice.project_id) && !safeId(notice.data?.project_id)) return { ...notice.data, project_id: notice.project_id };
+  return notice.data ?? null;
+}
 export function notificationFocus(data: Record<string, unknown>): { key: string; id: string } | null {
   for (const [key, prefix] of [['receipt_id', 'receipt'], ['proposal_id', 'price-proposal'], ['substage_id', 'substage'], ['document_id', 'document'], ['message_id', 'message'], ['stage_id', 'stage-payment']]) {
     if (safeId(data[key])) return { key, id: `${key === 'stage_id' && data.focus === 'work' ? 'project-stage' : prefix}-${data[key]}` };
@@ -32,9 +38,10 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
   if (safeId(data.invitation_token) && data.invitation_kind === 'viewer') return `/share/${data.invitation_token}`;
   if (safeId(data.project_id)) {
     if (viewer?.projectRole === 'verifier' && safeId(data.verification_id)) return `/verifiers/${data.verification_id}`;
+    const target = s('project_tab') ?? (data.proposal_id ? 'costing' : data.receipt_id || data.stage_id || data.substage_id ? 'stages' : data.document_id ? 'documents' : data.message_id ? 'messages' : null);
     if (viewer?.projectRole === 'staff') {
-      const tabs: Record<string, string> = { work: 'stages', stages: 'stages', money: 'financials', costing: 'financials', documents: 'documents', messages: 'conversations', people: 'team', team: 'team', timeline: 'activity', overview: 'overview' };
-      const query = new URLSearchParams({ tab: s('conversation_id') ? 'conversations' : tabs[s('project_tab') ?? ''] ?? 'overview' });
+      const tabs: Record<string, string> = { work: 'stages', stages: 'stages', money: 'financials', costing: 'financials', financials: 'financials', documents: 'documents', messages: 'conversations', conversations: 'conversations', people: 'team', team: 'team', timeline: 'activity', activity: 'activity', overview: 'overview' };
+      const query = new URLSearchParams({ tab: s('conversation_id') ? 'conversations' : tabs[target ?? ''] ?? 'overview' });
       if (safeId(data.stage_id)) query.set('stage', data.stage_id);
       if (safeId(data.conversation_id)) query.set('conversation', data.conversation_id);
       for (const key of ['receipt_id', 'proposal_id', 'substage_id', 'document_id', 'message_id']) if (safeId(data[key])) query.set(key, data[key]);
@@ -43,7 +50,6 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
     const role = viewer?.projectRole
       ? ['primary_contractor', 'contractor'].includes(viewer.projectRole) ? 'contractor' : viewer.projectRole === 'verifier' ? 'verifier' : 'client'
       : s('financial_event') && s('role') ? s('role') : viewer?.isContractor ? 'contractor' : viewer?.isVerifier ? 'verifier' : s('role');
-    const target = s('project_tab') ?? (data.proposal_id ? 'costing' : data.receipt_id || data.stage_id || data.substage_id ? 'stages' : data.document_id ? 'documents' : null);
     const allowed = role === 'contractor' ? ['work', 'money', 'documents', 'messages', 'people'] : ['overview', 'stages', 'costing', 'timeline', 'documents', 'messages', 'team'];
     // Tabs reflect the current project role, even for notifications written before a role change.
     const mapped = role === 'contractor' ? ({ stages: 'work', costing: 'money', team: 'people' } as Record<string, string>)[target ?? ''] ?? target
@@ -52,7 +58,7 @@ export function destinationFor(data: Record<string, unknown> | null | undefined,
     const query = new URLSearchParams();
     if (selected) query.set('tab', selected);
     if (/^\d{1,3}$/.test(String(data.stage_number ?? ''))) query.set('stage', String(data.stage_number));
-    if (['evidence_uploaded', 'substage_approved', 'stage_review_requested', 'stage_rework_requested', 'stage_approved', 'stage_opened'].includes(s('project_event') ?? '')) query.set('focus', 'work');
+    if (data.focus === 'work' || ['evidence_uploaded', 'substage_approved', 'stage_review_requested', 'stage_rework_requested', 'stage_work_approved', 'stage_approved', 'stage_opened'].includes(s('project_event') ?? '')) query.set('focus', 'work');
     for (const key of ['receipt_id', 'proposal_id', 'substage_id', 'document_id', 'message_id', 'stage_id', 'conversation_id']) {
       if (safeId(data[key])) query.set(key, data[key]);
     }

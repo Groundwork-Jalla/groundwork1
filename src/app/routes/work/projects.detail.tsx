@@ -846,13 +846,14 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
-  const linkedStage=typeof window==='undefined'?null:new URLSearchParams(window.location?.search??'').get('stage');
+  const stageParams = new URLSearchParams(typeof window === 'undefined' ? '' : window.location?.search ?? '');
+  const linkedStage = stageParams.get('stage_id') ?? stageParams.get('stage');
   const scrolledStage = useRef('');
   useEffect(() => {
     if (!linkedStage) { scrolledStage.current = ''; return; }
     const key = `${project.id}:${linkedStage}`;
     if (scrolledStage.current === key || typeof document === 'undefined') return;
-    const row = stages.find(stage => String(stage.stage_number) === linkedStage);
+    const row = stages.find(stage => stage.id === linkedStage || String(stage.stage_number) === linkedStage);
     const target = row && document.getElementById('work-stage-' + row.id);
     if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); scrolledStage.current = key; }
   }, [project.id, linkedStage, stages]);

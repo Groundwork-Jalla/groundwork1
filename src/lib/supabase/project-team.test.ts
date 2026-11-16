@@ -21,7 +21,7 @@ beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('fetch', h.fetch); h.fetch.
 describe('team RPC boundaries', () => {
   it('creates a server-issued shareable link without email delivery', async () => {
     h.rpc.mockResolvedValue({ data: { token: 'opaque-token', expires_at: '2026-11-20T00:00:00Z' }, error: null });
-    await createProjectInvitationLink('project', 'observer');
+    expect(await createProjectInvitationLink('project', 'observer')).toEqual({ token: 'opaque-token' });
     expect(h.rpc).toHaveBeenCalledWith('create_project_invitation_link', { p_project: 'project', p_role: 'observer' });
     expect(h.fetch).not.toHaveBeenCalled();
   });
