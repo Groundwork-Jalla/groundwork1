@@ -1,0 +1,38 @@
+-- Actual RPCs and insert guards: pending/secondary/anonymous assignments never unlock payment.
+RESET ROLE;
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000004',false);
+SELECT test_price_start(200),test_price_start(201,'boq','contractor');
+SELECT set_config('test.actor','00000000-0000-0000-0000-000000000001',false);
+SELECT test_proof(200,3,1,50);
+DELETE FROM contractor_invites WHERE project_id=test_id(200);
+SET ROLE authenticated;
+SELECT test_assert(NOT (stage_payment_plan_context(test_id(200,3))->>'can_edit')::boolean,'plan controls are unavailable without a payee');
+SELECT test_refused($q$SELECT save_stage_payment_plan(test_id(200,3),'full',NULL,stage_payment_plan_context(test_id(200,3))->>'hash')$q$,'payment_plan_locked');
+SELECT test_refused($q$SELECT submit_stage_installment_receipt(test_id(200,3),test_path(200,3,1),50,'USD',1,(SELECT id FROM receipt_readings WHERE path=test_path(200,3,1)))$q$,'project_contractor_required');
+SELECT test_assert((SELECT state='expected' AND receipt_path IS NULL FROM payments WHERE stage_id=test_id(200,3) AND direction='in'),'refused receipt rolls back every legacy ledger write');
+RESET ROLE;
+SELECT test_refused($q$SELECT reserve_receipt_read(test_id(200,3),'00000000-0000-0000-0000-000000000001')$q$,'project_contractor_required');
+INSERT INTO contractor_invites(project_id,status,contractor_user_id,is_primary) VALUES(test_id(200),'pending','00000000-0000-0000-0000-000000000002',true);
+SELECT test_assert(NOT public.project_has_primary_contractor(test_id(200)),'unaccepted primary invitation does not qualify');
+SELECT test_refused($q$SELECT reserve_receipt_read(test_id(200,3),'00000000-0000-0000-0000-000000000001')$q$,'project_contractor_required');
+UPDATE contractor_invites SET status='accepted',is_primary=false WHERE project_id=test_id(200);
+SELECT test_assert(NOT public.project_has_primary_contractor(test_id(200)),'accepted additional contractor cannot receive/confirm the primary payment');
+UPDATE contractor_invites SET is_primary=true,contractor_user_id=NULL WHERE project_id=test_id(200);
+SELECT test_assert(NOT public.project_has_primary_contractor(test_id(200)),'an assignment without a user is not a connected payee');
+UPDATE contractor_invites SET contractor_user_id='00000000-0000-0000-0000-000000000002' WHERE project_id=test_id(200);
+SELECT test_assert(public.project_has_primary_contractor(test_id(200)),'identified accepted primary qualifies');
+SET ROLE authenticated;
+SELECT test_assert((stage_payment_plan_context(test_id(200,3))->>'can_edit')::boolean,'acceptance makes payment planning available');
+SELECT save_stage_payment_plan(test_id(200,3),'full',NULL,stage_payment_plan_context(test_id(200,3))->>'hash');
+SELECT submit_stage_installment_receipt(test_id(200,3),test_path(200,3,1),50,'USD',1,(SELECT id FROM receipt_readings WHERE path=test_path(200,3,1)));
+SELECT test_assert((SELECT count(*)=1 FROM stage_payment_receipts WHERE stage_id=test_id(200,3)),'a valid client-origin receipt is recorded once after connection');
+RESET ROLE;
+DELETE FROM contractor_invites WHERE project_id=test_id(200);
+SELECT test_assert((SELECT count(*)=1 AND min(amount)=50 FROM stage_payment_receipts WHERE stage_id=test_id(200,3)),'removal preserves the recorded money and receipt history');
+SELECT test_assert((SELECT budget_amount=180000 FROM projects WHERE id=test_id(200)),'connection never reprices the BOQ');
+SELECT test_assert((SELECT milestone_amount=60000 AND pre_existing AND status='complete' FROM project_stages WHERE id=test_id(200,2)),'completed historical work keeps its value');
+-- Contractor-origin construction ordering remains evidence, client review, then payment.
+SET ROLE authenticated;
+SELECT test_refused($q$SELECT test_plan_send(201,3,1,50)$q$,'receipt_gated');
+RESET ROLE;
+SELECT 'CONTRACTOR_BEFORE_PAYMENT_OK' AS result;

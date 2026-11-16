@@ -6208,6 +6208,18 @@ export const en = {
     },
   },
   project: {
+    contractorConnection: {
+      title: 'Connect your contractor to begin',
+      body: 'Invite your contractor or let Jalla help you find one. Payment receipts become available after your primary contractor joins this project.',
+      invite: 'Invite your contractor',
+      find: 'Let Jalla help you find a contractor',
+      pending: 'Your contractor’s invitation is awaiting acceptance. You can view or share it from your project team.',
+      viewInvitation: 'View contractor invitation',
+      requesting: 'Sending your request…',
+      requested: 'Your request is with Jalla. Our team will follow up to help you connect a contractor.',
+      failed: 'Your request could not be saved. Please try again.',
+      paymentBlocked: 'A primary contractor must join this project before you can set up payments or add payment receipts.',
+    },
     clientUi: {
       stagesTitle: 'Project stages',
       stageBudget: 'Stage budget',

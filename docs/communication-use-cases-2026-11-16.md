@@ -1,6 +1,6 @@
 # Groundwork communication and payment use cases
 
-Prepared for review after the 15 November Product Session. Date: 16 November 2026, Malaysia time. This describes the expected product behavior and a controlled test plan. It does not claim that every real email or WhatsApp message has been delivered.
+Prepared for review after the 15 November Product Session and updated for Philip’s 16 November contractor-connection correction. Date: 16 November 2026, Malaysia time. This describes the expected product behavior and a controlled test plan. It does not claim that every real email or WhatsApp message has been delivered.
 
 ## 1. What this framework does
 
@@ -14,6 +14,7 @@ Completing the requested action stops that action's reminders. A new milestone c
 
 ## 2. Current release and live-test status
 
+- The contractor-before-payment update is a local implementation pending its two new migrations and matching application deployment. Apply `20261116000000_contractor_before_payment.sql`, then `20261116000100_project_contractor_matching.sql`. This update does not enable email or WhatsApp delivery.
 - Activation email delivery was still paused at the 16 November read-only review. There were no configured controlled email recipients and no default follow-up owner. This explains why an account can receive its Supabase confirmation email without receiving a Groundwork welcome email during testing.
 - The background worker was running successfully. Role-change email delivery is independent of the activation pause; its queue existed and contained one provider-accepted send with no recorded queue error. Provider acceptance still requires an inbox check.
 - The sampled recent receipts had their submission notifications, including receipts on stages now marked complete. That sample does not establish the order of the historical actions in the recording. The regression suite separately exercises a receipt submitted after an explicit progression override.
@@ -48,13 +49,13 @@ Completing the requested action stops that action's reminders. A new milestone c
 
 **CL-2 — Project started but not saved.** A partly filled wizard is not a successfully created project. The client can return to the saved draft where supported. Project-created messaging and connection tracking must wait for the committed project record.
 
-**CL-3 — Project created, existing contractor available.** The next action is to invite that contractor. The client chooses Contractor before generating the link, or supplies the contractor's email. The invitation belongs to the existing project.
+**CL-3 — Project created, existing contractor available.** Dashboard, project overview and Stages offer “Invite your contractor” and “Let Jalla help you find a contractor.” The invitation button opens that exact project’s Team panel with Contractor selected. The client generates its link or supplies the contractor’s email. Payment plans and receipt uploads stay unavailable until an identified primary contractor accepts the project.
 
-**CL-4 — Project created, client requests help finding a contractor.** The help request enters the support branch. Team members review the request and contact the client. The acknowledgement does not promise an immediate professional appointment. Asking for help is distinct from an actual contractor joining.
+**CL-4 — Project created, client requests help finding a contractor.** The request is saved as a project-linked ticket in Admin Support, alerts the admin team, stops that project’s generic connection reminders and queues the enabled support acknowledgement through the existing delivery controls. Repeated clicks reuse the open request, including while staff are working on it. The client sees that the request was received; a failed save offers retry and never claims success. Staff review and contact the client. Asking for help does not appoint a contractor or unlock payments.
 
-**CL-5 — Contractor invited, acceptance outstanding.** The project retains its invitation status. A named email invitation and an anonymous shareable link have different delivery evidence. The team can review and share the existing invitation; acceptance stops its pending reminders.
+**CL-5 — Contractor invited, acceptance outstanding.** The project displays the pending invitation with a link to view or share it. Payment plans and receipt uploads remain unavailable. A named email invitation and an anonymous shareable link have different delivery evidence. Accepting the primary assignment, rather than merely creating or sending its link, satisfies the connection gate.
 
-**CL-6 — Contractor joins.** The connected-project acknowledgement applies. The accepted project assignment determines contractor permissions. The client and contractor see the same budget, approved prices, stage allocations and receipt history through their respective views.
+**CL-6 — Contractor joins.** The connected-project acknowledgement applies. An accepted, identified primary contractor on this project makes its payment workflow available. The next action refreshes from the saved membership. The existing project origin still determines whether funding or evidence comes first. A secondary contractor or a contractor connected to another project does not satisfy this gate. Both views use the same budget, approved prices, stages and receipt history.
 
 **CL-7 — Client owns several projects.** Project-specific messages retain the relevant project name and destination. Connecting one project must not silently complete another project's unfinished invitation.
 
@@ -118,7 +119,7 @@ Completing the requested action stops that action's reminders. A new milestone c
 
 **PAY-1 — Contractor-created project.** The contractor uploads work evidence. The primary client reviews and approves it. The client then uploads receipts for that reviewed stage. The primary contractor confirms money received and separately decides whether work can proceed. This cycle applies to later stages too.
 
-**PAY-2 — Client-created project.** The first eligible paid stage starts with funding. The client proposes full payment or an installment plan and supplies receipts; the contractor reviews the plan and received money before work is authorized. Evidence, client approval and the next funding/progression decision follow. Normal zero-cost stages keep their zero value and follow their work rules.
+**PAY-2 — Client-created project.** First connect the primary contractor: invite an existing contractor or request Jalla’s help. Until the contractor accepts, show the connection options instead of payment requests, plans or receipt upload controls. After acceptance, the first eligible paid stage starts with funding. The client proposes full payment or a custom installment plan and supplies receipts; the contractor reviews the plan and received money before work is authorized. Evidence, client approval and the next funding/progression decision follow. Normal zero-cost stages keep their zero value and follow their work rules. Server checks also refuse receipt reading/submission and plan creation before connection; direct API calls cannot bypass the screen.
 
 **PAY-3 — Confirmed BOQ.** The confirmed total is the pricing basis without Groundwork charges being added. Mid-build completed stages retain their allocated values and historical completion state. Approved later price revisions can change every stage, including originally zero-cost stages, and can change the project total after client approval. Receipt and prior-price history remain recorded.
 
@@ -144,6 +145,8 @@ Completing the requested action stops that action's reminders. A new milestone c
 
 **PAY-14 — Notifications and permissions.** Receipt review opens the applicable receipt; work approval opens its stage/update; price approval opens its proposal; invitation notifications open acceptance or the joined project as appropriate. Account role and project membership both matter. Observer notifications provide context without granting an action they cannot perform.
 
+**PAY-15 — Primary contractor removed after payment activity.** New payment plans and receipts become unavailable until a primary contractor is connected again. Previously uploaded receipts and recorded amounts remain visible as history. Removing a contractor does not erase payments, change the BOQ total or zero completed stages. Observers can read their permitted project content without receiving invitation, contractor-request or payment controls.
+
 ## 10. Controlled test plan for the team
 
 Prepare distinct client and contractor accounts for the following cohorts. Keep actual login credentials in the team's existing private handover process rather than this review document.
@@ -163,7 +166,7 @@ For each account record the start time, journey, current unfinished action, expe
 
 Run the immediate checks first. Continue the real cohorts at the actual Day-1, Day-3 and Day-7 deadlines shown in Journeys. Automated local tests may use a controlled clock; they do not establish real provider delivery at a future deadline. Do not shift production signup times or replay real customer mail to simulate waiting.
 
-For payments test both project origins; an unequal 30/70 plan; several receipts in each installment; a rejected non-receipt image; a corrected proof; a received-but-deferred decision; a separate progression override; and a later receipt against the completed old stage. Compare both dashboards before and after each action.
+For payments first create a client project without a contractor, test both connection options and confirm no payment prompt is available while an invitation or help request is pending. Accept the primary contractor and verify payment becomes available on that project alone. Also test both project origins; an unequal 30/70 plan; several receipts in each installment; a rejected non-receipt image; a corrected proof; a received-but-deferred decision; a separate progression override; and a later receipt against the completed old stage. Compare both dashboards before and after each action, including after primary-contractor removal.
 
 Before enabling the cohort: review copy (including old placeholders), configure only the chosen controlled recipients, assign a staff owner, review the reply cadence, check sending/reply domains and signed callbacks, and confirm GHL activation overlap is retired. Enable only the intended email journeys. An empty controlled-recipient list is not a sending pause.
 

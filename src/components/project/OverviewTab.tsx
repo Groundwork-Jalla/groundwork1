@@ -161,6 +161,8 @@ function CostBreakdownCard({ budget, project, stages, payments, onViewCosting, b
 const IMG_RE = /\.(jpe?g|png|webp|gif)$/i;
 
 interface OverviewTabProps {
+  hasPrimaryContractor?: boolean;
+  contractorConnection?: React.ReactNode;
   project: ProjectRow;
   stages: ProjectStageRow[];
   substages: ProjectSubstageRow[];
@@ -172,7 +174,7 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({
-  project, stages, substages, budget, payments, fees, onViewCosting, onViewStage,
+  project, stages, substages, budget, payments, fees, onViewCosting, onViewStage, hasPrimaryContractor = false, contractorConnection,
 }: OverviewTabProps) {
   const { stageLabel } = useStageLabels();
   const labels = useDomainLabels();
@@ -300,12 +302,13 @@ export default function OverviewTab({
         <div className="flex flex-col gap-6">
 
           {/* What it takes to open the next stage */}
-          <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
+          {contractorConnection ?? <div className="rounded-xl border border-brand-border-grey dark:border-[#2c2c2c] bg-white dark:bg-[#1e1e1e] p-5">
             <p className="text-sm font-medium text-brand-near-black dark:text-white">
               {t('project.review.nextAction')}
             </p>
 
             {project.status === 'on_hold' ? <p className="mt-3 text-sm text-brand-mid-grey">{t('project.review.paused')}</p>
+              : !hasPrimaryContractor && nextStage ? <p className="mt-3 text-sm text-brand-mid-grey">{t('project.contractorConnection.paymentBlocked')}</p>
               : unlockStage ? <>
                 <p className="mt-3 text-sm text-brand-near-black dark:text-white">{t('project.review.paymentFor', { stage: stageLabel(unlockStage) })}</p>
                 <MoneyValue usd={unlockStage.payment_milestone_usd} amount={unlockStage.milestone_amount} className="mt-2 text-2xl font-semibold" />
@@ -313,10 +316,10 @@ export default function OverviewTab({
               </> : <p className="mt-3 text-sm text-brand-mid-grey">{t(nextStage ? (awaitingReview > 0 ? 'project.review.reviewUpdates' : 'project.review.awaitingUpdates') : 'project.overview.allDone')}</p>}
             {nextStage && project.status !== 'on_hold' && <button type="button" onClick={onViewStage}
               className="mt-4 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-hover">
-              {t(unlockStage && !receiptWaiting ? 'project.stages.receiptChoose' : 'project.review.openStage')}
+              {t(hasPrimaryContractor && unlockStage && !receiptWaiting ? 'project.stages.receiptChoose' : 'project.review.openStage')}
             </button>}
 
-          </div>
+          </div>}
 
           <CostBreakdownCard
             budget={plannedBySlice}

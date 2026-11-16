@@ -4,11 +4,13 @@ import { currentProjectStage, canActOnProjectStage, canSubmitStageReceipt, stage
 import { stageReceiptBalance } from '@/lib/payments/stage-receipt-balance';
 import { projectMoneyBasis } from '@/lib/budget/project-money';
 
-export type ClientDashboardAction = { kind: 'review' | 'receipt' | 'pending' | 'waiting' | 'view'; stageNumber?: number };
+export type ClientDashboardAction = { kind: 'connect' | 'review' | 'receipt' | 'pending' | 'waiting' | 'view'; stageNumber?: number };
 
 /** A shortcut to an existing action, using the same permissions and funding gates as the project. */
-export function clientDashboardAction(project: ProjectRow, stages: ProjectStageRow[], substages: ProjectSubstageRow[], payments: Map<string, StagePayment>, primaryClient: boolean): ClientDashboardAction {
-  if (!primaryClient || project.status !== 'active' || !project.tracking_started_at) return { kind: 'view' };
+export function clientDashboardAction(project: ProjectRow, stages: ProjectStageRow[], substages: ProjectSubstageRow[], payments: Map<string, StagePayment>, primaryClient: boolean, hasPrimaryContractor: boolean): ClientDashboardAction {
+  if (!primaryClient || project.status !== 'active') return { kind: 'view' };
+  if (!hasPrimaryContractor) return { kind: 'connect' };
+  if (!project.tracking_started_at) return { kind: 'view' };
   const stage = currentProjectStage(stages);
   if (!stage || !canActOnProjectStage(stage, stages)) return { kind: 'view' };
   const payment = payments.get(stage.id);

@@ -1,0 +1,37 @@
+RESET ROLE;
+INSERT INTO projects(id,user_id,name) VALUES(test_id(400),test_id(1),'Contractor search home'),(test_id(401),test_id(2),'Another client');
+INSERT INTO profiles(id,full_name,preferred_lang) VALUES(test_id(1),'French Client','fr') ON CONFLICT(id) DO UPDATE SET preferred_lang='fr';
+UPDATE lifecycle_sequences SET enabled=true WHERE key IN('cl_project','cl_support');
+INSERT INTO lifecycle_enrollments(sequence_key,email,full_name,user_role,ref,context,next_send_at)
+ VALUES('cl_project','1@test.example','Client','client',test_id(400)::text,jsonb_build_object('project_id',test_id(400)),now());
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(6)::text,false);
+SELECT test_refused($q$SELECT request_project_contractor(test_id(400))$q$,'not_client');
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_refused($q$SELECT request_project_contractor(test_id(401))$q$,'not_client');
+SELECT test_assert(NOT (project_team_access(test_id(400))->>'has_primary_contractor')::boolean,'new client project has no payee');
+SELECT request_project_contractor(test_id(400));
+SELECT request_project_contractor(test_id(400));
+SELECT test_assert((SELECT count(*)=1 FROM support_tickets WHERE project_id=test_id(400)),'duplicate clicks reuse one open request');
+SELECT test_assert((project_team_access(test_id(400))->>'contractor_request_status')='open','client sees its saved request status');
+RESET ROLE;
+SELECT test_assert((SELECT count(*) FROM notifications WHERE type='support_ticket' AND data->>'ticket_id'=(SELECT id::text FROM support_tickets WHERE project_id=test_id(400)))=(SELECT count(*) FROM user_roles WHERE role='admin'),'request alerts every actual admin exactly once');
+SELECT test_assert((SELECT count(*)=1 FROM lifecycle_enrollments WHERE sequence_key='cl_support' AND ref=test_id(400)::text AND lang='fr'),'native support acknowledgement is queued once in the client language');
+SELECT test_assert((SELECT status='exited' AND next_send_at IS NULL FROM lifecycle_enrollments WHERE sequence_key='cl_project' AND ref=test_id(400)::text),'request stops generic connect-contractor reminders');
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(4)::text,false);
+UPDATE support_tickets SET status='in_progress' WHERE project_id=test_id(400);
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_assert((request_project_contractor(test_id(400))->>'status')='in_progress','refresh follows actual admin progress without creating another request');
+-- Only accepting a primary contractor satisfies the payment capability.
+SELECT create_project_invitation_link(test_id(400),'contractor');
+SELECT test_assert(NOT (project_team_access(test_id(400))->>'has_primary_contractor')::boolean,'a share link alone does not open payment');
+RESET ROLE;
+SELECT set_config('test.actor',test_id(2)::text,false);
+SELECT accept_contractor_invite(token) FROM contractor_invites WHERE project_id=test_id(400);
+SET ROLE authenticated;
+SELECT set_config('test.actor',test_id(1)::text,false);
+SELECT test_assert((project_team_access(test_id(400))->>'has_primary_contractor')::boolean,'accepted primary contractor unlocks the connection capability');
+SELECT test_refused($q$SELECT request_project_contractor(test_id(400))$q$,'contractor_already_connected');
+RESET ROLE;
+SELECT 'PROJECT_CONTRACTOR_MATCHING_OK' AS result;

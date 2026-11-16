@@ -37,9 +37,18 @@ export interface SupportTicket {
    * treats undefined and null as the same fact: nothing is linked.
    */
   project_id?: string | null;
+  request_topic?: 'contractor_matching' | null;
   conversation_id?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Idempotent, project-scoped request; the server checks the current primary client. */
+export async function requestProjectContractor(projectId: string): Promise<{ id: string; status: TicketStatus }> {
+  const { data, error } = await supabase.rpc('request_project_contractor', { p_project: projectId });
+  if (error) throw error;
+  if (!data?.id || !['open', 'in_progress', 'resolved', 'closed'].includes(data.status)) throw new Error('contractor_request_unavailable');
+  return { id: data.id, status: data.status };
 }
 
 export interface NewTicket {

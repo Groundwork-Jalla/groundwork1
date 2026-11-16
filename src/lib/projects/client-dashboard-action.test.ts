@@ -14,10 +14,16 @@ const project: ProjectRow = {
 const stage = { id: 's', stage_number: 4, status: 'active', pre_existing: false, payment_milestone_usd: 10_000, milestone_amount: 6_000_000 } as ProjectStageRow;
 const update = { id: 'u', stage_id: 's', status: 'pending_review', evidence_urls: ['p/footings.jpg'] } as ProjectSubstageRow;
 const payment: StagePayment = { id: 'pay', stageId: 's', amount: 10_000, state: 'expected', receipts: [], receiptPath: null, receiptUploadedAt: null };
-const decide = (changes: { project?: Partial<ProjectRow>; stage?: Partial<ProjectStageRow>; updates?: ProjectSubstageRow[]; payment?: StagePayment; primary?: boolean } = {}) =>
-  clientDashboardAction({ ...project, ...changes.project }, [{ ...stage, ...changes.stage }], changes.updates ?? [update], new Map([['s', changes.payment ?? payment]]), changes.primary ?? true);
+const decide = (changes: { project?: Partial<ProjectRow>; stage?: Partial<ProjectStageRow>; updates?: ProjectSubstageRow[]; payment?: StagePayment; primary?: boolean; connected?: boolean } = {}) =>
+  clientDashboardAction({ ...project, ...changes.project }, [{ ...stage, ...changes.stage }], changes.updates ?? [update], new Map([['s', changes.payment ?? payment]]), changes.primary ?? true, changes.connected ?? true);
 
 describe('client dashboard shortcuts preserve project gates', () => {
+  it.each(['client', 'contractor'] as const)('connects a primary contractor before asking for money on %s-origin projects', workflow_origin => {
+    expect(decide({ project: { workflow_origin }, connected: false })).toEqual({ kind: 'connect' });
+  });
+  it('offers connection before tracking begins without presenting a payment action', () => expect(decide({ connected: false, project: { tracking_started_at: null } })).toEqual({ kind: 'connect' }));
+  it('never asks an observer to invite a contractor', () => expect(decide({ primary: false, connected: false })).toEqual({ kind: 'view' }));
+  it('returns to connection after a contractor is removed, retaining pending proof history', () => expect(decide({ connected: false, payment: { ...payment, state: 'receipt_submitted' } })).toEqual({ kind: 'connect' }));
   it('directs contractor-created work to the evidence review before payment', () => expect(decide()).toEqual({ kind: 'review', stageNumber: 4 }));
   it('does not ask a client to pay before approving contractor-created work', () => expect(decide({ updates: [] }).kind).toBe('waiting'));
   it('offers payment for the same reviewed contractor-created stage', () => expect(decide({ stage: { review_payment_pending: true } })).toEqual({ kind: 'receipt', stageNumber: 4 }));

@@ -104,7 +104,7 @@ beforeEach(() => {
   h.certificates.mockResolvedValue(new Map());
   h.approve.mockResolvedValue(result()); h.mark.mockResolvedValue(undefined); h.changed.mockResolvedValue(undefined);
   props = { stages: [stage(1, 'active'), stage(2), stage(3)], substages: [substage()], tier: 'self_verify',
-    canApprove: true,
+    canApprove: true, hasPrimaryContractor: true,
     userId: 'client', projectId: 'project', projectName: 'Build', projectCountry: 'US', projectCity: null, ownerName: 'Client',
     payments: new Map([['s1', payment()], ['s2', payment('s2', 'expected')], ['s3', payment('s3', 'expected')]]),
     onMarkSubstageComplete: h.mark, onEvidenceUploaded() {}, onApproveStage: h.approve,
@@ -215,6 +215,25 @@ describe('approval explains the next action before opening the next stage', () =
 });
 
 describe('only the current stage offers actions', () => {
+  it.each(['client', 'contractor'] as const)('suppresses payment controls before a primary contractor joins a %s-origin project', workflowOrigin => {
+    props.workflowOrigin = workflowOrigin; props.hasPrimaryContractor = false;
+    props.stages = [stage(1, 'locked')]; props.payments = new Map([['s1', payment('s1', 'expected')]]);
+    const elements = detail();
+    expect(elements.some(node => node.type === StagePaymentGate)).toBe(false);
+    expect(text(elements)).toContain('project.contractorConnection.paymentBlocked');
+  });
+  it('retains receipt history as read-only after the primary contractor is removed', () => {
+    props.hasPrimaryContractor = false;
+    props.payments = new Map([['s1', { ...payment(), receipts: [{ id: 'saved', amount: 25, currency: 'USD', decision: 'received' }] as any }]]);
+    const gate = detail().find(node => node.type === StagePaymentGate)!;
+    expect(gate.props).toMatchObject({ readOnly: true, canUpload: false });
+    expect(gate.props.payment.receipts[0].amount).toBe(25);
+  });
+  it('opens the payment form on client-origin work only after connection is confirmed', () => {
+    props.hasPrimaryContractor = true; props.workflowOrigin = 'client';
+    props.stages = [stage(1, 'locked')]; props.payments = new Map([['s1', payment('s1', 'expected')]]);
+    expect(detail().find(node => node.type === StagePaymentGate)?.props).toMatchObject({ canUpload: true, readOnly: false });
+  });
   it('lets a secondary contractor view funds and upload evidence without confirming receipts',()=>{
     props.isContractor=true;props.canApprove=false;props.canConfirmPayments=false;props.canUploadEvidence=true;
     const gate=detail().find(node=>node.type===StagePaymentGate)!;

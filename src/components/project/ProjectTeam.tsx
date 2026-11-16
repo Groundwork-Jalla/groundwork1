@@ -7,7 +7,7 @@ import { ProjectSharing } from './ProjectSharing';
 import type { ProjectRow } from '@/types/project';
 
 /** Project-scoped invitations, using the same accepted-role checks as the work view. */
-export function ProjectTeam({ project }: { project: Pick<ProjectRow, 'id' | 'name'> }) {
+export function ProjectTeam({ project, inviteContractor = false }: { project: Pick<ProjectRow, 'id' | 'name'>; inviteContractor?: boolean }) {
   const t = useT();
   const { user } = useAuth();
   const { scope, access, error, refresh } = useProjectTeamAccess(project.id);
@@ -53,7 +53,7 @@ export function ProjectTeam({ project }: { project: Pick<ProjectRow, 'id' | 'nam
           </div>
 
           {access.canInvite && <div className="min-w-0 space-y-3">
-            <ProjectSharing projectId={project.id} projectName={project.name} />
+            <ProjectSharing projectId={project.id} projectName={project.name} initialRole={inviteContractor ? 'contractor' : undefined} />
             <p className="px-1 text-xs leading-relaxed text-brand-mid-grey">{t('teamAccess.roleChange')}</p>
           </div>}
         </div>

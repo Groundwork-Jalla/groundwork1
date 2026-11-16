@@ -27,7 +27,7 @@ async function request(patch = {}, method = 'POST') {
 beforeEach(() => {
   vi.resetAllMocks(); h.cache = null; h.updates = []; vi.stubEnv('ANTHROPIC_API_KEY', 'fixture-key');
   vi.spyOn(console,'warn').mockImplementation(h.log);
-  h.user.mockResolvedValue({ id: 'client' }); h.scoped.mockResolvedValue({ data: { primary_client: true } });
+  h.user.mockResolvedValue({ id: 'client' }); h.scoped.mockResolvedValue({ data: { primary_client: true, has_primary_contractor: true } });
   h.reserve.mockResolvedValue({ data: 'reading' });
   h.project = { country: 'CM', budget_source: 'boq', budget_currency: 'XAF', budget_fx_rate: '600' };
   h.convert.mockResolvedValue({ data: { fx_rate: '600.000000000000', project_currency: 'XAF', project_fx_rate: '600.000000000000', fx_source: 'project', fx_as_of: '2026-11-12T00:00:00Z' } });
@@ -44,6 +44,17 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe('receipt reading endpoint', () => {
+  it.each([false, undefined, 'true'])('requires an explicitly accepted primary contractor before reading a receipt (%s)', async has_primary_contractor => {
+    h.scoped.mockResolvedValue({ data: { primary_client: true, has_contractor: true, has_pending_contractor: true, has_primary_contractor } });
+    const res = await request();
+    expect(res.code).toBe(409); expect(res.payload.error).toBe('project_contractor_required');
+    expect(h.reserve).not.toHaveBeenCalled(); expect(h.download).not.toHaveBeenCalled(); expect(h.read).not.toHaveBeenCalled();
+  });
+  it('reports a contractor removed during reader reservation without processing the document', async () => {
+    h.reserve.mockResolvedValue({ error: { message: 'project_contractor_required: contractor removed' } });
+    expect((await request()).payload.error).toBe('project_contractor_required');
+    expect(h.download).not.toHaveBeenCalled(); expect(h.read).not.toHaveBeenCalled();
+  });
   it('reads the stored private object and issues a proof only for the exact amount and currency', async () => {
     const res = await request();
     expect(res.code).toBe(200); expect(res.payload).toMatchObject({ status: 'matched', readingId: 'reading', path, fxRate: '600.000000000000', projectCurrency: 'XAF' });

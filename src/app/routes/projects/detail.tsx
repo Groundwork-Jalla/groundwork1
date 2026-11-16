@@ -25,6 +25,7 @@ import { projectBudget, formatUSDFull } from '@/lib/budget';
 import { ProjectMoneyProvider } from '@/lib/budget/project-money-context';
 import { projectStagesAfterApproval } from '@/lib/projects/stage-progression';
 import { StageTracker }          from '@/components/project/StageTracker';
+import { ProjectContractorConnection } from '@/components/project/ProjectContractorConnection';
 import { fetchStagePayments, type StagePayment, type ApproveStageResult } from '@/lib/supabase/verifications';
 import EvidenceUpload            from '@/components/project/EvidenceUpload';
 import { MoneyValue } from '@/components/project/MoneyValue';
@@ -163,7 +164,7 @@ export default function ProjectDetail() {
     mounted.current = true;
     return () => { mounted.current = false; loadSequence.current++; };
   }, []);
-  const { access: teamAccess } = useProjectTeamAccess(id ?? '');
+  const { access: teamAccess, refresh: refreshTeamAccess } = useProjectTeamAccess(id ?? '');
   const isContractor = teamAccess?.assignedContractor === true && teamAccess.primaryClient !== true;
   const canUploadEvidence = teamAccess?.assignedContractor === true && teamAccess.primaryClient !== true;
   const t        = useT();
@@ -559,6 +560,8 @@ export default function ProjectDetail() {
           {/* Tab: Overview */}
           {activeTab === 'overview' && (
             <OverviewTab
+              hasPrimaryContractor={teamAccess?.hasPrimaryContractor === true}
+              contractorConnection={project.status === 'active' && teamAccess?.primaryClient && !teamAccess.hasPrimaryContractor ? <ProjectContractorConnection key={project.id} projectId={project.id} access={teamAccess} onRequested={refreshTeamAccess} /> : undefined}
               project={project}
               stages={stages}
               substages={substages}
@@ -573,6 +576,7 @@ export default function ProjectDetail() {
           {/* Tab: Stages */}
           {activeTab === 'stages' && (
             <div className="space-y-6">
+              {project.status === 'active' && teamAccess?.primaryClient && !teamAccess.hasPrimaryContractor && <ProjectContractorConnection key={project.id} projectId={project.id} access={teamAccess} onRequested={refreshTeamAccess} />}
               {/* A plain wrapper, deliberately unstyled: `display: contents` measures
                   as a zero-sized box, so the tour would have nothing to point at. One
                   child of a `space-y-6` parent either way, so the spacing is unchanged. */}
@@ -585,6 +589,7 @@ export default function ProjectDetail() {
                 userId={user?.id ?? ''}
                 isContractor={isContractor}
                 canConfirmPayments={teamAccess?.primaryContractor === true}
+                hasPrimaryContractor={teamAccess?.hasPrimaryContractor === true}
                 workflowOrigin={project.workflow_origin}
                 projectPaused={project.status !== 'active'}
                 projectArchived={project.status === 'archived'}
@@ -617,7 +622,7 @@ export default function ProjectDetail() {
           )}
 
           {/* Tab: Team */}
-          {activeTab === 'team' && <ProjectTeam key={scope} project={project} />}
+          {activeTab === 'team' && <ProjectTeam key={scope} project={project} inviteContractor={searchParams.get('invite') === 'contractor'} />}
 
           {/* Tab: Timeline */}
           {activeTab === 'timeline' && (

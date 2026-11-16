@@ -60,7 +60,7 @@ const caps: ProjectTeamAccess = { canInvite: true, primaryClient: true, primaryC
   assignedContractor: false,
   canEditBoq: false,
   canInviteClient: false, canInviteContractor: true, hasClientInvitation: false, hasContractor: false,
-  hasPendingContractor: false, canChangeRoles: false, needsPrimaryReview: false };
+  hasPendingContractor: false, hasPrimaryContractor: false, contractorRequestStatus: null, canChangeRoles: false, needsPrimaryReview: false };
 const observer = { id: 'observer', email: 'observer@example.com', relationship: 'Family', invitedAt: 'now', acceptedAt: 'now', isClient: false };
 const client = { id: 'client', email: 'client@example.com', relationship: 'Client', invitedAt: 'now', acceptedAt: 'now', isClient: true };
 beforeEach(() => {
@@ -75,6 +75,12 @@ beforeEach(() => {
 });
 
 describe('shareable links are the primary invitation option', () => {
+  it('opens the contractor choice from the connection prompt without generating a link automatically', () => {
+    const view = render(() => ProjectSharing({ projectId: 'project', projectName: 'Home', initialRole: 'contractor' }));
+    expect(view.all.find(node => node.type === 'select')?.props.value).toBe('contractor');
+    expect(view.all.some(node => node.type === ContractorInvite)).toBe(true);
+    expect(h.createLink).not.toHaveBeenCalled(); expect(h.inviteContractor).not.toHaveBeenCalled();
+  });
   it.each(['observer', 'client', 'contractor'] as const)('shows the saved %s link before a slow invitation-list refresh completes', async role => {
     if (role === 'client') h.team.access = { ...caps, primaryClient: false, primaryContractor: true, canInviteClient: true };
     const component = role === 'contractor'

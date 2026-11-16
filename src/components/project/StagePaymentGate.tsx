@@ -64,6 +64,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     const value = error as { code?: string; message?: string; amount?: string; currency?: string; reference?: string } | null;
     const reason = `${value?.code ?? ''} ${value?.message ?? ''}`;
     const support = (message: string) => value?.reference ? `${message} ${t('project.receiptFlow.checkReference', { reference: value.reference })}` : message;
+    if (/project_contractor_required/.test(reason)) return t('project.contractorConnection.paymentBlocked');
     if (/amount_mismatch/.test(reason)) return t('project.receiptFlow.amountMismatch', { amount: `${value?.amount ?? ''} ${value?.currency ?? ''}` });
     if (/currency_mismatch/.test(reason)) return t('project.receiptFlow.currencyMismatch', { currency: value?.currency ?? '' });
     if (/receipt_file_size/.test(reason)) return t('project.receiptFlow.fileSize');

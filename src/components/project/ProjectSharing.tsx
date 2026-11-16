@@ -9,7 +9,7 @@ import { ShareProject } from './ShareProject';
 type SharingRole = ProjectInvitationRole | 'family';
 
 /** The sender chooses the project role before any invitation is generated. */
-export function ProjectSharing({ projectId, projectName }: { projectId: string; projectName: string }) {
+export function ProjectSharing({ projectId, projectName, initialRole }: { projectId: string; projectName: string; initialRole?: ProjectInvitationRole }) {
   const t = useT(); const { user } = useAuth();
   const { scope, access, error, refresh } = useProjectTeamAccess(projectId);
   const id = useId();
@@ -21,7 +21,7 @@ export function ProjectSharing({ projectId, projectName }: { projectId: string; 
   ];
   // Creating an invitation emits a realtime invalidation. Keep the selected panel
   // mounted while permissions reload; its own mutation controls remain disabled.
-  const role = selection?.scope === scope && ((!access && !error) || roles.includes(selection.role)) ? selection.role : '';
+  const role = selection?.scope === scope && ((!access && !error) || roles.includes(selection.role)) ? selection.role : initialRole && roles.includes(initialRole) ? initialRole : '';
   if (access && !access.canInvite) return null;
   return <div className="space-y-4" data-tour={access?.canInviteClient ? 'invite-client' : access?.canInviteContractor ? 'invite-contractor' : undefined}>
     <section className="rounded-2xl border border-brand-border-grey bg-white p-5 dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">

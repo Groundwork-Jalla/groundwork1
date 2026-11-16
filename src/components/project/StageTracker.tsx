@@ -105,6 +105,7 @@ interface StageDetailProps {
   userId: string;
   isContractor?: boolean;
   canConfirmPayments: boolean;
+  hasPrimaryContractor: boolean;
   canApprove: boolean;
   canUploadEvidence: boolean;
   projectId: string;
@@ -134,6 +135,7 @@ function StageDetail({
   userId,
   isContractor,
   canConfirmPayments,
+  hasPrimaryContractor,
   canApprove,
   canUploadEvidence,
   projectId,
@@ -175,7 +177,7 @@ function StageDetail({
     allSubstagesReady &&
     stagePaid;
   const paymentPending = payment?.state === 'expected' || payment?.state === 'receipt_submitted';
-  const missingPayment = canAct && !stagePaid && !payment
+  const missingPayment = hasPrimaryContractor && canAct && !stagePaid && !payment
     && (stage.payment_milestone_usd == null || stage.payment_milestone_usd > 0);
 
   async function handleApprove() {
@@ -227,17 +229,10 @@ function StageDetail({
       {stage.status === 'locked' ? (
         <>
           <p className="text-sm text-brand-mid-grey">
-            {t(!canAct ? 'project.stages.lockedBody'
+            {t(!hasPrimaryContractor ? 'project.contractorConnection.paymentBlocked' : !canAct ? 'project.stages.lockedBody'
               : missingPayment ? 'project.stages.paymentDetailsMissing'
               : paymentPending ? 'project.stages.paymentBeforeWork' : 'project.stages.stageReady')}
           </p>
-          {/*
-            A locked stage is exactly where the money conversation belongs. The client
-            has just approved the stage before it, so this one is shut for one reason
-            and one only — it has not been paid for — and the thing to do about that
-            is the thing to show here. Renders nothing when nothing is owed (175).
-          */}
-
         </>
       ) : (
         <>
@@ -285,9 +280,9 @@ function StageDetail({
         </>
       )}
 
-      {!stage.pre_existing && payment && <StagePaymentGate
+      {!stage.pre_existing && payment && (hasPrimaryContractor || !!payment.receipts?.length || !!payment.receiptPath) && <StagePaymentGate
         projectId={projectId} stageId={stage.id} stageNumber={stage.stage_number} payment={payment}
-        isContractor={!!isContractor} readOnly={isContractor ? !canConfirmPayments : !canApprove} canUpload={paymentEnabled}
+        isContractor={!!isContractor} readOnly={!hasPrimaryContractor || (isContractor ? !canConfirmPayments : !canApprove)} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
         clientPresentation={clientPresentation}
@@ -323,6 +318,7 @@ function StageDetail({
 
 export interface StageTrackerProps {
   clientPresentation?: boolean;
+  hasPrimaryContractor?: boolean;
   canConfirmPayments?: boolean;
   /** Only an assigned project contractor may upload or remove construction evidence. */
   canUploadEvidence?: boolean;
@@ -375,6 +371,7 @@ function shortLabel(label: string): string {
 
 export function StageTracker({
   clientPresentation = false,
+  hasPrimaryContractor = false,
   stages, workflowOrigin = 'client', projectPaused = false, projectArchived = false, canUploadEvidence = false,
   substages,
   tier,
@@ -487,14 +484,15 @@ export function StageTracker({
                 userId={userId}
                 isContractor={isContractor}
                 canConfirmPayments={canConfirmPayments}
+                hasPrimaryContractor={hasPrimaryContractor}
                 canApprove={canApprove}
                 canUploadEvidence={canUploadEvidence}
                 projectId={projectId}
                 payment={payments?.get(selectedStage.id)}
                 canAct={!projectPaused && canActOnProjectStage(selectedStage, orderedStages)}
                 workAllowed={!projectPaused && stageWorkReady(selectedStage, orderedStages, payments?.get(selectedStage.id), workflowOrigin)}
-                paymentEnabled={!projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
-                paymentBlockedReason={t(projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
+                paymentEnabled={hasPrimaryContractor && !projectArchived && (!projectPaused||selectedStage.status==='complete') && canSubmitStageReceipt(selectedStage, orderedStages, workflowOrigin)}
+                paymentBlockedReason={t(!hasPrimaryContractor ? 'project.contractorConnection.paymentBlocked' : projectPaused ? 'project.receiptFlow.paused' : stageStartsWithEvidence(selectedStage, orderedStages, workflowOrigin) ? isContractor ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.evidenceFirst' : isContractor ? 'project.receiptFlow.waitForUpdatesContractor' : 'project.receiptFlow.waitForUpdates')}
                 isFinalStage={selectedStage.id === orderedStages[orderedStages.length - 1]?.id}
                 onPaymentChanged={onPaymentChanged}
                 onMarkSubstageComplete={handleSubstageApproval}

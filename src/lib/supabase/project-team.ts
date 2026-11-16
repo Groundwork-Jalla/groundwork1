@@ -12,7 +12,10 @@ export interface ProjectTeamAccess {
   canInviteAdditionalContractor?: boolean;
   hasClientInvitation: boolean;
   hasContractor: boolean;
+  /** An accepted, identified primary contractor on THIS project. */
+  hasPrimaryContractor: boolean;
   hasPendingContractor: boolean;
+  contractorRequestStatus: 'open' | 'in_progress' | 'resolved' | 'closed' | null;
   canChangeRoles: boolean;
   needsPrimaryReview: boolean;
 }
@@ -34,7 +37,9 @@ export async function fetchProjectTeamAccess(projectId: string): Promise<Project
     canInviteAdditionalContractor: data.can_invite_additional_contractor === true,
     hasClientInvitation: data.has_client_invitation === true,
     hasContractor: data.has_contractor === true,
+    hasPrimaryContractor: data.has_primary_contractor === true,
     hasPendingContractor: data.has_pending_contractor === true,
+    contractorRequestStatus: ['open', 'in_progress', 'resolved', 'closed'].includes(data.contractor_request_status) ? data.contractor_request_status : null,
     canChangeRoles: data.can_change_roles === true,
     needsPrimaryReview: data.needs_primary_review === true,
   };

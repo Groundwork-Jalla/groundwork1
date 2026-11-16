@@ -6065,6 +6065,18 @@ export const fr: Mirror<EnDict> = {
     },
   },
   project: {
+    contractorConnection: {
+      title: 'Ajoutez votre entrepreneur pour commencer',
+      body: 'Invitez votre entrepreneur ou demandez à Jalla de vous aider à en trouver un. Les reçus de paiement seront disponibles après son arrivée comme entrepreneur principal sur ce projet.',
+      invite: 'Inviter votre entrepreneur',
+      find: 'Demander à Jalla de trouver un entrepreneur',
+      pending: 'L’invitation de votre entrepreneur attend son acceptation. Consultez-la ou partagez-la depuis l’équipe du projet.',
+      viewInvitation: 'Voir l’invitation de l’entrepreneur',
+      requesting: 'Envoi de votre demande…',
+      requested: 'Jalla a reçu votre demande. Notre équipe vous contactera pour vous aider à trouver un entrepreneur.',
+      failed: 'Votre demande n’a pas pu être enregistrée. Veuillez réessayer.',
+      paymentBlocked: 'Un entrepreneur principal doit rejoindre ce projet avant de définir les paiements ou d’ajouter des reçus.',
+    },
     clientUi: {
       stagesTitle: 'Étapes du projet',
       stageBudget: 'Budget de l’étape',

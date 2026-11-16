@@ -4,14 +4,15 @@ import { ArrowUpRight } from 'lucide-react';
 import { useT } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase/client';
 import { fetchProjectStages, fetchProjectSubstages } from '@/lib/supabase/projects';
-import { fetchProjectTeamAccess } from '@/lib/supabase/project-team';
+import { fetchProjectTeamAccess, type ProjectTeamAccess } from '@/lib/supabase/project-team';
+import { ProjectContractorConnection } from '@/components/project/ProjectContractorConnection';
 import { fetchStagePaymentsStrict } from '@/lib/supabase/verifications';
 import { clientDashboardAction, type ClientDashboardAction } from '@/lib/projects/client-dashboard-action';
 import type { ProjectRow, ProjectStageRow } from '@/types/project';
 
 export function ClientProjectNextAction({ project, stages }: { project: ProjectRow; stages: ProjectStageRow[] }) {
   const t = useT();
-  const [read, setRead] = useState<{ projectId: string; action: ClientDashboardAction | null; failed: boolean }>({ projectId: project.id, action: null, failed: false });
+  const [read, setRead] = useState<{ projectId: string; action: ClientDashboardAction | null; failed: boolean; access?: ProjectTeamAccess }>({ projectId: project.id, action: null, failed: false });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true; let generation = 0;
@@ -19,18 +20,23 @@ export function ClientProjectNextAction({ project, stages }: { project: ProjectR
       const request = ++generation;
       try {
         const [updates, payments, access, latestStages] = await Promise.all([fetchProjectSubstages(project.id), fetchStagePaymentsStrict(project.id), fetchProjectTeamAccess(project.id), fetchProjectStages(project.id)]);
-        if (live && generation === request) setRead({ projectId: project.id, action: clientDashboardAction(project, latestStages, updates, payments, access.primaryClient), failed: false });
+        if (live && generation === request) setRead({ projectId: project.id, action: clientDashboardAction(project, latestStages, updates, payments, access.primaryClient, access.hasPrimaryContractor), access, failed: false });
       } catch { if (live && generation === request) setRead({ projectId: project.id, action: { kind: 'view' }, failed: true }); }
     };
     setRead({ projectId: project.id, action: null, failed: false });
     void refresh();
+    const membershipChanged = () => {
+      if (!live) return;
+      setRead({ projectId: project.id, action: null, failed: false });
+      void refresh();
+    };
     const channel = supabase.channel(`client-home-action:${project.id}:${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_substages', filter: `project_id=eq.${project.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stages', filter: `project_id=eq.${project.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stage_payment_receipts', filter: `project_id=eq.${project.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `project_id=eq.${project.id}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_viewers', filter: `project_id=eq.${project.id}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_invites', filter: `project_id=eq.${project.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_viewers', filter: `project_id=eq.${project.id}` }, membershipChanged)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_invites', filter: `project_id=eq.${project.id}` }, membershipChanged)
       .subscribe();
     window.addEventListener('focus', refresh);
     return () => { live = false; window.removeEventListener('focus', refresh); void supabase.removeChannel(channel); };
@@ -38,6 +44,7 @@ export function ClientProjectNextAction({ project, stages }: { project: ProjectR
   const current = read.projectId === project.id ? read : null;
   const action = current?.action;
   if (!action) return <div role="status" className="flex min-h-48 items-center rounded-xl bg-brand-green p-5 text-sm text-white">{t('common.loading')}</div>;
+  if (action.kind === 'connect') return current?.access ? <ProjectContractorConnection key={project.id} projectId={project.id} access={current.access} onRequested={() => setAttempt(value => value + 1)} dashboard /> : null;
   const href = `/projects/${project.id}${action.stageNumber ? `?tab=stages&stage=${action.stageNumber}` : ''}`;
   return <section className="flex min-w-0 flex-col justify-between gap-5 rounded-xl bg-brand-green p-5 text-white sm:p-6" aria-label={t('dashboard.architecture.nextStep')}>
     <div className="min-w-0">

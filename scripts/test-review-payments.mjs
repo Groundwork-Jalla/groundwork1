@@ -113,6 +113,9 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     read('supabase/migrations/20261114000500_project_action_notifications.sql'),
     read('supabase/migrations/20261114000500_project_action_notifications.sql'),
     read('scripts/fixtures/project-notifications.sql'),
+    read('supabase/migrations/20261116000000_contractor_before_payment.sql'),
+    read('supabase/migrations/20261116000000_contractor_before_payment.sql'),
+    read('scripts/fixtures/contractor-before-payment.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -125,12 +128,12 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK') || !output.includes('CONTRACTOR_BEFORE_PAYMENT_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
   }
-  console.log('Review payment database regressions passed: creator workflow, ordered work, immutable receipts, partial funds, top-ups, authenticated permissions, stage-schema repair, frozen currency conversions, client-approved stage pricing and admin account-type corrections.');
+  console.log('Review payment database regressions passed: accepted primary contractor required before payments, creator workflow, ordered work, immutable receipts, partial funds, top-ups, authenticated permissions, stage-schema repair, frozen currency conversions, client-approved stage pricing and admin account-type corrections.');
 } finally {
   if (started) spawnSync(join(bin, 'pg_ctl'), ['-D', dir, '-m', 'immediate', '-w', 'stop'], { encoding: 'utf8', timeout: 10000 });
   rmSync(dir, { recursive: true, force: true });

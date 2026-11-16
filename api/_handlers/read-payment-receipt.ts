@@ -41,6 +41,7 @@ export async function handler(req: any, res: any) {
     const { data: access, error: accessError } = await scoped.rpc('project_team_access', { p_project: stage.project_id });
     if (accessError && ['PGRST202','42883'].includes(accessError.code)) throw receiptDatabaseError(accessError);
     if (accessError || access?.primary_client !== true) { res.status(403).json({ error: 'project_client_required' }); return; }
+    if (access.has_primary_contractor !== true) { res.status(409).json({ error: 'project_contractor_required' }); return; }
     const { data: project, error: projectError } = await admin.from('projects')
       .select('country,budget_source,budget_currency,budget_fx_rate,pricing_revision').eq('id', stage.project_id).maybeSingle();
     if (projectError) throw receiptDatabaseError(projectError);
@@ -72,6 +73,7 @@ export async function handler(req: any, res: any) {
     phase = 'reservation';
     const reservation = await admin.rpc('reserve_receipt_read', { p_stage: stage.id, p_actor: user.id });
     if (reservation.error || typeof reservation.data !== 'string') {
+      if (reservation.error?.message?.includes('project_contractor_required')) { res.status(409).json({ error: 'project_contractor_required' }); return; }
       if (reservation.error?.message?.includes('rate_limit')) { res.status(429).json({ error: 'receipt_read_rate_limit', reference }); return; }
       throw reservation.error ? receiptDatabaseError(reservation.error) : new ReceiptProcessingError('receipt_verification_unavailable', { reason: 'reservation_response_invalid' });
     }

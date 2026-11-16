@@ -358,6 +358,14 @@ SELECT 'PROJECT_TEAM_OK' AS result;
     read('supabase/migrations/20261114000400_project_invitation_role_selection.sql'),
     read('supabase/migrations/20261114000400_project_invitation_role_selection.sql'),
     read('scripts/fixtures/invitation-role-selection.sql'),
+    fn('supabase/migrations/20261112000100_ordered_stage_progression.sql', 'lock_project_stage_progression'),
+    fn('supabase/migrations/20261116000000_contractor_before_payment.sql', 'project_has_primary_contractor'),
+    read('supabase/migrations/074_support_tickets.sql'),
+    `ALTER TABLE public.support_tickets ADD COLUMN project_id uuid REFERENCES public.projects(id) ON DELETE SET NULL;
+     CREATE TABLE public.app_config(key text PRIMARY KEY,value text);`,
+    read('supabase/migrations/20261116000100_project_contractor_matching.sql'),
+    read('supabase/migrations/20261116000100_project_contractor_matching.sql'),
+    read('scripts/fixtures/project-contractor-matching.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -370,7 +378,7 @@ SELECT 'PROJECT_TEAM_OK' AS result;
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK') || !output.includes('INVITATION_ROLES_OK') || !output.includes('INVITATION_SELECTION_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('PROJECT_TEAM_OK') || !output.includes('INVITATION_ROLES_OK') || !output.includes('INVITATION_SELECTION_OK') || !output.includes('PROJECT_CONTRACTOR_MATCHING_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

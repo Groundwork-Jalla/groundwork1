@@ -8,6 +8,7 @@ vi.mock('@/lib/analytics/funnel', () => ({ trackFunnel: h.funnel }));
 vi.mock('@/lib/analytics/lifecycle', () => ({ trackLifecycle: h.lifecycle }));
 import { createProjectInvitationLink } from './project-invitation-links';
 import { fetchProjectTeamAccess, setProjectClient } from './project-team';
+import { requestProjectContractor } from './support';
 import { inviteContractor, revokeInvite } from './invites';
 import { acceptProjectViewer, fetchProjectViewers, fetchViewerSummaries, getViewerInvitePreview, inviteProjectViewer } from './project-viewers';
 
@@ -19,6 +20,12 @@ function query(data: unknown) {
 beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('fetch', h.fetch); h.fetch.mockResolvedValue({ ok: true }); });
 
 describe('team RPC boundaries', () => {
+  it('saves a contractor-help request through the project-scoped RPC and reports failed writes', async () => {
+    h.rpc.mockResolvedValueOnce({ data: { id: 'ticket', status: 'open' } }).mockResolvedValueOnce({ error: new Error('not_client') });
+    expect(await requestProjectContractor('project')).toEqual({ id: 'ticket', status: 'open' });
+    expect(h.rpc).toHaveBeenCalledWith('request_project_contractor', { p_project: 'project' });
+    await expect(requestProjectContractor('other-project')).rejects.toThrow('not_client');
+  });
   it('creates a server-issued shareable link without email delivery', async () => {
     h.rpc.mockResolvedValue({ data: { token: 'opaque-token', expires_at: '2026-11-20T00:00:00Z' }, error: null });
     expect(await createProjectInvitationLink('project', 'observer')).toEqual({ token: 'opaque-token' });
@@ -35,7 +42,13 @@ describe('team RPC boundaries', () => {
     h.rpc.mockResolvedValue({ data: { primary_client: true, can_invite: true, primary_contractor: 'true' }, error: null });
     const access = await fetchProjectTeamAccess('project');
     expect(h.rpc).toHaveBeenCalledWith('project_team_access', { p_project: 'project' });
-    expect(access).toMatchObject({ primaryClient: true, canInvite: true, primaryContractor: false, canInviteClient: false, canInviteContractor: false });
+    expect(access).toMatchObject({ primaryClient: true, canInvite: true, primaryContractor: false, canInviteClient: false, canInviteContractor: false, hasPrimaryContractor: false, contractorRequestStatus: null });
+  });
+  it('keeps a pending invitation or accepted secondary contractor separate from a primary connection', async () => {
+    h.rpc.mockResolvedValue({ data: { primary_client: true, has_contractor: true, has_pending_contractor: true, has_primary_contractor: false, contractor_request_status: 'in_progress' } });
+    expect(await fetchProjectTeamAccess('project')).toMatchObject({ hasContractor: true, hasPendingContractor: true, hasPrimaryContractor: false, contractorRequestStatus: 'in_progress' });
+    h.rpc.mockResolvedValue({ data: { has_primary_contractor: true } });
+    expect((await fetchProjectTeamAccess('project')).hasPrimaryContractor).toBe(true);
   });
   it('does not invent permissions if the RPC fails or is unavailable', async () => {
     h.rpc.mockResolvedValueOnce({ error: new Error('not_permitted') }).mockResolvedValueOnce({ data: null });
