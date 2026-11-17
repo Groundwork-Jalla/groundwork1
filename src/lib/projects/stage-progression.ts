@@ -67,9 +67,12 @@ export function projectReflectsApproval(stages: ProjectStageRow[], result: Appro
 }
 
 
-/** Every live stage of a contractor-led project is reviewed before its payment. */
+/**
+ * Every live stage of a contractor-led project is reviewed before its payment, except a
+ * stage paid by part: each part is paid ahead, whoever created the project (18 Nov).
+ */
 export function stageStartsWithEvidence(stage: ProjectStageRow, stages: ProjectStageRow[], origin?: 'client' | 'contractor'): boolean {
-  return origin === 'contractor' && !stage.pre_existing;
+  return origin === 'contractor' && !stage.pre_existing && !stage.paid_by_part;
 }
 export function stageWorkReady(stage: ProjectStageRow, stages: ProjectStageRow[], payment?: StagePayment, origin?: 'client' | 'contractor'): boolean {
   return stagePaymentAcknowledged(stage, payment)

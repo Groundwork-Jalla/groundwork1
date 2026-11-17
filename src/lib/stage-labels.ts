@@ -31,18 +31,24 @@ export function useStageLabels() {
   );
 
   const substageLabel = useCallback(
-    (sub: Pick<ProjectSubstageRow, 'substage_key' | 'name'>): string => {
-      if (!sub.substage_key) return sub.name;
-      // `floorDecking` carries {n}; the number is already baked into the stored name, so
-      // parse it back out rather than plumbing params through every caller.
-      const params = sub.substage_key === 'floorDecking'
-        ? { n: Number(/\d+/.exec(sub.name)?.[0] ?? 1) }
-        : undefined;
-      const translated = t(`substages.${sub.substage_key}` as TKey, params);
-      return translated === `substages.${sub.substage_key}` ? sub.name : translated;
-    },
+    (sub: Pick<ProjectSubstageRow, 'substage_key' | 'name'>): string => substageLabelWith(t, sub),
     [t],
   );
 
   return { stageLabel, substageLabel };
+}
+
+/**
+ * The substage rule without the hook, for components that already hold `t`.
+ * `floorDecking` carries {n}; the number is already baked into the stored name, so it is
+ * parsed back out rather than plumbed through every caller.
+ */
+export function substageLabelWith(t: (key: TKey, params?: Record<string, string | number>) => string,
+  sub: Pick<ProjectSubstageRow, 'substage_key' | 'name'>): string {
+  if (!sub.substage_key) return sub.name;
+  const params = sub.substage_key === 'floorDecking'
+    ? { n: Number(/\d+/.exec(sub.name)?.[0] ?? 1) }
+    : undefined;
+  const translated = t(`substages.${sub.substage_key}` as TKey, params);
+  return translated === `substages.${sub.substage_key}` ? sub.name : translated;
 }

@@ -203,6 +203,8 @@ export interface ReceiptPaymentInput {
   fxRate?: number | string;
   replacesReceiptId?: string;
   installment?: 1 | 2;
+  /** The part of a stage paid by part that this receipt pays for. */
+  substageId?: string;
 }
 
 function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): void {
@@ -216,11 +218,17 @@ function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): v
 /** The client attaches proof and its actual amount. Does NOT open the stage. */
 export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput, readingId?: string): Promise<{ alreadySubmitted: boolean }> {
   validateReceiptInput(input);
-  const { data, error } = await supabase.rpc('submit_stage_installment_receipt', {
-    p_stage: stageId, p_path: path, p_amount: input.amount,
-    p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
-    p_installment: input.installment ?? null, p_replaces: input.replacesReceiptId ?? null,
-  });
+  const { data, error } = input.substageId
+    ? await supabase.rpc('submit_substage_receipt', {
+      p_substage: input.substageId, p_path: path, p_amount: input.amount,
+      p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
+      p_replaces: input.replacesReceiptId ?? null,
+    })
+    : await supabase.rpc('submit_stage_installment_receipt', {
+      p_stage: stageId, p_path: path, p_amount: input.amount,
+      p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
+      p_installment: input.installment ?? null, p_replaces: input.replacesReceiptId ?? null,
+    });
   if (error) throw error;
   // The database answers a repeat of the same proof with the receipt it already holds.
   return { alreadySubmitted: (data as { already_submitted?: boolean } | null)?.already_submitted === true };
@@ -251,6 +259,8 @@ export interface StagePaymentReceipt {
   projectCurrency?: string | null; projectFxRate?: number | null; projectAmount?: number | null; fxSource?: string | null; fxAsOf?: string | null;
   projectFxRecordedAt?: string | null;
   paymentPlanId?: string | null; installmentNumber?: 1 | 2 | null;
+  /** The part this receipt pays for, on a stage paid by part. */
+  substageId?: string | null;
   replacedBy?:string|null;replacedAt?:string|null;
 }
 
@@ -305,7 +315,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
   if (error || !data) return out;
 
   const { data: history, error: historyError } = await supabase.from('stage_payment_receipts')
-    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at,project_currency,project_fx_rate,project_fx_recorded_at,project_amount,fx_source,fx_as_of,replaced_by,replaced_at,payment_plan_id,installment_number')
+    .select('id,stage_id,path,submitted_at,amount,currency,fx_rate,amount_usd,decision,allows_work,requested_top_up,decision_note,decided_at,project_currency,project_fx_rate,project_fx_recorded_at,project_amount,fx_source,fx_as_of,replaced_by,replaced_at,payment_plan_id,installment_number,substage_id')
     .eq('project_id', projectId).order('submitted_at', { ascending: true });
   if (historyError && options.strict) throw historyError;
   if (historyError) throw historyError;
@@ -317,7 +327,7 @@ export async function fetchStagePayments(projectId: string, options: { strict?: 
       amountUsd: row.amount_usd == null ? null : Number(row.amount_usd), decision: row.decision, allowsWork: row.allows_work === true,
       requestedTopUp: row.requested_top_up == null ? null : Number(row.requested_top_up), decisionNote: row.decision_note, decidedAt: row.decided_at,
       projectCurrency: row.project_currency, projectFxRate: row.project_fx_rate == null ? null : Number(row.project_fx_rate), projectFxRecordedAt: row.project_fx_recorded_at,
-      paymentPlanId: row.payment_plan_id, installmentNumber: row.installment_number,
+      paymentPlanId: row.payment_plan_id, installmentNumber: row.installment_number, substageId: row.substage_id ?? null,
       projectAmount: row.project_amount == null ? null : Number(row.project_amount), fxSource: row.fx_source, fxAsOf: row.fx_as_of,replacedBy:row.replaced_by,replacedAt:row.replaced_at });
     receipts.set(row.stage_id, items);
   }

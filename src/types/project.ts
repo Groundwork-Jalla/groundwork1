@@ -435,6 +435,8 @@ export interface ProjectRow {
 
 export interface ProjectStageRow {
   id: string;
+  /** The stage's price is split across its parts and each part is paid before its work (20261118000000). */
+  paid_by_part?: boolean;
   project_id: string;
   stage_number: number;
   /** i18n key (migration 024). Null on rows the backfill could not match — render `name`. */
@@ -504,6 +506,8 @@ export interface ProjectFeeRow {
 
 export interface ProjectSubstageRow {
   id: string;
+  /** This part's share of the stage price, once a breakdown is approved. Null when the stage is paid as one. */
+  price_amount?: number | string | null;
   stage_id: string;
   project_id: string;
   substage_number: number;

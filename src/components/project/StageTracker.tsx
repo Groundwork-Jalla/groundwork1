@@ -13,6 +13,8 @@ import { fetchProjectCertificates, type IssuedCertificate } from '@/lib/supabase
 import { formatShare } from '@/lib/budget/stage-shares';
 import { useT, type TKey } from '@/lib/i18n';
 import { StagePaymentGate } from '@/components/project/StagePaymentGate';
+import { StageBreakdownPanel } from '@/components/project/StageBreakdownPanel';
+import { partWorkReady, useSubstagePayments } from '@/lib/supabase/substage-payments';
 import type { ApproveStageResult, StagePayment } from '@/lib/supabase/verifications';
 import { useStageLabels } from '@/lib/stage-labels';
 import { canActOnProjectStage, currentProjectStage, projectReflectsApproval, projectStagesAfterApproval, stagePaymentAcknowledged, stageWorkReady, stageStartsWithEvidence, canSubmitStageReceipt } from '@/lib/projects/stage-progression';
@@ -160,6 +162,9 @@ function StageDetail({
   liveScope.current = scope;
   useEffect(() => () => { if (liveScope.current === scope) liveScope.current = null; }, [scope]);
 
+  // A stage paid by part opens its parts one at a time (18 Nov).
+  const paidByPart = !!stage.paid_by_part;
+  const parts = useSubstagePayments(stage.id, paidByPart, payment);
   const approvalsRemaining = substages.filter(sub => sub.status !== 'complete').length;
   const allSubstagesReady = approvalsRemaining === 0;
 
@@ -252,7 +257,8 @@ function StageDetail({
                 isStageActive={canAct && (stage.status === 'active' || stage.status === 'pending_review')}
                 stagePaid={stagePaid}
                 compactEvidence={clientPresentation && allSubstagesReady}
-                canUploadEvidence={canUploadEvidence && canAct && workAllowed}
+                canUploadEvidence={canUploadEvidence && canAct && (workAllowed || (paidByPart && !!parts?.parts?.some(part => part.work_ready && part.status !== 'complete')))
+                  && partWorkReady(parts, paidByPart, sub.id)}
                 approvalContext={clientPresentation ? {
                   projectName, stageName: `${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`,
                   lastUpdate: approvalsRemaining === 1,
@@ -282,12 +288,17 @@ function StageDetail({
         </>
       )}
 
+      {!stage.pre_existing && hasPrimaryContractor && (stage.payment_milestone_usd ?? 0) > 0 && <StageBreakdownPanel
+        stageId={stage.id} stageName={`${t('project.stages.stageN', { n: stage.stage_number })} · ${stageLabel(stage)}`}
+        projectName={projectName ?? ''} clientPresentation={clientPresentation} onChanged={onPaymentChanged}
+      />}
+
       {!stage.pre_existing && payment && (hasPrimaryContractor || !!payment.receipts?.length || !!payment.receiptPath) && <StagePaymentGate
         projectId={projectId} stageId={stage.id} stageNumber={stage.stage_number} payment={payment}
         isContractor={!!isContractor} readOnly={!hasPrimaryContractor || (isContractor ? !canConfirmPayments : !canApprove)} canUpload={paymentEnabled}
         blockedReason={paymentBlockedReason} scheduledAmount={stage.milestone_amount} onChanged={onPaymentChanged}
         workReviewed={stage.review_payment_pending}
-        clientPresentation={clientPresentation}
+        clientPresentation={clientPresentation} parts={parts}
       />}
 
       {missingPayment && (

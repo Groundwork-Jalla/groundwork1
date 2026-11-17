@@ -12,18 +12,22 @@ import { uploadStagePaymentReceipt, confirmStagePayment, decideStagePaymentRecei
 import { DocumentViewer } from './DocumentViewer';
 import { ProjectExchangeRateNote, ReceiptExchangeRateNote } from './ExchangeRateNote';
 import { StagePaymentPlanPanel } from './StagePaymentPlanPanel';
+import type { SubstagePaymentContext, SubstagePaymentPart } from '@/lib/supabase/substage-payments';
+import { substageLabelWith } from '@/lib/stage-labels';
 import { cn } from '@/lib/utils';
 
 interface Props {
   projectId: string; stageId: string; stageNumber: number; payment: StagePayment | undefined;
   isContractor: boolean; readOnly?: boolean; canUpload?: boolean; blockedReason?: string; scheduledAmount?: number | null; workReviewed?: boolean;
+  /** Where each part stands, on a stage paid part by part (18 Nov). Replaces the installment plan there. */
+  parts?: SubstagePaymentContext | null;
   onChanged: () => void | Promise<void>;
   clientPresentation?: boolean;
 }
 
 /** Recorded money, a contractor's decision to proceed, and work approval stay distinct. */
 export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isContractor,
-  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false }: Props) {
+  canUpload = true, readOnly = false, blockedReason, scheduledAmount, workReviewed = false, onChanged, clientPresentation = false, parts = null }: Props) {
   const t = useT(); const { lang } = useLanguage(); const currency = useProjectMoneyContext();
   const scope = `${projectId}:${stageId}`; const current = useRef(scope); current.current = scope;
   const pendingWork = useRef<string | null>(null); const viewRequest = useRef(0);
@@ -58,9 +62,17 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const receivedWithoutWork = [...liveReceipts].reverse().find(receipt => receipt.decision === 'received' && !receipt.allowsWork);
   const legacyPending = !receipts.length && payment?.state === 'receipt_submitted'
     && payment.receiptPath && payment.receiptUploadedAt && payment.receiptAmount != null;
+  // A stage paid by part takes a receipt for one part at a time: the first part not yet
+  // covered whose earlier parts are approved. A replacement keeps its receipt's part.
+  const split = !!parts?.split;
+  const partOf = (id: string | null | undefined) => parts?.parts?.find(part => part.id === id) ?? null;
+  const partName = (part: Pick<SubstagePaymentPart, 'name' | 'key'>) => substageLabelWith(t, { name: part.name, substage_key: part.key });
+  const replacedPart = replacement?.scope === scope ? receipts.find(receipt => receipt.id === replacement.receiptId)?.substageId ?? null : null;
+  const payingPart = split ? partOf(replacedPart ?? parts?.next_payable) : null;
   const allowed = canUpload && !!payment && !readOnly && !isContractor
     && (scheduledAmount == null || scheduledAmount > 0 || replacement?.scope === scope)
-    && (!settled || balance?.remaining !== 0 || replacement?.scope === scope);
+    && (!settled || balance?.remaining !== 0 || replacement?.scope === scope)
+    && (!split || !!payingPart);
   const fail = (message: string) => setFailure({ scope, message });
   const format = (value: number | null, iso: string | null) => value == null ? t('project.receiptFlow.amountUnknown')
     : new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 }).format(value) + ` ${iso ?? ''}`;
@@ -91,6 +103,8 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if (/receipt_currency_unsupported/.test(reason)) return t('project.receiptFlow.currencyUnsupported');
     if (/payment_plan_review_required|payment_plan_declined/.test(reason)) return t('project.paymentPlan.reviewFirst');
     if (/invalid_installment/.test(reason)) return t('project.paymentPlan.chooseInstallment');
+    if (/part_not_payable/.test(reason)) return t('project.parts.notPayable');
+    if (/substage_receipt_required|stage_not_split|stage_paid_by_part/.test(reason)) return t('project.parts.refresh');
     if (/top_up_exceeds_balance/.test(reason)) return t('project.paymentPlan.topUpLimit');
     if (/receipt_duplicate_on_stage/.test(reason)) return t('project.receiptFlow.duplicateOnStage');
     if (/receipt_already_used/.test(reason)) return t('project.receiptFlow.alreadyUsed');
@@ -108,7 +122,8 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     try {
       await uploadStagePaymentReceipt(projectId, stageId, file, { amount: activeDraft.amount, currency: selectedCurrency,
         fxRate: selectedCurrency === code ? fxRate : selectedCurrency === 'USD' ? 1 : undefined,
-        ...(installment.current.scope === scope && installment.current.value ? { installment: installment.current.value } : {}),
+        ...(split && payingPart ? { substageId: payingPart.id }
+          : installment.current.scope === scope && installment.current.value ? { installment: installment.current.value } : {}),
         ...(replacement?.scope===scope?{replacesReceiptId:replacement.receiptId}:{}) });
       if (current.current === scope) {
         await onChanged();
@@ -193,16 +208,32 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {!canUpload && !settled && <p role="status" data-payment-blocked className={clientPresentation && !isContractor
       ? 'rounded-lg border border-brand-border-grey bg-white p-3 text-sm leading-relaxed text-brand-near-black dark:bg-[#141414]'
       : 'text-xs text-brand-mid-grey'}>{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
-    <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment} clientPresentation={clientPresentation}
+    {split && parts?.parts ? <section className={cn('space-y-2 rounded-xl border border-brand-border-grey p-3 text-xs', clientPresentation && 'bg-brand-off-white sm:p-4')} data-stage-parts>
+      <h4 className="font-semibold">{t('project.parts.title')}</h4>
+      <p className="text-brand-mid-grey">{t('project.parts.rule')}</p>
+      <ol className="space-y-1.5">{parts.parts.map(part => <li key={part.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-border-grey bg-white px-3 py-2 dark:bg-[#141414]">
+        <span className="min-w-0 break-words font-semibold">{partName(part)}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-mono">{format(Number(part.price), parts.currency ?? code)}</span>
+          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', part.status === 'complete' || part.paid ? 'bg-state-complete/10 text-state-complete' : part.payable ? 'bg-brand-green text-white' : 'bg-brand-off-white text-brand-mid-grey')}>
+            {t(part.status === 'complete' ? 'project.parts.done' : part.paid ? 'project.parts.paid' : Number(part.pending) > 0 ? 'project.parts.waiting' : part.payable ? 'project.parts.payNext' : 'project.parts.later')}
+          </span>
+        </span>
+        {!part.paid && Number(part.covered) > 0 && <p className="w-full text-brand-mid-grey">{t('project.parts.partlyCovered', { covered: format(Number(part.covered), parts.currency ?? code), remaining: format(Number(part.remaining), parts.currency ?? code) })}</p>}
+      </li>)}</ol>
+      {!isContractor && !readOnly && !payingPart && parts.parts.some(part => part.status !== 'complete') && <p role="status">{t('project.parts.waitForApproval')}</p>}
+    </section>
+    : <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment} clientPresentation={clientPresentation}
       onEditingChange={editing => setPlanEditing(editing ? scope : null)}
-      onChanged={onChanged} onInstallmentChange={value => { installment.current = { scope, value }; }}/>
+      onChanged={onChanged} onInstallmentChange={value => { installment.current = { scope, value }; }}/>}
     {receipts.length > 0 && clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.paymentHistory')}</h4>}
     {receipts.length > 0 && <ol className={cn('divide-y divide-brand-border-grey dark:divide-[#333]', clientPresentation && 'rounded-lg border border-brand-border-grey px-3')}>{receipts.map(receipt => <li key={receipt.id} id={`receipt-${receipt.id}`} className="py-3 text-xs">
       <div className="flex flex-wrap justify-between gap-2">
         <p className="font-mono font-semibold text-brand-near-black dark:text-white">{format(receipt.amount, receipt.currency)}</p>
         <span className={receipt.decision === 'received' ? 'text-state-complete' : 'text-brand-mid-grey'}>{t(receipt.replacedBy?'project.receiptFlow.replaced':receipt.decision === 'received' ? 'project.receiptFlow.received' : receipt.decision === 'flagged' ? 'project.receiptFlow.flagged' : 'project.receiptFlow.pending')}</span>
       </div>
-      {receipt.installmentNumber && receipt.paymentPlanId && <p className="mt-1 text-brand-mid-grey">{t('project.paymentPlan.installment', { n: receipt.installmentNumber })}</p>}
+      {receipt.installmentNumber && receipt.paymentPlanId && !receipt.substageId && <p className="mt-1 text-brand-mid-grey">{t('project.paymentPlan.installment', { n: receipt.installmentNumber })}</p>}
+      {receipt.substageId && partOf(receipt.substageId) && <p className="mt-1 text-brand-mid-grey">{t('project.parts.receiptFor', { part: partName(partOf(receipt.substageId)!) })}</p>}
       {receipt.amountUsd != null && receipt.currency !== 'USD' && <p className="mt-1 font-mono text-brand-mid-grey">≈ ${receipt.amountUsd.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })}</p>}
       {receipt.projectAmount != null && receipt.projectCurrency !== receipt.currency && <p className="mt-1 font-mono text-brand-mid-grey">{t('project.receiptFlow.projectEquivalent', { amount: format(receipt.projectAmount, receipt.projectCurrency ?? code) })}</p>}
       <ReceiptExchangeRateNote receipt={receipt}/>
@@ -246,6 +277,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       {canUpload && !pending && !legacyPending && !requested && !settled && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.waitForReceipt')}</p>}
     </> : readOnly ? null : allowed && planEditing !== scope && <form onSubmit={submit} className={cn('space-y-3', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
       {clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.addReceipt')}</h4>}
+      {payingPart && <p role="status" className="text-sm font-semibold">{t('project.parts.receiptFor', { part: partName(payingPart) })} <span className="font-mono font-normal text-brand-mid-grey">{t('project.parts.due', { amount: format(Number(payingPart.remaining), parts?.currency ?? code) })}</span></p>}
       <fieldset disabled={!allowed || busy} className="space-y-3 disabled:opacity-40">
         {replacement?.scope===scope&&<p className="text-sm font-semibold">{t('project.receiptFlow.replacementHelp')}</p>}
         {pending&&<p role="status" className="text-sm">{t('project.receiptFlow.pendingMore')}</p>}

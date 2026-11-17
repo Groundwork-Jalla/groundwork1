@@ -42,6 +42,7 @@ export function entityTab(entityType: string | null | undefined):
     case 'site_update':       return 'stages';
     case 'payment':
     case 'stage_price_amendment':
+    case 'stage_breakdown':
     case 'stage_payment_receipt': return 'financials';
     case 'conversation':
     case 'decision':          return 'conversations';

@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase/client';
 import { ProjectConversations } from '@/components/project/ProjectConversations';
 import { ProjectPayoutSummary } from '@/components/project/ProjectPayoutSummary';
+import { partWorkReady, useSubstagePayments } from '@/lib/supabase/substage-payments';
 import { canActOnProjectStage, currentProjectStage, stagePaymentAcknowledged, stageWorkReady, canSubmitStageReceipt, stageStartsWithEvidence } from '@/lib/projects/stage-progression';
 import { useProjectTeamAccess } from '@/hooks/useProjectTeamAccess';
 
@@ -852,6 +853,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
   const { project, stages } = assigned;
   const current = currentProjectStage(stages);
   const activeStage = current && (current.status === 'active' || current.status === 'pending_review') ? current : undefined;
+  const activeParts = useSubstagePayments(activeStage?.id, !!activeStage?.paid_by_part, activeStage ? stagePayments.get(activeStage.id) : undefined);
   const basis = stageBasisFor(project, stages, hasBoq);
   /** The item whose Upload was pressed; null means no form is open. */
   const [uploadFor, setUploadFor] = useState<string | null>(null);
@@ -905,6 +907,8 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
         const showGate = !stage.pre_existing&&(canActOnProjectStage(stage, stages)||stage.status==='complete') && !!tranche;
         const funded = stageWorkReady(stage, stages, tranche, project.workflow_origin);
         const canWork = project.status === 'active' && canActOnProjectStage(stage, stages) && funded;
+        // A stage paid by part: only the part that has been paid takes work (18 Nov).
+        const partReady = (substageId: string) => partWorkReady(activeParts, !!stage.paid_by_part && isOpen, substageId);
         // Why Upload is off, in words. The button used to go quiet with no cue at all —
         // a contractor on 14 Nov 2026 reported it "not clicking" on a stage whose
         // approved updates were waiting on the client's payment.
@@ -1066,8 +1070,8 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                         </span>
                       </span>
                       {!complete && (
-                        <button type="button" onClick={() => setUploadFor(item.id)} disabled={!canWork}
-                          data-tour="upload-evidence" title={uploadBlocked ?? undefined}
+                        <button type="button" onClick={() => setUploadFor(item.id)} disabled={!canWork || !partReady(item.id)}
+                          data-tour="upload-evidence" title={uploadBlocked ?? (partReady(item.id) ? undefined : t('project.parts.partNotPaid'))}
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-near-black px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-brand-near-black">
                           <Camera className="size-3" aria-hidden />{t('contractorProject.upload')}
                         </button>
@@ -1078,7 +1082,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                       {/* Opened against the item it belongs to, so the camera and
                           the file picker are under the thumb that pressed Upload —
                           not at the bottom of a ten-item list. */}
-                      {uploadFor === item.id && canWork && (
+                      {uploadFor === item.id && canWork && partReady(item.id) && (
                         <div className="mt-3 rounded-xl bg-brand-off-white px-4 py-3.5 dark:bg-[#141414]">
                           <SubmitWork projectId={project.id} stage={stage} substages={openItems}
                                       fixedSubstageId={item.id}
@@ -1101,7 +1105,7 @@ function WorkTab({ assigned, substages, rework, isOwner, canConfirmPayments, sta
                     workReviewed={stage.review_payment_pending}
                     canUpload={(project.status === 'active'||stage.status==='complete') && project.status!=='archived' && canSubmitStageReceipt(stage, stages, project.workflow_origin)}
                     scheduledAmount={stage.milestone_amount}
-                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments} onChanged={onSubmitted} />
+                    blockedReason={t(stageStartsWithEvidence(stage, stages, project.workflow_origin) ? 'project.receiptFlow.evidenceFirstContractor' : 'project.receiptFlow.waitForUpdatesContractor')} isContractor readOnly={!canConfirmPayments} onChanged={onSubmitted} parts={isOpen ? activeParts : null} />
               </ProjectMoneyProvider>
             )}
 

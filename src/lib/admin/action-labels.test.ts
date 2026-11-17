@@ -99,8 +99,9 @@ describe('entityTab', () => {
     expect([...written].sort()).toEqual([
       'contractor', 'contractor_application', 'contractor_invite', 'conversation', 'decision',
       'payment', 'payout_destination', 'profile', 'project', 'project_stage', 'project_verifier', 'project_viewer',
-      'site_update', 'stage_payment_receipt', 'stage_price_amendment', 'stage_verification', 'support_ticket', 'verifier_invite',
+      'site_update', 'stage_breakdown', 'stage_payment_receipt', 'stage_price_amendment', 'stage_verification', 'support_ticket', 'verifier_invite',
     ]);
+    expect(entityTab('stage_breakdown')).toBe('financials');
     expect(entityTab('project_stage')).toBe('stages');
     expect(entityTab('stage_verification')).toBe('stages');
     expect(entityTab('site_update')).toBe('stages');

@@ -123,6 +123,14 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
     `SELECT public.test_assert(NOT EXISTS(SELECT 1 FROM carry_replay_before b WHERE public.stage_payment_totals(b.id)<>b.saved), 'replaying the carry-over migration changes no balance');
      SELECT public.test_assert(to_regprocedure('public.stage_payment_own_totals(uuid)') IS NOT NULL AND (SELECT count(*) FROM pg_proc WHERE proname='stage_payment_totals')=1, 'replay keeps one public totals function over the original');
      SELECT 'OVERPAYMENT_REPLAY_OK' AS result;`,
+    `RESET ROLE; ALTER TABLE public.project_substages ADD COLUMN IF NOT EXISTS project_id uuid, ADD COLUMN IF NOT EXISTS substage_number integer,
+     ADD COLUMN IF NOT EXISTS name text, ADD COLUMN IF NOT EXISTS substage_key text;`,
+    read('supabase/migrations/20261118000000_substage_price_breakdown.sql'),
+    read('supabase/migrations/20261118000000_substage_price_breakdown.sql'),
+    read('scripts/fixtures/stage-breakdown.sql'),
+    read('supabase/migrations/20261118000100_substage_payments.sql'),
+    read('supabase/migrations/20261118000100_substage_payments.sql'),
+    read('scripts/fixtures/substage-payments.sql'),
   ].join('\n').replace(/\n[\t ]*\n/g, '\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -135,7 +143,7 @@ CREATE TRIGGER stages_guard_completion BEFORE UPDATE OF status ON project_stages
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK') || !output.includes('CONTRACTOR_BEFORE_PAYMENT_OK') || !output.includes('OVERPAYMENT_CLOSEOUT_OK') || !output.includes('OVERPAYMENT_REPLAY_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('REVIEW_PAYMENTS_OK') || !output.includes('MULTICURRENCY_RECEIPTS_OK') || !output.includes('ACCOUNT_TYPES_OK') || !output.includes('STAGE_PRICING_OK') || !output.includes('NOV13_REVIEW_OK') || !output.includes('CURRENCY_BASIS_OK') || !output.includes('STAGE_PAYMENT_PLANS_OK') || !output.includes('PROJECT_NOTIFICATIONS_OK') || !output.includes('CONTRACTOR_BEFORE_PAYMENT_OK') || !output.includes('OVERPAYMENT_CLOSEOUT_OK') || !output.includes('OVERPAYMENT_REPLAY_OK') || !output.includes('STAGE_BREAKDOWN_OK') || !output.includes('SUBSTAGE_PAYMENTS_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);
