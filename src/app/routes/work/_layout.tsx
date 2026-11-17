@@ -5,7 +5,6 @@ import { CLIENT_NAV, ADMIN_NAV } from '@/components/shell/nav-config';
 import { VerifierShell } from '@/components/verifier/VerifierShell';
 import { useEffect, useState } from 'react';
 import { RoleTour } from '@/components/tour/RoleTour';
-import { ContactPermissionPrompt } from '@/components/auth/ContactPermissionPrompt';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -194,7 +193,7 @@ export default function WorkLayout() {
       {/* Not while onboarding is unfinished: that screen deliberately leaves only its
           own two buttons live, and an arrow pointing at a locked sidebar would be the
           product contradicting itself. */}
-      {!(gate !== null && !(gate.decided && gate.complete)) && <><RoleTour /><ContactPermissionPrompt /></>}
+      {!(gate !== null && !(gate.decided && gate.complete)) && <RoleTour />}
     </WorkShell>
   );
 }

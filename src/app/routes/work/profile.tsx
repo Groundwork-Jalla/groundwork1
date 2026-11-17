@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { WhatsAppConsent } from '@/components/profile/WhatsAppConsent';
-import { ContactPermissionSetting } from '@/components/profile/ContactPermissionSetting';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -210,7 +209,6 @@ export default function ContractorProfile() {
               {t('contractorProfile.howTheAppBehaves')}
             </h2>
             <WhatsAppConsent />
-            <ContactPermissionSetting />
             <Line label={t('profile.language')}>
               <Segmented options={[['en', 'English'], ['fr', 'Français']]}
                          value={lang} onPick={v => setLang(v as 'en' | 'fr')} />

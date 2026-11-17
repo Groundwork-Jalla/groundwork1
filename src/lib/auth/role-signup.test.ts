@@ -333,7 +333,7 @@ describe('the role survives the email round trip', () => {
    */
 
   it('records the door on the ACCOUNT, not only in browser storage', () => {
-    expect(form).toMatch(/signupMetadata\(fullName\.trim\(\), canonicalPhone, role as SignupIntent, contactAllowed\)/);
+    expect(form).toMatch(/signupMetadata\(fullName\.trim\(\), canonicalPhone, role as SignupIntent\)/);
     const lib = read('src/lib/auth/signup-account.ts');
     expect(lib).toMatch(/signup_intent\?: SignupIntent/);
   });

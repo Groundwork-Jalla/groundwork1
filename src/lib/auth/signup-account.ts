@@ -68,20 +68,12 @@ export function signupMetadata(
    * the hop.
    */
   intent?: SignupIntent | null,
-  /**
-   * Whether the Groundwork team may call or text them (20261117000200). Not a role and
-   * not a privilege: it is the person's own answer about themselves, recorded on first
-   * sign-in by `set_contact_permission`, which never lets it overwrite a later choice.
-   * Omitted when the form did not ask, so "not asked" is never stored as a no.
-   */
-  contactPermission?: boolean | null,
-): { full_name: string; phone?: string; signup_intent?: SignupIntent; contact_permission?: boolean } {
+): { full_name: string; phone?: string; signup_intent?: SignupIntent } {
   const p = (phone ?? '').trim();
   return {
     full_name: fullName,
     ...(p ? { phone: p } : {}),
     ...(intent ? { signup_intent: intent } : {}),
-    ...(typeof contactPermission === 'boolean' ? { contact_permission: contactPermission } : {}),
   };
 }
 

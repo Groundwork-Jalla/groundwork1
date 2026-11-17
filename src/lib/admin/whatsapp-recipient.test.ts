@@ -154,7 +154,7 @@ describe('a phone number is collected at every door', () => {
     // Refused at the form, not silently dropped by the trigger — a person who typed a number
     // and was told nothing would believe we had it.
     expect(src).toMatch(/isValidPhone\(canonicalPhone\)/);
-    expect(src).toMatch(/signupMetadata\(fullName, canonicalPhone(, null, contactAllowed)?\)/);
+    expect(src).toMatch(/signupMetadata\(fullName, canonicalPhone\)/);
   });
 
   it('onboarding asks the clients who never went through that form', () => {
