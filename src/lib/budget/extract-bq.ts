@@ -347,6 +347,8 @@ export interface FloorPlanFacts {
    */
   sheets?: SheetReading[];
   isFloorPlan?: boolean;
+  /** The text was recovered by OCR from a picture or a scan, not read from a text layer. */
+  fromOcr?: boolean;
   /**
    * What a vision model made of the drawing, when one was asked and answered.
    *
@@ -680,6 +682,7 @@ export async function extractFloorPlanFacts(file: File): Promise<FloorPlanFacts>
       ...readFloorPlanFacts(out.text, { pageCount: 'pages' in out ? out.pages : 1 }),
       sheets: document.sheets,
       isFloorPlan: document.isFloorPlan,
+      fromOcr: out.ocr,
     };
   } catch {
     return { ...NO_FLOOR_PLAN_FACTS };

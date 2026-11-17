@@ -2,32 +2,80 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage, useT } from '@/lib/i18n';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
-import { firstInstallmentPercent, installmentInStageCurrency, installmentSplit, installmentSplitFromPercent } from '@/lib/payments/installment-split';
-import { receiptCurrencyChoices } from '@/lib/payments/receipt-currencies';
-import { useUsdQuote } from '@/lib/budget/live-fx';
-import { authorizeStageProgression, decideStagePaymentPlan, fetchStagePaymentPlan, saveStagePaymentPlan, type StagePaymentPlanContext } from '@/lib/supabase/stage-payment-plans';
+import { currencyDigits, firstInstallmentPercent, installmentSplit, installmentSplitFromPercent } from '@/lib/payments/installment-split';
+import { authorizeStageProgression, confirmStageCredit, decideStagePaymentPlan, fetchStagePaymentPlan, saveStagePaymentPlan, type StagePaymentPlanContext } from '@/lib/supabase/stage-payment-plans';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 type Mode = 'full' | 'two_installments';
-type Decision = { context: StagePaymentPlanContext; action: 'save' | 'accept' | 'decline' | 'progress'; mode: Mode; first: string | null };
+type Decision = { context: StagePaymentPlanContext; action: 'save' | 'accept' | 'decline' | 'progress' | 'credit'; mode: Mode; first: string | null };
 interface Props {
   clientPresentation?: boolean;
   stageId: string; isContractor: boolean; readOnly: boolean; canUpload: boolean; refreshKey: unknown;
   onChanged: () => void | Promise<void>; onInstallmentChange: (value: 1 | 2 | undefined) => void;
+  /** True while the client has the plan form open, so the receipt form can step aside. */
+  onEditingChange?: (editing: boolean) => void;
 }
 
-/** An installment is an agreed part of the price, not a limit on receipt files. */
-export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUpload, refreshKey, onChanged, onInstallmentChange, clientPresentation = false }: Props) {
+/** One-tap splits for the first installment. Any amount can still be typed. */
+export const QUICK_SPLITS = ['30', '50', '70'] as const;
+
+/**
+ * Which installment the next receipt most likely belongs to: the first, until the
+ * receipts filed against it (confirmed or still waiting) reach its agreed amount.
+ * Flagged and replaced receipts are already left out of `receipts` by the database.
+ */
+export function nextInstallment(context: Pick<StagePaymentPlanContext, 'stage_amount' | 'plan' | 'receipts'>): 1 | 2 {
+  const first = Math.min(Number(context.plan?.first_amount ?? 0), Number(context.stage_amount));
+  const filed = context.receipts.filter(row => row.installment === 1 && (row.decision === 'received' || row.decision === 'pending'))
+    .reduce((sum, row) => sum + (row.amount == null ? 0 : Number(row.amount)), 0);
+  return first > 0 && filed >= first ? 2 : 1;
+}
+
+/**
+ * How a stage is paid, one step at a time (17 November).
+ *
+ * On 16 November the plan form and the receipt form were on screen together, and between
+ * them asked for a currency twice and an amount twice; nine decisions before one receipt.
+ * The two amounts are different facts (what was agreed, and what one receipt proves), so
+ * both stay, but never on screen together:
+ *
+ *   · no plan: full payment is assumed and the receipt form is the whole screen; splitting
+ *     into two installments is one link away;
+ *   · while the client sets a split: only the plan, in the stage currency, with one amount
+ *     field and quick 30 / 50 / 70% splits; the receipt form steps aside;
+ *   · once a plan exists: one summary line per installment, and the receipt is filed under
+ *     the installment it most likely belongs to, with a way to change it.
+ *
+ * The plan is still confirmed in a second step before it is saved (Philip's rule).
+ */
+export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUpload, refreshKey, onChanged, onInstallmentChange, onEditingChange, clientPresentation = false }: Props) {
   const t = useT(); const { lang } = useLanguage();
   const current = useRef<string | null>(stageId); current.current = stageId;
-  const callbacks = useRef({ onChanged, onInstallmentChange }); callbacks.current = { onChanged, onInstallmentChange };
+  const callbacks = useRef({ onChanged, onInstallmentChange, onEditingChange }); callbacks.current = { onChanged, onInstallmentChange, onEditingChange };
   const sequence = useRef(0); const mutation = useRef(false);
-  const selection = useRef<{ stage: string; plan?: string; value: 1 | 2 }>({ stage: stageId, value: 1 });
+  /** A choice the client made by hand. Cleared when the plan changes. */
+  const manual = useRef<{ stage: string; plan?: string; value: 1 | 2 } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [read, setRead] = useState<{ stage: string; data: StagePaymentPlanContext | null; failed?: boolean }>({ stage: stageId, data: null });
-  const [draft, setDraft] = useState<{ stage: string; mode: Mode; first: string; installment: 1 | 2; basis: 'amount' | 'percentage'; percentage: string; percentageEdited: boolean; currency: string } | null>(null);
+  const [editing, setEditing] = useState<{ stage: string; first: string } | null>(null);
+  const [choosing, setChoosing] = useState<string | null>(null);
+  const [installment, setInstallment] = useState<{ stage: string; value: 1 | 2 } | null>(null);
   const [confirmation, setConfirmation] = useState<Decision | null>(null);
   const [working, setWorking] = useState(false); const [error, setError] = useState<string | null>(null);
+
+  /** The installment to file the next receipt under, told to the receipt form. */
+  function announce(data: StagePaymentPlanContext | null) {
+    if (!data || data.plan?.mode !== 'two_installments' || data.plan.status === 'declined') {
+      setInstallment(null); callbacks.current.onInstallmentChange(undefined); return;
+    }
+    const chosen = manual.current?.stage === data.stage_id && manual.current.plan === data.plan.id ? manual.current.value : null;
+    const value = chosen ?? nextInstallment(data);
+    setInstallment({ stage: data.stage_id, value }); callbacks.current.onInstallmentChange(value);
+  }
+  function edit(next: { stage: string; first: string } | null) {
+    setEditing(next); callbacks.current.onEditingChange?.(!!next);
+  }
+
   useEffect(() => {
     let alive = true;
     current.current = stageId;
@@ -37,138 +85,137 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
         const data = await fetchStagePaymentPlan(stageId);
         if (!alive || request !== sequence.current) return;
         setRead({ stage: stageId, data });
-        if (selection.current.stage !== stageId || selection.current.plan !== data.plan?.id) {
-          selection.current = { stage: stageId, plan: data.plan?.id, value: 1 };
-          setDraft(null);
-        }
-        callbacks.current.onInstallmentChange(data.plan?.mode === 'two_installments' ? selection.current.value : undefined);
+        if (manual.current && (manual.current.stage !== stageId || manual.current.plan !== data.plan?.id)) manual.current = null;
+        announce(data);
       } catch { if (alive && request === sequence.current) setRead({ stage: stageId, data: null, failed: true }); }
     };
     void refresh(); window.addEventListener('focus', refresh);
     return () => { alive = false; current.current = null; window.removeEventListener('focus', refresh); };
   }, [stageId, refreshKey, attempt]);
+  // Leaving a stage with the form open must not leave the receipt form hidden.
+  useEffect(() => () => { callbacks.current.onEditingChange?.(false); }, [stageId]);
+
   const context = read.stage === stageId ? read.data : null;
-  const form = draft?.stage === stageId ? draft : { stage: stageId, mode: context?.plan?.mode ?? 'full', first: context?.plan?.first_amount ?? '', installment: 1 as const, basis: 'amount' as const, percentage: firstInstallmentPercent(context?.stage_amount ?? '', context?.plan?.first_amount ?? ''), percentageEdited: false, currency: context?.currency ?? '' };
-  // The plan is agreed and saved in the stage currency. `form.currency` is only the
-  // currency the client is typing the first installment in; `firstInStage` is what that
-  // comes to, and it is the only figure that is validated, confirmed or saved.
-  const stageCurrency = context?.currency ?? '';
-  const entryCurrency = form.currency || stageCurrency;
-  const foreign = form.basis === 'amount' && !!stageCurrency && entryCurrency !== stageCurrency;
-  const quote = useUsdQuote(foreign ? entryCurrency : null, null);
-  const firstInStage = foreign ? installmentInStageCurrency(form.first, quote.rate, context?.fx_rate ?? '', stageCurrency) ?? '' : form.first;
+  const form = editing?.stage === stageId ? editing : null;
   const confirm = confirmation?.context.stage_id === stageId ? confirmation : null;
   const editable = !!context?.can_edit && !isContractor && !readOnly && canUpload;
   const canDecide = !!context?.can_decide && isContractor && !readOnly && canUpload;
   const canProgress = !!context?.can_authorize_progression && isContractor && !readOnly && canUpload;
+  // Money carried from another stage lowers this stage's balance by itself. Beginning work
+  // on it is still the contractor's decision, the same as accepting a receipt.
+  const canCredit = !!context?.can_confirm_credit && isContractor && !readOnly && canUpload;
+  const permitted = (action: Decision['action']) => action === 'save' ? editable : action === 'progress' ? canProgress : action === 'credit' ? canCredit : canDecide;
   const amount = (value: string | number | null | undefined) => value == null ? '—'
     : `${Number(value).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 })} ${context?.currency ?? ''}`;
-  function request(action: Decision['action']) {
-    if (!context || (action === 'save' ? !editable : action === 'progress' ? !canProgress : !canDecide)) return;
-    const percentageSplit = form.basis === 'percentage' ? installmentSplitFromPercent(context.stage_amount, form.percentage) : null;
-    const first = action === 'save' ? canonicalReceiptAmount(firstInStage) : context.plan?.first_amount ?? null;
-    if (action === 'save' && form.mode === 'two_installments' && foreign && !first && canonicalReceiptAmount(form.first)) {
-      setError(t('project.paymentPlan.rateUnavailable', { currency: stageCurrency })); return;
-    }
-    if (action === 'save' && form.mode === 'two_installments' && form.basis === 'percentage'
-      && (!percentageSplit || (form.percentageEdited && percentageSplit.first !== first))) {
-      setError(t(percentageSplit ? 'project.paymentPlan.stale' : 'project.paymentPlan.invalidPercentage')); return;
-    }
-    if (action === 'save' && form.mode === 'two_installments' && (!first || Number(first) >= Number(context.stage_amount))) {
+  const split = context?.plan?.mode === 'two_installments' ? context.plan : null;
+
+  function request(action: Decision['action'], mode: Mode = 'two_installments') {
+    if (!context || !permitted(action)) return;
+    const first = action !== 'save' ? context.plan?.first_amount ?? null : mode === 'full' ? null : canonicalReceiptAmount(form?.first ?? '');
+    if (action === 'save' && mode === 'two_installments' && (!first || Number(first) >= Number(context.stage_amount))) {
       setError(t('project.paymentPlan.invalidFirst')); return;
     }
-    setError(null); setConfirmation({ context, action, mode: action === 'save' ? form.mode : context.plan?.mode ?? 'full', first });
+    setError(null); setConfirmation({ context, action, mode: action === 'save' ? mode : context.plan?.mode ?? 'full', first });
   }
   async function commit() {
-    if (!confirm || mutation.current || readOnly || !canUpload
-      || (confirm.action === 'save' ? !editable : confirm.action === 'progress' ? !canProgress : !canDecide)) return;
+    if (!confirm || mutation.current || readOnly || !canUpload || !permitted(confirm.action)) return;
     mutation.current = true; setWorking(true); setError(null);
     try {
       const data = confirm.action === 'save' ? await saveStagePaymentPlan(confirm.context, confirm.mode, confirm.first)
         : confirm.action === 'progress' ? await authorizeStageProgression(confirm.context)
+        : confirm.action === 'credit' ? await confirmStageCredit(confirm.context)
         : await decideStagePaymentPlan(confirm.context, confirm.action === 'accept');
       if (current.current !== stageId) return;
-      setRead({ stage: stageId, data }); setConfirmation(null); setDraft(null);
-      selection.current = { stage: stageId, plan: data.plan?.id, value: 1 };
-      callbacks.current.onInstallmentChange(data.plan?.mode === 'two_installments' ? 1 : undefined);
+      setRead({ stage: stageId, data }); setConfirmation(null); edit(null);
+      manual.current = null; announce(data);
       await callbacks.current.onChanged();
     } catch (failure) {
       if (current.current !== stageId) return;
       setError(t(/stale/.test((failure as Error)?.message ?? '') ? 'project.paymentPlan.stale' : 'project.paymentPlan.failed'));
     } finally { mutation.current = false; if (current.current === stageId) setWorking(false); }
   }
-  const first = Number(context?.plan?.first_amount ?? 0), due = Number(context?.stage_amount ?? 0);
-  const planned = (installment: 1 | 2) => installment === 1 ? Math.min(first, due) : Math.max(due - first, 0);
-  const received = (installment: 1 | 2) => context?.receipts.filter(row => row.installment === installment && row.decision === 'received')
+  /** A quick split, rounded to the currency's own unit so the plan never reads 138453.873521. */
+  function quick(percent: string) {
+    if (!context) return;
+    const raw = installmentSplitFromPercent(context.stage_amount, percent)?.first;
+    const rounded = raw ? canonicalReceiptAmount(Number(raw).toFixed(currencyDigits(context.currency))) : null;
+    if (rounded && installmentSplit(context.stage_amount, rounded)) { edit({ stage: stageId, first: rounded }); setError(null); }
+  }
+  function choose(value: 1 | 2) {
+    if (!context?.plan) return;
+    manual.current = { stage: stageId, plan: context.plan.id, value };
+    setInstallment({ stage: stageId, value }); setChoosing(null); callbacks.current.onInstallmentChange(value);
+  }
+
+  const first = Number(split?.first_amount ?? 0), due = Number(context?.stage_amount ?? 0);
+  const planned = (n: 1 | 2) => n === 1 ? Math.min(first, due) : Math.max(due - first, 0);
+  const received = (n: 1 | 2) => context?.receipts.filter(row => row.installment === n && row.decision === 'received')
     .reduce((sum, row) => row.amount == null ? NaN : sum + Number(row.amount), 0);
-  const description = confirm ? t(confirm.action === 'progress' ? 'project.paymentPlan.confirmProgress' : confirm.action === 'decline' ? 'project.paymentPlan.confirmDecline' : 'project.paymentPlan.confirmPlan', {
+  const description = confirm ? t(confirm.action === 'credit' ? 'project.paymentPlan.confirmCredit' : confirm.action === 'progress' ? 'project.paymentPlan.confirmProgress' : confirm.action === 'decline' ? 'project.paymentPlan.confirmDecline' : confirm.mode === 'full' ? 'project.paymentPlan.confirmFull' : 'project.paymentPlan.confirmPlan', {
     total: amount(confirm.context.stage_amount), first: amount(confirm.mode === 'full' ? confirm.context.stage_amount : Math.min(Number(confirm.first), Number(confirm.context.stage_amount))),
-    second: amount(confirm.mode === 'full' ? 0 : Math.max(Number(confirm.context.stage_amount) - Number(confirm.first), 0)), remaining: amount(confirm.context.remaining),
+    second: amount(confirm.mode === 'full' ? 0 : Math.max(Number(confirm.context.stage_amount) - Number(confirm.first), 0)), remaining: amount(confirm.context.remaining), carried: amount(confirm.context.carried_in ?? null),
   }) : '';
   if (context && due <= 0) return null;
+
+  const typed = form ? canonicalReceiptAmount(form.first) : null;
+  const typedSplit = context && typed ? installmentSplit(context.stage_amount, typed) : null;
+  const percent = context && typedSplit ? Math.round(Number(firstInstallmentPercent(context.stage_amount, typedSplit.first)) * 10) / 10 : null;
+  const button = `rounded-lg px-3 py-2 font-semibold ${clientPresentation ? 'min-h-11' : ''}`;
+  const link = 'font-semibold text-brand-green underline underline-offset-4 dark:text-[#b4d8bf]';
+
   return <div className={`space-y-3 rounded-xl border border-brand-border-grey p-3 text-xs ${clientPresentation ? 'bg-brand-off-white sm:p-4' : ''}`}>
     <h4 className="font-semibold">{t('project.paymentPlan.title')}</h4>
     {!context ? <p role={read.failed ? 'alert' : 'status'}>{t(read.failed ? 'project.paymentPlan.loadFailed' : 'common.loading')}
-      {read.failed && <button type="button" className="ml-2 underline" onClick={() => setAttempt(value => value + 1)}>{t('project.costing.retryPayouts')}</button>}</p> : <>
-      <p>{t(context.plan?.mode === 'two_installments' ? 'project.paymentPlan.splitSummary' : 'project.paymentPlan.fullSummary')}</p>
-      {context.plan?.mode === 'two_installments' && <>
-        <p role="status">{t(context.plan.status === 'proposed'
+      {read.failed && <button type="button" className="ml-2 underline" onClick={() => setAttempt(value => value + 1)}>{t('project.costing.retryPayouts')}</button>}</p>
+    : form ? <fieldset disabled={working} className="space-y-3" data-plan-form>
+      {/* Step 1 of 2, on its own: the split, in the stage currency. */}
+      <label className="block font-medium">{t('project.paymentPlan.firstAmount', { currency: context.currency })}
+        <input inputMode="decimal" aria-label={t('project.paymentPlan.firstAmount', { currency: context.currency })} value={form.first}
+          onChange={event => { const raw = event.target.value; edit({ stage: stageId, first: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); setError(null); }}
+          className={`mt-1 block w-full rounded-lg border bg-white p-2 font-mono dark:bg-[#141414] ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}/>
+      </label>
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('project.paymentPlan.quickSplit')}>
+        <span className="text-brand-mid-grey">{t('project.paymentPlan.quickSplit')}</span>
+        {QUICK_SPLITS.map(value => <button key={value} type="button" onClick={() => quick(value)} aria-pressed={percent === Number(value)}
+          className={`min-h-9 rounded-full border px-3 py-1 font-semibold ${percent === Number(value) ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey bg-white text-brand-near-black dark:bg-[#141414]'}`}>{`${value}%`}</button>)}
+      </div>
+      {percent !== null && <p role="status">{t('project.paymentPlan.percentOfStage', { percent: percent.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US') })}</p>}
+      <p>{t('project.paymentPlan.secondAmount', { amount: amount(typedSplit?.second ?? (Number(typed) >= due ? '0' : context.stage_amount)) })}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => request('save')} className={`${button} bg-brand-green text-white`}>{t('project.paymentPlan.save')}</button>
+        {split && <button type="button" onClick={() => request('save', 'full')} className={`${button} border border-brand-border-grey`}>{t('project.paymentPlan.payInFull')}</button>}
+        <button type="button" onClick={() => { edit(null); setError(null); }} className="px-2 py-2 text-brand-mid-grey underline underline-offset-4">{t('common.cancel')}</button>
+      </div>
+    </fieldset>
+    : <>
+      {split ? <>
+        <p role="status">{t(split.status === 'proposed'
           ? isContractor ? 'project.paymentPlan.awaitingApprovalContractor' : 'project.paymentPlan.awaitingApproval'
-          : context.plan.status === 'declined' ? 'project.paymentPlan.declined'
+          : split.status === 'declined' ? 'project.paymentPlan.declined'
           : isContractor ? 'project.paymentPlan.acceptedContractor' : 'project.paymentPlan.accepted')}</p>
-        {[1, 2].map(n => <div key={n} className="flex flex-wrap justify-between gap-2"><span>{t('project.paymentPlan.installment', { n })}: {amount(planned(n as 1 | 2))}</span>
-          <span>{t('project.paymentPlan.confirmed', { amount: amount(Number.isFinite(received(n as 1 | 2)) ? received(n as 1 | 2) : null) })}</span></div>)}
-        {context.plan.stage_amount !== context.stage_amount && Number(context.plan.stage_amount) !== due && <p>{t('project.paymentPlan.priceChanged')}</p>}
-      </>}
-      <p className="text-brand-mid-grey">{t('project.paymentPlan.receiptHelp')}</p>
-      {editable && <fieldset disabled={working} className="space-y-3">
-        {clientPresentation ? <fieldset className="space-y-2">
-          <legend className="mb-2 font-medium">{t('project.paymentPlan.method')}</legend>
-          <div className="grid gap-2 sm:grid-cols-2">{(['full', 'two_installments'] as const).map(mode => <label key={mode} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-3 font-semibold ${form.mode === mode ? 'border-brand-green text-brand-green dark:text-[#b4d8bf]' : 'border-brand-border-grey'}`}>
-            <input type="radio" name={`payment-method-${stageId}`} value={mode} checked={form.mode === mode} onChange={() => { setDraft({ ...form, mode }); setError(null); }} className="size-4 accent-brand-green" />
-            {t(mode === 'full' ? 'project.paymentPlan.full' : 'project.paymentPlan.split')}
-          </label>)}</div>
-        </fieldset> : <label className="block">{t('project.paymentPlan.method')}<select value={form.mode} onChange={event => { setDraft({ ...form, mode: event.target.value as Mode }); setError(null); }} className="mt-1 block w-full rounded-lg border bg-transparent p-2">
-          <option value="full">{t('project.paymentPlan.full')}</option><option value="two_installments">{t('project.paymentPlan.split')}</option>
-        </select></label>}
-        {form.mode === 'two_installments' && <div className="space-y-3">
-          <label className="block">{t('project.paymentPlan.splitUsing')}
-            <select aria-label={t('project.paymentPlan.splitUsing')} value={form.basis} onChange={event => {
-              const basis = event.target.value as 'amount' | 'percentage';
-              setDraft({ ...form, basis, ...(basis === 'percentage' ? { currency: stageCurrency, first: firstInStage, percentage: firstInstallmentPercent(context.stage_amount, firstInStage) } : {}), percentageEdited: false }); setError(null);
-            }} className="mt-1 block min-h-11 w-full rounded-lg border bg-transparent p-2">
-              <option value="amount">{t('project.paymentPlan.byAmount')}</option><option value="percentage">{t('project.paymentPlan.byPercentage')}</option>
-            </select>
-          </label>
-          {form.basis === 'amount' && <label className="block">{t('project.paymentPlan.firstCurrency')}
-            <select aria-label={t('project.paymentPlan.firstCurrency')} value={entryCurrency} onChange={event => { setDraft({ ...form, currency: event.target.value }); setError(null); }}
-              className="mt-1 block min-h-11 w-full rounded-lg border bg-transparent p-2">
-              {receiptCurrencyChoices(context.currency).map(code => <option key={code} value={code}>{code}</option>)}
-            </select>
-          </label>}
-          <label className="block">{t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: entryCurrency })}
-            <input inputMode="decimal" aria-label={t(form.basis === 'percentage' ? 'project.paymentPlan.firstPercentage' : 'project.paymentPlan.firstAmount', { currency: entryCurrency })}
-              value={form.basis === 'percentage' ? form.percentage : form.first} onChange={event => {
-                const raw = event.target.value; const value = /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw;
-                setDraft(form.basis === 'percentage' ? { ...form, percentage: value, percentageEdited: true, first: installmentSplitFromPercent(context.stage_amount, value)?.first ?? '' } : { ...form, first: value }); setError(null);
-              }} className={`mt-1 block w-full rounded-lg border bg-transparent p-2 ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}/>
-          </label>
-          {form.basis === 'percentage' && <p>{t('project.paymentPlan.firstAmount', { currency: context.currency })}: {amount(form.first || null)}</p>}
-          {foreign && form.first && <p role="status">{firstInStage
-            ? t('project.paymentPlan.firstConverted', { entered: `${form.first} ${entryCurrency}`, amount: amount(firstInStage), currency: stageCurrency })
-            : t('project.paymentPlan.rateUnavailable', { currency: stageCurrency })}</p>}
-          <p>{t('project.paymentPlan.secondAmount', { amount: amount(installmentSplit(context.stage_amount, firstInStage)?.second ?? (Number(firstInStage) >= due ? '0' : context.stage_amount)) })}</p>
-        </div>}
-        <button type="button" onClick={() => request('save')} className={`rounded-lg border border-brand-green px-3 py-2 font-semibold ${clientPresentation ? 'min-h-11' : ''}`}>{t('project.paymentPlan.save')}</button>
-      </fieldset>}
+        <ul className="space-y-1.5">{([1, 2] as const).map(n => <li key={n} className="flex flex-wrap justify-between gap-2 rounded-lg border border-brand-border-grey bg-white px-3 py-2 dark:bg-[#141414]">
+          <span className="font-semibold">{`${t('project.paymentPlan.installmentOf', { n })}: ${amount(planned(n))}`}</span>
+          <span className="text-brand-mid-grey">{t('project.paymentPlan.confirmed', { amount: amount(Number.isFinite(received(n)) ? received(n) : null) })}</span></li>)}</ul>
+        {split.stage_amount !== context.stage_amount && Number(split.stage_amount) !== due && <p>{t('project.paymentPlan.priceChanged')}</p>}
+        {editable && <button type="button" className={link} onClick={() => edit({ stage: stageId, first: split.first_amount })}>
+          {t(split.status === 'declined' ? 'project.paymentPlan.revisePlan' : 'project.paymentPlan.changePlan')}</button>}
+      </> : <p>{t('project.paymentPlan.fullSummary')}{editable && <> <button type="button" className={link} onClick={() => edit({ stage: stageId, first: '' })}>{t('project.paymentPlan.payInInstallments')}</button></>}</p>}
+      {Number(context.carried_in ?? 0) > 0 && <p role="status" className="font-semibold text-brand-green dark:text-[#b4d8bf]">{t('project.paymentPlan.carriedIn', { amount: amount(context.carried_in), remaining: amount(context.remaining) })}</p>}
+      {Number(context.carried_out ?? 0) > 0 && <p role="status">{t('project.paymentPlan.carriedOut', { amount: amount(context.carried_out) })}</p>}
+      {Number(context.unused_credit ?? 0) > 0 && <p role="status">{t('project.paymentPlan.unusedCredit', { amount: amount(context.unused_credit) })}</p>}
       {canDecide && <div className="flex flex-wrap gap-2"><button type="button" disabled={working} onClick={() => request('accept')} className="rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.paymentPlan.accept')}</button>
         <button type="button" disabled={working} onClick={() => request('decline')} className="rounded-lg border px-3 py-2 font-semibold">{t('project.paymentPlan.reviewPlan')}</button></div>}
-      {!isContractor && !readOnly && canUpload && context.plan?.mode === 'two_installments' && context.plan.status !== 'declined' && <label className="block font-semibold">{t('project.paymentPlan.receiptFor')}
-        <select value={form.installment} onChange={event => { const installment = Number(event.target.value) as 1 | 2; selection.current = { stage: stageId, plan: context.plan?.id, value: installment }; setDraft({ ...form, installment }); callbacks.current.onInstallmentChange(installment); }} className={`mt-1 block w-full rounded-lg border bg-transparent p-2 ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}>
-          <option value="1">{t('project.paymentPlan.installment', { n: 1 })}</option><option value="2">{t('project.paymentPlan.installment', { n: 2 })}</option>
-        </select>
-      </label>}
+      {/* Which installment the next receipt is for: worked out, shown, and changeable. */}
+      {!isContractor && !readOnly && canUpload && split && split.status !== 'declined' && installment?.stage === stageId && (choosing === stageId
+        ? <label className="block font-semibold">{t('project.paymentPlan.receiptFor')}
+          <select value={installment.value} autoFocus onChange={event => choose(Number(event.target.value) as 1 | 2)}
+            className={`mt-1 block w-full rounded-lg border bg-white p-2 dark:bg-[#141414] ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}>
+            <option value="1">{t('project.paymentPlan.installment', { n: 1 })}</option><option value="2">{t('project.paymentPlan.installment', { n: 2 })}</option>
+          </select></label>
+        : <p data-receipt-installment={installment.value}>{t('project.paymentPlan.receiptForInstallment', { n: installment.value })}{' '}
+          <button type="button" className={link} onClick={() => setChoosing(stageId)}>{t('project.paymentPlan.changeInstallment')}</button></p>)}
       <p className={context.progression_authorized && Number(context.remaining) > 0 ? 'font-semibold text-brand-green dark:text-[#b4d8bf]' : 'text-brand-mid-grey'}>{t(context.progression_authorized && Number(context.remaining) > 0 ? 'project.paymentPlan.balanceAuthorized' : 'project.paymentPlan.nextStageRule')}</p>
+      {canCredit && <button type="button" disabled={working} onClick={() => request('credit')} className="rounded-lg bg-brand-green px-3 py-2 font-semibold text-white">{t('project.paymentPlan.acceptCredit')}</button>}
       {canProgress && <button type="button" disabled={working} onClick={() => request('progress')} className="rounded-lg border border-brand-green px-3 py-2 font-semibold">{t('project.paymentPlan.allowNext')}</button>}
     </>}
     <ConfirmModal open={!!confirm} variant={clientPresentation && !isContractor ? 'client' : 'default'} title={t('project.paymentPlan.confirmTitle')} description={description} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={working} error={error} onConfirm={commit} onCancel={() => { if (!working) setConfirmation(null); }}/>

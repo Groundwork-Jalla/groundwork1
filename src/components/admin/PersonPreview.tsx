@@ -187,6 +187,9 @@ export function PersonPreview({ reference, rolesHint, onClose }: {
                       </a>
                     </span>
                   ) : null} />
+                {/* Rule 9: phone or text follow-up only where the person allowed it. */}
+                {a && <Row label={t('admin.person.contactPermission')}
+                  value={t(a.contactPermission === true ? 'admin.person.contactAllowed' : a.contactPermission === false ? 'admin.person.contactRefused' : 'admin.person.contactNotAsked')} />}
                 {a && <Row label={t('admin.person.language')}
                   value={a.preferredLang ? t(`admin.person.lang.${a.preferredLang}` as TKey) : t('admin.person.langNotChosen')} />}
               </Section>

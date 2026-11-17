@@ -218,7 +218,7 @@ describe('readUpload — what the whole upload amounts to', () => {
   });
 
   it('says nothing at all about an empty upload', () => {
-    expect(readUpload([])).toEqual({ hasFloorPlan: false, insteadFound: [], unreadable: false });
+    expect(readUpload([])).toEqual({ hasFloorPlan: false, insteadFound: [], unreadable: false, notADrawing: false });
   });
 
   it('leaves out sheets it could not identify', () => {
@@ -229,3 +229,52 @@ describe('readUpload — what the whole upload amounts to', () => {
     expect(readUpload([mixed]).insteadFound).toEqual(['elevation']);
   });
 });
+
+describe('readUpload — a document that is not a drawing at all is refused', () => {
+  const prose = (n = 3) => ({ isFloorPlan: false, sheets: Array.from({ length: n }, () => ({ kind: 'unknown' as const, basis: [], prose: true })) });
+  const itinerary = Array.from({ length: 60 }, (_, i) => `Guests arrive at the venue for session ${i}`).join('\n');
+
+  it('classifies a page of ordinary writing as prose, and a blank or short page as merely unknown', () => {
+    expect(classifySheet(itinerary)).toEqual({ kind: 'unknown', basis: [], prose: true });
+    expect(classifySheet('Welcome dinner 7pm').prose).toBe(false);
+    expect(classifySheet('').prose).toBeUndefined();
+  });
+
+  it('reads the 16 November case end to end: an itinerary uploaded as the floor plan', () => {
+    const document = readPlanDocument([itinerary, itinerary]);
+    expect(document.isFloorPlan).toBe(false);
+    expect(readUpload([document]).notADrawing).toBe(true);
+  });
+
+  it('refuses prose read from a real text layer when no model answered', () => {
+    expect(readUpload([prose()]).notADrawing).toBe(true);
+    expect(readUpload([prose(), prose(1)]).notADrawing).toBe(true);
+  });
+
+  it('refuses whatever a vision model looked at and called something other than a drawing', () => {
+    expect(readUpload([{ isFloorPlan: false, sheets: [{ kind: 'unknown', basis: [] }], fromOcr: true, model: { sheets: ['other'] } }]).notADrawing).toBe(true);
+    expect(readUpload([{ ...prose(), model: { sheets: ['other', 'other'] } }]).notADrawing).toBe(true);
+  });
+
+  it('lets the model that looked overrule text that only read as prose', () => {
+    expect(readUpload([{ ...prose(), model: { sheets: ['ground_plan'] } }]).notADrawing).toBe(false);
+    expect(readUpload([{ ...prose(), model: { sheets: ['other', 'detail'] } }]).notADrawing).toBe(false);
+  });
+
+  it('does not trust OCR of a photograph to call a drawing prose', () => {
+    // A hand-drawn plan photographed on site: room names, no scale, no dimension strings.
+    expect(readUpload([{ ...prose(), fromOcr: true }]).notADrawing).toBe(false);
+    expect(readUpload([{ ...prose(), fromOcr: true, model: null }]).notADrawing).toBe(false);
+  });
+
+  it('keeps every existing notice a notice', () => {
+    const site = { isFloorPlan: false, sheets: [{ kind: 'site_plan' as const, basis: ['IMPLANTATION'] }] };
+    expect(readUpload([site]).notADrawing).toBe(false);                       // a different sheet
+    expect(readUpload([{}]).notADrawing).toBe(false);                         // unreadable
+    expect(readUpload([{ isFloorPlan: false, sheets: [{ kind: 'unknown', basis: [] }] }]).notADrawing).toBe(false); // could not place it
+    expect(readUpload([prose(), site]).notADrawing).toBe(false);              // one real drawing among them
+    expect(readUpload([prose(), { isFloorPlan: false, sheets: [{ kind: 'unknown', basis: [] }] }]).notADrawing).toBe(false); // one file in doubt
+    expect(readUpload([{ isFloorPlan: true, sheets: [] }]).notADrawing).toBe(false);
+  });
+});
+

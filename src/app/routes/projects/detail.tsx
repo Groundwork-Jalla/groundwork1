@@ -45,6 +45,7 @@ import type {
 import { useDomainLabels } from '@/lib/domain-labels';
 import { contractorProjectRedirect } from '@/lib/projects/contractor-project-redirect';
 import { recordPrimaryClientJoin } from '@/lib/supabase/project-client-join';
+import { ProjectCloseoutPanel } from '@/components/project/ProjectCloseoutPanel';
 
 // ── Label maps ────────────────────────────────────────────
 
@@ -282,7 +283,10 @@ export default function ProjectDetail() {
     setStages(prev => projectStagesAfterApproval(prev, result));
     setProject(prev => prev?.id === result.projectId ? {
       ...prev, current_stage: result.awaitingReviewedStagePayment ? Math.max(prev.current_stage, result.stageNumber) : result.nextStageNumber ?? result.stageNumber,
-      status: result.isFinal && !result.alreadyApproved ? 'completed' : prev.status,
+      // The final approval no longer decides this by itself: a project with a recorded
+      // balance stays open for close-out (20261117000000). `loadAll` below reads the
+      // status the database actually set, so nothing is guessed here.
+      status: prev.status,
     } : prev);
   }, [id, scope]);
 
@@ -580,6 +584,8 @@ export default function ProjectDetail() {
               {/* A plain wrapper, deliberately unstyled: `display: contents` measures
                   as a zero-sized box, so the tour would have nothing to point at. One
                   child of a `space-y-6` parent either way, so the spacing is unchanged. */}
+              <ProjectCloseoutPanel projectId={project.id} refreshKey={payments}
+                stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} onClosed={loadAll} />
               <div data-tour="stage-list">
               <StageTracker
                 clientPresentation={!isContractor}

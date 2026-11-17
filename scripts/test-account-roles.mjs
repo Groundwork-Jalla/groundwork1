@@ -166,7 +166,12 @@ GRANT SELECT ON public.site_updates,public.project_audit_log TO authenticated;
     "SELECT test_assert((SELECT client_intent='existing_project' FROM contractor_onboarding WHERE user_id=test_id(11)),'migration replay preserves existing-project completion');",
     read('supabase/migrations/182_verified_is_a_qualified_project.sql'),
     read('supabase/migrations/20261115000300_verified_project_participants.sql'),read('supabase/migrations/20261115000300_verified_project_participants.sql'),
-    read('scripts/fixtures/verified-project-participants.sql'),read('supabase/migrations/20261115000300_verified_project_participants.sql')
+    read('scripts/fixtures/verified-project-participants.sql'),read('supabase/migrations/20261115000300_verified_project_participants.sql'),
+    read('supabase/migrations/20261117000100_client_with_payments_stays_client.sql'),read('supabase/migrations/20261117000100_client_with_payments_stays_client.sql'),
+    read('scripts/fixtures/client-with-payments-stays-client.sql'),read('supabase/migrations/20261117000100_client_with_payments_stays_client.sql'),
+    read('supabase/migrations/20261117000200_contact_permission.sql'),read('supabase/migrations/20261117000200_contact_permission.sql'),
+    read('scripts/fixtures/contact-permission.sql'),read('supabase/migrations/20261117000200_contact_permission.sql'),
+    "SELECT test_assert((SELECT contact_permission AND contact_permission_source='profile' FROM public.profiles WHERE id=test_id(92)),'replaying the migration keeps every recorded answer');",
   ].join('\n');
   const sqlPath = join(dir, 'regression.sql');
   writeFileSync(sqlPath, sql);
@@ -179,7 +184,7 @@ GRANT SELECT ON public.site_updates,public.project_audit_log TO authenticated;
   const result = spawnSync(join(bin, 'psql'), ['-X', '-v', 'ON_ERROR_STOP=1', '-h', dir, '-p', '55439', '-U', userInfo().username, '-d', 'postgres', '-f', sqlPath],
     { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000 });
   const output = result.stdout + result.stderr;
-  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK') || !output.includes('ROLE_CHANGE_ONBOARDING_OK') || !output.includes('VERIFIED_PROJECT_PARTICIPANTS_OK')) {
+  if (result.status !== 0 || /\b(?:ERROR|FATAL):/.test(output) || !output.includes('ACCOUNT_ROLES_OK') || !output.includes('ROLE_CHANGE_ONBOARDING_OK') || !output.includes('VERIFIED_PROJECT_PARTICIPANTS_OK') || !output.includes('CLIENT_PAYMENT_GUARD_OK') || !output.includes('CONTACT_PERMISSION_OK')) {
     const lines = output.split('\n');
     const failures = lines.flatMap((line, i) => /ERROR:|FATAL:/.test(line) ? lines.slice(i, i + 9) : []);
     throw new Error(failures.join('\n') || output);

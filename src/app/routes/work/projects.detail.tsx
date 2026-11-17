@@ -1,3 +1,5 @@
+import { ProjectCloseoutPanel } from '@/components/project/ProjectCloseoutPanel';
+import { ProjectPaymentHistory } from '@/components/project/ProjectPaymentHistory';
 import { ProjectBackLink } from '@/components/project/ProjectBackLink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
@@ -260,6 +262,11 @@ export default function ContractorProjectDetail() {
         ))}
       </nav>
 
+      {tab === 'work' && (
+        <ProjectCloseoutPanel projectId={project.id} refreshKey={stagePayments}
+          stageName={stageId => { const stage = assigned.stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }}
+          onViewStage={stageId => document.getElementById(`work-stage-${stageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} onClosed={load} />
+      )}
       {tab === 'work' && (
         <WorkTab
           hasBoq={hasBoq}
@@ -547,6 +554,8 @@ function MoneyTab({ assigned, payments, stagePayments, hasBoq }: {
                 hint={t('contractorMoney.stagesToCome', { n: outstanding.length })} />
       </div>
       <ProjectPayoutSummary project={assigned.project} stages={stages} refreshKey={stagePayments} />
+      <ProjectPaymentHistory stagePayments={stagePayments} projectCurrency={money.code}
+        stageName={stageId => { const stage = stages.find(row => row.id === stageId); return stage ? stageLabel(stage) : ''; }} />
 
       <section>
         <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">

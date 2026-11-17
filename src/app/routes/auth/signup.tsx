@@ -18,6 +18,7 @@ import { signupAccountType, signupMetadata, signupGoesToPartnerDoor,
          isExistingAccount } from "@/lib/auth/signup-account";
 import RoleSignup from "@/components/auth/RoleSignup";
 import AccountTypeSelect from "@/components/auth/AccountTypeSelect";
+import { ContactPermissionCheckbox } from "@/components/auth/ContactPermissionCheckbox";
 import { PasswordField } from '@/components/ui/PasswordField';
 import { projectAuthCallbackUrl, readProjectInvitation, rememberProjectInvitation, safeAuthReturn, withProjectInvitation } from '@/lib/auth/project-invitation';
 import { useProjectInvitationRole } from '@/hooks/useProjectInvitationRole';
@@ -38,6 +39,7 @@ export default function Signup() {
 
   const [fullName,        setFullName]        = useState("");
   const [phone,           setPhone]           = useState("");
+  const [contactAllowed,  setContactAllowed]  = useState(false);
   const [email,           setEmail]           = useState(inviteEmail);
   const [password,        setPassword]        = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -129,7 +131,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        data: signupMetadata(fullName, canonicalPhone),
+        data: signupMetadata(fullName, canonicalPhone, null, contactAllowed),
         emailRedirectTo: projectAuthCallbackUrl(window.location.origin, searchParams.toString()),
       },
     });
@@ -294,6 +296,8 @@ export default function Signup() {
             onChange={(v) => { setPhone(v); setError(null); }}
           />
         </div>
+
+        <ContactPermissionCheckbox checked={contactAllowed} onChange={setContactAllowed} disabled={submitting} />
 
         <div className="space-y-1.5">
           <Label htmlFor="email">{t('auth.signup.email')}</Label>

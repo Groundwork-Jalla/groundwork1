@@ -47,6 +47,9 @@ export interface PersonAccount {
   email: string;
   fullName: string | null;
   phone: string | null;
+  /** May the team call or text them? `null` is "never asked" and means do not (20261117000200). */
+  contactPermission: boolean | null;
+  contactPermissionAt: string | null;
   /** Where they said they were at signup (ISO country). */
   signupCountry: string | null;
   preferredLang: 'en' | 'fr' | null;
@@ -193,6 +196,8 @@ export async function fetchPersonRecord(
     email: s(profile.email),
     fullName: sn(profile.full_name),
     phone: sn(profile.phone),
+    contactPermission: typeof profile.contact_permission === 'boolean' ? profile.contact_permission : null,
+    contactPermissionAt: sn(profile.contact_permission_at),
     signupCountry: sn(profile.signup_country) ?? sn(profile.country),
     preferredLang: profile.preferred_lang === 'fr' ? 'fr' : profile.preferred_lang === 'en' ? 'en' : null,
     roles: roles.split(',').map(r => r.trim()).filter(Boolean),

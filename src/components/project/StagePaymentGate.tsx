@@ -31,6 +31,11 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
   const installment = useRef<{ scope: string; value: 1 | 2 | undefined }>({ scope, value: undefined });
   const [working, setWorking] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ scope: string; message: string } | null>(null);
+  const [planEditing, setPlanEditing] = useState<string | null>(null);
+  // What the reader found printed on the receipt, when it is not what was typed. Offered
+  // back as one tap, because the usual cause is typing the project-currency equivalent of
+  // a receipt issued in another currency: 138,453 XAF for a receipt that says 315,000 NGN.
+  const [suggestion, setSuggestion] = useState<{ scope: string; amount: string; currency: string } | null>(null);
   const [draft, setDraft] = useState<{ scope: string; amount: string; currency: string; file: File | null }>({ scope, amount: '', currency: '', file: null });
   const [decisionForm, setDecisionForm] = useState<{ scope: string; receipt: string; decision: 'accept' | 'record' | 'needs_top_up' | 'flag'; amount: string; note: string; step?:'receipt'|'progress' } | null>(null);
   const [viewer, setViewer] = useState<{ scope: string; name: string; url: string | null } | null>(null);
@@ -87,6 +92,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     if (/payment_plan_review_required|payment_plan_declined/.test(reason)) return t('project.paymentPlan.reviewFirst');
     if (/invalid_installment/.test(reason)) return t('project.paymentPlan.chooseInstallment');
     if (/top_up_exceeds_balance/.test(reason)) return t('project.paymentPlan.topUpLimit');
+    if (/receipt_duplicate_on_stage/.test(reason)) return t('project.receiptFlow.duplicateOnStage');
     if (/receipt_already_used/.test(reason)) return t('project.receiptFlow.alreadyUsed');
     if (/stale_receipt|receipt_file_changed|receipt_reading_expired|receipt_decided|receipt_accepted|receipt_pending_review/.test(reason)) return t('project.receiptFlow.refreshReceipt');
     return t('project.receiptFlow.tryAgain');
@@ -108,7 +114,15 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         await onChanged();
         if (current.current === scope) {const rest=fileQueue.scope===scope?fileQueue.files:[];setDraft({ scope, amount: '', currency: activeDraft.currency, file: rest[0]??null });setFileQueue({scope,files:rest.slice(1)});setReplacement(null);}
       }
-    } catch (error) { if (current.current === scope) fail(errorText(error)); }
+    } catch (error) {
+      if (current.current === scope) {
+        fail(errorText(error));
+        const read = error as { code?: string; message?: string; amount?: string; currency?: string } | null;
+        const mismatch = /amount_mismatch|currency_mismatch/.test(`${read?.code ?? ''} ${read?.message ?? ''}`);
+        setSuggestion(mismatch && canonicalReceiptAmount(read?.amount) && /^[A-Z]{3}$/.test(read?.currency ?? '')
+          ? { scope, amount: read!.amount!, currency: read!.currency! } : null);
+      }
+    }
     finally { if (pendingWork.current === scope) pendingWork.current = null; if (current.current === scope) setWorking(null); }
   }
   async function selectFile(file: File | null,queue:File[]=[]) {
@@ -173,8 +187,14 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
       <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.remainingStageBudget')}</dt><dd className="mt-1 font-mono">{format(balance.remaining, code)}</dd></div>
       {(balance.pending == null || balance.pending > 0) && <div><dt className="text-brand-mid-grey">{t('project.receiptFlow.pendingTotal')}</dt><dd className="mt-1 font-mono">{format(balance.pending, code)}</dd></div>}
     </dl>}
-    {!canUpload && !settled && <p className="text-xs text-brand-mid-grey">{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
+    {/* Why a receipt cannot be added here yet. On a contractor-created project this is the
+        agreed order (work updates, the client's approval, then payment), and on 16 November
+        one small grey line was all that said so: the upload looked broken. */}
+    {!canUpload && !settled && <p role="status" data-payment-blocked className={clientPresentation && !isContractor
+      ? 'rounded-lg border border-brand-border-grey bg-white p-3 text-sm leading-relaxed text-brand-near-black dark:bg-[#141414]'
+      : 'text-xs text-brand-mid-grey'}>{blockedReason ?? t('project.receiptFlow.waitForUpdates')}</p>}
     <StagePaymentPlanPanel key={stageId} stageId={stageId} isContractor={isContractor} readOnly={readOnly} canUpload={canUpload} refreshKey={payment} clientPresentation={clientPresentation}
+      onEditingChange={editing => setPlanEditing(editing ? scope : null)}
       onChanged={onChanged} onInstallmentChange={value => { installment.current = { scope, value }; }}/>
     {receipts.length > 0 && clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.paymentHistory')}</h4>}
     {receipts.length > 0 && <ol className={cn('divide-y divide-brand-border-grey dark:divide-[#333]', clientPresentation && 'rounded-lg border border-brand-border-grey px-3')}>{receipts.map(receipt => <li key={receipt.id} id={`receipt-${receipt.id}`} className="py-3 text-xs">
@@ -197,7 +217,12 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     {requested && requested.requestedTopUp != null && !settled && <p className="text-xs text-brand-near-black dark:text-white">{t('project.receiptFlow.topUpRequested', { amount: format(requested.requestedTopUp, requested.currency) })}</p>}
     {isContractor && !readOnly ? <>
       {legacyPending&&<button type="button" disabled={!canUpload||busy} onClick={()=>review(undefined,'accept')} className="rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white">{t('project.receiptFlow.reviewPayment')}</button>}
-      {receivedWithoutWork && !settled && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:receivedWithoutWork.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
+      {/* One payment action at a time. While a receipt is waiting to be reviewed, that
+          review is the action: it ends on the same continue / record / top-up choice
+          this button opens, so showing both read as two buttons for one thing
+          (16 November). Once nothing is waiting, this is how work is allowed on money
+          already confirmed. */}
+      {receivedWithoutWork && !settled && !pending && !form && <button type="button" disabled={!canUpload || busy} onClick={() => setDecisionForm({scope,receipt:receivedWithoutWork.id,decision:'accept',amount:'',note:'',step:'progress'})} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{t('project.receiptFlow.continueWithReceived')}</button>}
       {form&&<div className="space-y-3 rounded-xl border border-brand-green/40 p-4">
         <p className="font-mono text-sm font-semibold">{format(reviewedReceipt?.amount??null,reviewedReceipt?.currency??code)}</p>
         {form.step==='receipt'?<>
@@ -219,7 +244,7 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
         <button type="button" disabled={busy} onClick={()=>setDecisionForm(null)} className="text-xs underline">{t('common.cancel')}</button>
       </div>}
       {canUpload && !pending && !legacyPending && !requested && !settled && <p className="text-xs text-brand-mid-grey">{t('project.receiptFlow.waitForReceipt')}</p>}
-    </> : readOnly ? null : allowed && <form onSubmit={submit} className={cn('space-y-3', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
+    </> : readOnly ? null : allowed && planEditing !== scope && <form onSubmit={submit} className={cn('space-y-3', clientPresentation && 'border-t border-brand-border-grey pt-4')}>
       {clientPresentation && <h4 className="text-sm font-semibold text-brand-near-black">{t('project.clientUi.addReceipt')}</h4>}
       <fieldset disabled={!allowed || busy} className="space-y-3 disabled:opacity-40">
         {replacement?.scope===scope&&<p className="text-sm font-semibold">{t('project.receiptFlow.replacementHelp')}</p>}
@@ -251,6 +276,15 @@ export function StagePaymentGate({ projectId, stageId, stageNumber, payment, isC
     </form>}
     <ConfirmModal open={!!confirm} title={t('project.receiptFlow.confirmDecision')} description={confirm?.description??''} confirmLabel={t('project.receiptFlow.confirmFinal')} cancelLabel={t('common.cancel')} loading={busy} error={error} onConfirm={confirmDecision} onCancel={()=>setConfirmation(null)}/>
     {error && <p role="alert" className={clientPresentation ? 'rounded-lg border border-state-alert/30 p-3 text-sm leading-relaxed text-state-alert' : 'text-xs text-state-alert'}>{error}</p>}
+    {/* Fills the two fields with what the receipt itself says. Nothing is submitted: the
+        person still reads the figures and presses upload. */}
+    {error && suggestion?.scope === scope && !busy && (
+      <button type="button" data-receipt-suggestion
+        onClick={() => { setDraft({ ...activeDraft, amount: suggestion.amount, currency: suggestion.currency }); setFailure(null); setSuggestion(null); }}
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-brand-green px-3 py-2.5 text-sm font-semibold text-brand-green">
+        {t('project.receiptFlow.useReceiptFigures', { amount: `${Number(suggestion.amount).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 6 })} ${suggestion.currency}` })}
+      </button>
+    )}
     {viewer?.scope === scope && <DocumentViewer name={viewer.name} url={viewer.url} loading={!viewer.url} onClose={closeViewer} />}
   </section>;
 }

@@ -453,6 +453,19 @@ export function ArchitecturePlanGate({
           </p>
         </div>
       )}
+      {/*
+        * The one reading that IS a gate. Everything above is a notice because a wrong
+        * sheet or an unreadable scan is still somebody's drawing. This is a document that
+        * is not a drawing at all — an itinerary went through here on 16 November and a
+        * budget was built from it. Nobody is stranded: "Back" leads to the answer for
+        * somebody with no plan yet, and that path needs no file.
+        */}
+      {floorPlans.length > 0 && uploadReading.notADrawing && (
+        <div role="alert" className="mt-4 rounded-xl border border-state-alert/40 bg-brand-off-white px-4 py-3">
+          <p className="text-xs font-semibold text-brand-near-black">{t('planGate.notADrawingTitle')}</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-brand-mid-grey">{t('planGate.notADrawingBody')}</p>
+        </div>
+      )}
       {!scanning && !looking && floorPlans.length > 0 && uploadReading.unreadable && (
         <p className="mt-4 rounded-xl bg-brand-off-white px-4 py-3 text-xs leading-relaxed text-brand-mid-grey">
           {t('planGate.noFloorPlanUnreadable')}
@@ -474,7 +487,7 @@ export function ArchitecturePlanGate({
         </p>
       )}
 
-      {boqScanning && boqReadSeconds >= READ_GRACE_SECONDS && floorPlans.length > 0 && bq && (
+      {boqScanning && boqReadSeconds >= READ_GRACE_SECONDS && floorPlans.length > 0 && bq && !uploadReading.notADrawing && (
         <div className="mt-4 space-y-2">
           <p className="text-xs text-brand-mid-grey">{t('planGate.boqStillReading')}</p>
           <button type="button" className="text-sm font-semibold underline underline-offset-4"
@@ -498,18 +511,23 @@ export function ArchitecturePlanGate({
         >
           <ArrowLeft className="size-3.5" aria-hidden />{t('planGate.back')}
         </button>
+        {/* A disabled fieldset disables the button inside it. The refusal of a document
+            that is not a drawing is held here, apart from the button's own condition,
+            which is about the two files being present and read. */}
+        <fieldset disabled={uploadReading.notADrawing} data-refused={uploadReading.notADrawing || undefined} className="m-0 ml-auto min-w-0 border-0 p-0">
         <motion.button
           type="button" whileTap={{ scale: 0.99 }}
           // A pending bill must finish or the person explicitly chooses manual entry.
           disabled={!floorPlans.length || !bq || heldByRead || boqScanning}
-          onClick={() => onAnswered({
+          onClick={() => { if (!uploadReading.notADrawing) onAnswered({
             hasPlan: true, floorPlans, bq, reading, lineItems, floorPlanFacts, bqStatedFloors,
-          })}
+          }); }}
           className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand-near-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
           {scanning && <Loader2 className="size-4 animate-spin" aria-hidden />}
           {t('planGate.continue')}<ArrowRight className="size-4" aria-hidden />
         </motion.button>
+        </fieldset>
       </div>
     </Slide>
   );

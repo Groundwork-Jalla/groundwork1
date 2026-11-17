@@ -1,5 +1,6 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from 'vitest';
-import { applicationSender,composeCommunicationEmail,receiveCommunicationEmail,sendCommunicationEmail,sendQueuedCommunicationReplies } from '../../../api/_lib/communication-email';
+import { applicationSender,composeCommunicationEmail,emphasise,receiveCommunicationEmail,sendCommunicationEmail,sendQueuedCommunicationReplies } from '../../../api/_lib/communication-email';
+import { readFileSync } from 'node:fs';
 const thread='00000000-0000-0000-0000-000000000001';const token='00000000-0000-0000-0000-000000000002';const received='00000000-0000-0000-0000-000000000003';
 const input={to:'client@example.test',subject:'Your next action',body:'Hello\n\nContinue your project.',threadId:thread,preferenceToken:token,senderName:'Groundwork',senderEmail:'hello@example.test',replyDomain:'replies.example.test'};
 const settings={id:true,delivery_enabled:true,sender_name:'Groundwork',sender_email:'hello@example.test',followup_sender_email:'contact@example.test',application_sender_email:'partner@example.test',reply_domain:'replies.example.test'};
@@ -88,3 +89,58 @@ describe('staff outbox',()=>{
   expect(await sendQueuedCommunicationReplies({from,rpc:vi.fn()})).toEqual({sent:0,failed:0,skipped:0});expect(fetch).not.toHaveBeenCalled();
  });
 });
+
+describe('the project name stands out in the message',()=>{
+ const body='Hi Ruth,\n\nCongratulations on creating Maison Bonapriso in Groundwork.\n\nMaison Bonapriso is ready, but your client has not been invited yet.';
+ it('sets the project name in bold in the HTML and leaves the text part exactly as written',()=>{
+  const payload=composeCommunicationEmail({...input,body,emphasis:['Maison Bonapriso']});
+  expect(payload.html).toContain('Congratulations on creating <strong>Maison Bonapriso</strong> in Groundwork.');
+  expect(payload.html.match(/<strong>Maison Bonapriso<\/strong>/g)).toHaveLength(2);
+  expect(payload.text).toContain('Congratulations on creating Maison Bonapriso in Groundwork.');expect(payload.text).not.toContain('<strong>');
+ });
+ it('changes nothing when no name is given, so every other message is byte-for-byte what it was',()=>{
+  const plain=composeCommunicationEmail({...input,body});
+  expect(composeCommunicationEmail({...input,body,emphasis:[undefined,null,'',' ']}).html).toBe(plain.html);
+  expect(plain.html).not.toContain('<strong>');
+ });
+ it('cannot be used to inject markup through a project name',()=>{
+  const payload=composeCommunicationEmail({...input,body:'Your project <img src=x onerror=1> & Sons is ready.',emphasis:['<img src=x onerror=1> & Sons']});
+  expect(payload.html).not.toContain('<img');
+  expect(payload.html).toContain('<strong>&lt;img src=x onerror=1&gt; &amp; Sons</strong>');
+ });
+ it('bolds whole words only, and a longer name before a shorter one inside it',()=>{
+  expect(emphasise('Villas near Villa are not Villa2.',['Villa'])).toBe('Villas near <strong>Villa</strong> are not Villa2.');
+  expect(emphasise('Villa Rose and Villa.',['Villa','Villa Rose'])).toBe('<strong>Villa Rose</strong> and <strong>Villa</strong>.');
+  expect(emphasise('R+2 (Douala) is ready.',['R+2 (Douala)'])).toBe('<strong>R+2 (Douala)</strong> is ready.');
+  expect(emphasise('a b c',['a'])).toBe('a b c');
+ });
+ it('is passed the project by the lifecycle worker, the only sender that knows it',()=>{
+  expect(readFileSync('api/_lib/lifecycle.ts','utf8')).toContain('emphasis: [context.project_name]');
+ });
+});
+
+describe('the message looks like every other Groundwork email',()=>{
+ it('presents the next step as a button, not a bare link in the text',()=>{
+  const payload=composeCommunicationEmail({...input,cta:{label:'Create your first project',path:'/projects/new'}});
+  // A table cell with a fill is what a button is in email: Outlook ignores styled anchors.
+  expect(payload.html).toMatch(/<td style="background:#1a1a1a;border-radius:8px;">\s*<a href="https:\/\/groundwork\.test\/projects\/new" style="display:inline-block;padding:13px 28px;/);
+  expect(payload.html).toContain('Create your first project');
+  expect(payload.text).toContain('Create your first project: https://groundwork.test/projects/new');
+ });
+ it('wears the shared header and card, in the reader\u2019s language',()=>{
+  const english=composeCommunicationEmail(input).html;const french=composeCommunicationEmail({...input,lang:'fr'}).html;
+  expect(english.startsWith('<!DOCTYPE html>')).toBe(true);expect(english).toContain('<html lang="en">');expect(french).toContain('<html lang="fr">');
+  expect(english).toContain('background:#1a1a1a;padding:24px 32px;');expect(english).toContain('max-width:480px');
+ });
+ it('adds no button when the step has no action, and keeps the reminder choices in every message',()=>{
+  const payload=composeCommunicationEmail({...input,projectOptOut:true});
+  expect(payload.html).not.toContain('border-radius:8px;">');
+  expect(payload.html).toContain(`/communication/preferences/${token}#project`);expect(payload.html).toContain('Manage reminder preferences');
+ });
+ it('escapes a button label and address like the rest of the message',()=>{
+  const payload=composeCommunicationEmail({...input,cta:{label:'Open <b>project</b>',path:'/projects/a?x="1"'}});
+  expect(payload.html).toContain('Open &lt;b&gt;project&lt;/b&gt;');expect(payload.html).not.toContain('<b>project</b>');
+  expect(payload.html).toContain('/projects/a?x=&quot;1&quot;');
+ });
+});
+

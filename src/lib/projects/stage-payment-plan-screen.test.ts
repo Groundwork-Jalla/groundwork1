@@ -6,8 +6,7 @@ import { lookup } from '@/lib/i18n/translate';
 const h = vi.hoisted(() => ({
   state: [] as any[], refs: [] as any[], deps: [] as any[], cleanups: [] as any[],
   effects: [] as { index: number; effect: () => any }[], si: 0, ri: 0, ei: 0,
-  fetch: vi.fn(), save: vi.fn(), decide: vi.fn(), progress: vi.fn(), changed: vi.fn(), installment: vi.fn(),
-  rates: {} as Record<string, number>,
+  fetch: vi.fn(), save: vi.fn(), decide: vi.fn(), progress: vi.fn(), credit: vi.fn(), changed: vi.fn(), installment: vi.fn(), editing: vi.fn(),
 }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(),
   useState: (initial: any) => { const i = h.si++; if (!(i in h.state)) h.state[i] = typeof initial === 'function' ? initial() : initial;
@@ -21,9 +20,7 @@ vi.mock('@/lib/i18n', () => ({ useLanguage: () => ({ lang: 'en' }), useT: () => 
   return source.replace(/\{(\w+)\}/g, (_match, name) => String(values[name] ?? ''));
 } }));
 vi.mock('@/lib/supabase/stage-payment-plans', () => ({ fetchStagePaymentPlan: h.fetch, saveStagePaymentPlan: h.save,
-  decideStagePaymentPlan: h.decide, authorizeStageProgression: h.progress }));
-// Units per USD, as the browser's daily feed reports them. No network in these tests.
-vi.mock('@/lib/budget/live-fx', () => ({ useUsdQuote: (code: string | null) => ({ code, rate: code ? h.rates[code] ?? null : null, source: null, asOf: null }) }));
+  decideStagePaymentPlan: h.decide, authorizeStageProgression: h.progress, confirmStageCredit: h.credit }));
 import { StagePaymentPlanPanel } from '@/components/project/StagePaymentPlanPanel';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -36,7 +33,7 @@ const base: StagePaymentPlanContext = { stage_id: 'stage', project_id: 'project'
   plan: null, receipts: [] };
 const split: StagePaymentPlanContext = { ...base, can_edit: false, can_decide: true,
   plan: { id: 'plan', mode: 'two_installments', currency: 'XAF', stage_amount: '60000', first_amount: '30000', status: 'proposed', proposed_at: '', decided_at: null } };
-const props = { stageId: 'stage', isContractor: false, readOnly: false, canUpload: true, refreshKey: 'payment', onChanged: h.changed, onInstallmentChange: h.installment, clientPresentation: false };
+const props = { stageId: 'stage', isContractor: false, readOnly: false, canUpload: true, refreshKey: 'payment', onChanged: h.changed, onInstallmentChange: h.installment, onEditingChange: h.editing, clientPresentation: false };
 function render(overrides: Partial<typeof props> = {}) {
   h.si = h.ri = h.ei = 0;
   const tree = StagePaymentPlanPanel({ ...props, ...overrides });
@@ -48,55 +45,61 @@ async function load(context = base, overrides: Partial<typeof props> = {}) { h.f
 const button = (view: Node[], label: string) => view.find(node => node.type === 'button' && text(node) === label)!;
 const dialog = (view: Node[]) => view.find(node => node.type === ConfirmModal && node.props.open)!;
 beforeEach(() => {
-  vi.clearAllMocks(); h.state = []; h.refs = []; h.deps = []; h.cleanups = []; h.effects = []; h.rates = { USD: 1, NGN: 1500 };
+  vi.clearAllMocks(); h.state = []; h.refs = []; h.deps = []; h.cleanups = []; h.effects = [];
   vi.stubGlobal('window', new EventTarget()); h.save.mockResolvedValue(split); h.decide.mockResolvedValue({ ...split, can_decide: false });
   h.progress.mockResolvedValue({ ...base, progression_authorized: true }); h.changed.mockResolvedValue(undefined);
 });
 afterEach(() => { h.cleanups.forEach(cleanup => cleanup?.()); vi.unstubAllGlobals(); });
 
 describe('stage payment plans and separate progression permission', () => {
-  it('reviews and saves an explicit 30/70 percentage split through the existing contractor-approved plan flow', async () => {
-    let view = await load();
-    view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}});
-    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'30'}});
-    expect(text(render())).toMatch(/First installment \(XAF\)\s*:\s*18,000 XAF/);
-    expect(text(render())).toContain('Second installment: 42,000 XAF');
-    button(render(),'Review payment plan').props.onClick();
-    expect(h.save).not.toHaveBeenCalled();
-    expect(dialog(render()).props.description).toContain('First payment: 18,000 XAF. Second payment: 42,000 XAF');
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  const openSplit = async (context = base, overrides: Partial<typeof props> = {}) => {
+    await load(context, overrides);
+    button(render(overrides), 'Pay in two installments instead').props.onClick();
+    return render(overrides);
+  };
+  const input = (view: Node[]) => view.find(node => node.type === 'input')!;
+
+  it('assumes full payment when no plan exists, with no plan fields and the split one link away', async () => {
+    const view = await load();
+    expect(text(view)).toContain('Full stage payment. You can attach several vendor receipts.');
+    expect(view.some(node => node.type === 'input' || node.type === 'select')).toBe(false);
+    expect(button(view, 'Pay in two installments instead')).toBeTruthy();
+    expect(h.installment).toHaveBeenLastCalledWith(undefined);
   });
 
-  it('preserves the exact entered amount when switching its display to a rounded percentage', async () => {
-    let view = await load();
-    view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'20000'}});
-    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
-    expect(render().find(node => node.type === 'input')!.props.value).toBe('33.333333');
-    button(render(),'Review payment plan').props.onClick();
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','20000');
-  });
-  it('keeps the new client payment choices behind the same reviewed plan confirmation', async () => {
-    const client = { clientPresentation: true };
-    let view = await load(base, client);
-    expect(view.filter(node => node.type === 'input' && node.props.type === 'radio').map(node => node.props.value)).toEqual(['full', 'two_installments']);
-    view.find(node => node.type === 'input' && node.props.value === 'two_installments')!.props.onChange();
-    view = render(client);
-    view.find(node => node.type === 'input' && node.props.inputMode === 'decimal')!.props.onChange({ target: { value: '20000' } });
-    button(render(client), 'Review payment plan').props.onClick();
+  it('opens the split on its own, asks the receipt form to step aside, and puts everything back on cancel', async () => {
+    const view = await openSplit();
+    expect(input(view)).toBeTruthy();
+    expect(h.editing).toHaveBeenLastCalledWith(true);
+    expect(text(view)).not.toContain('This receipt is for');
+    button(render(), 'Cancel').props.onClick();
+    expect(render().some(node => node.type === 'input')).toBe(false);
+    expect(h.editing).toHaveBeenLastCalledWith(false);
     expect(h.save).not.toHaveBeenCalled();
-    expect(dialog(render(client)).props.variant).toBe('client');
-    expect(dialog(render(client)).props.description).toContain('Second payment: 40,000 XAF');
-    await dialog(render(client)).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base, 'two_installments', '20000');
   });
+
+  it('fills the first installment from a quick split, rounded to the currency unit, and shows the share', async () => {
+    const odd = { ...base, stage_amount: '1000001', remaining: '1000001' };
+    await openSplit(odd);
+    button(render(), '30%').props.onClick();
+    expect(input(render()).props.value).toBe('300000');
+    expect(text(render())).toContain('= 30% of this stage');
+    expect(text(render())).toContain('Second installment: 700,001 XAF');
+    button(render(), 'Review payment plan').props.onClick();
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(odd, 'two_installments', '300000');
+  });
+
+  it('shows the share of the stage for any typed amount', async () => {
+    await openSplit();
+    input(render()).props.onChange({ target: { value: '20000' } });
+    expect(text(render())).toContain('= 33.3% of this stage');
+    expect(render().find(node => node.type === 'button' && text(node) === '30%')!.props['aria-pressed']).toBe(false);
+  });
+
   it('reviews the full stage and both installment amounts before saving; cancellation writes nothing', async () => {
-    let view = await load();
-    view.find(node => node.type === 'select')!.props.onChange({ target: { value: 'two_installments' } });
-    render().find(node => node.type === 'input')!.props.onChange({ target: { value: '20000' } });
+    await openSplit();
+    input(render()).props.onChange({ target: { value: '20000' } });
     button(render(), 'Review payment plan').props.onClick();
     expect(h.save).not.toHaveBeenCalled();
     expect(dialog(render()).props.description).toContain('Stage budget: 60,000 XAF. First payment: 20,000 XAF. Second payment: 40,000 XAF');
@@ -104,14 +107,35 @@ describe('stage payment plans and separate progression permission', () => {
     button(render(), 'Review payment plan').props.onClick();
     await dialog(render()).props.onConfirm();
     expect(h.save).toHaveBeenCalledWith(base, 'two_installments', '20000'); expect(h.changed).toHaveBeenCalledOnce();
+    expect(h.editing).toHaveBeenLastCalledWith(false);
   });
 
-  it.each(['0', '-1', '60000', '60000.000001'])('rejects a split with invalid first installment %s', async first => {
-    const view = await load(); view.find(node => node.type === 'select')!.props.onChange({ target: { value: 'two_installments' } });
-    render().find(node => node.type === 'input')!.props.onChange({ target: { value: first } });
+  it.each(['0', '-1', '60000', '60000.000001', ''])('rejects a split with invalid first installment %j', async first => {
+    await openSplit();
+    input(render()).props.onChange({ target: { value: first } });
     button(render(), 'Review payment plan').props.onClick();
     expect(dialog(render())).toBeUndefined(); expect(h.save).not.toHaveBeenCalled();
     expect(text(render())).toContain('greater than zero and less than the full stage budget');
+  });
+
+  it('shows a split as one line per installment, which the client can change or turn back into full payment', async () => {
+    const proposed = { ...split, can_edit: true, can_decide: false };
+    const view = await load(proposed);
+    expect(text(view)).toContain('Installment 1 of 2: 30,000 XAF');
+    expect(text(view)).toContain('Installment 2 of 2: 30,000 XAF');
+    expect(view.some(node => node.type === 'input')).toBe(false);
+    button(view, 'Change the payment plan').props.onClick();
+    expect(input(render()).props.value).toBe('30000');
+    button(render(), 'Pay in full instead').props.onClick();
+    expect(dialog(render()).props.description).toContain('Stage budget: 60,000 XAF, paid in full.');
+    await dialog(render()).props.onConfirm();
+    expect(h.save).toHaveBeenCalledWith(proposed, 'full', null);
+  });
+
+  it('offers to revise a plan the contractor sent back', async () => {
+    const view = await load({ ...split, can_edit: true, can_decide: false, plan: { ...split.plan!, status: 'declined' as const } });
+    expect(text(view)).toContain('The contractor requested a revised payment plan.');
+    expect(button(view, 'Revise the payment plan')).toBeTruthy();
   });
 
   it('requires the contractor’s second confirmation and retains the reviewed snapshot after a refresh', async () => {
@@ -145,19 +169,43 @@ describe('stage payment plans and separate progression permission', () => {
     expect(h.save).not.toHaveBeenCalled(); expect(h.progress).not.toHaveBeenCalled();
   });
 
-  it('retains installment 2 across receipt refreshes and focus, then resets for a genuinely new plan', async () => {
-    const model = { ...split, can_decide: false, plan: { ...split.plan!, status: 'accepted' as const } };
-    await load(model);
-    render().find(node => node.type === 'select')!.props.onChange({ target: { value: '2' } });
-    h.fetch.mockResolvedValue({ ...model, received: '5000', receipts: [{ id: 'proof', amount: '5000', decision: 'received', allows_work: false, installment: 2, plan_id: 'plan' }] });
-    window.dispatchEvent(new Event('focus')); await flush();
-    expect(render().find(node => node.type === 'select')!.props.value).toBe(2);
-    expect(h.installment).toHaveBeenLastCalledWith(2);
-    render({ refreshKey: 'new-payment' }); await flush(); expect(h.installment).toHaveBeenLastCalledWith(2);
-    h.fetch.mockResolvedValue({ ...model, plan: { ...model.plan, id: 'new-plan' } });
-    window.dispatchEvent(new Event('focus')); await flush();
-    expect(render({ refreshKey: 'new-payment' }).find(node => node.type === 'select')!.props.value).toBe(1);
+  it('files the next receipt under the installment it most likely belongs to, and says so', async () => {
+    const accepted = { ...split, can_decide: false, plan: { ...split.plan!, status: 'accepted' as const } };
+    const view = await load(accepted);
+    expect(text(view)).toContain('This receipt is for installment 1.');
     expect(h.installment).toHaveBeenLastCalledWith(1);
+    // Receipts already filed (confirmed or still waiting) cover the first installment.
+    h.fetch.mockResolvedValue({ ...accepted, receipts: [
+      { id: 'a', amount: '20000', decision: 'received', allows_work: true, installment: 1, plan_id: 'plan' },
+      { id: 'b', amount: '10000', decision: 'pending', allows_work: false, installment: 1, plan_id: 'plan' },
+    ] });
+    window.dispatchEvent(new Event('focus')); await flush();
+    expect(text(render())).toContain('This receipt is for installment 2.');
+    expect(h.installment).toHaveBeenLastCalledWith(2);
+  });
+
+  it('keeps a hand-picked installment across refreshes, and lets it go for a genuinely new plan', async () => {
+    const accepted = { ...split, can_decide: false, plan: { ...split.plan!, status: 'accepted' as const } };
+    await load(accepted);
+    expect(render().some(node => node.type === 'select')).toBe(false);
+    button(render(), 'Change').props.onClick();
+    render().find(node => node.type === 'select')!.props.onChange({ target: { value: '2' } });
+    expect(h.installment).toHaveBeenLastCalledWith(2);
+    expect(text(render())).toContain('This receipt is for installment 2.');
+    window.dispatchEvent(new Event('focus')); await flush();
+    expect(h.installment).toHaveBeenLastCalledWith(2);
+    h.fetch.mockResolvedValue({ ...accepted, plan: { ...accepted.plan, id: 'new-plan' } });
+    window.dispatchEvent(new Event('focus')); await flush();
+    expect(h.installment).toHaveBeenLastCalledWith(1);
+  });
+
+  it('asks nothing about installments while a plan is sent back, or for a contractor', async () => {
+    await load({ ...split, can_decide: false, plan: { ...split.plan!, status: 'declined' as const } });
+    expect(text(render())).not.toContain('This receipt is for');
+    expect(h.installment).toHaveBeenLastCalledWith(undefined);
+    h.state = []; h.refs = []; h.deps = []; h.effects = [];
+    const contractor = await load({ ...split, can_decide: false, plan: { ...split.plan!, status: 'accepted' as const } }, { isContractor: true });
+    expect(text(contractor)).not.toContain('This receipt is for');
   });
 
   it('counts several confirmed vendor receipts within each installment and keeps pending proof separate', async () => {
@@ -173,7 +221,8 @@ describe('stage payment plans and separate progression permission', () => {
 
   it('discards a completed save after navigation instead of refreshing another project', async () => {
     let finish!: (context: StagePaymentPlanContext) => void;
-    await load(); h.save.mockReturnValue(new Promise<StagePaymentPlanContext>(resolve => { finish = resolve; }));
+    await openSplit(); h.save.mockReturnValue(new Promise<StagePaymentPlanContext>(resolve => { finish = resolve; }));
+    input(render()).props.onChange({ target: { value: '30000' } });
     button(render(), 'Review payment plan').props.onClick(); const saving = dialog(render()).props.onConfirm();
     h.fetch.mockResolvedValue({ ...base, stage_id: 'other-stage', stage_amount: '99999' });
     render({ stageId: 'other-stage' }); await flush(); finish(split); await saving;
@@ -181,76 +230,49 @@ describe('stage payment plans and separate progression permission', () => {
   });
 });
 
-describe('the first installment can be entered in the currency the client is paying in', () => {
-  const currencySelect = (view: Node[]) => view.find(node => node.type === 'select' && node.props['aria-label'] === 'Currency you are paying in')!;
-  const twoInstallments = async () => { const view = await load(); view.find(node => node.type === 'select')!.props.onChange({target:{value:'two_installments'}}); };
+describe('money paid above one stage is shown where it was carried to', () => {
+  // Stage 4 of a project whose stage 3 was overpaid by 12,000 XAF and confirmed.
+  const carried: StagePaymentPlanContext = { ...base, can_edit: false, received: '12000', remaining: '48000',
+    own_received: '0', carried_in: '12000', carried_out: '0', unused_credit: '0', can_confirm_credit: true };
 
-  it('offers the stage currency first and leaves an untouched plan exactly as it was', async () => {
-    await twoInstallments();
-    const select = currencySelect(render());
-    expect(select.props.value).toBe('XAF');
-    expect(nodes(select.props.children).filter(node => node.type === 'option').slice(0, 2).map(node => node.props.value)).toEqual(['XAF', 'USD']);
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'20000'}});
-    expect(text(render())).toContain('First installment (XAF)');
-    expect(text(render())).not.toContain('at today');
-    button(render(),'Review payment plan').props.onClick();
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','20000');
+  it('shows nothing extra on a stage with no carried money, exactly as before', async () => {
+    const view = text(await load(base));
+    expect(view).not.toContain('carried');
+    expect(view).not.toContain('held as credit');
   });
 
-  it('shows an NGN amount in the stage currency before saving, and saves the stage-currency figure', async () => {
-    await twoInstallments();
-    currencySelect(render()).props.onChange({target:{value:'NGN'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
-    const view = text(render());
-    expect(view).toContain('First installment (NGN)');
-    expect(view).toContain('45000 NGN is 18,000 XAF at today');
-    expect(view).toContain('Second installment: 42,000 XAF');
-    button(render(),'Review payment plan').props.onClick();
-    expect(dialog(render()).props.description).toContain('First payment: 18,000 XAF. Second payment: 42,000 XAF');
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  it('tells the client how much was carried in and what is still to pay, without offering the contractor decision', async () => {
+    const view = await load(carried);
+    expect(text(view)).toContain('12,000 XAF carried forward from your other stage payments counts toward this stage. Still to pay: 48,000 XAF.');
+    expect(view.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
-  it('accepts USD without a live quote, at the project\u2019s own rate', async () => {
-    await twoInstallments();
-    currencySelect(render()).props.onChange({target:{value:'USD'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'30'}});
-    button(render(),'Review payment plan').props.onClick();
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  it('lets the primary contractor accept carried money behind a confirmation that states every figure', async () => {
+    h.credit.mockResolvedValue({ ...carried, can_confirm_credit: false, work_authorized: true });
+    await load(carried, { isContractor: true });
+    button(render({ isContractor: true }), 'Review the carried payment for this stage').props.onClick();
+    expect(h.credit).not.toHaveBeenCalled();
+    const description = dialog(render({ isContractor: true })).props.description;
+    expect(description).toContain('Stage budget: 60,000 XAF. Carried forward from earlier payments: 12,000 XAF. Still to pay: 48,000 XAF.');
+    expect(description).toContain('moving past this stage with a balance remains a separate decision');
+    await dialog(render({ isContractor: true })).props.onConfirm();
+    expect(h.credit).toHaveBeenCalledWith(carried);
+    expect(h.changed).toHaveBeenCalledTimes(1);
+    expect(render({ isContractor: true }).some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
-  it('refuses to guess when the rate is unavailable', async () => {
-    h.rates = { USD: 1 };
-    await twoInstallments();
-    currencySelect(render()).props.onChange({target:{value:'NGN'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
-    expect(text(render())).toContain('exchange rate for that currency is unavailable');
-    button(render(),'Review payment plan').props.onClick();
-    expect(render().some(node => node.type === ConfirmModal && node.props.open)).toBe(false);
-    expect(h.save).not.toHaveBeenCalled();
+  it('does not offer the decision when the database does not, or on a read-only project', async () => {
+    const view = await load({ ...carried, can_confirm_credit: false }, { isContractor: true });
+    expect(view.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
+    h.state = []; h.refs = []; h.deps = []; h.effects = [];
+    const locked = await load(carried, { isContractor: true, readOnly: true });
+    expect(locked.some(node => node.type === 'button' && text(node) === 'Review the carried payment for this stage')).toBe(false);
   });
 
-  it('still refuses a converted first installment that covers the whole stage', async () => {
-    await twoInstallments();
-    currencySelect(render()).props.onChange({target:{value:'NGN'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'150000'}}); // 60,000 XAF, the full stage
-    button(render(),'Review payment plan').props.onClick();
-    expect(text(render())).toContain('less than the full stage budget');
-    expect(h.save).not.toHaveBeenCalled();
-  });
-
-  it('carries the converted figure into the percentage view, which is always in the stage currency', async () => {
-    await twoInstallments();
-    currencySelect(render()).props.onChange({target:{value:'NGN'}});
-    render().find(node => node.type === 'input')!.props.onChange({target:{value:'45000'}});
-    render().find(node => node.type === 'select' && node.props['aria-label'] === 'Set the first installment by')!.props.onChange({target:{value:'percentage'}});
-    expect(render().find(node => node.type === 'input')!.props.value).toBe('30');
-    expect(render().some(node => node.type === 'select' && node.props['aria-label'] === 'Currency you are paying in')).toBe(false);
-    button(render(),'Review payment plan').props.onClick();
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(base,'two_installments','18000');
+  it('says where an overpaid stage\u2019s excess went, and what is still held', async () => {
+    const view = text(await load({ ...base, can_edit: false, received: '90000', remaining: '0', own_received: '90000', carried_in: '0', carried_out: '18000', unused_credit: '12000' }));
+    expect(view).toContain('18,000 XAF paid above this stage\u2019s price was carried to another stage.');
+    expect(view).toContain('12,000 XAF paid above this stage\u2019s price is held as credit.');
   });
 });
 

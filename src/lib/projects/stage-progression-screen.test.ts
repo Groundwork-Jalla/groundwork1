@@ -282,6 +282,24 @@ describe('only the current stage offers actions', () => {
     expect(detail().some(node => node.type?.name === 'ApproveButton')).toBe(false);
   });
 
+  /*
+   * 16 November: a contractor-created stage opened and its card showed no payment section
+   * at all. Such a stage is ready for work before it is paid, which the missing-record
+   * message used to wait for, so a stage with no readable payment record went blank.
+   */
+  it('says the payment record is missing on a contractor-created stage that is open for work, instead of showing nothing', () => {
+    props.workflowOrigin = 'contractor'; props.payments!.delete('s1');
+    const elements = detail();
+    expect(elements.some(node => node.type === StagePaymentGate)).toBe(false);
+    expect(elements.some(node => text(node).includes('project.stages.paymentDetailsMissing'))).toBe(true);
+  });
+  it('explains why a contractor-created stage cannot take a receipt before its work is reviewed', () => {
+    props.workflowOrigin = 'contractor'; props.payments!.set('s1', payment('s1', 'expected'));
+    const gate = detail().find(node => node.type === StagePaymentGate)!;
+    expect(gate.props.canUpload).toBe(false);
+    expect(gate.props.blockedReason).toBe('project.receiptFlow.evidenceFirst');
+  });
+
   it('collects a completed stage’s outstanding balance without enabling archived project writes', () => {
     props.stages = [stage(1, 'complete')]; props.projectPaused = true;
     expect(detail().find(node => node.type === StagePaymentGate)?.props.canUpload).toBe(true);

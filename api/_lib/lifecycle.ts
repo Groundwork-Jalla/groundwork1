@@ -316,7 +316,8 @@ export async function runDue(svc: Svc, now = new Date(), limit = 50, budgetMs = 
       const payload = composeCommunicationEmail({ to: enrollment.email, subject, body, lang: enrollment.lang,
         threadId: identity.thread_id, preferenceToken: identity.preference_token,
         senderName: settings.sender_name, senderEmail, replyDomain: settings.reply_domain,
-        cta: cta && path ? { label: cta, path } : null, projectOptOut: enrollment.sequence_key === 'cs_onboarded' });
+        cta: cta && path ? { label: cta, path } : null, projectOptOut: enrollment.sequence_key === 'cs_onboarded',
+        emphasis: [context.project_name] });
       payload.tags = [{ name: 'groundwork_enrollment', value: enrollment.id }, { name: 'groundwork_position', value: String(step.position) }];
       const delivery = await rpc(svc, 'prepare_lifecycle_delivery', { p_enrollment: enrollment.id,
         p_token: enrollment.processing_token, p_position: step.position, p_payload: payload });

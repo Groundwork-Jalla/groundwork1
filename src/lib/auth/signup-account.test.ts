@@ -53,7 +53,9 @@ describe('signup metadata carries contact details and nothing privileged', () =>
   });
 
   it('the page sends exactly that to signUp', () => {
-    expect(page).toContain('data: signupMetadata(fullName, canonicalPhone),');
+    // The third argument is the role door (none on this form); the fourth is the person's
+    // own answer about being called (20261117000200), which is no privilege.
+    expect(page).toContain('data: signupMetadata(fullName, canonicalPhone, null, contactAllowed),');
     expect(page).not.toContain("account_type");
     // Normalised before it is sent. `handle_new_user` drops anything that is not E.164, so a
     // page that passed the raw value would lose numbers silently.

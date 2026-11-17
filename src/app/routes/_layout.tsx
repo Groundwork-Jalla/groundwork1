@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RoleTour } from '@/components/tour/RoleTour';
+import { ContactPermissionPrompt } from '@/components/auth/ContactPermissionPrompt';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { AppShell } from '@/components/shell/AppShell';
@@ -76,7 +77,7 @@ export default function ProtectedLayout() {
     navigate('/', { replace: true });
   }
 
-  const content = <><Outlet /><RoleTour /></>;
+  const content = <><Outlet /><RoleTour /><ContactPermissionPrompt /></>;
   const bell = <NotificationBell userId={user?.id ?? ''} />;
   if (accountRole === 'contractor') return <WorkShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</WorkShell>;
   if (accountRole === 'verifier') return <VerifierShell displayName={displayName} onLogout={handleLogout} topBarActions={bell}>{content}</VerifierShell>;

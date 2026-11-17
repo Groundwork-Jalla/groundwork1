@@ -214,14 +214,16 @@ function validateReceiptInput(input: ReceiptPaymentInput, requireRate = true): v
 }
 
 /** The client attaches proof and its actual amount. Does NOT open the stage. */
-export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput, readingId?: string): Promise<void> {
+export async function submitStagePaymentReceipt(stageId: string, path: string, input: ReceiptPaymentInput, readingId?: string): Promise<{ alreadySubmitted: boolean }> {
   validateReceiptInput(input);
-  const { error } = await supabase.rpc('submit_stage_installment_receipt', {
+  const { data, error } = await supabase.rpc('submit_stage_installment_receipt', {
     p_stage: stageId, p_path: path, p_amount: input.amount,
     p_currency: input.currency, p_fx_rate: input.fxRate, p_reading: readingId,
     p_installment: input.installment ?? null, p_replaces: input.replacesReceiptId ?? null,
   });
   if (error) throw error;
+  // The database answers a repeat of the same proof with the receipt it already holds.
+  return { alreadySubmitted: (data as { already_submitted?: boolean } | null)?.already_submitted === true };
 }
 
 /** The contractor confirms the money arrived. This is what opens the stage. */
@@ -385,7 +387,18 @@ export async function uploadStagePaymentReceipt(
   }
   // Stable file/proof identity makes retries safe even after a lost commit response.
   try {
-    await submitStagePaymentReceipt(stageId, staged.reading.path, { ...input, fxRate: staged.reading.fxRate }, staged.reading.readingId);
+    const result = await submitStagePaymentReceipt(stageId, staged.reading.path, { ...input, fxRate: staged.reading.fxRate }, staged.reading.readingId);
+    /*
+     * The same receipt, uploaded again. The reader recognises the file and hands back the
+     * proof it issued the first time (its path is the FIRST upload's, not this one's), and
+     * the database, correctly, keeps one receipt for one payment. Until 17 November that
+     * came back as a plain success: the form cleared, nothing was added, and three uploads
+     * of one receipt left a stage showing one — reported as "new receipts fail to save".
+     *
+     * A retry of THIS upload after a lost response carries this upload's own path, and
+     * stays the silent success it should be.
+     */
+    if (result.alreadySubmitted && staged.reading.path !== staged.path) throw new Error('receipt_duplicate_on_stage');
   } catch (error) {
     if (/receipt_reading_expired|receipt_file_changed|receipt_reading_required/.test((error as Error)?.message ?? '')) staged.reading = undefined;
     throw error;

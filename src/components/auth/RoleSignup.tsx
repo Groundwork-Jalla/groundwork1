@@ -11,6 +11,7 @@ import { PasswordStrength } from '@/components/ui/PasswordStrength';
 import { isPasswordAcceptable } from '@/lib/auth/password-policy';
 import { normalisePhone, isValidPhone } from '@/lib/phone';
 import { PhoneField } from '@/components/ui/PhoneField';
+import { ContactPermissionCheckbox } from './ContactPermissionCheckbox';
 import { DEFAULT_COUNTRY_CODE } from '@/lib/countries';
 import { rememberEmailRequest } from '@/lib/auth/last-email-request';
 import { signupMetadata, isExistingAccount, type SignupIntent } from '@/lib/auth/signup-account';
@@ -183,6 +184,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
   const [fullName,        setFullName]        = useState('');
   const [email,           setEmail]           = useState('');
   const [phone,           setPhone]           = useState('');
+  const [contactAllowed,  setContactAllowed]  = useState(false);
   const [password,        setPassword]        = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error,           setError]           = useState<string | null>(null);
@@ -237,7 +239,7 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
         // the confirmation mail. The localStorage marker below is absent when that is a
         // different browser, so the door is recorded on the account as well — see
         // signupMetadata. Without it they land in client onboarding holding no role.
-        data: signupMetadata(fullName.trim(), canonicalPhone, role as SignupIntent),
+        data: signupMetadata(fullName.trim(), canonicalPhone, role as SignupIntent, contactAllowed),
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -404,6 +406,8 @@ export default function RoleSignup({ role, embedded = false, onSubmitted }: {
               nobody, on the account we then use to contact them. */}
           <PhoneField id="phone" value={phone} onChange={setPhone} />
         </div>
+
+        <ContactPermissionCheckbox checked={contactAllowed} onChange={setContactAllowed} disabled={submitting} />
 
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('auth.signup.password')}</Label>

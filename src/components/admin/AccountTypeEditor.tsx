@@ -16,7 +16,8 @@ export function AccountTypeEditor({ user, onSaved, onClose }: {
     try { onSaved(await setAccountType(user.id, selected, original)); }
     catch (error) {
       const message = (error as { message?: string })?.message ?? '';
-      setError(t(message.includes('contractor_assignments_exist') ? 'admin.accountTypeEdit.assignments'
+      setError(t(message.includes('client_payment_history') ? 'admin.accountTypeEdit.clientPayments'
+        : message.includes('contractor_assignments_exist') ? 'admin.accountTypeEdit.assignments'
         : message.includes('stale_account_type') ? 'admin.accountTypeEdit.stale' : 'admin.accountTypeEdit.failed'));
     } finally { inFlight.current = false; setBusy(false); }
   }

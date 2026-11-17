@@ -147,6 +147,12 @@ Completing the requested action stops that action's reminders. A new milestone c
 
 **PAY-15 — Primary contractor removed after payment activity.** New payment plans and receipts become unavailable until a primary contractor is connected again. Previously uploaded receipts and recorded amounts remain visible as history. Removing a contractor does not erase payments, change the BOQ total or zero completed stages. Observers can read their permitted project content without receiving invitation, contractor-request or payment controls.
 
+**PAY-16 — A receipt is for more than the stage costs.** Once the contractor confirms the money as received, the amount above the stage's price is carried to the stages that still need it. An earlier stage that was allowed to proceed with a balance is settled first; what is left reduces the next stage, then the one after. A pending or flagged receipt carries nothing. Each stage shows what was carried in, what it passed on, and any credit no stage has needed yet. Example: a 6,000,000 XAF receipt on a 5,239,300 XAF stage settles that stage and reduces the next stage by 760,700 XAF. Requires migration `20261117000000_overpayment_carry_and_closeout.sql`.
+
+**PAY-17 — A stage is covered, wholly or partly, by carried money.** Carried money lowers the balance; it does not start work. The primary contractor reviews the carried amount and accepts it for that stage, which is the same decision as accepting a receipt. The client is notified. If the carried amount does not cover the whole stage, the rest stays payable, and moving past the stage with a balance still needs the contractor's separate, explicit authorization.
+
+**PAY-18 — Closing a project.** When the last stage is approved and nothing is owed, the project completes as before. When any stage still has a recorded balance, or a receipt is waiting for the contractor, the last stage completes but the project stays open. The Close-out panel lists the stages and amounts still owed. The client can still add receipts to those stages. Once everything is settled, the client, the primary contractor or an administrator closes the project with the Close project action. The database refuses the action while a balance or an undecided receipt remains.
+
 ## 10. Controlled test plan for the team
 
 Prepare distinct client and contractor accounts for the following cohorts. Keep actual login credentials in the team's existing private handover process rather than this review document.

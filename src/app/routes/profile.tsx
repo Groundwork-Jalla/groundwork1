@@ -26,6 +26,7 @@ import { fetchProjects } from '@/lib/supabase/projects';
 import { fetchTeam, type TeamMember } from '@/lib/supabase/invites';
 import { TwoFactorSection } from '@/components/profile/TwoFactorSection';
 import { WhatsAppConsent } from '@/components/profile/WhatsAppConsent';
+import { ContactPermissionSetting } from '@/components/profile/ContactPermissionSetting';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -1016,6 +1017,7 @@ export default function ProfilePage() {
                   {t('profile.notificationsServerSide')}
                 </p>
                 <WhatsAppConsent />
+                <ContactPermissionSetting />
               </motion.div>
             )}
 

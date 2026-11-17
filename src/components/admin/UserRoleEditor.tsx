@@ -25,7 +25,8 @@ export function UserRoleEditor({ user, onSaved, onClose }: {
     }
     catch (error) {
       const message = (error as { message?: string })?.message ?? '';
-      setError(t(message.includes('last_admin') ? 'admin.roleEdit.lastAdmin'
+      setError(t(message.includes('client_payment_history') ? 'admin.roleEdit.clientPayments'
+        : message.includes('last_admin') ? 'admin.roleEdit.lastAdmin'
         : message.includes('stale_account_role') ? 'admin.roleEdit.stale'
         : message.includes('not_admin') ? 'admin.roleEdit.notAdmin' : 'admin.roleEdit.failed'));
     } finally { working.current = false; setBusy(false); }

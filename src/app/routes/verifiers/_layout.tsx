@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { VerifierShell } from '@/components/verifier/VerifierShell';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { ContactPermissionPrompt } from '@/components/auth/ContactPermissionPrompt';
 
 // =========================================================
 // /verifiers — the independent verifier's surface (06 §22).
@@ -58,6 +59,7 @@ export default function VerifiersLayout() {
       topBarActions={<NotificationBell userId={session.user.id} />}
       onLogout={() => { void signOut().then(() => navigate('/auth/login', { replace: true })); }}>
       <Outlet />
+      <ContactPermissionPrompt />
     </VerifierShell>
   );
 }

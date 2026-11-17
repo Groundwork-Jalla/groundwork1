@@ -125,6 +125,20 @@ describe('the receipt upload and contractor review', () => {
     expect(render({ stageId: 'other' }).find(e => e.props.name === 'receipt-amount')?.props.value).toBe('');
     finish(); await pending; expect(h.changed).not.toHaveBeenCalled();
   });
+  it('steps the receipt form aside while the client has the plan form open, and brings it back after', () => {
+    expect(render().some(e => e.type === 'form')).toBe(true);
+    render().find(e => e.type === StagePaymentPlanPanel)!.props.onEditingChange(true);
+    expect(render().some(e => e.type === 'form')).toBe(false);
+    render().find(e => e.type === StagePaymentPlanPanel)!.props.onEditingChange(false);
+    expect(render().some(e => e.type === 'form')).toBe(true);
+  });
+  it('states plainly, in its own box, why a receipt cannot be added yet', () => {
+    const blocked = render({ canUpload: false, blockedReason: 'Payment opens once the work is reviewed', clientPresentation: true });
+    const notice = blocked.find(e => e.props['data-payment-blocked'])!;
+    expect(notice.props.role).toBe('status');
+    expect(notice.props.className).toContain('rounded-lg border');
+    expect(text(notice)).toBe('Payment opens once the work is reviewed');
+  });
   it('shows the payment explanation without premature upload controls, and gives observers no mutation controls', () => {
     const blocked = render({ canUpload: false, blockedReason: 'Approve updates first' });
     expect(text(blocked)).toContain('Approve updates first');
@@ -141,6 +155,44 @@ describe('the receipt upload and contractor review', () => {
     expect(h.upload).toHaveBeenCalledWith('project', 'stage', receipt, { amount: '50.25', currency, fxRate });
   });
 
+  /*
+   * 16 November: a receipt printed "NGN 315,000" was entered as its XAF equivalent,
+   * 138,453, and refused. The reader knows what the receipt says, so it is offered back.
+   */
+  it('offers the figures printed on the receipt when a converted amount was typed, and submits nothing by itself', async () => {
+    h.upload.mockRejectedValueOnce({ code: 'receipt_currency_mismatch', amount: '315000', currency: 'NGN' });
+    enterAmount(render(), '138453'); await chooseFile(render());
+    const offer = render().find(e => e.props['data-receipt-suggestion'])!;
+    expect(offer).toBeTruthy();
+    offer.props.onClick();
+    expect(h.upload).toHaveBeenCalledTimes(1);
+    expect(render().find(e => e.props.name === 'receipt-amount')!.props.value).toBe('315000');
+    expect(render().find(e => e.props.name === 'receipt-currency')!.props.value).toBe('NGN');
+    expect(render().some(e => e.props['data-receipt-suggestion'])).toBe(false);
+    await submit(render());
+    expect(h.upload).toHaveBeenLastCalledWith('project', 'stage', receipt, expect.objectContaining({ amount: '315000', currency: 'NGN' }));
+  });
+  it('offers the printed amount for a wrong figure in the right currency too', async () => {
+    h.upload.mockRejectedValueOnce({ code: 'receipt_amount_mismatch', amount: '1930750', currency: 'XAF' });
+    enterAmount(render(), '1930'); await chooseFile(render());
+    render().find(e => e.props['data-receipt-suggestion'])!.props.onClick();
+    expect(render().find(e => e.props.name === 'receipt-amount')!.props.value).toBe('1930750');
+  });
+  it('offers nothing when the reader could not say what the receipt shows', async () => {
+    h.upload.mockRejectedValueOnce({ code: 'receipt_currency_mismatch', currency: 'USD' });
+    enterAmount(render(), '50'); await chooseFile(render());
+    expect(render().some(e => e.props['data-receipt-suggestion'])).toBe(false);
+    h.upload.mockRejectedValueOnce({ code: 'receipt_unreadable', amount: '50', currency: 'USD' });
+    await submit(render());
+    expect(render().some(e => e.props['data-receipt-suggestion'])).toBe(false);
+  });
+  it('withdraws the offer as soon as the person edits the figures themselves', async () => {
+    h.upload.mockRejectedValueOnce({ code: 'receipt_amount_mismatch', amount: '315000', currency: 'NGN' });
+    enterAmount(render(), '1'); await chooseFile(render());
+    expect(render().some(e => e.props['data-receipt-suggestion'])).toBe(true);
+    enterAmount(render(), '2');
+    expect(render().some(e => e.props['data-receipt-suggestion'])).toBe(false);
+  });
   it('lets a client correct the selected currency and retry the retained file', async () => {
     h.upload.mockRejectedValueOnce({ code: 'receipt_currency_mismatch', currency: 'USD' });
     enterAmount(render(), '50'); await chooseFile(render());
@@ -194,18 +246,36 @@ describe('the receipt upload and contractor review', () => {
   function button(elements: Element[], key: string) { return elements.find(e => e.type === 'button' && text(e) === `project.receiptFlow.${key}`)!; }
   function confirmation(elements: Element[]) { return elements.find(e => e.type === ConfirmModal && e.props.open)!; }
 
-  it('allows work from confirmed funds while a separate receipt remains pending', async () => {
+  /*
+   * 16 November: with one receipt confirmed and another waiting, the contractor saw
+   * "Review payment" and "Continue with received funds" together, and both ended on the
+   * same continue / record / top-up choice. One action at a time: the waiting receipt is
+   * reviewed first; the other button is for when nothing is waiting.
+   */
+  it('offers only the review while a receipt is waiting, and that review can still allow work', async () => {
     const confirmed: StagePaymentReceipt = { ...pendingReceipt, id: 'received-1', path: 'received-proof', decision: 'received', allowsWork: false };
     const waiting: StagePaymentReceipt = { ...pendingReceipt, id: 'pending-2', path: 'pending-proof', amount: 10000 };
     const props = { payment: { ...payment, state: 'receipt_submitted' as const, receipts: [confirmed, waiting] }, isContractor: true };
     expect(button(render(props), 'reviewPayment')).toBeDefined();
+    expect(button(render(props), 'continueWithReceived')).toBeUndefined();
+    button(render(props), 'reviewPayment').props.onClick(); button(render(props), 'receivedYes').props.onClick();
+    button(render(props), 'continueChoice').props.onClick();
+    expect(h.decide).not.toHaveBeenCalled();
+    await confirmation(render(props)).props.onConfirm();
+    expect(h.decide).toHaveBeenCalledWith('pending-2', 'accept', undefined, undefined, expect.objectContaining({ decision: 'pending' }));
+  });
+  it('allows work on money already confirmed once no receipt is waiting, without asking again whether it arrived', async () => {
+    const confirmed: StagePaymentReceipt = { ...pendingReceipt, id: 'received-1', path: 'received-proof', decision: 'received', allowsWork: false };
+    const props = { payment: { ...payment, state: 'receipt_submitted' as const, receipts: [confirmed] }, isContractor: true };
+    expect(button(render(props), 'reviewPayment')).toBeUndefined();
     button(render(props), 'continueWithReceived').props.onClick();
     expect(text(render(props))).not.toContain('project.receiptFlow.receivedQuestion');
+    // The choice is open; the button that opened it is not repeated beside it.
+    expect(button(render(props), 'continueWithReceived')).toBeUndefined();
     button(render(props), 'continueChoice').props.onClick();
     expect(h.decide).not.toHaveBeenCalled();
     await confirmation(render(props)).props.onConfirm();
     expect(h.decide).toHaveBeenCalledWith('received-1', 'accept', undefined, undefined, { stageAmount: 60000, decision: 'received' });
-    expect(waiting.decision).toBe('pending');
   });
 
   it('asks about actual receipt and work continuation separately, then requires a final confirmation', async () => {

@@ -40,7 +40,17 @@ export interface SheetReading {
   kind: SheetKind;
   /** The words on the sheet that decided it. Quoted so a wrong call can be argued with. */
   basis: string[];
+  /**
+   * This page is ordinary writing: it carries a real amount of text and none of it reads
+   * as a drawing. Different from `unknown`, which also covers "there was nothing to read".
+   * It is what lets an itinerary or a letter be told apart from a scan nobody could make
+   * out, so only the first is refused.
+   */
+  prose?: boolean;
 }
+
+/** Enough words that "this is prose" is a finding and not an accident of a short page. */
+const PROSE_MIN_WORDS = 40;
 
 /**
  * Sheet titles, most specific first. ORDER CARRIES MEANING.
@@ -166,7 +176,9 @@ export function classifySheet(text: string): SheetReading {
   // Before anything else: a page of prose is not a sheet. A devis descriptif has
   // chapters called IMPLANTATION and CHARPENTE and a bill has rows naming every room
   // in the building, and neither is a drawing of one.
-  if (!looksLikeDrawing(text)) return { kind: 'unknown', basis: [] };
+  if (!looksLikeDrawing(text)) {
+    return { kind: 'unknown', basis: [], prose: text.trim().split(/\s+/).length >= PROSE_MIN_WORDS };
+  }
 
   const titled = titleOf(text);
   if (titled) return titled;
@@ -221,6 +233,12 @@ export interface UploadReading {
   /** True when at least one drawing in the upload holds a plan of a level. */
   hasFloorPlan: boolean;
   /**
+   * Nothing in the upload is a drawing of any kind, and we are sure of it. The only
+   * verdict that stops the wizard: an ordinary document was sent where a plan was asked
+   * for. See `isNotADrawing`.
+   */
+  notADrawing: boolean;
+  /**
    * What was found instead, deduplicated, when none of them does.
    *
    * Typed without `unknown` so "we could not identify this sheet" cannot be reported
@@ -251,14 +269,14 @@ export interface UploadReading {
  * different sentence.
  */
 export function readUpload(
-  readings: { isFloorPlan?: boolean; sheets?: SheetReading[] }[],
+  readings: UploadedDrawingReading[],
 ): UploadReading {
   const answered = readings.filter(r => r.isFloorPlan != null);
   if (!readings.length || !answered.length) {
-    return { hasFloorPlan: false, insteadFound: [], unreadable: readings.length > 0 };
+    return { hasFloorPlan: false, insteadFound: [], unreadable: readings.length > 0, notADrawing: false };
   }
   if (answered.some(r => r.isFloorPlan)) {
-    return { hasFloorPlan: true, insteadFound: [], unreadable: false };
+    return { hasFloorPlan: true, insteadFound: [], unreadable: false, notADrawing: false };
   }
   const insteadFound: NamedSheetKind[] = [];
   for (const reading of answered) {
@@ -268,5 +286,47 @@ export function readUpload(
       }
     }
   }
-  return { hasFloorPlan: false, insteadFound, unreadable: false };
+  return {
+    hasFloorPlan: false, insteadFound, unreadable: false,
+    // Refused only when nothing in the upload is any kind of drawing AND every file gives
+    // a positive reason to say so. One file we merely could not place keeps the upload open.
+    notADrawing: insteadFound.length === 0 && readings.every(isNotADrawing),
+  };
+}
+
+/** What `readUpload` needs from one uploaded file. A `FloorPlanFacts` satisfies it. */
+export interface UploadedDrawingReading {
+  isFloorPlan?: boolean;
+  sheets?: SheetReading[];
+  /** The text came from OCR of a picture, so "it reads as prose" is weak evidence. */
+  fromOcr?: boolean;
+  /** What a vision model called each sheet, when one looked. `other` is "not a drawing sheet". */
+  model?: { sheets: readonly string[] } | null;
+}
+
+/**
+ * Is there a positive reason to say this file is not a drawing at all?
+ *
+ * Reported 16 November: an event itinerary was uploaded as the floor plan and the wizard
+ * went on to build a budget from it. It was not a site layout or a foundation plan, so
+ * the "you sent a different sheet" notice had nothing to name and said nothing; and it
+ * was readable, so the "we could not read this" notice stayed quiet too. A document that
+ * is plainly not a drawing fell between the two and passed in silence.
+ *
+ * Two witnesses, and the one that LOOKED outranks the one that only read:
+ *   · a vision model that saw the pages and called every one of them `other`, or
+ *   · with no model answer, a real text layer that is prose on every page.
+ * OCR of a photograph is not trusted to say "prose" by itself: a hand-drawn plan can
+ * come back as a jumble of room names with no scale and no dimension strings.
+ *
+ * Deliberately narrow. A wrong sheet is still only a notice, and a scan nobody could
+ * read still carries on — refusing those would turn a reading into a gate. This refuses
+ * the one case where the reading is not in doubt.
+ */
+function isNotADrawing(reading: UploadedDrawingReading): boolean {
+  if (reading.isFloorPlan !== false) return false;
+  const model = reading.model;
+  if (model && model.sheets.length > 0) return model.sheets.every(kind => kind === 'other');
+  const sheets = reading.sheets ?? [];
+  return !reading.fromOcr && sheets.length > 0 && sheets.every(sheet => sheet.prose === true);
 }

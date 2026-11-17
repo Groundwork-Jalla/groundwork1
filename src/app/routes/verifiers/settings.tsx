@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { WhatsAppConsent } from '@/components/profile/WhatsAppConsent';
+import { ContactPermissionSetting } from '@/components/profile/ContactPermissionSetting';
 import { Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase/client';
@@ -120,6 +121,7 @@ export default function VerifierSettings() {
         </div>
       </form>
       <WhatsAppConsent />
+      <ContactPermissionSetting />
     </div>
   );
 }

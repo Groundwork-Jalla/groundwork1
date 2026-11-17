@@ -1,4 +1,5 @@
 /** Product communication delivery. Recipients come from saved threads, never a form. */
+import { emailShell, primaryButton } from '../../src/lib/email/shell.js';
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface CommunicationSettings {
   delivery_enabled: boolean; sender_name: string; sender_email: string | null; followup_sender_email:string; application_sender_email:string; reply_domain: string | null;
@@ -34,6 +35,13 @@ export function composeCommunicationEmail(input: {
   to: string; subject: string; body: string; lang?: string; threadId: string; preferenceToken: string;
   senderName: string; senderEmail: string; replyDomain: string;
   cta?: { label: string; path: string } | null; projectOptOut?: boolean; inReplyTo?: string | null;
+  /**
+   * Names to set in bold in the HTML body: the project the message is about. Asked for on
+   * 16 November, when a project-created email arrived with the name lost in the sentence
+   * around it. HTML only. The plain-text part and the subject cannot carry emphasis and
+   * are sent exactly as written.
+   */
+  emphasis?: (string | null | undefined)[];
 }): CommunicationPayload {
   if(!UUID.test(input.threadId) || !UUID.test(input.preferenceToken)) throw new Error('Invalid communication identity');
   if(!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(input.to)||!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(input.senderEmail)
@@ -45,15 +53,34 @@ export function composeCommunicationEmail(input: {
   const preferenceLabel=fr?'Gérer mes rappels':'Manage reminder preferences';
   const projectLabel=fr?'Aucun projet à ajouter pour le moment ? Suspendre ces rappels.':'No project to add right now? Pause these project reminders.';
   const footer=`${input.projectOptOut ? `${projectLabel}\n${preferences}#project\n\n` : ''}${preferenceLabel}: ${preferences}`;
-  const bodyHtml=input.body.split(/\n{2,}/).map(p=>`<p>${escape(p).replace(/\n/g,'<br>')}</p>`).join('');
+  // The same chrome as every other Groundwork email: dark header, white card, and the
+  // next step as a real button. These went out as bare paragraphs with the action as a
+  // plain text link, which is what "the button is missing" meant on 16 November.
+  const paragraph='margin:0 0 16px;font-size:15px;color:#333;line-height:1.6;';
+  const quiet='margin:20px 0 0;font-size:12px;color:#999;line-height:1.5;';
+  const bodyHtml=input.body.split(/\n{2,}/).map(p=>`<p style="${paragraph}">${emphasise(escape(p),input.emphasis).replace(/\n/g,'<br>')}</p>`).join('');
   const headers: Record<string,string>={'List-Unsubscribe':`<${unsubscribe}>`,'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'};
   if(input.inReplyTo && /^<[^<>\r\n]{1,450}>$/.test(input.inReplyTo)) { headers['In-Reply-To']=input.inReplyTo;headers.References=input.inReplyTo; }
   return {
     from:`${oneLine(input.senderName).replace(/[<>]/g,'')} <${input.senderEmail}>`,to:input.to,
     subject:oneLine(input.subject),reply_to:`reply+${input.threadId}@${input.replyDomain}`,
     text:`${input.body}${cta?`\n\n${cta.label}: ${cta.url}`:''}\n\n${footer}`,
-    html:`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;max-width:560px">${bodyHtml}${cta?`<p><a href="${escape(cta.url)}">${escape(cta.label)}</a></p>`:''}${input.projectOptOut?`<p><a href="${escape(preferences)}#project">${escape(projectLabel)}</a></p>`:''}<p style="font-size:12px"><a href="${escape(preferences)}">${escape(preferenceLabel)}</a></p><p>Groundwork by Jalla</p></div>`,headers,
+    html:emailShell(fr?'fr':'en',`${bodyHtml}${cta?`<div style="margin:8px 0 0;">${primaryButton(escape(cta.url),cta.label)}</div>`:''}${input.projectOptOut?`<p style="${quiet}"><a href="${escape(preferences)}#project" style="color:#666;">${escape(projectLabel)}</a></p>`:''}<p style="${quiet}"><a href="${escape(preferences)}" style="color:#999;">${escape(preferenceLabel)}</a></p>`),headers,
   };
+}
+/**
+ * Bold each name wherever it stands as a whole word in already-escaped text.
+ *
+ * Works on escaped text and matches the escaped name, so a project called "<b>" is still
+ * shown as those characters and never becomes markup. Whole words only: a project named
+ * "Villa" does not embolden the middle of "Villas". Longest name first, so a name that
+ * contains another is wrapped once.
+ */
+export function emphasise(escaped: string, names?: (string | null | undefined)[]): string {
+  const wanted=[...new Set((names??[]).map(name=>(name??'').trim()).filter(name=>name.length>=2))].sort((a,b)=>b.length-a.length);
+  if(!wanted.length) return escaped;
+  const pattern=wanted.map(name=>escape(name).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  return escaped.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${pattern})(?![\\p{L}\\p{N}])`,'gu'),match=>`<strong>${match}</strong>`);
 }
 export async function sendCommunicationEmail(payload: CommunicationPayload, idempotencyKey: string): Promise<{ok:boolean;error?:string;providerId?:string}> {
   const key=process.env.RESEND_API_KEY?.trim();

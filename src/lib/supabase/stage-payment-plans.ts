@@ -7,6 +7,20 @@ export interface StagePaymentPlanContext {
   plan: { id: string; mode: 'full' | 'two_installments'; currency: string; stage_amount: string; first_amount: string;
     status: 'proposed' | 'accepted' | 'declined'; proposed_at: string; decided_at: string | null } | null;
   receipts: { id: string; amount: string | null; decision: string; allows_work: boolean; installment: number | null; plan_id: string | null }[];
+  /**
+   * Present only when money has been carried between stages (migration 20261117000000).
+   * `received` and `remaining` above already include `carried_in`; these say where it
+   * came from. Absent on a project where nobody has paid above a stage's price.
+   */
+  own_received?: string | null;
+  /** Confirmed money paid above an earlier or later stage's price, counted toward this one. */
+  carried_in?: string;
+  /** Part of this stage's own excess that another stage has used. */
+  carried_out?: string;
+  /** Excess on this stage that no stage has needed yet. Still the client's credit. */
+  unused_credit?: string;
+  /** The primary contractor may accept the carried amount as enough to begin this stage. */
+  can_confirm_credit?: boolean;
 }
 async function invoke(name: string, input: Record<string, unknown>): Promise<StagePaymentPlanContext> {
   const { data, error } = await supabase.rpc(name, input);
@@ -24,4 +38,8 @@ export const decideStagePaymentPlan = (context: StagePaymentPlanContext, accept:
 });
 export const authorizeStageProgression = (context: StagePaymentPlanContext) => invoke('authorize_stage_progression', {
   p_stage: context.stage_id, p_expected_hash: context.hash, p_note: null,
+});
+/** Carried credit reduces what is owed; this is the contractor's separate decision to begin work on it. */
+export const confirmStageCredit = (context: StagePaymentPlanContext) => invoke('confirm_stage_credit', {
+  p_stage: context.stage_id, p_expected_hash: context.hash,
 });

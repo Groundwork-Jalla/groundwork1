@@ -92,6 +92,26 @@ describe('actual receipt amount persistence', () => {
     expect(h.read).toHaveBeenCalledOnce();
   });
 
+  /*
+   * 16 November: three uploads of one test receipt left the stage showing one, with no
+   * message. The reader recognises a file it has already read and returns the FIRST
+   * upload's proof; the database then keeps one receipt for one payment.
+   */
+  it('says so when the same receipt is uploaded again, instead of reporting a success that added nothing', async () => {
+    h.read.mockImplementation(async () => ({ readingId: 'original', path: 'project/receipts/first-upload_receipt.png', fxRate: '600' }));
+    h.rpc.mockResolvedValue({ data: { stage_id: 'stage', receipt_id: 'existing', already_submitted: true }, error: null });
+    await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toThrow('receipt_duplicate_on_stage');
+  });
+  it('still treats a retry of this same upload after a lost response as the success it is', async () => {
+    h.rpc.mockResolvedValue({ data: { stage_id: 'stage', receipt_id: 'existing', already_submitted: true }, error: null });
+    await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).resolves.toBeUndefined();
+  });
+  it('reports whether the database already held the receipt', async () => {
+    h.rpc.mockResolvedValueOnce({ data: { already_submitted: true }, error: null });
+    expect(await submitStagePaymentReceipt('stage', 'project/receipts/a.png', input, 'reading')).toEqual({ alreadySubmitted: true });
+    h.rpc.mockResolvedValueOnce({ data: { receipt_id: 'new' }, error: null });
+    expect(await submitStagePaymentReceipt('stage', 'project/receipts/a.png', input, 'reading')).toEqual({ alreadySubmitted: false });
+  });
   it('retries an ambiguous commit with the same file and reading identity', async () => {
     h.rpc.mockRejectedValueOnce(new TypeError('connection lost'));
     await expect(uploadStagePaymentReceipt('project', 'stage', file, input)).rejects.toThrow();

@@ -195,6 +195,24 @@ describe('the question itself', () => {
     expect(gate).toMatch(/setSlide\('ask'\)/);
   });
 
+  /*
+   * 16 November: an event itinerary was uploaded as the floor plan and the wizard went on.
+   * A wrong sheet is still only a notice; a document that is not a drawing at all is the
+   * one reading that holds the wizard. (`readUpload` decides; plan-sheet.test.ts covers it.)
+   */
+  it('refuses to continue from a document that is not a drawing, and says how to carry on without a plan', () => {
+    expect(gate).toMatch(/<fieldset disabled=\{uploadReading\.notADrawing\}/);
+    expect(gate).toMatch(/onClick=\{\(\) => \{ if \(!uploadReading\.notADrawing\) onAnswered\(/);
+    expect(gate).toContain("t('planGate.notADrawingTitle')");
+    expect(gate).toContain("t('planGate.notADrawingBody')");
+    // The slow-bill shortcut must not be a way round it.
+    expect(gate).toMatch(/boqReadSeconds >= READ_GRACE_SECONDS && floorPlans\.length > 0 && bq && !uploadReading\.notADrawing/);
+  });
+  it('keeps a different drawing sheet and an unreadable scan as notices that do not stop anyone', () => {
+    expect(gate).not.toMatch(/disabled=\{[^}]*insteadFound/);
+    expect(gate).not.toMatch(/disabled=\{[^}]*unreadable/);
+  });
+
   it('requires a selected answer and a Next action before advancing', () => {
     expect(gate).toMatch(/selectedHasPlan === null/);
     expect(gate).toMatch(/onClick=\{\(\) => \{\s*if \(selectedHasPlan === true\) setSlide\('upload'\);\s*else if \(selectedHasPlan === false\) onAnswered\(\{ hasPlan: false \}\);/);

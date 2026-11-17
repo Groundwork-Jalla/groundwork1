@@ -177,7 +177,9 @@ function StageDetail({
     allSubstagesReady &&
     stagePaid;
   const paymentPending = payment?.state === 'expected' || payment?.state === 'receipt_submitted';
-  const missingPayment = hasPrimaryContractor && canAct && !stagePaid && !payment
+  // Not gated on `stagePaid`: a contractor-created stage counts as ready for work before it
+  // is paid, so with no payment record it rendered no payment section and no message.
+  const missingPayment = hasPrimaryContractor && canAct && !payment
     && (stage.payment_milestone_usd == null || stage.payment_milestone_usd > 0);
 
   async function handleApprove() {
