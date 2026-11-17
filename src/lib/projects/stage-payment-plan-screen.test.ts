@@ -78,23 +78,13 @@ describe('stage payment plans and separate progression permission', () => {
     expect(h.save).not.toHaveBeenCalled();
   });
 
-  it('fills the first installment from a quick split, rounded to the currency unit, and shows the share', async () => {
-    const odd = { ...base, stage_amount: '1000001', remaining: '1000001' };
-    await openSplit(odd);
-    button(render(), '30%').props.onClick();
-    expect(input(render()).props.value).toBe('300000');
-    expect(text(render())).toContain('= 30% of this stage');
-    expect(text(render())).toContain('Second installment: 700,001 XAF');
-    button(render(), 'Review payment plan').props.onClick();
-    await dialog(render()).props.onConfirm();
-    expect(h.save).toHaveBeenCalledWith(odd, 'two_installments', '300000');
-  });
-
-  it('shows the share of the stage for any typed amount', async () => {
+  it('asks for an amount only: no percentage buttons and no percentage arithmetic (17 Nov stand-up)', async () => {
     await openSplit();
     input(render()).props.onChange({ target: { value: '20000' } });
-    expect(text(render())).toContain('= 33.3% of this stage');
-    expect(render().find(node => node.type === 'button' && text(node) === '30%')!.props['aria-pressed']).toBe(false);
+    const view = render();
+    expect(view.some(node => node.type === 'button' && /%/.test(text(node)))).toBe(false);
+    expect(text(view)).not.toMatch(/%/);
+    expect(text(view)).toContain('Second installment: 40,000 XAF');
   });
 
   it('reviews the full stage and both installment amounts before saving; cancellation writes nothing', async () => {

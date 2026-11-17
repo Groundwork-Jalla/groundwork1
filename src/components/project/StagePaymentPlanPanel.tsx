@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLanguage, useT } from '@/lib/i18n';
 import { canonicalReceiptAmount } from '@/lib/payments/receipt-reading';
 import { normaliseBudgetInput } from '@/lib/budget/bill-budget';
-import { currencyDigits, firstInstallmentPercent, installmentSplit, installmentSplitFromPercent } from '@/lib/payments/installment-split';
+import { installmentSplit } from '@/lib/payments/installment-split';
 import { authorizeStageProgression, confirmStageCredit, decideStagePaymentPlan, fetchStagePaymentPlan, saveStagePaymentPlan, type StagePaymentPlanContext } from '@/lib/supabase/stage-payment-plans';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -15,9 +15,6 @@ interface Props {
   /** True while the client has the plan form open, so the receipt form can step aside. */
   onEditingChange?: (editing: boolean) => void;
 }
-
-/** One-tap splits for the first installment. Any amount can still be typed. */
-export const QUICK_SPLITS = ['30', '50', '70'] as const;
 
 /**
  * Which installment the next receipt most likely belongs to: the first, until the
@@ -42,7 +39,8 @@ export function nextInstallment(context: Pick<StagePaymentPlanContext, 'stage_am
  *   · no plan: full payment is assumed and the receipt form is the whole screen; splitting
  *     into two installments is one link away;
  *   · while the client sets a split: only the plan, in the stage currency, with one amount
- *     field and quick 30 / 50 / 70% splits; the receipt form steps aside;
+ *     field (an amount, never a percentage: 17 Nov stand-up) and the remainder worked out;
+ *     the receipt form steps aside;
  *   · once a plan exists: one summary line per installment, and the receipt is filed under
  *     the installment it most likely belongs to, with a way to change it.
  *
@@ -134,13 +132,6 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
       setError(t(/stale/.test((failure as Error)?.message ?? '') ? 'project.paymentPlan.stale' : 'project.paymentPlan.failed'));
     } finally { mutation.current = false; if (current.current === stageId) setWorking(false); }
   }
-  /** A quick split, rounded to the currency's own unit so the plan never reads 138453.873521. */
-  function quick(percent: string) {
-    if (!context) return;
-    const raw = installmentSplitFromPercent(context.stage_amount, percent)?.first;
-    const rounded = raw ? canonicalReceiptAmount(Number(raw).toFixed(currencyDigits(context.currency))) : null;
-    if (rounded && installmentSplit(context.stage_amount, rounded)) { edit({ stage: stageId, first: rounded }); setError(null); }
-  }
   function choose(value: 1 | 2) {
     if (!context?.plan) return;
     manual.current = { stage: stageId, plan: context.plan.id, value };
@@ -159,7 +150,6 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
 
   const typed = form ? canonicalReceiptAmount(form.first) : null;
   const typedSplit = context && typed ? installmentSplit(context.stage_amount, typed) : null;
-  const percent = context && typedSplit ? Math.round(Number(firstInstallmentPercent(context.stage_amount, typedSplit.first)) * 10) / 10 : null;
   const button = `rounded-lg px-3 py-2 font-semibold ${clientPresentation ? 'min-h-11' : ''}`;
   const link = 'font-semibold text-brand-green underline underline-offset-4 dark:text-[#b4d8bf]';
 
@@ -174,12 +164,6 @@ export function StagePaymentPlanPanel({ stageId, isContractor, readOnly, canUplo
           onChange={event => { const raw = event.target.value; edit({ stage: stageId, first: /^[\d.,\s]*$/.test(raw) ? normaliseBudgetInput(raw, lang) : raw }); setError(null); }}
           className={`mt-1 block w-full rounded-lg border bg-white p-2 font-mono dark:bg-[#141414] ${clientPresentation ? 'min-h-11 text-base sm:text-sm' : ''}`}/>
       </label>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('project.paymentPlan.quickSplit')}>
-        <span className="text-brand-mid-grey">{t('project.paymentPlan.quickSplit')}</span>
-        {QUICK_SPLITS.map(value => <button key={value} type="button" onClick={() => quick(value)} aria-pressed={percent === Number(value)}
-          className={`min-h-9 rounded-full border px-3 py-1 font-semibold ${percent === Number(value) ? 'border-brand-green bg-brand-green text-white' : 'border-brand-border-grey bg-white text-brand-near-black dark:bg-[#141414]'}`}>{`${value}%`}</button>)}
-      </div>
-      {percent !== null && <p role="status">{t('project.paymentPlan.percentOfStage', { percent: percent.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US') })}</p>}
       <p>{t('project.paymentPlan.secondAmount', { amount: amount(typedSplit?.second ?? (Number(typed) >= due ? '0' : context.stage_amount)) })}</p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => request('save')} className={`${button} bg-brand-green text-white`}>{t('project.paymentPlan.save')}</button>

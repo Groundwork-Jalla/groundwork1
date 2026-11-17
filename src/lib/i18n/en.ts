@@ -6262,6 +6262,7 @@ export const en = {
       reviewedStageNext: 'Payment for this stage becomes available after your approval. Your contractor confirms the money received.',
       fundedStageNext: 'Your approval confirms the work. Your contractor confirms any payment needed before the project continues.',
       reviewAgain: 'Review again',
+      confirmApproval: 'Confirm approval',
       current: 'Current',
       proposed: 'Proposed',
       projectTotal: 'Project total',
@@ -6276,7 +6277,6 @@ export const en = {
     paymentPlan: {
       payInInstallments: 'Pay in two installments instead',
       changePlan: 'Change the payment plan', revisePlan: 'Revise the payment plan', payInFull: 'Pay in full instead',
-      quickSplit: 'Quick split:', percentOfStage: '= {percent}% of this stage',
       installmentOf: 'Installment {n} of 2', receiptForInstallment: 'This receipt is for installment {n}.', changeInstallment: 'Change',
       confirmFull: 'Stage budget: {total}, paid in full. Several receipts can count toward it. This plan does not change the stage price or confirm that money was received.',
       title: 'Stage payment plan',
@@ -6741,7 +6741,9 @@ export const en = {
       confirmApproveTitle: 'Approve this stage?',
       confirmApproveBody:  'This marks the stage complete and takes you to the next stage. Any required payment must be confirmed before work starts.',
       confirmFinalApproveBody: 'This marks the final stage complete and completes the project.',
-      confirmApproveCta:   'Approve Stage',
+      // The dialog's own button must not repeat the button that opened it, or nobody can
+      // tell whether the first tap already approved (17 Nov session).
+      confirmApproveCta:   'Confirm approval',
       confirmVerifyTitle:  'Request verification?',
       confirmVerifyBody:   "This will submit all your updates for Jalla review. You'll be notified once approved or if changes are needed.",
       confirmVerifyCta:    'Submit for Review',

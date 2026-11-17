@@ -16,25 +16,3 @@ export function installmentSplit(total: string, first: string): { first: string;
   if (!amount || !start || units(start) >= units(amount)) return null;
   return { first: start, second: decimal(units(amount) - units(start)) };
 }
-
-export function installmentSplitFromPercent(total: string, percentage: string) {
-  const amount = canonicalReceiptAmount(total), percent = canonicalReceiptAmount(percentage);
-  if (!amount || !percent || units(percent) >= 100n * scale) return null;
-  const denominator = 100n * scale;
-  const first = (units(amount) * units(percent) + denominator / 2n) / denominator;
-  return installmentSplit(amount, decimal(first));
-}
-
-/** Display-only ratio. Switching input modes does not rewrite the saved amount. */
-export function firstInstallmentPercent(total: string, first: string): string {
-  const split = installmentSplit(total, first);
-  const amount = canonicalReceiptAmount(total);
-  if (!split || !amount) return '';
-  return decimal((units(split.first) * 100n * scale + units(amount) / 2n) / units(amount));
-}
-
-/** Minor units a currency is quoted in: none for XAF, two for USD and NGN. */
-export function currencyDigits(code: string): number {
-  try { return Math.min(new Intl.NumberFormat('en', { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits ?? 2, 6); }
-  catch { return 2; }
-}

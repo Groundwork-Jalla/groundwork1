@@ -223,7 +223,7 @@ export function SubstageRow({
       </div>
       {approvalContext && <ConfirmModal open={confirmOpen} variant="client" title={t('project.clientUi.approveUpdate')}
         eyebrow={`${approvalContext.projectName} · ${approvalContext.stageName}`} description={approvalContext.description}
-        confirmLabel={t('project.stages.approveEvidence')} cancelLabel={t('project.clientUi.reviewAgain')}
+        confirmLabel={t('project.clientUi.confirmApproval')} cancelLabel={t('project.clientUi.reviewAgain')}
         error={error} loading={marking} onConfirm={() => { if (canMarkComplete) return handleMarkComplete(); }}
         onCancel={() => { if (!markingRef.current) setConfirmOpen(false); }}>
         <div className="space-y-3">

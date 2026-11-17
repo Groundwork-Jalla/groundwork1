@@ -98,7 +98,14 @@ export async function handler(req: any, res: any) {
   // suppressed by the sequence itself, so every signup here reads as independent.
   const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', user.id);
   const signupRoles = new Set((roleRows ?? []).map(r => String(r.role)));
-  const signupRole = signupRoles.has('contractor') ? 'contractor' : 'client';
+  // The door they signed up at counts too. This request fires on the FIRST session, and
+  // /auth/callback grants a self-signup contractor's role (register_contractor_account)
+  // on that same session — so the role row is routinely not there yet. Reading roles
+  // alone filed every new contractor as a client: the contractor welcome never went out
+  // and they got the client's "create your first project" email instead (17 Nov). The
+  // door only picks which welcome they hear; it confers nothing.
+  const signupRole = signupRoles.has('contractor') || user.user_metadata?.signup_intent === 'contractor'
+    ? 'contractor' : 'client';
 
   const result = await forwardToGhl('user_signup', {
     email,
