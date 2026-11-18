@@ -13,7 +13,7 @@ import { KPI_LINKS, SEE_ALL_LINKS } from './overview-links';
 
 const h = vi.hoisted(() => ({
   store: new Map<string, any[]>(), path: 'root', idx: 0, effects: [] as { run: () => any }[],
-  overview: vi.fn(), actions: vi.fn(),
+  overview: vi.fn(), actions: vi.fn(), params: new URLSearchParams(),
 }));
 vi.mock('react', async original => {
   const real = await original<typeof import('react')>();
@@ -27,7 +27,7 @@ vi.mock('react', async original => {
     useCallback: (callback: any) => { h.idx++; return callback; },
   };
 });
-vi.mock('react-router', () => ({ Link: 'a' }));
+vi.mock('react-router', () => ({ Link: 'a', useSearchParams: () => [h.params, (next: URLSearchParams) => { h.params = new URLSearchParams(next); }] }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'ruth' } }) }));
 vi.mock('@/lib/i18n', () => ({ useT: () => (key: string, values: Record<string, unknown> = {}) => {
   const source = lookup(en as never, key);
@@ -36,7 +36,9 @@ vi.mock('@/lib/i18n', () => ({ useT: () => (key: string, values: Record<string, 
 vi.mock('@/lib/format', () => ({ formatRelative: (value: string) => `rel(${value})` }));
 vi.mock('@/lib/supabase/admin-overview', () => ({ loadAdminOverview: h.overview }));
 vi.mock('@/lib/supabase/action-center', () => ({ loadActionCenter: h.actions }));
+vi.mock('@/components/ui/EmptyState', () => ({ EmptyState: 'mock-empty' }));
 import AdminOverview from '@/app/routes/admin/index';
+import AdminActionCenter from '@/app/routes/admin/action-center';
 
 type Node = { type: any; props: Record<string, any>; key?: string | null };
 function expand(value: any, path: string): Node[] {
@@ -51,7 +53,8 @@ function expand(value: any, path: string): Node[] {
 }
 const text = (value: any): string => Array.isArray(value) ? value.map(text).join('') : value?.props ? text(value.props.children) : typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
-function render(): Node[] { h.effects = []; h.path = 'root'; h.idx = 0; return expand({ type: AdminOverview, props: {}, key: null }, 'root'); }
+let Page: any = AdminOverview;
+function render(): Node[] { h.effects = []; h.path = 'root'; h.idx = 0; return expand({ type: Page, props: {}, key: null }, 'root'); }
 async function settle() { render(); for (const e of h.effects) e.run(); await flush(); return render(); }
 const links = (view: Node[]) => view.filter(n => n.type === 'a').map(n => ({ to: n.props.to as string, label: text(n.props.children) }));
 
@@ -75,7 +78,7 @@ const ACTIONS = {
 };
 
 beforeEach(() => {
-  h.store = new Map();
+  h.store = new Map(); Page = AdminOverview; h.params = new URLSearchParams();
   h.overview.mockReset().mockResolvedValue(DATA);
   h.actions.mockReset().mockResolvedValue(ACTIONS);
 });
@@ -147,5 +150,37 @@ describe('the redesigned Overview keeps every road', () => {
       expect(lookup(en as never, k), k).toBeTypeOf('string');
       expect(lookup(fr as never, k), k).not.toBe(lookup(en as never, k));
     }
+  });
+});
+
+describe('the redesigned Action Center', () => {
+  const tabs = (view: Node[]) => view.filter(n => n.type === 'button');
+  const heads = (view: Node[]) => view.filter(n => n.props?.role === 'presentation').map(n => text(n.props.children));
+
+  it('heads the queue by priority, with each group\'s count, in severity order', async () => {
+    Page = AdminActionCenter;
+    expect(heads(await settle())).toEqual(['Critical · 1', 'High · 2', 'Medium · 1']);
+  });
+
+  it('every tab narrows the queue through ?priority=, and All clears it', async () => {
+    Page = AdminActionCenter;
+    let view = await settle();
+    expect(tabs(view).map(b => text(b.props.children))).toEqual(['All 4', 'Critical 1', 'High 2', 'Medium 1', 'Low 0']);
+    tabs(view).find(b => text(b.props.children).startsWith('High'))!.props.onClick();
+    expect(h.params.get('priority')).toBe('high');
+    view = render();
+    expect(heads(view)).toEqual(['High · 2']);
+    expect(links(view).map(l => l.to)).toEqual(['/admin/reviews', '/admin/budgets']);
+    tabs(view)[0].props.onClick();
+    expect(h.params.get('priority')).toBeNull();
+  });
+
+  it('every row opens where the work is', async () => {
+    Page = AdminActionCenter;
+    expect(links(await settle()).map(l => l.to)).toEqual(ACTIONS.items.map(i => i.to));
+  });
+
+  it('the Overview preview stays ungrouped', async () => {
+    expect(heads(await settle())).toEqual([]);
   });
 });

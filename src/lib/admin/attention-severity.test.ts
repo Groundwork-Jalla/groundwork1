@@ -61,7 +61,7 @@ describe('the word carries the priority, not the colour', () => {
 describe('everything else about the list is untouched', () => {
   it('one component still serves both surfaces', () => {
     expect(src('src/app/routes/admin/index.tsx')).toContain('<AttentionList items={actions.items} now={now} limit={OVERVIEW_ROWS} />');
-    expect(src('src/app/routes/admin/action-center.tsx')).toContain('<AttentionList items={items} now={now} />');
+    expect(src('src/app/routes/admin/action-center.tsx')).toContain('<AttentionList items={items} now={now} grouped />');
   });
 
   it('the Overview preview is still five', () => {

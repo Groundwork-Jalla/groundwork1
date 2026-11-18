@@ -19,6 +19,10 @@ import type { Priority } from '@/lib/admin/action-center';
 // `actionCenterItems()` (03 §5, thirteen rules). There is no "dismiss": an item leaves
 // this list when the thing that caused it is dealt with, which is the only honest way for
 // a queue derived from state to empty.
+//
+// 18 Nov redesign (action-center-desktop.png): pill tabs with each priority's dot, and the
+// queue headed by priority — "Critical · 1", "High · 5" — so the shape of the desk reads
+// before the rows do. Same items, same order, same links.
 // =========================================================
 
 const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low'];
@@ -75,12 +79,12 @@ export default function AdminActionCenter() {
         <>
           {/* Priority tabs. Counts are the real ones; a band with none still shows its 0,
               because "nothing critical" is information. */}
-          <div className="mb-4 flex flex-wrap gap-1.5">
+          <div className="mb-3.5 flex flex-wrap gap-1.5">
             <Tab active={!priority} onClick={() => setPriority(null)}
               label={t('admin.actionCenter.all')} count={data.items.length} />
             {PRIORITIES.map(p => (
               <Tab key={p} active={priority === p} onClick={() => setPriority(p)}
-                label={t(`admin.attention.priority.${p}` as TKey)} count={counts[p]} />
+                label={t(`admin.attention.priority.${p}` as TKey)} count={counts[p]} dot={TAB_DOT[p]} />
             ))}
           </div>
 
@@ -88,7 +92,7 @@ export default function AdminActionCenter() {
             <EmptyState title={t('admin.attention.empty')} description={t('admin.actionCenter.emptyBody')} />
           ) : (
             <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
-              <AttentionList items={items} now={now} />
+              <AttentionList items={items} now={now} grouped />
             </div>
           )}
 
@@ -103,20 +107,28 @@ export default function AdminActionCenter() {
   );
 }
 
-function Tab({ active, label, count, onClick }: { active: boolean; label: string; count: number; onClick: () => void }) {
+const TAB_DOT: Record<Priority, string> = {
+  critical: 'bg-state-alert',
+  high:     'bg-state-held',
+  medium:   'bg-brand-muted-grey',
+  low:      'bg-brand-border-grey',
+};
+
+function Tab({ active, label, count, dot, onClick }: { active: boolean; label: string; count: number; dot?: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
         active
-          ? 'bg-[#0a0a0a] text-white dark:bg-white dark:text-[#0a0a0a]'
-          : 'border border-brand-border-grey text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:hover:text-white',
+          ? 'border-[#0a0a0a] bg-[#0a0a0a] text-white dark:border-white dark:bg-white dark:text-[#0a0a0a]'
+          : 'border-brand-border-grey bg-white text-brand-mid-grey hover:text-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:hover:text-white',
       )}
     >
-      {label} <span className="tabular-nums opacity-70">{count}</span>
+      {dot && <span aria-hidden className={cn('size-2 rounded-full', dot)} />}
+      {label} <span className="tabular-nums opacity-75">{count}</span>
     </button>
   );
 }

@@ -34,13 +34,33 @@ const LABEL: Record<Priority, string> = {
   low:      'text-brand-muted-grey',
 };
 
-export function AttentionList({ items, now, limit }: { items: ActionItem[]; now: Date; limit?: number }) {
+/**
+ * `grouped` (the Action Center, 18 Nov redesign) heads each run of one priority with its
+ * name and count. The items arrive already ordered by severity, so a header is simply
+ * "the priority changed" — the list still never re-sorts or narrows what it was given.
+ */
+export function AttentionList({ items, now, limit, grouped }: { items: ActionItem[]; now: Date; limit?: number; grouped?: boolean }) {
   const t = useT();
   const shown = limit ? items.slice(0, limit) : items;
+  const sizes: Partial<Record<Priority, number>> = {};
+  for (const item of shown) sizes[item.priority] = (sizes[item.priority] ?? 0) + 1;
 
   return (
     <ul className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
-      {shown.map(item => {
+      {shown.flatMap((item, index) => {
+        const head = grouped && (index === 0 || shown[index - 1].priority !== item.priority) ? [
+          <li key={`head-${item.priority}`} role="presentation"
+            className={cn('flex items-center gap-2 px-5 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em]', LABEL[item.priority])}>
+            <span aria-hidden className={cn('size-2 rounded-full', DOT[item.priority])} />
+            {t(`admin.attention.priority.${item.priority}` as TKey)} · {sizes[item.priority]}
+          </li>,
+        ] : [];
+        return [...head, renderItem(item)];
+      })}
+    </ul>
+  );
+
+  function renderItem(item: ActionItem) {
         const hours = ageHours(item.since, now);
         const age = hours >= 48
           ? t('admin.attention.ageDays', { days: Math.round(hours / 24) })
@@ -81,7 +101,5 @@ export function AttentionList({ items, now, limit }: { items: ActionItem[]; now:
             </Link>
           </li>
         );
-      })}
-    </ul>
-  );
+  }
 }
