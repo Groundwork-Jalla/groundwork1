@@ -2558,6 +2558,10 @@ export const fr: Mirror<EnDict> = {
       projectNotFound:    'Ce chantier n\u2019existe plus \u2014 il a peut-être déjà été supprimé.',
     },
 
+    peopleUi: {
+      addedOn:      'ajout\u00e9 le {date}',
+      listedLegend: '\u00ab list\u00e9s \u00bb = projets cit\u00e9s sur leur propre formulaire de candidature, pas des travaux r\u00e9alis\u00e9s sur Groundwork',
+    },
     dir: {
       title:        'Annuaire des prestataires',
       subtitle:     "La liste publiée que les propriétaires consultent. Une entrée y apparaît lorsqu'une candidature est acceptée.",

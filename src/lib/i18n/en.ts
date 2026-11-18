@@ -2585,6 +2585,10 @@ export const en = {
     },
 
     // ── Contractor directory (/admin/contractors) ──
+    peopleUi: {
+      addedOn:      'added {date}',
+      listedLegend: '\u201clisted\u201d = projects named on their own application form, not work done on Groundwork',
+    },
     dir: {
       title:        'Contractor Directory',
       subtitle:     'The published list homeowners browse. Entries appear here when an application is accepted.',

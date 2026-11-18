@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { Check, Loader2, Lock } from 'lucide-react';
 import type { LoadedWorkspace } from '@/lib/supabase/workspace';
 import type { StageView, Workspace } from '@/lib/admin/workspace';
-import { nameLookup, selectedStage } from '@/lib/admin/workspace-params';
+import { nameLookup, selectedStage, workspaceHref } from '@/lib/admin/workspace-params';
+import { projectMoneyPair } from '@/lib/budget/project-money';
 import { stageActions, type StageAction, type StageActionKind } from '@/lib/admin/stage-actions';
 import { BLOCKER_LABEL } from '@/lib/admin/lifecycle-badge';
 import { requestVerification, recordVerification, type VerificationDecision } from '@/lib/supabase/verifications';
@@ -52,13 +54,26 @@ export function StagesTab({ loaded, stageId, onChanged }: { loaded: LoadedWorksp
   const t = useT();
   const ws = loaded.workspace;
   const selected = selectedStage(ws, stageId);
+  const doneCount = ws.stages.filter(s => s.stage.status === 'complete').length;
 
   return (
-    <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[18rem_minmax(0,1fr)] 2xl:p-8">
+    <div className="grid items-start gap-4 p-4 sm:p-6 lg:grid-cols-[20.5rem_minmax(0,1fr)] 2xl:p-8">
       <aside className="min-w-0 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e] lg:self-start">
+        {ws.stages.length > 0 && (
+          // 18 Nov redesign: where the build is, before which stage is open.
+          <header className="border-b border-brand-border-grey px-5 py-4 dark:border-[#2c2c2c]">
+            <p className="flex items-baseline justify-between gap-2">
+              <span className="text-[15px] font-bold text-brand-near-black dark:text-white">{t('admin.workspace.overview.ladder')}</span>
+              <span className="text-xs text-brand-mid-grey">{t('admin.workspace.stagesView.complete', { done: doneCount, total: ws.stages.length })}</span>
+            </p>
+            <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
+              <span className="block h-full rounded-full bg-brand-green dark:bg-state-complete" style={{ width: `${Math.round((doneCount / ws.stages.length) * 100)}%` }} />
+            </span>
+          </header>
+        )}
         {ws.stages.length === 0
           ? <p className="px-5 py-6 text-center text-xs text-brand-mid-grey">{t('admin.workspace.overview.noSchedule')}</p>
-          : <StageLadder projectId={ws.project.id} stages={ws.stages} selectedId={selected?.stage.id ?? null} tab="stages" />}
+          : <StageLadder projectId={ws.project.id} stages={ws.stages} selectedId={selected?.stage.id ?? null} tab="stages" showMilestone />}
       </aside>
       <section className="min-w-0 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
         {selected
@@ -176,13 +191,64 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
   }
 
   const offered = actions.filter(a => a.offered);
+  // The act to do next: the first one that is live. Held acts stay listed with their reason.
+  const primaryAct = offered.find(a => a.enabled) ?? null;
+
+  // The amount in the project's own currency, at the project's recorded rate (Favour,
+  // 18 Nov: USD and XAF). Null for a project priced in USD.
+  const local = (usd: number) => { const pair = projectMoneyPair(ws.project, usd); return pair && pair.usd ? pair.local : null; };
+
+  // Every incoming row the ledger holds for this stage, oldest first: the parts.
+  const parts = ws.financials.payments
+    .filter(p => p.direction === 'in' && p.stageId === view.stage.id)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  let received = 0;
+  for (const p of parts) if (p.state === 'funded' || p.state === 'reconciled') received += p.amount;
+
+  // The six-step rail: each step's tone and one line, read from the same view as the grid.
+  type Tone = 'done' | 'current' | 'alert' | 'locked' | 'waiting';
+  const st = view.stage.status;
+  const verRequired = view.stage.verification_required === true;
+  const railTone = {
+    work: (st === 'complete' || st === 'pending_review' ? 'done' : st === 'active' ? 'current' : 'waiting') as Tone,
+    evidence: (evidencePaths.length > 0 ? 'done' : st === 'active' ? 'current' : 'waiting') as Tone,
+    verification: (!verRequired || v?.decision === 'verified' ? (st === 'locked' ? 'waiting' : 'done')
+      : v?.decision === 'pending' ? 'current' : v ? 'alert' : st === 'pending_review' ? 'current' : 'waiting') as Tone,
+    approval: (st === 'complete' ? 'done' : st === 'pending_review' ? (action('approve')?.enabled ? 'current' : 'locked') : 'waiting') as Tone,
+    funding: (milestone <= 0 ? 'waiting' : received >= milestone ? 'done' : received > 0 || view.tranche ? 'current' : 'waiting') as Tone,
+    release: (view.release?.state === 'disbursed' ? 'done' : view.release?.state === 'failed' ? 'alert' : view.release ? 'current' : 'waiting') as Tone,
+  };
+  const rail: { key: string; title: string; tone: Tone; note: string }[] = [
+    { key: 'work', title: t('admin.workspace.stages.work'), tone: railTone.work,
+      note: t(st === 'complete' || st === 'pending_review' ? 'admin.workspace.stagesView.rail.workDone' : st === 'active' ? 'admin.workspace.stagesView.rail.workActive' : 'admin.workspace.stagesView.rail.workLocked') },
+    { key: 'evidence', title: t('admin.workspace.stage.evidence'), tone: railTone.evidence,
+      note: evidencePaths.length > 0 ? t('admin.workspace.stagesView.rail.evidence', { files: evidencePaths.length, updates: view.siteUpdates.length }) : t('admin.workspace.stagesView.rail.evidenceNone') },
+    { key: 'verification', title: t('admin.workspace.stages.verification'), tone: railTone.verification,
+      note: !verRequired ? t('admin.workspace.stagesView.rail.verifNotRequired') : v ? `${t(decisionKey(v.decision))} · ${who(v.verifierId)}` : t('admin.workspace.stagesView.rail.verifNone') },
+    { key: 'approval', title: t('admin.workspace.stages.approval'), tone: railTone.approval,
+      note: st === 'complete' ? t('admin.workspace.stages.approvedOn', { date: formatDate(view.stage.completed_at) })
+        : st === 'pending_review' ? t(action('approve')?.enabled ? 'admin.workspace.stagesView.rail.approvalReady' : 'admin.workspace.stagesView.rail.approvalLocked')
+        : t('admin.workspace.stagesView.rail.approvalWaiting') },
+    { key: 'funding', title: t('admin.workspace.stage.tranche'), tone: railTone.funding,
+      note: milestone > 0 ? t('admin.workspace.stagesView.rail.fundingOf', { received: formatUSDFull(received), total: formatUSDFull(milestone) }) : t('admin.workspace.stage.milestoneNone') },
+    { key: 'release', title: t('admin.workspace.stage.release'), tone: railTone.release,
+      note: view.release ? `${t(`admin.ledger.state.${view.release.state}` as TKey)} · ${formatUSDFull(view.release.amount)}` : t('admin.workspace.stagesView.rail.releaseNone') },
+  ];
 
   return (
     <div>
       {/* ── Head: what this stage is, its state, every blocker ───────────────────── */}
-      <header className="border-b border-brand-border-grey px-5 py-4 dark:border-[#2c2c2c]">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-muted-grey">{t('admin.workspace.stage.eyebrow', { n: view.stage.stage_number })}</p>
-        <h2 className="mt-0.5 text-lg font-semibold text-brand-near-black dark:text-white">{stageLabel(view.stage)}</h2>
+      <header className="border-b border-brand-border-grey px-5 py-5 dark:border-[#2c2c2c]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-muted-grey">{t('admin.workspace.stage.eyebrow', { n: view.stage.stage_number })}</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{stageLabel(view.stage)}</h2>
+          </div>
+          <Link to={workspaceHref(ws.project.id, { tab: 'overview', stageId: view.stage.id })}
+            className="shrink-0 text-[13px] font-semibold text-brand-green underline underline-offset-2 dark:text-state-complete">
+            {t('admin.workspace.stagesView.openOverview')}
+          </Link>
+        </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
           <StageLifecycleBadge lifecycle={view.lifecycle} showBlocker={false} />
           {view.lifecycle.blockers.filter(b => b !== 'on_hold').map(b => (
@@ -191,11 +257,46 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
           {view.stage.completed_at && (
             <span className="text-xs text-brand-mid-grey">{t('admin.workspace.stages.approvedOn', { date: formatDate(view.stage.completed_at) })}</span>
           )}
+          {milestone > 0 && (
+            <span className="text-xs text-brand-mid-grey">
+              {t('admin.workspace.stagesView.milestone')}{' '}
+              <span className="font-semibold tabular-nums text-brand-near-black dark:text-white">{formatUSDFull(milestone)}</span>
+              {local(milestone) && <> · {local(milestone)}</>}
+            </span>
+          )}
         </div>
+
+        {/* ── Where the stage is in the loop, at a glance (18 Nov redesign) ───────── */}
+        <ol className="mt-5 grid grid-cols-3 gap-y-4 sm:grid-cols-6">
+          {rail.map((r, i) => (
+            <li key={r.key} className="relative min-w-0 pr-2">
+              {i < rail.length - 1 && (
+                <span aria-hidden className={cn('absolute left-8 right-0 top-[15px] hidden h-0.5 sm:block',
+                  r.tone === 'done' ? 'bg-brand-green dark:bg-state-complete' : 'bg-brand-border-grey dark:bg-[#2c2c2c]')} />
+              )}
+              <span className={cn('relative grid size-8 place-items-center rounded-full text-xs font-bold tabular-nums',
+                r.tone === 'done' ? 'bg-brand-green text-white dark:bg-state-complete'
+                : r.tone === 'current' ? 'border-2 border-state-held bg-white text-state-held dark:bg-[#1e1e1e]'
+                : r.tone === 'alert' ? 'border-2 border-state-alert bg-white text-state-alert dark:bg-[#1e1e1e]'
+                : r.tone === 'locked' ? 'border border-brand-border-grey bg-white text-brand-muted-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]'
+                : 'border border-brand-border-grey bg-white text-brand-mid-grey dark:border-[#2c2c2c] dark:bg-[#1e1e1e]')}>
+                {r.tone === 'done' ? <Check className="size-4" aria-hidden /> : r.tone === 'locked' ? <Lock className="size-3.5" aria-hidden /> : i + 1}
+              </span>
+              <p className={cn('mt-2 text-[13px] font-semibold', r.tone === 'current' ? 'text-state-held' : r.tone === 'alert' ? 'text-state-alert' : 'text-brand-near-black dark:text-white')}>{r.title}</p>
+              <p className="mt-0.5 text-xs leading-snug text-brand-mid-grey">{r.note}</p>
+            </li>
+          ))}
+        </ol>
 
         {/* ── Action row: the acts this state admits, each live or held with its reason ── */}
         {offered.length > 0 && (
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-5 flex flex-col gap-2.5 rounded-2xl border-[1.5px] border-brand-green p-4 dark:border-state-complete">
+            <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-green dark:text-state-complete">{t('admin.workspace.stagesView.nextAction')}</p>
+            <p className="-mt-1 text-[15px] font-bold text-brand-near-black dark:text-white">
+              {primaryAct
+                ? t(`admin.workspace.stagesView.next.${primaryAct.kind}` as TKey, { name: v ? who(v.verifierId) : '' })
+                : t('admin.workspace.stagesView.nextNone')}
+            </p>
             <div className="flex flex-wrap gap-2">
               {offered.map(a => (
                 <button
@@ -205,10 +306,12 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
                   onClick={() => onAction(a.kind)}
                   title={a.reasonKey ? t(a.reasonKey) : undefined}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-                    a.kind === 'approve' || a.kind === 'authorise_release'
-                      ? 'bg-brand-near-black text-white hover:bg-black dark:bg-white dark:text-brand-near-black dark:hover:bg-white/90'
-                      : 'border border-brand-border-grey text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white dark:hover:border-white',
+                    'inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                    // The one act to do next is the filled button; Approve and Authorise
+                    // release keep the filled style whenever they are offered.
+                    a === primaryAct || a.kind === 'approve' || a.kind === 'authorise_release'
+                      ? 'bg-brand-green text-white hover:bg-brand-green-hover dark:bg-state-complete'
+                      : 'border border-brand-border-grey bg-white text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white dark:hover:border-white',
                   )}
                 >
                   {busy === a.kind && <Loader2 className="size-3.5 animate-spin" />}
@@ -218,8 +321,9 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
             </div>
             {/* Every held act says why, in the database's words. */}
             {offered.filter(a => !a.enabled && a.reasonKey).map(a => (
-              <p key={a.kind} className="text-[11px] text-brand-mid-grey">
-                <span className="font-medium text-brand-near-black dark:text-white">{t(ACTION_LABEL[a.kind])}</span> — {t(a.reasonKey as TKey)}
+              <p key={a.kind} className="flex items-start gap-2 rounded-xl border border-dashed border-brand-border-grey px-3 py-2 text-xs text-brand-mid-grey dark:border-[#3a3a3a]">
+                <Lock className="mt-px size-3.5 shrink-0" aria-hidden />
+                <span><span className="font-semibold text-brand-near-black dark:text-white">{t(ACTION_LABEL[a.kind])}</span> — {t(a.reasonKey as TKey)}</span>
               </p>
             ))}
             {picker && action('request_verification').enabled && (
@@ -242,7 +346,7 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
       </header>
 
       {/* ── The loop, step by step ───────────────────────────────────────────────── */}
-      <ol className="divide-y divide-brand-border-grey dark:divide-[#2c2c2c]">
+      <ol className="grid md:grid-cols-2">
         {/* 1 · Work */}
         <Step n={1} title={t('admin.workspace.stages.work')}>
           {view.substages.length === 0 ? (
@@ -347,7 +451,30 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
               {view.tranche?.fundingSource === 'provider' && (
                 <span className="text-brand-mid-grey"> · {t('admin.ledger.source.provider', { when: formatRelative(view.tranche.settledAt ?? view.tranche.updatedAt) })}</span>
               )}
+              {local(milestone) && <span className="block text-[11px] text-brand-mid-grey">{local(milestone)}</span>}
             </p>
+          )}
+          {/* Every tranche the ledger holds for this stage — a stage paid in parts shows each part. */}
+          {ws.available.ledger && milestone > 0 && parts.length > 1 && (
+            <>
+              <span className="mt-2.5 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
+                <span className="block h-full rounded-full bg-brand-green dark:bg-state-complete" style={{ width: `${Math.min(100, Math.round((received / milestone) * 100))}%` }} />
+              </span>
+              <ul className="mt-2 space-y-1">
+                {parts.map((p, i) => (
+                  <li key={p.id} className="flex flex-wrap items-center gap-x-2 text-xs">
+                    <span className={cn('size-1.5 shrink-0 rounded-full', p.state === 'funded' || p.state === 'reconciled' ? 'bg-state-complete' : 'bg-state-held')} />
+                    <span className="text-brand-near-black dark:text-white">
+                      {t('admin.workspace.stagesView.part', { n: i + 1 })} · <span className="font-semibold tabular-nums">{formatUSDFull(p.amount)}</span> · {t(`admin.ledger.state.${p.state}` as TKey)}
+                    </span>
+                    {p.fundingSource === 'staff_confirmed' && <span className="text-brand-mid-grey">{t('admin.ledger.source.staff_confirmed', { name: who(p.confirmedBy), when: formatRelative(p.confirmedAt) })}</span>}
+                  </li>
+                ))}
+              </ul>
+              <Link to={workspaceHref(ws.project.id, { tab: 'financials' })} className="mt-1.5 inline-block text-xs font-semibold text-brand-green underline underline-offset-2 dark:text-state-complete">
+                {t('admin.workspace.stagesView.openFinancials')}
+              </Link>
+            </>
           )}
         </Step>
 
@@ -439,7 +566,7 @@ function StageDetail({ ws, loaded, view, onChanged }: { ws: Workspace; loaded: L
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <li className="flex gap-4 px-5 py-4">
+    <li className="flex gap-3 border-b border-brand-border-grey px-5 py-4 md:odd:border-r dark:border-[#2c2c2c]">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-brand-border-grey text-[11px] font-semibold tabular-nums text-brand-mid-grey dark:border-[#2c2c2c]">{n}</span>
       <div className="min-w-0 flex-1">
         <h3 className="text-[11px] font-semibold uppercase tracking-wide text-brand-muted-grey">{title}</h3>
