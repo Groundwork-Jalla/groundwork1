@@ -36,15 +36,17 @@ export function StageLadder({ projectId, stages, selectedId, tab = 'overview' }:
               className={cn(
                 'flex items-center gap-3 px-5 py-2.5 transition-colors',
                 active
-                  ? 'bg-brand-off-white dark:bg-[#252525]'
+                  ? 'bg-[#f3f6f4] shadow-[inset_3px_0_0_var(--color-brand-green)] dark:bg-[#1c2620]'
                   : 'hover:bg-brand-off-white dark:hover:bg-[#252525]',
               )}
             >
               <span className={cn(
                 'flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums',
                 active
-                  ? 'border-brand-near-black bg-brand-near-black text-white dark:border-white dark:bg-white dark:text-brand-near-black'
-                  : 'border-brand-border-grey text-brand-mid-grey dark:border-[#2c2c2c]',
+                  ? 'border-2 border-brand-green text-brand-green dark:border-state-complete dark:text-state-complete'
+                  : view.stage.status === 'complete'
+                    ? 'border-brand-green bg-brand-green text-white dark:border-state-complete dark:bg-state-complete'
+                    : 'border-brand-border-grey text-brand-mid-grey dark:border-[#2c2c2c]',
               )}>
                 {view.stage.stage_number}
               </span>

@@ -79,10 +79,16 @@ export function usePersonPreview(): {
   return { ref, rolesHint, open, close };
 }
 
-export function PersonPreview({ reference, rolesHint, onClose }: {
+export function PersonPreview({ reference, rolesHint, onClose, docked = false }: {
   reference: PersonRef | null;
   rolesHint?: string | null;
   onClose: () => void;
+  /**
+   * Docked (Homeowners, 18 Nov redesign): from `lg` up the panel sits in the page beside
+   * the list, sticky, with no overlay; below `lg` it is the same slide-over as everywhere
+   * else. One panel, one fetch — only the frame changes.
+   */
+  docked?: boolean;
 }) {
   const t = useT();
   const labels = useDomainLabels();
@@ -118,15 +124,24 @@ export function PersonPreview({ reference, rolesHint, onClose }: {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/50"
+      className={cn(
+        'fixed inset-0 z-50 flex justify-end bg-black/50',
+        docked && 'lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:block lg:bg-transparent',
+      )}
       onClick={onClose}
     >
       <aside
-        role="dialog" aria-modal="true" aria-label={name}
+        role="dialog" aria-modal={docked ? undefined : true} aria-label={name}
         onClick={e => e.stopPropagation()}
-        className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-brand-border-grey bg-white shadow-xl dark:border-[#2c2c2c] dark:bg-[#1a1a1a]"
+        className={cn(
+          'flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-brand-border-grey bg-white shadow-xl dark:border-[#2c2c2c] dark:bg-[#1a1a1a]',
+          docked && 'lg:h-auto lg:max-h-[calc(100vh-2rem)] lg:max-w-none lg:rounded-2xl lg:border lg:shadow-none dark:lg:bg-[#1e1e1e]',
+        )}
       >
-        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1a1a1a]">
+        <header className={cn(
+          'sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-brand-border-grey bg-white px-5 py-4 dark:border-[#2c2c2c] dark:bg-[#1a1a1a]',
+          docked && 'dark:lg:bg-[#1e1e1e]',
+        )}>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-mid-grey">
               {t('admin.person.title')}
@@ -307,7 +322,7 @@ function Row({ label, value, mono, trailing }: {
       <dd className={cn('min-w-0 flex-1 whitespace-pre-line break-words text-right text-xs text-brand-near-black dark:text-white',
         mono && 'font-mono text-[11px]')}>
         <span className="inline-flex max-w-full items-center justify-end gap-1.5">
-          <span className="min-w-0 break-all">{value}</span>{trailing}
+          <span className="min-w-0 [overflow-wrap:anywhere]">{value}</span>{trailing}
         </span>
       </dd>
     </div>

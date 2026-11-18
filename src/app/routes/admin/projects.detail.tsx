@@ -121,9 +121,9 @@ export default function AdminProjectWorkspace() {
               to={workspaceHref(ws.project.id, { tab: name, stageId })}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                '-mb-px shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors',
+                '-mb-px shrink-0 border-b-2 px-3 py-3 text-[13px] font-semibold transition-colors',
                 active
-                  ? 'border-brand-near-black text-brand-near-black dark:border-white dark:text-white'
+                  ? 'border-brand-green text-brand-near-black dark:border-state-complete dark:text-white'
                   : 'border-transparent text-brand-mid-grey hover:text-brand-near-black dark:hover:text-white',
               )}
             >

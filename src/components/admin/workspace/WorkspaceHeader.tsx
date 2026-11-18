@@ -152,7 +152,7 @@ export function WorkspaceHeader({ ws, onNotice, onReload }: {
       <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         {/* ── Identity ─────────────────────────────────────────────────────────────── */}
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight text-brand-near-black dark:text-white sm:text-2xl">
+          <h1 className="truncate text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white sm:text-[26px]">
             {p.name}
           </h1>
           <dl className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-brand-mid-grey">

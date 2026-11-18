@@ -154,11 +154,11 @@ export default function AdminInbox() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-brand-near-black dark:text-white">{t('admin.inbox.title')}</h1>
-          <p className="mt-0.5 text-xs text-brand-mid-grey">
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white sm:text-[28px]">{t('admin.inbox.title')}</h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">
             {channelFilter ? t(`admin.workspace.conversations.channel.${channelFilter}` as TKey) : t('admin.inbox.sub')}
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function AdminInbox() {
           <EmptyState icon={<MessagesSquare className="size-8" />} title={t('admin.inbox.empty')} description={t('admin.inbox.emptyBody')} />
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[21.5rem_minmax(0,1fr)]">
           {/* ── The threads ───────────────────────────────────────────────────────── */}
           <aside className="min-w-0 overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e] lg:self-start">
             <ul className="max-h-[36rem] divide-y divide-brand-border-grey overflow-y-auto dark:divide-[#2c2c2c]">
@@ -213,8 +213,8 @@ export default function AdminInbox() {
                   <li key={c.id}>
                     <button type="button" onClick={() => setParams(prev => { const next = new URLSearchParams(prev); next.set('conversation', c.id); return next; }, { replace: true })}
                       aria-current={active ? 'true' : undefined}
-                      className={cn('block w-full px-4 py-3 text-left transition-colors', active ? 'bg-brand-off-white dark:bg-[#252525]' : 'hover:bg-brand-off-white dark:hover:bg-[#252525]')}>
-                      <p className="flex items-center gap-2 text-sm font-medium text-brand-near-black dark:text-white">
+                      className={cn('block w-full px-4 py-3 text-left transition-colors', active ? 'bg-[#f3f6f4] shadow-[inset_3px_0_0_var(--color-brand-green)] dark:bg-[#1c2620]' : 'hover:bg-brand-off-white dark:hover:bg-[#252525]')}>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-brand-near-black dark:text-white">
                         <span className={cn('size-1.5 shrink-0 rounded-full', STATUS_DOT[c.status])} />
                         <span className="truncate">{title(c)}</span>
                         {c.lastMessageAt && <span className="ml-auto shrink-0 text-[11px] font-normal text-brand-mid-grey">{formatRelative(c.lastMessageAt)}</span>}

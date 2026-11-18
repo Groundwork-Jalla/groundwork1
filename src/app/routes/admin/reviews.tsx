@@ -20,6 +20,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ReworkModal } from '@/components/admin/stages/ReworkModal';
 import { RecordVerificationModal } from '@/components/admin/stages/RecordVerificationModal';
 import { useT } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { workspaceHref } from '@/lib/admin/workspace-params';
 
 interface PendingStage {
@@ -51,21 +52,21 @@ interface PendingSubstage {
 function EvidenceGrid({ urls }: { urls: string[] }) {
   if (urls.length === 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-brand-mid-grey py-1">
+      <div className="flex items-center gap-2 text-xs text-brand-mid-grey">
         <ImageIcon className="size-3.5" />
         No evidence uploaded
       </div>
     );
   }
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
+    <div className="flex flex-wrap gap-1.5">
       {urls.map((url, i) => (
         <a
           key={i}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs font-medium text-state-active hover:underline"
+          className="flex items-center gap-1 rounded-lg border border-brand-border-grey px-2 py-1 text-xs font-medium text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:text-white"
         >
           <ExternalLink className="size-3" />
           Evidence {i + 1}
@@ -182,25 +183,25 @@ function StageReviewCard({
   }
 
   return (
-    <div className="rounded-2xl border border-brand-border-grey bg-white overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
       {/* Header */}
-      <div className="px-5 py-4 flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 px-5 pb-1 pt-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="inline-flex items-center rounded-full bg-brand-off-white text-state-held border border-state-held/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-              In Review
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-state-held/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-state-held">
+              {t('admin.reviewsQueue.inReview')}
             </span>
-            <span className="text-[10px] text-brand-mid-grey">Stage {item.stageNumber}</span>
+            <span className="text-xs font-semibold text-brand-mid-grey">{t('admin.reviewsQueue.stage', { n: item.stageNumber })}</span>
           </div>
-          <h3 className="font-semibold text-brand-near-black truncate">{item.stageName}</h3>
-          <p className="text-xs text-brand-mid-grey mt-0.5 truncate">
-            <Link to={`/projects/${item.projectId}`} className="hover:underline" target="_blank">
+          <h3 className="mt-1.5 truncate text-xl font-extrabold tracking-tight text-brand-near-black dark:text-white">{item.stageName}</h3>
+          <p className="mt-1 truncate text-[13px] text-brand-mid-grey">
+            <Link to={`/projects/${item.projectId}`} className="font-medium text-brand-green hover:underline dark:text-state-complete" target="_blank">
               {item.projectName}
             </Link>
             {' · '}{item.ownerName || item.ownerEmail}
             {' · '}
             {/* The workspace, on this stage (05 §4); the queue re-points fully in Phase 7. */}
-            <Link to={workspaceHref(item.projectId, { tab: 'stages', stageId: item.stageId })} className="font-medium text-brand-near-black hover:underline dark:text-white">
+            <Link to={workspaceHref(item.projectId, { tab: 'stages', stageId: item.stageId })} className="font-medium text-brand-green hover:underline dark:text-state-complete">
               {t('admin.workspace.openWorkspace')}
             </Link>
           </p>
@@ -224,13 +225,16 @@ function StageReviewCard({
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-brand-border-grey divide-y divide-brand-border-grey">
-              {item.substages.map(sub => (
-                <div key={sub.id} className="px-5 py-3">
-                  <p className="text-xs font-medium text-brand-near-black mb-1">{sub.name}</p>
-                  <EvidenceGrid urls={sub.evidenceUrls} />
-                </div>
-              ))}
+            <div className="mx-5 mt-4 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c]">
+              <h4 className="px-3.5 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-brand-muted-grey">{t('admin.reviewsQueue.substages')}</h4>
+              <div>
+                {item.substages.map(sub => (
+                  <div key={sub.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-brand-border-grey px-3.5 py-2.5 dark:border-[#2c2c2c]">
+                    <p className="text-[13px] text-brand-near-black dark:text-white">{sub.name}</p>
+                    <EvidenceGrid urls={sub.evidenceUrls} />
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
@@ -238,16 +242,16 @@ function StageReviewCard({
 
       {/* Site updates (088) — the record of who reported what, when */}
       {item.siteUpdates.length > 0 && (
-        <div className="px-5 py-3 border-t border-brand-border-grey">
-          <p className="text-xs font-semibold text-brand-near-black">{t('admin.siteUpdates.title')}</p>
-          <ul className="mt-1.5 space-y-1.5">
+        <div className="mx-5 mt-4 rounded-xl border border-brand-border-grey dark:border-[#2c2c2c]">
+          <h4 className="px-3.5 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-brand-muted-grey">{t('admin.siteUpdates.title')}</h4>
+          <ul className="divide-y divide-brand-border-grey border-t border-brand-border-grey dark:divide-[#2c2c2c] dark:border-[#2c2c2c]">
             {item.siteUpdates.slice(0, 5).map(u => (
-              <li key={u.id} className="text-xs">
+              <li key={u.id} className="px-3.5 py-2.5 text-[13px]">
                 <span className="text-brand-mid-grey">
                   {t('admin.siteUpdates.by', { name: nameOf(u.submittedBy), when: formatRelative(u.submittedAt) })}
                   {u.evidencePaths.length > 0 && <> · {t('admin.siteUpdates.files', { n: u.evidencePaths.length })}</>}
                 </span>
-                {u.description && <p className="text-brand-near-black">{u.description}</p>}
+                {u.description && <p className="text-brand-near-black dark:text-white">{u.description}</p>}
               </li>
             ))}
           </ul>
@@ -256,8 +260,11 @@ function StageReviewCard({
 
       {/* Verification (087) */}
       {item.verificationAvailable && (
-        <div className="px-5 py-4 border-t border-brand-border-grey">
-          <p className="text-xs font-semibold text-brand-near-black">{t('admin.verification.title')}</p>
+        <div className={cn(
+          'mx-5 mt-4 rounded-xl border px-4 py-3.5',
+          gated ? 'border-state-held/60 bg-[#fbf8f2] dark:bg-[#231f17]' : 'border-brand-border-grey dark:border-[#2c2c2c]',
+        )}>
+          <p className={cn('text-[11px] font-bold uppercase tracking-[0.06em]', gated ? 'text-state-held' : 'text-brand-muted-grey')}>{t('admin.verification.title')}</p>
           {!item.verificationRequired ? (
             <p className="mt-1 text-xs text-brand-mid-grey">{t('admin.verification.notRequired')}</p>
           ) : lifecycle.state === 'verified' && latest ? (
@@ -280,7 +287,7 @@ function StageReviewCard({
               <button
                 type="button"
                 onClick={() => setShowRecord(true)}
-                className="rounded-lg border border-brand-border-grey px-3 py-1.5 text-xs font-medium text-brand-near-black hover:bg-brand-off-white"
+                className="rounded-lg border border-brand-border-grey bg-white px-3 py-1.5 text-xs font-semibold text-brand-near-black hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
               >
                 {t('admin.verification.recordDecision')}
               </button>
@@ -317,16 +324,16 @@ function StageReviewCard({
         </div>
       )}
       {!item.verificationAvailable && item.verificationRequired && (
-        <p className="px-5 py-2 text-[11px] text-brand-mid-grey border-t border-brand-border-grey">{t('admin.verification.unavailable')}</p>
+        <p className="mx-5 mt-4 text-[11px] text-brand-mid-grey">{t('admin.verification.unavailable')}</p>
       )}
 
       {/* Actions */}
       {approveError && <p role="alert" className="px-5 pt-3 text-xs text-state-alert">{approveError}</p>}
-      <div className="px-5 py-4 border-t border-brand-border-grey flex gap-3 justify-end">
+      <div className="mt-5 flex justify-end gap-2.5 border-t border-brand-border-grey px-5 py-4 dark:border-[#2c2c2c]">
         <button
           type="button"
           onClick={() => setShowRework(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium border border-brand-border-grey rounded-xl text-brand-mid-grey hover:text-brand-near-black hover:bg-brand-off-white transition-colors"
+          className="flex items-center gap-2 rounded-xl border border-brand-border-grey bg-white px-4 py-2 text-sm font-semibold text-brand-near-black transition-colors hover:border-brand-near-black dark:border-[#2c2c2c] dark:bg-[#1e1e1e] dark:text-white"
         >
           <RotateCcw className="size-4" />
           {t('admin.requestChanges')}
@@ -336,10 +343,10 @@ function StageReviewCard({
           onClick={() => setConfirmApprove(true)}
           disabled={gated}
           title={gated ? t('admin.verification.approveBlocked') : undefined}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-brand-near-black text-white rounded-xl hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 rounded-xl bg-brand-green px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           {approving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-          Approve stage
+          {t('admin.reviewsQueue.approve')}
         </button>
       </div>
 
@@ -453,13 +460,23 @@ export default function AdminReviews() {
     setItems(prev => prev.filter(i => i.stageId !== stageId));
   }
 
+  // The queue and the stage under review side by side (18 Nov redesign). The selection
+  // falls back to the first waiting stage, so approving one moves straight to the next.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = items.find(i => i.stageId === selectedId) ?? items[0] ?? null;
+
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-brand-near-black">{t('admin.reviewsTitle')}</h1>
-        <p className="mt-1 text-sm text-brand-mid-grey">
-          Jalla Verify stages awaiting your approval
-        </p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-near-black dark:text-white sm:text-[28px]">{t('admin.reviewsTitle')}</h1>
+          <p className="mt-1 text-sm text-brand-mid-grey">{t('admin.reviewsQueue.subtitle')}</p>
+        </div>
+        {!loading && items.length > 0 && (
+          <p className="text-[13px] text-brand-mid-grey">
+            <span className="font-semibold tabular-nums text-brand-near-black dark:text-white">{items.length}</span> {t('admin.reviewsQueue.waitingCount')}
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -474,15 +491,45 @@ export default function AdminReviews() {
           <p className="text-xs text-brand-mid-grey">{t('admin.reviewsEmpty')}</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 max-w-2xl">
-          {items.map(item => (
+        <div className="grid items-start gap-4 lg:grid-cols-[20.5rem_minmax(0,1fr)]">
+          <section className="overflow-hidden rounded-2xl border border-brand-border-grey bg-white dark:border-[#2c2c2c] dark:bg-[#1e1e1e]">
+            <h2 className="px-4 pb-2.5 pt-4 text-sm font-bold text-brand-near-black dark:text-white">{t('admin.reviewsQueue.waiting')}</h2>
+            <ul>
+              {items.map(item => {
+                const on = selected?.stageId === item.stageId;
+                return (
+                  <li key={item.stageId} className="border-t border-brand-border-grey dark:border-[#2c2c2c]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(item.stageId)}
+                      aria-current={on ? 'true' : undefined}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors',
+                        on ? 'bg-[#f3f6f4] shadow-[inset_3px_0_0_var(--color-brand-green)] dark:bg-[#1c2620]' : 'hover:bg-brand-off-white dark:hover:bg-[#252525]',
+                      )}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-semibold text-brand-near-black dark:text-white">
+                          {t('admin.reviewsQueue.stage', { n: item.stageNumber })} · {item.stageName}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[11.5px] text-brand-mid-grey">{item.projectName} · {item.ownerName || item.ownerEmail}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-state-held/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-state-held">{t('admin.reviewsQueue.inReview')}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          {selected && (
             <StageReviewCard
-              key={item.stageId}
-              item={item}
+              key={selected.stageId}
+              item={selected}
               onApproved={removeStage}
               onReworkRequested={removeStage}
             />
-          ))}
+          )}
         </div>
       )}
     </div>

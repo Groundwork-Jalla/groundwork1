@@ -48,9 +48,11 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
   const activityState = state('activity', ws.activity.length);
 
   return (
-    <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] 2xl:p-8">
+    // 18 Nov redesign (workspace-desktop.png): a narrow ladder column, the selected stage
+    // wide beside it, blockers next to activity, then the money. Same cards, same links.
+    <div className="grid items-start gap-4 p-4 sm:p-6 xl:grid-cols-[20.5rem_minmax(0,1fr)] 2xl:p-8">
       {/* ── Left stack: the ladder, then progress ──────────────────────────────── */}
-      <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-4">
         <Card titleKey="admin.workspace.overview.ladder" subtitleKey="admin.workspace.overview.ladderSub" viewAllTo={workspaceHref(p.id, { tab: 'stages' })}>
           {ws.stages.length === 0
             ? <CardEmpty messageKey="admin.workspace.overview.noSchedule" />
@@ -63,7 +65,7 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
               {t('admin.workspace.overview.progress', { done, total: ws.stages.length })}
             </p>
             <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-brand-light-grey">
-              <span className="block h-full rounded-full bg-brand-near-black dark:bg-white"
+              <span className="block h-full rounded-full bg-brand-green dark:bg-state-complete"
                 style={{ width: `${ws.stages.length ? Math.round((done / ws.stages.length) * 100) : 0}%` }} />
             </span>
             <p className="mt-2 text-xs text-brand-mid-grey">
@@ -76,13 +78,14 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
       </div>
 
       {/* ── Right stack: what this stage needs · what blocks · money · activity ──── */}
-      <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-4">
         <Card titleKey="admin.workspace.overview.selected" subtitleKey="admin.workspace.overview.selectedSub">
           {!selected
             ? <CardEmpty messageKey="admin.workspace.overview.noSchedule" />
             : <SelectedStagePanel projectId={p.id} view={selected} people={peopleOf(ws)} ledgerAvailable={ws.available.ledger} />}
         </Card>
 
+        <div className="grid items-start gap-4 lg:grid-cols-2">
         <Card titleKey="admin.workspace.overview.blockers" subtitleKey="admin.workspace.overview.blockersSub">
           {ws.openBlockers.length === 0 ? (
             <CardEmpty messageKey="admin.workspace.overview.blockersEmpty" />
@@ -110,21 +113,6 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
                 );
               })}
             </ul>
-          )}
-        </Card>
-
-        <Card titleKey="admin.workspace.overview.financial" subtitleKey="admin.workspace.overview.financialSub" viewAllTo={workspaceHref(p.id, { tab: 'financials' })}>
-          {ledgerState === 'unavailable' || ledgerState === 'error' ? (
-            <DomainNote state={ledgerState} reason={loaded.errors.ledger} />
-          ) : (
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">
-              <Money label={t('admin.workspace.overview.budget')}     value={p.budget_usd == null ? null : fin.budgetUsd} />
-              <Money label={t('admin.workspace.overview.funded')}     value={fin.funded} />
-              <Money label={t('admin.workspace.overview.available')}  value={fin.availableFunds} emphasis />
-              <Money label={t('admin.workspace.overview.authorised')} value={fin.authorised} />
-              <Money label={t('admin.workspace.overview.inFlight')}   value={fin.inFlight} />
-              <Money label={t('admin.workspace.overview.disbursed')}  value={fin.disbursed} />
-            </dl>
           )}
         </Card>
 
@@ -162,6 +150,23 @@ export function OverviewTab({ loaded, stageId }: { loaded: LoadedWorkspace; stag
             </ul>
           )}
         </Card>
+        </div>
+
+        <Card titleKey="admin.workspace.overview.financial" subtitleKey="admin.workspace.overview.financialSub" viewAllTo={workspaceHref(p.id, { tab: 'financials' })}>
+          {ledgerState === 'unavailable' || ledgerState === 'error' ? (
+            <DomainNote state={ledgerState} reason={loaded.errors.ledger} />
+          ) : (
+            <dl className="grid grid-cols-2 gap-2 px-5 py-4 sm:grid-cols-3">
+              <Money label={t('admin.workspace.overview.budget')}     value={p.budget_usd == null ? null : fin.budgetUsd} />
+              <Money label={t('admin.workspace.overview.funded')}     value={fin.funded} />
+              <Money label={t('admin.workspace.overview.available')}  value={fin.availableFunds} emphasis />
+              <Money label={t('admin.workspace.overview.authorised')} value={fin.authorised} />
+              <Money label={t('admin.workspace.overview.inFlight')}   value={fin.inFlight} />
+              <Money label={t('admin.workspace.overview.disbursed')}  value={fin.disbursed} />
+            </dl>
+          )}
+        </Card>
+
       </div>
     </div>
   );
@@ -183,9 +188,10 @@ function peopleOf(ws: Workspace) {
 /** `null` is "not recorded" and renders as a dash — a real $0 is a number and renders as one. */
 function Money({ label, value, emphasis }: { label: string; value: number | null; emphasis?: boolean }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-[11px] text-brand-mid-grey">{label}</dt>
-      <dd className={cn('mt-0.5 truncate tabular-nums', value === null ? 'text-brand-muted-grey' : 'text-brand-near-black dark:text-white', emphasis ? 'text-base font-bold' : 'text-sm font-semibold')}>
+    <div className={cn('min-w-0 rounded-xl border px-3 py-2.5',
+      emphasis ? 'border-[1.5px] border-brand-green bg-[#f3f6f4] dark:border-state-complete dark:bg-[#1c2620]' : 'border-brand-border-grey dark:border-[#2c2c2c]')}>
+      <dt className="text-xs text-brand-mid-grey">{label}</dt>
+      <dd className={cn('mt-0.5 truncate text-[15px] font-semibold tabular-nums', value === null ? 'text-brand-muted-grey' : 'text-brand-near-black dark:text-white')}>
         {value === null ? '—' : formatUSDFull(value)}
       </dd>
     </div>
